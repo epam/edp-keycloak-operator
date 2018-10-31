@@ -1,0 +1,33 @@
+plugins {
+	id 'org.springframework.boot' version '2.1.0.RELEASE'
+}
+
+
+apply plugin: 'java'
+apply plugin: 'maven'
+
+
+
+group = 'com.epam.edp'
+version = '0.0.1-SNAPSHOT'
+
+description = """"""
+
+sourceCompatibility = 1.5
+targetCompatibility = 1.5
+tasks.withType(JavaCompile) {
+	options.encoding = 'UTF-8'
+}
+
+bootJar {
+	mainClassName "com.epam.edp.demo.DemoApplication"
+}
+
+repositories {
+        
+     maven { url "http://repo.maven.apache.org/maven2" }
+}
+dependencies {
+    compile group: 'org.springframework.boot', name: 'spring-boot-starter-web', version:'2.0.1.RELEASE'
+    testCompile group: 'org.springframework.boot', name: 'spring-boot-starter-test', version:'2.0.1.RELEASE'
+}
