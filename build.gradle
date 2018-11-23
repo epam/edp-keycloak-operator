@@ -5,7 +5,7 @@ plugins {
 
 apply plugin: 'java'
 apply plugin: 'maven'
-
+apply plugin: 'maven-publish'
 
 
 group = 'com.epam.edp'
@@ -21,6 +21,24 @@ tasks.withType(JavaCompile) {
 
 bootJar {
 	mainClassName "com.epam.edp.demo.DemoApplication"
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+ 
+repositories {
+    maven {
+        credentials {
+            username nexusLogin
+            password nexusPassword
+        }
+        url "${nexusMavenRepositoryUrl}"
+    }
+ }
 }
 
 repositories {
