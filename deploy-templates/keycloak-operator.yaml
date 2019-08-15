@@ -1,0 +1,120 @@
+# Copyright 2018 EPAM Systems.
+
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+apiVersion: v1
+kind: Template
+metadata:
+  name: "keycloak-operator"
+  annotations:
+    iconClass: "icon-spring"
+    description: Openshift template for spring-boot application/service deploying
+    template.openshift.io/provider-display-name: EPAM
+    template.openshift.io/support-url: https://www.epam.com
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: "keycloak-operator"
+    labels:
+      app: "keycloak-operator"
+  spec:
+    ports:
+    - name: "keycloak-operator"
+      port: 8080
+      protocol: TCP
+      targetPort: 8080
+    selector:
+      app: "keycloak-operator"
+    type: ClusterIP
+- apiVersion: v1
+  kind: ServiceAccount
+  metadata:
+    name: "keycloak-operator"
+
+
+- apiVersion: v1
+  kind: DeploymentConfig
+  metadata:
+    name: "keycloak-operator"
+    labels:
+      app: "keycloak-operator"
+  spec:
+    replicas: 1
+    selector:
+      app: "keycloak-operator"
+    strategy:
+      activeDeadlineSeconds: 21600
+      type: Rolling
+      rollingParams:
+        failurePolicy: Abort
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: 600
+        updatePeriodSeconds: 1
+    template:
+      metadata:
+        labels:
+          app: "keycloak-operator"
+      spec:
+
+        serviceAccountName: "keycloak-operator"
+        containers:
+        - name: "keycloak-operator"
+          image: "docker-registry.default.svc:5000/${IMAGE_NAME}:${APP_VERSION}"
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          livenessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 180
+            periodSeconds: 20
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 5
+          readinessProbe:
+            failureThreshold: 5
+            initialDelaySeconds: 60
+            periodSeconds: 20
+            successThreshold: 1
+            tcpSocket:
+              port: 8080
+            timeoutSeconds: 5
+          resources:
+            requests:
+              memory: 500Mi
+
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        terminationGracePeriodSeconds: 30
+    triggers:
+      - type: ConfigChange
+parameters:
+- displayName: Application image name
+  name: IMAGE_NAME
+  required: true
+  value: "keycloak-operator"
+- displayName: Application version
+  name: APP_VERSION
+  required: true
+  value: "latest"
+- displayName: Current namespace
+  name: NAMESPACE
+  required: true
