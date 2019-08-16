@@ -12,7 +12,7 @@ spec:
       labels:
         name: keycloak-operator
     spec:
-      serviceAccountName: keycloak-operator
+      serviceAccountName: edp
       containers:
         - name: keycloak-operator
           # Replace this with the built image name
