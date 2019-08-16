@@ -2,6 +2,5 @@ apiVersion: v1.edp.epam.com/v1alpha1
 kind: KeycloakRealm
 metadata:
   name: main
-  namespace: example-edp-cicd
 spec:
   realmName: example-edp-cicd.main
