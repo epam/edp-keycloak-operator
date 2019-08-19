@@ -79,5 +79,9 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	return reconcile.Result{}, nil
+	instance.Status.Available = true
+
+	err = r.client.Update(context.TODO(), instance)
+
+	return reconcile.Result{}, err
 }

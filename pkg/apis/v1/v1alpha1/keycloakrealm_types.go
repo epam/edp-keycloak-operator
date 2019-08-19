@@ -19,6 +19,7 @@ type KeycloakRealmSpec struct {
 // KeycloakRealmStatus defines the observed state of KeycloakRealm
 // +k8s:openapi-gen=true
 type KeycloakRealmStatus struct {
+	Available bool `json:"available, omitempty"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
