@@ -4,3 +4,5 @@ metadata:
   name: main
 spec:
   realmName: example-edp-cicd.main
+status:
+  available: false
