@@ -2,7 +2,6 @@ package keycloakrealm
 
 import (
 	"context"
-
 	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
 
 	"k8s.io/apimachinery/pkg/api/errors"

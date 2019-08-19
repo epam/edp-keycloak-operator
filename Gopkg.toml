@@ -53,6 +53,13 @@ required = [
   # branch = "master" #osdk_branch_annotation
   version = "=v0.10.0" #osdk_version_annotation
 
+[[constraint]]
+  name = "gopkg.in/nerzal/gocloak.v2"
+
+[[constraint]]
+  name = "github.com/stretchr/testify"
+  version = "1.4.0"
+
 [prune]
   go-tests = true
   non-go = true

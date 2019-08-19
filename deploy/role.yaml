@@ -57,5 +57,6 @@ rules:
   - v1.edp.epam.com
   resources:
   - '*'
+  - keycloaks
   verbs:
   - '*'
