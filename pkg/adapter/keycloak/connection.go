@@ -10,17 +10,17 @@ import (
 
 var log = logf.Log.WithName("gocloak_adapter")
 
-// GoCloakConnection is the abstraction that holds both Gocloak client and Gocloak token
+// GoCloakConnection is the abstraction that holds both Gocloak Client and Gocloak Token
 type GoCloakConnection struct {
-	client gocloak.GoCloak
-	token  gocloak.JWT
+	Client gocloak.GoCloak
+	Token  gocloak.JWT
 }
 
 type IGoCloakAdapter interface {
 	GetConnection(cr v1v1alpha1.Keycloak) (*GoCloakConnection, error)
 }
 
-// GoCloakAdapter it the struct that holds ClientSup - supplier that returns the implementation of gocloak client
+// GoCloakAdapter it the struct that holds ClientSup - supplier that returns the implementation of gocloak Client
 type GoCloakAdapter struct {
 	ClientSup func(url string) gocloak.GoCloak
 }
@@ -34,7 +34,7 @@ func (a GoCloakAdapter) GetConnection(cr v1v1alpha1.Keycloak) (*GoCloakConnectio
 	reqLog := log.WithValues("Keycloak Cr spec", cr.Spec)
 	reqLog.Info("Start getting connection...")
 	if a.ClientSup == nil {
-		return nil, errors.New("gocloak adapter does not have required client supplier")
+		return nil, errors.New("gocloak adapter does not have required Client supplier")
 	}
 	client := a.ClientSup(cr.Spec.Url)
 	token, err := client.LoginAdmin(cr.Spec.User, cr.Spec.Pwd, "master")
@@ -42,9 +42,9 @@ func (a GoCloakAdapter) GetConnection(cr v1v1alpha1.Keycloak) (*GoCloakConnectio
 		errMsg := fmt.Sprintf("cannot login to Keycloak server by cr: %+v", cr)
 		return nil, errors.Wrap(err, errMsg)
 	}
-	reqLog.Info("Connection has been established", "token", token)
+	reqLog.Info("Connection has been established", "Token", token)
 	return &GoCloakConnection{
-		client: client,
-		token:  *token,
+		Client: client,
+		Token:  *token,
 	}, nil
 }

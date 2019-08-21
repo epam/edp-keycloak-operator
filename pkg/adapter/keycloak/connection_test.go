@@ -36,7 +36,7 @@ func TestGoCloakAdapter_GetConnectionHappyPath(t *testing.T) {
 	// verify
 	assert.Nil(t, err)
 	assert.NotNil(t, res)
-	assert.Equal(t, "test", res.token.AccessToken)
+	assert.Equal(t, "test", res.Token.AccessToken)
 }
 
 func TestGoCloakAdapter_GetConnectionInvalidPass(t *testing.T) {
