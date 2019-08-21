@@ -120,7 +120,7 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedFalse(t *testing.T) {
 	assert.False(t, persisted.Status.Connected)
 }
 
-func TestReconcileCreatesKeycloakRealmWihtOwnerReference(t *testing.T) {
+func TestReconcileCreatesKeycloakRealmWithOwnerReference(t *testing.T) {
 	//prepare
 	//client & scheme
 

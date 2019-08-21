@@ -2,10 +2,14 @@ package keycloakrealm
 
 import (
 	"context"
-	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
-
+	coreerrors "errors"
+	"gopkg.in/nerzal/gocloak.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
+	"keycloak-operator/pkg/adapter/keycloak"
+	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -30,7 +34,15 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKeycloakRealm{client: mgr.GetClient(), scheme: mgr.GetScheme()}
+	adapter := keycloak.GoCloakAdapter{
+		ClientSup: func(url string) gocloak.GoCloak {
+			return gocloak.NewClient(url)
+		},
+	}
+	return &ReconcileKeycloakRealm{
+		client:  mgr.GetClient(),
+		scheme:  mgr.GetScheme(),
+		adapter: adapter}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -52,8 +64,9 @@ var _ reconcile.Reconciler = &ReconcileKeycloakRealm{}
 type ReconcileKeycloakRealm struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
-	client client.Client
-	scheme *runtime.Scheme
+	client  client.Client
+	scheme  *runtime.Scheme
+	adapter keycloak.IGoCloakAdapter
 }
 
 // Reconcile reads that state of the cluster for a KeycloakRealm object and makes changes based on the state read
@@ -78,9 +91,66 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	instance.Status.Available = true
+	ownerKeycloak, err := r.getOwnerKeycloak(instance)
+	if err != nil {
+		return reconcile.Result{}, nil
+	}
 
-	err = r.client.Update(context.TODO(), instance)
+	if ownerKeycloak.Status.Connected {
+		err = r.putRealm(ownerKeycloak, instance)
+	}
 
 	return reconcile.Result{}, err
+}
+
+func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm) error {
+	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
+	reqLog.Info("Start putting realm")
+	connection, err := r.adapter.GetConnection(*owner)
+	if err != nil {
+		return err
+	}
+	realmRepresentation, err := connection.Client.GetRealm(connection.Token.AccessToken, realm.Spec.RealmName)
+	if err != nil {
+		reqLog.Error(err, "error by the get realm request")
+	}
+	if realmRepresentation == nil {
+		err = connection.Client.CreateRealm(connection.Token.AccessToken, gocloak.RealmRepresentation{
+			Realm: realm.Spec.RealmName,
+		})
+	}
+	reqLog.Info("End putting realm")
+	return nil
+}
+
+func (r *ReconcileKeycloakRealm) getOwnerKeycloak(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
+	reqLog := log.WithValues("realm cr", realm)
+	reqLog.Info("Start getting owner Keycloak")
+
+	ows := realm.GetOwnerReferences()
+	if len(ows) == 0 {
+		return nil, coreerrors.New("keycloak realm cr does not have owner references")
+	}
+	keycloakOwner := getKeycloakOwner(ows)
+	if keycloakOwner == nil {
+		return nil, coreerrors.New("keycloak realm cr does not keycloak cr owner references")
+	}
+
+	nsn := types.NamespacedName{
+		Namespace: realm.Namespace,
+		Name:      keycloakOwner.Name,
+	}
+
+	ownerCr := &v1v1alpha1.Keycloak{}
+	err := r.client.Get(context.TODO(), nsn, ownerCr)
+	return ownerCr, err
+}
+
+func getKeycloakOwner(references []v1.OwnerReference) *v1.OwnerReference {
+	for _, el := range references {
+		if el.Kind == "Keycloak" {
+			return &el
+		}
+	}
+	return nil
 }
