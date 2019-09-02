@@ -111,6 +111,9 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 	reqLogger := log.WithValues("instance", instance)
 	reqLogger.Info("Start updating connection status to Keycloak")
 	_, err := r.adapter.GetConnection(*instance)
+	if err != nil {
+		reqLogger.Error(err, "Cannot establish connection to Keycloak")
+	}
 	instance.Status.Connected = err == nil
 	err = r.client.Update(context.TODO(), instance)
 	reqLogger.Info("Status has been updated", "status", instance.Status)
