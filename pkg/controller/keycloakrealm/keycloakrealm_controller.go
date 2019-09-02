@@ -91,16 +91,27 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 		return reconcile.Result{}, err
 	}
 
-	ownerKeycloak, err := r.getOwnerKeycloak(instance)
-	if err != nil {
-		return reconcile.Result{}, nil
-	}
+	err = r.tryReconcile(instance)
 
-	if ownerKeycloak.Status.Connected {
-		err = r.putRealm(ownerKeycloak, instance)
-	}
+	_ = r.client.Update(context.TODO(), instance)
 
 	return reconcile.Result{}, err
+}
+
+func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
+	ownerKeycloak, err := r.getOwnerKeycloak(realm)
+	if err != nil {
+		realm.Status.Available = false
+		return err
+	}
+
+	if !ownerKeycloak.Status.Connected {
+		realm.Status.Available = false
+		return nil
+	}
+	err = r.putRealm(ownerKeycloak, realm)
+	realm.Status.Available = err == nil
+	return err
 }
 
 func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm) error {
@@ -120,7 +131,7 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 		})
 	}
 	reqLog.Info("End putting realm")
-	return nil
+	return err
 }
 
 func (r *ReconcileKeycloakRealm) getOwnerKeycloak(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
