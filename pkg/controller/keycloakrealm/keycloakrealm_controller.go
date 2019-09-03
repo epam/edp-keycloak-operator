@@ -2,7 +2,7 @@ package keycloakrealm
 
 import (
 	"context"
-	coreerrors "errors"
+	coreerrors "github.com/pkg/errors"
 	"gopkg.in/nerzal/gocloak.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -125,13 +125,29 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 	if err != nil {
 		reqLog.Error(err, "error by the get realm request")
 	}
-	if realmRepresentation == nil {
-		err = connection.Client.CreateRealm(connection.Token.AccessToken, gocloak.RealmRepresentation{
-			Realm: realm.Spec.RealmName,
-		})
+	if realmRepresentation != nil {
+		log.Info("Realm already exists")
+		return nil
 	}
-	reqLog.Info("End putting realm")
-	return err
+	err = connection.Client.CreateRealm(connection.Token.AccessToken, gocloak.RealmRepresentation{
+		Realm:        realm.Spec.RealmName,
+		Enabled:      true,
+		DefaultRoles: []string{"developer"},
+		Roles: map[string][]map[string]interface{}{
+			"realm": {
+				{
+					"name": "administrator",
+				},
+				{
+					"name": "developer",
+				},
+			},
+		},
+	})
+	if err != nil {
+		return coreerrors.Wrap(err, "Cannot create realm")
+	}
+	return nil
 }
 
 func (r *ReconcileKeycloakRealm) getOwnerKeycloak(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
