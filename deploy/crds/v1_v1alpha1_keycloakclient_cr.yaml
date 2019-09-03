@@ -1,0 +1,8 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: example-keycloakclient
+spec:
+  clientId: someId
+  clientSecret: secret
+  targetRealm: openshift

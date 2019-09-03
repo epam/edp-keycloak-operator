@@ -1,14 +1,14 @@
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
-  name: keycloaks.v1.edp.epam.com
+  name: keycloakclients.v1.edp.epam.com
 spec:
   group: v1.edp.epam.com
   names:
-    kind: Keycloak
-    listKind: KeycloakList
-    plural: keycloaks
-    singular: keycloak
+    kind: KeycloakClient
+    listKind: KeycloakClientList
+    plural: keycloakclients
+    singular: keycloakclient
   scope: Namespaced
   subresources:
     status: {}
@@ -28,24 +28,8 @@ spec:
         metadata:
           type: object
         spec:
-          properties:
-            pwd:
-              type: string
-            url:
-              type: string
-            user:
-              type: string
-          required:
-          - url
-          - user
-          - pwd
           type: object
         status:
-          properties:
-            connected:
-              type: boolean
-          required:
-          - connected
           type: object
   version: v1alpha1
   versions:
