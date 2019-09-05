@@ -4,35 +4,33 @@ import (
 	"context"
 	"errors"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
-	"keycloak-operator/pkg/adapter/keycloak"
 	"keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
-type MockGoCloakAdapter struct {
-	mock.Mock
-}
-
-func (m *MockGoCloakAdapter) GetConnection(cr v1alpha1.Keycloak) (*keycloak.GoCloakConnection, error) {
-	args := m.Called(cr)
-	return args.Get(0).(*keycloak.GoCloakConnection), args.Error(1)
-}
-
-func TestNewKeycloakCRShouldUpdateStatusConnectedTrue(t *testing.T) {
+func TestReconcileKeycloak_ReconcileNewKeycloakCR(t *testing.T) {
 	//prepare
 	//client & scheme
 
 	cr := &v1alpha1.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "TestKeycloak",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
+		},
+		Spec: v1alpha1.KeycloakSpec{
+			Url:  "https://some",
+			User: "user",
+			Pwd:  "pass",
 		},
 	}
 	objs := []runtime.Object{
@@ -42,15 +40,16 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedTrue(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
 	client := fake.NewFakeClient(objs...)
 
-	//adapter
-	adapter := new(MockGoCloakAdapter)
-	adapter.On("GetConnection", mock.Anything).
-		Return(&keycloak.GoCloakConnection{}, nil)
+	//factory
+	factory := new(mock.MockGoCloakFactory)
+	factory.On("New", cr.Spec).
+		Return(nil, nil)
 
 	//request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name: "TestKeycloak",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
 		},
 	}
 
@@ -58,7 +57,7 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedTrue(t *testing.T) {
 	r := ReconcileKeycloak{
 		client:  client,
 		scheme:  s,
-		adapter: adapter,
+		factory: factory,
 	}
 
 	//test
@@ -71,15 +70,36 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedTrue(t *testing.T) {
 	persisted := &v1alpha1.Keycloak{}
 	err = client.Get(context.TODO(), req.NamespacedName, persisted)
 	assert.True(t, persisted.Status.Connected)
+
+	realm := &v1alpha1.KeycloakRealm{}
+	nsnRealm := types.NamespacedName{
+		Name:      "main",
+		Namespace: "namespace",
+	}
+	err = client.Get(context.TODO(), nsnRealm, realm)
+
+	assert.NotNil(t, realm)
+	assert.Equal(t, "namespace.main", realm.Spec.RealmName)
+
+	or := realm.GetOwnerReferences()
+	assert.True(t, len(or) > 0)
+	owner := or[0]
+	assert.Equal(t, owner.Name, "NewKeycloak")
 }
 
-func TestNewKeycloakCRShouldUpdateStatusConnectedFalse(t *testing.T) {
+func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
 	//client & scheme
 
 	cr := &v1alpha1.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: "TestKeycloak",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
+		},
+		Spec: v1alpha1.KeycloakSpec{
+			Url:  "https://some",
+			User: "user",
+			Pwd:  "pass",
 		},
 	}
 	objs := []runtime.Object{
@@ -89,15 +109,16 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedFalse(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
 	client := fake.NewFakeClient(objs...)
 
-	//adapter
-	adapter := new(MockGoCloakAdapter)
-	adapter.On("GetConnection", mock.Anything).
-		Return(&keycloak.GoCloakConnection{}, errors.New("some test error"))
+	//factory
+	factory := new(mock.MockGoCloakFactory)
+	factory.On("New", cr.Spec).
+		Return(nil, errors.New("some error"))
 
 	//request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name: "TestKeycloak",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
 		},
 	}
 
@@ -105,7 +126,7 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedFalse(t *testing.T) {
 	r := ReconcileKeycloak{
 		client:  client,
 		scheme:  s,
-		adapter: adapter,
+		factory: factory,
 	}
 
 	//test
@@ -118,35 +139,59 @@ func TestNewKeycloakCRShouldUpdateStatusConnectedFalse(t *testing.T) {
 	persisted := &v1alpha1.Keycloak{}
 	err = client.Get(context.TODO(), req.NamespacedName, persisted)
 	assert.False(t, persisted.Status.Connected)
+
+	realm := &v1alpha1.KeycloakRealm{}
+	nsnRealm := types.NamespacedName{
+		Name:      "main",
+		Namespace: "namespace",
+	}
+	err = client.Get(context.TODO(), nsnRealm, realm)
+
+	assert.Error(t, err)
+
+	assert.True(t, k8sErrors.IsNotFound(err))
 }
 
-func TestReconcileCreatesKeycloakRealmWithOwnerReference(t *testing.T) {
+func TestReconcileKeycloak_ReconcileExistingCRRealm(t *testing.T) {
 	//prepare
 	//client & scheme
 
 	cr := &v1alpha1.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "TestKeycloak",
-			Namespace: "test-namespace",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
+		},
+		Spec: v1alpha1.KeycloakSpec{
+			Url:  "https://some",
+			User: "user",
+			Pwd:  "pass",
+		},
+	}
+	realm := &v1alpha1.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "main",
+		},
+		Spec: v1alpha1.KeycloakRealmSpec{
+			RealmName: "namespace.main",
 		},
 	}
 	objs := []runtime.Object{
-		cr,
+		cr, realm,
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, realm)
 	client := fake.NewFakeClient(objs...)
 
-	//adapter
-	adapter := new(MockGoCloakAdapter)
-	adapter.On("GetConnection", mock.Anything).
-		Return(&keycloak.GoCloakConnection{}, nil)
+	//factory
+	factory := new(mock.MockGoCloakFactory)
+	factory.On("New", cr.Spec).
+		Return(nil, nil)
 
 	//request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      "TestKeycloak",
-			Namespace: "test-namespace",
+			Name:      "NewKeycloak",
+			Namespace: "namespace",
 		},
 	}
 
@@ -154,7 +199,7 @@ func TestReconcileCreatesKeycloakRealmWithOwnerReference(t *testing.T) {
 	r := ReconcileKeycloak{
 		client:  client,
 		scheme:  s,
-		adapter: adapter,
+		factory: factory,
 	}
 
 	//test
@@ -164,18 +209,17 @@ func TestReconcileCreatesKeycloakRealmWithOwnerReference(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, res.Requeue)
 
-	persisted := &v1alpha1.KeycloakRealm{}
+	persisted := &v1alpha1.Keycloak{}
+	err = client.Get(context.TODO(), req.NamespacedName, persisted)
+	assert.True(t, persisted.Status.Connected)
+
+	persistedRealm := &v1alpha1.KeycloakRealm{}
 	nsnRealm := types.NamespacedName{
 		Name:      "main",
-		Namespace: "test-namespace",
+		Namespace: "namespace",
 	}
-	err = client.Get(context.TODO(), nsnRealm, persisted)
+	err = client.Get(context.TODO(), nsnRealm, persistedRealm)
 
-	assert.NotNil(t, persisted)
-	assert.Equal(t, "test-namespace.main", persisted.Spec.RealmName)
-
-	or := persisted.GetOwnerReferences()
-	assert.True(t, len(or) > 0)
-	owner := or[0]
-	assert.Equal(t, owner.Name, "TestKeycloak")
+	assert.NotNil(t, realm)
+	assert.Equal(t, "namespace.main", persistedRealm.Spec.RealmName)
 }
