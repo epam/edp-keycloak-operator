@@ -3,13 +3,13 @@ package keycloak
 import (
 	"context"
 	"fmt"
-	"gopkg.in/nerzal/gocloak.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"keycloak-operator/pkg/adapter/keycloak"
 	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak"
+	"keycloak-operator/pkg/client/keycloak/adapter"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -35,15 +35,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	adapter := keycloak.GoCloakAdapter{
-		ClientSup: func(url string) gocloak.GoCloak {
-			return gocloak.NewClient(url)
-		},
-	}
 	return &ReconcileKeycloak{
 		client:  mgr.GetClient(),
 		scheme:  mgr.GetScheme(),
-		adapter: adapter}
+		factory: new(adapter.GoCloakAdapterFactory),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -67,7 +63,7 @@ type ReconcileKeycloak struct {
 	// that reads objects from the cache and writes to the apiserver
 	client  client.Client
 	scheme  *runtime.Scheme
-	adapter keycloak.IGoCloakAdapter
+	factory keycloak.ClientFactory
 }
 
 // Reconcile reads that state of the cluster for a Keycloak object and makes changes based on the state read
@@ -110,14 +106,15 @@ func (r *ReconcileKeycloak) Reconcile(request reconcile.Request) (reconcile.Resu
 func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha1.Keycloak) error {
 	reqLogger := log.WithValues("instance", instance)
 	reqLogger.Info("Start updating connection status to Keycloak")
-	_, err := r.adapter.GetConnection(*instance)
-	if err != nil {
-		reqLogger.Error(err, "Cannot establish connection to Keycloak")
-	}
+
+	_, err := r.factory.New(instance.Spec)
 	instance.Status.Connected = err == nil
 	err = r.client.Update(context.TODO(), instance)
+	if err != nil {
+		return err
+	}
 	reqLogger.Info("Status has been updated", "status", instance.Status)
-	return err
+	return nil
 }
 
 func (r *ReconcileKeycloak) putMainRealm(instance *v1v1alpha1.Keycloak) error {

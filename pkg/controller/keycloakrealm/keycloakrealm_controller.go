@@ -4,14 +4,14 @@ import (
 	"context"
 	"github.com/google/uuid"
 	coreerrors "github.com/pkg/errors"
-	"gopkg.in/nerzal/gocloak.v2"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"keycloak-operator/pkg/adapter/keycloak"
 	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak"
+	"keycloak-operator/pkg/client/keycloak/adapter"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -37,15 +37,11 @@ func Add(mgr manager.Manager) error {
 
 // newReconciler returns a new reconcile.Reconciler
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	adapter := keycloak.GoCloakAdapter{
-		ClientSup: func(url string) gocloak.GoCloak {
-			return gocloak.NewClient(url)
-		},
-	}
 	return &ReconcileKeycloakRealm{
 		client:  mgr.GetClient(),
 		scheme:  mgr.GetScheme(),
-		adapter: adapter}
+		factory: new(adapter.GoCloakAdapterFactory),
+	}
 }
 
 // add adds a new Controller to mgr with r as the reconcile.Reconciler
@@ -69,7 +65,7 @@ type ReconcileKeycloakRealm struct {
 	// that reads objects from the cache and writes to the apiserver
 	client  client.Client
 	scheme  *runtime.Scheme
-	adapter keycloak.IGoCloakAdapter
+	factory keycloak.ClientFactory
 }
 
 // Reconcile reads that state of the cluster for a KeycloakRealm object and makes changes based on the state read
@@ -125,33 +121,20 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm) error {
 	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
 	reqLog.Info("Start putting realm")
-	connection, err := r.adapter.GetConnection(*owner)
+
+	kClient, err := r.factory.New(owner.Spec)
 	if err != nil {
 		return err
 	}
-	realmRepresentation, err := connection.Client.GetRealm(connection.Token.AccessToken, realm.Spec.RealmName)
+	exist, err := kClient.ExistRealm(realm.Spec)
 	if err != nil {
-		reqLog.Error(err, "error by the get realm request")
+		return err
 	}
-	if realmRepresentation != nil {
+	if *exist {
 		log.Info("Realm already exists")
 		return nil
 	}
-	err = connection.Client.CreateRealm(connection.Token.AccessToken, gocloak.RealmRepresentation{
-		Realm:        realm.Spec.RealmName,
-		Enabled:      true,
-		DefaultRoles: []string{"developer"},
-		Roles: map[string][]map[string]interface{}{
-			"realm": {
-				{
-					"name": "administrator",
-				},
-				{
-					"name": "developer",
-				},
-			},
-		},
-	})
+	err = kClient.CreateRealmWithDefaultConfig(realm.Spec)
 	if err != nil {
 		return coreerrors.Wrap(err, "Cannot create realm")
 	}

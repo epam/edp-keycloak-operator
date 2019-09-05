@@ -1,4 +1,4 @@
-package keycloak
+package adapter
 
 import (
 	"github.com/dgrijalva/jwt-go"
@@ -233,11 +233,17 @@ func (m *MockGoCloakClient) DeleteRealmRoleComposite(token string, realm string,
 }
 
 func (m *MockGoCloakClient) GetRealm(token string, realm string) (*gocloak.RealmRepresentation, error) {
-	panic("implement me")
+	args := m.Called(token, realm)
+	res := args.Get(0)
+	if res == nil {
+		return nil, args.Error(1)
+	}
+	return res.(*gocloak.RealmRepresentation), args.Error(1)
 }
 
 func (m *MockGoCloakClient) CreateRealm(token string, realm gocloak.RealmRepresentation) error {
-	panic("implement me")
+	args := m.Called(token, realm)
+	return args.Error(0)
 }
 
 func (m *MockGoCloakClient) DeleteRealm(token string, realm string) error {
