@@ -3,5 +3,5 @@ kind: Keycloak
 metadata:
   name: example-keycloak
 spec:
-  url: http://keycloak.security:8080/
+  url: http://keycloak.security:8080
   secret: keycloak-secret
