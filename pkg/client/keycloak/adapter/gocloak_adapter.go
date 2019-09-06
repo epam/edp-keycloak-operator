@@ -104,7 +104,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm dto.Realm, client dt
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
-		return fmt.Errorf("error in create IdP, responce: %s", resp.String())
+		return fmt.Errorf("error in create IdP, responce status: %s", resp.Status())
 	}
 
 	err = a.CreateCentralIdPMappers(realm, client)
