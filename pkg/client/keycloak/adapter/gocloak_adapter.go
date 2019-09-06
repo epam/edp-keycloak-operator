@@ -97,7 +97,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm dto.Realm, client dt
 			"realm": realm.Name,
 		}).
 		SetBody(idP).
-		Post(a.basePath + "/" + idPResource)
+		Post(a.basePath + idPResource)
 
 	if err != nil {
 		return err
