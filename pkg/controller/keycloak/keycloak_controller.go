@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -10,6 +11,7 @@ import (
 	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
 	"keycloak-operator/pkg/client/keycloak"
 	"keycloak-operator/pkg/client/keycloak/adapter"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -107,7 +109,21 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 	reqLogger := log.WithValues("instance", instance)
 	reqLogger.Info("Start updating connection status to Keycloak")
 
-	_, err := r.factory.New(instance.Spec)
+	secret := &v1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      instance.Spec.Secret,
+		Namespace: instance.Namespace,
+	}, secret)
+	if err != nil {
+		return err
+	}
+	user := string(secret.Data["username"])
+	pwd := string(secret.Data["password"])
+
+	_, err = r.factory.New(dto.ConvertSpecToKeycloak(instance.Spec, user, pwd))
+	if err != nil {
+		reqLogger.Error(err, "error during the creation of connection")
+	}
 	instance.Status.Connected = err == nil
 	err = r.client.Update(context.TODO(), instance)
 	if err != nil {

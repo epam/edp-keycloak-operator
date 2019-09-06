@@ -29,26 +29,23 @@ spec:
           type: object
         spec:
           properties:
-            pwd:
-              type: string
             url:
               type: string
-            user:
+            secret:
               type: string
           required:
-          - url
-          - user
-          - pwd
+            - url
+            - secret
           type: object
         status:
           properties:
             connected:
               type: boolean
           required:
-          - connected
+            - connected
           type: object
   version: v1alpha1
   versions:
-  - name: v1alpha1
-    served: true
-    storage: true
+    - name: v1alpha1
+      served: true
+      storage: true

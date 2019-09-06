@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	coreerrors "github.com/pkg/errors"
+	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -13,6 +14,7 @@ import (
 	v1v1alpha1 "keycloak-operator/pkg/apis/v1/v1alpha1"
 	"keycloak-operator/pkg/client/keycloak"
 	"keycloak-operator/pkg/client/keycloak/adapter"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -109,7 +111,18 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return coreerrors.New("Owner keycloak is not in connected status")
 	}
 
-	kClient, err := r.factory.New(ownerKeycloak.Spec)
+	secret := &coreV1.Secret{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      ownerKeycloak.Spec.Secret,
+		Namespace: ownerKeycloak.Namespace,
+	}, secret)
+	if err != nil {
+		return err
+	}
+	user := string(secret.Data["username"])
+	pwd := string(secret.Data["password"])
+
+	kClient, err := r.factory.New(dto.ConvertSpecToKeycloak(ownerKeycloak.Spec, user, pwd))
 	if err != nil {
 		return err
 	}
@@ -133,7 +146,8 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
 	reqLog.Info("Start putting realm")
 
-	exist, err := kClient.ExistRealm(realm.Spec)
+	realmDto := dto.ConvertSpecToRealm(realm.Spec)
+	exist, err := kClient.ExistRealm(realmDto)
 	if err != nil {
 		return err
 	}
@@ -141,7 +155,7 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 		log.Info("Realm already exists")
 		return nil
 	}
-	err = kClient.CreateRealmWithDefaultConfig(realm.Spec)
+	err = kClient.CreateRealmWithDefaultConfig(realmDto)
 	if err != nil {
 		return coreerrors.Wrap(err, "Cannot create realm")
 	}
@@ -243,8 +257,8 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 		return fmt.Errorf("required keycloak client cr with name %s does not exist in namespace %s",
 			realm.Spec.RealmName, realm.Namespace)
 	}
-
-	exist, err := kClient.ExistCentralIdentityProvider(realm.Spec)
+	realmDto := dto.ConvertSpecToRealm(realm.Spec)
+	exist, err := kClient.ExistCentralIdentityProvider(realmDto)
 	if err != nil {
 		return err
 	}
@@ -254,7 +268,7 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 		return nil
 	}
 
-	err = kClient.CreateCentralIdentityProvider(realm.Spec, keycloakClient.Spec)
+	err = kClient.CreateCentralIdentityProvider(realmDto, dto.ConvertSpecToClient(keycloakClient.Spec))
 
 	if err != nil {
 		return err

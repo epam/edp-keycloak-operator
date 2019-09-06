@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/nerzal/gocloak.v2"
-	"keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"testing"
 )
 
@@ -18,15 +18,15 @@ func TestNewAdapterValidCredentials(t *testing.T) {
 	goCloakClientSupplier = func(url string) gocloak.GoCloak {
 		return mockClient
 	}
-	spec := v1alpha1.KeycloakSpec{
+	key := dto.Keycloak{
+		Url:  "url",
 		User: "user",
 		Pwd:  "password",
-		Url:  "url",
 	}
 	factory := new(GoCloakAdapterFactory)
 
 	//test
-	client, err := factory.New(spec)
+	client, err := factory.New(key)
 
 	//verify
 	assert.NoError(t, err)
@@ -41,15 +41,15 @@ func TestNewAdapterInValidCredentials(t *testing.T) {
 	goCloakClientSupplier = func(url string) gocloak.GoCloak {
 		return mockClient
 	}
-	spec := v1alpha1.KeycloakSpec{
+	key := dto.Keycloak{
+		Url:  "url",
 		User: "user",
 		Pwd:  "invalid",
-		Url:  "url",
 	}
 	factory := new(GoCloakAdapterFactory)
 
 	//test
-	ad, err := factory.New(spec)
+	ad, err := factory.New(key)
 
 	//verify
 	assert.Error(t, err)

@@ -10,11 +10,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"keycloak-operator/pkg/client/keycloak/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	"testing"
 
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
 
@@ -28,21 +30,35 @@ func TestReconcileKeycloak_ReconcileNewKeycloakCR(t *testing.T) {
 			Namespace: "namespace",
 		},
 		Spec: v1alpha1.KeycloakSpec{
-			Url:  "https://some",
-			User: "user",
-			Pwd:  "pass",
+			Url:    "https://some",
+			Secret: "keycloak-secret",
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak-secret",
+			Namespace: "namespace",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+			"password": []byte("pass"),
 		},
 	}
 	objs := []runtime.Object{
-		cr,
+		cr, secret,
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
 	client := fake.NewFakeClient(objs...)
 
 	//factory
+	keycloakDto := dto.Keycloak{
+		Url:  "https://some",
+		User: "user",
+		Pwd:  "pass",
+	}
 	factory := new(mock.MockGoCloakFactory)
-	factory.On("New", cr.Spec).
+	factory.On("New", keycloakDto).
 		Return(nil, nil)
 
 	//request
@@ -97,21 +113,35 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 			Namespace: "namespace",
 		},
 		Spec: v1alpha1.KeycloakSpec{
-			Url:  "https://some",
-			User: "user",
-			Pwd:  "pass",
+			Url:    "https://some",
+			Secret: "keycloak-secret",
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak-secret",
+			Namespace: "namespace",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+			"password": []byte("pass"),
 		},
 	}
 	objs := []runtime.Object{
-		cr,
+		cr, secret,
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
 	client := fake.NewFakeClient(objs...)
 
 	//factory
+	keycloakDto := dto.Keycloak{
+		Url:  "https://some",
+		User: "user",
+		Pwd:  "pass",
+	}
 	factory := new(mock.MockGoCloakFactory)
-	factory.On("New", cr.Spec).
+	factory.On("New", keycloakDto).
 		Return(nil, errors.New("some error"))
 
 	//request
@@ -162,9 +192,18 @@ func TestReconcileKeycloak_ReconcileExistingCRRealm(t *testing.T) {
 			Namespace: "namespace",
 		},
 		Spec: v1alpha1.KeycloakSpec{
-			Url:  "https://some",
-			User: "user",
-			Pwd:  "pass",
+			Url:    "https://some",
+			Secret: "keycloak-secret",
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "keycloak-secret",
+			Namespace: "namespace",
+		},
+		Data: map[string][]byte{
+			"username": []byte("user"),
+			"password": []byte("pass"),
 		},
 	}
 	realm := &v1alpha1.KeycloakRealm{
@@ -176,15 +215,20 @@ func TestReconcileKeycloak_ReconcileExistingCRRealm(t *testing.T) {
 		},
 	}
 	objs := []runtime.Object{
-		cr, realm,
+		cr, realm, secret,
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, realm)
 	client := fake.NewFakeClient(objs...)
 
 	//factory
+	keycloakDto := dto.Keycloak{
+		Url:  "https://some",
+		User: "user",
+		Pwd:  "pass",
+	}
 	factory := new(mock.MockGoCloakFactory)
-	factory.On("New", cr.Spec).
+	factory.On("New", keycloakDto).
 		Return(nil, nil)
 
 	//request

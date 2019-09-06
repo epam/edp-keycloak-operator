@@ -4,7 +4,7 @@ import (
 	"errors"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/nerzal/gocloak.v2"
-	"keycloak-operator/pkg/apis/v1/v1alpha1"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"testing"
 )
 
@@ -17,8 +17,8 @@ func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
 	}
-	realm := v1alpha1.KeycloakRealmSpec{
-		RealmName: "realmName",
+	realm := dto.Realm{
+		Name: "realmName",
 	}
 
 	//test
@@ -38,8 +38,8 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
 	}
-	realm := v1alpha1.KeycloakRealmSpec{
-		RealmName: "realmName",
+	realm := dto.Realm{
+		Name: "realmName",
 	}
 
 	//test
@@ -59,8 +59,8 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
 	}
-	realm := v1alpha1.KeycloakRealmSpec{
-		RealmName: "realmName",
+	realm := dto.Realm{
+		Name: "realmName",
 	}
 
 	//test
@@ -81,8 +81,8 @@ func TestGoCloakAdapter_CreateRealm(t *testing.T) {
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
 	}
-	realm := v1alpha1.KeycloakRealmSpec{
-		RealmName: "realmName",
+	realm := dto.Realm{
+		Name: "realmName",
 	}
 
 	//test
@@ -102,8 +102,8 @@ func TestGoCloakAdapter_CreateRealmError(t *testing.T) {
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
 	}
-	realm := v1alpha1.KeycloakRealmSpec{
-		RealmName: "realmName",
+	realm := dto.Realm{
+		Name: "realmName",
 	}
 
 	//test
