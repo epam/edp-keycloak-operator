@@ -65,7 +65,7 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(realm dto.Realm) (*bool, er
 			"realm": realm.Name,
 			"alias": "openshift",
 		}).
-		Get(a.basePath + "/" + getOneIdP)
+		Get(a.basePath + getOneIdP)
 
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (a GoCloakAdapter) createIdPMapper(realm dto.Realm, externalRole string, ro
 			"alias": "openshift",
 		}).
 		SetBody(body).
-		Post(a.basePath + "/" + idPMapperResource)
+		Post(a.basePath + idPMapperResource)
 	if err != nil {
 		return err
 	}
