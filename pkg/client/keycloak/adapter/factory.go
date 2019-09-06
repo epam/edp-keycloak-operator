@@ -28,7 +28,8 @@ func (GoCloakAdapterFactory) New(spec v1alpha1.KeycloakSpec) (keycloak.Client, e
 
 	reqLog.Info("Connection has been successfully established")
 	return GoCloakAdapter{
-		client: client,
-		token:  *token,
+		client:   client,
+		token:    *token,
+		basePath: spec.Url,
 	}, nil
 }
