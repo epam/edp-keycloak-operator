@@ -2,6 +2,7 @@ package keycloakrealm
 
 import (
 	"context"
+	"fmt"
 	"github.com/google/uuid"
 	coreerrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -107,7 +108,13 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	if !ownerKeycloak.Status.Connected {
 		return coreerrors.New("Owner keycloak is not in connected status")
 	}
-	err = r.putRealm(ownerKeycloak, realm)
+
+	kClient, err := r.factory.New(ownerKeycloak.Spec)
+	if err != nil {
+		return err
+	}
+
+	err = r.putRealm(ownerKeycloak, realm, kClient)
 
 	if err != nil {
 		return err
@@ -115,17 +122,17 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 
 	err = r.putKeycloakClientCR(realm)
 
-	return err
-}
-
-func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm) error {
-	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
-	reqLog.Info("Start putting realm")
-
-	kClient, err := r.factory.New(owner.Spec)
 	if err != nil {
 		return err
 	}
+
+	return r.putIdentityProvider(realm, kClient)
+}
+
+func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
+	reqLog.Info("Start putting realm")
+
 	exist, err := kClient.ExistRealm(realm.Spec)
 	if err != nil {
 		return err
@@ -222,6 +229,39 @@ func (r *ReconcileKeycloakRealm) getKeycloakClientCR(name, namespace string) (*v
 	}
 	reqLog.Info("Keycloak client has bee retrieved", "keycloak client cr", instance)
 	return instance, nil
+}
+
+func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("realm name", realm.Name, "realm namespace", realm.Namespace)
+	reqLog.Info("Start put identity provider for realm...")
+
+	keycloakClient, err := r.getKeycloakClientCR(realm.Spec.RealmName, realm.Namespace)
+	if err != nil {
+		return err
+	}
+	if keycloakClient == nil {
+		return fmt.Errorf("required keycloak client cr with name %s does not exist in namespace %s",
+			realm.Spec.RealmName, realm.Namespace)
+	}
+
+	exist, err := kClient.ExistCentralIdentityProvider(realm.Spec)
+	if err != nil {
+		return err
+	}
+
+	if *exist {
+		reqLog.Info("IdP already exists")
+		return nil
+	}
+
+	err = kClient.CreateCentralIdentityProvider(realm.Spec, keycloakClient.Spec)
+
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("End put identity provider for realm")
+	return nil
 }
 
 func getKeycloakOwner(references []v1.OwnerReference) *v1.OwnerReference {

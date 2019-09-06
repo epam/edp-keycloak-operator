@@ -9,6 +9,15 @@ type MockKeycloakClient struct {
 	mock.Mock
 }
 
+func (m MockKeycloakClient) ExistCentralIdentityProvider(spec v1alpha1.KeycloakRealmSpec) (*bool, error) {
+	args := m.Called(spec)
+	res := args.Get(0)
+	if res == nil {
+		return nil, args.Error(1)
+	}
+	return res.(*bool), args.Error(0)
+}
+
 func (m MockKeycloakClient) ExistRealm(spec v1alpha1.KeycloakRealmSpec) (*bool, error) {
 	args := m.Called(spec)
 	if args.Get(0) == nil {
