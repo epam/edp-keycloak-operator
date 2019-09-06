@@ -3,8 +3,8 @@ package adapter
 import (
 	"fmt"
 	"gopkg.in/nerzal/gocloak.v2"
-	"keycloak-operator/pkg/apis/v1/v1alpha1"
 	"keycloak-operator/pkg/client/keycloak/api"
+	"keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strings"
@@ -25,11 +25,11 @@ type GoCloakAdapter struct {
 	basePath string
 }
 
-func (a GoCloakAdapter) ExistRealm(spec v1alpha1.KeycloakRealmSpec) (*bool, error) {
-	reqLog := log.WithValues("realm spec", spec)
+func (a GoCloakAdapter) ExistRealm(realm dto.Realm) (*bool, error) {
+	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start check existing realm...")
 
-	_, err := a.client.GetRealm(a.token.AccessToken, spec.RealmName)
+	_, err := a.client.GetRealm(a.token.AccessToken, realm.Name)
 
 	res, err := strip404(err)
 
@@ -41,11 +41,11 @@ func (a GoCloakAdapter) ExistRealm(spec v1alpha1.KeycloakRealmSpec) (*bool, erro
 	return &res, nil
 }
 
-func (a GoCloakAdapter) CreateRealmWithDefaultConfig(spec v1alpha1.KeycloakRealmSpec) error {
-	reqLog := log.WithValues("realm spec", spec)
+func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
+	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")
 
-	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(spec.RealmName))
+	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name))
 	if err != nil {
 		return err
 	}
@@ -54,15 +54,15 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(spec v1alpha1.KeycloakRealm
 	return nil
 }
 
-func (a GoCloakAdapter) ExistCentralIdentityProvider(spec v1alpha1.KeycloakRealmSpec) (*bool, error) {
-	reqLog := log.WithValues("spec")
+func (a GoCloakAdapter) ExistCentralIdentityProvider(realm dto.Realm) (*bool, error) {
+	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start check central identity provider in realm")
 
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
-			"realm": spec.RealmName,
+			"realm": realm.Name,
 			"alias": "openshift",
 		}).
 		Get(a.basePath + "/" + getOneIdP)
@@ -84,17 +84,17 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(spec v1alpha1.KeycloakRealm
 	return &res, nil
 }
 
-func (a GoCloakAdapter) CreateCentralIdentityProvider(rSpec v1alpha1.KeycloakRealmSpec, cSpec v1alpha1.KeycloakClientSpec) error {
-	reqLog := log.WithValues("realm spec", rSpec, "keycloak client spec", cSpec)
+func (a GoCloakAdapter) CreateCentralIdentityProvider(realm dto.Realm, client dto.Client) error {
+	reqLog := log.WithValues("realm", realm, "keycloak client", client)
 	reqLog.Info("Start create central identity provider...")
 
-	idP := a.getCentralIdP(cSpec)
+	idP := a.getCentralIdP(client)
 
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
-			"realm": rSpec.RealmName,
+			"realm": realm.Name,
 		}).
 		SetBody(idP).
 		Post(a.basePath + "/" + idPResource)
@@ -107,7 +107,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(rSpec v1alpha1.KeycloakRea
 		err = fmt.Errorf("error in create IdP, responce: %s", resp.String())
 	}
 
-	err = a.CreateCentralIdPMappers(rSpec, cSpec)
+	err = a.CreateCentralIdPMappers(realm, client)
 
 	if err != nil {
 		return err
@@ -117,7 +117,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(rSpec v1alpha1.KeycloakRea
 	return nil
 }
 
-func (a GoCloakAdapter) getCentralIdP(cSpec v1alpha1.KeycloakClientSpec) api.IdentityProviderRepresentation {
+func (a GoCloakAdapter) getCentralIdP(client dto.Client) api.IdentityProviderRepresentation {
 	return api.IdentityProviderRepresentation{
 		Alias:       "openshift",
 		DisplayName: "EDP SSO",
@@ -130,25 +130,25 @@ func (a GoCloakAdapter) getCentralIdP(cSpec v1alpha1.KeycloakClientSpec) api.Ide
 			Issuer:           a.basePath + "/auth/realms/openshift",
 			AuthorizationUrl: a.basePath + "/auth/realms/openshift/protocol/openid-connect/auth",
 			LogoutUrl:        a.basePath + "/auth/realms/openshift/protocol/openid-connect/logout",
-			ClientId:         cSpec.ClientId,
-			ClientSecret:     cSpec.ClientSecret,
+			ClientId:         client.ClientId,
+			ClientSecret:     client.ClientSecret,
 		},
 	}
 }
 
-func (a GoCloakAdapter) CreateCentralIdPMappers(rSpec v1alpha1.KeycloakRealmSpec, cSpec v1alpha1.KeycloakClientSpec) error {
-	reqLog := log.WithValues("realm spec", rSpec)
+func (a GoCloakAdapter) CreateCentralIdPMappers(realm dto.Realm, client dto.Client) error {
+	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start create central IdP mappers...")
 
-	err := a.createIdPMapper(rSpec, cSpec.ClientId+".administrator", "administrator")
+	err := a.createIdPMapper(realm, client.ClientId+".administrator", "administrator")
 	if err != nil {
 		return err
 	}
-	err = a.createIdPMapper(rSpec, cSpec.ClientId+".developer", "developer")
+	err = a.createIdPMapper(realm, client.ClientId+".developer", "developer")
 	if err != nil {
 		return err
 	}
-	err = a.createIdPMapper(rSpec, cSpec.ClientId+".administrator", "realm-management.realm-admin")
+	err = a.createIdPMapper(realm, client.ClientId+".administrator", "realm-management.realm-admin")
 	if err != nil {
 		return err
 	}
@@ -157,13 +157,13 @@ func (a GoCloakAdapter) CreateCentralIdPMappers(rSpec v1alpha1.KeycloakRealmSpec
 	return nil
 }
 
-func (a GoCloakAdapter) createIdPMapper(rSpec v1alpha1.KeycloakRealmSpec, externalRole string, role string) error {
+func (a GoCloakAdapter) createIdPMapper(realm dto.Realm, externalRole string, role string) error {
 	body := getIdPMapper(externalRole, role)
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
-			"realm": rSpec.RealmName,
+			"realm": realm.Name,
 			"alias": "openshift",
 		}).
 		SetBody(body).

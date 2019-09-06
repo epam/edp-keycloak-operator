@@ -10,9 +10,8 @@ import (
 // KeycloakSpec defines the desired state of Keycloak
 // +k8s:openapi-gen=true
 type KeycloakSpec struct {
-	Url  string `json:"url"`
-	User string `json:"user"`
-	Pwd  string `json:"pwd"`
+	Url    string `json:"url"`
+	Secret string `json:"secret"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
