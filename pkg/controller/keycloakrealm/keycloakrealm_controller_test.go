@@ -3,6 +3,7 @@ package keycloakrealm
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -121,7 +122,7 @@ func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 	err = client.Get(context.TODO(), nsnClient, persCl)
 
 	assert.NoError(t, err)
-	assert.Equal(t, "namespace.main", persCl.Spec.ClientId)
+	assert.Equal(t, fmt.Sprintf(keycloakClientSecretTemplate, "namespace.main"), persCl.Spec.Secret)
 	assert.Equal(t, "openshift", persCl.Spec.TargetRealm)
 }
 

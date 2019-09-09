@@ -32,10 +32,3 @@ type Client struct {
 	ClientId     string
 	ClientSecret string `json:"-"`
 }
-
-func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec) Client {
-	return Client{
-		ClientId:     spec.ClientId,
-		ClientSecret: spec.ClientSecret,
-	}
-}
