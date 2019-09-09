@@ -3,6 +3,5 @@ kind: KeycloakClient
 metadata:
   name: example-keycloakclient
 spec:
-  clientId: someId
-  clientSecret: secret
   targetRealm: openshift
+  secret: example-keycloakclient-secret

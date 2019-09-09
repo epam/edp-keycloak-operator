@@ -101,6 +101,8 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, err
 }
 
+var keycloakClientSecretTemplate = "keycloak-client.%s.secret"
+
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
 	ownerKeycloak, err := r.getOwnerKeycloak(realm)
 	if err != nil {
@@ -134,6 +136,12 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	}
 
 	err = r.putKeycloakClientCR(realm)
+
+	if err != nil {
+		return err
+	}
+
+	err = r.putKeycloakClientSecret(realm)
 
 	if err != nil {
 		return err
@@ -198,17 +206,14 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientCR(realm *v1v1alpha1.KeycloakR
 		reqLog.Info("Required Keycloak client CR already exists")
 		return nil
 	}
-
-	secret := uuid.New().String()
 	instance = &v1v1alpha1.KeycloakClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      realm.Spec.RealmName,
 			Namespace: realm.Namespace,
 		},
 		Spec: v1v1alpha1.KeycloakClientSpec{
-			ClientId:     realm.Spec.RealmName,
-			ClientSecret: secret,
-			TargetRealm:  "openshift",
+			Secret:      fmt.Sprintf(keycloakClientSecretTemplate, realm.Spec.RealmName),
+			TargetRealm: "openshift",
 		},
 	}
 	err = controllerutil.SetControllerReference(realm, instance, r.scheme)
@@ -268,7 +273,21 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 		return nil
 	}
 
-	err = kClient.CreateCentralIdentityProvider(realmDto, dto.ConvertSpecToClient(keycloakClient.Spec))
+	secret, err := r.getKeycloakClientSecret(types.NamespacedName{
+		Name:      keycloakClient.Spec.Secret,
+		Namespace: keycloakClient.Namespace,
+	})
+	if secret == nil {
+		return coreerrors.Errorf("secret %s does not exist", secret.Name)
+	}
+	if err != nil {
+		return err
+	}
+
+	err = kClient.CreateCentralIdentityProvider(realmDto, dto.Client{
+		ClientId:     string(secret.Data["clientId"]),
+		ClientSecret: string(secret.Data["clientSecret"]),
+	})
 
 	if err != nil {
 		return err
@@ -276,6 +295,63 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 
 	reqLog.Info("End put identity provider for realm")
 	return nil
+}
+
+func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.KeycloakRealm) error {
+	reqLog := log.WithValues("realm name", realm.Spec.RealmName)
+	reqLog.Info("Start creation of Keycloak client secret")
+
+	client, err := r.getKeycloakClientCR(realm.Spec.RealmName, realm.Namespace)
+	if client == nil {
+		return fmt.Errorf("required keycloak client %s does not exist", realm.Spec.RealmName)
+	}
+	if err != nil {
+		return err
+	}
+	secret, err := r.getKeycloakClientSecret(types.NamespacedName{
+		Name:      client.Spec.Secret,
+		Namespace: realm.Namespace,
+	})
+	if err != nil {
+		return err
+	}
+	if secret != nil {
+		reqLog.Info("Keycloak client secret already exist")
+		return nil
+	}
+	secret = &coreV1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      client.Spec.Secret,
+			Namespace: realm.Namespace,
+		},
+		Data: map[string][]byte{
+			"clientId":     []byte(realm.Spec.RealmName),
+			"clientSecret": []byte(uuid.New().String()),
+		},
+	}
+	err = controllerutil.SetControllerReference(client, secret, r.scheme)
+	if err != nil {
+		return nil
+	}
+	err = r.client.Create(context.TODO(), secret)
+
+	if err != nil {
+		return err
+	}
+	reqLog.Info("End of put Keycloak client secret")
+	return nil
+}
+
+func (r *ReconcileKeycloakRealm) getKeycloakClientSecret(nsn types.NamespacedName) (*coreV1.Secret, error) {
+	secret := &coreV1.Secret{}
+	err := r.client.Get(context.TODO(), nsn, secret)
+	if err != nil {
+		if errors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, coreerrors.Wrap(err, "cannot get keycloak client secret")
+	}
+	return secret, nil
 }
 
 func getKeycloakOwner(references []v1.OwnerReference) *v1.OwnerReference {
