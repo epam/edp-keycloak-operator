@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"fmt"
-	"github.com/Nerzal/gocloak/v3"
+	"github.com/Nerzal/gocloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
@@ -175,6 +175,52 @@ func (a GoCloakAdapter) createIdPMapper(realm dto.Realm, externalRole string, ro
 	if resp.StatusCode() != http.StatusCreated {
 		return fmt.Errorf("error in creation idP mapper by name %s", body.Name)
 	}
+	return nil
+}
+
+func (a GoCloakAdapter) ExistClient(client dto.Client) (*bool, error) {
+	reqLog := log.WithValues("client dto", client)
+	reqLog.Info("Start check client in Keycloak...")
+
+	clns, err := a.client.GetClients(a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
+		ClientID: client.ClientId,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := checkFullNameMatch(client, clns)
+
+	reqLog.Info("End check client in Keycloak")
+	return &res, nil
+}
+
+func checkFullNameMatch(client dto.Client, clients *[]gocloak.Client) bool {
+	if clients == nil {
+		return false
+	}
+	for _, el := range *clients {
+		if el.ClientID == client.ClientId {
+			return true
+		}
+	}
+	return false
+}
+
+func (a GoCloakAdapter) CreateClient(client dto.Client) error {
+	reqLog := log.WithValues("client dto", client)
+	reqLog.Info("Start create client in Keycloak...")
+
+	err := a.client.CreateClient(a.token.AccessToken, client.RealmName, gocloak.Client{
+		ClientID: client.ClientId,
+		Secret:   client.ClientSecret,
+	})
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak client has been created")
 	return nil
 }
 

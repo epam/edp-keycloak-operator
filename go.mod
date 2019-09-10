@@ -8,7 +8,8 @@ require (
 	cloud.google.com/go v0.44.3 // indirect
 	github.com/Azure/go-autorest/autorest v0.9.1 // indirect
 	github.com/Azure/go-autorest/autorest/adal v0.6.0 // indirect
-	github.com/Nerzal/gocloak/v3 v3.4.0
+	github.com/Nerzal/gocloak v0.0.0-20190601185315-ffb03da972d7
+	github.com/Nerzal/gocloak/v3 v3.4.0 // indirect
 	github.com/appscode/jsonpatch v0.0.0-20190108182946-7c0e3b262f30 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

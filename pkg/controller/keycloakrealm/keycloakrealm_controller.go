@@ -7,11 +7,11 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/google/uuid"
 	coreerrors "github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -104,7 +104,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 var keycloakClientSecretTemplate = "keycloak-client.%s.secret"
 
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
-	ownerKeycloak, err := r.getOwnerKeycloak(realm)
+	ownerKeycloak, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
 	if err != nil {
 		return err
 	}
@@ -168,29 +168,6 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 		return coreerrors.Wrap(err, "Cannot create realm")
 	}
 	return nil
-}
-
-func (r *ReconcileKeycloakRealm) getOwnerKeycloak(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
-	reqLog := log.WithValues("realm cr", realm)
-	reqLog.Info("Start getting owner Keycloak")
-
-	ows := realm.GetOwnerReferences()
-	if len(ows) == 0 {
-		return nil, coreerrors.New("keycloak realm cr does not have owner references")
-	}
-	keycloakOwner := getKeycloakOwner(ows)
-	if keycloakOwner == nil {
-		return nil, coreerrors.New("keycloak realm cr does not keycloak cr owner references")
-	}
-
-	nsn := types.NamespacedName{
-		Namespace: realm.Namespace,
-		Name:      keycloakOwner.Name,
-	}
-
-	ownerCr := &v1v1alpha1.Keycloak{}
-	err := r.client.Get(context.TODO(), nsn, ownerCr)
-	return ownerCr, err
 }
 
 func (r *ReconcileKeycloakRealm) putKeycloakClientCR(realm *v1v1alpha1.KeycloakRealm) error {
@@ -352,13 +329,4 @@ func (r *ReconcileKeycloakRealm) getKeycloakClientSecret(nsn types.NamespacedNam
 		return nil, coreerrors.Wrap(err, "cannot get keycloak client secret")
 	}
 	return secret, nil
-}
-
-func getKeycloakOwner(references []v1.OwnerReference) *v1.OwnerReference {
-	for _, el := range references {
-		if el.Kind == "Keycloak" {
-			return &el
-		}
-	}
-	return nil
 }
