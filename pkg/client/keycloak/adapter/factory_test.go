@@ -2,8 +2,8 @@ package adapter
 
 import (
 	"errors"
+	"github.com/Nerzal/gocloak/v3"
 	"github.com/stretchr/testify/assert"
-	"gopkg.in/nerzal/gocloak.v2"
 	"keycloak-operator/pkg/client/keycloak/dto"
 	"testing"
 )
