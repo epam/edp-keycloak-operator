@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 )
 
 type Keycloak struct {

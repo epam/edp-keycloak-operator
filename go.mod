@@ -1,4 +1,4 @@
-module keycloak-operator
+module github.com/epmd-edp/keycloak-operator
 
 go 1.12
 
