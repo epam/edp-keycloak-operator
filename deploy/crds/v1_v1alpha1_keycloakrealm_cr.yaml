@@ -4,5 +4,9 @@ metadata:
   name: main
 spec:
   realmName: example-edp-cicd.main
+  users:
+    - username: test_user@edp.epam.com
+      roles:
+        - Administrator
 status:
   available: false

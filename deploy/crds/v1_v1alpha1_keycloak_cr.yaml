@@ -5,3 +5,8 @@ metadata:
 spec:
   url: http://keycloak.security:8080
   secret: keycloak-secret
+  realmName: openshift
+  users:
+    - username: test_user@edp.epam.com
+      roles:
+        - Administrator

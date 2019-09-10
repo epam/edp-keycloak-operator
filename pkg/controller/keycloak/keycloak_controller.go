@@ -159,6 +159,7 @@ func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error
 		},
 		Spec: v1v1alpha1.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%s.%s", instance.Namespace, "main"),
+			Users: instance.Spec.Users,
 		},
 	}
 	err := controllerutil.SetControllerReference(instance, realmCr, r.scheme)
