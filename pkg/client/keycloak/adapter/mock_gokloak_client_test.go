@@ -1,7 +1,7 @@
 package adapter
 
 import (
-	"github.com/Nerzal/gocloak/v3"
+	"github.com/Nerzal/gocloak"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/mock"
 	"gopkg.in/resty.v1"

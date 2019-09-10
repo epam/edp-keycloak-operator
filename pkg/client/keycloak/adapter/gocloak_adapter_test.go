@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"errors"
-	"github.com/Nerzal/gocloak/v3"
+	"github.com/Nerzal/gocloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/assert"
 	"testing"

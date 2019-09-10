@@ -9,6 +9,14 @@ type MockKeycloakClient struct {
 	mock.Mock
 }
 
+func (m MockKeycloakClient) CreateClient(client dto.Client) error {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) ExistClient(client dto.Client) (*bool, error) {
+	panic("implement me")
+}
+
 func (m MockKeycloakClient) CreateCentralIdentityProvider(realm dto.Realm, client dto.Client) error {
 	panic("implement me")
 }
