@@ -1,7 +1,7 @@
 package keycloak
 
 import (
-	"keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 )
 
 type Client interface {

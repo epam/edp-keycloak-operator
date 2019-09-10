@@ -11,15 +11,15 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"keycloak-operator/pkg/apis/v1/v1alpha1.Keycloak":             schema_pkg_apis_v1_v1alpha1_Keycloak(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClient":       schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec":   schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus": schema_pkg_apis_v1_v1alpha1_KeycloakClientStatus(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealm":        schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec":    schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus":  schema_pkg_apis_v1_v1alpha1_KeycloakRealmStatus(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec":         schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref),
-		"keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus":       schema_pkg_apis_v1_v1alpha1_KeycloakStatus(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.Keycloak":             schema_pkg_apis_v1_v1alpha1_Keycloak(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClient":       schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec":   schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus": schema_pkg_apis_v1_v1alpha1_KeycloakClientStatus(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealm":        schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec":    schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus":  schema_pkg_apis_v1_v1alpha1_KeycloakRealmStatus(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec":         schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref),
+		"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus":       schema_pkg_apis_v1_v1alpha1_KeycloakStatus(ref),
 	}
 }
 
@@ -50,19 +50,19 @@ func schema_pkg_apis_v1_v1alpha1_Keycloak(ref common.ReferenceCallback) common.O
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus"},
 	}
 }
 
@@ -93,19 +93,19 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref common.ReferenceCallback) co
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus"},
 	}
 }
 
@@ -160,19 +160,19 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref common.ReferenceCallback) com
 					},
 					"spec": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
-							Ref: ref("keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"),
+							Ref: ref("github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec", "keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"},
+			"k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec", "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"},
 	}
 }
 

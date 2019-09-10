@@ -8,9 +8,9 @@ import (
 	"runtime"
 
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	"github.com/epmd-edp/keycloak-operator/pkg/apis"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	"keycloak-operator/pkg/apis"
-	"keycloak-operator/pkg/controller"
 
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"

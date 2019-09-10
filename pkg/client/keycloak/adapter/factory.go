@@ -3,9 +3,9 @@ package adapter
 import (
 	"fmt"
 	"github.com/Nerzal/gocloak/v3"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
-	"keycloak-operator/pkg/client/keycloak"
-	"keycloak-operator/pkg/client/keycloak/dto"
 )
 
 var goCloakClientSupplier = func(url string) gocloak.GoCloak {

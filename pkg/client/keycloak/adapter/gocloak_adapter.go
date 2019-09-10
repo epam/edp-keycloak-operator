@@ -3,8 +3,8 @@ package adapter
 import (
 	"fmt"
 	"github.com/Nerzal/gocloak/v3"
-	"keycloak-operator/pkg/client/keycloak/api"
-	"keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strings"
