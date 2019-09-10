@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"fmt"
-	"gopkg.in/nerzal/gocloak.v2"
+	"github.com/Nerzal/gocloak/v3"
 	"keycloak-operator/pkg/client/keycloak/api"
 	"keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
