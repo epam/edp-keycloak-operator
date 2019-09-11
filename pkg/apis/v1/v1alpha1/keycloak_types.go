@@ -12,7 +12,7 @@ import (
 type KeycloakSpec struct {
 	Url       string `json:"url"`
 	Secret    string `json:"secret"`
-	RealmName string `json:"realm_name"`
+	RealmName string `json:"realmName"`
 	Users     []User `json:"users, omitempty"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
@@ -20,8 +20,8 @@ type KeycloakSpec struct {
 }
 
 type User struct {
-	Username string   `json:"username"`
-	Roles    []string `json:"roles, omitempty"`
+	Username   string   `json:"username"`
+	RealmRoles []string `json:"realmRoles, omitempty"`
 }
 
 // KeycloakStatus defines the observed state of Keycloak

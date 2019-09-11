@@ -8,5 +8,5 @@ spec:
   realmName: openshift
   users:
     - username: test_user@edp.epam.com
-      roles:
+      realmRoles:
         - Administrator
