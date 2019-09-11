@@ -3,6 +3,7 @@ package adapter
 import (
 	"fmt"
 	"github.com/Nerzal/gocloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
@@ -45,7 +46,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")
 
-	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name))
+	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name, realm.Users))
 	if err != nil {
 		return err
 	}
@@ -236,8 +237,8 @@ func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresent
 	}
 }
 
-func getDefaultRealm(realmName string) gocloak.RealmRepresentation {
-	return gocloak.RealmRepresentation{
+func getDefaultRealm(realmName string, users []v1alpha1.User) gocloak.RealmRepresentation {
+	realmRepr := gocloak.RealmRepresentation{
 		Realm:        realmName,
 		Enabled:      true,
 		DefaultRoles: []string{"developer"},
@@ -252,6 +253,12 @@ func getDefaultRealm(realmName string) gocloak.RealmRepresentation {
 			},
 		},
 	}
+
+	for _, user := range users {
+		realmRepr.Users = append(realmRepr.Users, user)
+	}
+
+	return realmRepr
 }
 
 func strip404(in error) (bool, error) {

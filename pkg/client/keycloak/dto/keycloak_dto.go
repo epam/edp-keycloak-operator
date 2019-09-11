@@ -19,12 +19,14 @@ func ConvertSpecToKeycloak(spec v1alpha1.KeycloakSpec, user string, pwd string) 
 }
 
 type Realm struct {
-	Name string
+	Name  string
+	Users []v1alpha1.User
 }
 
 func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) Realm {
 	return Realm{
 		Name: spec.RealmName,
+		Users: spec.Users,
 	}
 }
 
