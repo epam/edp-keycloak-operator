@@ -108,6 +108,9 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	if err != nil {
 		return err
 	}
+	if ownerKeycloak == nil {
+		return fmt.Errorf("cannot find owner keycloak for realm with name %s", realm.Name)
+	}
 
 	if !ownerKeycloak.Status.Connected {
 		return coreerrors.New("Owner keycloak is not in connected status")

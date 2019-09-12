@@ -2,12 +2,14 @@ package keycloakclient
 
 import (
 	"context"
+	"fmt"
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -90,29 +92,39 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	err = r.putKeycloakClient(instance)
-
+	realm, err := r.getOrCreateRealmOwnerRef(instance)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 
+	err = r.addTargetRealmIfNeed(instance, realm.Spec.RealmName)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	kClient, err := r.getConnectionClientForRealmCR(realm)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
+	err = r.putKeycloakClient(instance, kClient)
+
 	return reconcile.Result{}, nil
 }
 
-func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient) error {
+func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) error {
+	if keycloakClient.Spec.TargetRealm == "" {
+		keycloakClient.Spec.TargetRealm = mainRealm
+	}
+	return r.client.Update(context.TODO(), keycloakClient)
+}
+
+func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
-	realm, err := helper.GetOwnerKeycloakRealm(r.client, keycloakClient.ObjectMeta)
-	if err != nil {
-		return err
-	}
-	keycloakCr, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
-	if err != nil {
-		return nil
-	}
 	clientSecret := &coreV1.Secret{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
+	err := r.client.Get(context.TODO(), types.NamespacedName{
 		Name:      keycloakClient.Spec.Secret,
 		Namespace: keycloakClient.Namespace,
 	}, clientSecret)
@@ -121,21 +133,8 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	}
 	clientId := string(clientSecret.Data["clientId"])
 	clientSecretVal := string(clientSecret.Data["clientSecret"])
+
 	clientDto := dto.ConvertSpecToClient(keycloakClient.Spec, clientId, clientSecretVal)
-
-	keycloakSecret := &coreV1.Secret{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      keycloakCr.Spec.Secret,
-		Namespace: keycloakCr.Namespace,
-	}, keycloakSecret)
-	if err != nil {
-		return err
-	}
-	usr := string(keycloakSecret.Data["username"])
-	pwd := string(keycloakSecret.Data["password"])
-
-	keyDto := dto.ConvertSpecToKeycloak(keycloakCr.Spec, usr, pwd)
-	kClient, err := r.factory.New(keyDto)
 
 	if err != nil {
 		return err
@@ -159,4 +158,47 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 
 	reqLog.Info("End put keycloak client")
 	return nil
+}
+
+func (r *ReconcileKeycloakClient) getOrCreateRealmOwnerRef(keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
+	realm, err := helper.GetOwnerKeycloakRealm(r.client, keycloakClient.ObjectMeta)
+	if err != nil {
+		return nil, err
+	}
+	if realm != nil {
+		return realm, nil
+	}
+	realm = &v1v1alpha1.KeycloakRealm{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      "main",
+		Namespace: keycloakClient.Namespace,
+	}, realm)
+	if err != nil {
+		return nil, err
+	}
+	return realm, controllerutil.SetControllerReference(realm, keycloakClient, r.scheme)
+}
+
+func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
+	keycloakCr, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
+	if err != nil {
+		return nil, err
+	}
+	if keycloakCr == nil {
+		return nil, fmt.Errorf("cannot find keycloak cr for realm with name %s", realm.Name)
+	}
+
+	keycloakSecret := &coreV1.Secret{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      keycloakCr.Spec.Secret,
+		Namespace: keycloakCr.Namespace,
+	}, keycloakSecret)
+	if err != nil {
+		return nil, err
+	}
+	usr := string(keycloakSecret.Data["username"])
+	pwd := string(keycloakSecret.Data["password"])
+
+	keyDto := dto.ConvertSpecToKeycloak(keycloakCr.Spec, usr, pwd)
+	return r.factory.New(keyDto)
 }
