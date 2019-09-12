@@ -2,9 +2,7 @@ package helper
 
 import (
 	"context"
-	"fmt"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,22 +11,30 @@ import (
 
 func GetOwnerKeycloak(client client.Client, slave v1.ObjectMeta) (*v1alpha1.Keycloak, error) {
 	keycloak := &v1alpha1.Keycloak{}
-	return keycloak, getOwner(client, slave, keycloak, "Keycloak")
+	err := getOwner(client, slave, keycloak, "Keycloak")
+	if keycloak.Name == "" {
+		return nil, err
+	}
+	return keycloak, err
 }
 
 func GetOwnerKeycloakRealm(client client.Client, slave v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
 	realm := &v1alpha1.KeycloakRealm{}
-	return realm, getOwner(client, slave, realm, "KeycloakRealm")
+	err := getOwner(client, slave, realm, "KeycloakRealm")
+	if realm.Name == "" {
+		return nil, err
+	}
+	return realm, err
 }
 
 func getOwner(client client.Client, slave v1.ObjectMeta, owner runtime.Object, ownerType string) error {
 	ownerRefs := slave.GetOwnerReferences()
 	if len(ownerRefs) == 0 {
-		return errors.New("resource does not have owner references")
+		return nil
 	}
 	ownerRef := getOwnerRef(ownerRefs, ownerType)
 	if ownerRef == nil {
-		return fmt.Errorf("resource does not hava owner reference with type: %s", ownerType)
+		return nil
 	}
 	nsn := types.NamespacedName{
 		Namespace: slave.Namespace,
