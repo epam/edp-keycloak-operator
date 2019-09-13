@@ -274,3 +274,47 @@ func strip404(in error) (bool, error) {
 func is404(e error) bool {
 	return strings.Contains(e.Error(), "404")
 }
+
+func (a GoCloakAdapter) ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bool, error) {
+	reqLog := log.WithValues("realm dto", realm, "role dto", role)
+	reqLog.Info("Start check existing realm role...")
+
+	_, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
+
+	res, err := strip404(err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	reqLog.Info("Check existing realm role has been finished", "result", res)
+	return &res, nil
+}
+
+func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) error {
+	reqLog := log.WithValues("realm dto", realm, "role", role)
+	reqLog.Info("Start create realm roles in Keycloak...")
+
+	realmRole := gocloak.Role{
+		Name: role.Name,
+	}
+	err := a.client.CreateRealmRole(a.token.AccessToken, realm.Name, realmRole)
+	if err != nil {
+		return err
+	}
+
+	persRole, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.AddRealmRoleComposite(a.token.AccessToken, realm.Name,
+		role.Composite, []gocloak.Role{*persRole})
+
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak roles has been created")
+	return nil
+}

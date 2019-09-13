@@ -25,7 +25,7 @@ type Realm struct {
 
 func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) Realm {
 	return Realm{
-		Name: spec.RealmName,
+		Name:  spec.RealmName,
 		Users: spec.Users,
 	}
 }
@@ -34,6 +34,12 @@ type Client struct {
 	ClientId     string
 	ClientSecret string `json:"-"`
 	RealmName    string
+	RealmRole    RealmRole
+}
+
+type RealmRole struct {
+	Name      string
+	Composite string
 }
 
 func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientId string, clientSecret string) Client {

@@ -92,24 +92,31 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 		return reconcile.Result{}, err
 	}
 
-	realm, err := r.getOrCreateRealmOwnerRef(instance)
+	return reconcile.Result{}, r.tryReconcile(instance)
+}
+
+func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {
+	realm, err := r.getOrCreateRealmOwnerRef(keycloakClient)
 	if err != nil {
-		return reconcile.Result{}, err
+		return err
 	}
 
-	err = r.addTargetRealmIfNeed(instance, realm.Spec.RealmName)
+	err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName)
 	if err != nil {
-		return reconcile.Result{}, err
+		return err
 	}
 
 	kClient, err := r.getConnectionClientForRealmCR(realm)
 	if err != nil {
-		return reconcile.Result{}, err
+		return err
 	}
 
-	err = r.putKeycloakClient(instance, kClient)
+	err = r.putKeycloakClient(keycloakClient, kClient)
+	if err != nil {
+		return err
+	}
 
-	return reconcile.Result{}, nil
+	return r.putRealmRoles(realm, keycloakClient, kClient)
 }
 
 func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) error {
@@ -201,4 +208,38 @@ func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(realm *v1v1alpha
 
 	keyDto := dto.ConvertSpecToKeycloak(keycloakCr.Spec, usr, pwd)
 	return r.factory.New(keyDto)
+}
+
+func (r *ReconcileKeycloakClient) putRealmRoles(realm *v1v1alpha1.KeycloakRealm, keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+	reqLog := log.WithValues("keycloak client cr", keycloakClient)
+	reqLog.Info("Start put realm roles...")
+
+	if keycloakClient.Spec.RealmRoles == nil || len(*keycloakClient.Spec.RealmRoles) == 0 {
+		reqLog.Info("Keycloak client does not have realm roles")
+		return nil
+	}
+
+	realmDto := dto.ConvertSpecToRealm(realm.Spec)
+
+	for _, el := range *keycloakClient.Spec.RealmRoles {
+		roleDto := dto.RealmRole{
+			Name:      el.Name,
+			Composite: el.Composite,
+		}
+		exist, err := kClient.ExistRealmRole(realmDto, roleDto)
+		if err != nil {
+			return err
+		}
+		if *exist {
+			reqLog.Info("Client already exists")
+			return nil
+		}
+		err = kClient.CreateRealmRole(realmDto, roleDto)
+		if err != nil {
+			return err
+		}
+	}
+
+	reqLog.Info("End put realm roles")
+	return nil
 }
