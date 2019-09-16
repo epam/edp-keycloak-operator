@@ -195,6 +195,7 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientCR(realm *v1v1alpha1.KeycloakR
 			Secret:      fmt.Sprintf(keycloakClientSecretTemplate, realm.Spec.RealmName),
 			TargetRealm: "openshift",
 			ClientId:    realm.Spec.RealmName,
+			ClientRoles: []string{"administrator", "developer"},
 		},
 	}
 	err = controllerutil.SetControllerReference(realm, instance, r.scheme)
