@@ -9,4 +9,4 @@ spec:
   users:
     - username: test_user@edp.epam.com
       realmRoles:
-        - Administrator
+        - administrator

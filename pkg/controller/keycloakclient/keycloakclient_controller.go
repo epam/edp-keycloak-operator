@@ -130,24 +130,13 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
-	clientSecret := &coreV1.Secret{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      keycloakClient.Spec.Secret,
-		Namespace: keycloakClient.Namespace,
-	}, clientSecret)
-	if err != nil {
-		return err
-	}
-	clientId := string(clientSecret.Data["clientId"])
-	clientSecretVal := string(clientSecret.Data["clientSecret"])
-
-	clientDto := dto.ConvertSpecToClient(keycloakClient.Spec, clientId, clientSecretVal)
+	clientDto, err := r.convertCrToDto(keycloakClient)
 
 	if err != nil {
 		return err
 	}
 
-	exist, err := kClient.ExistClient(clientDto)
+	exist, err := kClient.ExistClient(*clientDto)
 
 	if err != nil {
 		return err
@@ -158,7 +147,7 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 		return nil
 	}
 
-	err = kClient.CreateClient(clientDto)
+	err = kClient.CreateClient(*clientDto)
 	if err != nil {
 		return err
 	}
@@ -242,4 +231,23 @@ func (r *ReconcileKeycloakClient) putRealmRoles(realm *v1v1alpha1.KeycloakRealm,
 
 	reqLog.Info("End put realm roles")
 	return nil
+}
+
+func (r *ReconcileKeycloakClient) convertCrToDto(keycloakClient *v1v1alpha1.KeycloakClient) (*dto.Client, error) {
+	if keycloakClient.Spec.Public {
+		res := dto.ConvertSpecToClient(keycloakClient.Spec, "")
+		return &res, nil
+	}
+	clientSecret := &coreV1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      keycloakClient.Spec.Secret,
+		Namespace: keycloakClient.Namespace,
+	}, clientSecret)
+	if err != nil {
+		return nil, err
+	}
+	clientSecretVal := string(clientSecret.Data["clientSecret"])
+
+	res := dto.ConvertSpecToClient(keycloakClient.Spec, clientSecretVal)
+	return &res, nil
 }

@@ -35,6 +35,7 @@ type Client struct {
 	ClientSecret string `json:"-"`
 	RealmName    string
 	RealmRole    RealmRole
+	Public       bool
 }
 
 type RealmRole struct {
@@ -42,10 +43,11 @@ type RealmRole struct {
 	Composite string
 }
 
-func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientId string, clientSecret string) Client {
+func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) Client {
 	return Client{
 		RealmName:    spec.TargetRealm,
-		ClientId:     clientId,
+		ClientId:     spec.ClientId,
 		ClientSecret: clientSecret,
+		Public:       spec.Public,
 	}
 }
