@@ -194,6 +194,7 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientCR(realm *v1v1alpha1.KeycloakR
 		Spec: v1v1alpha1.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(keycloakClientSecretTemplate, realm.Spec.RealmName),
 			TargetRealm: "openshift",
+			ClientId:    realm.Spec.RealmName,
 		},
 	}
 	err = controllerutil.SetControllerReference(realm, instance, r.scheme)
@@ -265,7 +266,7 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 	}
 
 	err = kClient.CreateCentralIdentityProvider(realmDto, dto.Client{
-		ClientId:     string(secret.Data["clientId"]),
+		ClientId:     realm.Spec.RealmName,
 		ClientSecret: string(secret.Data["clientSecret"]),
 	})
 
@@ -305,7 +306,6 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.Keycl
 			Namespace: realm.Namespace,
 		},
 		Data: map[string][]byte{
-			"clientId":     []byte(realm.Spec.RealmName),
 			"clientSecret": []byte(uuid.New().String()),
 		},
 	}
