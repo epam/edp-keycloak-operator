@@ -8,6 +8,7 @@ spec:
   clientId: some-another-client
   public: false
   directAccess: true
+  webUrl: http://example-url
   realmRoles:
     - name: sonar-admins
       composite: administrators
