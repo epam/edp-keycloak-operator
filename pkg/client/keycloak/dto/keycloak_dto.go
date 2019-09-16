@@ -31,13 +31,14 @@ func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) Realm {
 }
 
 type Client struct {
-	ClientId     string
-	ClientSecret string `json:"-"`
-	RealmName    string
-	RealmRole    RealmRole
-	Public       bool
-	DirectAccess bool
-	WebUrl       string
+	ClientId                string
+	ClientSecret            string `json:"-"`
+	RealmName               string
+	RealmRole               RealmRole
+	Public                  bool
+	DirectAccess            bool
+	WebUrl                  string
+	AdvancedProtocolMappers bool
 }
 
 type RealmRole struct {
@@ -47,11 +48,12 @@ type RealmRole struct {
 
 func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) Client {
 	return Client{
-		RealmName:    spec.TargetRealm,
-		ClientId:     spec.ClientId,
-		ClientSecret: clientSecret,
-		Public:       spec.Public,
-		DirectAccess: spec.DirectAccess,
-		WebUrl:       spec.WebUrl,
+		RealmName:               spec.TargetRealm,
+		ClientId:                spec.ClientId,
+		ClientSecret:            clientSecret,
+		Public:                  spec.Public,
+		DirectAccess:            spec.DirectAccess,
+		WebUrl:                  spec.WebUrl,
+		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 	}
 }

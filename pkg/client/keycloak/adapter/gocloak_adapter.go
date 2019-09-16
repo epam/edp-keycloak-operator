@@ -213,7 +213,18 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 	reqLog := log.WithValues("client dto", client)
 	reqLog.Info("Start create client in Keycloak...")
 
-	err := a.client.CreateClient(a.token.AccessToken, client.RealmName, gocloak.Client{
+	err := a.client.CreateClient(a.token.AccessToken, client.RealmName, getGclCln(client))
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak client has been created")
+	return nil
+}
+
+func getGclCln(client dto.Client) gocloak.Client {
+	protocolMappers := getProtocolMappers(client.AdvancedProtocolMappers)
+	return gocloak.Client{
 		ClientID:                  client.ClientId,
 		Secret:                    client.ClientSecret,
 		PublicClient:              client.Public,
@@ -225,14 +236,43 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 		WebOrigins: []string{
 			client.WebUrl,
 		},
-		AdminURL: client.WebUrl,
-	})
-	if err != nil {
-		return err
+		AdminURL:        client.WebUrl,
+		ProtocolMappers: protocolMappers,
 	}
+}
 
-	reqLog.Info("Keycloak client has been created")
-	return nil
+func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
+	if !need {
+		return nil
+	}
+	return []gocloak.ProtocolMapperRepresentation{
+		{
+			Name:           "username",
+			Protocol:       "openid-connect",
+			ProtocolMapper: "oidc-usermodel-property-mapper",
+			Config: map[string]string{
+				"userinfo.token.claim": "true",
+				"user.attribute":       "username",
+				"id.token.claim":       "true",
+				"access.token.claim":   "true",
+				"claim.name":           "preferred_username",
+				"jsonType.label":       "String",
+			},
+		},
+		{
+			Name:           "realm roles",
+			Protocol:       "openid-connect",
+			ProtocolMapper: "oidc-usermodel-realm-role-mapper",
+			Config: map[string]string{
+				"userinfo.token.claim": "true",
+				"multivalued":          "true",
+				"id.token.claim":       "true",
+				"access.token.claim":   "false",
+				"claim.name":           "roles",
+				"jsonType.label":       "String",
+			},
+		},
+	}
 }
 
 func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresentation {
