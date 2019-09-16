@@ -214,9 +214,10 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 	reqLog.Info("Start create client in Keycloak...")
 
 	err := a.client.CreateClient(a.token.AccessToken, client.RealmName, gocloak.Client{
-		ClientID:     client.ClientId,
-		Secret:       client.ClientSecret,
-		PublicClient: client.Public,
+		ClientID:                  client.ClientId,
+		Secret:                    client.ClientSecret,
+		PublicClient:              client.Public,
+		DirectAccessGrantsEnabled: client.DirectAccess,
 	})
 	if err != nil {
 		return err
