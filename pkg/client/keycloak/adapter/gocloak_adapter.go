@@ -3,7 +3,6 @@ package adapter
 import (
 	"fmt"
 	"github.com/Nerzal/gocloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"net/http"
@@ -360,7 +359,7 @@ func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresent
 	}
 }
 
-func getDefaultRealm(realmName string, users []v1alpha1.User) gocloak.RealmRepresentation {
+func getDefaultRealm(realmName string, users []dto.User) gocloak.RealmRepresentation {
 	realmRepr := gocloak.RealmRepresentation{
 		Realm:        realmName,
 		Enabled:      true,
