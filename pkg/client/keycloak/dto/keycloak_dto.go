@@ -36,6 +36,7 @@ type Client struct {
 	RealmName    string
 	RealmRole    RealmRole
 	Public       bool
+	DirectAccess bool
 }
 
 type RealmRole struct {
@@ -49,5 +50,6 @@ func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) 
 		ClientId:     spec.ClientId,
 		ClientSecret: clientSecret,
 		Public:       spec.Public,
+		DirectAccess: spec.DirectAccess,
 	}
 }

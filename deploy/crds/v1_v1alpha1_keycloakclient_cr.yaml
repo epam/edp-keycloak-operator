@@ -7,6 +7,7 @@ spec:
   secret: example-keycloakclient-secret
   clientId: some-another-client
   public: false
+  directAccess: true
   realmRoles:
     - name: sonar-admins
       composite: administrators
