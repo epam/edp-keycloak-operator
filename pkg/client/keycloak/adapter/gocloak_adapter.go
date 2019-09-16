@@ -218,6 +218,14 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 		Secret:                    client.ClientSecret,
 		PublicClient:              client.Public,
 		DirectAccessGrantsEnabled: client.DirectAccess,
+		RootURL:                   client.WebUrl,
+		RedirectURIs: []string{
+			client.WebUrl + "/*",
+		},
+		WebOrigins: []string{
+			client.WebUrl,
+		},
+		AdminURL: client.WebUrl,
 	})
 	if err != nil {
 		return err
