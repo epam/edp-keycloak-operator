@@ -12,3 +12,6 @@ spec:
   realmRoles:
     - name: sonar-admins
       composite: administrators
+  clientRoles:
+    - administrator
+    - developer

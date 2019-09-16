@@ -17,6 +17,10 @@ type Client interface {
 
 	CreateClient(client dto.Client) error
 
+	ExistClientRole(role dto.Client, clientRole string) (*bool, error)
+
+	CreateClientRole(role dto.Client, clientRole string) error
+
 	ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bool, error)
 
 	CreateRealmRole(realm dto.Realm, role dto.RealmRole) error
