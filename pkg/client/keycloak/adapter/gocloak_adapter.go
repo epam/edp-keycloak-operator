@@ -197,6 +197,63 @@ func (a GoCloakAdapter) ExistClient(client dto.Client) (*bool, error) {
 	return &res, nil
 }
 
+func (a GoCloakAdapter) ExistClientRole(client dto.Client, clientRole string) (*bool, error) {
+	reqLog := log.WithValues("client dto", client, "client role", clientRole)
+	reqLog.Info("Start check client role in Keycloak...")
+
+	id, err := a.getClientId(client)
+	if err != nil {
+		return nil, err
+	}
+
+	clnr, err := a.client.GetClientRoles(a.token.AccessToken, client.RealmName, *id)
+
+	_, err = strip404(err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := checkFullClientRoleNameMatch(clientRole, clnr)
+
+	reqLog.Info("End check client role in Keycloak", "result", res)
+	return &res, nil
+}
+
+func (a GoCloakAdapter) CreateClientRole(client dto.Client, clientRole string) error {
+	reqLog := log.WithValues("client dto", client, "client role", clientRole)
+	reqLog.Info("Start create client role in Keycloak...")
+
+	id, err := a.getClientId(client)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.CreateClientRole(a.token.AccessToken, client.RealmName, *id, gocloak.Role{
+		Name:       clientRole,
+		ClientRole: true,
+	})
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak client role has been created")
+	return nil
+}
+
+func checkFullClientRoleNameMatch(clientRole string, roles *[]gocloak.Role) bool {
+	if roles == nil {
+		return false
+	}
+
+	for _, cl := range *roles {
+		if cl.Name == clientRole {
+			return true
+		}
+	}
+	return false
+}
+
 func checkFullNameMatch(client dto.Client, clients *[]gocloak.Client) bool {
 	if clients == nil {
 		return false
@@ -273,6 +330,22 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 			},
 		},
 	}
+}
+
+func (a GoCloakAdapter) getClientId(client dto.Client) (*string, error) {
+	clients, err := a.client.GetClients(a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
+		ClientID: client.ClientId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	for _, item := range *clients {
+		if item.ClientID == client.ClientId {
+			return &item.ID, nil
+		}
+	}
+	return nil, fmt.Errorf("unable to get Client ID. Client %v doesn't exist", client.ClientId)
 }
 
 func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresentation {

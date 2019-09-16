@@ -116,6 +116,11 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
+	err = r.putKeycloakClientRole(keycloakClient, kClient)
+	if err != nil {
+		return err
+	}
+
 	return r.putRealmRoles(realm, keycloakClient, kClient)
 }
 
@@ -153,6 +158,43 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	}
 
 	reqLog.Info("End put keycloak client")
+	return nil
+}
+
+func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+	reqLog := log.WithValues("keycloak client cr", keycloakClient)
+	reqLog.Info("Start put keycloak client role...")
+
+	clientSecret := &coreV1.Secret{}
+	err := r.client.Get(context.TODO(), types.NamespacedName{
+		Name:      keycloakClient.Spec.Secret,
+		Namespace: keycloakClient.Namespace,
+	}, clientSecret)
+	if err != nil {
+		return err
+	}
+	clientSecretVal := string(clientSecret.Data["clientSecret"])
+
+	clientDto := dto.ConvertSpecToClient(keycloakClient.Spec, clientSecretVal)
+
+	for _, role := range clientDto.Roles {
+		exist, err := kClient.ExistClientRole(clientDto, role)
+		if err != nil {
+			return err
+		}
+
+		if *exist {
+			reqLog.Info("Client role already exists", "role", role)
+			continue
+		}
+
+		err = kClient.CreateClientRole(clientDto, role)
+		if err != nil {
+			return err
+		}
+	}
+
+	reqLog.Info("End put keycloak client role")
 	return nil
 }
 
