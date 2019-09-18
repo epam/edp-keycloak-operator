@@ -24,6 +24,10 @@ import (
 
 var log = logf.Log.WithName("controller_keycloak")
 
+const (
+	defaultRealmName = "openshift"
+)
+
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
@@ -152,6 +156,11 @@ func (r *ReconcileKeycloak) putMainRealm(instance *v1v1alpha1.Keycloak) error {
 func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error {
 	reqLog := log.WithValues("instance", instance)
 	reqLog.Info("Start creation of main Keycloak Realm CR")
+	ssoRealm := defaultRealmName
+	if len(instance.Spec.SsoRealmName) != 0 {
+		ssoRealm = instance.Spec.SsoRealmName
+	}
+
 	realmCr := &v1v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "main",
@@ -159,9 +168,11 @@ func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error
 		},
 		Spec: v1v1alpha1.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%s.%s", instance.Namespace, "main"),
-			Users: instance.Spec.Users,
+			Users:     instance.Spec.Users,
+			SsoRealmName: ssoRealm,
 		},
 	}
+
 	err := controllerutil.SetControllerReference(instance, realmCr, r.scheme)
 
 	if err != nil {

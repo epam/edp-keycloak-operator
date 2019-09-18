@@ -24,6 +24,14 @@ type Client interface {
 	ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bool, error)
 
 	CreateRealmRole(realm dto.Realm, role dto.RealmRole) error
+
+	ExistRealmUser(realmName string, user dto.User) (*bool, error)
+
+	CreateRealmUser(realmName string, user dto.User) error
+
+	ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error)
+
+	MapRoleToUser(realmName string, user dto.User, role string) error
 }
 
 type ClientFactory interface {
