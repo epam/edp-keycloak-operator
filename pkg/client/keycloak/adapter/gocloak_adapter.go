@@ -45,7 +45,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")
 
-	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name, realm.Users))
+	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name))
 	if err != nil {
 		return err
 	}
@@ -253,6 +253,18 @@ func checkFullClientRoleNameMatch(clientRole string, roles *[]gocloak.Role) bool
 	return false
 }
 
+func checkFullUsernameMatch(userName string, users *[]gocloak.User) bool {
+	if users == nil {
+		return false
+	}
+	for _, el := range *users {
+		if el.Username == userName {
+			return true
+		}
+	}
+	return false
+}
+
 func checkFullNameMatch(client dto.Client, clients *[]gocloak.Client) bool {
 	if clients == nil {
 		return false
@@ -359,7 +371,92 @@ func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresent
 	}
 }
 
-func getDefaultRealm(realmName string, users []dto.User) gocloak.RealmRepresentation {
+func (a GoCloakAdapter) CreateRealmUser(realmName string, user dto.User) error {
+	reqLog := log.WithValues("user dto", user, "realm", realmName)
+	reqLog.Info("Start create realm user in Keycloak...")
+
+	userDto := gocloak.User{
+		Username: user.Username,
+		Email:    user.Username,
+	}
+
+	_, err := a.client.CreateUser(a.token.AccessToken, realmName, userDto)
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak realm user has been created")
+	return nil
+}
+
+func (a GoCloakAdapter) ExistRealmUser(realmName string, user dto.User) (*bool, error) {
+	reqLog := log.WithValues("user dto", user, "realm", realmName)
+	reqLog.Info("Start check user in Keycloak realm...")
+
+	usr, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: user.Username,
+	})
+
+	_, err = strip404(err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res := checkFullUsernameMatch(user.Username, usr)
+
+	reqLog.Info("End check user in Keycloak", "result", res)
+	return &res, nil
+}
+
+func (a GoCloakAdapter) ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error) {
+	reqLog := log.WithValues("role dto", role)
+	reqLog.Info("Start check user roles in Keycloak realm...")
+
+	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: user.Username,
+	})
+
+	_, err = strip404(err)
+
+	if err != nil {
+		return nil, err
+	}
+
+	roles, err := a.client.GetRealmRolesByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
+	if err != nil {
+		return nil, err
+	}
+
+	res := checkFullClientRoleNameMatch(role, roles)
+
+	reqLog.Info("End check user role in Keycloak", "result", res)
+	return &res, nil
+}
+
+func (a GoCloakAdapter) MapRoleToUser(realmName string, user dto.User, roleName string) error {
+	reqLog := log.WithValues("role", roleName, "realm", realmName, "user", user.Username)
+	reqLog.Info("Start mapping realm role to user in Keycloak...")
+
+	var roles []gocloak.Role
+
+	role, err := a.client.GetRealmRole(a.token.AccessToken, realmName, roleName)
+	roles = append(roles, *role)
+
+	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: user.Username,
+	})
+
+	err = a.client.AddRealmRoleToUser(a.token.AccessToken, realmName, (*users)[0].ID, roles)
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Role to user has been added")
+	return nil
+}
+
+func getDefaultRealm(realmName string) gocloak.RealmRepresentation {
 	realmRepr := gocloak.RealmRepresentation{
 		Realm:        realmName,
 		Enabled:      true,
@@ -374,10 +471,6 @@ func getDefaultRealm(realmName string, users []dto.User) gocloak.RealmRepresenta
 				},
 			},
 		},
-	}
-
-	for _, user := range users {
-		realmRepr.Users = append(realmRepr.Users, user)
 	}
 
 	return realmRepr

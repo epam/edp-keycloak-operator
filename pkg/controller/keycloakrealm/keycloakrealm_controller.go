@@ -150,6 +150,16 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return err
 	}
 
+	err = r.putRealmUsers(realm, kClient)
+	if err != nil {
+		return err
+	}
+
+	err = r.putRoleToUser(realm, kClient)
+	if err != nil {
+		return err
+	}
+
 	return r.putIdentityProvider(realm, kClient)
 }
 
@@ -170,6 +180,62 @@ func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v
 	if err != nil {
 		return coreerrors.Wrap(err, "Cannot create realm")
 	}
+	return nil
+}
+
+func (r *ReconcileKeycloakRealm) putRealmUsers(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("keycloak users", realm.Spec.Users)
+	reqLog.Info("Start putting users to realm")
+
+	userDto := dto.ConvertSpecToRealm(realm.Spec)
+
+	for _, user := range userDto.Users {
+		exist, err := kClient.ExistRealmUser(realm.Spec.SsoRealmName, user)
+		if err != nil {
+			return err
+		}
+
+		if *exist {
+			log.Info("User already exists", "user", user)
+			continue
+		}
+
+		err = kClient.CreateRealmUser(realm.Spec.SsoRealmName, user)
+		if err != nil {
+			return err
+		}
+	}
+
+	reqLog.Info("End put users to realm")
+	return nil
+}
+
+func (r *ReconcileKeycloakRealm) putRoleToUser(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("keycloak users", realm.Spec.Users)
+	reqLog.Info("Start putting users to realm")
+
+	userDto := dto.ConvertSpecToRealm(realm.Spec)
+
+	for _, user := range userDto.Users {
+		for _, role := range user.RealmRoles {
+			exist, err := kClient.ExistMapRoleToUser(realm.Spec.SsoRealmName, user, role)
+			if err != nil {
+				return err
+			}
+
+			if *exist {
+				log.Info("Role already exists", "user", user, "role", role)
+				continue
+			}
+
+			err = kClient.MapRoleToUser(realm.Spec.SsoRealmName, user, role)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	reqLog.Info("End put role to users")
 	return nil
 }
 

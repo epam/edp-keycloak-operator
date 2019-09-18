@@ -4,6 +4,7 @@ metadata:
   name: main
 spec:
   realmName: example-edp-cicd.main
+  ssoRealmName: openshift
   users:
     - username: test_user@edp.epam.com
       roles:
