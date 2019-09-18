@@ -165,17 +165,7 @@ func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alph
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client role...")
 
-	clientSecret := &coreV1.Secret{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      keycloakClient.Spec.Secret,
-		Namespace: keycloakClient.Namespace,
-	}, clientSecret)
-	if err != nil {
-		return err
-	}
-	clientSecretVal := string(clientSecret.Data["clientSecret"])
-
-	clientDto := dto.ConvertSpecToClient(keycloakClient.Spec, clientSecretVal)
+	clientDto := dto.ConvertSpecToClient(keycloakClient.Spec, "")
 
 	for _, role := range clientDto.Roles {
 		exist, err := kClient.ExistClientRole(clientDto, role)
