@@ -32,6 +32,8 @@ type Client interface {
 	ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error)
 
 	MapRoleToUser(realmName string, user dto.User, role string) error
+
+	GetOpenIdConfig(realm dto.Realm) (*string, error)
 }
 
 type ClientFactory interface {

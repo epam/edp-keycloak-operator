@@ -9,6 +9,10 @@ type MockKeycloakClient struct {
 	mock.Mock
 }
 
+func (m MockKeycloakClient) GetOpenIdConfig(realm dto.Realm) (*string, error) {
+	panic("implement me")
+}
+
 func (m MockKeycloakClient) MapRoleToUser(realmName string, user dto.User, role string) error {
 	panic("implement me")
 }
