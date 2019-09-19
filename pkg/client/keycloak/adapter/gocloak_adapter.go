@@ -14,6 +14,7 @@ const (
 	idPResource       = "/auth/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP         = idPResource + "/{alias}"
+	openIdConfig      = "/auth/realms/{realm}/.well-known/openid-configuration"
 )
 
 var log = logf.Log.WithName("gocloak_adapter")
@@ -532,4 +533,22 @@ func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) err
 
 	reqLog.Info("Keycloak roles has been created")
 	return nil
+}
+
+func (a GoCloakAdapter) GetOpenIdConfig(realm dto.Realm) (*string, error) {
+	reqLog := log.WithValues("realm dto", realm)
+	reqLog.Info("Start get openid configuration...")
+
+	resp, err := a.client.RestyClient().R().
+		SetPathParams(map[string]string{
+			"realm": realm.Name,
+		}).
+		Get(a.basePath + openIdConfig)
+	if err != nil {
+		return nil, err
+	}
+	res := resp.String()
+
+	reqLog.Info("End get openid configuration", "result", res)
+	return &res, nil
 }

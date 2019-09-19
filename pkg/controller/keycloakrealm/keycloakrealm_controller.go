@@ -101,7 +101,10 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 	return reconcile.Result{}, err
 }
 
-var keycloakClientSecretTemplate = "keycloak-client.%s.secret"
+var (
+	keycloakClientSecretTemplate = "keycloak-client.%s.secret"
+	annotationKey                = "openid-configuration"
+)
 
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
 	ownerKeycloak, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
@@ -156,6 +159,11 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	}
 
 	err = r.putRoleToUser(realm, kClient)
+	if err != nil {
+		return err
+	}
+
+	err = r.putOpenIdConfigAnnotation(realm, kClient)
 	if err != nil {
 		return err
 	}
@@ -399,4 +407,27 @@ func (r *ReconcileKeycloakRealm) getKeycloakClientSecret(nsn types.NamespacedNam
 		return nil, coreerrors.Wrap(err, "cannot get keycloak client secret")
 	}
 	return secret, nil
+}
+
+func (r *ReconcileKeycloakRealm) putOpenIdConfigAnnotation(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("realm spec", realm.Spec)
+	reqLog.Info("Start put openid configuration annotation...")
+
+	openIdConfig, err := kClient.GetOpenIdConfig(dto.ConvertSpecToRealm(realm.Spec))
+	if err != nil {
+		return err
+	}
+	an := realm.GetAnnotations()
+	if an == nil {
+		an = make(map[string]string)
+	}
+	an[annotationKey] = *openIdConfig
+	realm.SetAnnotations(an)
+	err = r.client.Update(context.TODO(), realm)
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("end put openid configuration annotation")
+	return nil
 }
