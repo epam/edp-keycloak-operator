@@ -9,6 +9,30 @@ type MockKeycloakClient struct {
 	mock.Mock
 }
 
+func (m MockKeycloakClient) MapRoleToUser(realmName string, user dto.User, role string) error {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) CreateRealmUser(realmName string, user dto.User) error {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error) {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) ExistRealmUser(realmName string, user dto.User) (*bool, error) {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) CreateClientRole(role dto.Client, clientRole string) error {
+	panic("implement me")
+}
+
+func (m MockKeycloakClient) ExistClientRole(role dto.Client, clientRole string) (*bool, error) {
+	panic("implement me")
+}
+
 func (m MockKeycloakClient) ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bool, error) {
 	panic("implement me")
 }
