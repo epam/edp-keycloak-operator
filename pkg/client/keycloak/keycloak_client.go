@@ -29,11 +29,11 @@ type Client interface {
 
 	CreateRealmUser(realmName string, user dto.User) error
 
-	ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error)
-
-	MapRoleToUser(realmName string, user dto.User, role string) error
+	HasUserClientRole(realmName string, clientId string, user dto.User, role string) (*bool, error)
 
 	GetOpenIdConfig(realm dto.Realm) (*string, error)
+
+	AddClientRoleToUser(realmName string, clientId string, user dto.User, role string) error
 }
 
 type ClientFactory interface {

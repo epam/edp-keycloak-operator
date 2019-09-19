@@ -226,7 +226,7 @@ func (r *ReconcileKeycloakRealm) putRoleToUser(realm *v1v1alpha1.KeycloakRealm, 
 
 	for _, user := range userDto.Users {
 		for _, role := range user.RealmRoles {
-			exist, err := kClient.ExistMapRoleToUser(realm.Spec.SsoRealmName, user, role)
+			exist, err := kClient.HasUserClientRole(realm.Spec.SsoRealmName, realm.Spec.RealmName, user, role)
 			if err != nil {
 				return err
 			}
@@ -236,7 +236,7 @@ func (r *ReconcileKeycloakRealm) putRoleToUser(realm *v1v1alpha1.KeycloakRealm, 
 				continue
 			}
 
-			err = kClient.MapRoleToUser(realm.Spec.SsoRealmName, user, role)
+			err = kClient.AddClientRoleToUser(realm.Spec.SsoRealmName, realm.Spec.RealmName, user, role)
 			if err != nil {
 				return err
 			}
