@@ -13,6 +13,7 @@ import (
 const (
 	idPResource       = "/auth/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	clientRoleMapperResource = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
 	getOneIdP         = idPResource + "/{alias}"
 	openIdConfig      = "/auth/realms/{realm}/.well-known/openid-configuration"
 )
@@ -410,50 +411,85 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user dto.User) (*bool, 
 	return &res, nil
 }
 
-func (a GoCloakAdapter) ExistMapRoleToUser(realmName string, user dto.User, role string) (*bool, error) {
-	reqLog := log.WithValues("role dto", role)
+func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, user dto.User, role string) (*bool, error) {
+	reqLog := log.WithValues("role", role, "client", clientId, "realm", realmName, "user dto", user)
 	reqLog.Info("Start check user roles in Keycloak realm...")
 
 	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: user.Username,
 	})
+	if err != nil {
+		return nil, err
+	}
+	if len(*users) == 0 {
+		return nil, fmt.Errorf("no such user %v has been found", user.Username)
+	}
 
-	_, err = strip404(err)
-
+	rolesMapping, err := a.client.GetRoleMappingByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
 	if err != nil {
 		return nil, err
 	}
 
-	roles, err := a.client.GetRealmRolesByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
-	if err != nil {
-		return nil, err
-	}
+	clientRoles := rolesMapping.ClientMappings[clientId].Mappings
 
-	res := checkFullClientRoleNameMatch(role, roles)
+	res := checkFullClientRoleNameMatch(role, &clientRoles)
 
 	reqLog.Info("End check user role in Keycloak", "result", res)
 	return &res, nil
 }
 
-func (a GoCloakAdapter) MapRoleToUser(realmName string, user dto.User, roleName string) error {
+func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, user dto.User, roleName string) error {
 	reqLog := log.WithValues("role", roleName, "realm", realmName, "user", user.Username)
 	reqLog.Info("Start mapping realm role to user in Keycloak...")
 
-	var roles []gocloak.Role
+	client, err := a.client.GetClients(a.token.AccessToken, realmName, gocloak.GetClientsParams{
+		ClientID: clientId,
+	})
+	if len(*client) == 0 {
+		return fmt.Errorf("no such client %v has been found", clientId)
+	}
+	if err != nil {
+		return err
+	}
 
-	role, err := a.client.GetRealmRole(a.token.AccessToken, realmName, roleName)
-	roles = append(roles, *role)
+	role, err := a.client.GetClientRole(a.token.AccessToken, realmName, (*client)[0].ID, roleName)
+	if err != nil {
+		return err
+	}
+	if role == nil {
+		return fmt.Errorf("no such client role %v has been found", roleName)
+	}
 
 	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: user.Username,
 	})
 
-	err = a.client.AddRealmRoleToUser(a.token.AccessToken, realmName, (*users)[0].ID, roles)
+	err = a.addClientRoleToUser(realmName, (*users)[0].ID, []gocloak.Role{*role})
 	if err != nil {
 		return err
 	}
 
 	reqLog.Info("Role to user has been added")
+	return nil
+}
+
+func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, roles []gocloak.Role) error {
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realmName,
+			"user": userId,
+			"client": roles[0].ContainerID,
+		}).
+		SetBody(roles).
+		Post(a.basePath + clientRoleMapperResource)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != http.StatusNoContent {
+		return fmt.Errorf("error in mapping client role to user %v", roles)
+	}
 	return nil
 }
 
