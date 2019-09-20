@@ -11,11 +11,11 @@ import (
 )
 
 const (
-	idPResource       = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idPMapperResource = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idPResource              = "/auth/admin/realms/{realm}/identity-provider/instances"
+	idPMapperResource        = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	clientRoleMapperResource = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
-	getOneIdP         = idPResource + "/{alias}"
-	openIdConfig      = "/auth/realms/{realm}/.well-known/openid-configuration"
+	getOneIdP                = idPResource + "/{alias}"
+	openIdConfig             = "/auth/realms/{realm}/.well-known/openid-configuration"
 )
 
 var log = logf.Log.WithName("gocloak_adapter")
@@ -65,7 +65,7 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(realm dto.Realm) (*bool, er
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
 			"realm": realm.Name,
-			"alias": "openshift",
+			"alias": realm.SsoRealmName,
 		}).
 		Get(a.basePath + getOneIdP)
 
@@ -90,7 +90,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm dto.Realm, client dt
 	reqLog := log.WithValues("realm", realm, "keycloak client", client)
 	reqLog.Info("Start create central identity provider...")
 
-	idP := a.getCentralIdP(client)
+	idP := a.getCentralIdP(client, realm.SsoRealmName)
 
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
@@ -120,19 +120,19 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm dto.Realm, client dt
 	return nil
 }
 
-func (a GoCloakAdapter) getCentralIdP(client dto.Client) api.IdentityProviderRepresentation {
+func (a GoCloakAdapter) getCentralIdP(client dto.Client, ssoRealmName string) api.IdentityProviderRepresentation {
 	return api.IdentityProviderRepresentation{
-		Alias:       "openshift",
+		Alias:       ssoRealmName,
 		DisplayName: "EDP SSO",
 		Enabled:     true,
 		ProviderId:  "keycloak-oidc",
 		Config: api.IdentityProviderConfig{
-			UserInfoUrl:      a.basePath + "/auth/realms/openshift/protocol/openid-connect/userinfo",
-			TokenUrl:         a.basePath + "/auth/realms/openshift/protocol/openid-connect/token",
-			JwksUrl:          a.basePath + "/auth/realms/openshift/protocol/openid-connect/certs",
-			Issuer:           a.basePath + "/auth/realms/openshift",
-			AuthorizationUrl: a.basePath + "/auth/realms/openshift/protocol/openid-connect/auth",
-			LogoutUrl:        a.basePath + "/auth/realms/openshift/protocol/openid-connect/logout",
+			UserInfoUrl:      fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/userinfo", a.basePath, ssoRealmName),
+			TokenUrl:         fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/token", a.basePath, ssoRealmName),
+			JwksUrl:          fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/certs", a.basePath, ssoRealmName),
+			Issuer:           fmt.Sprintf("%s/auth/realms/%s", a.basePath, ssoRealmName),
+			AuthorizationUrl: fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/auth", a.basePath, ssoRealmName),
+			LogoutUrl:        fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/logout", a.basePath, ssoRealmName),
 			ClientId:         client.ClientId,
 			ClientSecret:     client.ClientSecret,
 		},
@@ -161,13 +161,13 @@ func (a GoCloakAdapter) CreateCentralIdPMappers(realm dto.Realm, client dto.Clie
 }
 
 func (a GoCloakAdapter) createIdPMapper(realm dto.Realm, externalRole string, role string) error {
-	body := getIdPMapper(externalRole, role)
+	body := getIdPMapper(externalRole, role, realm.SsoRealmName)
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
 			"realm": realm.Name,
-			"alias": "openshift",
+			"alias": realm.SsoRealmName,
 		}).
 		SetBody(body).
 		Post(a.basePath + idPMapperResource)
@@ -361,13 +361,13 @@ func (a GoCloakAdapter) getClientId(client dto.Client) (*string, error) {
 	return nil, fmt.Errorf("unable to get Client ID. Client %v doesn't exist", client.ClientId)
 }
 
-func getIdPMapper(externalRole, role string) api.IdentityProviderMapperRepresentation {
+func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {
 	return api.IdentityProviderMapperRepresentation{
 		Config: map[string]string{
 			"external.role": externalRole,
 			"role":          role,
 		},
-		IdentityProviderAlias:  "openshift",
+		IdentityProviderAlias:  ssoRealmName,
 		IdentityProviderMapper: "keycloak-oidc-role-to-role-idp-mapper",
 		Name:                   role,
 	}
@@ -478,8 +478,8 @@ func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, rol
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
 		SetPathParams(map[string]string{
-			"realm": realmName,
-			"user": userId,
+			"realm":  realmName,
+			"user":   userId,
 			"client": roles[0].ContainerID,
 		}).
 		SetBody(roles).

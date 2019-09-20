@@ -267,7 +267,7 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientCR(realm *v1v1alpha1.KeycloakR
 		},
 		Spec: v1v1alpha1.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(keycloakClientSecretTemplate, realm.Spec.RealmName),
-			TargetRealm: "openshift",
+			TargetRealm: realm.Spec.SsoRealmName,
 			ClientId:    realm.Spec.RealmName,
 			ClientRoles: []string{"administrator", "developer"},
 		},
