@@ -10,6 +10,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/google/uuid"
 	coreerrors "github.com/pkg/errors"
+	"github.com/sethvargo/go-password/password"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -135,7 +136,20 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return err
 	}
 
-	err = r.putRealm(ownerKeycloak, realm, kClient)
+	realmDto := dto.ConvertSpecToRealm(realm.Spec)
+
+	err = generatePasswordsForAc(&realmDto)
+	if err != nil {
+		return err
+	}
+
+	err = r.putAcSecrets(realm, realmDto.ACCreatorPass, realmDto.ACReaderPass)
+
+	if err != nil {
+		return err
+	}
+
+	err = r.putRealm(realmDto, kClient)
 
 	if err != nil {
 		return err
@@ -171,11 +185,59 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	return r.putIdentityProvider(realm, kClient)
 }
 
-func (r *ReconcileKeycloakRealm) putRealm(owner *v1v1alpha1.Keycloak, realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
-	reqLog := log.WithValues("keycloak cr", owner, "realm cr", realm)
+func (r *ReconcileKeycloakRealm) putAcSecrets(realm *v1v1alpha1.KeycloakRealm,
+	creatorPass string, readerPass string) error {
+
+	err := r.putSecret(realm.Namespace, adapter.AcCreatorUsername, creatorPass)
+	if err != nil {
+		return err
+	}
+
+	return r.putSecret(realm.Namespace, adapter.AcReaderUsername, readerPass)
+}
+
+func (r *ReconcileKeycloakRealm) putSecret(namespace, secretName, pass string) error {
+	secret, err := r.getSecret(types.NamespacedName{
+		Name:      secretName,
+		Namespace: namespace,
+	})
+	if err != nil {
+		return err
+	}
+	if secret != nil {
+		log.Info("Secret already exists. Skip adding", "namespace", namespace, "secret name", secretName)
+		return nil
+	}
+	secret = &coreV1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: namespace,
+			Name:      secretName,
+		}, Data: map[string][]byte{
+			"username": []byte(secretName),
+			"password": []byte(pass),
+		},
+	}
+	return r.client.Create(context.TODO(), secret)
+}
+
+func generatePasswordsForAc(realm *dto.Realm) error {
+	res, err := password.Generate(13, 7, 0, false, false)
+	if err != nil {
+		return err
+	}
+	realm.ACReaderPass = res
+	res, err = password.Generate(13, 7, 0, false, false)
+	if err != nil {
+		return err
+	}
+	realm.ACCreatorPass = res
+	return nil
+}
+
+func (r *ReconcileKeycloakRealm) putRealm(realmDto dto.Realm, kClient keycloak.Client) error {
+	reqLog := log.WithValues("realm dto", realmDto)
 	reqLog.Info("Start putting realm")
 
-	realmDto := dto.ConvertSpecToRealm(realm.Spec)
 	exist, err := kClient.ExistRealm(realmDto)
 	if err != nil {
 		return err
@@ -329,7 +391,7 @@ func (r *ReconcileKeycloakRealm) putIdentityProvider(realm *v1v1alpha1.KeycloakR
 		return nil
 	}
 
-	secret, err := r.getKeycloakClientSecret(types.NamespacedName{
+	secret, err := r.getSecret(types.NamespacedName{
 		Name:      keycloakClient.Spec.Secret,
 		Namespace: keycloakClient.Namespace,
 	})
@@ -364,7 +426,7 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.Keycl
 	if err != nil {
 		return err
 	}
-	secret, err := r.getKeycloakClientSecret(types.NamespacedName{
+	secret, err := r.getSecret(types.NamespacedName{
 		Name:      client.Spec.Secret,
 		Namespace: realm.Namespace,
 	})
@@ -397,14 +459,14 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.Keycl
 	return nil
 }
 
-func (r *ReconcileKeycloakRealm) getKeycloakClientSecret(nsn types.NamespacedName) (*coreV1.Secret, error) {
+func (r *ReconcileKeycloakRealm) getSecret(nsn types.NamespacedName) (*coreV1.Secret, error) {
 	secret := &coreV1.Secret{}
 	err := r.client.Get(context.TODO(), nsn, secret)
 	if err != nil {
 		if errors.IsNotFound(err) {
 			return nil, nil
 		}
-		return nil, coreerrors.Wrap(err, "cannot get keycloak client secret")
+		return nil, coreerrors.Wrap(err, "cannot get secret")
 	}
 	return secret, nil
 }

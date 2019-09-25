@@ -18,7 +18,11 @@ const (
 	openIdConfig             = "/auth/realms/{realm}/.well-known/openid-configuration"
 )
 
-var log = logf.Log.WithName("gocloak_adapter")
+var (
+	log               = logf.Log.WithName("gocloak_adapter")
+	AcCreatorUsername = "ac-creator"
+	AcReaderUsername  = "ac-reader"
+)
 
 type GoCloakAdapter struct {
 	client gocloak.GoCloak
@@ -47,7 +51,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")
 
-	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm.Name))
+	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm))
 	if err != nil {
 		return err
 	}
@@ -493,9 +497,36 @@ func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, rol
 	return nil
 }
 
-func getDefaultRealm(realmName string) gocloak.RealmRepresentation {
+func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
+	users := make([]interface{}, 0)
+	users = append(users, map[string]interface{}{
+		"username":  AcReaderUsername,
+		"enabled":   true,
+		"email":     "admin-console-reader@example.com",
+		"firstName": "Reader",
+		"lastName":  "EDP",
+		"credentials": []map[string]string{{
+			"type":  "password",
+			"value": realm.ACReaderPass,
+		},
+		},
+		"realmRoles": []string{"developer"},
+	})
+	users = append(users, map[string]interface{}{
+		"username":  AcCreatorUsername,
+		"enabled":   true,
+		"email":     "admin-console-creator@example.com",
+		"firstName": "Administrator",
+		"lastName":  "EDP",
+		"credentials": []map[string]string{{
+			"type":  "password",
+			"value": realm.ACCreatorPass,
+		},
+		},
+		"realmRoles": []string{"administrator"},
+	})
 	realmRepr := gocloak.RealmRepresentation{
-		Realm:        realmName,
+		Realm:        realm.Name,
 		Enabled:      true,
 		DefaultRoles: []string{"developer"},
 		Roles: map[string][]map[string]interface{}{
@@ -508,8 +539,8 @@ func getDefaultRealm(realmName string) gocloak.RealmRepresentation {
 				},
 			},
 		},
+		Users: users,
 	}
-
 	return realmRepr
 }
 
