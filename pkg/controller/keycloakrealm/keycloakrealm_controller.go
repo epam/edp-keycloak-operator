@@ -101,7 +101,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 	if err != nil {
 		err := r.client.Update(context.TODO(), instance)
 		if err != nil {
-			reqLogger.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
+			reqLogger.Info(fmt.Sprintf("Couldn't update status for Keycloak Realm %s", instance.Name))
 			return reconcile.Result{}, err
 		}
 	}
