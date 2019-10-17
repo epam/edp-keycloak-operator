@@ -106,7 +106,6 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 		}
 	}
 
-
 	return reconcile.Result{}, err
 }
 
@@ -427,15 +426,9 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.Keycl
 	reqLog := log.WithValues("realm name", realm.Spec.RealmName)
 	reqLog.Info("Start creation of Keycloak client secret")
 
-	client, err := r.getKeycloakClientCR(realm.Spec.RealmName, realm.Namespace)
-	if client == nil {
-		return fmt.Errorf("required keycloak client %s does not exist", realm.Spec.RealmName)
-	}
-	if err != nil {
-		return err
-	}
+	sn := fmt.Sprintf(keycloakClientSecretTemplate, realm.Spec.RealmName)
 	secret, err := r.getSecret(types.NamespacedName{
-		Name:      client.Spec.Secret,
+		Name:      sn,
 		Namespace: realm.Namespace,
 	})
 	if err != nil {
@@ -447,16 +440,20 @@ func (r *ReconcileKeycloakRealm) putKeycloakClientSecret(realm *v1v1alpha1.Keycl
 	}
 	secret = &coreV1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      client.Spec.Secret,
+			Name:      sn,
 			Namespace: realm.Namespace,
 		},
 		Data: map[string][]byte{
 			"clientSecret": []byte(uuid.New().String()),
 		},
 	}
-	err = controllerutil.SetControllerReference(client, secret, r.scheme)
+	cl, err := r.getKeycloakClientCR(realm.Spec.RealmName, realm.Namespace)
+	if cl == nil {
+		return fmt.Errorf("required keycloak client %s does not exist", realm.Spec.RealmName)
+	}
+	err = controllerutil.SetControllerReference(cl, secret, r.scheme)
 	if err != nil {
-		return nil
+		return err
 	}
 	err = r.client.Create(context.TODO(), secret)
 
