@@ -1,17 +1,23 @@
 package keycloak
 
 import (
+	"bufio"
 	"context"
+	"encoding/base64"
 	"fmt"
+	edpCompApi "github.com/epmd-edp/edp-component-operator/pkg/apis/v1/v1alpha1"
+	platformHelper "github.com/epmd-edp/jenkins-operator/v2/pkg/service/platform/helper"
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"io/ioutil"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -26,6 +32,9 @@ var log = logf.Log.WithName("controller_keycloak")
 
 const (
 	defaultRealmName = "openshift"
+
+	imgFolder    = "img"
+	keycloakIcon = "keycloak.svg"
 )
 
 /**
@@ -102,9 +111,19 @@ func (r *ReconcileKeycloak) Reconcile(request reconcile.Request) (reconcile.Resu
 	if err != nil {
 		return reconcile.Result{}, err
 	}
-	if con {
-		err = r.putMainRealm(instance)
+	if !con {
+		reqLogger.Info("Status is not connected")
+		return reconcile.Result{}, err
 	}
+	err = r.putMainRealm(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+	err = r.putEDPComponent(instance)
+	if err != nil {
+		return reconcile.Result{}, err
+	}
+
 	reqLogger.Info("Reconciling Keycloak has been finished")
 	return reconcile.Result{}, err
 }
@@ -197,4 +216,75 @@ func (r *ReconcileKeycloak) isStatusConnected(request reconcile.Request) (bool, 
 	}
 	log.Info("Retrieved the actual cr for Keycloak", "keycloak cr", instance)
 	return instance.Status.Connected, nil
+}
+
+func (r *ReconcileKeycloak) putEDPComponent(instance *v1v1alpha1.Keycloak) error {
+	reqLog := log.WithValues("instance", instance)
+	reqLog.Info("Start put edp component")
+	nsn := types.NamespacedName{
+		Name:      fmt.Sprintf("%v-keycloak", instance.Name),
+		Namespace: instance.Namespace,
+	}
+	comp := &edpCompApi.EDPComponent{}
+	err := r.client.Get(context.TODO(), nsn, comp)
+	if err == nil {
+		reqLog.Info("EDP Component has been retrieved from k8s", "edp component", comp)
+		return nil
+	}
+	if errors.IsNotFound(err) {
+		return r.createEDPComponent(instance)
+	}
+	return err
+}
+
+func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) error {
+	reqLog := log.WithValues("instance", instance)
+	reqLog.Info("Start creation of EDP Component for Keycloak")
+
+	icon, err := getIcon()
+	if err != nil {
+		return err
+	}
+
+	comp := &edpCompApi.EDPComponent{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      fmt.Sprintf("%v-keycloak", instance.Name),
+			Namespace: instance.Namespace,
+		},
+		Spec: edpCompApi.EDPComponentSpec{
+			Type: "keycloak",
+			Url:  instance.Spec.Url,
+			Icon: *icon,
+		},
+	}
+
+	err = controllerutil.SetControllerReference(instance, comp, r.scheme)
+	if err != nil {
+		return err
+	}
+	err = r.client.Create(context.TODO(), comp)
+	if err != nil {
+		return err
+	}
+	reqLog.Info("EDP component has been created", "edp component", comp)
+	return nil
+}
+
+func getIcon() (*string, error) {
+	p, err := platformHelper.CreatePathToTemplateDirectory(imgFolder)
+	if err != nil {
+		return nil, err
+	}
+	fp := fmt.Sprintf("%v/%v", p, keycloakIcon)
+	f, err := os.Open(fp)
+	if err != nil {
+		return nil, err
+	}
+	reader := bufio.NewReader(f)
+	content, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+	encoded := base64.StdEncoding.EncodeToString(content)
+	return &encoded, nil
 }
