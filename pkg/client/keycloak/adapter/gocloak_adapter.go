@@ -384,6 +384,7 @@ func (a GoCloakAdapter) CreateRealmUser(realmName string, user dto.User) error {
 	userDto := gocloak.User{
 		Username: user.Username,
 		Email:    user.Username,
+		Enabled:  true,
 	}
 
 	_, err := a.client.CreateUser(a.token.AccessToken, realmName, userDto)
