@@ -93,20 +93,19 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	defer r.updateStatus(instance)
 
 	err = r.tryReconcile(instance)
 	instance.Status.Available = err == nil
 
-	err = r.client.Status().Update(context.TODO(), instance)
-	if err != nil {
-		err := r.client.Update(context.TODO(), instance)
-		if err != nil {
-			reqLogger.Info(fmt.Sprintf("Couldn't update status for Keycloak Realm %s", instance.Name))
-			return reconcile.Result{}, err
-		}
-	}
-
 	return reconcile.Result{}, err
+}
+
+func (r *ReconcileKeycloakRealm) updateStatus(kr *v1v1alpha1.KeycloakRealm) {
+	err := r.client.Status().Update(context.TODO(), kr)
+	if err != nil {
+		_ = r.client.Update(context.TODO(), kr)
+	}
 }
 
 var (
