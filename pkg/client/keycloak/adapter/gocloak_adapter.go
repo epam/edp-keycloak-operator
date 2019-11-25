@@ -620,3 +620,17 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm dto.Realm) (*string, error) {
 	reqLog.Info("End get openid configuration", "result", res)
 	return &res, nil
 }
+
+func (a GoCloakAdapter) GetClientUUID(client dto.Client) (*string, error) {
+	reqLog := log.WithValues("realm", client.RealmName, "client", client.ClientId)
+	reqLog.Info("Start getting Client UUID from Keycloak...")
+
+	c, err := a.client.GetClient(a.token.AccessToken, client.RealmName, client.ClientId)
+	if err != nil {
+		return nil, err
+	}
+
+	reqLog.Info("Keycloak client has been retrieved", "UUID", c.ID)
+
+	return &c.ID, nil
+}
