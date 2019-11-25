@@ -25,6 +25,11 @@ import (
 
 var log = logf.Log.WithName("controller_keycloakclient")
 
+const (
+	Ok   = "OK"
+	Fail = "FAIL"
+)
+
 /**
 * USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
 * business logic.  Delete these comments after modifying this file.*
@@ -81,6 +86,7 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 	// Fetch the KeycloakClient instance
 	instance := &v1v1alpha1.KeycloakClient{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+	instance.Status.Value = Ok
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -91,8 +97,25 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+	defer r.updateStatus(instance)
 
-	return reconcile.Result{}, r.tryReconcile(instance)
+	err = r.tryReconcile(instance)
+	r.setStatus(err, instance)
+
+	return reconcile.Result{}, err
+}
+
+func (r *ReconcileKeycloakClient) setStatus(err error, instance *v1v1alpha1.KeycloakClient) {
+	if err != nil {
+		instance.Status.Value = Fail
+	}
+}
+
+func (r *ReconcileKeycloakClient) updateStatus(kc *v1v1alpha1.KeycloakClient) {
+	err := r.client.Status().Update(context.TODO(), kc)
+	if err != nil {
+		_ = r.client.Update(context.TODO(), kc)
+	}
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {
@@ -111,10 +134,11 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
-	err = r.putKeycloakClient(keycloakClient, kClient)
+	id, err := r.putKeycloakClient(keycloakClient, kClient)
 	if err != nil {
 		return err
 	}
+	keycloakClient.Status.Id = *id
 
 	err = r.putKeycloakClientRole(keycloakClient, kClient)
 	if err != nil {
@@ -131,34 +155,34 @@ func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha
 	return r.client.Update(context.TODO(), keycloakClient)
 }
 
-func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) (*string, error) {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
 	clientDto, err := r.convertCrToDto(keycloakClient)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	exist, err := kClient.ExistClient(*clientDto)
 
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if *exist {
 		reqLog.Info("Client already exists")
-		return nil
+		return kClient.GetClientUUID(*clientDto)
 	}
 
 	err = kClient.CreateClient(*clientDto)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	reqLog.Info("End put keycloak client")
-	return nil
+	return kClient.GetClientUUID(*clientDto)
 }
 
 func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
