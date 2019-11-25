@@ -173,7 +173,7 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 
 	if *exist {
 		reqLog.Info("Client already exists")
-		return kClient.GetClientUUID(*clientDto)
+		return kClient.GetClientId(*clientDto)
 	}
 
 	err = kClient.CreateClient(*clientDto)
@@ -182,7 +182,7 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	}
 
 	reqLog.Info("End put keycloak client")
-	return kClient.GetClientUUID(*clientDto)
+	return kClient.GetClientId(*clientDto)
 }
 
 func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
