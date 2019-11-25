@@ -206,7 +206,7 @@ func (a GoCloakAdapter) ExistClientRole(client dto.Client, clientRole string) (*
 	reqLog := log.WithValues("client dto", client, "client role", clientRole)
 	reqLog.Info("Start check client role in Keycloak...")
 
-	id, err := a.getClientId(client)
+	id, err := a.GetClientId(client)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (a GoCloakAdapter) CreateClientRole(client dto.Client, clientRole string) e
 	reqLog := log.WithValues("client dto", client, "client role", clientRole)
 	reqLog.Info("Start create client role in Keycloak...")
 
-	id, err := a.getClientId(client)
+	id, err := a.GetClientId(client)
 	if err != nil {
 		return err
 	}
@@ -349,7 +349,7 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 	}
 }
 
-func (a GoCloakAdapter) getClientId(client dto.Client) (*string, error) {
+func (a GoCloakAdapter) GetClientId(client dto.Client) (*string, error) {
 	clients, err := a.client.GetClients(a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
 		ClientID: client.ClientId,
 	})
@@ -619,18 +619,4 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm dto.Realm) (*string, error) {
 
 	reqLog.Info("End get openid configuration", "result", res)
 	return &res, nil
-}
-
-func (a GoCloakAdapter) GetClientUUID(client dto.Client) (*string, error) {
-	reqLog := log.WithValues("realm", client.RealmName, "client", client.ClientId)
-	reqLog.Info("Start getting Client UUID from Keycloak...")
-
-	c, err := a.client.GetClient(a.token.AccessToken, client.RealmName, client.ClientId)
-	if err != nil {
-		return nil, err
-	}
-
-	reqLog.Info("Keycloak client has been retrieved", "UUID", c.ID)
-
-	return &c.ID, nil
 }

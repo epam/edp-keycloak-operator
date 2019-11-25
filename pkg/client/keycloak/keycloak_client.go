@@ -35,7 +35,7 @@ type Client interface {
 
 	AddClientRoleToUser(realmName string, clientId string, user dto.User, role string) error
 
-	GetClientUUID(client dto.Client) (*string, error)
+	GetClientId(client dto.Client) (*string, error)
 }
 
 type ClientFactory interface {
