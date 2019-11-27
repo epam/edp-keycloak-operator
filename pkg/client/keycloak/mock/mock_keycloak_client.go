@@ -9,6 +9,10 @@ type MockKeycloakClient struct {
 	mock.Mock
 }
 
+func (m MockKeycloakClient) PutDefaultIdp(realm dto.Realm) error {
+	panic("implement me")
+}
+
 func (m MockKeycloakClient) ExistRealm(realm dto.Realm) (*bool, error) {
 	args := m.Called(realm)
 	if args.Get(0) == nil {
@@ -82,7 +86,12 @@ func (m MockKeycloakClient) HasUserClientRole(realmName string, clientId string,
 }
 
 func (m MockKeycloakClient) GetOpenIdConfig(realm dto.Realm) (*string, error) {
-	panic("implement me")
+	args := m.Called(realm)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	res := args.String(0)
+	return &res, args.Error(1)
 }
 
 func (m MockKeycloakClient) AddClientRoleToUser(realmName string, clientId string, user dto.User, role string) error {
