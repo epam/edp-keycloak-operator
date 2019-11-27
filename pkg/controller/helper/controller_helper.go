@@ -3,6 +3,9 @@ package helper
 import (
 	"context"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/pkg/errors"
+	coreV1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -50,4 +53,28 @@ func getOwnerRef(references []v1.OwnerReference, typeName string) *v1.OwnerRefer
 		}
 	}
 	return nil
+}
+
+func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*v1alpha1.KeycloakClient, error) {
+	instance := &v1alpha1.KeycloakClient{}
+	err := client.Get(context.TODO(), nsn, instance)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "cannot read keycloak client CR")
+	}
+	return instance, nil
+}
+
+func GetSecret(client client.Client, nsn types.NamespacedName) (*coreV1.Secret, error) {
+	secret := &coreV1.Secret{}
+	err := client.Get(context.TODO(), nsn, secret)
+	if err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, errors.Wrap(err, "cannot get secret")
+	}
+	return secret, nil
 }

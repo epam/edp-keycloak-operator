@@ -16,6 +16,8 @@ const (
 	clientRoleMapperResource = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
 	getOneIdP                = idPResource + "/{alias}"
 	openIdConfig             = "/auth/realms/{realm}/.well-known/openid-configuration"
+	authExecutions           = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
+	authExecutionConfig      = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
 )
 
 var (
@@ -499,6 +501,33 @@ func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, rol
 }
 
 func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
+	aConf := make([]interface{}, 0)
+	aConf = append(aConf, map[string]interface{}{
+		"alias": "edp sso",
+		"config": map[string]string{
+			"defaultProvider": realm.SsoRealmName,
+		},
+	})
+	rr := gocloak.RealmRepresentation{
+		Realm:        realm.Name,
+		Enabled:      true,
+		DefaultRoles: []string{"developer"},
+		Roles: map[string][]map[string]interface{}{
+			"realm": {
+				{
+					"name": "administrator",
+				},
+				{
+					"name": "developer",
+				},
+			},
+		},
+		Users: getDefUsers(realm),
+	}
+	return rr
+}
+
+func getDefUsers(realm dto.Realm) []interface{} {
 	users := make([]interface{}, 0)
 	users = append(users, map[string]interface{}{
 		"username":  AcReaderUsername,
@@ -526,23 +555,7 @@ func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 		},
 		"realmRoles": []string{"administrator"},
 	})
-	realmRepr := gocloak.RealmRepresentation{
-		Realm:        realm.Name,
-		Enabled:      true,
-		DefaultRoles: []string{"developer"},
-		Roles: map[string][]map[string]interface{}{
-			"realm": {
-				{
-					"name": "administrator",
-				},
-				{
-					"name": "developer",
-				},
-			},
-		},
-		Users: users,
-	}
-	return realmRepr
+	return users
 }
 
 func strip404(in error) (bool, error) {
@@ -619,4 +632,81 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm dto.Realm) (*string, error) {
 
 	reqLog.Info("End get openid configuration", "result", res)
 	return &res, nil
+}
+
+func (a GoCloakAdapter) PutDefaultIdp(realm dto.Realm) error {
+	reqLog := log.WithValues("realm dto", realm)
+	reqLog.Info("Start put default IdP...")
+
+	eId, err := a.getIdPRedirectExecutionId(realm)
+	if err != nil {
+		return err
+	}
+	err = a.createRedirectConfig(realm, *eId)
+	if err != nil {
+		return err
+	}
+	reqLog.Info("Default IdP was successfully configured!")
+	return nil
+}
+
+func (a GoCloakAdapter) getIdPRedirectExecutionId(realm dto.Realm) (*string, error) {
+	exs, err := a.getBrowserExecutions(realm)
+	if err != nil {
+		return nil, err
+	}
+	ex := getIdPRedirector(exs)
+	return &ex.Id, nil
+}
+
+func getIdPRedirector(executions []api.SimpleAuthExecution) *api.SimpleAuthExecution {
+	for _, ex := range executions {
+		if ex.ProviderId == "identity-provider-redirector" {
+			return &ex
+		}
+	}
+	return nil
+}
+
+func (a GoCloakAdapter) createRedirectConfig(realm dto.Realm, eId string) error {
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realm.Name,
+			"id":    eId,
+		}).
+		SetBody(map[string]interface{}{
+			"alias": "edp-sso",
+			"config": map[string]string{
+				"defaultProvider": realm.SsoRealmName,
+			},
+		}).
+		Post(a.basePath + authExecutionConfig)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode() != 201 {
+		return fmt.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
+	}
+	return nil
+}
+
+func (a GoCloakAdapter) getBrowserExecutions(realm dto.Realm) ([]api.SimpleAuthExecution, error) {
+	res := make([]api.SimpleAuthExecution, 0)
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realm.Name,
+		}).
+		SetResult(&res).
+		Get(a.basePath + authExecutions)
+	if err != nil {
+		return res, err
+	}
+	if resp.StatusCode() != 200 {
+		return res, fmt.Errorf("response is not ok by get browser executions: Status: %v", resp.Status())
+	}
+	return res, nil
 }
