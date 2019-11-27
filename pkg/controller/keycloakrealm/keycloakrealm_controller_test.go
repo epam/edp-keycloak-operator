@@ -7,6 +7,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/stretchr/testify/assert"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -17,21 +18,27 @@ import (
 
 	"k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 	//prepare
-	//client & scheme
+	//vars
+	kServerUrl := "http://some.security"
+	kServerUsr := "user"
+	kServerPwd := "pass"
+	kSecretName := "keycloak-secret"
+	kRealmName := "main"
+	ns := "security"
+	// dependent custom resources
 	k := &v1alpha1.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-keycloak",
-			Namespace: "namespace",
+			Namespace: ns,
 		},
 		Spec: v1alpha1.KeycloakSpec{
-			Url:    "https://some",
-			Secret: "keycloak-secret",
+			Url:    kServerUrl,
+			Secret: kSecretName,
 		},
 		Status: v1alpha1.KeycloakStatus{
 			Connected: true,
@@ -39,21 +46,21 @@ func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 	}
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-secret",
-			Namespace: "namespace",
+			Name:      kSecretName,
+			Namespace: ns,
 		},
 		Data: map[string][]byte{
-			"username": []byte("user"),
-			"password": []byte("pass"),
+			"username": []byte(kServerUsr),
+			"password": []byte(kServerPwd),
 		},
 	}
 	kr := &v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: "namespace",
+			Name:      kRealmName,
+			Namespace: ns,
 		},
 		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: "namespace.main",
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 		},
 	}
 	kr.SetOwnerReferences([]metav1.OwnerReference{
@@ -62,6 +69,7 @@ func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 			Name: k.Name,
 		},
 	})
+	//client and scheme
 	objs := []runtime.Object{
 		k, kr, secret,
 	}
@@ -69,30 +77,289 @@ func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
 	client := fake.NewFakeClient(objs...)
 
-	//keycloak client and factory
-
+	//keycloak client, factory and handler
 	kclient := new(mock.MockKeycloakClient)
-	rDto := dto.ConvertSpecToRealm(kr.Spec)
-	kclient.On("ExistRealm", rDto).Return(
-		false, nil)
-	kclient.On("CreateRealmWithDefaultConfig", rDto).Return(
-		nil)
-	kclient.On("ExistCentralIdentityProvider", rDto).Return(true, nil)
-
 	keycloakDto := dto.Keycloak{
-		Url:  "https://some",
-		User: "user",
-		Pwd:  "pass",
+		Url:  kServerUrl,
+		User: kServerUsr,
+		Pwd:  kServerPwd,
 	}
 	factory := new(mock.MockGoCloakFactory)
 	factory.On("New", keycloakDto).
 		Return(kclient, nil)
+	h := new(handler.MockRealmHandler)
+	h.On("ServeRequest", kr, kclient).
+		Return(nil)
 
 	//request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      "main",
-			Namespace: "namespace",
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+	}
+
+	//reconcile
+	r := ReconcileKeycloakRealm{
+		client:  client,
+		scheme:  s,
+		factory: factory,
+		handler: h,
+	}
+
+	//test
+	res, err := r.Reconcile(req)
+
+	//verify
+	assert.NoError(t, err)
+	assert.False(t, res.Requeue)
+
+	persKr := &v1alpha1.KeycloakRealm{}
+	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.True(t, persKr.Status.Available)
+}
+
+func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
+	//prepare
+	//vars
+	kRealmName := "main"
+	ns := "security"
+	// dependent custom resources
+	kr := &v1alpha1.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakRealmSpec{
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		},
+	}
+	//client and scheme
+	objs := []runtime.Object{kr}
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(objs...)
+
+	//request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+	}
+
+	//reconcile
+	r := ReconcileKeycloakRealm{
+		client: client,
+		scheme: s,
+	}
+
+	//test
+	res, err := r.Reconcile(req)
+
+	//verify
+	assert.Error(t, err)
+	assert.False(t, res.Requeue)
+
+	persKr := &v1alpha1.KeycloakRealm{}
+	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.False(t, persKr.Status.Available)
+}
+
+func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
+	//prepare
+	//vars
+	kRealmName := "main"
+	ns := "security"
+	// dependent custom resources
+	kr := &v1alpha1.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakRealmSpec{
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		},
+	}
+	kr.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			Kind: "AnotherKind",
+			Name: "AnotherName",
+		},
+	})
+	//client and scheme
+	objs := []runtime.Object{
+		kr,
+	}
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(objs...)
+
+	//request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+	}
+
+	//reconcile
+	r := ReconcileKeycloakRealm{
+		client: client,
+		scheme: s,
+	}
+
+	//test
+	res, err := r.Reconcile(req)
+
+	//verify
+	assert.Error(t, err)
+	assert.False(t, res.Requeue)
+
+	persKr := &v1alpha1.KeycloakRealm{}
+	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.False(t, persKr.Status.Available)
+}
+
+func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
+	//prepare
+	//vars
+	kServerUrl := "http://some.security"
+	kRealmName := "main"
+	ns := "security"
+	// dependent custom resources
+	k := &v1alpha1.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-keycloak",
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakSpec{
+			Url: kServerUrl,
+		},
+		Status: v1alpha1.KeycloakStatus{
+			Connected: false,
+		},
+	}
+	kr := &v1alpha1.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakRealmSpec{
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		},
+	}
+	kr.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			Kind: "Keycloak",
+			Name: k.Name,
+		},
+	})
+	//client and scheme
+	objs := []runtime.Object{
+		k, kr,
+	}
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(objs...)
+
+	//request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+	}
+
+	//reconcile
+	r := ReconcileKeycloakRealm{
+		client: client,
+		scheme: s,
+	}
+
+	//test
+	res, err := r.Reconcile(req)
+
+	//verify
+	assert.Error(t, err)
+	assert.False(t, res.Requeue)
+
+	persKr := &v1alpha1.KeycloakRealm{}
+	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.False(t, persKr.Status.Available)
+}
+
+func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
+	//prepare
+	//vars
+	kServerUrl := "http://some.security"
+	kServerUsr := "user"
+	kServerPwd := "pass"
+	kSecretName := "keycloak-secret"
+	kRealmName := "main"
+	ns := "security"
+	// dependent custom resources
+	k := &v1alpha1.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-keycloak",
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakSpec{
+			Url:    kServerUrl,
+			Secret: kSecretName,
+		},
+		Status: v1alpha1.KeycloakStatus{
+			Connected: true,
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kSecretName,
+			Namespace: ns,
+		},
+		Data: map[string][]byte{
+			"username": []byte(kServerUsr),
+			"password": []byte(kServerPwd),
+		},
+	}
+	kr := &v1alpha1.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		Spec: v1alpha1.KeycloakRealmSpec{
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		},
+	}
+	kr.SetOwnerReferences([]metav1.OwnerReference{
+		{
+			Kind: "Keycloak",
+			Name: k.Name,
+		},
+	})
+	//client and scheme
+	objs := []runtime.Object{
+		k, kr, secret,
+	}
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(objs...)
+
+	//keycloak client, factory and handler
+	keycloakDto := dto.Keycloak{
+		Url:  kServerUrl,
+		User: kServerUsr,
+		Pwd:  kServerPwd,
+	}
+	factory := new(mock.MockGoCloakFactory)
+	factory.On("New", keycloakDto).
+		Return(nil, errors.New("invalid credentials"))
+
+	//request
+	req := reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      kRealmName,
+			Namespace: ns,
 		},
 	}
 
@@ -107,312 +374,10 @@ func TestReconcileKeycloakRealm_ReconcileNewCr(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.NoError(t, err)
+	assert.Error(t, err)
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
-	assert.True(t, persKr.Status.Available)
-
-	persCl := &v1alpha1.KeycloakClient{}
-	nsnClient := types.NamespacedName{
-		Name:      kr.Spec.RealmName,
-		Namespace: "namespace",
-	}
-	err = client.Get(context.TODO(), nsnClient, persCl)
-
-	assert.NoError(t, err)
-	assert.Equal(t, fmt.Sprintf(keycloakClientSecretTemplate, "namespace.main"), persCl.Spec.Secret)
-	assert.Equal(t, "openshift", persCl.Spec.TargetRealm)
-}
-
-func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
-	//prepare
-	//client & scheme
-	kr := &v1alpha1.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: "namespace.main",
-		},
-	}
-	objs := []runtime.Object{
-		kr,
-	}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, kr)
-	client := fake.NewFakeClient(objs...)
-
-	//request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-	}
-
-	//reconcile
-	r := ReconcileKeycloakRealm{
-		client: client,
-		scheme: s,
-	}
-
-	//test
-	_, err := r.Reconcile(req)
-
-	//verify
-	assert.Error(t, err)
-
-	persKr := &v1alpha1.KeycloakRealm{}
-	err = client.Get(context.TODO(), req.NamespacedName, persKr)
 	assert.False(t, persKr.Status.Available)
-
-	persCl := &v1alpha1.KeycloakClient{}
-	nsnClient := types.NamespacedName{
-		Name:      kr.Spec.RealmName,
-		Namespace: "namespace",
-	}
-	err = client.Get(context.TODO(), nsnClient, persCl)
-
-	assert.Error(t, err)
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
-func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
-	//prepare
-	//client & scheme
-	kr := &v1alpha1.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: "namespace.main",
-		},
-	}
-	kr.SetOwnerReferences([]metav1.OwnerReference{
-		{
-			Kind: "anotherType",
-			Name: "another",
-		},
-	})
-	objs := []runtime.Object{
-		kr,
-	}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
-
-	//request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-	}
-
-	//reconcile
-	r := ReconcileKeycloakRealm{
-		client: client,
-		scheme: s,
-	}
-
-	//test
-	_, err := r.Reconcile(req)
-
-	//verify
-	assert.Error(t, err)
-
-	persKr := &v1alpha1.KeycloakRealm{}
-	err = client.Get(context.TODO(), req.NamespacedName, persKr)
-	assert.False(t, persKr.Status.Available)
-
-	persCl := &v1alpha1.KeycloakClient{}
-	nsnClient := types.NamespacedName{
-		Name:      kr.Spec.RealmName,
-		Namespace: "namespace",
-	}
-	err = client.Get(context.TODO(), nsnClient, persCl)
-
-	assert.Error(t, err)
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
-func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
-	//prepare
-	//client & scheme
-	k := &v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-keycloak",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakSpec{
-			Url:    "https://some",
-			Secret: "keycloak-secret",
-		},
-		Status: v1alpha1.KeycloakStatus{
-			Connected: false,
-		},
-	}
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-secret",
-			Namespace: "namespace",
-		},
-		Data: map[string][]byte{
-			"username": []byte("user"),
-			"password": []byte("pass"),
-		},
-	}
-	kr := &v1alpha1.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: "namespace.main",
-		},
-	}
-	kr.SetOwnerReferences([]metav1.OwnerReference{
-		{
-			Kind: "Keycloak",
-			Name: k.Name,
-		},
-	})
-	objs := []runtime.Object{
-		k, kr, secret,
-	}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
-
-	//request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-	}
-
-	//reconcile
-	r := ReconcileKeycloakRealm{
-		client: client,
-		scheme: s,
-	}
-
-	//test
-	_, err := r.Reconcile(req)
-
-	//verify
-	assert.Error(t, err)
-
-	persKr := &v1alpha1.KeycloakRealm{}
-	err = client.Get(context.TODO(), req.NamespacedName, persKr)
-	assert.False(t, persKr.Status.Available)
-
-	persCl := &v1alpha1.KeycloakClient{}
-	nsnClient := types.NamespacedName{
-		Name:      kr.Spec.RealmName,
-		Namespace: "namespace",
-	}
-	err = client.Get(context.TODO(), nsnClient, persCl)
-
-	assert.Error(t, err)
-	assert.True(t, k8sErrors.IsNotFound(err))
-}
-
-func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
-	//prepare
-	//client & scheme
-	k := &v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "test-keycloak",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakSpec{
-			Url:    "https://some",
-			Secret: "keycloak-secret",
-		},
-		Status: v1alpha1.KeycloakStatus{
-			Connected: true,
-		},
-	}
-	secret := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "keycloak-secret",
-			Namespace: "namespace",
-		},
-		Data: map[string][]byte{
-			"username": []byte("user"),
-			"password": []byte("pass"),
-		},
-	}
-	kr := &v1alpha1.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: "namespace.main",
-		},
-	}
-	kr.SetOwnerReferences([]metav1.OwnerReference{
-		{
-			Kind: "Keycloak",
-			Name: k.Name,
-		},
-	})
-	objs := []runtime.Object{
-		k, kr, secret,
-	}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
-
-	//keycloak factory
-	kDto := dto.Keycloak{
-		Url:  "https://some",
-		User: "user",
-		Pwd:  "pass",
-	}
-	factory := new(mock.MockGoCloakFactory)
-	factory.On("New", kDto).
-		Return(nil, errors.New("error in login"))
-
-	//request
-	req := reconcile.Request{
-		NamespacedName: types.NamespacedName{
-			Name:      "main",
-			Namespace: "namespace",
-		},
-	}
-
-	//reconcile
-	r := ReconcileKeycloakRealm{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-	}
-
-	//test
-	_, err := r.Reconcile(req)
-
-	//verify
-	assert.Error(t, err)
-
-	persKr := &v1alpha1.KeycloakRealm{}
-	err = client.Get(context.TODO(), req.NamespacedName, persKr)
-	assert.False(t, persKr.Status.Available)
-
-	persCl := &v1alpha1.KeycloakClient{}
-	nsnClient := types.NamespacedName{
-		Name:      kr.Spec.RealmName,
-		Namespace: "namespace",
-	}
-	err = client.Get(context.TODO(), nsnClient, persCl)
-
-	assert.Error(t, err)
-	assert.True(t, k8sErrors.IsNotFound(err))
 }

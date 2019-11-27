@@ -25,3 +25,8 @@ type IdentityProviderMapperRepresentation struct {
 	IdentityProviderMapper string            `json:"identityProviderMapper"`
 	Name                   string            `json:"name"`
 }
+
+type SimpleAuthExecution struct {
+	Id         string `json:"id"`
+	ProviderId string `json:"providerId"`
+}
