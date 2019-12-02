@@ -124,10 +124,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
-	err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName)
-	if err != nil {
-		return err
-	}
+	r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName)
 
 	kClient, err := r.getConnectionClientForRealmCR(realm)
 	if err != nil {
@@ -148,11 +145,11 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 	return r.putRealmRoles(realm, keycloakClient, kClient)
 }
 
-func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) error {
+func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) {
 	if keycloakClient.Spec.TargetRealm == "" {
 		keycloakClient.Spec.TargetRealm = mainRealm
 	}
-	return r.client.Update(context.TODO(), keycloakClient)
+	r.updateStatus(keycloakClient)
 }
 
 func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) (*string, error) {
