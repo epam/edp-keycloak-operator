@@ -86,7 +86,6 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 	// Fetch the KeycloakClient instance
 	instance := &v1v1alpha1.KeycloakClient{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	instance.Status.Value = Ok
 	if err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
@@ -108,7 +107,9 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (reconcil
 func (r *ReconcileKeycloakClient) setStatus(err error, instance *v1v1alpha1.KeycloakClient) {
 	if err != nil {
 		instance.Status.Value = Fail
+		return
 	}
+	instance.Status.Value = Ok
 }
 
 func (r *ReconcileKeycloakClient) updateStatus(kc *v1v1alpha1.KeycloakClient) {
