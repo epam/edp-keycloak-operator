@@ -30,11 +30,7 @@ kubectl patch -n <edp_cicd_project> -f deploy/operator.yaml --local=true --patch
 
 - _<platform_type> - a platform type that can be "kubernetes" or "openshift"_.
 
-<<<<<<< HEAD
-* Check the <edp_cicd_project> namespace that should contain Deployment with your operator in a running status.
-=======
 * Check the <edp_cicd_project> namespace that should contain Deployment with your operator in a running status.
 
 ### Local Development
 In order to develop the operator, first set up a local environment. For details, please refer to the [Local Development](documentation/local-development.md) page.
->>>>>>> e7eb34d... Added local deployment overview - review
