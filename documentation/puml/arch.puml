@@ -1,0 +1,93 @@
+@startuml
+
+skinparam class {
+    BackgroundColor #white
+	BackgroundColor<<wip>> LightGoldenRodYellow
+	BackgroundColor<<tbd>> Khaki
+}
+
+package keycloak-operator {
+    class Keycloak {
+        -- spec --
+        String url
+        String secret
+        String realmName
+        String ssoRealmName
+        []User users
+        -- status --
+        Boolean connected
+    }
+
+    User "0..*" *-r- "1" Keycloak
+    class User <internal> {
+        String username
+        []String realmRoles
+    }
+
+    KeycloakSecret "1" *-l- "1" Keycloak
+    class KeycloakSecret <Secret> {
+        -- data --
+        String username
+        String password
+    }
+
+    KeycloakRealm "1..*" *-u- "1" Keycloak : owns\r\
+creates\r\
+name="main"\r\
+realmName = namespace-name\r\
+ssoRealmName=keycloak.ssoRealmName\r\
+users=keycloak.users
+    User "0..*" *-- "1" KeycloakRealm
+    class KeycloakRealm {
+        -- spec --
+        String realmName
+        String ssoRealmName
+        []User users
+        -- status --
+        Boolean available
+    }
+
+    KeycloakClient "1..*" *-u- "1" KeycloakRealm : owns\r\
+creates\r\
+name=realm.realmName\r\
+targetRealm=realm.ssoRealmName\r\
+clientId=realm.realmName
+    class KeycloakClient {
+        -- spec --
+        String targetRealm
+        String secret
+        []RealmRole realmRoles
+        Boolean public
+        String clientId
+        String webUrl
+        Boolean directAccess
+        Boolean advancedProtocolMappers
+        []String clientRoles
+        -- status --
+        String value
+        String id
+  }
+
+    KeycloakClientSecret "1" *-l- "1" KeycloakClient : secret
+    class KeycloakClientSecret <Secret> {
+        -- data --
+        String clientSecret
+    }
+
+    RealmRole "*" *-r- "1" KeycloakClient
+    class RealmRole <internal> {
+        String name
+        String composite
+    }
+}
+
+EdpComponent <-- Keycloak : creates, owns
+Secret <-l- KeycloakRealm : creates for AC creator&reader
+
+legend
+|<back:LightGoldenRodYellow>    </back>| Work In Progress |
+|<back:White>    </back>| Implemented |
+|<back:Khaki>    </back>| TBD |
+endlegend
+
+@enduml
