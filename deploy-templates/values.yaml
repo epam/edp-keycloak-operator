@@ -1,0 +1,13 @@
+name: keycloak-operator
+namespace: ""
+platform: "openshift"
+cdPipelineName: ""
+cdPipelineStageName: ""
+dnsWildcard: ""
+database:
+  required: false
+ingress:
+  required: false
+image:
+  name: keycloak-operator
+  version: latest

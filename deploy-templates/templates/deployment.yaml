@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: {{ .Values.name }}
+  template:
+    metadata:
+      labels:
+        name: {{ .Values.name }}
+    spec:
+      serviceAccountName: {{ .Values.name }}-edp
+      securityContext:
+        runAsNonRoot: true
+      containers:
+        - name: {{ .Values.name }}
+          # Replace this with the built image name
+          image: {{ .Values.image.name }}:{{ .Values.image.version }}
+          command:
+            - {{ .Values.name }}
+          imagePullPolicy: Always
+          securityContext:
+            allowPrivilegeEscalation: false
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: OPERATOR_NAME
+              value: "{{ .Values.name }}"
+            - name: PLATFORM_TYPE
+              value: "{{ .Values.platform }}"
