@@ -11,6 +11,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"io/ioutil"
 	"k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -32,9 +33,8 @@ var log = logf.Log.WithName("controller_keycloak")
 
 const (
 	defaultRealmName = "openshift"
-
-	imgFolder    = "img"
-	keycloakIcon = "keycloak.svg"
+	imgFolder        = "img"
+	keycloakIcon     = "keycloak.svg"
 )
 
 /**
@@ -113,7 +113,7 @@ func (r *ReconcileKeycloak) Reconcile(request reconcile.Request) (reconcile.Resu
 	}
 	if !con {
 		reqLogger.Info("Status is not connected")
-		return reconcile.Result{}, err
+		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
 	}
 	err = r.putMainRealm(instance)
 	if err != nil {
