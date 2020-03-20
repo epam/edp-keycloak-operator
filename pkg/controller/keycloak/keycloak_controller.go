@@ -228,7 +228,7 @@ func (r *ReconcileKeycloak) putEDPComponent(instance *v1v1alpha1.Keycloak) error
 	comp := &edpCompApi.EDPComponent{}
 	err := r.client.Get(context.TODO(), nsn, comp)
 	if err == nil {
-		reqLog.Info("EDP Component has been retrieved from k8s", "edp component", comp)
+		reqLog.V(1).Info("EDP Component has been retrieved from k8s", "edp component", comp)
 		return nil
 	}
 	if errors.IsNotFound(err) {
@@ -253,7 +253,7 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 		},
 		Spec: edpCompApi.EDPComponentSpec{
 			Type: "keycloak",
-			Url:  instance.Spec.Url,
+			Url:  fmt.Sprintf("%v/%v", instance.Spec.Url, "auth"),
 			Icon: *icon,
 		},
 	}
