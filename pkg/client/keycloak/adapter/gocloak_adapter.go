@@ -1,10 +1,14 @@
 package adapter
 
 import (
+	"errors"
 	"fmt"
 	"github.com/Nerzal/gocloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/consts"
+	"github.com/epmd-edp/keycloak-operator/pkg/model"
+	"gopkg.in/resty.v1"
 	"net/http"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"strings"
@@ -18,6 +22,10 @@ const (
 	openIdConfig             = "/auth/realms/{realm}/.well-known/openid-configuration"
 	authExecutions           = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
 	authExecutionConfig      = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
+	postClientScopeMapper    = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
+	getOneClientScope        = "/auth/admin/realms/{realm}/client-scopes"
+	linkClientScopeToClient  = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
+	postClientScope          = "/auth/admin/realms/{realm}/client-scopes"
 )
 
 var (
@@ -709,4 +717,133 @@ func (a GoCloakAdapter) getBrowserExecutions(realm dto.Realm) ([]api.SimpleAuthE
 		return res, fmt.Errorf("response is not ok by get browser executions: Status: %v", resp.Status())
 	}
 	return res, nil
+}
+
+func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName string) error {
+	reqLog := log.WithValues("scopeId", scopeId, "realm", realmName, "clientId", clientName)
+	reqLog.Info("Start put Client Scope mapper...")
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm":   realmName,
+			"scopeId": scopeId,
+		}).
+		SetBody(getProtocolMapper(clientName)).
+		Post(a.basePath + postClientScopeMapper)
+	if err := checkError(err, resp); err != nil {
+		return err
+	}
+	reqLog.Info("Client Scope mapper was successfully configured!")
+	return nil
+}
+
+func checkError(err error, response *resty.Response) error {
+	if err != nil {
+		return err
+	}
+	if response == nil {
+		return errors.New("empty response")
+	}
+	if response.IsError() {
+		if response.StatusCode() == 409 {
+			log.Info("entity already exists. creating skipped", "url", response.Request.URL)
+			return nil
+		}
+		return errors.New(response.Status())
+	}
+	return nil
+}
+
+func getProtocolMapper(clientId string) model.ProtocolMappers {
+	return model.ProtocolMappers{
+		Name:           stringP(fmt.Sprintf("%v-%v", clientId, "audience")),
+		Protocol:       stringP(consts.OpenIdProtocol),
+		ProtocolMapper: stringP(consts.ProtocolMapper),
+		ProtocolMappersConfig: &model.ProtocolMappersConfig{
+			AccessTokenClaim:       stringP("true"),
+			IncludedClientAudience: stringP(clientId),
+		},
+	}
+}
+
+func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*model.ClientScope, error) {
+	reqLog := log.WithValues("scopeName", scopeName, "realm", realmName)
+	reqLog.Info("Start get Client Scope...")
+	var result []*model.ClientScope
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realmName,
+		}).
+		SetResult(&result).
+		Get(a.basePath + getOneClientScope)
+	if err := checkError(err, resp); err != nil {
+		return nil, err
+	}
+	if result == nil {
+		return nil, fmt.Errorf("realm %v doesnt contain client scopes", realmName)
+	}
+	scope, err := getClientScope(scopeName, result)
+	if err != nil {
+		return nil, err
+	}
+	reqLog.Info("End get Client Scope", "scope", scope)
+	return scope, err
+}
+
+func getClientScope(name string, clientScopes []*model.ClientScope) (*model.ClientScope, error) {
+	for _, cs := range clientScopes {
+		if *cs.Name == name {
+			return cs, nil
+		}
+	}
+	return nil, fmt.Errorf("scope %v was not found", name)
+}
+
+func stringP(value string) *string {
+	return &value
+}
+
+func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeId, realmName string) error {
+	reqLog := log.WithValues("clientName", clientName, "scopeId", scopeId, "realm", realmName)
+	reqLog.Info("Start link Client Scope to client...")
+	clientId, err := a.GetClientId(dto.Client{ClientId: clientName, RealmName: realmName})
+	if err != nil {
+		return err
+	}
+
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm":    realmName,
+			"clientId": *clientId,
+			"scopeId":  scopeId,
+		}).
+		Put(a.basePath + linkClientScopeToClient)
+	if err := checkError(err, resp); err != nil {
+		return err
+	}
+	reqLog.Info("End link Client Scope to client...")
+	return nil
+}
+
+func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientScope) error {
+	reqLog := log.WithValues("realm", realmName, "scope", scope.Name)
+	reqLog.Info("Start creating Client Scope...")
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realmName,
+		}).
+		SetBody(scope).
+		Post(a.basePath + postClientScope)
+	if err := checkError(err, resp); err != nil {
+		return err
+	}
+	reqLog.Info("Client Scope was created!")
+	return nil
 }
