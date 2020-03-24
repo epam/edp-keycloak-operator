@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/model"
 )
 
 type Client interface {
@@ -38,6 +39,12 @@ type Client interface {
 	GetClientId(client dto.Client) (*string, error)
 
 	PutDefaultIdp(realm dto.Realm) error
+
+	PutClientScopeMapper(clientName, scopeId, realmName string) error
+
+	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)
+
+	LinkClientScopeToClient(clientName, scopeId, realmName string) error
 }
 
 type ClientFactory interface {

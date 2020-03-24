@@ -7,6 +7,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/consts"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -146,7 +147,24 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
-	return r.putRealmRoles(realm, keycloakClient, kClient)
+	if err := r.putRealmRoles(realm, keycloakClient, kClient); err != nil {
+		return err
+	}
+	return r.putClientScope(realm.Spec.RealmName, keycloakClient, kClient)
+}
+
+func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+	if !kc.Spec.AudRequired {
+		return nil
+	}
+	scope, err := kClient.GetClientScope(consts.DefaultClientScopeName, realmName)
+	if err != nil {
+		return err
+	}
+	if err := kClient.PutClientScopeMapper(kc.Spec.ClientId, *scope.ID, realmName); err != nil {
+		return err
+	}
+	return kClient.LinkClientScopeToClient(kc.Spec.ClientId, *scope.ID, realmName)
 }
 
 func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) error {
