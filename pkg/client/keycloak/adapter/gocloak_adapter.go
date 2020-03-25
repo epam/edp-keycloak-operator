@@ -25,6 +25,7 @@ const (
 	postClientScopeMapper    = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
 	getOneClientScope        = "/auth/admin/realms/{realm}/client-scopes"
 	linkClientScopeToClient  = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
+	postClientScope          = "/auth/admin/realms/{realm}/client-scopes"
 )
 
 var (
@@ -529,21 +530,9 @@ func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 				},
 			},
 		},
-		Users:        getDefUsers(realm),
-		ClientScopes: []gocloak.ClientScope{getDefClientScope()},
+		Users: getDefUsers(realm),
 	}
 	return rr
-}
-
-func getDefClientScope() gocloak.ClientScope {
-	return gocloak.ClientScope{
-		Name:        consts.DefaultClientScopeName,
-		Description: "default edp scope required for ac and nexus",
-		Protocol:    consts.OpenIdProtocol,
-		ClientScopeAttributes: &gocloak.ClientScopeAttributes{
-			IncludeInTokenScope: "true",
-		},
-	}
 }
 
 func getDefUsers(realm dto.Realm) []interface{} {
@@ -758,7 +747,7 @@ func checkError(err error, response *resty.Response) error {
 	}
 	if response.IsError() {
 		if response.StatusCode() == 409 {
-			log.Info("entity already exists", "url", response.Request.URL)
+			log.Info("entity already exists. creating skipped", "url", response.Request.URL)
 			return nil
 		}
 		return errors.New(response.Status())
@@ -838,5 +827,23 @@ func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeId, realmName s
 		return err
 	}
 	reqLog.Info("End link Client Scope to client...")
+	return nil
+}
+
+func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientScope) error {
+	reqLog := log.WithValues("realm", realmName, "scope", scope.Name)
+	reqLog.Info("Start creating Client Scope...")
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realmName,
+		}).
+		SetBody(scope).
+		Post(a.basePath + postClientScope)
+	if err := checkError(err, resp); err != nil {
+		return err
+	}
+	reqLog.Info("Client Scope was created!")
 	return nil
 }

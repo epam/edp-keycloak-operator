@@ -45,6 +45,8 @@ type Client interface {
 	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)
 
 	LinkClientScopeToClient(clientName, scopeId, realmName string) error
+
+	CreateClientScope(realmName string, scope model.ClientScope) error
 }
 
 type ClientFactory interface {
