@@ -14,24 +14,27 @@ var log = logf.Log.WithName("realm_handler")
 func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmHandler {
 	return PutAcSecret{
 		next: PutRealm{
-			next: PutKeycloakClientCR{
-				next: PutKeycloakClientSecret{
-					next: PutUsers{
-						next: PutUsersRoles{
-							next: PutOpenIdConfigAnnotation{
-								next: PutIdentityProvider{
-									next:   PutDefaultIdP{},
+			next: PutKeycloakClientScope{
+				next: PutKeycloakClientCR{
+					next: PutKeycloakClientSecret{
+						next: PutUsers{
+							next: PutUsersRoles{
+								next: PutOpenIdConfigAnnotation{
+									next: PutIdentityProvider{
+										next:   PutDefaultIdP{},
+										client: client,
+									},
 									client: client,
 								},
-								client: client,
 							},
 						},
+						client: client,
+						scheme: scheme,
 					},
 					client: client,
 					scheme: scheme,
 				},
 				client: client,
-				scheme: scheme,
 			},
 			client: client,
 		},
