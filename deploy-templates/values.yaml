@@ -1,7 +1,6 @@
 name: keycloak-operator
 namespace: ""
 platform: "openshift"
-dnsWildcard: ""
 image:
   name: epamedp/keycloak-operator
   version: v1.3.0-alpha
