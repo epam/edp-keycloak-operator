@@ -1,0 +1,18 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: Keycloak
+metadata:
+  name: {{.Values.keycloak.name}}
+spec:
+  url: {{ .Values.keycloak.url }}
+  secret: "keycloak"
+  users:
+  {{- range .Values.keycloak.admins }}
+  - username: {{.}}
+    realmRoles:
+      - administrator
+  {{- end}}
+  {{- range .Values.keycloak.developers }}
+  - username: {{.}}
+    realmRoles:
+      - developer
+  {{- end}}

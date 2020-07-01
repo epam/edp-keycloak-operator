@@ -1,7 +1,16 @@
 name: keycloak-operator
 namespace: ""
 platform: "openshift"
-dnsWildcard: ""
+
 image:
   name: epamedp/keycloak-operator
   version: v1.3.0-alpha
+
+keycloak:
+  name: "main"
+  url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
+  admins:
+    - "userOne"
+    - "userTwo"
+  developers:
+    - "userThree"
