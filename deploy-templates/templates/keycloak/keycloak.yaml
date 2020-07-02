@@ -6,12 +6,12 @@ spec:
   url: {{ .Values.keycloak.url }}
   secret: "keycloak"
   users:
-  {{- range .Values.keycloak.admins }}
+  {{- range .Values.edp.admins }}
   - username: {{.}}
     realmRoles:
       - administrator
   {{- end}}
-  {{- range .Values.keycloak.developers }}
+  {{- range .Values.edp.developers }}
   - username: {{.}}
     realmRoles:
       - developer

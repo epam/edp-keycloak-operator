@@ -9,6 +9,8 @@ image:
 keycloak:
   name: "main"
   url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
+
+edp:
   admins:
     - "userOne"
     - "userTwo"
