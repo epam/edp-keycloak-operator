@@ -15,6 +15,21 @@ _**NOTE:** Installation of operators is platform-independent, that is why there 
 
 _**NOTE:** It is highly recommended to use the latest released version._
 
+* Copy Keycloak secret with admin credentials to your namespace
+
+Openshift:
+```bash
+oc -n <edp_main_keycloak_project> get secret <edp_main_keycloak_secret> --export -o yaml | oc -n <edp_cicd_project> apply -f -
+```
+
+Kubernetes: 
+```bash
+kubectl -n <edp_main_keycloak_project> get secret <edp_main_keycloak_secret> --export -o yaml | kubectl -n <edp_cicd_project> apply -f -
+```
+
+- _<edp_main_keycloak_project> - namespace with deployed Keycloak;_
+- _<edp_main_keycloak_secret> - name of Keycloak secret;_
+
 * Go to the unzipped directory and deploy operator:
 ```bash
 helm install keycloak-operator --namespace <edp_cicd_project> --set name=keycloak-operator --set namespace=<edp_cicd_project> --set platform=<platform_type> --set image.name=epamedp/keycloak-operator --set image.version=<operator_version> --set dnsWildcard=<dns_wildcard> deploy-templates
