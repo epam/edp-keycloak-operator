@@ -15,4 +15,4 @@ edp:
     - "stub_user_one@example.com"
   developers:
     - "stub_user_one@example.com"
-    - "stub_user_two@example.com"~
+    - "stub_user_two@example.com"
