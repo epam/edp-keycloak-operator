@@ -1,14 +1,14 @@
-{{- if eq .Values.platform "kubernetes" -}}
+{{- if eq .Values.global.platform "kubernetes" -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.name }}-{{ .Values.namespace }}
+  name: {{ .Values.name }}-{{ .Values.global.edpName }}
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ .Values.name }}-{{ .Values.namespace }}-clusterrole
+  name: {{ .Values.name }}-{{ .Values.global.edpName }}-clusterrole
 subjects:
   - kind: ServiceAccount
     name: {{ .Values.name }}-edp
-    namespace: {{ .Values.namespace }}
+    namespace: {{ .Values.global.edpName }}
 {{- end -}}

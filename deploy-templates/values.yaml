@@ -1,18 +1,15 @@
-name: keycloak-operator
-namespace: ""
-platform: "openshift"
+global:
+  edpName: ""
+  platform: "openshift"
+  admins:
+    - "stub_user_one@example.com"
+  developers:
+    - "stub_user_one@example.com"
 
+name: keycloak-operator
 image:
   name: epamedp/keycloak-operator
   version: v1.4.0
 
 keycloak:
-  name: "main"
   url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
-
-edp:
-  admins:
-    - "stub_user_one@example.com"
-  developers:
-    - "stub_user_one@example.com"
-    - "stub_user_two@example.com"
