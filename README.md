@@ -53,8 +53,8 @@ the name of a Keycloak secret._
      - global.platform                               # openshift or kubernetes;
      - global.admins                                 # Administrators of your tenant separated by comma (,) (eg --set 'global.admins={test@example.com}');
      - global.developers                             # Developers of your tenant separated by comma (,) (eg --set 'global.developers={test@example.com}');
-     - image.name                                    # EDP image. The released image can be found on [Dockerhub](https://hub.docker.com/repository/docker/epamedp/keycloak-operator);
-     - image.version                                 # EDP tag. The released image can be found on [Dockerhub](https://hub.docker.com/repository/docker/epamedp/keycloak-operator/tags);
+     - image.name                                    # EDP image. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator);
+     - image.version                                 # EDP tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags);
      - keycloak.url                                  # URL to Keycloak;
    ```
 4. Install operator in the <edp_cicd_project> namespace with the helm command; find below the installation command example:
