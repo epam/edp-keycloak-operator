@@ -10,7 +10,7 @@ require (
 	github.com/Nerzal/gocloak v0.0.0-20190601185315-ffb03da972d7
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
-	github.com/epmd-edp/edp-component-operator v0.0.1-2
+	github.com/epmd-edp/edp-component-operator v0.1.1-0.20200827122548-e87429a916e0
 	github.com/epmd-edp/jenkins-operator/v2 v2.3.0-126
 	github.com/go-openapi/spec v0.19.3
 	github.com/google/uuid v1.1.1
