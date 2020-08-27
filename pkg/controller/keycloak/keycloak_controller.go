@@ -252,9 +252,10 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 			Namespace: instance.Namespace,
 		},
 		Spec: edpCompApi.EDPComponentSpec{
-			Type: "keycloak",
-			Url:  fmt.Sprintf("%v/%v", instance.Spec.Url, "auth"),
-			Icon: *icon,
+			Type:    "keycloak",
+			Url:     fmt.Sprintf("%v/%v", instance.Spec.Url, "auth"),
+			Icon:    *icon,
+			Visible: true,
 		},
 	}
 
