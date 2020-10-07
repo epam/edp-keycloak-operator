@@ -1,5 +1,5 @@
 global:
-  edpName: ""
+  edpName: "edp"
   platform: "openshift"
   admins:
     - "stub_user_one@example.com"
@@ -9,7 +9,7 @@ global:
 name: keycloak-operator
 image:
   name: epamedp/keycloak-operator
-  version: v1.4.0
+  version: v1.5.0
 
 keycloak:
-  url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
+  url: ""
