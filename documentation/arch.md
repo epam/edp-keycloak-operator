@@ -7,4 +7,4 @@ An Image of the HEAD of the current branch will be displayed as a result of an I
 
 If you are in the detached mode, use the sources to get the required version of diagrams.
 
-![arch](http://www.plantuml.com/plantuml/proxy?src=https://raw.githubusercontent.com/epmd-edp/keycloak-operator/release/2.5/documentation/puml/arch.puml) 
+![arch](http://www.plantuml.com/plantuml/proxy?src=https://raw.githubusercontent.com/epmd-edp/keycloak-operator/master/documentation/puml/arch.puml) 
