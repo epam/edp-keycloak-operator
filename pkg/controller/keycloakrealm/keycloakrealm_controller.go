@@ -17,6 +17,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -117,12 +118,9 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 }
 
 func (r *ReconcileKeycloakRealm) createKeycloakClient(realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
-	o, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
+	o, err := r.getOrCreateKeycloakOwnerRef(realm)
 	if err != nil {
 		return nil, err
-	}
-	if o == nil {
-		return nil, fmt.Errorf("cannot find owner keycloak for realm with name %s", realm.Name)
 	}
 	if !o.Status.Connected {
 		return nil, errors.New("Owner keycloak is not in connected status")
@@ -138,4 +136,27 @@ func (r *ReconcileKeycloakRealm) createKeycloakClient(realm *v1v1alpha1.Keycloak
 	user := string(s.Data["username"])
 	pwd := string(s.Data["password"])
 	return r.factory.New(dto.ConvertSpecToKeycloak(o.Spec, user, pwd))
+}
+
+func (r *ReconcileKeycloakRealm) getOrCreateKeycloakOwnerRef(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
+	o, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
+	if err != nil {
+		return nil, err
+	}
+	if o != nil {
+		return o, nil
+	}
+	if realm.Spec.KeycloakOwner == "" {
+		return nil, fmt.Errorf("keycloak owner is not specified neither in ownerReference nor in spec for realm %s",
+			realm.Name)
+	}
+	k := &v1v1alpha1.Keycloak{}
+	err = r.client.Get(context.TODO(), types.NamespacedName{
+		Namespace: realm.Namespace,
+		Name:      realm.Spec.KeycloakOwner,
+	}, k)
+	if err != nil {
+		return nil, err
+	}
+	return k, controllerutil.SetControllerReference(k, realm, r.scheme)
 }
