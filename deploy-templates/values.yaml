@@ -11,5 +11,13 @@ image:
   name: epamedp/keycloak-operator
   version: v1.4.0
 
+resources:
+  limits:
+    cpu: 200m
+    memory: 192Mi
+  requests:
+    cpu: 50m
+    memory: 64Mi
+
 keycloak:
   url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
