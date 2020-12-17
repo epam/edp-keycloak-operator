@@ -37,3 +37,5 @@ spec:
               value: "{{ .Values.name }}"
             - name: PLATFORM_TYPE
               value: "{{ .Values.global.platform }}"
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
