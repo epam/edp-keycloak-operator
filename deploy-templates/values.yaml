@@ -9,7 +9,8 @@ global:
 name: keycloak-operator
 image:
   name: epamedp/keycloak-operator
-  version: v1.4.0
+  # if not defined then .Chart.AppVersion is used
+  version:
 
 resources:
   limits:

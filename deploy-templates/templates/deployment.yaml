@@ -18,7 +18,7 @@ spec:
       containers:
         - name: {{ .Values.name }}
           # Replace this with the built image name
-          image: {{ .Values.image.name }}:{{ .Values.image.version }}
+          image: {{ .Values.image.name }}:{{ .Values.image.version | default .Chart.AppVersion }}
           command:
             - {{ .Values.name }}
           imagePullPolicy: Always
