@@ -2,14 +2,16 @@
 apiVersion: authorization.openshift.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ .Values.name }}-{{ .Values.global.edpName }}
+  labels:
+    {{- include "keycloak-operator.labels" . | nindent 4 }}
+  name: edp-{{ .Values.name }}-{{ .Values.global.edpName }}
 roleRef:
-  name: {{ .Values.name }}-{{ .Values.global.edpName }}-clusterrole
+  name: edp-{{ .Values.name }}-{{ .Values.global.edpName }}
 subjects:
   - kind: ServiceAccount
-    name: {{ .Values.name }}-edp
+    name: edp-{{ .Values.name }}
     namespace: {{ .Values.global.edpName }}
 userNames:
-  - system:serviceaccount:{{ .Values.global.edpName }}:{{ .Values.name }}-edp
+  - system:serviceaccount:{{ .Values.global.edpName }}:edp-{{ .Values.name }}
 groupNames: []
 {{- end -}}

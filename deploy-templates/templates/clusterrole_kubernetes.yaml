@@ -2,10 +2,9 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  annotations:
-    openshift.io/description: Role for {{ .Values.name }}-edp service account
-    openshift.io/reconcile-protect: "false"
-  name: {{ .Values.name }}-{{ .Values.global.edpName }}-clusterrole
+  labels:
+    {{- include "keycloak-operator.labels" . | nindent 4 }}
+  name: edp-{{ .Values.name }}-{{ .Values.global.edpName }}
 rules:
 - apiGroups:
     - '*'
