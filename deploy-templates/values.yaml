@@ -7,6 +7,10 @@ global:
     - "stub_user_one@example.com"
 
 name: keycloak-operator
+annotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
 image:
   name: epamedp/keycloak-operator
   # if not defined then .Chart.AppVersion is used

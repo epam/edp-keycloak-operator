@@ -1,6 +1,12 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  labels:
+    {{- include "keycloak-operator.labels" . | nindent 4 }}
+  {{- with .Values.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   name: {{ .Values.name }}
 spec:
   replicas: 1
@@ -12,7 +18,7 @@ spec:
       labels:
         name: {{ .Values.name }}
     spec:
-      serviceAccountName: {{ .Values.name }}-edp
+      serviceAccountName: edp-{{ .Values.name }}
       securityContext:
         runAsNonRoot: true
       containers:
@@ -39,3 +45,15 @@ spec:
               value: "{{ .Values.global.platform }}"
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
