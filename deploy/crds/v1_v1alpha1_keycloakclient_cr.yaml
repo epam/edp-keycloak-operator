@@ -9,6 +9,7 @@ spec:
   public: false
   directAccess: true
   webUrl: http://example-url
+  protocol: openid-connect
   realmRoles:
     - name: sonar-admins
       composite: administrators
