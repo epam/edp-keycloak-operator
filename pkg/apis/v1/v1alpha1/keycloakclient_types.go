@@ -16,6 +16,7 @@ type KeycloakClientSpec struct {
 	Public                  bool         `json:"public"`
 	ClientId                string       `json:"clientId"`
 	WebUrl                  string       `json:"webUrl"`
+	Protocol                *string      `json:"protocol, omitempty"`
 	DirectAccess            bool         `json:"directAccess"`
 	AdvancedProtocolMappers bool         `json:"advancedProtocolMappers"`
 	ClientRoles             []string     `json:"clientRoles, omitempty"`

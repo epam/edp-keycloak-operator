@@ -4,6 +4,8 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 )
 
+const defaultClientProtocol = "openid-connect"
+
 type Keycloak struct {
 	Url  string
 	User string
@@ -53,6 +55,7 @@ type Client struct {
 	Public                  bool
 	DirectAccess            bool
 	WebUrl                  string
+	Protocol                string
 	AdvancedProtocolMappers bool
 }
 
@@ -62,7 +65,7 @@ type RealmRole struct {
 }
 
 func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) Client {
-	return Client{
+	cl := Client{
 		RealmName:               spec.TargetRealm,
 		ClientId:                spec.ClientId,
 		ClientSecret:            clientSecret,
@@ -72,4 +75,8 @@ func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) 
 		WebUrl:                  spec.WebUrl,
 		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 	}
+	if spec.Protocol == nil {
+		cl.Protocol = defaultClientProtocol
+	}
+	return cl
 }
