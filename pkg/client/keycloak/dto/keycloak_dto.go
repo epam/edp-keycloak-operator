@@ -73,10 +73,15 @@ func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) 
 		Public:                  spec.Public,
 		DirectAccess:            spec.DirectAccess,
 		WebUrl:                  spec.WebUrl,
+		Protocol:                getValueOrDefault(spec.Protocol),
 		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 	}
-	if spec.Protocol == nil {
-		cl.Protocol = defaultClientProtocol
-	}
 	return cl
+}
+
+func getValueOrDefault(protocol *string) string {
+	if protocol == nil {
+		return defaultClientProtocol
+	}
+	return *protocol
 }
