@@ -56,6 +56,7 @@ type Client struct {
 	DirectAccess            bool
 	WebUrl                  string
 	Protocol                string
+	Attributes              map[string]string
 	AdvancedProtocolMappers bool
 }
 
@@ -74,6 +75,7 @@ func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) 
 		DirectAccess:            spec.DirectAccess,
 		WebUrl:                  spec.WebUrl,
 		Protocol:                getValueOrDefault(spec.Protocol),
+		Attributes:              spec.Attributes,
 		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 	}
 	return cl
