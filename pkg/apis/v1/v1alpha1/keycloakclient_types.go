@@ -10,17 +10,18 @@ import (
 // KeycloakClientSpec defines the desired state of KeycloakClient
 // +k8s:openapi-gen=true
 type KeycloakClientSpec struct {
-	TargetRealm             string       `json:"targetRealm"`
-	Secret                  string       `json:"secret"`
-	RealmRoles              *[]RealmRole `json:"realmRoles,omitempty"`
-	Public                  bool         `json:"public"`
-	ClientId                string       `json:"clientId"`
-	WebUrl                  string       `json:"webUrl"`
-	Protocol                *string      `json:"protocol, omitempty"`
-	DirectAccess            bool         `json:"directAccess"`
-	AdvancedProtocolMappers bool         `json:"advancedProtocolMappers"`
-	ClientRoles             []string     `json:"clientRoles, omitempty"`
-	AudRequired             bool         `json:"audRequired"`
+	TargetRealm             string            `json:"targetRealm"`
+	Secret                  string            `json:"secret"`
+	RealmRoles              *[]RealmRole      `json:"realmRoles,omitempty"`
+	Public                  bool              `json:"public"`
+	ClientId                string            `json:"clientId"`
+	WebUrl                  string            `json:"webUrl"`
+	Protocol                *string           `json:"protocol, omitempty"`
+	Attributes              map[string]string `json:"attributes, omitempty"`
+	DirectAccess            bool              `json:"directAccess"`
+	AdvancedProtocolMappers bool              `json:"advancedProtocolMappers"`
+	ClientRoles             []string          `json:"clientRoles, omitempty"`
+	AudRequired             bool              `json:"audRequired"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
