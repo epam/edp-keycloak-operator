@@ -315,6 +315,7 @@ func getGclCln(client dto.Client) gocloak.Client {
 		DirectAccessGrantsEnabled: client.DirectAccess,
 		RootURL:                   client.WebUrl,
 		Protocol:                  client.Protocol,
+		Attributes:                client.Attributes,
 		RedirectURIs: []string{
 			client.WebUrl + "/*",
 		},
