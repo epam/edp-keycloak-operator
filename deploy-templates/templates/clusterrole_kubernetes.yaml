@@ -8,7 +8,6 @@ metadata:
 rules:
 - apiGroups:
     - '*'
-  attributeRestrictions: null
   resources:
     - keycloaks
     - keycloaks/finalizers

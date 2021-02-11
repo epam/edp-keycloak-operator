@@ -8,7 +8,6 @@ metadata:
 rules:
 - apiGroups:
     - '*'
-  attributeRestrictions: null
   resources:
     - securitycontextconstraints
   verbs:
@@ -20,7 +19,6 @@ rules:
     - create
 - apiGroups:
     - '*'
-  attributeRestrictions: null
   resources:
     - keycloaks
     - keycloaks/finalizers
