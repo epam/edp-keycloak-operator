@@ -18,6 +18,8 @@ type Client interface {
 
 	CreateClient(client dto.Client) error
 
+	DeleteClient(kkClientID string, client dto.Client) error
+
 	ExistClientRole(role dto.Client, clientRole string) (*bool, error)
 
 	CreateClientRole(role dto.Client, clientRole string) error

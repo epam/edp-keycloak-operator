@@ -3,20 +3,21 @@ package keycloakclient
 import (
 	"context"
 	"fmt"
+
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/consts"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
-	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
-
+	pkgErrors "github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -27,8 +28,9 @@ import (
 var log = logf.Log.WithName("controller_keycloakclient")
 
 const (
-	Ok   = "OK"
-	Fail = "FAIL"
+	Ok                                  = "OK"
+	Fail                                = "FAIL"
+	keyCloakClientOperatorFinalizerName = "keycloak.client.operator.finalizer.name"
 )
 
 /**
@@ -150,7 +152,15 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 	if err := r.putRealmRoles(realm, keycloakClient, kClient); err != nil {
 		return err
 	}
-	return r.putClientScope(realm.Spec.RealmName, keycloakClient, kClient)
+	if err := r.putClientScope(realm.Spec.RealmName, keycloakClient, kClient); err != nil {
+		return pkgErrors.Wrap(err, "unable to put client scope")
+	}
+
+	if err := r.tryToDeleteClient(keycloakClient, kClient); err != nil {
+		return pkgErrors.Wrap(err, "unable to delete kk client")
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
@@ -228,6 +238,68 @@ func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alph
 	}
 
 	reqLog.Info("End put keycloak client role")
+	return nil
+}
+
+func containsString(slice []string, s string) bool {
+	for _, item := range slice {
+		if item == s {
+			return true
+		}
+	}
+	return false
+}
+
+func removeString(slice []string, s string) (result []string) {
+	for _, item := range slice {
+		if item == s {
+			continue
+		}
+		result = append(result, item)
+	}
+	return
+}
+
+func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.KeycloakClient,
+	kClient keycloak.Client) error {
+
+	if keycloakClient.GetDeletionTimestamp().IsZero() {
+		if !containsString(keycloakClient.ObjectMeta.Finalizers, keyCloakClientOperatorFinalizerName) {
+			keycloakClient.ObjectMeta.Finalizers = append(keycloakClient.ObjectMeta.Finalizers,
+				keyCloakClientOperatorFinalizerName)
+			if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
+				return pkgErrors.Wrap(err, "unable to update kk client cr")
+			}
+		}
+
+		return nil
+	}
+
+	reqLog := log.WithValues("keycloak client cr", keycloakClient)
+	reqLog.Info("Start deleting keycloak client...")
+
+	clientDto, err := r.convertCrToDto(keycloakClient)
+	if err != nil {
+		return pkgErrors.Wrap(err, "unable to convert cr to dto")
+	}
+
+	kkClientID, err := kClient.GetClientId(*clientDto)
+	if err != nil {
+		return pkgErrors.Wrap(err, "unable to get keycloak client")
+	}
+
+	if err := kClient.DeleteClient(*kkClientID, *clientDto); err != nil {
+		return pkgErrors.Wrap(err, "unable to delete kk client")
+	}
+
+	reqLog.Info("client deletion done")
+
+	keycloakClient.ObjectMeta.Finalizers = removeString(keycloakClient.ObjectMeta.Finalizers,
+		keyCloakClientOperatorFinalizerName)
+	if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
+		return pkgErrors.Wrap(err, "unable to update kk cr")
+	}
+
 	return nil
 }
 
