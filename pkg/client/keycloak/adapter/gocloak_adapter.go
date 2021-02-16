@@ -3,15 +3,16 @@ package adapter
 import (
 	"errors"
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/Nerzal/gocloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/consts"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
 	"gopkg.in/resty.v1"
-	"net/http"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"strings"
 )
 
 const (
@@ -291,6 +292,18 @@ func checkFullNameMatch(client dto.Client, clients *[]gocloak.Client) bool {
 		}
 	}
 	return false
+}
+
+func (a GoCloakAdapter) DeleteClient(kkClientID string, client dto.Client) error {
+	reqLog := log.WithValues("client dto", client)
+	reqLog.Info("Start delete client in Keycloak...")
+
+	if err := a.client.DeleteClient(a.token.AccessToken, client.RealmName, kkClientID); err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak client has been deleted")
+	return nil
 }
 
 func (a GoCloakAdapter) CreateClient(client dto.Client) error {
