@@ -58,6 +58,18 @@ func (a GoCloakAdapter) ExistRealm(realm dto.Realm) (*bool, error) {
 	return &res, nil
 }
 
+func (a GoCloakAdapter) DeleteRealm(realmName string) error {
+	reqLog := log.WithValues("realm", realmName)
+	reqLog.Info("Start deleting realm...")
+
+	if err := a.client.DeleteRealm(a.token.AccessToken, realmName); err != nil {
+		return err
+	}
+
+	reqLog.Info("End deletion realm")
+	return nil
+}
+
 func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")

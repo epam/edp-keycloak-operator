@@ -241,30 +241,11 @@ func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alph
 	return nil
 }
 
-func containsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-	return false
-}
-
-func removeString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
-		}
-		result = append(result, item)
-	}
-	return
-}
-
 func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.KeycloakClient,
 	kClient keycloak.Client) error {
 
 	if keycloakClient.GetDeletionTimestamp().IsZero() {
-		if !containsString(keycloakClient.ObjectMeta.Finalizers, keyCloakClientOperatorFinalizerName) {
+		if !helper.ContainsString(keycloakClient.ObjectMeta.Finalizers, keyCloakClientOperatorFinalizerName) {
 			keycloakClient.ObjectMeta.Finalizers = append(keycloakClient.ObjectMeta.Finalizers,
 				keyCloakClientOperatorFinalizerName)
 			if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
@@ -294,7 +275,7 @@ func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.K
 
 	reqLog.Info("client deletion done")
 
-	keycloakClient.ObjectMeta.Finalizers = removeString(keycloakClient.ObjectMeta.Finalizers,
+	keycloakClient.ObjectMeta.Finalizers = helper.RemoveString(keycloakClient.ObjectMeta.Finalizers,
 		keyCloakClientOperatorFinalizerName)
 	if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
 		return pkgErrors.Wrap(err, "unable to update kk cr")
