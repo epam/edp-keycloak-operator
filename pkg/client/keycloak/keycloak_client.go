@@ -10,6 +10,8 @@ type Client interface {
 
 	CreateRealmWithDefaultConfig(realm dto.Realm) error
 
+	DeleteRealm(realmName string) error
+
 	ExistCentralIdentityProvider(realm dto.Realm) (*bool, error)
 
 	CreateCentralIdentityProvider(realm dto.Realm, client dto.Client) error
