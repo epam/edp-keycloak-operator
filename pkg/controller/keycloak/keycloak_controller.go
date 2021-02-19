@@ -5,6 +5,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	edpCompApi "github.com/epmd-edp/edp-component-operator/pkg/apis/v1/v1alpha1"
 	platformHelper "github.com/epmd-edp/jenkins-operator/v2/pkg/service/platform/helper"
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -12,18 +15,18 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
-	"io/ioutil"
-	"k8s.io/api/core/v1"
+	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -65,8 +68,14 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 		return err
 	}
 
+	pred := predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+	}
+
 	// Watch for changes to primary resource Keycloak
-	return c.Watch(&source.Kind{Type: &v1v1alpha1.Keycloak{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1v1alpha1.Keycloak{}}, &handler.EnqueueRequestForObject{}, pred)
 }
 
 // blank assignment to verify that ReconcileKeycloak implements reconcile.Reconciler
@@ -103,6 +112,7 @@ func (r *ReconcileKeycloak) Reconcile(request reconcile.Request) (reconcile.Resu
 		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
+
 	err = r.updateConnectionStatusToKeycloak(instance)
 	if err != nil {
 		return reconcile.Result{}, err
