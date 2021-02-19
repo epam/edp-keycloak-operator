@@ -114,24 +114,24 @@ func (r *ReconcileKeycloakRealm) updateStatus(kr *v1v1alpha1.KeycloakRealm) {
 	}
 }
 
-func (r *ReconcileKeycloakRealm) tryToDelete(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (r *ReconcileKeycloakRealm) tryToDelete(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) (bool, error) {
 	if realm.GetDeletionTimestamp().IsZero() {
 		if !helper.ContainsString(realm.ObjectMeta.Finalizers, keyCloakRealmOperatorFinalizerName) {
 			realm.ObjectMeta.Finalizers = append(realm.ObjectMeta.Finalizers,
 				keyCloakRealmOperatorFinalizerName)
 			if err := r.client.Update(context.TODO(), realm); err != nil {
-				return errors.Wrap(err, "unable to update kk realm cr")
+				return false, errors.Wrap(err, "unable to update kk realm cr")
 			}
 		}
 
-		return nil
+		return false, nil
 	}
 
 	reqLog := log.WithValues("keycloak realm cr", realm)
 	reqLog.Info("Start deleting keycloak realm...")
 
 	if err := kClient.DeleteRealm(realm.Spec.RealmName); err != nil {
-		return errors.Wrap(err, "unable to delete realm")
+		return false, errors.Wrap(err, "unable to delete realm")
 	}
 
 	reqLog.Info("client deletion done")
@@ -139,10 +139,10 @@ func (r *ReconcileKeycloakRealm) tryToDelete(realm *v1v1alpha1.KeycloakRealm, kC
 	realm.ObjectMeta.Finalizers = helper.RemoveString(realm.ObjectMeta.Finalizers,
 		keyCloakRealmOperatorFinalizerName)
 	if err := r.client.Update(context.TODO(), realm); err != nil {
-		return errors.Wrap(err, "unable to update kk cr")
+		return false, errors.Wrap(err, "unable to update kk cr")
 	}
 
-	return nil
+	return true, nil
 }
 
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
@@ -151,11 +151,19 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return err
 	}
 
-	if err := r.handler.ServeRequest(realm, c); err != nil {
-		return err
+	deleted, err := r.tryToDelete(realm, c)
+	if err != nil {
+		return errors.Wrap(err, "error during realm deletion")
+	}
+	if deleted {
+		return nil
 	}
 
-	return r.tryToDelete(realm, c)
+	if err := r.handler.ServeRequest(realm, c); err != nil {
+		return errors.Wrap(err, "error during realm chain")
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakRealm) createKeycloakClient(realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
