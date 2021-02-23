@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
@@ -19,6 +20,12 @@ type PutIdentityProvider struct {
 func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Name, "realm namespace", realm.Namespace)
 	rLog.Info("Start put identity provider for realm...")
+	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	if !rDto.SsoRealmEnabled {
+		rLog.Info("sso realm disabled, skip put identity provider step")
+		return nextServeOrNil(h.next, realm, kClient)
+	}
+
 	cl := &v1alpha1.KeycloakClient{}
 	err := h.client.Get(context.TODO(), types.NamespacedName{
 		Namespace: realm.Namespace,
@@ -27,7 +34,7 @@ func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	if err != nil {
 		return err
 	}
-	rDto := dto.ConvertSpecToRealm(realm.Spec)
+
 	e, err := kClient.ExistCentralIdentityProvider(rDto)
 	if err != nil {
 		return err
