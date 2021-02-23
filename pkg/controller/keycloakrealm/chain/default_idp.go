@@ -16,6 +16,11 @@ func (h PutDefaultIdP) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 	rLog.Info("Start putting default identity provider...")
 
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	if !rDto.SsoRealmEnabled {
+		rLog.Info("sso integration disabled, skip putting default identity provider")
+		return nextServeOrNil(h.next, realm, kClient)
+	}
+
 	err := kClient.PutDefaultIdp(rDto)
 	if err != nil {
 		return err

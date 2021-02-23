@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
@@ -31,12 +32,13 @@ func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 		Name:      realm.Spec.RealmName,
 	})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to get kc client cr")
 	}
 	if kc != nil {
 		rLog.Info("Required Keycloak client CR already exists")
 		return nextServeOrNil(h.next, realm, kClient)
 	}
+
 	kc = &v1alpha1.KeycloakClient{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      realm.Spec.RealmName,
@@ -44,11 +46,15 @@ func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 		},
 		Spec: v1alpha1.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
-			TargetRealm: realm.Spec.SsoRealmName,
+			TargetRealm: realm.Spec.RealmName,
 			ClientId:    realm.Spec.RealmName,
 			ClientRoles: []string{"administrator", "developer"},
 		},
 	}
+	if realm.Spec.SsoRealmEnabled == nil || *realm.Spec.SsoRealmEnabled {
+		kc.Spec.TargetRealm = realm.Spec.SsoRealmName
+	}
+
 	err = controllerutil.SetControllerReference(realm, kc, h.scheme)
 	if err != nil {
 		return errors.Wrap(err, "cannot set owner ref for keycloak client CR")

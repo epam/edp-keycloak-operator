@@ -537,12 +537,14 @@ func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, rol
 
 func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 	aConf := make([]interface{}, 0)
-	aConf = append(aConf, map[string]interface{}{
-		"alias": "edp sso",
-		"config": map[string]string{
-			"defaultProvider": realm.SsoRealmName,
-		},
-	})
+	if realm.SsoRealmEnabled {
+		aConf = append(aConf, map[string]interface{}{
+			"alias": "edp sso",
+			"config": map[string]string{
+				"defaultProvider": realm.SsoRealmName,
+			},
+		})
+	}
 	rr := gocloak.RealmRepresentation{
 		Realm:        realm.Name,
 		Enabled:      true,

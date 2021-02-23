@@ -15,6 +15,10 @@ func (h PutUsersRoles) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	if !rDto.SsoRealmEnabled {
+		rLog.Info("sso realm disabled, skip putting roles to users")
+		return nextServeOrNil(h.next, realm, kClient)
+	}
 	err := putRolesToUsers(rDto, kClient)
 	if err != nil {
 		return err
