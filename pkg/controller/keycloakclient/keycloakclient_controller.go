@@ -340,8 +340,9 @@ func (r *ReconcileKeycloakClient) putRealmRoles(realm *v1v1alpha1.KeycloakRealm,
 
 	for _, el := range *keycloakClient.Spec.RealmRoles {
 		roleDto := dto.RealmRole{
-			Name:      el.Name,
-			Composite: el.Composite,
+			Name:        el.Name,
+			Composite:   el.Composite,
+			IsComposite: el.Composite != "",
 		}
 		exist, err := kClient.ExistRealmRole(realmDto, roleDto)
 		if err != nil {

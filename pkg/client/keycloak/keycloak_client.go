@@ -36,6 +36,10 @@ type Client interface {
 
 	HasUserClientRole(realmName string, clientId string, user dto.User, role string) (*bool, error)
 
+	HasUserRealmRole(realmName string, user dto.User, role string) (bool, error)
+
+	AddRealmRoleToUser(realmName string, user dto.User, roleName string) error
+
 	GetOpenIdConfig(realm dto.Realm) (*string, error)
 
 	AddClientRoleToUser(realmName string, clientId string, user dto.User, role string) error

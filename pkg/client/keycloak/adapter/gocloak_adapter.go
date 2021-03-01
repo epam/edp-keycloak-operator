@@ -1,7 +1,6 @@
 package adapter
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/consts"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
+	"github.com/pkg/errors"
 	"gopkg.in/resty.v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
@@ -242,7 +242,7 @@ func (a GoCloakAdapter) ExistClientRole(client dto.Client, clientRole string) (*
 		return nil, err
 	}
 
-	res := checkFullClientRoleNameMatch(clientRole, clnr)
+	res := checkFullRoleNameMatch(clientRole, clnr)
 
 	reqLog.Info("End check client role in Keycloak", "result", res)
 	return &res, nil
@@ -269,13 +269,13 @@ func (a GoCloakAdapter) CreateClientRole(client dto.Client, clientRole string) e
 	return nil
 }
 
-func checkFullClientRoleNameMatch(clientRole string, roles *[]gocloak.Role) bool {
+func checkFullRoleNameMatch(role string, roles *[]gocloak.Role) bool {
 	if roles == nil {
 		return false
 	}
 
 	for _, cl := range *roles {
-		if cl.Name == clientRole {
+		if cl.Name == role {
 			return true
 		}
 	}
@@ -453,6 +453,31 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user dto.User) (*bool, 
 	return &res, nil
 }
 
+func (a GoCloakAdapter) HasUserRealmRole(realmName string, user dto.User, role string) (bool, error) {
+	reqLog := log.WithValues("role", role, "realm", realmName, "user dto", user)
+	reqLog.Info("Start check user roles in Keycloak realm...")
+
+	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: user.Username,
+	})
+	if err != nil {
+		return false, errors.Wrap(err, "unable to get users from keycloak")
+	}
+	if len(*users) == 0 {
+		return false, fmt.Errorf("no such user %v has been found", user.Username)
+	}
+
+	rolesMapping, err := a.client.GetRoleMappingByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
+	if err != nil {
+		return false, errors.Wrap(err, "unable to GetRoleMappingByUserID")
+	}
+
+	res := checkFullRoleNameMatch(role, &rolesMapping.RealmMappings)
+
+	reqLog.Info("End check user role in Keycloak", "result", res)
+	return res, nil
+}
+
 func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, user dto.User, role string) (*bool, error) {
 	reqLog := log.WithValues("role", role, "client", clientId, "realm", realmName, "user dto", user)
 	reqLog.Info("Start check user roles in Keycloak realm...")
@@ -471,13 +496,37 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	if err != nil {
 		return nil, err
 	}
-
 	clientRoles := rolesMapping.ClientMappings[clientId].Mappings
 
-	res := checkFullClientRoleNameMatch(role, &clientRoles)
+	res := checkFullRoleNameMatch(role, &clientRoles)
 
 	reqLog.Info("End check user role in Keycloak", "result", res)
 	return &res, nil
+}
+
+func (a GoCloakAdapter) AddRealmRoleToUser(realmName string, user dto.User, roleName string) error {
+	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: user.Username,
+	})
+	if err != nil {
+		return errors.Wrap(err, "error during get kc users")
+	}
+	if len(*users) == 0 {
+		return errors.Errorf("no users with username %s found", user.Username)
+	}
+
+	rl, err := a.client.GetRealmRole(a.token.AccessToken, realmName, roleName)
+	if err != nil {
+		return errors.Wrap(err, "unable to get realm role from keycloak")
+	}
+
+	if err := a.client.AddRealmRoleToUser(a.token.AccessToken, realmName, (*users)[0].ID, []gocloak.Role{
+		*rl,
+	}); err != nil {
+		return errors.Wrap(err, "unable to add realm role to user")
+	}
+
+	return nil
 }
 
 func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, user dto.User, roleName string) error {
@@ -487,25 +536,27 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 	client, err := a.client.GetClients(a.token.AccessToken, realmName, gocloak.GetClientsParams{
 		ClientID: clientId,
 	})
-	if len(*client) == 0 {
-		return fmt.Errorf("no such client %v has been found", clientId)
-	}
 	if err != nil {
 		return err
+	}
+	if len(*client) == 0 {
+		return fmt.Errorf("no such client %v has been found", clientId)
 	}
 
 	role, err := a.client.GetClientRole(a.token.AccessToken, realmName, (*client)[0].ID, roleName)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error during GetClientRole")
 	}
 	if role == nil {
-		return fmt.Errorf("no such client role %v has been found", roleName)
+		return errors.Errorf("no such client role %v has been found", roleName)
 	}
 
 	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: user.Username,
 	})
-
+	if err != nil {
+		return errors.Wrap(err, "error during get kc users")
+	}
 	err = a.addClientRoleToUser(realmName, (*users)[0].ID, []gocloak.Role{*role})
 	if err != nil {
 		return err
@@ -536,16 +587,7 @@ func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, rol
 }
 
 func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
-	aConf := make([]interface{}, 0)
-	if realm.SsoRealmEnabled {
-		aConf = append(aConf, map[string]interface{}{
-			"alias": "edp sso",
-			"config": map[string]string{
-				"defaultProvider": realm.SsoRealmName,
-			},
-		})
-	}
-	rr := gocloak.RealmRepresentation{
+	return gocloak.RealmRepresentation{
 		Realm:        realm.Name,
 		Enabled:      true,
 		DefaultRoles: []string{"developer"},
@@ -561,7 +603,6 @@ func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 		},
 		Users: getDefUsers(realm),
 	}
-	return rr
 }
 
 func getDefUsers(realm dto.Realm) []interface{} {
@@ -630,23 +671,29 @@ func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) err
 	reqLog.Info("Start create realm roles in Keycloak...")
 
 	realmRole := gocloak.Role{
-		Name: role.Name,
+		Name:        role.Name,
+		Description: role.Description,
+		Attributes:  role.Attributes,
+		Composite:   role.IsComposite,
 	}
+
 	err := a.client.CreateRealmRole(a.token.AccessToken, realm.Name, realmRole)
 	if err != nil {
 		return err
 	}
 
-	persRole, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
-	if err != nil {
-		return err
-	}
+	if role.IsComposite && role.Composite != "" {
+		persRole, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
+		if err != nil {
+			return err
+		}
 
-	err = a.client.AddRealmRoleComposite(a.token.AccessToken, realm.Name,
-		role.Composite, []gocloak.Role{*persRole})
+		err = a.client.AddRealmRoleComposite(a.token.AccessToken, realm.Name,
+			role.Composite, []gocloak.Role{*persRole})
 
-	if err != nil {
-		return err
+		if err != nil {
+			return err
+		}
 	}
 
 	reqLog.Info("Keycloak roles has been created")

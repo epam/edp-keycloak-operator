@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
@@ -25,6 +26,11 @@ type PutKeycloakClientSecret struct {
 func (h PutKeycloakClientSecret) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client secret")
+	if !realm.Spec.SSOEnabled() {
+		rLog.Info("sso realm disabled skip creation of Keycloak client secret")
+		return nextServeOrNil(h.next, realm, kClient)
+	}
+
 	sn := fmt.Sprintf(clientSecretName, realm.Spec.RealmName)
 	s, err := helper.GetSecret(h.client, types.NamespacedName{
 		Name:      sn,
