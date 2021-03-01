@@ -24,9 +24,30 @@ type PutKeycloakClientCR struct {
 	scheme *runtime.Scheme
 }
 
+func (h PutKeycloakClientCR) getClientRoles(realm *v1alpha1.KeycloakRealm) []string {
+	userRoles := make(map[string]string)
+
+	for _, u := range realm.Spec.Users {
+		for _, r := range u.RealmRoles {
+			userRoles[r] = r
+		}
+	}
+
+	clientRoles := make([]string, 0, len(userRoles))
+	for _, v := range userRoles {
+		clientRoles = append(clientRoles, v)
+	}
+
+	return clientRoles
+}
+
 func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client CR")
+	if !realm.Spec.SSOEnabled() {
+		rLog.Info("sso realm disabled skip creation of Keycloak client CR")
+		return nextServeOrNil(h.next, realm, kClient)
+	}
 	kc, err := helper.GetKeycloakClientCR(h.client, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
@@ -46,13 +67,10 @@ func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 		},
 		Spec: v1alpha1.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
-			TargetRealm: realm.Spec.RealmName,
+			TargetRealm: realm.Spec.SsoRealmName,
 			ClientId:    realm.Spec.RealmName,
-			ClientRoles: []string{"administrator", "developer"},
+			ClientRoles: h.getClientRoles(realm),
 		},
-	}
-	if realm.Spec.SsoRealmEnabled == nil || *realm.Spec.SsoRealmEnabled {
-		kc.Spec.TargetRealm = realm.Spec.SsoRealmName
 	}
 
 	err = controllerutil.SetControllerReference(realm, kc, h.scheme)

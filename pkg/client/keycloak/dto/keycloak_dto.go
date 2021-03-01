@@ -63,8 +63,11 @@ type Client struct {
 }
 
 type RealmRole struct {
-	Name      string
-	Composite string
+	Name        string
+	Composite   string
+	IsComposite bool
+	Description string
+	Attributes  map[string][]string
 }
 
 func ConvertSpecToClient(spec v1alpha1.KeycloakClientSpec, clientSecret string) Client {
