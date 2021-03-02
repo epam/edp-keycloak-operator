@@ -1,17 +1,19 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
 	"net/http"
+	"reflect"
 	"strings"
 
-	"github.com/Nerzal/gocloak"
+	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/consts"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
+	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	"gopkg.in/resty.v1"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
@@ -27,6 +29,7 @@ const (
 	getOneClientScope        = "/auth/admin/realms/{realm}/client-scopes"
 	linkClientScopeToClient  = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
 	postClientScope          = "/auth/admin/realms/{realm}/client-scopes"
+	getClientProtocolMappers = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
 )
 
 var (
@@ -36,7 +39,7 @@ var (
 )
 
 type GoCloakAdapter struct {
-	client gocloak.GoCloak
+	client GoCloak
 	token  gocloak.JWT
 
 	basePath string
@@ -46,7 +49,7 @@ func (a GoCloakAdapter) ExistRealm(realm dto.Realm) (*bool, error) {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start check existing realm...")
 
-	_, err := a.client.GetRealm(a.token.AccessToken, realm.Name)
+	_, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realm.Name)
 
 	res, err := strip404(err)
 
@@ -62,7 +65,7 @@ func (a GoCloakAdapter) DeleteRealm(realmName string) error {
 	reqLog := log.WithValues("realm", realmName)
 	reqLog.Info("Start deleting realm...")
 
-	if err := a.client.DeleteRealm(a.token.AccessToken, realmName); err != nil {
+	if err := a.client.DeleteRealm(context.Background(), a.token.AccessToken, realmName); err != nil {
 		return err
 	}
 
@@ -74,7 +77,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm dto.Realm) error {
 	reqLog := log.WithValues("realm", realm)
 	reqLog.Info("Start creating realm with default config...")
 
-	err := a.client.CreateRealm(a.token.AccessToken, getDefaultRealm(realm))
+	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
 	if err != nil {
 		return err
 	}
@@ -211,8 +214,8 @@ func (a GoCloakAdapter) ExistClient(client dto.Client) (*bool, error) {
 	reqLog := log.WithValues("client dto", client)
 	reqLog.Info("Start check client in Keycloak...")
 
-	clns, err := a.client.GetClients(a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
-		ClientID: client.ClientId,
+	clns, err := a.client.GetClients(context.Background(), a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
+		ClientID: &client.ClientId,
 	})
 
 	if err != nil {
@@ -234,15 +237,19 @@ func (a GoCloakAdapter) ExistClientRole(client dto.Client, clientRole string) (*
 		return nil, err
 	}
 
-	clnr, err := a.client.GetClientRoles(a.token.AccessToken, client.RealmName, *id)
-
+	clientRoles, err := a.client.GetClientRoles(context.Background(), a.token.AccessToken, client.RealmName, *id)
 	_, err = strip404(err)
-
 	if err != nil {
 		return nil, err
 	}
 
-	res := checkFullRoleNameMatch(clientRole, clnr)
+	res := false
+	for _, cl := range clientRoles {
+		if cl.Name != nil && *cl.Name == clientRole {
+			res = true
+			break
+		}
+	}
 
 	reqLog.Info("End check client role in Keycloak", "result", res)
 	return &res, nil
@@ -257,9 +264,9 @@ func (a GoCloakAdapter) CreateClientRole(client dto.Client, clientRole string) e
 		return err
 	}
 
-	err = a.client.CreateClientRole(a.token.AccessToken, client.RealmName, *id, gocloak.Role{
-		Name:       clientRole,
-		ClientRole: true,
+	_, err = a.client.CreateClientRole(context.Background(), a.token.AccessToken, client.RealmName, *id, gocloak.Role{
+		Name:       &clientRole,
+		ClientRole: gocloak.BoolP(true),
 	})
 	if err != nil {
 		return err
@@ -275,31 +282,31 @@ func checkFullRoleNameMatch(role string, roles *[]gocloak.Role) bool {
 	}
 
 	for _, cl := range *roles {
-		if cl.Name == role {
+		if cl.Name != nil && *cl.Name == role {
 			return true
 		}
 	}
 	return false
 }
 
-func checkFullUsernameMatch(userName string, users *[]gocloak.User) bool {
+func checkFullUsernameMatch(userName string, users []*gocloak.User) bool {
 	if users == nil {
 		return false
 	}
-	for _, el := range *users {
-		if el.Username == userName {
+	for _, el := range users {
+		if el.Username != nil && *el.Username == userName {
 			return true
 		}
 	}
 	return false
 }
 
-func checkFullNameMatch(client dto.Client, clients *[]gocloak.Client) bool {
+func checkFullNameMatch(client dto.Client, clients []*gocloak.Client) bool {
 	if clients == nil {
 		return false
 	}
-	for _, el := range *clients {
-		if el.ClientID == client.ClientId {
+	for _, el := range clients {
+		if el.ClientID != nil && *el.ClientID == client.ClientId {
 			return true
 		}
 	}
@@ -310,7 +317,7 @@ func (a GoCloakAdapter) DeleteClient(kkClientID string, client dto.Client) error
 	reqLog := log.WithValues("client dto", client)
 	reqLog.Info("Start delete client in Keycloak...")
 
-	if err := a.client.DeleteClient(a.token.AccessToken, client.RealmName, kkClientID); err != nil {
+	if err := a.client.DeleteClient(context.Background(), a.token.AccessToken, client.RealmName, kkClientID); err != nil {
 		return err
 	}
 
@@ -322,7 +329,7 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 	reqLog := log.WithValues("client dto", client)
 	reqLog.Info("Start create client in Keycloak...")
 
-	err := a.client.CreateClient(a.token.AccessToken, client.RealmName, getGclCln(client))
+	_, err := a.client.CreateClient(context.Background(), a.token.AccessToken, client.RealmName, getGclCln(client))
 	if err != nil {
 		return err
 	}
@@ -334,21 +341,21 @@ func (a GoCloakAdapter) CreateClient(client dto.Client) error {
 func getGclCln(client dto.Client) gocloak.Client {
 	protocolMappers := getProtocolMappers(client.AdvancedProtocolMappers)
 	return gocloak.Client{
-		ClientID:                  client.ClientId,
-		Secret:                    client.ClientSecret,
-		PublicClient:              client.Public,
-		DirectAccessGrantsEnabled: client.DirectAccess,
-		RootURL:                   client.WebUrl,
-		Protocol:                  client.Protocol,
-		Attributes:                client.Attributes,
-		RedirectURIs: []string{
+		ClientID:                  &client.ClientId,
+		Secret:                    &client.ClientSecret,
+		PublicClient:              &client.Public,
+		DirectAccessGrantsEnabled: &client.DirectAccess,
+		RootURL:                   &client.WebUrl,
+		Protocol:                  &client.Protocol,
+		Attributes:                &client.Attributes,
+		RedirectURIs: &[]string{
 			client.WebUrl + "/*",
 		},
-		WebOrigins: []string{
+		WebOrigins: &[]string{
 			client.WebUrl,
 		},
-		AdminURL:        client.WebUrl,
-		ProtocolMappers: protocolMappers,
+		AdminURL:        &client.WebUrl,
+		ProtocolMappers: &protocolMappers,
 	}
 }
 
@@ -356,12 +363,13 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 	if !need {
 		return nil
 	}
+
 	return []gocloak.ProtocolMapperRepresentation{
 		{
-			Name:           "username",
-			Protocol:       "openid-connect",
-			ProtocolMapper: "oidc-usermodel-property-mapper",
-			Config: map[string]string{
+			Name:           gocloak.StringP("username"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-usermodel-property-mapper"),
+			Config: &map[string]string{
 				"userinfo.token.claim": "true",
 				"user.attribute":       "username",
 				"id.token.claim":       "true",
@@ -371,10 +379,10 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 			},
 		},
 		{
-			Name:           "realm roles",
-			Protocol:       "openid-connect",
-			ProtocolMapper: "oidc-usermodel-realm-role-mapper",
-			Config: map[string]string{
+			Name:           gocloak.StringP("realm roles"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-usermodel-realm-role-mapper"),
+			Config: &map[string]string{
 				"userinfo.token.claim": "true",
 				"multivalued":          "true",
 				"id.token.claim":       "true",
@@ -387,16 +395,17 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 }
 
 func (a GoCloakAdapter) GetClientId(client dto.Client) (*string, error) {
-	clients, err := a.client.GetClients(a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
-		ClientID: client.ClientId,
-	})
+	clients, err := a.client.GetClients(context.Background(), a.token.AccessToken, client.RealmName,
+		gocloak.GetClientsParams{
+			ClientID: &client.ClientId,
+		})
 	if err != nil {
 		return nil, err
 	}
 
-	for _, item := range *clients {
-		if item.ClientID == client.ClientId {
-			return &item.ID, nil
+	for _, item := range clients {
+		if item.ClientID != nil && *item.ClientID == client.ClientId {
+			return item.ID, nil
 		}
 	}
 	return nil, fmt.Errorf("unable to get Client ID. Client %v doesn't exist", client.ClientId)
@@ -419,12 +428,12 @@ func (a GoCloakAdapter) CreateRealmUser(realmName string, user dto.User) error {
 	reqLog.Info("Start create realm user in Keycloak...")
 
 	userDto := gocloak.User{
-		Username: user.Username,
-		Email:    user.Username,
-		Enabled:  true,
+		Username: &user.Username,
+		Email:    &user.Username,
+		Enabled:  gocloak.BoolP(true),
 	}
 
-	_, err := a.client.CreateUser(a.token.AccessToken, realmName, userDto)
+	_, err := a.client.CreateUser(context.Background(), a.token.AccessToken, realmName, userDto)
 	if err != nil {
 		return err
 	}
@@ -437,12 +446,11 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user dto.User) (*bool, 
 	reqLog := log.WithValues("user dto", user, "realm", realmName)
 	reqLog.Info("Start check user in Keycloak realm...")
 
-	usr, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: user.Username,
+	usr, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &user.Username,
 	})
 
 	_, err = strip404(err)
-
 	if err != nil {
 		return nil, err
 	}
@@ -457,22 +465,23 @@ func (a GoCloakAdapter) HasUserRealmRole(realmName string, user dto.User, role s
 	reqLog := log.WithValues("role", role, "realm", realmName, "user dto", user)
 	reqLog.Info("Start check user roles in Keycloak realm...")
 
-	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: user.Username,
+	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &user.Username,
 	})
 	if err != nil {
 		return false, errors.Wrap(err, "unable to get users from keycloak")
 	}
-	if len(*users) == 0 {
+	if len(users) == 0 {
 		return false, fmt.Errorf("no such user %v has been found", user.Username)
 	}
 
-	rolesMapping, err := a.client.GetRoleMappingByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
+	rolesMapping, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realmName,
+		*users[0].ID)
 	if err != nil {
 		return false, errors.Wrap(err, "unable to GetRoleMappingByUserID")
 	}
 
-	res := checkFullRoleNameMatch(role, &rolesMapping.RealmMappings)
+	res := checkFullRoleNameMatch(role, rolesMapping.RealmMappings)
 
 	reqLog.Info("End check user role in Keycloak", "result", res)
 	return res, nil
@@ -482,47 +491,49 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	reqLog := log.WithValues("role", role, "client", clientId, "realm", realmName, "user dto", user)
 	reqLog.Info("Start check user roles in Keycloak realm...")
 
-	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: user.Username,
+	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &user.Username,
 	})
 	if err != nil {
 		return nil, err
 	}
-	if len(*users) == 0 {
+	if len(users) == 0 {
 		return nil, fmt.Errorf("no such user %v has been found", user.Username)
 	}
 
-	rolesMapping, err := a.client.GetRoleMappingByUserID(a.token.AccessToken, realmName, (*users)[0].ID)
+	rolesMapping, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realmName,
+		*users[0].ID)
 	if err != nil {
 		return nil, err
 	}
 	clientRoles := rolesMapping.ClientMappings[clientId].Mappings
 
-	res := checkFullRoleNameMatch(role, &clientRoles)
+	res := checkFullRoleNameMatch(role, clientRoles)
 
 	reqLog.Info("End check user role in Keycloak", "result", res)
 	return &res, nil
 }
 
 func (a GoCloakAdapter) AddRealmRoleToUser(realmName string, user dto.User, roleName string) error {
-	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: user.Username,
+	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &user.Username,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error during get kc users")
 	}
-	if len(*users) == 0 {
+	if len(users) == 0 {
 		return errors.Errorf("no users with username %s found", user.Username)
 	}
 
-	rl, err := a.client.GetRealmRole(a.token.AccessToken, realmName, roleName)
+	rl, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, roleName)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm role from keycloak")
 	}
 
-	if err := a.client.AddRealmRoleToUser(a.token.AccessToken, realmName, (*users)[0].ID, []gocloak.Role{
-		*rl,
-	}); err != nil {
+	if err := a.client.AddRealmRoleToUser(context.Background(), a.token.AccessToken, realmName, *users[0].ID,
+		[]gocloak.Role{
+			*rl,
+		}); err != nil {
 		return errors.Wrap(err, "unable to add realm role to user")
 	}
 
@@ -533,17 +544,17 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 	reqLog := log.WithValues("role", roleName, "realm", realmName, "user", user.Username)
 	reqLog.Info("Start mapping realm role to user in Keycloak...")
 
-	client, err := a.client.GetClients(a.token.AccessToken, realmName, gocloak.GetClientsParams{
-		ClientID: clientId,
+	client, err := a.client.GetClients(context.Background(), a.token.AccessToken, realmName, gocloak.GetClientsParams{
+		ClientID: &clientId,
 	})
 	if err != nil {
 		return err
 	}
-	if len(*client) == 0 {
+	if len(client) == 0 {
 		return fmt.Errorf("no such client %v has been found", clientId)
 	}
 
-	role, err := a.client.GetClientRole(a.token.AccessToken, realmName, (*client)[0].ID, roleName)
+	role, err := a.client.GetClientRole(context.Background(), a.token.AccessToken, realmName, *client[0].ID, roleName)
 	if err != nil {
 		return errors.Wrap(err, "error during GetClientRole")
 	}
@@ -551,13 +562,17 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 		return errors.Errorf("no such client role %v has been found", roleName)
 	}
 
-	users, err := a.client.GetUsers(a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: user.Username,
+	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &user.Username,
 	})
 	if err != nil {
-		return errors.Wrap(err, "error during get kc users")
+		return err
 	}
-	err = a.addClientRoleToUser(realmName, (*users)[0].ID, []gocloak.Role{*role})
+	if len(users) == 0 {
+		return fmt.Errorf("no such user %v has been found", user.Username)
+	}
+
+	err = a.addClientRoleToUser(realmName, *users[0].ID, []gocloak.Role{*role})
 	if err != nil {
 		return err
 	}
@@ -567,37 +582,26 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 }
 
 func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, roles []gocloak.Role) error {
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm":  realmName,
-			"user":   userId,
-			"client": roles[0].ContainerID,
-		}).
-		SetBody(roles).
-		Post(a.basePath + clientRoleMapperResource)
-	if err != nil {
+	if err := a.client.AddClientRoleToUser(context.Background(), a.token.AccessToken, realmName,
+		*roles[0].ContainerID, userId, roles); err != nil {
 		return err
 	}
-	if resp.StatusCode() != http.StatusNoContent {
-		return fmt.Errorf("error in mapping client role to user %v", roles)
-	}
+
 	return nil
 }
 
 func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 	return gocloak.RealmRepresentation{
-		Realm:        realm.Name,
-		Enabled:      true,
-		DefaultRoles: []string{"developer"},
-		Roles: map[string][]map[string]interface{}{
-			"realm": {
+		Realm:        &realm.Name,
+		Enabled:      gocloak.BoolP(true),
+		DefaultRoles: &[]string{"developer"},
+		Roles: &gocloak.RolesRepresentation{
+			Realm: &[]gocloak.Role{
 				{
-					"name": "administrator",
+					Name: gocloak.StringP("administrator"),
 				},
 				{
-					"name": "developer",
+					Name: gocloak.StringP("developer"),
 				},
 			},
 		},
@@ -605,35 +609,37 @@ func getDefaultRealm(realm dto.Realm) gocloak.RealmRepresentation {
 	}
 }
 
-func getDefUsers(realm dto.Realm) []interface{} {
-	users := make([]interface{}, 0)
-	users = append(users, map[string]interface{}{
-		"username":  AcReaderUsername,
-		"enabled":   true,
-		"email":     "admin-console-reader@example.com",
-		"firstName": "Reader",
-		"lastName":  "EDP",
-		"credentials": []map[string]string{{
-			"type":  "password",
-			"value": realm.ACReaderPass,
+func getDefUsers(realm dto.Realm) *[]gocloak.User {
+	return &[]gocloak.User{
+		{
+			Username:  &AcReaderUsername,
+			Enabled:   gocloak.BoolP(true),
+			Email:     gocloak.StringP("admin-console-reader@example.com"),
+			FirstName: gocloak.StringP("Reader"),
+			LastName:  gocloak.StringP("EDP"),
+			Credentials: &[]gocloak.CredentialRepresentation{
+				{
+					Type:  gocloak.StringP("password"),
+					Value: gocloak.StringP(realm.ACReaderPass),
+				},
+			},
+			RealmRoles: &[]string{"developer"},
 		},
+		{
+			Username:  &AcCreatorUsername,
+			Enabled:   gocloak.BoolP(true),
+			Email:     gocloak.StringP("admin-console-creator@example.com"),
+			FirstName: gocloak.StringP("Reader"),
+			LastName:  gocloak.StringP("EDP"),
+			Credentials: &[]gocloak.CredentialRepresentation{
+				{
+					Type:  gocloak.StringP("password"),
+					Value: gocloak.StringP(realm.ACCreatorPass),
+				},
+			},
+			RealmRoles: &[]string{"developer"},
 		},
-		"realmRoles": []string{"developer"},
-	})
-	users = append(users, map[string]interface{}{
-		"username":  AcCreatorUsername,
-		"enabled":   true,
-		"email":     "admin-console-creator@example.com",
-		"firstName": "Administrator",
-		"lastName":  "EDP",
-		"credentials": []map[string]string{{
-			"type":  "password",
-			"value": realm.ACCreatorPass,
-		},
-		},
-		"realmRoles": []string{"administrator"},
-	})
-	return users
+	}
 }
 
 func strip404(in error) (bool, error) {
@@ -654,10 +660,8 @@ func (a GoCloakAdapter) ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bo
 	reqLog := log.WithValues("realm dto", realm, "role dto", role)
 	reqLog.Info("Start check existing realm role...")
 
-	_, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
-
+	_, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
 	res, err := strip404(err)
-
 	if err != nil {
 		return nil, err
 	}
@@ -671,24 +675,24 @@ func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) err
 	reqLog.Info("Start create realm roles in Keycloak...")
 
 	realmRole := gocloak.Role{
-		Name:        role.Name,
-		Description: role.Description,
-		Attributes:  role.Attributes,
-		Composite:   role.IsComposite,
+		Name:        &role.Name,
+		Description: &role.Description,
+		Attributes:  &role.Attributes,
+		Composite:   &role.IsComposite,
 	}
 
-	err := a.client.CreateRealmRole(a.token.AccessToken, realm.Name, realmRole)
+	_, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realm.Name, realmRole)
 	if err != nil {
 		return err
 	}
 
 	if role.IsComposite && role.Composite != "" {
-		persRole, err := a.client.GetRealmRole(a.token.AccessToken, realm.Name, role.Name)
+		persRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
 		if err != nil {
 			return err
 		}
 
-		err = a.client.AddRealmRoleComposite(a.token.AccessToken, realm.Name,
+		err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realm.Name,
 			role.Composite, []gocloak.Role{*persRole})
 
 		if err != nil {
@@ -795,6 +799,127 @@ func (a GoCloakAdapter) getBrowserExecutions(realm dto.Realm) ([]api.SimpleAuthE
 	return res, nil
 }
 
+func (a GoCloakAdapter) prepareProtocolMapperMaps(client dto.Client, clientID string,
+	claimedMappers []gocloak.ProtocolMapperRepresentation) (
+	currentMappersMap, claimedMappersMap map[string]gocloak.ProtocolMapperRepresentation, resultErr error) {
+
+	currentMappers, err := a.GetClientProtocolMappers(client, clientID)
+	if err != nil {
+		resultErr = errors.Wrap(err, "unable to get client protocol mappers")
+		return
+	}
+
+	currentMappersMap = make(map[string]gocloak.ProtocolMapperRepresentation)
+	claimedMappersMap = make(map[string]gocloak.ProtocolMapperRepresentation)
+	// build maps to optimize comparing loops
+	for i, m := range currentMappers {
+		currentMappersMap[*m.Name] = currentMappers[i]
+	}
+
+	for i, m := range claimedMappers {
+		// this block needed to fix 500 error response from server and for proper work of DeepEqual
+		if m.Config == nil || *m.Config == nil {
+			claimedMappers[i].Config = &map[string]string{}
+		}
+
+		claimedMappersMap[*m.Name] = claimedMappers[i]
+	}
+
+	return
+}
+
+func (a GoCloakAdapter) mapperNeedsToBeCreated(
+	claimed *gocloak.ProtocolMapperRepresentation, currentMappersMap map[string]gocloak.ProtocolMapperRepresentation,
+	realmName, clientID string) error {
+
+	if _, ok := currentMappersMap[*claimed.Name]; !ok { // not exists in kc, must be created
+		if _, err := a.client.CreateClientProtocolMapper(context.Background(), a.token.AccessToken,
+			realmName, clientID, *claimed); err != nil {
+			return errors.Wrap(err, "unable to client create protocol mapper")
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) mapperNeedsToBeUpdated(
+	claimed *gocloak.ProtocolMapperRepresentation, currentMappersMap map[string]gocloak.ProtocolMapperRepresentation,
+	realmName, clientID string) error {
+
+	if current, ok := currentMappersMap[*claimed.Name]; ok { // claimed exists in current state, must be checked for update
+		claimed.ID = current.ID                   // set id from current entity to claimed for proper DeepEqual comparison
+		if !reflect.DeepEqual(claimed, current) { // mappers is not equal, needs to update
+			if err := a.client.UpdateClientProtocolMapper(context.Background(), a.token.AccessToken,
+				realmName, clientID, *claimed.ID, *claimed); err != nil {
+				return errors.Wrap(err, "unable to update client protocol mapper")
+			}
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) SyncClientProtocolMapper(
+	client dto.Client, claimedMappers []gocloak.ProtocolMapperRepresentation) error {
+	reqLog := log.WithValues("clientId", client.ClientId)
+	reqLog.Info("Start put Client protocol mappers...")
+
+	clientID, err := a.GetClientId(client)
+	if err != nil {
+		return errors.Wrap(err, "unable to get client id")
+	}
+	//prepare mapper entity maps for simplifying comparison procedure
+	currentMappersMap, claimedMappersMap, err := a.prepareProtocolMapperMaps(client, *clientID, claimedMappers)
+	if err != nil {
+		return errors.Wrap(err, "unable to prepare protocol mapper maps")
+	}
+	//compare actual client protocol mappers from keycloak to desired mappers, and sync them
+	for _, claimed := range claimedMappers {
+		if err := a.mapperNeedsToBeCreated(&claimed, currentMappersMap, client.RealmName, *clientID); err != nil {
+			return errors.Wrap(err, "error during mapperNeedsToBeCreated")
+		}
+
+		if err := a.mapperNeedsToBeUpdated(&claimed, currentMappersMap, client.RealmName, *clientID); err != nil {
+			return errors.Wrap(err, "error during mapperNeedsToBeUpdated")
+		}
+	}
+
+	for _, kc := range currentMappersMap {
+		if _, ok := claimedMappersMap[*kc.Name]; !ok { //current mapper not exists in claimed, must be deleted
+			if err := a.client.DeleteClientProtocolMapper(context.Background(), a.token.AccessToken, client.RealmName,
+				*clientID, *kc.ID); err != nil {
+				return errors.Wrap(err, "unable to delete client protocol mapper")
+			}
+		}
+	}
+
+	reqLog.Info("Client protocol mapper was successfully configured!")
+	return nil
+}
+
+func (a GoCloakAdapter) GetClientProtocolMappers(client dto.Client,
+	clientID string) ([]gocloak.ProtocolMapperRepresentation, error) {
+	var mappers []gocloak.ProtocolMapperRepresentation
+
+	resp, err := a.client.RestyClient().R().
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": client.RealmName,
+			"id":    clientID,
+		}).
+		SetResult(&mappers).Get(a.basePath + getClientProtocolMappers)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to get client protocol mappers")
+	}
+
+	if resp.IsError() {
+		return nil, errors.New(resp.String())
+	}
+
+	return mappers, nil
+}
+
 func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName string) error {
 	reqLog := log.WithValues("scopeId", scopeId, "realm", realmName, "clientId", clientName)
 	reqLog.Info("Start put Client Scope mapper...")
@@ -833,12 +958,12 @@ func checkError(err error, response *resty.Response) error {
 
 func getProtocolMapper(clientId string) model.ProtocolMappers {
 	return model.ProtocolMappers{
-		Name:           stringP(fmt.Sprintf("%v-%v", clientId, "audience")),
-		Protocol:       stringP(consts.OpenIdProtocol),
-		ProtocolMapper: stringP(consts.ProtocolMapper),
+		Name:           gocloak.StringP(fmt.Sprintf("%v-%v", clientId, "audience")),
+		Protocol:       gocloak.StringP(consts.OpenIdProtocol),
+		ProtocolMapper: gocloak.StringP(consts.ProtocolMapper),
 		ProtocolMappersConfig: &model.ProtocolMappersConfig{
-			AccessTokenClaim:       stringP("true"),
-			IncludedClientAudience: stringP(clientId),
+			AccessTokenClaim:       gocloak.StringP("true"),
+			IncludedClientAudience: gocloak.StringP(clientId),
 		},
 	}
 }
@@ -876,10 +1001,6 @@ func getClientScope(name string, clientScopes []*model.ClientScope) (*model.Clie
 		}
 	}
 	return nil, fmt.Errorf("scope %v was not found", name)
-}
-
-func stringP(value string) *string {
-	return &value
 }
 
 func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeId, realmName string) error {

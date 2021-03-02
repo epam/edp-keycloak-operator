@@ -1,6 +1,7 @@
 package keycloak
 
 import (
+	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
 )
@@ -55,6 +56,9 @@ type Client interface {
 	LinkClientScopeToClient(clientName, scopeId, realmName string) error
 
 	CreateClientScope(realmName string, scope model.ClientScope) error
+
+	SyncClientProtocolMapper(
+		client dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
 }
 
 type ClientFactory interface {

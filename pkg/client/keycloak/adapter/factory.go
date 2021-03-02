@@ -1,14 +1,16 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
-	"github.com/Nerzal/gocloak"
+
+	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
 
-var goCloakClientSupplier = func(url string) gocloak.GoCloak {
+var goCloakClientSupplier = func(url string) GoCloak {
 	return gocloak.NewClient(url)
 }
 
@@ -20,7 +22,7 @@ func (GoCloakAdapterFactory) New(keycloak dto.Keycloak) (keycloak.Client, error)
 	reqLog.Info("Start creation new Keycloak Client...")
 
 	client := goCloakClientSupplier(keycloak.Url)
-	token, err := client.LoginAdmin(keycloak.User, keycloak.Pwd, "master")
+	token, err := client.LoginAdmin(context.Background(), keycloak.User, keycloak.Pwd, "master")
 	if err != nil {
 		errMsg := fmt.Sprintf("cannot login to Keycloak server by Keycloak dto: %+v", keycloak)
 		return nil, errors.Wrap(err, errMsg)

@@ -1,238 +1,23 @@
 package adapter
 
 import (
-	"github.com/Nerzal/gocloak"
-	"github.com/dgrijalva/jwt-go"
+	"context"
+
+	"github.com/Nerzal/gocloak/v8"
+	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/mock"
-	"gopkg.in/resty.v1"
 )
 
 type MockGoCloakClient struct {
 	mock.Mock
 }
 
-func (m *MockGoCloakClient) LoginAdmin(username, password, realm string) (*gocloak.JWT, error) {
+func (m *MockGoCloakClient) LoginAdmin(ctx context.Context, username, password, realm string) (*gocloak.JWT, error) {
 	args := m.Called(username, password, realm)
 	return args.Get(0).(*gocloak.JWT), args.Error(1)
 }
 
-func (m *MockGoCloakClient) RestyClient() *resty.Client {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetToken(realm string, options gocloak.TokenOptions) (*gocloak.JWT, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) Login(clientID, clientSecret, realm, username, password string) (*gocloak.JWT, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) Logout(clientID, clientSecret, realm, refreshToken string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) LoginClient(clientID, clientSecret, realm string) (*gocloak.JWT, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) RequestPermission(clientID, clientSecret, realm, username, password, permission string) (*gocloak.JWT, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) RefreshToken(refreshToken string, clientID, clientSecret, realm string) (*gocloak.JWT, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DecodeAccessToken(accessToken string, realm string) (*jwt.Token, *jwt.MapClaims, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DecodeAccessTokenCustomClaims(accessToken string, realm string, claims jwt.Claims) (*jwt.Token, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) RetrospectToken(accessToken string, clientID, clientSecret string, realm string) (*gocloak.RetrospecTokenResult, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetIssuer(realm string) (*gocloak.IssuerResponse, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetCerts(realm string) (*gocloak.CertResponse, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetServerInfo(accessToken string) (*gocloak.ServerInfoRepesentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserInfo(accessToken string, realm string) (*gocloak.UserInfo, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) ExecuteActionsEmail(token string, realm string, params gocloak.ExecuteActionsEmail) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateGroup(accessToken string, realm string, group gocloak.Group) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateClientRole(accessToken string, realm string, clientID string, role gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateClient(accessToken string, realm string, clientID gocloak.Client) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateClientScope(accessToken string, realm string, scope gocloak.ClientScope) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateComponent(accessToken string, realm string, component gocloak.Component) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateGroup(accessToken string, realm string, updatedGroup gocloak.Group) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateRole(accessToken string, realm string, clientID string, role gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateClient(accessToken string, realm string, updatedClient gocloak.Client) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateClientScope(accessToken string, realm string, scope gocloak.ClientScope) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteComponent(accessToken string, realm, componentID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteGroup(accessToken string, realm, groupID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteClientRole(accessToken string, realm, clientID, roleName string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteClient(accessToken string, realm, clientID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteClientScope(accessToken string, realm, scopeID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClient(accessToken string, realm string, clientID string) (*gocloak.Client, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClientSecret(token string, realm string, clientID string) (*gocloak.CredentialRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetKeyStoreConfig(accessToken string, realm string) (*gocloak.KeyStoreConfig, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetComponents(accessToken string, realm string) (*[]gocloak.Component, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetGroups(accessToken string, realm string, params gocloak.GetGroupsParams) (*[]gocloak.Group, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetGroup(accessToken string, realm, groupID string) (*gocloak.Group, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRoleMappingByGroupID(accessToken string, realm string, groupID string) (*gocloak.MappingsRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRoleMappingByUserID(accessToken string, realm string, userID string) (*gocloak.MappingsRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClientRoles(accessToken string, realm string, clientID string) (*[]gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClientRole(token string, realm string, clientID string, roleName string) (*gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClients(accessToken string, realm string, params gocloak.GetClientsParams) (*[]gocloak.Client, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClientOfflineSessions(token, realm, clientID string) (*[]gocloak.UserSessionRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetClientUserSessions(token, realm, clientID string) (*[]gocloak.UserSessionRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UserAttributeContains(attributes map[string][]string, attribute string, value string) bool {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateRealmRole(token string, realm string, role gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRealmRole(token string, realm string, roleName string) (*gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRealmRoles(accessToken string, realm string) (*[]gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRealmRolesByUserID(accessToken string, realm string, userID string) (*[]gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRealmRolesByGroupID(accessToken string, realm string, groupID string) (*[]gocloak.Role, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateRealmRole(token string, realm string, roleName string, role gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteRealmRole(token string, realm string, roleName string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) AddRealmRoleToUser(token string, realm string, userID string, roles []gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteRealmRoleFromUser(token string, realm string, userID string, roles []gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) AddRealmRoleComposite(token string, realm string, roleName string, roles []gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteRealmRoleComposite(token string, realm string, roleName string, roles []gocloak.Role) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetRealm(token string, realm string) (*gocloak.RealmRepresentation, error) {
+func (m *MockGoCloakClient) GetRealm(ctx context.Context, token, realm string) (*gocloak.RealmRepresentation, error) {
 	args := m.Called(token, realm)
 	res := args.Get(0)
 	if res == nil {
@@ -241,63 +26,100 @@ func (m *MockGoCloakClient) GetRealm(token string, realm string) (*gocloak.Realm
 	return res.(*gocloak.RealmRepresentation), args.Error(1)
 }
 
-func (m *MockGoCloakClient) CreateRealm(token string, realm gocloak.RealmRepresentation) error {
+func (m *MockGoCloakClient) CreateRealm(ctx context.Context, token string, realm gocloak.RealmRepresentation) (string, error) {
 	args := m.Called(token, realm)
+	return "", args.Error(0)
+}
+
+func (m *MockGoCloakClient) AddClientRoleToUser(ctx context.Context, token, realm, clientID, userID string,
+	roles []gocloak.Role) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) AddRealmRoleComposite(ctx context.Context, token, realm, roleName string,
+	roles []gocloak.Role) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) AddRealmRoleToUser(ctx context.Context, token, realm, userID string,
+	roles []gocloak.Role) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) CreateClient(ctx context.Context, accessToken, realm string,
+	clientID gocloak.Client) (string, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) CreateClientRole(ctx context.Context, accessToken, realm, clientID string,
+	role gocloak.Role) (string, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) CreateRealmRole(ctx context.Context, token, realm string,
+	role gocloak.Role) (string, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) CreateUser(ctx context.Context, token, realm string, user gocloak.User) (string, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) DeleteClient(ctx context.Context, accessToken, realm, clientID string) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) DeleteRealm(ctx context.Context, token, realm string) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetClientRole(ctx context.Context, token, realm, clientID,
+	roleName string) (*gocloak.Role, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetClientRoles(ctx context.Context, accessToken, realm,
+	clientID string) ([]*gocloak.Role, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetClients(ctx context.Context, accessToken, realm string,
+	params gocloak.GetClientsParams) ([]*gocloak.Client, error) {
+	args := m.Called(realm, params)
+	return args.Get(0).([]*gocloak.Client), args.Error(1)
+}
+
+func (m *MockGoCloakClient) GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
+	userID string) (*gocloak.MappingsRepresentation, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetUsers(ctx context.Context, accessToken, realm string,
+	params gocloak.GetUsersParams) ([]*gocloak.User, error) {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) RestyClient() *resty.Client {
+	args := m.Called()
+	return args.Get(0).(*resty.Client)
+}
+
+func (m *MockGoCloakClient) CreateClientProtocolMapper(ctx context.Context, token, realm, clientID string,
+	mapper gocloak.ProtocolMapperRepresentation) (string, error) {
+	args := m.Called(realm, clientID, mapper)
+	return args.String(0), args.Error(1)
+}
+func (m *MockGoCloakClient) UpdateClientProtocolMapper(ctx context.Context, token, realm, clientID, mapperID string,
+	mapper gocloak.ProtocolMapperRepresentation) error {
+	args := m.Called(realm, clientID, mapperID, mapper)
 	return args.Error(0)
 }
-
-func (m *MockGoCloakClient) DeleteRealm(token string, realm string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) CreateUser(token string, realm string, user gocloak.User) (*string, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteUser(accessToken string, realm, userID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserByID(accessToken string, realm string, userID string) (*gocloak.User, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserCount(accessToken string, realm string) (int, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUsers(accessToken string, realm string, params gocloak.GetUsersParams) (*[]gocloak.User, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserGroups(accessToken string, realm string, userID string) (*[]gocloak.UserGroup, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUsersByRoleName(token string, realm string, roleName string) (*[]gocloak.User, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) SetPassword(token string, userID string, realm string, password string, temporary bool) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) UpdateUser(accessToken string, realm string, user gocloak.User) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) AddUserToGroup(token string, realm string, userID string, groupID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) DeleteUserFromGroup(token string, realm string, userID string, groupID string) error {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserSessions(token, realm, userID string) (*[]gocloak.UserSessionRepresentation, error) {
-	panic("implement me")
-}
-
-func (m *MockGoCloakClient) GetUserOfflineSessionsForClient(token, realm, userID, clientID string) (*[]gocloak.UserSessionRepresentation, error) {
-	panic("implement me")
+func (m *MockGoCloakClient) DeleteClientProtocolMapper(ctx context.Context, token, realm, clientID,
+	mapperID string) error {
+	args := m.Called(realm, clientID, mapperID)
+	return args.Error(0)
 }
