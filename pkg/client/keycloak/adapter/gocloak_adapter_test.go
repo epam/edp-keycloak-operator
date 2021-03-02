@@ -1,18 +1,23 @@
 package adapter
 
 import (
-	"errors"
-	"github.com/Nerzal/gocloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/stretchr/testify/assert"
+	"fmt"
+	"net/url"
 	"testing"
+
+	"github.com/Nerzal/gocloak/v8"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/go-resty/resty/v2"
+	"github.com/jarcoal/httpmock"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 	//prepare
 	mockClient := new(MockGoCloakClient)
 	mockClient.On("GetRealm", "token", "realmName").
-		Return(&gocloak.RealmRepresentation{Realm: "realm"}, nil)
+		Return(&gocloak.RealmRepresentation{Realm: gocloak.StringP("realm")}, nil)
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
@@ -69,4 +74,212 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 	//verify
 	assert.Error(t, err)
 	assert.Nil(t, res)
+}
+
+func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
+	client := dto.Client{
+		RealmName: "test",
+		ClientId:  "test",
+	}
+	clientID := "321"
+	mockClient := new(MockGoCloakClient)
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+	messageBody := "not found"
+	responder := httpmock.NewStringResponder(404, messageBody)
+	httpmock.RegisterResponder(
+		"GET",
+		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		responder)
+
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	_, err := adapter.GetClientProtocolMappers(client, clientID)
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	if err.Error() != messageBody {
+		t.Fatal("wrong error returned")
+	}
+}
+
+func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
+	client := dto.Client{
+		RealmName: "test",
+		ClientId:  "test",
+	}
+	clientID := "321"
+	mockClient := new(MockGoCloakClient)
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	mockErr := errors.New("fatal")
+
+	responder := httpmock.NewErrorResponder(mockErr)
+	httpmock.RegisterResponder(
+		"GET",
+		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		responder)
+
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	_, err := adapter.GetClientProtocolMappers(client, clientID)
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	switch errors.Cause(err).(type) {
+	case *url.Error:
+		if errors.Cause(err).(*url.Error).Err != mockErr {
+			t.Fatal("wrong error returned")
+		}
+	default:
+		t.Fatal("wrong error returned")
+	}
+}
+
+func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
+	client := dto.Client{
+		RealmName: "test",
+		ClientId:  "test",
+	}
+	clientID := "321"
+
+	mockClient := new(MockGoCloakClient)
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+	mockClient.On("GetClients", client.RealmName, gocloak.GetClientsParams{
+		ClientID: &client.ClientId,
+	}).Return([]*gocloak.Client{
+		{
+			ClientID: &client.ClientId,
+			ID:       &clientID,
+		},
+	}, nil)
+
+	kcMappers := []gocloak.ProtocolMapperRepresentation{
+		{
+			ID:             gocloak.StringP("8863fce4-dcd1-48af-afbc-499cc07c31bd"),
+			Name:           gocloak.StringP("test123"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+			Config:         &map[string]string{},
+		},
+		{
+			ID:             gocloak.StringP("8863fce4-dcd1-48af-afbc-499cc07c31bd4"),
+			Name:           gocloak.StringP("test1234"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+			Config:         &map[string]string{},
+		},
+	}
+
+	crMappers := []gocloak.ProtocolMapperRepresentation{
+		{
+			ID:             gocloak.StringP("8863fce4-dcd1-48af-afbc-499cc07c31bd4"),
+			Name:           gocloak.StringP("test1234"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+			Config: &map[string]string{
+				"foo": "bar",
+			},
+		},
+		{
+			Name:           gocloak.StringP("test12341125"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+			Config: &map[string]string{
+				"bar": "foo",
+			},
+		},
+		{
+			Name:           gocloak.StringP("test1234112554684"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+		},
+	}
+
+	responder, err := httpmock.NewJsonResponder(200, kcMappers)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mockClient.On("DeleteClientProtocolMapper", client.RealmName, clientID, *kcMappers[0].ID).
+		Return(nil)
+
+	mockClient.On("UpdateClientProtocolMapper", client.RealmName, clientID, *crMappers[0].ID, crMappers[0]).
+		Return(nil)
+
+	mockClient.On("CreateClientProtocolMapper", client.RealmName, clientID, crMappers[1]).
+		Return("", nil)
+
+	mockClient.On("CreateClientProtocolMapper", client.RealmName, clientID,
+		gocloak.ProtocolMapperRepresentation{
+			Name:           gocloak.StringP("test1234112554684"),
+			Protocol:       gocloak.StringP("openid-connect"),
+			ProtocolMapper: gocloak.StringP("oidc-claims-param-token-mapper"),
+			Config:         &map[string]string{},
+		}).
+		Return("", nil)
+
+	httpmock.RegisterResponder(
+		"GET",
+		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		responder)
+
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	if err := adapter.SyncClientProtocolMapper(client, crMappers); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
+	client := dto.Client{
+		RealmName: "test",
+		ClientId:  "test",
+	}
+	clientID := "123"
+	mockErr := errors.New("fatal")
+
+	mockClient := new(MockGoCloakClient)
+	mockClient.On("GetClients", client.RealmName, gocloak.GetClientsParams{
+		ClientID: &client.ClientId,
+	}).Return([]*gocloak.Client{
+		{
+			ClientID: &client.ClientId,
+			ID:       &clientID,
+		},
+	}, mockErr)
+
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	err := adapter.SyncClientProtocolMapper(client, []gocloak.ProtocolMapperRepresentation{})
+	if err == nil {
+		t.Fatal("no error on get clients fatal")
+	}
+
+	if errors.Cause(err) != mockErr {
+		t.Fatal("wrong error returned")
+	}
 }

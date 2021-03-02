@@ -22,9 +22,17 @@ type KeycloakClientSpec struct {
 	AdvancedProtocolMappers bool              `json:"advancedProtocolMappers"`
 	ClientRoles             []string          `json:"clientRoles, omitempty"`
 	AudRequired             bool              `json:"audRequired"`
+	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+}
+
+type ProtocolMapper struct {
+	Name           string            `json:"name"`
+	Protocol       string            `json:"protocol"`
+	ProtocolMapper string            `json:"protocolMapper"`
+	Config         map[string]string `json:"config,omitempty"`
 }
 
 type RealmRole struct {

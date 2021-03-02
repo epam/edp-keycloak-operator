@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Nerzal/gocloak/v8"
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
@@ -128,8 +129,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
-	err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName)
-	if err != nil {
+	if err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName); err != nil {
 		return err
 	}
 
@@ -144,16 +144,20 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 	}
 	keycloakClient.Status.Id = *id
 
-	err = r.putKeycloakClientRole(keycloakClient, kClient)
-	if err != nil {
+	if err := r.putKeycloakClientRole(keycloakClient, kClient); err != nil {
 		return err
 	}
 
 	if err := r.putRealmRoles(realm, keycloakClient, kClient); err != nil {
 		return err
 	}
+
 	if err := r.putClientScope(realm.Spec.RealmName, keycloakClient, kClient); err != nil {
 		return pkgErrors.Wrap(err, "unable to put client scope")
+	}
+
+	if err := r.putProtocolMappers(keycloakClient, kClient); err != nil {
+		return pkgErrors.Wrap(err, "unable to putProtocolMappers")
 	}
 
 	if err := r.tryToDeleteClient(keycloakClient, kClient); err != nil {
@@ -163,7 +167,34 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 	return nil
 }
 
-func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+func (r *ReconcileKeycloakClient) putProtocolMappers(kc *v1v1alpha1.KeycloakClient,
+	kClient keycloak.Client) error {
+
+	var protocolMappers []gocloak.ProtocolMapperRepresentation
+
+	if kc.Spec.ProtocolMappers != nil {
+		protocolMappers = make([]gocloak.ProtocolMapperRepresentation, 0, len(*kc.Spec.ProtocolMappers))
+
+		for _, mapper := range *kc.Spec.ProtocolMappers {
+			protocolMappers = append(protocolMappers, gocloak.ProtocolMapperRepresentation{
+				Name:           &mapper.Name,
+				Protocol:       &mapper.Protocol,
+				ProtocolMapper: &mapper.ProtocolMapper,
+				Config:         &mapper.Config,
+			})
+		}
+	}
+
+	if err := kClient.SyncClientProtocolMapper(dto.ConvertSpecToClient(kc.Spec, ""),
+		protocolMappers); err != nil {
+		return pkgErrors.Wrap(err, "unable to sync protocol mapper")
+	}
+
+	return nil
+}
+
+func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha1.KeycloakClient,
+	kClient keycloak.Client) error {
 	if !kc.Spec.AudRequired {
 		return nil
 	}
@@ -177,14 +208,16 @@ func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha
 	return kClient.LinkClientScopeToClient(kc.Spec.ClientId, *scope.ID, realmName)
 }
 
-func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient, mainRealm string) error {
+func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient,
+	mainRealm string) error {
 	if keycloakClient.Spec.TargetRealm == "" {
 		keycloakClient.Spec.TargetRealm = mainRealm
 	}
 	return r.client.Update(context.TODO(), keycloakClient)
 }
 
-func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) (*string, error) {
+func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient,
+	kClient keycloak.Client) (*string, error) {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
@@ -214,7 +247,8 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	return kClient.GetClientId(*clientDto)
 }
 
-func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient,
+	kClient keycloak.Client) error {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client role...")
 
@@ -284,7 +318,8 @@ func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.K
 	return nil
 }
 
-func (r *ReconcileKeycloakClient) getOrCreateRealmOwnerRef(keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
+func (r *ReconcileKeycloakClient) getOrCreateRealmOwnerRef(
+	keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
 	realm, err := helper.GetOwnerKeycloakRealm(r.client, keycloakClient.ObjectMeta)
 	if err != nil {
 		return nil, err
@@ -303,7 +338,8 @@ func (r *ReconcileKeycloakClient) getOrCreateRealmOwnerRef(keycloakClient *v1v1a
 	return realm, controllerutil.SetControllerReference(realm, keycloakClient, r.scheme)
 }
 
-func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
+func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(
+	realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
 	keycloakCr, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
 	if err != nil {
 		return nil, err
@@ -327,7 +363,8 @@ func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(realm *v1v1alpha
 	return r.factory.New(keyDto)
 }
 
-func (r *ReconcileKeycloakClient) putRealmRoles(realm *v1v1alpha1.KeycloakRealm, keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
+func (r *ReconcileKeycloakClient) putRealmRoles(
+	realm *v1v1alpha1.KeycloakRealm, keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put realm roles...")
 

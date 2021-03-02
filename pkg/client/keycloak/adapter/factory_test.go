@@ -2,10 +2,11 @@ package adapter
 
 import (
 	"errors"
-	"github.com/Nerzal/gocloak"
+	"testing"
+
+	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func TestNewAdapterValidCredentials(t *testing.T) {
@@ -15,7 +16,7 @@ func TestNewAdapterValidCredentials(t *testing.T) {
 		Return(&gocloak.JWT{
 			AccessToken: "test",
 		}, nil)
-	goCloakClientSupplier = func(url string) gocloak.GoCloak {
+	goCloakClientSupplier = func(url string) GoCloak {
 		return mockClient
 	}
 	key := dto.Keycloak{
@@ -38,7 +39,7 @@ func TestNewAdapterInValidCredentials(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 	mockClient.On("LoginAdmin", "user", "invalid", "master").
 		Return(&gocloak.JWT{}, errors.New("error in login"))
-	goCloakClientSupplier = func(url string) gocloak.GoCloak {
+	goCloakClientSupplier = func(url string) GoCloak {
 		return mockClient
 	}
 	key := dto.Keycloak{
