@@ -506,9 +506,11 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	if err != nil {
 		return nil, err
 	}
-	clientRoles := rolesMapping.ClientMappings[clientId].Mappings
 
-	res := checkFullRoleNameMatch(role, clientRoles)
+	res := false
+	if clientMap, ok := rolesMapping.ClientMappings[clientId]; ok && clientMap != nil && clientMap.Mappings != nil {
+		res = checkFullRoleNameMatch(role, clientMap.Mappings)
+	}
 
 	reqLog.Info("End check user role in Keycloak", "result", res)
 	return &res, nil
