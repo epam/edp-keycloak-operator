@@ -4,20 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"testing"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/stretchr/testify/assert"
+	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-
-	"k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
@@ -53,6 +54,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		scheme: s,
+		helper: helper.MakeHelper(client, s),
 	}
 
 	//test
@@ -108,6 +110,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		scheme: s,
+		helper: helper.MakeHelper(client, s),
 	}
 
 	//test
@@ -176,6 +179,7 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		scheme: s,
+		helper: helper.MakeHelper(client, s),
 	}
 
 	//test
@@ -252,7 +256,7 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		User: kServerUsr,
 		Pwd:  kServerPwd,
 	}
-	factory := new(mock.MockGoCloakFactory)
+	factory := new(mock.GoCloakFactory)
 	factory.On("New", keycloakDto).
 		Return(nil, errors.New("invalid credentials"))
 
@@ -269,6 +273,7 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		client:  client,
 		scheme:  s,
 		factory: factory,
+		helper:  helper.MakeHelper(client, s),
 	}
 
 	//test
@@ -340,7 +345,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 		User: kServerUsr,
 		Pwd:  kServerPwd,
 	}
-	factory := new(mock.MockGoCloakFactory)
+	factory := new(mock.GoCloakFactory)
 	factory.On("New", keycloakDto).
 		Return(nil, errors.New("invalid credentials"))
 
@@ -357,6 +362,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 		client:  client,
 		scheme:  s,
 		factory: factory,
+		helper:  helper.MakeHelper(client, s),
 	}
 
 	//test

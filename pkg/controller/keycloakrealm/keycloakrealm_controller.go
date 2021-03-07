@@ -2,23 +2,18 @@ package keycloakrealm
 
 import (
 	"context"
-	"fmt"
 
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain"
 	rHand "github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/pkg/errors"
-	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -50,6 +45,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		scheme:  mgr.GetScheme(),
 		factory: new(adapter.GoCloakAdapterFactory),
 		handler: chain.CreateDefChain(mgr.GetClient(), mgr.GetScheme()),
+		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
 	}
 }
 
@@ -76,6 +72,7 @@ type ReconcileKeycloakRealm struct {
 	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
 	handler rHand.RealmHandler
+	helper  *helper.Helper
 }
 
 // Reconcile reads that state of the cluster for a KeycloakRealm object and makes changes based on the state read
@@ -146,7 +143,7 @@ func (r *ReconcileKeycloakRealm) tryToDelete(realm *v1v1alpha1.KeycloakRealm, kC
 }
 
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
-	c, err := r.createKeycloakClient(realm)
+	c, err := r.helper.CreateKeycloakClient(realm, r.factory)
 	if err != nil {
 		return err
 	}
@@ -164,48 +161,4 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 	}
 
 	return nil
-}
-
-func (r *ReconcileKeycloakRealm) createKeycloakClient(realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
-	o, err := r.getOrCreateKeycloakOwnerRef(realm)
-	if err != nil {
-		return nil, err
-	}
-	if !o.Status.Connected {
-		return nil, errors.New("Owner keycloak is not in connected status")
-	}
-	s := &coreV1.Secret{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      o.Spec.Secret,
-		Namespace: o.Namespace,
-	}, s)
-	if err != nil {
-		return nil, err
-	}
-	user := string(s.Data["username"])
-	pwd := string(s.Data["password"])
-	return r.factory.New(dto.ConvertSpecToKeycloak(o.Spec, user, pwd))
-}
-
-func (r *ReconcileKeycloakRealm) getOrCreateKeycloakOwnerRef(realm *v1v1alpha1.KeycloakRealm) (*v1v1alpha1.Keycloak, error) {
-	o, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
-	if err != nil {
-		return nil, err
-	}
-	if o != nil {
-		return o, nil
-	}
-	if realm.Spec.KeycloakOwner == "" {
-		return nil, fmt.Errorf("keycloak owner is not specified neither in ownerReference nor in spec for realm %s",
-			realm.Name)
-	}
-	k := &v1v1alpha1.Keycloak{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
-		Namespace: realm.Namespace,
-		Name:      realm.Spec.KeycloakOwner,
-	}, k)
-	if err != nil {
-		return nil, err
-	}
-	return k, controllerutil.SetControllerReference(k, realm, r.scheme)
 }

@@ -59,6 +59,10 @@ type Client interface {
 
 	SyncClientProtocolMapper(
 		client dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
+
+	SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error
+
+	DeleteRealmRole(realm, roleName string) error
 }
 
 type ClientFactory interface {

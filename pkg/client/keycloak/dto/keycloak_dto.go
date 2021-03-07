@@ -34,6 +34,22 @@ type User struct {
 	RealmRoles []string `json:"realmRoles"`
 }
 
+func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) RealmRole {
+	rr := RealmRole{
+		Name:        spec.Name,
+		Description: spec.Description,
+		IsComposite: spec.Composite,
+		Attributes:  spec.Attributes,
+		Composites:  make([]string, 0, len(spec.Composites)),
+	}
+
+	for _, comp := range spec.Composites {
+		rr.Composites = append(rr.Composites, comp.Name)
+	}
+
+	return rr
+}
+
 func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) Realm {
 	var users []User
 	for _, item := range spec.Users {
@@ -63,8 +79,9 @@ type Client struct {
 }
 
 type RealmRole struct {
+	ID          *string
 	Name        string
-	Composite   string
+	Composites  []string
 	IsComposite bool
 	Description string
 	Attributes  map[string][]string

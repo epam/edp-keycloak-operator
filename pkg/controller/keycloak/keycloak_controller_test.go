@@ -3,23 +3,22 @@ package keycloak
 import (
 	"context"
 	"errors"
+	"testing"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
-
-	corev1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 )
-
 
 func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
@@ -58,7 +57,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		User: "user",
 		Pwd:  "pass",
 	}
-	factory := new(mock.MockGoCloakFactory)
+	factory := new(mock.GoCloakFactory)
 	factory.On("New", keycloakDto).
 		Return(nil, errors.New("some error"))
 

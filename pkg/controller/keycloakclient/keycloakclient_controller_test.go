@@ -2,11 +2,14 @@ package keycloakclient
 
 import (
 	"context"
+	"testing"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/stretchr/testify/assert"
-	"k8s.io/api/apps/v1"
+	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,7 +17,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"testing"
 )
 
 func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
@@ -87,7 +89,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 
 	//keycloak client and factory
 
-	kclient := new(mock.MockKeycloakClient)
+	kclient := new(mock.KeycloakClient)
 	c := dto.ConvertSpecToClient(kc.Spec, "")
 	kclient.On("ExistClient", c).Return(
 		false, nil)
@@ -97,16 +99,18 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		"uuid", nil)
 	rm := dto.ConvertSpecToRealm(kr.Spec)
 	ar := dto.RealmRole{
-		Name:      "fake-client-administrators",
-		Composite: "administrator",
+		Name:        "fake-client-administrators",
+		Composites:  []string{"administrator"},
+		IsComposite: true,
 	}
 	kclient.On("ExistRealmRole", rm, ar).Return(
 		false, nil)
 	kclient.On("CreateRealmRole", rm, ar).Return(
 		nil)
 	dr := dto.RealmRole{
-		Name:      "fake-client-users",
-		Composite: "developer",
+		Name:        "fake-client-users",
+		Composites:  []string{"developer"},
+		IsComposite: true,
 	}
 	kclient.On("ExistRealmRole", rm, dr).Return(
 		false, nil)
@@ -118,7 +122,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		User: "user",
 		Pwd:  "pass",
 	}
-	factory := new(mock.MockGoCloakFactory)
+	factory := new(mock.GoCloakFactory)
 	factory.On("New", keycloakDto).
 		Return(kclient, nil)
 
@@ -135,6 +139,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		client:  client,
 		scheme:  s,
 		factory: factory,
+		helper:  helper.MakeHelper(client, s),
 	}
 
 	//test

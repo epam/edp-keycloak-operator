@@ -672,6 +672,128 @@ func (a GoCloakAdapter) ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bo
 	return &res, nil
 }
 
+func (a GoCloakAdapter) syncCreateNewComposites(
+	realm *dto.Realm, role *dto.RealmRole, currentComposites []*gocloak.Role) error {
+
+	currentCompositesMap := make(map[string]string)
+
+	for _, currentComposite := range currentComposites {
+		currentCompositesMap[*currentComposite.Name] = *currentComposite.Name
+	}
+
+	rolesToAdd := make([]gocloak.Role, 0, len(role.Composites))
+	for _, claimedComposite := range role.Composites {
+		if _, ok := currentCompositesMap[claimedComposite]; !ok {
+			compRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name,
+				claimedComposite)
+			if err != nil {
+				return errors.Wrap(err, "unable to get realm role")
+			}
+			rolesToAdd = append(rolesToAdd, *compRole)
+		}
+	}
+
+	if len(rolesToAdd) > 0 {
+		if err := a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realm.Name,
+			role.Name, rolesToAdd); err != nil {
+			return errors.Wrap(err, "unable to add role composite")
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) syncDeleteOldComposites(
+	realm *dto.Realm, role *dto.RealmRole, currentComposites []*gocloak.Role) error {
+
+	claimedCompositesMap := make(map[string]string)
+
+	for _, claimedComposite := range role.Composites {
+		claimedCompositesMap[claimedComposite] = claimedComposite
+	}
+
+	rolesToDelete := make([]gocloak.Role, 0, len(currentComposites))
+	for _, currentComposite := range currentComposites {
+		if _, ok := claimedCompositesMap[*currentComposite.Name]; !ok {
+			rolesToDelete = append(rolesToDelete, *currentComposite)
+		}
+	}
+
+	if len(rolesToDelete) > 0 {
+		if err := a.client.DeleteRealmRoleComposite(context.Background(), a.token.AccessToken, realm.Name, role.Name,
+			rolesToDelete); err != nil {
+			return errors.Wrap(err, "unable to delete realm role composites")
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) syncRoleComposites(
+	realm *dto.Realm, role *dto.RealmRole, currentRealmRole *gocloak.Role) error {
+
+	currentComposites, err := a.client.GetCompositeRealmRolesByRoleID(context.Background(), a.token.AccessToken,
+		realm.Name, *currentRealmRole.ID)
+	if err != nil {
+		return errors.Wrap(err, "unable to get realm role composites")
+	}
+
+	if err := a.syncCreateNewComposites(realm, role, currentComposites); err != nil {
+		return errors.Wrap(err, "error during SyncCreateNewComposites")
+	}
+
+	if err := a.syncDeleteOldComposites(realm, role, currentComposites); err != nil {
+		return errors.Wrap(err, "error during SyncDeleteOldComposites")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error {
+	currentRealmRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
+	exists, err := strip404(err)
+	if err != nil {
+		return errors.Wrap(err, "unable to get realm role")
+	}
+
+	if !exists {
+		if err := a.CreateRealmRole(*realm, *role); err != nil {
+			return errors.Wrap(err, "unable to create realm role during sync")
+		}
+
+		currentRealmRole, err = a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
+		if err != nil {
+			return errors.Wrap(err, "unable to get realm role")
+		}
+		role.ID = currentRealmRole.ID
+		return nil
+	}
+
+	if err := a.syncRoleComposites(realm, role, currentRealmRole); err != nil {
+		return errors.Wrap(err, "error during syncRoleComposites")
+	}
+
+	currentRealmRole.Composite = &role.IsComposite
+	currentRealmRole.Attributes = &role.Attributes
+	currentRealmRole.Description = &role.Description
+
+	if err := a.client.UpdateRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name,
+		*currentRealmRole); err != nil {
+		return errors.Wrap(err, "unable to update realm role")
+	}
+
+	role.ID = currentRealmRole.ID
+	return nil
+}
+
+func (a GoCloakAdapter) DeleteRealmRole(realm, roleName string) error {
+	if err := a.client.DeleteRealmRole(context.Background(), a.token.AccessToken, realm, roleName); err != nil {
+		return errors.Wrap(err, "unable to delete realm role")
+	}
+
+	return nil
+}
+
 func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) error {
 	reqLog := log.WithValues("realm dto", realm, "role", role)
 	reqLog.Info("Start create realm roles in Keycloak...")
@@ -685,20 +807,24 @@ func (a GoCloakAdapter) CreateRealmRole(realm dto.Realm, role dto.RealmRole) err
 
 	_, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realm.Name, realmRole)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create realm role")
 	}
 
-	if role.IsComposite && role.Composite != "" {
-		persRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
-		if err != nil {
-			return err
+	if role.IsComposite && len(role.Composites) > 0 {
+		compositeRoles := make([]gocloak.Role, 0, len(role.Composites))
+		for _, composite := range role.Composites {
+			role, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, composite)
+			if err != nil {
+				return errors.Wrap(err, "unable to get realm role")
+			}
+			compositeRoles = append(compositeRoles, *role)
 		}
 
-		err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realm.Name,
-			role.Composite, []gocloak.Role{*persRole})
-
-		if err != nil {
-			return err
+		if len(compositeRoles) > 0 {
+			if err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realm.Name,
+				role.Name, compositeRoles); err != nil {
+				return errors.Wrap(err, "unable to add role composite")
+			}
 		}
 	}
 
