@@ -24,10 +24,14 @@ type GoCloak interface {
 		userID string) (*gocloak.MappingsRepresentation, error)
 	GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token, realm, userID string, roles []gocloak.Role) error
+	UpdateRealmRole(ctx context.Context, token, realm, roleName string, role gocloak.Role) error
+	DeleteRealmRole(ctx context.Context, token, realm, roleName string) error
 	GetClientRole(ctx context.Context, token, realm, clientID, roleName string) (*gocloak.Role, error)
 	AddClientRoleToUser(ctx context.Context, token, realm, clientID, userID string, roles []gocloak.Role) error
 	CreateRealmRole(ctx context.Context, token, realm string, role gocloak.Role) (string, error)
 	AddRealmRoleComposite(ctx context.Context, token, realm, roleName string, roles []gocloak.Role) error
+	DeleteRealmRoleComposite(ctx context.Context, token, realm, roleName string, roles []gocloak.Role) error
+	GetCompositeRealmRolesByRoleID(ctx context.Context, token, realm, roleID string) ([]*gocloak.Role, error)
 	LoginAdmin(ctx context.Context, username, password, realm string) (*gocloak.JWT, error)
 	CreateClientProtocolMapper(ctx context.Context, token, realm, clientID string,
 		mapper gocloak.ProtocolMapperRepresentation) (string, error)

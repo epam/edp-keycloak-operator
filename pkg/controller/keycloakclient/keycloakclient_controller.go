@@ -2,7 +2,6 @@ package keycloakclient
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Nerzal/gocloak/v8"
 	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -18,7 +17,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -51,6 +49,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		client:  mgr.GetClient(),
 		scheme:  mgr.GetScheme(),
 		factory: new(adapter.GoCloakAdapterFactory),
+		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
 	}
 }
 
@@ -76,6 +75,7 @@ type ReconcileKeycloakClient struct {
 	client  client.Client
 	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
+	helper  *helper.Helper
 }
 
 // Reconcile reads that state of the cluster for a KeycloakClient object and makes changes based on the state read
@@ -124,7 +124,7 @@ func (r *ReconcileKeycloakClient) updateStatus(kc *v1v1alpha1.KeycloakClient) {
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	realm, err := r.getOrCreateRealmOwnerRef(keycloakClient)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta)
 	if err != nil {
 		return err
 	}
@@ -133,7 +133,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return err
 	}
 
-	kClient, err := r.getConnectionClientForRealmCR(realm)
+	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
 	if err != nil {
 		return err
 	}
@@ -318,51 +318,6 @@ func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.K
 	return nil
 }
 
-func (r *ReconcileKeycloakClient) getOrCreateRealmOwnerRef(
-	keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
-	realm, err := helper.GetOwnerKeycloakRealm(r.client, keycloakClient.ObjectMeta)
-	if err != nil {
-		return nil, err
-	}
-	if realm != nil {
-		return realm, nil
-	}
-	realm = &v1v1alpha1.KeycloakRealm{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      "main",
-		Namespace: keycloakClient.Namespace,
-	}, realm)
-	if err != nil {
-		return nil, err
-	}
-	return realm, controllerutil.SetControllerReference(realm, keycloakClient, r.scheme)
-}
-
-func (r *ReconcileKeycloakClient) getConnectionClientForRealmCR(
-	realm *v1v1alpha1.KeycloakRealm) (keycloak.Client, error) {
-	keycloakCr, err := helper.GetOwnerKeycloak(r.client, realm.ObjectMeta)
-	if err != nil {
-		return nil, err
-	}
-	if keycloakCr == nil {
-		return nil, fmt.Errorf("cannot find keycloak cr for realm with name %s", realm.Name)
-	}
-
-	keycloakSecret := &coreV1.Secret{}
-	err = r.client.Get(context.TODO(), types.NamespacedName{
-		Name:      keycloakCr.Spec.Secret,
-		Namespace: keycloakCr.Namespace,
-	}, keycloakSecret)
-	if err != nil {
-		return nil, err
-	}
-	usr := string(keycloakSecret.Data["username"])
-	pwd := string(keycloakSecret.Data["password"])
-
-	keyDto := dto.ConvertSpecToKeycloak(keycloakCr.Spec, usr, pwd)
-	return r.factory.New(keyDto)
-}
-
 func (r *ReconcileKeycloakClient) putRealmRoles(
 	realm *v1v1alpha1.KeycloakRealm, keycloakClient *v1v1alpha1.KeycloakClient, kClient keycloak.Client) error {
 	reqLog := log.WithValues("keycloak client cr", keycloakClient)
@@ -378,7 +333,7 @@ func (r *ReconcileKeycloakClient) putRealmRoles(
 	for _, el := range *keycloakClient.Spec.RealmRoles {
 		roleDto := dto.RealmRole{
 			Name:        el.Name,
-			Composite:   el.Composite,
+			Composites:  []string{el.Composite},
 			IsComposite: el.Composite != "",
 		}
 		exist, err := kClient.ExistRealmRole(realmDto, roleDto)

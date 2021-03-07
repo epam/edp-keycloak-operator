@@ -6,11 +6,11 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-type MockGoCloakFactory struct {
+type GoCloakFactory struct {
 	mock.Mock
 }
 
-func (m MockGoCloakFactory) New(dto dto.Keycloak) (keycloak.Client, error) {
+func (m *GoCloakFactory) New(dto dto.Keycloak) (keycloak.Client, error) {
 	args := m.Called(dto)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

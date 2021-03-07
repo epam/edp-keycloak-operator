@@ -38,7 +38,7 @@ func (m *MockGoCloakClient) AddClientRoleToUser(ctx context.Context, token, real
 
 func (m *MockGoCloakClient) AddRealmRoleComposite(ctx context.Context, token, realm, roleName string,
 	roles []gocloak.Role) error {
-	panic("implement me")
+	return m.Called(realm, roleName, roles).Error(0)
 }
 
 func (m *MockGoCloakClient) AddRealmRoleToUser(ctx context.Context, token, realm, userID string,
@@ -90,7 +90,8 @@ func (m *MockGoCloakClient) GetClients(ctx context.Context, accessToken, realm s
 }
 
 func (m *MockGoCloakClient) GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
-	panic("implement me")
+	called := m.Called(realm, roleName)
+	return called.Get(0).(*gocloak.Role), called.Error(1)
 }
 
 func (m *MockGoCloakClient) GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
@@ -122,4 +123,24 @@ func (m *MockGoCloakClient) DeleteClientProtocolMapper(ctx context.Context, toke
 	mapperID string) error {
 	args := m.Called(realm, clientID, mapperID)
 	return args.Error(0)
+}
+
+func (m *MockGoCloakClient) DeleteRealmRole(ctx context.Context, token, realm, roleName string) error {
+	return m.Called(realm, roleName).Error(0)
+}
+
+func (m *MockGoCloakClient) DeleteRealmRoleComposite(ctx context.Context, token, realm, roleName string,
+	roles []gocloak.Role) error {
+	return m.Called(realm, roleName, roles).Error(0)
+}
+
+func (m *MockGoCloakClient) GetCompositeRealmRolesByRoleID(ctx context.Context, token, realm,
+	roleID string) ([]*gocloak.Role, error) {
+	called := m.Called(realm, roleID)
+	return called.Get(0).([]*gocloak.Role), called.Error(1)
+}
+
+func (m *MockGoCloakClient) UpdateRealmRole(ctx context.Context, token, realm, roleName string,
+	role gocloak.Role) error {
+	return m.Called(realm, roleName, role).Error(0)
 }

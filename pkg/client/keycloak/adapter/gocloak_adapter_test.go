@@ -283,3 +283,46 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 		t.Fatal("wrong error returned")
 	}
 }
+
+func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+
+	currentRole := gocloak.Role{Name: gocloak.StringP("test"), ID: gocloak.StringP("321"),
+		Composite: gocloak.BoolP(true), Description: gocloak.StringP(""),
+		Attributes: &map[string][]string{
+			"foo": []string{"foo", "bar"},
+		}}
+	mockClient.On("GetRealmRole", "test", "test").Return(&currentRole, nil)
+
+	composite1 := gocloak.Role{Name: gocloak.StringP("c1")}
+	mockClient.On("GetCompositeRealmRolesByRoleID", "test", "321").Return([]*gocloak.Role{
+		&composite1,
+	}, nil)
+	compositeFoo := gocloak.Role{Name: gocloak.StringP("foo")}
+	mockClient.On("GetRealmRole", "test", "foo").Return(&compositeFoo, nil)
+	compositeBar := gocloak.Role{Name: gocloak.StringP("bar")}
+	mockClient.On("GetRealmRole", "test", "bar").Return(&compositeBar, nil)
+	mockClient.On("AddRealmRoleComposite", "test", "test",
+		[]gocloak.Role{compositeFoo, compositeBar}).
+		Return(nil)
+	mockClient.On("DeleteRealmRoleComposite", "test", "test", []gocloak.Role{
+		composite1,
+	}).Return(nil)
+	mockClient.On("UpdateRealmRole", "test", "test", currentRole).Return(nil)
+
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	realm := dto.Realm{Name: "test"}
+	role := dto.RealmRole{Name: "test", Composites: []string{"foo", "bar"}, IsComposite: true,
+		Attributes: map[string][]string{
+			"foo": []string{"foo", "bar"},
+		}}
+
+	if err := adapter.SyncRealmRole(&realm, &role); err != nil {
+		t.Fatal(err)
+	}
+}
