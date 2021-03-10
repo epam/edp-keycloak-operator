@@ -50,6 +50,22 @@ func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) RealmRole {
 	return rr
 }
 
+func ConvertBatchRoleSpec(spec *v1alpha1.KeycloakRealmRoleBatchSpec) []RealmRole {
+	dtoRoles := make([]RealmRole, 0, len(spec.Roles))
+
+	for _, r := range spec.Roles {
+		dtoRoles = append(dtoRoles, ConvertSpecToRole(&v1alpha1.KeycloakRealmRoleSpec{
+			Name:        r.Name,
+			Composites:  r.Composites,
+			Composite:   r.Composite,
+			Attributes:  r.Attributes,
+			Description: r.Description,
+		}))
+	}
+
+	return dtoRoles
+}
+
 func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) Realm {
 	var users []User
 	for _, item := range spec.Users {

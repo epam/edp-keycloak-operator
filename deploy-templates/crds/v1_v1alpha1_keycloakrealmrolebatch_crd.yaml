@@ -1,14 +1,14 @@
 apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
-  name: keycloakrealmroles.v1.edp.epam.com
+  name: keycloakrealmrolebatches.v1.edp.epam.com
 spec:
   group: v1.edp.epam.com
   names:
-    kind: KeycloakRealmRole
-    listKind: KeycloakRealmRoleList
-    plural: keycloakrealmroles
-    singular: keycloakrealmrole
+    kind: KeycloakRealmRoleBatch
+    listKind: KeycloakRealmRoleBatchList
+    plural: keycloakrealmrolebatches
+    singular: keycloakrealmrolebatch
   scope: Namespaced
   versions:
   - name: v1alpha1
@@ -32,29 +32,34 @@ spec:
             type: object
           spec:
             properties:
-              name:
-                type: string
-                description: 'role name'
               realm:
                 description: 'keycloak realm name'
                 type: string
-              composite:
-                type: boolean
-              composites:
+              roles:
+                description: 'keycloak realm roles'
                 type: array
-                nullable: true
                 items:
                   type: object
-                  additionalProperties: true
-              description:
-                type: string
-              attributes:
-                nullable: true
-                type: object
-                additionalProperties: true
+                  properties:
+                    name:
+                      type: string
+                    composite:
+                      type: boolean
+                    composites:
+                      type: array
+                      nullable: true
+                      items:
+                        type: object
+                        additionalProperties: true
+                    description:
+                      type: string
+                    attributes:
+                      nullable: true
+                      type: object
+                      additionalProperties: true
             required:
               - realm
-              - name
+              - roles
             type: object
           status:
             type: object

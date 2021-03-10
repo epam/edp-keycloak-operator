@@ -216,3 +216,50 @@ func (h *Helper) CreateKeycloakClient(
 	return factory.New(
 		dto.ConvertSpecToKeycloak(o.Spec, string(secret.Data["username"]), string(secret.Data["password"])))
 }
+
+func (h *Helper) UpdateStatus(obj runtime.Object) error {
+	if err := h.client.Status().Update(context.TODO(), obj); err != nil {
+		return errors.Wrap(err, "unable to update object status")
+	}
+
+	return nil
+}
+
+type Deletable interface {
+	v1.Object
+	runtime.Object
+}
+
+type Terminator interface {
+	DeleteResource() error
+}
+
+func (h *Helper) TryToDelete(obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
+	finalizers := obj.GetFinalizers()
+
+	if obj.GetDeletionTimestamp().IsZero() {
+		if !ContainsString(finalizers, finalizer) {
+			finalizers = append(finalizers, finalizer)
+			obj.SetFinalizers(finalizers)
+
+			if err := h.client.Update(context.TODO(), obj); err != nil {
+				return false, errors.Wrap(err, "unable to update deletable object")
+			}
+		}
+
+		return false, nil
+	}
+
+	if err := terminator.DeleteResource(); err != nil {
+		return false, errors.Wrap(err, "error during keycloak client delete func")
+	}
+
+	finalizers = RemoveString(finalizers, finalizer)
+	obj.SetFinalizers(finalizers)
+
+	if err := h.client.Update(context.TODO(), obj); err != nil {
+		return false, errors.Wrap(err, "unable to update realm role cr")
+	}
+
+	return true, nil
+}

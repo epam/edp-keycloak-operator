@@ -126,30 +126,30 @@ func (r *ReconcileKeycloakClient) updateStatus(kc *v1v1alpha1.KeycloakClient) {
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta)
 	if err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
 	}
 
 	if err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName); err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to addTargetRealmIfNeed")
 	}
 
 	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
 	if err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to CreateKeycloakClient")
 	}
 
 	id, err := r.putKeycloakClient(keycloakClient, kClient)
 	if err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to putKeycloakClient")
 	}
 	keycloakClient.Status.Id = *id
 
 	if err := r.putKeycloakClientRole(keycloakClient, kClient); err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to putKeycloakClientRole")
 	}
 
 	if err := r.putRealmRoles(realm, keycloakClient, kClient); err != nil {
-		return err
+		return pkgErrors.Wrap(err, "unable to putRealmRoles")
 	}
 
 	if err := r.putClientScope(realm.Spec.RealmName, keycloakClient, kClient); err != nil {
@@ -160,11 +160,21 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return pkgErrors.Wrap(err, "unable to putProtocolMappers")
 	}
 
-	if err := r.tryToDeleteClient(keycloakClient, kClient); err != nil {
-		return pkgErrors.Wrap(err, "unable to delete kk client")
+	if _, err := r.helper.TryToDelete(keycloakClient, makeTerminator(*id, keycloakClient.Spec.TargetRealm, kClient),
+		keyCloakClientOperatorFinalizerName); err != nil {
+		return pkgErrors.Wrap(err, "unable to delete kc client")
 	}
 
 	return nil
+}
+
+func copyMap(in map[string]string) map[string]string {
+	out := make(map[string]string)
+	for k, v := range in {
+		out[k] = v
+	}
+
+	return out
 }
 
 func (r *ReconcileKeycloakClient) putProtocolMappers(kc *v1v1alpha1.KeycloakClient,
@@ -174,13 +184,14 @@ func (r *ReconcileKeycloakClient) putProtocolMappers(kc *v1v1alpha1.KeycloakClie
 
 	if kc.Spec.ProtocolMappers != nil {
 		protocolMappers = make([]gocloak.ProtocolMapperRepresentation, 0, len(*kc.Spec.ProtocolMappers))
-
 		for _, mapper := range *kc.Spec.ProtocolMappers {
+			configCopy := copyMap(mapper.Config)
+
 			protocolMappers = append(protocolMappers, gocloak.ProtocolMapperRepresentation{
-				Name:           &mapper.Name,
-				Protocol:       &mapper.Protocol,
-				ProtocolMapper: &mapper.ProtocolMapper,
-				Config:         &mapper.Config,
+				Name:           gocloak.StringP(mapper.Name),
+				Protocol:       gocloak.StringP(mapper.Protocol),
+				ProtocolMapper: gocloak.StringP(mapper.ProtocolMapper),
+				Config:         &configCopy,
 			})
 		}
 	}
@@ -200,12 +211,16 @@ func (r *ReconcileKeycloakClient) putClientScope(realmName string, kc *v1v1alpha
 	}
 	scope, err := kClient.GetClientScope(consts.DefaultClientScopeName, realmName)
 	if err != nil {
-		return err
+		return pkgErrors.Wrap(err, "error during GetClientScope")
 	}
 	if err := kClient.PutClientScopeMapper(kc.Spec.ClientId, *scope.ID, realmName); err != nil {
-		return err
+		return pkgErrors.Wrap(err, "error during PutClientScopeMapper")
 	}
-	return kClient.LinkClientScopeToClient(kc.Spec.ClientId, *scope.ID, realmName)
+	if err := kClient.LinkClientScopeToClient(kc.Spec.ClientId, *scope.ID, realmName); err != nil {
+		return pkgErrors.Wrap(err, "error during LinkClientScopeToClient")
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient,
@@ -222,15 +237,13 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 	reqLog.Info("Start put keycloak client...")
 
 	clientDto, err := r.convertCrToDto(keycloakClient)
-
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrap(err, "error during convertCrToDto")
 	}
 
 	exist, err := kClient.ExistClient(*clientDto)
-
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrap(err, "error during ExistClient")
 	}
 
 	if *exist {
@@ -240,7 +253,7 @@ func (r *ReconcileKeycloakClient) putKeycloakClient(keycloakClient *v1v1alpha1.K
 
 	err = kClient.CreateClient(*clientDto)
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrap(err, "error during CreateClient")
 	}
 
 	reqLog.Info("End put keycloak client")
@@ -272,49 +285,6 @@ func (r *ReconcileKeycloakClient) putKeycloakClientRole(keycloakClient *v1v1alph
 	}
 
 	reqLog.Info("End put keycloak client role")
-	return nil
-}
-
-func (r *ReconcileKeycloakClient) tryToDeleteClient(keycloakClient *v1v1alpha1.KeycloakClient,
-	kClient keycloak.Client) error {
-
-	if keycloakClient.GetDeletionTimestamp().IsZero() {
-		if !helper.ContainsString(keycloakClient.ObjectMeta.Finalizers, keyCloakClientOperatorFinalizerName) {
-			keycloakClient.ObjectMeta.Finalizers = append(keycloakClient.ObjectMeta.Finalizers,
-				keyCloakClientOperatorFinalizerName)
-			if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
-				return pkgErrors.Wrap(err, "unable to update kk client cr")
-			}
-		}
-
-		return nil
-	}
-
-	reqLog := log.WithValues("keycloak client cr", keycloakClient)
-	reqLog.Info("Start deleting keycloak client...")
-
-	clientDto, err := r.convertCrToDto(keycloakClient)
-	if err != nil {
-		return pkgErrors.Wrap(err, "unable to convert cr to dto")
-	}
-
-	kkClientID, err := kClient.GetClientId(*clientDto)
-	if err != nil {
-		return pkgErrors.Wrap(err, "unable to get keycloak client")
-	}
-
-	if err := kClient.DeleteClient(*kkClientID, *clientDto); err != nil {
-		return pkgErrors.Wrap(err, "unable to delete kk client")
-	}
-
-	reqLog.Info("client deletion done")
-
-	keycloakClient.ObjectMeta.Finalizers = helper.RemoveString(keycloakClient.ObjectMeta.Finalizers,
-		keyCloakClientOperatorFinalizerName)
-	if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
-		return pkgErrors.Wrap(err, "unable to update kk cr")
-	}
-
 	return nil
 }
 
