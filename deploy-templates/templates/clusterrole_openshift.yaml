@@ -32,6 +32,9 @@ rules:
     - edpcomponents
     - edpcomponents/finalizers
     - edpcomponents/status
+    - keycloakrealmroles
+    - keycloakrealmroles/finalizers
+    - keycloakrealmroles/status
   verbs:
      - '*'
 {{ end }}
