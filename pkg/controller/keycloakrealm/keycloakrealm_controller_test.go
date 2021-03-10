@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
@@ -375,4 +376,36 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
 	assert.False(t, persKr.Status.Available)
+}
+
+func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
+	ns, kSecretName, kServerUsr, kServerPwd, kRealmName := "test", "test", "test", "test", "test"
+	k := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: ns},
+		Spec: v1alpha1.KeycloakSpec{Secret: kSecretName}, Status: v1alpha1.KeycloakStatus{Connected: true},
+	}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
+		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
+	tNow := metav1.Time{Time: time.Now()}
+	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns,
+		DeletionTimestamp: &tNow},
+		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName)},
+	}
+
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(&secret, &k, &kr)
+
+	kClient := new(mock.KeycloakClient)
+	kClient.On("DeleteRealm", "test.test").Return(nil)
+	factory := new(mock.GoCloakFactory)
+
+	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
+		Return(kClient, nil)
+
+	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
+	r := ReconcileKeycloakRealm{client: client, scheme: s, factory: factory, helper: helper.MakeHelper(client, s)}
+
+	if _, err := r.Reconcile(req); err != nil {
+		t.Fatal(err)
+	}
 }

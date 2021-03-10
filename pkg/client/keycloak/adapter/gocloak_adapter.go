@@ -313,12 +313,12 @@ func checkFullNameMatch(client dto.Client, clients []*gocloak.Client) bool {
 	return false
 }
 
-func (a GoCloakAdapter) DeleteClient(kkClientID string, client dto.Client) error {
-	reqLog := log.WithValues("client dto", client)
+func (a GoCloakAdapter) DeleteClient(kkClientID, realmName string) error {
+	reqLog := log.WithValues("client id", kkClientID)
 	reqLog.Info("Start delete client in Keycloak...")
 
-	if err := a.client.DeleteClient(context.Background(), a.token.AccessToken, client.RealmName, kkClientID); err != nil {
-		return err
+	if err := a.client.DeleteClient(context.Background(), a.token.AccessToken, realmName, kkClientID); err != nil {
+		return errors.Wrap(err, "unable to delete client")
 	}
 
 	reqLog.Info("Keycloak client has been deleted")
@@ -1136,7 +1136,7 @@ func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeId, realmName s
 	reqLog.Info("Start link Client Scope to client...")
 	clientId, err := a.GetClientId(dto.Client{ClientId: clientName, RealmName: realmName})
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error during GetClientId")
 	}
 
 	resp, err := a.client.RestyClient().R().
@@ -1149,7 +1149,7 @@ func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeId, realmName s
 		}).
 		Put(a.basePath + linkClientScopeToClient)
 	if err := checkError(err, resp); err != nil {
-		return err
+		return errors.Wrapf(err, "error during %s", linkClientScopeToClient)
 	}
 	reqLog.Info("End link Client Scope to client...")
 	return nil

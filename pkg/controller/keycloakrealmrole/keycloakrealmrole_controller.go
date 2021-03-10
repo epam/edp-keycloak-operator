@@ -49,7 +49,6 @@ func Add(mgr manager.Manager) error {
 		return err
 	}
 
-	// Watch for changes to primary resource KeycloakRealm
 	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmRole{}}, &handler.EnqueueRequestForObject{})
 }
 
@@ -68,7 +67,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(request reconcile.Request) (resul
 			instance.Status.Value = resultErr.Error()
 		}
 
-		if err := r.updateStatus(&instance); err != nil {
+		if err := r.helper.UpdateStatus(&instance); err != nil {
 			resultErr = err
 		}
 	}()
@@ -79,14 +78,6 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(request reconcile.Request) (resul
 	}
 
 	return
-}
-
-func (r *ReconcileKeycloakRealmRole) updateStatus(kc *v1alpha1.KeycloakRealmRole) error {
-	if err := r.client.Status().Update(context.TODO(), kc); err != nil {
-		return errors.Wrap(err, "unable to update realm role status")
-	}
-
-	return nil
 }
 
 func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.KeycloakRealmRole) error {
@@ -104,42 +95,10 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.Ke
 		return errors.Wrap(err, "unable to put role")
 	}
 
-	if err := r.tryToDelete(keycloakRealmRole, realm, kClient); err != nil {
+	if _, err := r.helper.TryToDelete(keycloakRealmRole,
+		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient),
+		keyCloakRealmRoleOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm role")
-	}
-
-	return nil
-}
-
-func (r *ReconcileKeycloakRealmRole) tryToDelete(
-	keycloakRealmRole *v1alpha1.KeycloakRealmRole, keycloakReam *v1alpha1.KeycloakRealm,
-	kClient keycloak.Client) error {
-
-	if keycloakRealmRole.GetDeletionTimestamp().IsZero() {
-		if !helper.ContainsString(keycloakRealmRole.ObjectMeta.Finalizers, keyCloakRealmRoleOperatorFinalizerName) {
-			keycloakRealmRole.ObjectMeta.Finalizers = append(keycloakRealmRole.ObjectMeta.Finalizers,
-				keyCloakRealmRoleOperatorFinalizerName)
-			if err := r.client.Update(context.TODO(), keycloakRealmRole); err != nil {
-				return errors.Wrap(err, "unable to update kk client cr")
-			}
-		}
-
-		return nil
-	}
-
-	reqLog := log.WithValues("keycloak realm role cr", keycloakRealmRole)
-	reqLog.Info("Start deleting keycloak client...")
-
-	if err := kClient.DeleteRealmRole(keycloakReam.Spec.RealmName, keycloakRealmRole.Spec.Name); err != nil {
-		return errors.Wrap(err, "unable to delete realm role")
-	}
-
-	reqLog.Info("realm role deletion done")
-
-	keycloakRealmRole.ObjectMeta.Finalizers = helper.RemoveString(keycloakRealmRole.ObjectMeta.Finalizers,
-		keyCloakRealmRoleOperatorFinalizerName)
-	if err := r.client.Update(context.TODO(), keycloakRealmRole); err != nil {
-		return errors.Wrap(err, "unable to update realm role cr")
 	}
 
 	return nil

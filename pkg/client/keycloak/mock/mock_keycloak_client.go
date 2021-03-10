@@ -125,8 +125,8 @@ func (m *KeycloakClient) CreateClientScope(realmName string, scope model.ClientS
 	return m.Called(realmName, scope).Error(0)
 }
 
-func (m *KeycloakClient) DeleteClient(kkClientID string, client dto.Client) error {
-	return m.Called(kkClientID, client).Error(0)
+func (m *KeycloakClient) DeleteClient(kkClientID string, realName string) error {
+	return m.Called(kkClientID, realName).Error(0)
 }
 
 func (m *KeycloakClient) DeleteRealmRole(realm, roleName string) error {
@@ -155,7 +155,7 @@ func (m *KeycloakClient) PutClientScopeMapper(clientName, scopeId, realmName str
 
 func (m *KeycloakClient) SyncClientProtocolMapper(
 	client dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error {
-	panic("implement me")
+	return m.Called(client, crMappers).Error(0)
 }
 
 func (m *KeycloakClient) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error {

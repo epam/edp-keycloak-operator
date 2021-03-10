@@ -79,7 +79,7 @@ type ReconcileKeycloakRealm struct {
 // and what is in the KeycloakRealm.Spec
 // The Controller will requeue the Request to be processed again if the returned error is non-nil or
 // Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile.Result, error) {
+func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
 	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KeycloakRealm")
 
@@ -91,64 +91,36 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (reconcile
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return reconcile.Result{}, nil
+			return
 		}
 		// Error reading the object - requeue the request.
-		return reconcile.Result{}, err
+		resultErr = err
+		return
 	}
-	defer r.updateStatus(instance)
 
-	err = r.tryReconcile(instance)
-	instance.Status.Available = err == nil
-
-	return reconcile.Result{}, err
-}
-
-func (r *ReconcileKeycloakRealm) updateStatus(kr *v1v1alpha1.KeycloakRealm) {
-	err := r.client.Status().Update(context.TODO(), kr)
-	if err != nil {
-		_ = r.client.Update(context.TODO(), kr)
-	}
-}
-
-func (r *ReconcileKeycloakRealm) tryToDelete(realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) (bool, error) {
-	if realm.GetDeletionTimestamp().IsZero() {
-		if !helper.ContainsString(realm.ObjectMeta.Finalizers, keyCloakRealmOperatorFinalizerName) {
-			realm.ObjectMeta.Finalizers = append(realm.ObjectMeta.Finalizers,
-				keyCloakRealmOperatorFinalizerName)
-			if err := r.client.Update(context.TODO(), realm); err != nil {
-				return false, errors.Wrap(err, "unable to update kk realm cr")
-			}
+	defer func() {
+		instance.Status.Available = resultErr == nil
+		if err := r.helper.UpdateStatus(instance); err != nil {
+			resultErr = err
 		}
+	}()
 
-		return false, nil
+	if err := r.tryReconcile(instance); err != nil {
+		resultErr = errors.Wrap(err, "error during tryReconcile")
+		return
 	}
 
-	reqLog := log.WithValues("keycloak realm cr", realm)
-	reqLog.Info("Start deleting keycloak realm...")
-
-	if err := kClient.DeleteRealm(realm.Spec.RealmName); err != nil {
-		return false, errors.Wrap(err, "unable to delete realm")
-	}
-
-	reqLog.Info("client deletion done")
-
-	realm.ObjectMeta.Finalizers = helper.RemoveString(realm.ObjectMeta.Finalizers,
-		keyCloakRealmOperatorFinalizerName)
-	if err := r.client.Update(context.TODO(), realm); err != nil {
-		return false, errors.Wrap(err, "unable to update kk cr")
-	}
-
-	return true, nil
+	return
 }
 
 func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
-	c, err := r.helper.CreateKeycloakClient(realm, r.factory)
+	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
 	if err != nil {
 		return err
 	}
 
-	deleted, err := r.tryToDelete(realm, c)
+	deleted, err := r.helper.TryToDelete(realm, makeTerminator(realm.Spec.RealmName, kClient),
+		keyCloakRealmOperatorFinalizerName)
 	if err != nil {
 		return errors.Wrap(err, "error during realm deletion")
 	}
@@ -156,7 +128,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return nil
 	}
 
-	if err := r.handler.ServeRequest(realm, c); err != nil {
+	if err := r.handler.ServeRequest(realm, kClient); err != nil {
 		return errors.Wrap(err, "error during realm chain")
 	}
 
