@@ -22,6 +22,10 @@ type KeycloakRealmRoleBatchStatus struct {
 	Value string `json:"value"`
 }
 
+func (in *KeycloakRealmRoleBatch) GetRealmName() string {
+	return in.Spec.Realm
+}
+
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 // +k8s:openapi-gen=true
 // +kubebuilder:subresource:status
