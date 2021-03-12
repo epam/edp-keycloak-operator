@@ -28,6 +28,10 @@ type KeycloakClientSpec struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
+func (in *KeycloakClient) GetRealmName() string {
+	return in.Spec.TargetRealm
+}
+
 type ProtocolMapper struct {
 	Name           string            `json:"name"`
 	Protocol       string            `json:"protocol"`

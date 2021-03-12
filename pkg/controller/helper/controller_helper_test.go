@@ -50,6 +50,9 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
+		Spec: v1alpha1.KeycloakClientSpec{
+			TargetRealm: "main",
+		},
 	}
 
 	mc.On("Get", types.NamespacedName{
@@ -105,6 +108,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
+		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "main"},
 	}
 
 	mc.On("Get", types.NamespacedName{

@@ -163,10 +163,10 @@ func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *v1alpha1.KeycloakRealm) (*v1
 	return o, nil
 }
 
-func (h *Helper) getKeycloakMainRealm(object v1.Object) (*v1alpha1.KeycloakRealm, error) {
+func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*v1alpha1.KeycloakRealm, error) {
 	var realm v1alpha1.KeycloakRealm
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
-		Name:      "main",
+		Name:      name,
 		Namespace: object.GetNamespace(),
 	}, &realm); err != nil {
 		return nil, errors.Wrap(err, "unable to get main realm from k8s")
@@ -175,13 +175,18 @@ func (h *Helper) getKeycloakMainRealm(object v1.Object) (*v1alpha1.KeycloakRealm
 	return &realm, controllerutil.SetControllerReference(&realm, object, h.scheme)
 }
 
+type RealmChild interface {
+	GetRealmName() string
+	v1.Object
+}
+
 func (h *Helper) GetOrCreateRealmOwnerRef(
-	object v1.Object, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
+	object RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
 		switch errors.Cause(err).(type) {
 		case ErrOwnerNotFound:
-			realm, err = h.getKeycloakMainRealm(object)
+			realm, err = h.getKeycloakRealm(object, object.GetRealmName())
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}
