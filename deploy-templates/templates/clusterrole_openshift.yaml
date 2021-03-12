@@ -35,6 +35,9 @@ rules:
     - keycloakrealmroles
     - keycloakrealmroles/finalizers
     - keycloakrealmroles/status
+    - keycloakrealmrolebatches
+    - keycloakrealmrolebatches/finalizers
+    - keycloakrealmrolebatches/status
   verbs:
      - '*'
 {{ end }}
