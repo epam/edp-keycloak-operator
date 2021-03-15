@@ -181,12 +181,17 @@ type RealmChild interface {
 }
 
 func (h *Helper) GetOrCreateRealmOwnerRef(
-	object RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
+	object RealmChild, objectMeta v1.ObjectMeta, defaultRealm ...string) (*v1alpha1.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
 		switch errors.Cause(err).(type) {
 		case ErrOwnerNotFound:
-			realm, err = h.getKeycloakRealm(object, object.GetRealmName())
+			objectRealm := object.GetRealmName()
+			if objectRealm == "" && len(defaultRealm) > 0 {
+				objectRealm = defaultRealm[0]
+			}
+
+			realm, err = h.getKeycloakRealm(object, objectRealm)
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}
