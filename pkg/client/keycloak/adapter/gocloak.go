@@ -38,4 +38,7 @@ type GoCloak interface {
 	UpdateClientProtocolMapper(ctx context.Context, token, realm, clientID, mapperID string,
 		mapper gocloak.ProtocolMapperRepresentation) error
 	DeleteClientProtocolMapper(ctx context.Context, token, realm, clientID, mapperID string) error
+	GetClientServiceAccount(ctx context.Context, token, realm, clientID string) (*gocloak.User, error)
+	DeleteRealmRoleFromUser(ctx context.Context, token, realm, userID string, roles []gocloak.Role) error
+	DeleteClientRoleFromUser(ctx context.Context, token, realm, clientID, userID string, roles []gocloak.Role) error
 }

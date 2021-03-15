@@ -11,7 +11,6 @@ import (
 	rHand "github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -42,7 +41,6 @@ func Add(mgr manager.Manager) error {
 func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 	return &ReconcileKeycloakRealm{
 		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
 		factory: new(adapter.GoCloakAdapterFactory),
 		handler: chain.CreateDefChain(mgr.GetClient(), mgr.GetScheme()),
 		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
@@ -69,7 +67,6 @@ type ReconcileKeycloakRealm struct {
 	// This client, initialized using mgr.Client() above, is a split client
 	// that reads objects from the cache and writes to the apiserver
 	client  client.Client
-	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
 	handler rHand.RealmHandler
 	helper  *helper.Helper

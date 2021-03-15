@@ -33,7 +33,7 @@ func (h PutOpenIdConfigAnnotation) ServeRequest(realm *v1alpha1.KeycloakRealm, k
 	if an == nil {
 		an = make(map[string]string)
 	}
-	an[annotationKey] = *con
+	an[annotationKey] = con
 	realm.SetAnnotations(an)
 	err = h.client.Update(context.TODO(), realm)
 	if err != nil {

@@ -24,9 +24,9 @@ func (h PutUsersRoles) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 	return nextServeOrNil(h.next, realm, kClient)
 }
 
-func putRolesToUsers(realm dto.Realm, kClient keycloak.Client) error {
+func putRolesToUsers(realm *dto.Realm, kClient keycloak.Client) error {
 	for _, user := range realm.Users {
-		err := putRolesToOneUser(realm, user, kClient)
+		err := putRolesToOneUser(realm, &user, kClient)
 		if err != nil {
 			return errors.Wrap(err, "error during putRolesToOneUser")
 		}
@@ -34,7 +34,7 @@ func putRolesToUsers(realm dto.Realm, kClient keycloak.Client) error {
 	return nil
 }
 
-func putRolesToOneUser(realm dto.Realm, user dto.User, kClient keycloak.Client) error {
+func putRolesToOneUser(realm *dto.Realm, user *dto.User, kClient keycloak.Client) error {
 	for _, role := range user.RealmRoles {
 		if realm.SsoRealmEnabled {
 			if err := putOneClientRoleToOneUser(realm, user, role, kClient); err != nil {
@@ -49,7 +49,7 @@ func putRolesToOneUser(realm dto.Realm, user dto.User, kClient keycloak.Client) 
 	return nil
 }
 
-func putOneRealmRoleToOneUser(realm dto.Realm, user dto.User, role string, kClient keycloak.Client) error {
+func putOneRealmRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kClient keycloak.Client) error {
 	exist, err := kClient.HasUserRealmRole(realm.Name, user, role)
 	if err != nil {
 		return errors.Wrap(err, "error during check of client role")
@@ -66,12 +66,12 @@ func putOneRealmRoleToOneUser(realm dto.Realm, user dto.User, role string, kClie
 	return nil
 }
 
-func putOneClientRoleToOneUser(realm dto.Realm, user dto.User, role string, kClient keycloak.Client) error {
+func putOneClientRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kClient keycloak.Client) error {
 	exist, err := kClient.HasUserClientRole(realm.SsoRealmName, realm.Name, user, role)
 	if err != nil {
 		return errors.Wrap(err, "error during check of client role")
 	}
-	if *exist {
+	if exist {
 		log.Info("Role already exists", "user", user, "role", role)
 		return nil
 	}

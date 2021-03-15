@@ -31,13 +31,13 @@ func (h PutRealm) putRealmRoles(realm *v1alpha1.KeycloakRealm, kClient keycloak.
 	dtoRealm := dto.ConvertSpecToRealm(realm.Spec)
 
 	for _, r := range allRoles {
-		e, err := kClient.ExistRealmRole(dtoRealm, dto.RealmRole{Name: r})
+		exists, err := kClient.ExistRealmRole(dtoRealm.Name, r)
 		if err != nil {
 			return errors.Wrap(err, "unable to check realm role existence")
 		}
 
-		if !*e {
-			if err := kClient.CreateRealmRole(dtoRealm, dto.RealmRole{Name: r}); err != nil {
+		if !exists {
+			if err := kClient.CreateRealmRole(dtoRealm.Name, &dto.RealmRole{Name: r}); err != nil {
 				return errors.Wrap(err, "unable to create new realm role")
 			}
 		}
@@ -50,11 +50,11 @@ func (h PutRealm) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.C
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
-	e, err := kClient.ExistRealm(rDto)
+	e, err := kClient.ExistRealm(rDto.Name)
 	if err != nil {
 		return errors.Wrap(err, "unable to check realm existence")
 	}
-	if *e {
+	if e {
 		rLog.Info("Realm already exists")
 		return nextServeOrNil(h.next, realm, kClient)
 	}

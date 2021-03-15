@@ -24,9 +24,9 @@ func (h PutUsers) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.C
 	return nextServeOrNil(h.next, realm, kClient)
 }
 
-func createUsers(realm dto.Realm, kClient keycloak.Client) error {
+func createUsers(realm *dto.Realm, kClient keycloak.Client) error {
 	for _, user := range realm.Users {
-		err := createOneUser(user, realm, kClient)
+		err := createOneUser(&user, realm, kClient)
 		if err != nil {
 			return errors.Wrap(err, "error during createOneUser")
 		}
@@ -34,7 +34,7 @@ func createUsers(realm dto.Realm, kClient keycloak.Client) error {
 	return nil
 }
 
-func createOneUser(user dto.User, realm dto.Realm, kClient keycloak.Client) error {
+func createOneUser(user *dto.User, realm *dto.Realm, kClient keycloak.Client) error {
 	realmName := realm.Name
 	if realm.SsoRealmEnabled {
 		realmName = realm.SsoRealmName
@@ -44,7 +44,7 @@ func createOneUser(user dto.User, realm dto.Realm, kClient keycloak.Client) erro
 	if err != nil {
 		return errors.Wrap(err, "error during exist ream user check")
 	}
-	if *exist {
+	if exist {
 		log.Info("User already exists", "user", user)
 		return nil
 	}

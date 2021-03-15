@@ -11,6 +11,7 @@ require (
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
 	github.com/epmd-edp/edp-component-operator v0.1.1-0.20200827122548-e87429a916e0
 	github.com/epmd-edp/jenkins-operator/v2 v2.3.0-126
+	github.com/go-logr/logr v0.1.0
 	github.com/go-openapi/spec v0.19.3
 	github.com/go-resty/resty/v2 v2.3.0
 	github.com/google/uuid v1.1.1
