@@ -39,7 +39,7 @@ func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	if err != nil {
 		return err
 	}
-	if *e {
+	if e {
 		rLog.Info("IdP already exists")
 		return nextServeOrNil(h.next, realm, kClient)
 	}
@@ -51,7 +51,7 @@ func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	if err != nil {
 		return err
 	}
-	err = kClient.CreateCentralIdentityProvider(rDto, dto.Client{
+	err = kClient.CreateCentralIdentityProvider(rDto, &dto.Client{
 		ClientId:     realm.Spec.RealmName,
 		ClientSecret: string(s.Data["clientSecret"]),
 	})

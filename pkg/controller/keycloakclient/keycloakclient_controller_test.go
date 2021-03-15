@@ -10,6 +10,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakclient/chain"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -92,7 +93,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	//keycloak client and factory
 
 	kclient := new(mock.KeycloakClient)
-	c := dto.ConvertSpecToClient(kc.Spec, "")
+	c := dto.ConvertSpecToClient(&kc.Spec, "")
 	kclient.On("ExistClient", c).Return(
 		false, nil)
 	kclient.On("CreateClient", c).Return(
@@ -105,7 +106,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		Composites:  []string{"administrator"},
 		IsComposite: true,
 	}
-	kclient.On("ExistRealmRole", rm, ar).Return(
+	kclient.On("ExistRealmRole", rm.Name, ar.Name).Return(
 		false, nil)
 	kclient.On("CreateRealmRole", rm, ar).Return(
 		nil)
@@ -114,7 +115,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		Composites:  []string{"developer"},
 		IsComposite: true,
 	}
-	kclient.On("ExistRealmRole", rm, dr).Return(
+	kclient.On("ExistRealmRole", rm.Name, dr.Name).Return(
 		false, nil)
 	kclient.On("CreateRealmRole", rm, dr).Return(
 		nil)
@@ -136,12 +137,12 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		},
 	}
 
+	h := helper.MakeHelper(client, s)
 	//reconcile
 	r := ReconcileKeycloakClient{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
+		client: client,
+		helper: h,
+		chain:  chain.Make(h, client, log.WithName("test"), factory),
 	}
 
 	//test
@@ -186,16 +187,16 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	client := fake.NewFakeClient(&secret, &k, &kr, &kc)
 	kclient := new(mock.KeycloakClient)
 
-	clientDTO := dto.ConvertSpecToClient(kc.Spec, "")
+	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 	realmDTO := dto.ConvertSpecToRealm(kr.Spec)
 	role1DTO := dto.RealmRole{Name: "fake-client-administrators", Composites: []string{"administrator"},
 		IsComposite: true}
 
 	kclient.On("ExistClient", clientDTO).
 		Return(true, nil)
-	kclient.On("GetClientId", clientDTO).
+	kclient.On("GetClientID", clientDTO).
 		Return("321", nil)
-	kclient.On("ExistRealmRole", realmDTO, role1DTO).Return(true, nil)
+	kclient.On("ExistRealmRole", realmDTO.Name, role1DTO.Name).Return(true, nil)
 	kclient.On("SyncClientProtocolMapper", clientDTO, []gocloak.ProtocolMapperRepresentation{
 		{Name: gocloak.StringP("bar"), Protocol: gocloak.StringP(""), Config: &map[string]string{"bar": "1"},
 			ProtocolMapper: gocloak.StringP("")},
@@ -209,7 +210,9 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	factory.On("New", keycloakDto).
 		Return(kclient, nil)
 
-	r := ReconcileKeycloakClient{client: client, scheme: s, factory: factory, helper: helper.MakeHelper(client, s)}
+	h := helper.MakeHelper(client, s)
+	r := ReconcileKeycloakClient{client: client, helper: h,
+		chain: chain.Make(h, client, log.WithName("test"), factory)}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: "main", Namespace: "namespace"}}
 	_, err := r.Reconcile(req)

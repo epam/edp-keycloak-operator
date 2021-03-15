@@ -7,47 +7,47 @@ import (
 )
 
 type Client interface {
-	ExistRealm(realm dto.Realm) (*bool, error)
+	ExistRealm(realm string) (bool, error)
 
-	CreateRealmWithDefaultConfig(realm dto.Realm) error
+	CreateRealmWithDefaultConfig(realm *dto.Realm) error
 
 	DeleteRealm(realmName string) error
 
-	ExistCentralIdentityProvider(realm dto.Realm) (*bool, error)
+	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
 
-	CreateCentralIdentityProvider(realm dto.Realm, client dto.Client) error
+	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
 
-	ExistClient(client dto.Client) (*bool, error)
+	ExistClient(client *dto.Client) (bool, error)
 
-	CreateClient(client dto.Client) error
+	CreateClient(client *dto.Client) error
 
 	DeleteClient(kkClientID, realmName string) error
 
-	ExistClientRole(role dto.Client, clientRole string) (*bool, error)
+	ExistClientRole(role *dto.Client, clientRole string) (bool, error)
 
-	CreateClientRole(role dto.Client, clientRole string) error
+	CreateClientRole(role *dto.Client, clientRole string) error
 
-	ExistRealmRole(realm dto.Realm, role dto.RealmRole) (*bool, error)
+	ExistRealmRole(realmName string, roleName string) (bool, error)
 
-	CreateRealmRole(realm dto.Realm, role dto.RealmRole) error
+	CreateRealmRole(realmName string, role *dto.RealmRole) error
 
-	ExistRealmUser(realmName string, user dto.User) (*bool, error)
+	ExistRealmUser(realmName string, user *dto.User) (bool, error)
 
-	CreateRealmUser(realmName string, user dto.User) error
+	CreateRealmUser(realmName string, user *dto.User) error
 
-	HasUserClientRole(realmName string, clientId string, user dto.User, role string) (*bool, error)
+	HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error)
 
-	HasUserRealmRole(realmName string, user dto.User, role string) (bool, error)
+	HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error)
 
-	AddRealmRoleToUser(realmName string, user dto.User, roleName string) error
+	AddRealmRoleToUser(realmName string, user *dto.User, roleName string) error
 
-	GetOpenIdConfig(realm dto.Realm) (*string, error)
+	GetOpenIdConfig(realm *dto.Realm) (string, error)
 
-	AddClientRoleToUser(realmName string, clientId string, user dto.User, role string) error
+	AddClientRoleToUser(realmName string, clientId string, user *dto.User, role string) error
 
-	GetClientId(client dto.Client) (*string, error)
+	GetClientID(client *dto.Client) (string, error)
 
-	PutDefaultIdp(realm dto.Realm) error
+	PutDefaultIdp(realm *dto.Realm) error
 
 	PutClientScopeMapper(clientName, scopeId, realmName string) error
 
@@ -58,11 +58,14 @@ type Client interface {
 	CreateClientScope(realmName string, scope model.ClientScope) error
 
 	SyncClientProtocolMapper(
-		client dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
+		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
 
 	SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error
 
 	DeleteRealmRole(realm, roleName string) error
+
+	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
+		clientRoles map[string][]string) error
 }
 
 type ClientFactory interface {

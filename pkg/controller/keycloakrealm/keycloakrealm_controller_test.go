@@ -7,10 +7,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain"
+	"github.com/epmd-edp/keycloak-operator/pkg/model"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -54,7 +58,6 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		scheme: s,
 		helper: helper.MakeHelper(client, s),
 	}
 
@@ -110,7 +113,6 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		scheme: s,
 		helper: helper.MakeHelper(client, s),
 	}
 
@@ -179,7 +181,6 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		scheme: s,
 		helper: helper.MakeHelper(client, s),
 	}
 
@@ -272,7 +273,6 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client:  client,
-		scheme:  s,
 		factory: factory,
 		helper:  helper.MakeHelper(client, s),
 	}
@@ -361,7 +361,6 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client:  client,
-		scheme:  s,
 		factory: factory,
 		helper:  helper.MakeHelper(client, s),
 	}
@@ -403,7 +402,63 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 		Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
-	r := ReconcileKeycloakRealm{client: client, scheme: s, factory: factory, helper: helper.MakeHelper(client, s)}
+	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s)}
+
+	if _, err := r.Reconcile(req); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
+	ns, kSecretName, kServerUsr, kServerPwd, kRealmName, realmName := "test", "test", "test", "test", "test", "test.test"
+	k := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: ns},
+		Spec: v1alpha1.KeycloakSpec{Secret: kSecretName}, Status: v1alpha1.KeycloakStatus{Connected: true},
+	}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
+		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
+
+	creatorSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcCreatorUsername, Namespace: ns}, Data: map[string][]byte{
+		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
+
+	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
+		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
+
+	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
+		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName)},
+	}
+
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
+
+	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true}
+	kClient := new(mock.KeycloakClient)
+	kClient.On("DeleteRealm", "test.test").Return(nil)
+	kClient.On("ExistRealm", testRealm.Name).
+		Return(false, nil)
+	kClient.On(
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
+			ACCreatorPass: "test", ACReaderPass: "test"}).Return(nil)
+	kClient.On("CreateClientScope", realmName, model.ClientScope{
+		Name:        gocloak.StringP("edp"),
+		Description: gocloak.StringP("default edp scope required for ac and nexus"),
+		Protocol:    gocloak.StringP("openid-connect"),
+		ClientScopeAttributes: &model.ClientScopeAttributes{
+			IncludeInTokenScope: gocloak.StringP("true"),
+		},
+	}).Return(nil)
+	kClient.On("GetOpenIdConfig", &testRealm).
+		Return("fooClient", nil)
+	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
+	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
+	factory := new(mock.GoCloakFactory)
+
+	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
+		Return(kClient, nil)
+
+	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
+	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s),
+		handler: chain.CreateDefChain(client, s)}
 
 	if _, err := r.Reconcile(req); err != nil {
 		t.Fatal(err)

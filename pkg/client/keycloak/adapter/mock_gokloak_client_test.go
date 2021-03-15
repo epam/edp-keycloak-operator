@@ -144,3 +144,18 @@ func (m *MockGoCloakClient) UpdateRealmRole(ctx context.Context, token, realm, r
 	role gocloak.Role) error {
 	return m.Called(realm, roleName, role).Error(0)
 }
+
+func (m *MockGoCloakClient) DeleteClientRoleFromUser(ctx context.Context, token, realm, clientID, userID string,
+	roles []gocloak.Role) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) DeleteRealmRoleFromUser(ctx context.Context, token, realm, userID string,
+	roles []gocloak.Role) error {
+	panic("implement me")
+}
+
+func (m *MockGoCloakClient) GetClientServiceAccount(ctx context.Context, token, realm,
+	clientID string) (*gocloak.User, error) {
+	panic("implement me")
+}

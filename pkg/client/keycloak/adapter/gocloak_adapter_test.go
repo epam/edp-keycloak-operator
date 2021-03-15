@@ -27,11 +27,11 @@ func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 	}
 
 	//test
-	res, err := adapter.ExistRealm(realm)
+	res, err := adapter.ExistRealm(realm.Name)
 
 	//verify
 	assert.NoError(t, err)
-	assert.True(t, *res)
+	assert.True(t, res)
 }
 
 func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
@@ -48,11 +48,11 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 	}
 
 	//test
-	res, err := adapter.ExistRealm(realm)
+	res, err := adapter.ExistRealm(realm.Name)
 
 	//verify
 	assert.NoError(t, err)
-	assert.False(t, *res)
+	assert.False(t, res)
 }
 
 func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
@@ -69,11 +69,11 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 	}
 
 	//test
-	res, err := adapter.ExistRealm(realm)
+	res, err := adapter.ExistRealm(realm.Name)
 
 	//verify
 	assert.Error(t, err)
-	assert.Nil(t, res)
+	assert.False(t, res)
 }
 
 func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
@@ -99,7 +99,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 		basePath: "",
 	}
 
-	_, err := adapter.GetClientProtocolMappers(client, clientID)
+	_, err := adapter.GetClientProtocolMappers(&client, clientID)
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 		basePath: "",
 	}
 
-	_, err := adapter.GetClientProtocolMappers(client, clientID)
+	_, err := adapter.GetClientProtocolMappers(&client, clientID)
 	if err == nil {
 		t.Fatal(err)
 	}
@@ -245,7 +245,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		basePath: "",
 	}
 
-	if err := adapter.SyncClientProtocolMapper(client, crMappers); err != nil {
+	if err := adapter.SyncClientProtocolMapper(&client, crMappers); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -274,7 +274,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 		basePath: "",
 	}
 
-	err := adapter.SyncClientProtocolMapper(client, []gocloak.ProtocolMapperRepresentation{})
+	err := adapter.SyncClientProtocolMapper(&client, []gocloak.ProtocolMapperRepresentation{})
 	if err == nil {
 		t.Fatal("no error on get clients fatal")
 	}

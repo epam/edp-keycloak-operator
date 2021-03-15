@@ -114,7 +114,7 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	realm := dto.ConvertSpecToRealm(keycloakRealm.Spec)
 	role := dto.ConvertSpecToRole(&keycloakRealmRole.Spec)
 
-	if err := kClient.SyncRealmRole(&realm, &role); err != nil {
+	if err := kClient.SyncRealmRole(realm, role); err != nil {
 		return errors.Wrap(err, "unable to sync realm role CR")
 	}
 

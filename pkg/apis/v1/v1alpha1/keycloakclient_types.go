@@ -16,13 +16,14 @@ type KeycloakClientSpec struct {
 	Public                  bool              `json:"public"`
 	ClientId                string            `json:"clientId"`
 	WebUrl                  string            `json:"webUrl"`
-	Protocol                *string           `json:"protocol, omitempty"`
-	Attributes              map[string]string `json:"attributes, omitempty"`
+	Protocol                *string           `json:"protocol,omitempty"`
+	Attributes              map[string]string `json:"attributes,omitempty"`
 	DirectAccess            bool              `json:"directAccess"`
 	AdvancedProtocolMappers bool              `json:"advancedProtocolMappers"`
-	ClientRoles             []string          `json:"clientRoles, omitempty"`
+	ClientRoles             []string          `json:"clientRoles,omitempty"`
 	AudRequired             bool              `json:"audRequired"`
-	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers"`
+	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers,omitempty"`
+	ServiceAccount          *ServiceAccount   `json:"serviceAccount,omitempty"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
@@ -30,6 +31,19 @@ type KeycloakClientSpec struct {
 
 func (in *KeycloakClient) GetRealmName() string {
 	return in.Spec.TargetRealm
+}
+
+// +k8s:openapi-gen=true
+type ServiceAccount struct {
+	Enabled     bool                       `json:"enabled"`
+	RealmRoles  []string                   `json:"realmRoles"`
+	ClientRoles []ServiceAccountClientRole `json:"clientRoles"`
+}
+
+// +k8s:openapi-gen=true
+type ServiceAccountClientRole struct {
+	ClientID string   `json:"clientId"`
+	Roles    []string `json:"roles"`
 }
 
 type ProtocolMapper struct {
