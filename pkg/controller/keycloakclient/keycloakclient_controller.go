@@ -124,7 +124,7 @@ func (r *ReconcileKeycloakClient) updateStatus(kc *v1v1alpha1.KeycloakClient) {
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta, "main")
 	if err != nil {
 		return pkgErrors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
 	}
