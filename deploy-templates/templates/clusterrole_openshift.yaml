@@ -38,6 +38,9 @@ rules:
     - keycloakrealmrolebatches
     - keycloakrealmrolebatches/finalizers
     - keycloakrealmrolebatches/status
+    - keycloakrealmgroups
+    - keycloakrealmgroups/finalizers
+    - keycloakrealmgroups/status
   verbs:
      - '*'
 {{ end }}

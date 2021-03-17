@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/Nerzal/gocloak/v8"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
 	"github.com/stretchr/testify/mock"
@@ -166,5 +167,14 @@ func (m *KeycloakClient) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) er
 
 func (m *KeycloakClient) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 	clientRoles map[string][]string) error {
-	panic("implement me")
+	return m.Called(realm, clientID, realmRoles, clientRoles).Error(0)
+}
+
+func (m *KeycloakClient) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error) {
+	called := m.Called(realmName, spec)
+	return called.String(0), called.Error(1)
+}
+
+func (m *KeycloakClient) DeleteGroup(realm, groupName string) error {
+	return m.Called(realm, groupName).Error(0)
 }

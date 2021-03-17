@@ -63,6 +63,19 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	}); err != nil {
 		t.Fatal(err)
 	}
+
+	var checkBatch v1alpha1.KeycloakRealmRoleBatch
+	if err := client.Get(context.Background(), types.NamespacedName{
+		Namespace: ns,
+		Name:      "test",
+	}, &checkBatch); err != nil {
+		t.Fatal(err)
+	}
+
+	if checkBatch.Status.Value != helper.StatusOK {
+		t.Log(checkBatch.Status.Value)
+		t.Fatal("batch status not updated on success")
+	}
 }
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
@@ -110,16 +123,16 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		t.Fatal("no error on fatal")
 	}
 
-	var batch2 v1alpha1.KeycloakRealmRoleBatch
+	var checkBatch v1alpha1.KeycloakRealmRoleBatch
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "test",
-	}, &batch2); err != nil {
+	}, &checkBatch); err != nil {
 		t.Fatal(err)
 	}
 
-	if !strings.Contains(batch2.Status.Value, "one of batch role already exists") {
-		t.Log(batch2.Status.Value)
+	if !strings.Contains(checkBatch.Status.Value, "one of batch role already exists") {
+		t.Log(checkBatch.Status.Value)
 		t.Fatal("batch status not updated on failure")
 	}
 }

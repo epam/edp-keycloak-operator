@@ -41,7 +41,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		Name:      "foo",
 	}, &v1alpha1.KeycloakRealm{}).Return(nil)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta, "main")
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -60,7 +60,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		Name:      "main",
 	}, &v1alpha1.KeycloakRealm{}).Return(nil)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta, "main")
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -95,7 +95,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		Name:      "foo",
 	}, &v1alpha1.KeycloakRealm{}).Return(mockErr)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta, "main")
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}
@@ -116,7 +116,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		Name:      "main",
 	}, &v1alpha1.KeycloakRealm{}).Return(mockErr)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta, "main")
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}

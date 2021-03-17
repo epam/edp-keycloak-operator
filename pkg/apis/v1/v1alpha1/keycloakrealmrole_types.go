@@ -23,7 +23,8 @@ type KeycloakRealmRoleStatus struct {
 	ID    string `json:"id"`
 }
 
-func (in *KeycloakRealmRole) GetRealmName() string {
+
+func (in *KeycloakRealmRole) K8SParentRealmName() string {
 	return in.Spec.Realm
 }
 

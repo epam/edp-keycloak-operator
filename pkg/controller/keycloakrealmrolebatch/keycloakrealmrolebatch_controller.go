@@ -65,6 +65,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(request reconcile.Request) (
 	}
 
 	defer func() {
+		instance.Status.Value = helper.StatusOK
 		if resultErr != nil {
 			instance.Status.Value = resultErr.Error()
 		}

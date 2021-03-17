@@ -29,19 +29,23 @@ type KeycloakClientSpec struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
-func (in *KeycloakClient) GetRealmName() string {
-	return in.Spec.TargetRealm
+func (in *KeycloakClient) K8SParentRealmName() string {
+	//grouse hack
+	return "main"
+	// here we hard code main, because target realm is not really k8s realm, and can't be used here
+	// TargetRealm is actual realm name from keycloak server
+	//return in.Spec.TargetRealm
 }
 
 // +k8s:openapi-gen=true
 type ServiceAccount struct {
-	Enabled     bool                       `json:"enabled"`
-	RealmRoles  []string                   `json:"realmRoles"`
-	ClientRoles []ServiceAccountClientRole `json:"clientRoles"`
+	Enabled     bool         `json:"enabled"`
+	RealmRoles  []string     `json:"realmRoles"`
+	ClientRoles []ClientRole `json:"clientRoles"`
 }
 
 // +k8s:openapi-gen=true
-type ServiceAccountClientRole struct {
+type ClientRole struct {
 	ClientID string   `json:"clientId"`
 	Roles    []string `json:"roles"`
 }

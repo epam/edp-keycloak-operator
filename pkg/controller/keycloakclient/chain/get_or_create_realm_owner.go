@@ -13,7 +13,7 @@ type GetOrCreateRealmOwner struct {
 }
 
 func (g *GetOrCreateRealmOwner) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	realm, err := g.Helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta, "main")
+	realm, err := g.Helper.GetOrCreateRealmOwnerRef(keycloakClient, keycloakClient.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
 	}
