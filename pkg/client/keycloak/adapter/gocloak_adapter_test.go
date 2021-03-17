@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/go-resty/resty/v2"
@@ -324,5 +326,190 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 	if err := adapter.SyncRealmRole(&realm, &role); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	mockClient.On("GetClientServiceAccount", "realm", "client").Return(&gocloak.User{
+		ID: gocloak.StringP("id"),
+	}, nil)
+	mockClient.On("GetRoleMappingByUserID", "realm", "id").
+		Return(&gocloak.MappingsRepresentation{RealmMappings: &[]gocloak.Role{
+			{Name: gocloak.StringP("exist_realm_role1")},
+			{Name: gocloak.StringP("exist_realm_role2")},
+		}, ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{
+			"zabrod": {Client: gocloak.StringP("zabrod"), ID: gocloak.StringP("iiss123"),
+				Mappings: &[]gocloak.Role{
+					{Name: gocloak.StringP("exist_client_role1")},
+					{Name: gocloak.StringP("exist_client_role2")},
+				}},
+			"foo": {Client: gocloak.StringP("foo"), ID: gocloak.StringP("foo321"),
+				Mappings: &[]gocloak.Role{
+					{Name: gocloak.StringP("baz")},
+					{Name: gocloak.StringP("zaz")},
+				}},
+		}}, nil)
+	mockClient.On("GetRealmRole", "realm", "foo").
+		Return(&gocloak.Role{}, nil)
+	mockClient.On("GetRealmRole", "realm", "bar").
+		Return(&gocloak.Role{}, nil)
+	mockClient.On("AddRealmRoleToUser", "realm", "id", []gocloak.Role{{}, {}}).
+		Return(nil)
+	mockClient.On("GetClients", "realm",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("foo")}).Return([]*gocloak.Client{
+		{ClientID: gocloak.StringP("foo"), ID: gocloak.StringP("foo321")},
+	}, nil)
+	mockClient.On("GetClients", "realm",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("bar")}).Return([]*gocloak.Client{
+		{ClientID: gocloak.StringP("bar"), ID: gocloak.StringP("bar321")},
+	}, nil)
+	mockClient.On("GetClientRole", "realm", "foo321", "foo").Return(&gocloak.Role{}, nil)
+	mockClient.On("GetClientRole", "realm", "foo321", "bar").Return(&gocloak.Role{}, nil)
+	mockClient.On("GetClientRole", "realm", "bar321", "john").Return(&gocloak.Role{}, nil)
+	mockClient.On("AddClientRoleToUser", "realm", "foo321", "id", []gocloak.Role{{}, {}}).
+		Return(nil)
+	mockClient.On("AddClientRoleToUser", "realm", "bar321", "id", []gocloak.Role{{}}).
+		Return(nil)
+	mockClient.On("DeleteRealmRoleFromUser", "realm", "id", []gocloak.Role{
+		{Name: gocloak.StringP("exist_realm_role1")},
+		{Name: gocloak.StringP("exist_realm_role2")},
+	}).Return(nil)
+	mockClient.On("DeleteClientRoleFromUser", "realm", "foo321", "id",
+		[]gocloak.Role{
+			{Name: gocloak.StringP("baz")},
+			{Name: gocloak.StringP("zaz")},
+		}).Return(nil)
+	mockClient.On("DeleteClientRoleFromUser", "realm", "iiss123", "id",
+		[]gocloak.Role{
+			{Name: gocloak.StringP("exist_client_role1")},
+			{Name: gocloak.StringP("exist_client_role2")},
+		}).Return(nil)
+
+	if err := adapter.SyncServiceAccountRoles("realm", "client", []string{"foo", "bar"},
+		map[string][]string{
+			"foo": {"foo", "bar"},
+			"bar": {"john"},
+		}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	oldChildGroup := gocloak.Group{Name: gocloak.StringP("old-group")}
+	mockClient.On("GetGroups", "realm1",
+		gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
+		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1"),
+			SubGroups: &[]gocloak.Group{oldChildGroup}}}, nil)
+	mockClient.On("UpdateGroup", "realm1", gocloak.Group{Name: gocloak.StringP("group1"),
+		Attributes: &map[string][]string{"foo": {"foo", "bar"}},
+		Path:       gocloak.StringP(""),
+		Access:     &map[string]bool{}, ID: gocloak.StringP("1"),
+		SubGroups: &[]gocloak.Group{{Name: gocloak.StringP("old-group")}}}).Return(nil)
+
+	oldRole1, oldRole2 := gocloak.Role{Name: gocloak.StringP("old-role-1")},
+		gocloak.Role{Name: gocloak.StringP("old-role-2")}
+	newRole1, newRole2 := gocloak.Role{Name: gocloak.StringP("realm-role1")},
+		gocloak.Role{Name: gocloak.StringP("realm-role2")}
+	oldClientRole1, oldClientRole2, oldClientRole3 := gocloak.Role{Name: gocloak.StringP("oclient-role-1")},
+		gocloak.Role{Name: gocloak.StringP("oclient-role-2")},
+		gocloak.Role{Name: gocloak.StringP("oclient-role-3")}
+	newClientRole1, newClientRole2, newClientRole4 := gocloak.Role{Name: gocloak.StringP("client-role1")},
+		gocloak.Role{Name: gocloak.StringP("client-role2")}, gocloak.Role{Name: gocloak.StringP("client-role4")}
+
+	mockClient.On("GetRoleMappingByGroupID", "realm1", "1").
+		Return(&gocloak.MappingsRepresentation{
+			RealmMappings: &[]gocloak.Role{oldRole1, oldRole2},
+			ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{
+				"old-cl-1": {Client: gocloak.StringP("old-cl-1"), ID: gocloak.StringP("321"),
+					Mappings: &[]gocloak.Role{oldClientRole1, oldClientRole2}},
+				"old-cl-3": {Client: gocloak.StringP("old-cl-3"), ID: gocloak.StringP("3214"),
+					Mappings: &[]gocloak.Role{oldClientRole3}},
+			},
+		}, nil)
+
+	subGroup1, subGroup2 := gocloak.Group{Name: gocloak.StringP("subgroup1"), ID: gocloak.StringP("2")},
+		gocloak.Group{Name: gocloak.StringP("subgroup2"), ID: gocloak.StringP("3")}
+
+	mockClient.On("CreateChildGroup", "realm1", "1", &gocloak.Group{}).Return(nil)
+
+	mockClient.On("GetGroups", "realm1",
+		gocloak.GetGroupsParams{Search: subGroup1.Name}).
+		Return([]*gocloak.Group{&subGroup1}, nil)
+	mockClient.On("GetGroups", "realm1",
+		gocloak.GetGroupsParams{Search: subGroup2.Name}).
+		Return([]*gocloak.Group{&subGroup2}, nil)
+	mockClient.On("CreateChildGroup", "realm1", "1", subGroup1).Return("", nil)
+	mockClient.On("CreateChildGroup", "realm1", "1", subGroup2).Return("", nil)
+	mockClient.On("CreateGroup", "realm1", oldChildGroup).Return("", nil)
+	mockClient.On("GetRealmRole", "realm1", "realm-role1").Return(&newRole1, nil)
+	mockClient.On("GetRealmRole", "realm1", "realm-role2").Return(&newRole2, nil)
+	mockClient.On("AddRealmRoleToGroup", "realm1", "1", []gocloak.Role{newRole1, newRole2}).Return(nil)
+	mockClient.On("DeleteRealmRoleFromGroup", "realm1", "1", []gocloak.Role{oldRole1, oldRole2}).Return(nil)
+	mockClient.On("GetClients", "realm1",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("client1")}).
+		Return([]*gocloak.Client{{ID: gocloak.StringP("clid1"), ClientID: gocloak.StringP("client1")}}, nil)
+	mockClient.On("GetClients", "realm1",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("old-cl-3")}).
+		Return([]*gocloak.Client{{ID: gocloak.StringP("3214"), ClientID: gocloak.StringP("old-cl-3")}}, nil)
+	mockClient.On("GetClientRole", "realm1", "clid1", *newClientRole1.Name).Return(&newClientRole1, nil)
+	mockClient.On("GetClientRole", "realm1", "clid1", *newClientRole2.Name).Return(&newClientRole2, nil)
+	mockClient.On("GetClientRole", "realm1", "3214", *newClientRole4.Name).Return(&newClientRole4, nil)
+	mockClient.On("AddClientRoleToGroup", "realm1", "clid1", "1",
+		[]gocloak.Role{newClientRole1, newClientRole2}).Return(nil)
+	mockClient.On("AddClientRoleToGroup", "realm1", "3214", "1",
+		[]gocloak.Role{newClientRole4}).Return(nil)
+
+	mockClient.On("DeleteClientRoleFromGroup", "realm1", "321", "1",
+		[]gocloak.Role{oldClientRole1, oldClientRole2}).Return(nil)
+	mockClient.On("DeleteClientRoleFromGroup", "realm1", "3214", "1",
+		[]gocloak.Role{oldClientRole3}).Return(nil)
+
+	groupID, err := adapter.SyncRealmGroup("realm1", &v1alpha1.KeycloakRealmGroupSpec{
+		Name:       "group1",
+		Attributes: map[string][]string{"foo": {"foo", "bar"}},
+		Access:     map[string]bool{},
+		SubGroups:  []string{"subgroup1", "subgroup2"},
+		RealmRoles: []string{"realm-role1", "realm-role2"},
+		ClientRoles: []v1alpha1.ClientRole{
+			{ClientID: "client1", Roles: []string{"client-role1", "client-role2"}},
+			{ClientID: "old-cl-3", Roles: []string{"client-role4"}},
+		},
+	})
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if groupID == "" {
+		t.Fatal("group id is empty")
+	}
+}
+
+func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+	mockClient.On("GetGroups", "realm1", gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
+		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1")}}, nil)
+	mockClient.On("DeleteGroup", "realm1", "1").Return(nil)
+
+	if err := adapter.DeleteGroup("realm1", "group1"); err != nil {
+		t.Fatalf("%+v", err)
 	}
 }

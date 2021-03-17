@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"sort"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/go-resty/resty/v2"
@@ -33,7 +34,7 @@ func (m *MockGoCloakClient) CreateRealm(ctx context.Context, token string, realm
 
 func (m *MockGoCloakClient) AddClientRoleToUser(ctx context.Context, token, realm, clientID, userID string,
 	roles []gocloak.Role) error {
-	panic("implement me")
+	return m.Called(realm, clientID, userID, roles).Error(0)
 }
 
 func (m *MockGoCloakClient) AddRealmRoleComposite(ctx context.Context, token, realm, roleName string,
@@ -43,7 +44,7 @@ func (m *MockGoCloakClient) AddRealmRoleComposite(ctx context.Context, token, re
 
 func (m *MockGoCloakClient) AddRealmRoleToUser(ctx context.Context, token, realm, userID string,
 	roles []gocloak.Role) error {
-	panic("implement me")
+	return m.Called(realm, userID, roles).Error(0)
 }
 
 func (m *MockGoCloakClient) CreateClient(ctx context.Context, accessToken, realm string,
@@ -75,7 +76,12 @@ func (m *MockGoCloakClient) DeleteRealm(ctx context.Context, token, realm string
 
 func (m *MockGoCloakClient) GetClientRole(ctx context.Context, token, realm, clientID,
 	roleName string) (*gocloak.Role, error) {
-	panic("implement me")
+	called := m.Called(realm, clientID, roleName)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*gocloak.Role), nil
 }
 
 func (m *MockGoCloakClient) GetClientRoles(ctx context.Context, accessToken, realm,
@@ -91,12 +97,21 @@ func (m *MockGoCloakClient) GetClients(ctx context.Context, accessToken, realm s
 
 func (m *MockGoCloakClient) GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
 	called := m.Called(realm, roleName)
-	return called.Get(0).(*gocloak.Role), called.Error(1)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+	return called.Get(0).(*gocloak.Role), nil
 }
 
 func (m *MockGoCloakClient) GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
 	userID string) (*gocloak.MappingsRepresentation, error) {
-	panic("implement me")
+	called := m.Called(realm, userID)
+	err := called.Error(1)
+	if err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*gocloak.MappingsRepresentation), nil
 }
 
 func (m *MockGoCloakClient) GetUsers(ctx context.Context, accessToken, realm string,
@@ -145,17 +160,99 @@ func (m *MockGoCloakClient) UpdateRealmRole(ctx context.Context, token, realm, r
 	return m.Called(realm, roleName, role).Error(0)
 }
 
+type RoleSorter []gocloak.Role
+
+func (a RoleSorter) Len() int           { return len(a) }
+func (a RoleSorter) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
+func (a RoleSorter) Less(i, j int) bool { return *a[i].Name < *a[j].Name }
+
 func (m *MockGoCloakClient) DeleteClientRoleFromUser(ctx context.Context, token, realm, clientID, userID string,
 	roles []gocloak.Role) error {
-	panic("implement me")
+
+	sort.Sort(RoleSorter(roles))
+	return m.Called(realm, clientID, userID, roles).Error(0)
 }
 
 func (m *MockGoCloakClient) DeleteRealmRoleFromUser(ctx context.Context, token, realm, userID string,
 	roles []gocloak.Role) error {
-	panic("implement me")
+
+	sort.Sort(RoleSorter(roles))
+	return m.Called(realm, userID, roles).Error(0)
 }
 
 func (m *MockGoCloakClient) GetClientServiceAccount(ctx context.Context, token, realm,
 	clientID string) (*gocloak.User, error) {
-	panic("implement me")
+	called := m.Called(realm, clientID)
+	err := called.Error(1)
+	if err != nil {
+		return nil, err
+	}
+	return called.Get(0).(*gocloak.User), nil
+}
+
+func (m *MockGoCloakClient) DeleteClientRoleFromGroup(ctx context.Context, token, realm, clientID, groupID string,
+	roles []gocloak.Role) error {
+	sort.Sort(RoleSorter(roles))
+
+	return m.Called(realm, clientID, groupID, roles).Error(0)
+}
+
+func (m *MockGoCloakClient) AddClientRoleToGroup(ctx context.Context, token, realm, clientID, groupID string,
+	roles []gocloak.Role) error {
+	sort.Sort(RoleSorter(roles))
+
+	return m.Called(realm, clientID, groupID, roles).Error(0)
+}
+
+func (m *MockGoCloakClient) DeleteRealmRoleFromGroup(ctx context.Context, token, realm, groupID string,
+	roles []gocloak.Role) error {
+	sort.Sort(RoleSorter(roles))
+	return m.Called(realm, groupID, roles).Error(0)
+}
+
+func (m *MockGoCloakClient) AddRealmRoleToGroup(ctx context.Context, token, realm, groupID string,
+	roles []gocloak.Role) error {
+	sort.Sort(RoleSorter(roles))
+	return m.Called(realm, groupID, roles).Error(0)
+}
+
+func (m *MockGoCloakClient) GetRoleMappingByGroupID(ctx context.Context, accessToken, realm,
+	groupID string) (*gocloak.MappingsRepresentation, error) {
+	called := m.Called(realm, groupID)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*gocloak.MappingsRepresentation), nil
+}
+
+func (m *MockGoCloakClient) GetGroups(ctx context.Context, accessToken, realm string,
+	params gocloak.GetGroupsParams) ([]*gocloak.Group, error) {
+	called := m.Called(realm, params)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]*gocloak.Group), nil
+}
+
+func (m *MockGoCloakClient) DeleteGroup(ctx context.Context, accessToken, realm, groupID string) error {
+	return m.Called(realm, groupID).Error(0)
+}
+
+func (m *MockGoCloakClient) UpdateGroup(ctx context.Context, accessToken, realm string,
+	updatedGroup gocloak.Group) error {
+	return m.Called(realm, updatedGroup).Error(0)
+}
+
+func (m *MockGoCloakClient) CreateChildGroup(ctx context.Context, token, realm, groupID string,
+	group gocloak.Group) (string, error) {
+	called := m.Called(realm, groupID, group)
+	return called.String(0), called.Error(1)
+}
+
+func (m *MockGoCloakClient) CreateGroup(ctx context.Context, accessToken, realm string,
+	group gocloak.Group) (string, error) {
+	called := m.Called(realm, group)
+	return called.String(0), called.Error(1)
 }

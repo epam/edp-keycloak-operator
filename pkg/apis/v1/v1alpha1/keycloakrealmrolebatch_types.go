@@ -22,7 +22,8 @@ type KeycloakRealmRoleBatchStatus struct {
 	Value string `json:"value"`
 }
 
-func (in *KeycloakRealmRoleBatch) GetRealmName() string {
+
+func (in *KeycloakRealmRoleBatch) K8SParentRealmName() string {
 	return in.Spec.Realm
 }
 

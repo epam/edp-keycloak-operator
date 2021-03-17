@@ -33,11 +33,11 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
 	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
 	now := metav1.Time{Time: time.Now()}
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now, Name: "test", Namespace: ns,
+	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now, Name: "test-role", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
+		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "role-test"},
 		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
@@ -46,9 +46,9 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(scheme, &role, &realm, &keycloak, &secret)
 
 	kClient := new(mock.KeycloakClient)
-	kClient.On("SyncRealmRole", &dto.Realm{Name: "test", SsoRealmEnabled: true},
-		&dto.RealmRole{Name: "test", Composites: []string{}}).Return(nil)
-	kClient.On("DeleteRealmRole", "test", "test").Return(nil)
+	kClient.On("SyncRealmRole", &dto.Realm{Name: "ns.test", SsoRealmEnabled: true},
+		&dto.RealmRole{Name: "role-test", Composites: []string{}}).Return(nil)
+	kClient.On("DeleteRealmRole", "ns.test", "role-test").Return(nil)
 	factory := new(mock.GoCloakFactory)
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
 		Return(kClient, nil)
@@ -62,11 +62,23 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 
 	if _, err := rkr.Reconcile(reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      "test",
+			Name:      "test-role",
 			Namespace: ns,
 		},
 	}); err != nil {
 		t.Fatalf("%+v", err)
+	}
+
+	var checkRole v1alpha1.KeycloakRealmRole
+	if err := client.Get(context.Background(), types.NamespacedName{
+		Namespace: ns,
+		Name:      "test-role",
+	}, &checkRole); err != nil {
+		t.Fatal(err)
+	}
+
+	if checkRole.Status.Value != helper.StatusOK {
+		t.Fatal("role status not updated on success")
 	}
 }
 
@@ -122,15 +134,15 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 		t.Fatal("wrong error returned")
 	}
 
-	var role2 v1alpha1.KeycloakRealmRole
+	var checkRole v1alpha1.KeycloakRealmRole
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "test",
-	}, &role2); err != nil {
+	}, &checkRole); err != nil {
 		t.Fatal(err)
 	}
 
-	if !strings.Contains(role2.Status.Value, mockErr.Error()) {
-		t.Fatal("batch status not updated on failure")
+	if !strings.Contains(checkRole.Status.Value, mockErr.Error()) {
+		t.Fatal("role status not updated on failure")
 	}
 }

@@ -17,7 +17,10 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 )
 
-const DefaultRequeueTime = 120 * time.Second
+const (
+	DefaultRequeueTime = 120 * time.Second
+	StatusOK           = "OK"
+)
 
 type Helper struct {
 	client client.Client
@@ -176,22 +179,17 @@ func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*v1alpha1.Keyc
 }
 
 type RealmChild interface {
-	GetRealmName() string
+	K8SParentRealmName() string
 	v1.Object
 }
 
 func (h *Helper) GetOrCreateRealmOwnerRef(
-	object RealmChild, objectMeta v1.ObjectMeta, defaultRealm ...string) (*v1alpha1.KeycloakRealm, error) {
+	object RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
 		switch errors.Cause(err).(type) {
 		case ErrOwnerNotFound:
-			objectRealm := object.GetRealmName()
-			if objectRealm == "" && len(defaultRealm) > 0 {
-				objectRealm = defaultRealm[0]
-			}
-
-			realm, err = h.getKeycloakRealm(object, objectRealm)
+			realm, err = h.getKeycloakRealm(object, object.K8SParentRealmName())
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}
