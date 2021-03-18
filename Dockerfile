@@ -1,4 +1,4 @@
-FROM alpine:3.11.6
+FROM alpine:3.11.8
 
 ENV OPERATOR=/usr/local/bin/keycloak-operator \
     USER_UID=1001 \
