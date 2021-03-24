@@ -16,10 +16,18 @@ type KeycloakRealmGroupSpec struct {
 
 // +k8s:openapi-gen=true
 type KeycloakRealmGroupStatus struct {
-	Value string `json:"value"`
-	ID    string `json:"id"`
+	Value        string `json:"value"`
+	ID           string `json:"id"`
+	FailureCount int64  `json:"failureCount"`
 }
 
+func (in KeycloakRealmGroupStatus) GetFailureCount() int64 {
+	return in.FailureCount
+}
+
+func (in *KeycloakRealmGroupStatus) SetFailureCount(count int64) {
+	in.FailureCount = count
+}
 
 func (in *KeycloakRealmGroup) K8SParentRealmName() string {
 	return in.Spec.Realm

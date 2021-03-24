@@ -19,10 +19,18 @@ type Composite struct {
 
 // +k8s:openapi-gen=true
 type KeycloakRealmRoleStatus struct {
-	Value string `json:"value"`
-	ID    string `json:"id"`
+	Value        string `json:"value"`
+	ID           string `json:"id"`
+	FailureCount int64  `json:"failureCount"`
 }
 
+func (in KeycloakRealmRoleStatus) GetFailureCount() int64 {
+	return in.FailureCount
+}
+
+func (in *KeycloakRealmRoleStatus) SetFailureCount(count int64) {
+	in.FailureCount = count
+}
 
 func (in *KeycloakRealmRole) K8SParentRealmName() string {
 	return in.Spec.Realm

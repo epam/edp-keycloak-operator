@@ -2,6 +2,7 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -68,6 +69,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(request reconcile.Request) (
 		instance.Status.Value = helper.StatusOK
 		if resultErr != nil {
 			instance.Status.Value = resultErr.Error()
+			result.RequeueAfter = r.helper.SetFailureCount(&instance.Status)
 		}
 
 		if err := r.helper.UpdateStatus(&instance); err != nil {
@@ -119,7 +121,8 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(batch *v1alpha1.KeycloakRealm
 		}
 
 		newRole := v1alpha1.KeycloakRealmRole{
-			ObjectMeta: metav1.ObjectMeta{Name: role.Name, Namespace: batch.Namespace,
+			ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%s-%s", batch.Name, role.Name),
+				Namespace: batch.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
 					{Name: realm.Name, Kind: realm.Kind, BlockOwnerDeletion: gocloak.BoolP(true), UID: realm.UID,
 						APIVersion: realm.APIVersion},
@@ -128,7 +131,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(batch *v1alpha1.KeycloakRealm
 				}},
 			Spec: v1alpha1.KeycloakRealmRoleSpec{
 				Name:        role.Name,
-				Realm:       realm.Spec.RealmName,
+				Realm:       realm.Name,
 				Composite:   role.Composite,
 				Composites:  role.Composites,
 				Description: role.Description,

@@ -19,9 +19,17 @@ type BatchRole struct {
 
 // +k8s:openapi-gen=true
 type KeycloakRealmRoleBatchStatus struct {
-	Value string `json:"value"`
+	Value        string `json:"value"`
+	FailureCount int64  `json:"failureCount"`
 }
 
+func (in KeycloakRealmRoleBatchStatus) GetFailureCount() int64 {
+	return in.FailureCount
+}
+
+func (in *KeycloakRealmRoleBatchStatus) SetFailureCount(count int64) {
+	in.FailureCount = count
+}
 
 func (in *KeycloakRealmRoleBatch) K8SParentRealmName() string {
 	return in.Spec.Realm

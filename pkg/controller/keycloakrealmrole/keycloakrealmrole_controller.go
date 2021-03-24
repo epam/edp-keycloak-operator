@@ -66,6 +66,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(request reconcile.Request) (resul
 		instance.Status.Value = helper.StatusOK
 		if resultErr != nil {
 			instance.Status.Value = resultErr.Error()
+			result.RequeueAfter = r.helper.SetFailureCount(&instance.Status)
 		}
 
 		if err := r.helper.UpdateStatus(&instance); err != nil {
