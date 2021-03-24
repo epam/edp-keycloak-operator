@@ -37,7 +37,7 @@ func (h PutRealm) putRealmRoles(realm *v1alpha1.KeycloakRealm, kClient keycloak.
 		}
 
 		if !exists {
-			if err := kClient.CreateRealmRole(dtoRealm.Name, &dto.RealmRole{Name: r}); err != nil {
+			if err := kClient.CreateIncludedRealmRole(dtoRealm.Name, &dto.IncludedRealmRole{Name: r}); err != nil {
 				return errors.Wrap(err, "unable to create new realm role")
 			}
 		}

@@ -54,10 +54,11 @@ type KCloakClients interface {
 
 type KCloakRealmRoles interface {
 	ExistRealmRole(realmName string, roleName string) (bool, error)
-	CreateRealmRole(realmName string, role *dto.RealmRole) error
+	CreateIncludedRealmRole(realmName string, role *dto.IncludedRealmRole) error
+	CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) error
 	HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error)
 	AddRealmRoleToUser(realmName string, user *dto.User, roleName string) error
-	SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error
+	SyncRealmRole(realm *dto.Realm, role *dto.PrimaryRealmRole) error
 	DeleteRealmRole(realm, roleName string) error
 }
 

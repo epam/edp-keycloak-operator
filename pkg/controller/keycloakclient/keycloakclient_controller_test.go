@@ -101,19 +101,17 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	kclient.On("GetClientId", c).Return(
 		"uuid", nil)
 	rm := dto.ConvertSpecToRealm(kr.Spec)
-	ar := dto.RealmRole{
-		Name:        "fake-client-administrators",
-		Composites:  []string{"administrator"},
-		IsComposite: true,
+	ar := dto.IncludedRealmRole{
+		Name:      "fake-client-administrators",
+		Composite: "administrator",
 	}
 	kclient.On("ExistRealmRole", rm.Name, ar.Name).Return(
 		false, nil)
 	kclient.On("CreateRealmRole", rm, ar).Return(
 		nil)
-	dr := dto.RealmRole{
-		Name:        "fake-client-users",
-		Composites:  []string{"developer"},
-		IsComposite: true,
+	dr := dto.IncludedRealmRole{
+		Name:      "fake-client-users",
+		Composite: "developer",
 	}
 	kclient.On("ExistRealmRole", rm.Name, dr.Name).Return(
 		false, nil)
@@ -171,7 +169,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	delTime := metav1.Time{Time: time.Now()}
 	kc := v1alpha1.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
 		DeletionTimestamp: &delTime},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "main", Secret: "keycloak-secret",
+		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
 			RealmRoles: &[]v1alpha1.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: true, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
@@ -189,7 +187,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 
 	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 	realmDTO := dto.ConvertSpecToRealm(kr.Spec)
-	role1DTO := dto.RealmRole{Name: "fake-client-administrators", Composites: []string{"administrator"},
+	role1DTO := dto.PrimaryRealmRole{Name: "fake-client-administrators", Composites: []string{"administrator"},
 		IsComposite: true}
 
 	kclient.On("ExistClient", clientDTO).
@@ -203,7 +201,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		{Name: gocloak.StringP("foo"), Protocol: gocloak.StringP(""), Config: &map[string]string{"foo": "2"},
 			ProtocolMapper: gocloak.StringP("")},
 	}).Return(nil)
-	kclient.On("DeleteClient", "321", "main").Return(nil)
+	kclient.On("DeleteClient", "321", "namespace.main").Return(nil)
 
 	keycloakDto := dto.Keycloak{Url: "https://some", User: "user", Pwd: "pass"}
 	factory := new(mock.GoCloakFactory)

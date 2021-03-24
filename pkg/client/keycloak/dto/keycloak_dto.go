@@ -34,8 +34,8 @@ type User struct {
 	RealmRoles []string `json:"realmRoles"`
 }
 
-func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) *RealmRole {
-	rr := RealmRole{
+func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) *PrimaryRealmRole {
+	rr := PrimaryRealmRole{
 		Name:        spec.Name,
 		Description: spec.Description,
 		IsComposite: spec.Composite,
@@ -69,7 +69,7 @@ type Client struct {
 	ClientSecret            string `json:"-"`
 	RealmName               string
 	Roles                   []string
-	RealmRole               RealmRole
+	RealmRole               IncludedRealmRole // what this for ? does not used anywhere
 	Public                  bool
 	DirectAccess            bool
 	WebUrl                  string
@@ -79,13 +79,18 @@ type Client struct {
 	ServiceAccountEnabled   bool
 }
 
-type RealmRole struct {
+type PrimaryRealmRole struct {
 	ID          *string
 	Name        string
 	Composites  []string
 	IsComposite bool
 	Description string
 	Attributes  map[string][]string
+}
+
+type IncludedRealmRole struct {
+	Name      string
+	Composite string
 }
 
 func ConvertSpecToClient(spec *v1alpha1.KeycloakClientSpec, clientSecret string) *Client {
