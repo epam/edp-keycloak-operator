@@ -673,7 +673,7 @@ func (a GoCloakAdapter) ExistRealmRole(realmName string, roleName string) (bool,
 }
 
 func (a GoCloakAdapter) syncCreateNewComposites(
-	realm *dto.Realm, role *dto.RealmRole, currentComposites []*gocloak.Role) error {
+	realm *dto.Realm, role *dto.PrimaryRealmRole, currentComposites []*gocloak.Role) error {
 
 	currentCompositesMap := make(map[string]string)
 
@@ -704,7 +704,7 @@ func (a GoCloakAdapter) syncCreateNewComposites(
 }
 
 func (a GoCloakAdapter) syncDeleteOldComposites(
-	realm *dto.Realm, role *dto.RealmRole, currentComposites []*gocloak.Role) error {
+	realm *dto.Realm, role *dto.PrimaryRealmRole, currentComposites []*gocloak.Role) error {
 
 	claimedCompositesMap := make(map[string]string)
 
@@ -730,7 +730,7 @@ func (a GoCloakAdapter) syncDeleteOldComposites(
 }
 
 func (a GoCloakAdapter) syncRoleComposites(
-	realm *dto.Realm, role *dto.RealmRole, currentRealmRole *gocloak.Role) error {
+	realm *dto.Realm, role *dto.PrimaryRealmRole, currentRealmRole *gocloak.Role) error {
 
 	currentComposites, err := a.client.GetCompositeRealmRolesByRoleID(context.Background(), a.token.AccessToken,
 		realm.Name, *currentRealmRole.ID)
@@ -749,7 +749,7 @@ func (a GoCloakAdapter) syncRoleComposites(
 	return nil
 }
 
-func (a GoCloakAdapter) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error {
+func (a GoCloakAdapter) SyncRealmRole(realm *dto.Realm, role *dto.PrimaryRealmRole) error {
 	currentRealmRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm.Name, role.Name)
 	exists, err := strip404(err)
 	if err != nil {
@@ -757,7 +757,7 @@ func (a GoCloakAdapter) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) err
 	}
 
 	if !exists {
-		if err := a.CreateRealmRole(realm.Name, role); err != nil {
+		if err := a.CreatePrimaryRealmRole(realm.Name, role); err != nil {
 			return errors.Wrap(err, "unable to create realm role during sync")
 		}
 
@@ -794,7 +794,36 @@ func (a GoCloakAdapter) DeleteRealmRole(realm, roleName string) error {
 	return nil
 }
 
-func (a GoCloakAdapter) CreateRealmRole(realmName string, role *dto.RealmRole) error {
+func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.IncludedRealmRole) error {
+	reqLog := log.WithValues("realm", realmName, "role", role)
+	reqLog.Info("Start create realm roles in Keycloak...")
+
+	realmRole := gocloak.Role{
+		Name: &role.Name,
+	}
+
+	_, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realmName, realmRole)
+	if err != nil {
+		return err
+	}
+
+	persRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, role.Name)
+	if err != nil {
+		return err
+	}
+
+	err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
+		role.Composite, []gocloak.Role{*persRole})
+
+	if err != nil {
+		return err
+	}
+
+	reqLog.Info("Keycloak roles has been created")
+	return nil
+}
+
+func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
 	reqLog := log.WithValues("realm name", realmName, "role", role)
 	reqLog.Info("Start create realm roles in Keycloak...")
 

@@ -319,7 +319,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	}
 
 	realm := dto.Realm{Name: "test"}
-	role := dto.RealmRole{Name: "test", Composites: []string{"foo", "bar"}, IsComposite: true,
+	role := dto.PrimaryRealmRole{Name: "test", Composites: []string{"foo", "bar"}, IsComposite: true,
 		Attributes: map[string][]string{
 			"foo": []string{"foo", "bar"},
 		}}

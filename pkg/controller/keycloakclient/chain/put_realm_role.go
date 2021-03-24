@@ -28,15 +28,12 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient)
 		return nil
 	}
 
-	realmDto := dto.ConvertSpecToRealm(el.State.KeycloakRealm.Spec)
-
 	for _, role := range *keycloakClient.Spec.RealmRoles {
-		roleDto := &dto.RealmRole{
-			Name:        role.Name,
-			Composites:  []string{role.Composite},
-			IsComposite: role.Composite != "",
+		roleDto := &dto.IncludedRealmRole{
+			Name:      role.Name,
+			Composite: role.Composite,
 		}
-		exist, err := el.State.AdapterClient.ExistRealmRole(realmDto.Name, roleDto.Name)
+		exist, err := el.State.AdapterClient.ExistRealmRole(keycloakClient.Spec.TargetRealm, roleDto.Name)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistRealmRole")
 		}
@@ -44,7 +41,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient)
 			reqLog.Info("Client already exists")
 			return nil
 		}
-		err = el.State.AdapterClient.CreateRealmRole(realmDto.Name, roleDto)
+		err = el.State.AdapterClient.CreateIncludedRealmRole(keycloakClient.Spec.TargetRealm, roleDto)
 		if err != nil {
 			return errors.Wrap(err, "error during CreateRealmRole")
 		}

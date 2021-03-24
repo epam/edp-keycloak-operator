@@ -47,7 +47,7 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 
 	kClient := new(mock.KeycloakClient)
 	kClient.On("SyncRealmRole", &dto.Realm{Name: "ns.test", SsoRealmEnabled: true},
-		&dto.RealmRole{Name: "role-test", Composites: []string{}}).Return(nil)
+		&dto.PrimaryRealmRole{Name: "role-test", Composites: []string{}}).Return(nil)
 	kClient.On("DeleteRealmRole", "ns.test", "role-test").Return(nil)
 	factory := new(mock.GoCloakFactory)
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
@@ -110,7 +110,7 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 
 	kClient := new(mock.KeycloakClient)
 	kClient.On("SyncRealmRole", &dto.Realm{Name: "test", SsoRealmEnabled: true},
-		&dto.RealmRole{Name: "test", Composites: []string{}}).Return(mockErr)
+		&dto.PrimaryRealmRole{Name: "test", Composites: []string{}}).Return(mockErr)
 
 	factory := new(mock.GoCloakFactory)
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).

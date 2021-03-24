@@ -67,7 +67,7 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(false, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.RealmRole{}}).
+		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
 	factory := new(mock.GoCloakFactory)
 
@@ -131,7 +131,7 @@ func TestCreateDefChain2(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.RealmRole{}}).
+		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
 	kClient.On("ExistRealmUser", "openshift", &realmUser).Return(true, nil)
 	kClient.On("HasUserClientRole", "openshift", "test.test", &realmUser, "foo").
@@ -197,7 +197,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.RealmRole{}}).
+		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
 	kClient.On("ExistRealmUser", testRealm.Name, &realmUser).
@@ -205,7 +205,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("CreateRealmUser", testRealm.Name, &realmUser).Return(nil)
 	kClient.On("ExistRealmRole", testRealm.Name, "foo").Return(false, nil)
 	kClient.On("ExistRealmRole", testRealm.Name, "bar").Return(true, nil)
-	kClient.On("CreateRealmRole", testRealm.Name, &dto.RealmRole{Name: "foo"}).Return(nil)
+	kClient.On("CreateIncludedRealmRole", testRealm.Name, &dto.IncludedRealmRole{Name: "foo"}).Return(nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
 	kClient.On("AddRealmRoleToUser", testRealm.Name, &realmUser, "foo").Return(nil)

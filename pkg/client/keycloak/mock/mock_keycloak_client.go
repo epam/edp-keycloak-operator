@@ -70,7 +70,12 @@ func (m *KeycloakClient) ExistRealmRole(realm string, role string) (bool, error)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *KeycloakClient) CreateRealmRole(realm string, role *dto.RealmRole) error {
+func (m *KeycloakClient) CreateIncludedRealmRole(realm string, role *dto.IncludedRealmRole) error {
+	args := m.Called(realm, role)
+	return args.Error(0)
+}
+
+func (m *KeycloakClient) CreatePrimaryRealmRole(realm string, role *dto.PrimaryRealmRole) error {
 	args := m.Called(realm, role)
 	return args.Error(0)
 }
@@ -161,7 +166,7 @@ func (m *KeycloakClient) SyncClientProtocolMapper(
 	return m.Called(client, crMappers).Error(0)
 }
 
-func (m *KeycloakClient) SyncRealmRole(realm *dto.Realm, role *dto.RealmRole) error {
+func (m *KeycloakClient) SyncRealmRole(realm *dto.Realm, role *dto.PrimaryRealmRole) error {
 	return m.Called(realm, role).Error(0)
 }
 

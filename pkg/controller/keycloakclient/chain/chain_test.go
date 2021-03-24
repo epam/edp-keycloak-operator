@@ -30,7 +30,7 @@ func TestMake(t *testing.T) {
 	delTime := metav1.Time{Time: time.Now()}
 	kc := v1alpha1.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
 		DeletionTimestamp: &delTime},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "main", Secret: "keycloak-secret",
+		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
 			RealmRoles: &[]v1alpha1.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: true, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
@@ -74,9 +74,8 @@ func TestMake(t *testing.T) {
 			ProtocolMapper: gocloak.StringP("")},
 	}).Return(nil)
 
-	role1DTO := dto.RealmRole{Name: "fake-client-administrators", Composites: []string{"administrator"},
-		IsComposite: true}
-	kClient.On("CreateRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
+	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
+	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
 	if err := chain.Serve(&kc); err != nil {
 		t.Fatal(err)
