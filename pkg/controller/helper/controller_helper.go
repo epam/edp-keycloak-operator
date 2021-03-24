@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -56,6 +57,10 @@ func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*v1alpha1.KeycloakR
 	}
 
 	return &realm, nil
+}
+
+func (h *Helper) GetTimeout(factor int64, baseDuration time.Duration) time.Duration {
+	return time.Duration(float64(baseDuration) * math.Pow(math.E, float64(factor+1)))
 }
 
 func (h *Helper) GetOwner(slave v1.ObjectMeta, owner runtime.Object, ownerType string) error {
@@ -223,6 +228,20 @@ func (h *Helper) CreateKeycloakClient(
 
 	return factory.New(
 		dto.ConvertSpecToKeycloak(o.Spec, string(secret.Data["username"]), string(secret.Data["password"])))
+}
+
+type FailureCountable interface {
+	GetFailureCount() int64
+	SetFailureCount(count int64)
+}
+
+func (h *Helper) SetFailureCount(fc FailureCountable) time.Duration {
+	failures := fc.GetFailureCount()
+	timeout := h.GetTimeout(failures, 10*time.Second)
+	failures += 1
+	fc.SetFailureCount(failures)
+
+	return timeout
 }
 
 func (h *Helper) UpdateStatus(obj runtime.Object) error {
