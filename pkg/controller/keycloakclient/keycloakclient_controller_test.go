@@ -153,7 +153,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	persKc := &v1alpha1.KeycloakClient{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKc)
 	assert.Equal(t, "FAIL", persKc.Status.Value)
-	assert.Empty(t, persKc.Status.Id)
+	assert.Empty(t, persKc.Status.ClientID)
 }
 
 func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
@@ -190,9 +190,9 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	role1DTO := dto.PrimaryRealmRole{Name: "fake-client-administrators", Composites: []string{"administrator"},
 		IsComposite: true}
 
-	kclient.On("ExistClient", clientDTO).
+	kclient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).
 		Return(true, nil)
-	kclient.On("GetClientID", clientDTO).
+	kclient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).
 		Return("321", nil)
 	kclient.On("ExistRealmRole", realmDTO.Name, role1DTO.Name).Return(true, nil)
 	kclient.On("SyncClientProtocolMapper", clientDTO, []gocloak.ProtocolMapperRepresentation{

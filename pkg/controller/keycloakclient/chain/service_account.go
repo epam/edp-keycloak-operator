@@ -25,7 +25,7 @@ func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error
 	}
 
 	if err := el.State.AdapterClient.SyncServiceAccountRoles(el.State.KeycloakRealm.Spec.RealmName,
-		keycloakClient.Status.Id, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles); err != nil {
+		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles); err != nil {
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 

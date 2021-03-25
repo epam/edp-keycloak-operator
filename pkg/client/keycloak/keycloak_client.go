@@ -40,13 +40,13 @@ type KCloakRealms interface {
 }
 
 type KCloakClients interface {
-	ExistClient(client *dto.Client) (bool, error)
+	ExistClient(clientID, realm string) (bool, error)
 	CreateClient(client *dto.Client) error
 	DeleteClient(kkClientID, realmName string) error
 	CreateClientScope(realmName string, scope model.ClientScope) error
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
-	GetClientID(client *dto.Client) (string, error)
+	GetClientID(clientID, realm string) (string, error)
 	PutClientScopeMapper(clientName, scopeId, realmName string) error
 	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)
 	LinkClientScopeToClient(clientName, scopeId, realmName string) error

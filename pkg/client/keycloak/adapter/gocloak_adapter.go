@@ -206,19 +206,19 @@ func (a GoCloakAdapter) createIdPMapper(realm *dto.Realm, externalRole string, r
 	return nil
 }
 
-func (a GoCloakAdapter) ExistClient(client *dto.Client) (bool, error) {
-	reqLog := log.WithValues("client dto", client)
+func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
+	reqLog := log.WithValues("clientID", clientID, "realm", realm)
 	reqLog.Info("Start check client in Keycloak...")
 
-	clns, err := a.client.GetClients(context.Background(), a.token.AccessToken, client.RealmName, gocloak.GetClientsParams{
-		ClientID: &client.ClientId,
+	clns, err := a.client.GetClients(context.Background(), a.token.AccessToken, realm, gocloak.GetClientsParams{
+		ClientID: &clientID,
 	})
 
 	if err != nil {
 		return false, err
 	}
 
-	res := checkFullNameMatch(client, clns)
+	res := checkFullNameMatch(clientID, clns)
 
 	reqLog.Info("End check client in Keycloak")
 	return res, nil
@@ -228,7 +228,7 @@ func (a GoCloakAdapter) ExistClientRole(client *dto.Client, clientRole string) (
 	reqLog := log.WithValues("client dto", client, "client role", clientRole)
 	reqLog.Info("Start check client role in Keycloak...")
 
-	id, err := a.GetClientID(client)
+	id, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
 		return false, err
 	}
@@ -255,7 +255,7 @@ func (a GoCloakAdapter) CreateClientRole(client *dto.Client, clientRole string) 
 	reqLog := log.WithValues("client dto", client, "client role", clientRole)
 	reqLog.Info("Start create client role in Keycloak...")
 
-	id, err := a.GetClientID(client)
+	id, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
 		return err
 	}
@@ -296,13 +296,13 @@ func checkFullUsernameMatch(userName string, users []*gocloak.User) bool {
 	return false
 }
 
-func checkFullNameMatch(client *dto.Client, clients []*gocloak.Client) bool {
+func checkFullNameMatch(clientID string, clients []*gocloak.Client) bool {
 	if clients == nil {
 		return false
 	}
 
 	for _, el := range clients {
-		if el.ClientID != nil && *el.ClientID == client.ClientId {
+		if el.ClientID != nil && *el.ClientID == clientID {
 			return true
 		}
 	}
@@ -394,21 +394,21 @@ func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
 	}
 }
 
-func (a GoCloakAdapter) GetClientID(client *dto.Client) (string, error) {
-	clients, err := a.client.GetClients(context.Background(), a.token.AccessToken, client.RealmName,
+func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
+	clients, err := a.client.GetClients(context.Background(), a.token.AccessToken, realm,
 		gocloak.GetClientsParams{
-			ClientID: &client.ClientId,
+			ClientID: &clientID,
 		})
 	if err != nil {
 		return "", err
 	}
 
 	for _, item := range clients {
-		if item.ClientID != nil && *item.ClientID == client.ClientId {
+		if item.ClientID != nil && *item.ClientID == clientID {
 			return *item.ID, nil
 		}
 	}
-	return "", fmt.Errorf("unable to get Client ID. Client %v doesn't exist", client.ClientId)
+	return "", fmt.Errorf("unable to get Client ID. Client %v doesn't exist", clientID)
 }
 
 func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {
@@ -1021,7 +1021,7 @@ func (a GoCloakAdapter) SyncClientProtocolMapper(
 	reqLog := log.WithValues("clientId", client.ClientId)
 	reqLog.Info("Start put Client protocol mappers...")
 
-	clientID, err := a.GetClientID(client)
+	clientID, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
 		return errors.Wrap(err, "unable to get client id")
 	}
@@ -1163,7 +1163,7 @@ func getClientScope(name string, clientScopes []*model.ClientScope) (*model.Clie
 func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName string) error {
 	reqLog := log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
 	reqLog.Info("Start link Client Scope to client...")
-	clientID, err := a.GetClientID(&dto.Client{ClientId: clientName, RealmName: realmName})
+	clientID, err := a.GetClientID(clientName, realmName)
 	if err != nil {
 		return errors.Wrap(err, "error during GetClientId")
 	}

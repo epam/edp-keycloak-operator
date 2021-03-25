@@ -28,6 +28,10 @@ type Helper struct {
 	scheme *runtime.Scheme
 }
 
+func (h *Helper) GetScheme() *runtime.Scheme {
+	return h.scheme
+}
+
 func MakeHelper(client client.Client, scheme *runtime.Scheme) *Helper {
 	return &Helper{
 		client: client,
