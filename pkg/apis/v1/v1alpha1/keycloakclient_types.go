@@ -65,9 +65,10 @@ type RealmRole struct {
 // KeycloakClientStatus defines the observed state of KeycloakClient
 // +k8s:openapi-gen=true
 type KeycloakClientStatus struct {
-	Value        string `json:"value"`
-	Id           string `json:"id"`
-	FailureCount int64  `json:"failureCount"`
+	Value            string `json:"value"`
+	ClientID         string `json:"ClientId"`
+	FailureCount     int64  `json:"failureCount"`
+	ClientSecretName string `json:"clientSecretName"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html

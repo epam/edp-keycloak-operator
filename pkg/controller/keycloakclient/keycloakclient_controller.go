@@ -113,7 +113,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.Keyclo
 		return pkgErrors.Wrap(err, "error during kc chain")
 	}
 
-	if _, err := r.helper.TryToDelete(keycloakClient, makeTerminator(keycloakClient.Status.Id,
+	if _, err := r.helper.TryToDelete(keycloakClient, makeTerminator(keycloakClient.Status.ClientID,
 		keycloakClient.Spec.TargetRealm, r.chain.GetState().AdapterClient),
 		keyCloakClientOperatorFinalizerName); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")

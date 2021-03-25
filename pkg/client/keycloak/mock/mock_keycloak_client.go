@@ -43,8 +43,8 @@ func (m *KeycloakClient) CreateCentralIdentityProvider(realm *dto.Realm, client 
 	return m.Called(realm, client).Error(0)
 }
 
-func (m *KeycloakClient) ExistClient(client *dto.Client) (bool, error) {
-	args := m.Called(client)
+func (m *KeycloakClient) ExistClient(clientID, realm string) (bool, error) {
+	args := m.Called(clientID, realm)
 	if args.Get(0) == nil {
 		return false, args.Error(1)
 	}
@@ -107,8 +107,8 @@ func (m *KeycloakClient) AddClientRoleToUser(realmName string, clientId string, 
 	return m.Called(realmName, clientId, user, role).Error(0)
 }
 
-func (m *KeycloakClient) GetClientID(client *dto.Client) (string, error) {
-	args := m.Called(client)
+func (m *KeycloakClient) GetClientID(clientID, realm string) (string, error) {
+	args := m.Called(clientID, realm)
 	if args.Get(0) == nil {
 		return "", args.Error(1)
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
 
@@ -61,7 +60,7 @@ func (a GoCloakAdapter) syncOneEntityClientRole(realm, entityID, clientID string
 	addRoleFunc func(ctx context.Context, token, realm, clientID, entityID string, roles []gocloak.Role) error,
 	delRoleFunc func(ctx context.Context, token, realm, clientID, entityID string, roles []gocloak.Role) error) error {
 
-	CID, err := a.GetClientID(&dto.Client{ClientId: clientID, RealmName: realm})
+	CID, err := a.GetClientID(clientID, realm)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get client id, realm: %s, clientID %s", realm, clientID)
 	}
