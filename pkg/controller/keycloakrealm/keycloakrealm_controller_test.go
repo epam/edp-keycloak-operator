@@ -431,13 +431,13 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
 	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
 
-	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true}
+	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
 	kClient := new(mock.KeycloakClient)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true,
 			ACCreatorPass: "test", ACReaderPass: "test"}).Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),

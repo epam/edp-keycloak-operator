@@ -45,14 +45,15 @@ func TestCreateDefChain(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
 	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret, &clientSecret)
 
-	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true}
+	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
 	kClient := new(mock.KeycloakClient)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
-			ACCreatorPass: "test", ACReaderPass: "test"}).
+			SsoAutoRedirectEnabled: true,
+			ACCreatorPass:          "test", ACReaderPass: "test"}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
@@ -107,7 +108,7 @@ func TestCreateDefChain2(t *testing.T) {
 	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
-	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
+	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift", SsoAutoRedirectEnabled: true,
 		Users: []dto.User{realmUser}}
 	kClient := new(mock.KeycloakClient)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
@@ -116,7 +117,8 @@ func TestCreateDefChain2(t *testing.T) {
 
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
-			ACCreatorPass: "test", ACReaderPass: "test", Users: []dto.User{realmUser}}).
+			SsoAutoRedirectEnabled: true,
+			ACCreatorPass:          "test", ACReaderPass: "test", Users: []dto.User{realmUser}}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
@@ -181,7 +183,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false,
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false, SsoAutoRedirectEnabled: true,
 			ACCreatorPass: "test", ACReaderPass: "test", Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{

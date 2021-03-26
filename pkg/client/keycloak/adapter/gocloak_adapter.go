@@ -900,48 +900,62 @@ func (a GoCloakAdapter) getIdPRedirectExecutionId(realm *dto.Realm) (*string, er
 	if err != nil {
 		return nil, err
 	}
-	ex := getIdPRedirector(exs)
+	ex, err := getIdPRedirector(exs)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ex.Id, nil
 }
 
-func getIdPRedirector(executions []api.SimpleAuthExecution) *api.SimpleAuthExecution {
+func getIdPRedirector(executions []api.SimpleAuthExecution) (*api.SimpleAuthExecution, error) {
 	for _, ex := range executions {
 		if ex.ProviderId == "identity-provider-redirector" {
-			return &ex
+			return &ex, nil
 		}
 	}
-	return nil
+
+	return nil, errors.New("identity provider not found")
 }
 
 func (a GoCloakAdapter) createRedirectConfig(realm *dto.Realm, eId string) error {
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm": realm.Name,
-			"id":    eId,
-		}).
-		SetBody(map[string]interface{}{
-			"alias": "edp-sso",
-			"config": map[string]string{
-				"defaultProvider": realm.SsoRealmName,
-			},
-		}).
-		Post(a.basePath + authExecutionConfig)
+	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
+		"realm": realm.Name,
+		"id":    eId,
+	}).SetBody(map[string]interface{}{
+		"alias": "edp-sso",
+		"config": map[string]string{
+			"defaultProvider": realm.SsoRealmName,
+		},
+	}).Post(a.basePath + authExecutionConfig)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "error during resty request")
 	}
 	if resp.StatusCode() != 201 {
-		return fmt.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
+		return errors.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
 	}
+
+	if !realm.SsoAutoRedirectEnabled {
+		resp, err := a.startRestyRequest().SetPathParams(map[string]string{"realm": realm.Name}).
+			SetBody(map[string]string{
+				"id":          eId,
+				"requirement": "ALTERNATIVE",
+			}).Put(a.basePath + authExecutions)
+		if err != nil {
+			return errors.Wrap(err, "error during resty request")
+		}
+
+		if resp.StatusCode() != 202 {
+			return errors.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
+		}
+	}
+
 	return nil
 }
 
 func (a GoCloakAdapter) getBrowserExecutions(realm *dto.Realm) ([]api.SimpleAuthExecution, error) {
 	res := make([]api.SimpleAuthExecution, 0)
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
+	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
 			"realm": realm.Name,
 		}).
