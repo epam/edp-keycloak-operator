@@ -21,12 +21,13 @@ func ConvertSpecToKeycloak(spec v1alpha1.KeycloakSpec, user string, pwd string) 
 }
 
 type Realm struct {
-	Name            string
-	Users           []User
-	SsoRealmName    string
-	SsoRealmEnabled bool
-	ACReaderPass    string `json:"-"`
-	ACCreatorPass   string `json:"-"`
+	Name                   string
+	Users                  []User
+	SsoRealmName           string
+	SsoRealmEnabled        bool
+	SsoAutoRedirectEnabled bool
+	ACReaderPass           string `json:"-"`
+	ACCreatorPass          string `json:"-"`
 }
 
 type User struct {
@@ -57,10 +58,11 @@ func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) *Realm {
 	}
 
 	return &Realm{
-		Name:            spec.RealmName,
-		Users:           users,
-		SsoRealmName:    spec.SsoRealmName,
-		SsoRealmEnabled: spec.SsoRealmEnabled == nil || *spec.SsoRealmEnabled,
+		Name:                   spec.RealmName,
+		Users:                  users,
+		SsoRealmName:           spec.SsoRealmName,
+		SsoRealmEnabled:        spec.SSOEnabled(),
+		SsoAutoRedirectEnabled: spec.SSOAutoRedirectEnabled(),
 	}
 }
 

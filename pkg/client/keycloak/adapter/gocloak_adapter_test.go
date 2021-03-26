@@ -5,6 +5,8 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
+
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
 
 	"github.com/Nerzal/gocloak/v8"
@@ -510,6 +512,47 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 	mockClient.On("DeleteGroup", "realm1", "1").Return(nil)
 
 	if err := adapter.DeleteGroup("realm1", "group1"); err != nil {
+		t.Fatalf("%+v", err)
+	}
+}
+
+func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	realm := dto.Realm{Name: "realm1", SsoAutoRedirectEnabled: false}
+
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	authExecs := []api.SimpleAuthExecution{{
+		ProviderId: "identity-provider-redirector",
+		Id:         "id1",
+	}, {}}
+	authExecsRsp, err := httpmock.NewJsonResponder(200, authExecs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	httpmock.RegisterResponder(
+		"GET",
+		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		authExecsRsp)
+
+	httpmock.RegisterResponder("POST",
+		fmt.Sprintf("/auth/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
+		httpmock.NewStringResponder(201, "ok"))
+
+	httpmock.RegisterResponder("PUT",
+		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		httpmock.NewStringResponder(202, "ok"))
+
+	if err := adapter.PutDefaultIdp(&realm); err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
