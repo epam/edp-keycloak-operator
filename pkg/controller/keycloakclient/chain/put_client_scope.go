@@ -24,20 +24,18 @@ func (el *PutClientScope) putClientScope(keycloakClient *v1v1alpha1.KeycloakClie
 		return nil
 	}
 
-	realmName := el.State.KeycloakRealm.Spec.RealmName
-
-	scope, err := el.State.AdapterClient.GetClientScope(consts.DefaultClientScopeName, realmName)
+	scope, err := el.State.AdapterClient.GetClientScope(consts.DefaultClientScopeName, keycloakClient.Spec.TargetRealm)
 	if err != nil {
 		return errors.Wrap(err, "error during GetClientScope")
 	}
 
 	if err := el.State.AdapterClient.PutClientScopeMapper(
-		keycloakClient.Spec.ClientId, *scope.ID, realmName); err != nil {
+		keycloakClient.Spec.ClientId, *scope.ID, keycloakClient.Spec.TargetRealm); err != nil {
 		return errors.Wrap(err, "error during PutClientScopeMapper")
 	}
 
 	if err := el.State.AdapterClient.LinkClientScopeToClient(
-		keycloakClient.Spec.ClientId, *scope.ID, realmName); err != nil {
+		keycloakClient.Spec.ClientId, *scope.ID, keycloakClient.Spec.TargetRealm); err != nil {
 		return errors.Wrap(err, "error during LinkClientScopeToClient")
 	}
 
