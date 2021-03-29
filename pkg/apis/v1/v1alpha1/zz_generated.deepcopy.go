@@ -707,6 +707,11 @@ func (in *KeycloakRealmSpec) DeepCopyInto(out *KeycloakRealmSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.SsoAutoRedirectEnabled != nil {
+		in, out := &in.SsoAutoRedirectEnabled, &out.SsoAutoRedirectEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.Users != nil {
 		in, out := &in.Users, &out.Users
 		*out = make([]User, len(*in))

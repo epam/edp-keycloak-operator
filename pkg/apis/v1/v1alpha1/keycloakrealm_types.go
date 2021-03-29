@@ -17,7 +17,7 @@ type KeycloakRealmSpec struct {
 	KeycloakOwner          string `json:"keycloakOwner,omitempty"`
 	SsoRealmName           string `json:"ssoRealmName,omitempty"`
 	SsoRealmEnabled        *bool  `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
-	SsoAutoRedirectEnabled *bool  `json:"ssoRedirectEnabled,omitempty"`
+	SsoAutoRedirectEnabled *bool  `json:"ssoAutoRedirectEnabled,omitempty"`
 	Users                  []User `json:"users,omitempty"`
 }
 
