@@ -49,10 +49,12 @@ spec:
                   type: object
                   additionalProperties: true
                 realmRoles:
+                  nullable: true
                   type: array
                   items:
                     type: string
                 clientRoles:
+                  nullable: true
                   type: array
                   items:
                     type: object

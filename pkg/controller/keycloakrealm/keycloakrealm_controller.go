@@ -15,6 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -56,7 +57,9 @@ func add(mgr manager.Manager, r reconcile.Reconciler) error {
 	}
 
 	// Watch for changes to primary resource KeycloakRealm
-	return c.Watch(&source.Kind{Type: &v1v1alpha1.KeycloakRealm{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1v1alpha1.KeycloakRealm{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
+		UpdateFunc: helper.IsFailuresUpdated,
+	})
 }
 
 // blank assignment to verify that ReconcileKeycloakRealm implements reconcile.Reconciler
@@ -82,8 +85,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (result re
 
 	// Fetch the KeycloakRealm instance
 	instance := &v1v1alpha1.KeycloakRealm{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
+	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
@@ -95,20 +97,18 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (result re
 		return
 	}
 
-	defer func() {
-		instance.Status.Available = true
-		if resultErr != nil {
-			result.RequeueAfter = r.helper.SetFailureCount(&instance.Status)
-			instance.Status.Available = false
-		}
-		if err := r.helper.UpdateStatus(instance); err != nil {
-			resultErr = err
-		}
-	}()
-
 	if err := r.tryReconcile(instance); err != nil {
-		resultErr = errors.Wrap(err, "error during tryReconcile")
-		return
+		instance.Status.Available = false
+		result.RequeueAfter = r.helper.SetFailureCount(instance)
+		log.Error(err, "an error has occurred while handling keycloak realm", "name",
+			request.Name)
+	} else {
+		instance.Status.Available = true
+		instance.Status.FailureCount = 0
+	}
+
+	if err := r.helper.UpdateStatus(instance); err != nil {
+		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
 	return

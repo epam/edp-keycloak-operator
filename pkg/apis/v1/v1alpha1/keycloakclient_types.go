@@ -66,7 +66,7 @@ type RealmRole struct {
 // +k8s:openapi-gen=true
 type KeycloakClientStatus struct {
 	Value            string `json:"value"`
-	ClientID         string `json:"ClientId"`
+	ClientID         string `json:"clientId"`
 	FailureCount     int64  `json:"failureCount"`
 	ClientSecretName string `json:"clientSecretName"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -74,12 +74,20 @@ type KeycloakClientStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
-func (in KeycloakClientStatus) GetFailureCount() int64 {
-	return in.FailureCount
+func (in KeycloakClient) GetFailureCount() int64 {
+	return in.Status.FailureCount
 }
 
-func (in *KeycloakClientStatus) SetFailureCount(count int64) {
-	in.FailureCount = count
+func (in *KeycloakClient) SetFailureCount(count int64) {
+	in.Status.FailureCount = count
+}
+
+func (in KeycloakClient) GetStatus() string {
+	return in.Status.Value
+}
+
+func (in *KeycloakClient) SetStatus(value string) {
+	in.Status.Value = value
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

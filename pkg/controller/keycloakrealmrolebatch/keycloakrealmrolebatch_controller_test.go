@@ -8,7 +8,9 @@ import (
 
 	"github.com/epmd-edp/keycloak-operator/pkg/apis"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/pkg/errors"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,7 +55,8 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
 
-	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme)}
+	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
+		logger: &mock.Logger{}}
 
 	if _, err := rkr.Reconcile(reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -87,46 +90,57 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
-		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
+	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
+		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns-realm1"}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 	now := metav1.Time{Time: time.Now()}
-	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
-		DeletionTimestamp: &now, OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []v1alpha1.BatchRole{
-			{Name: "test1"},
-			{Name: "test2"},
+	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "batch1", Namespace: ns,
+		DeletionTimestamp: &now},
+		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "realm1", Roles: []v1alpha1.BatchRole{
+			{Name: "role1"},
+			{Name: "role2"},
 		}},
 		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
 
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test1", Namespace: ns,
-		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
+	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "batch1-role2", Namespace: ns},
+		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "batch1-role2", Realm: "realm1"},
 		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
 	}
 
 	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
 
-	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme)}
+	logger := mock.Logger{}
+	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
+		logger: &logger}
 
 	_, err := rkr.Reconcile(reconcile.Request{
 		NamespacedName: types.NamespacedName{
-			Name:      "test",
+			Name:      "batch1",
 			Namespace: ns,
 		},
 	})
 
-	if err == nil {
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	logErr := logger.LastError()
+
+	if logErr == nil {
 		t.Fatal("no error on fatal")
+	}
+
+	if errors.Cause(logErr).Error() != "one of batch role already exists" {
+		t.Fatal("wrong error returned")
 	}
 
 	var checkBatch v1alpha1.KeycloakRealmRoleBatch
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
-		Name:      "test",
+		Name:      "batch1",
 	}, &checkBatch); err != nil {
 		t.Fatal(err)
 	}

@@ -53,11 +53,14 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
 		Return(kClient, nil)
 
+	logger := mock.Logger{}
+
 	rkr := ReconcileKeycloakRealmRole{
 		scheme:  scheme,
 		client:  client,
 		helper:  helper.MakeHelper(client, scheme),
 		factory: factory,
+		logger:  &logger,
 	}
 
 	if _, err := rkr.Reconcile(reconcile.Request{
@@ -116,8 +119,10 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
 		Return(kClient, nil)
 
+	logger := mock.Logger{}
+
 	rkr := ReconcileKeycloakRealmRole{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
-		factory: factory}
+		factory: factory, logger: &logger}
 
 	_, err := rkr.Reconcile(reconcile.Request{
 		NamespacedName: types.NamespacedName{
@@ -126,11 +131,16 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 		},
 	})
 
-	if err == nil {
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	loggerErr := logger.LastError()
+	if loggerErr == nil {
 		t.Fatal("no error on mock fatal")
 	}
 
-	if errors.Cause(err) != mockErr {
+	if errors.Cause(loggerErr) != mockErr {
 		t.Fatal("wrong error returned")
 	}
 

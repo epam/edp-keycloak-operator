@@ -65,7 +65,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}
@@ -120,7 +123,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}
@@ -188,7 +194,10 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}
@@ -281,7 +290,10 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}
@@ -369,7 +381,10 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKr := &v1alpha1.KeycloakRealm{}

@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -48,7 +49,10 @@ func Add(mgr manager.Manager) error {
 		return err
 	}
 
-	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmGroup{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmGroup{}}, &handler.EnqueueRequestForObject{},
+		predicate.Funcs{
+			UpdateFunc: helper.IsFailuresUpdated,
+		})
 }
 
 func (r *ReconcileKeycloakRealmGroup) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -61,21 +65,17 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(request reconcile.Request) (resu
 		return
 	}
 
-	defer func() {
-		instance.Status.Value = helper.StatusOK
-		if resultErr != nil {
-			instance.Status.Value = resultErr.Error()
-			result.RequeueAfter = r.helper.SetFailureCount(&instance.Status)
-		}
-
-		if err := r.helper.UpdateStatus(&instance); err != nil {
-			resultErr = err
-		}
-	}()
-
 	if err := r.tryReconcile(&instance); err != nil {
-		resultErr = err
-		return
+		instance.Status.Value = err.Error()
+		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		log.Error(err, "an error has occurred while handling keycloak realm group", "name",
+			request.Name)
+	} else {
+		helper.SetSuccessStatus(&instance)
+	}
+
+	if err := r.helper.UpdateStatus(&instance); err != nil {
+		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
 	return

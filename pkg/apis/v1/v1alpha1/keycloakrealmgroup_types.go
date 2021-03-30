@@ -21,12 +21,20 @@ type KeycloakRealmGroupStatus struct {
 	FailureCount int64  `json:"failureCount"`
 }
 
-func (in KeycloakRealmGroupStatus) GetFailureCount() int64 {
-	return in.FailureCount
+func (in KeycloakRealmGroup) GetFailureCount() int64 {
+	return in.Status.FailureCount
 }
 
-func (in *KeycloakRealmGroupStatus) SetFailureCount(count int64) {
-	in.FailureCount = count
+func (in *KeycloakRealmGroup) SetFailureCount(count int64) {
+	in.Status.FailureCount = count
+}
+
+func (in KeycloakRealmGroup) GetStatus() string {
+	return in.Status.Value
+}
+
+func (in *KeycloakRealmGroup) SetStatus(value string) {
+	in.Status.Value = value
 }
 
 func (in *KeycloakRealmGroup) K8SParentRealmName() string {

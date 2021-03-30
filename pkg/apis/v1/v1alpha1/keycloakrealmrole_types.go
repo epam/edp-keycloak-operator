@@ -24,12 +24,20 @@ type KeycloakRealmRoleStatus struct {
 	FailureCount int64  `json:"failureCount"`
 }
 
-func (in KeycloakRealmRoleStatus) GetFailureCount() int64 {
-	return in.FailureCount
+func (in KeycloakRealmRole) GetFailureCount() int64 {
+	return in.Status.FailureCount
 }
 
-func (in *KeycloakRealmRoleStatus) SetFailureCount(count int64) {
-	in.FailureCount = count
+func (in *KeycloakRealmRole) SetFailureCount(count int64) {
+	in.Status.FailureCount = count
+}
+
+func (in KeycloakRealmRole) GetStatus() string {
+	return in.Status.Value
+}
+
+func (in *KeycloakRealmRole) SetStatus(value string) {
+	in.Status.Value = value
 }
 
 func (in *KeycloakRealmRole) K8SParentRealmName() string {
