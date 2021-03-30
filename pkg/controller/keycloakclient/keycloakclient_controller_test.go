@@ -147,7 +147,10 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	res, err := r.Reconcile(req)
 
 	//verify
-	assert.Error(t, err)
+	assert.Nil(t, err)
+	if res.RequeueAfter <= 0 {
+		t.Fatal("requeue duration is not changed")
+	}
 	assert.False(t, res.Requeue)
 
 	persKc := &v1alpha1.KeycloakClient{}

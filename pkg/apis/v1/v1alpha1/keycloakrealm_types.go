@@ -39,12 +39,12 @@ type KeycloakRealmStatus struct {
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
 }
 
-func (in KeycloakRealmStatus) GetFailureCount() int64 {
-	return in.FailureCount
+func (in KeycloakRealm) GetFailureCount() int64 {
+	return in.Status.FailureCount
 }
 
-func (in *KeycloakRealmStatus) SetFailureCount(count int64) {
-	in.FailureCount = count
+func (in *KeycloakRealm) SetFailureCount(count int64) {
+	in.Status.FailureCount = count
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

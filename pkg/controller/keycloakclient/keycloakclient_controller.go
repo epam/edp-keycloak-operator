@@ -13,6 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
@@ -40,7 +41,10 @@ func Add(mgr manager.Manager) error {
 	}
 
 	// Watch for changes to primary resource KeycloakClient
-	return c.Watch(&source.Kind{Type: &v1v1alpha1.KeycloakClient{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1v1alpha1.KeycloakClient{}}, &handler.EnqueueRequestForObject{},
+		predicate.Funcs{
+			UpdateFunc: helper.IsFailuresUpdated,
+		})
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -76,8 +80,7 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (result r
 
 	// Fetch the KeycloakClient instance
 	var instance v1v1alpha1.KeycloakClient
-	err := r.client.Get(context.TODO(), request.NamespacedName, &instance)
-	if err != nil {
+	if err := r.client.Get(context.TODO(), request.NamespacedName, &instance); err != nil {
 		if errors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
@@ -89,23 +92,20 @@ func (r *ReconcileKeycloakClient) Reconcile(request reconcile.Request) (result r
 		return
 	}
 
-	defer func() {
-		r.setStatus(resultErr, &instance)
-		if err := r.helper.UpdateStatus(&instance); err != nil {
-			resultErr = err
-		}
-	}()
-
-	resultErr = r.tryReconcile(&instance)
-	return
-}
-
-func (r *ReconcileKeycloakClient) setStatus(err error, instance *v1v1alpha1.KeycloakClient) {
-	if err != nil {
+	if err := r.tryReconcile(&instance); err != nil {
 		instance.Status.Value = Fail
-		return
+		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		log.Error(err, "an error has occurred while handling keycloak client", "name",
+			request.Name)
+	} else {
+		helper.SetSuccessStatus(&instance)
 	}
-	instance.Status.Value = Ok
+
+	if err := r.helper.UpdateStatus(&instance); err != nil {
+		resultErr = pkgErrors.Wrap(err, "unable to update status")
+	}
+
+	return
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *v1v1alpha1.KeycloakClient) error {

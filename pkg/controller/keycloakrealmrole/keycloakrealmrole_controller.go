@@ -8,18 +8,18 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/manager"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-var log = logf.Log.WithName("controller_keycloakrealmrole")
 
 const (
 	keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.finalizer.name"
@@ -30,6 +30,7 @@ type ReconcileKeycloakRealmRole struct {
 	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
 	helper  *helper.Helper
+	logger  logr.Logger
 }
 
 // newReconciler returns a new reconcile.Reconciler
@@ -39,6 +40,7 @@ func newReconciler(mgr manager.Manager) reconcile.Reconciler {
 		scheme:  mgr.GetScheme(),
 		factory: new(adapter.GoCloakAdapterFactory),
 		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
+		logger:  logf.Log.WithName("controller_keycloakrealmrole"),
 	}
 }
 
@@ -49,11 +51,14 @@ func Add(mgr manager.Manager) error {
 		return err
 	}
 
-	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmRole{}}, &handler.EnqueueRequestForObject{})
+	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmRole{}}, &handler.EnqueueRequestForObject{},
+		predicate.Funcs{
+			UpdateFunc: helper.IsFailuresUpdated,
+		})
 }
 
 func (r *ReconcileKeycloakRealmRole) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	reqLogger := r.logger.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	reqLogger.Info("Reconciling KeycloakRealmRole")
 
 	var instance v1alpha1.KeycloakRealmRole
@@ -62,21 +67,17 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(request reconcile.Request) (resul
 		return
 	}
 
-	defer func() {
-		instance.Status.Value = helper.StatusOK
-		if resultErr != nil {
-			instance.Status.Value = resultErr.Error()
-			result.RequeueAfter = r.helper.SetFailureCount(&instance.Status)
-		}
-
-		if err := r.helper.UpdateStatus(&instance); err != nil {
-			resultErr = err
-		}
-	}()
-
 	if err := r.tryReconcile(&instance); err != nil {
+		instance.Status.Value = err.Error()
+		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		r.logger.Error(err, "an error has occurred while handling keycloak realm role", "name",
+			request.Name)
+	} else {
+		helper.SetSuccessStatus(&instance)
+	}
+
+	if err := r.helper.UpdateStatus(&instance); err != nil {
 		resultErr = err
-		return
 	}
 
 	return
@@ -98,7 +99,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.Ke
 	}
 
 	if _, err := r.helper.TryToDelete(keycloakRealmRole,
-		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient),
+		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient, r.logger),
 		keyCloakRealmRoleOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm role")
 	}
@@ -110,7 +111,7 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	keycloakRealm *v1alpha1.KeycloakRealm, keycloakRealmRole *v1alpha1.KeycloakRealmRole,
 	kClient keycloak.Client) error {
 
-	reqLog := log.WithValues("keycloak role cr", keycloakRealmRole)
+	reqLog := r.logger.WithValues("keycloak role cr", keycloakRealmRole)
 	reqLog.Info("Start put keycloak cr role...")
 
 	realm := dto.ConvertSpecToRealm(keycloakRealm.Spec)
