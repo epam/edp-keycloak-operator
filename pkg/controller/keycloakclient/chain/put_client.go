@@ -104,7 +104,7 @@ func (el *PutClient) getSecret(keycloakClient *v1v1alpha1.KeycloakClient) (strin
 func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
 	clientSecret := coreV1.Secret{
 		ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
-			Name: fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Spec.ClientId)},
+			Name: fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)},
 		Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(32, 7, 4,
 			false, true))},
 	}
