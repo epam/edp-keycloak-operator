@@ -200,9 +200,10 @@ func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error
 			Namespace: instance.Namespace,
 		},
 		Spec: v1v1alpha1.KeycloakRealmSpec{
-			RealmName:    fmt.Sprintf("%s-%s", instance.Namespace, "main"),
-			Users:        instance.Spec.Users,
-			SsoRealmName: ssoRealm,
+			KeycloakOwner: instance.Name,
+			RealmName:     fmt.Sprintf("%s-%s", instance.Namespace, "main"),
+			Users:         instance.Spec.Users,
+			SsoRealmName:  ssoRealm,
 		},
 	}
 
