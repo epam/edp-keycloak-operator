@@ -15,6 +15,7 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	pkgErrors "github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -148,7 +149,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 		Namespace: instance.Namespace,
 	}, secret)
 	if err != nil {
-		return err
+		return pkgErrors.Wrapf(err, "unable to get secret: %s", instance.Spec.Secret)
 	}
 	user := string(secret.Data["username"])
 	pwd := string(secret.Data["password"])
@@ -160,6 +161,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 	instance.Status.Connected = err == nil
 	err = r.client.Status().Update(context.TODO(), instance)
 	if err != nil {
+		reqLogger.Error(err, "unable to update keycloak cr status")
 		err := r.client.Update(context.TODO(), instance)
 		if err != nil {
 			reqLogger.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
@@ -173,6 +175,10 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 func (r *ReconcileKeycloak) putMainRealm(instance *v1v1alpha1.Keycloak) error {
 	reqLog := log.WithValues("instance", instance)
 	reqLog.Info("Start put main realm into k8s")
+	if !instance.Spec.GetInstallMainRealm() {
+		reqLog.Info("Creation of main realm disabled")
+		return nil
+	}
 	nsn := types.NamespacedName{
 		Name:      "main",
 		Namespace: instance.Namespace,
@@ -207,14 +213,16 @@ func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error
 	}
 
 	err := controllerutil.SetControllerReference(instance, realmCr, r.scheme)
-
 	if err != nil {
-		return err
+		return pkgErrors.Wrapf(err, "unable to update ControllerReference of main realm, realm: %+v", realmCr)
 	}
-	err = r.client.Create(context.TODO(), realmCr)
-	reqLog.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
 
-	return err
+	if err := r.client.Create(context.TODO(), realmCr); err != nil {
+		return pkgErrors.Wrapf(err, "unable to create main realm cr: %+v", realmCr)
+	}
+
+	reqLog.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
+	return nil
 }
 
 func (r *ReconcileKeycloak) isStatusConnected(request reconcile.Request) (bool, error) {
@@ -222,7 +230,7 @@ func (r *ReconcileKeycloak) isStatusConnected(request reconcile.Request) (bool, 
 	instance := &v1v1alpha1.Keycloak{}
 	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
 	if err != nil {
-		return false, err
+		return false, pkgErrors.Wrapf(err, "unable to get keycloak instance, request: %+v", request)
 	}
 	log.Info("Retrieved the actual cr for Keycloak", "keycloak cr", instance)
 	return instance.Status.Connected, nil
@@ -244,7 +252,8 @@ func (r *ReconcileKeycloak) putEDPComponent(instance *v1v1alpha1.Keycloak) error
 	if errors.IsNotFound(err) {
 		return r.createEDPComponent(instance)
 	}
-	return err
+
+	return pkgErrors.Wrapf(err, "unable to get edp component")
 }
 
 func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) error {
@@ -253,7 +262,7 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 
 	icon, err := getIcon()
 	if err != nil {
-		return err
+		return pkgErrors.Wrapf(err, "unable to get icon for instance: %+v", instance)
 	}
 
 	comp := &edpCompApi.EDPComponent{
@@ -271,11 +280,11 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 
 	err = controllerutil.SetControllerReference(instance, comp, r.scheme)
 	if err != nil {
-		return err
+		return pkgErrors.Wrapf(err, "unable to set controller reference for component: %+v", comp)
 	}
 	err = r.client.Create(context.TODO(), comp)
 	if err != nil {
-		return err
+		return pkgErrors.Wrapf(err, "unable to create component: %+v", comp)
 	}
 	reqLog.Info("EDP component has been created", "edp component", comp)
 	return nil
@@ -284,17 +293,17 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 func getIcon() (*string, error) {
 	p, err := platformHelper.CreatePathToTemplateDirectory(imgFolder)
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrapf(err, "unable to create path to template dir: %s", imgFolder)
 	}
 	fp := fmt.Sprintf("%v/%v", p, keycloakIcon)
 	f, err := os.Open(fp)
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrapf(err, "unable to open file: %s", fp)
 	}
 	reader := bufio.NewReader(f)
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
-		return nil, err
+		return nil, pkgErrors.Wrapf(err, "unable to read content of file: %s", fp)
 	}
 	encoded := base64.StdEncoding.EncodeToString(content)
 	return &encoded, nil
