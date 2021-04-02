@@ -39,8 +39,8 @@ func (in *KeycloakRealmRoleBatch) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in *KeycloakRealmRoleBatch) K8SParentRealmName() string {
-	return in.Spec.Realm
+func (in *KeycloakRealmRoleBatch) K8SParentRealmName() (string, error) {
+	return in.Spec.Realm, nil
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

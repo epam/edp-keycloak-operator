@@ -471,11 +471,21 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
 		Return(kClient, nil)
 
-	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
+	nsName := types.NamespacedName{Name: kRealmName, Namespace: ns}
+	req := reconcile.Request{NamespacedName: nsName}
 	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s),
 		handler: chain.CreateDefChain(client, s)}
 
 	if _, err := r.Reconcile(req); err != nil {
 		t.Fatal(err)
+	}
+
+	var checkRealm v1alpha1.KeycloakRealm
+	if err := client.Get(context.Background(), nsName, &checkRealm); err != nil {
+		t.Fatal(err)
+	}
+
+	if label, ok := checkRealm.Labels[chain.TargetRealmLabel]; !ok || label == "" || label != checkRealm.Spec.RealmName {
+		t.Fatal("target realm label is not set")
 	}
 }

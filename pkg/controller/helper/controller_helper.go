@@ -183,7 +183,7 @@ func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*v1alpha1.Keyc
 }
 
 type RealmChild interface {
-	K8SParentRealmName() string
+	K8SParentRealmName() (string, error)
 	v1.Object
 }
 
@@ -193,7 +193,12 @@ func (h *Helper) GetOrCreateRealmOwnerRef(
 	if err != nil {
 		switch errors.Cause(err).(type) {
 		case ErrOwnerNotFound:
-			realm, err = h.getKeycloakRealm(object, object.K8SParentRealmName())
+			parentRealm, err := object.K8SParentRealmName()
+			if err != nil {
+				return nil, errors.Wrapf(err, "unable get parent realm for: %+v", object)
+			}
+
+			realm, err = h.getKeycloakRealm(object, parentRealm)
 			if err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}

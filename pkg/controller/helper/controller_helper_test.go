@@ -24,7 +24,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 
 	helper := MakeHelper(&mc, scheme)
 
-	kcClient := v1alpha1.KeycloakClient{
+	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -41,26 +41,26 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		Name:      "foo",
 	}, &v1alpha1.KeycloakRealm{}).Return(nil)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	kcClient = v1alpha1.KeycloakClient{
+	kcGroup = v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
-		Spec: v1alpha1.KeycloakClientSpec{
-			TargetRealm: "main",
+		Spec: v1alpha1.KeycloakRealmGroupSpec{
+			Realm: "foo13",
 		},
 	}
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
-		Name:      "main",
+		Name:      "foo13",
 	}, &v1alpha1.KeycloakRealm{}).Return(nil)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,7 +76,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 
 	helper := MakeHelper(&mc, scheme)
 
-	kcClient := v1alpha1.KeycloakClient{
+	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -95,7 +95,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		Name:      "foo",
 	}, &v1alpha1.KeycloakRealm{}).Return(mockErr)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}
@@ -104,19 +104,19 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		t.Fatal("wrong error returned")
 	}
 
-	kcClient = v1alpha1.KeycloakClient{
+	kcGroup = v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "main"},
+		Spec: v1alpha1.KeycloakRealmGroupSpec{Realm: "main123"},
 	}
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
-		Name:      "main",
+		Name:      "main123",
 	}, &v1alpha1.KeycloakRealm{}).Return(mockErr)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcClient, kcClient.ObjectMeta)
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}
