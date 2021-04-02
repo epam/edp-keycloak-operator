@@ -37,8 +37,8 @@ func (in *KeycloakRealmGroup) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in *KeycloakRealmGroup) K8SParentRealmName() string {
-	return in.Spec.Realm
+func (in *KeycloakRealmGroup) K8SParentRealmName() (string, error) {
+	return in.Spec.Realm, nil
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

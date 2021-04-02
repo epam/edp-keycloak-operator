@@ -117,7 +117,7 @@ func TestMake(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc)
+	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &v1alpha1.KeycloakRealm{}, &v1alpha1.KeycloakRealmList{})
 	client := fake.NewFakeClient(&secret, &k, &kr, &kc)
 	h := helper.MakeHelper(client, s)
 
