@@ -13,12 +13,13 @@ type KeycloakRealmSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	RealmName              string `json:"realmName"`
-	KeycloakOwner          string `json:"keycloakOwner,omitempty"`
-	SsoRealmName           string `json:"ssoRealmName,omitempty"`
-	SsoRealmEnabled        *bool  `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
-	SsoAutoRedirectEnabled *bool  `json:"ssoAutoRedirectEnabled,omitempty"`
-	Users                  []User `json:"users,omitempty"`
+	RealmName              string            `json:"realmName"`
+	KeycloakOwner          string            `json:"keycloakOwner,omitempty"`
+	SsoRealmName           string            `json:"ssoRealmName,omitempty"`
+	SsoRealmEnabled        *bool             `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
+	SsoAutoRedirectEnabled *bool             `json:"ssoAutoRedirectEnabled,omitempty"`
+	Users                  []User            `json:"users,omitempty"`
+	SSORealmMappers        *[]SSORealmMapper `json:"ssoRealmMappers,omitempty"`
 }
 
 func (in KeycloakRealmSpec) SSOEnabled() bool {
@@ -27,6 +28,12 @@ func (in KeycloakRealmSpec) SSOEnabled() bool {
 
 func (in KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
 	return in.SsoAutoRedirectEnabled == nil || *in.SsoAutoRedirectEnabled
+}
+
+type SSORealmMapper struct {
+	IdentityProviderMapper string            `json:"identityProviderMapper"`
+	Name                   string            `json:"name"`
+	Config                 map[string]string `json:"config"`
 }
 
 // KeycloakRealmStatus defines the observed state of KeycloakRealm

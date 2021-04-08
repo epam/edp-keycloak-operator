@@ -438,8 +438,11 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
+	ssoRealmMappers := []v1alpha1.SSORealmMapper{{}}
+
 	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName)},
+		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+			SSORealmMappers: &ssoRealmMappers},
 	}
 
 	s := scheme.Scheme
@@ -466,6 +469,8 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
+	kClient.On("SyncRealmIdentityProviderMappers", kr.Spec.RealmName,
+		dto.ConvertSSOMappersToIdentityProviderMappers(kr.Spec.SsoRealmName, ssoRealmMappers)).Return(nil)
 	factory := new(mock.GoCloakFactory)
 
 	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).

@@ -117,3 +117,26 @@ func getValueOrDefault(protocol *string) string {
 	}
 	return *protocol
 }
+
+type IdentityProviderMapper struct {
+	IdentityProviderMapper string            `json:"identityProviderMapper"`
+	IdentityProviderAlias  string            `json:"identityProviderAlias,omitempty"`
+	Name                   string            `json:"name"`
+	Config                 map[string]string `json:"config"`
+	ID                     string            `json:"id"`
+}
+
+func ConvertSSOMappersToIdentityProviderMappers(idpAlias string,
+	ssoMappers []v1alpha1.SSORealmMapper) []IdentityProviderMapper {
+	idpMappers := make([]IdentityProviderMapper, 0, len(ssoMappers))
+	for _, sm := range ssoMappers {
+		idpMappers = append(idpMappers, IdentityProviderMapper{
+			IdentityProviderAlias:  idpAlias,
+			IdentityProviderMapper: sm.IdentityProviderMapper,
+			Config:                 sm.Config,
+			Name:                   sm.Name,
+		})
+	}
+
+	return idpMappers
+}
