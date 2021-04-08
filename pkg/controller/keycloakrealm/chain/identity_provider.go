@@ -7,6 +7,8 @@ import (
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
+	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,19 +22,38 @@ type PutIdentityProvider struct {
 func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Name, "realm namespace", realm.Namespace)
 	rLog.Info("Start put identity provider for realm...")
+
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
 	if !rDto.SsoRealmEnabled {
 		rLog.Info("sso realm disabled, skip put identity provider step")
 		return nextServeOrNil(h.next, realm, kClient)
 	}
 
+	if err := h.setupIdentityProvider(realm, kClient, rLog, rDto); err != nil {
+		return errors.Wrap(err, "unable to setup identity provider")
+	}
+
+	if realm.Spec.SSORealmMappers != nil {
+		if err := kClient.SyncRealmIdentityProviderMappers(realm.Spec.RealmName,
+			dto.ConvertSSOMappersToIdentityProviderMappers(realm.Spec.SsoRealmName,
+				*realm.Spec.SSORealmMappers)); err != nil {
+			return errors.Wrap(err, "unable to sync idp mappers")
+		}
+	}
+
+	rLog.Info("End put identity provider for realm")
+	return nextServeOrNil(h.next, realm, kClient)
+}
+
+func (h PutIdentityProvider) setupIdentityProvider(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client,
+	rLog logr.Logger, rDto *dto.Realm) error {
+
 	cl := &v1alpha1.KeycloakClient{}
-	err := h.client.Get(context.TODO(), types.NamespacedName{
+	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
-	}, cl)
-	if err != nil {
-		return err
+	}, cl); err != nil {
+		return errors.Wrapf(err, "unable to get client: %s", realm.Spec.RealmName)
 	}
 
 	e, err := kClient.ExistCentralIdentityProvider(rDto)
@@ -41,23 +62,23 @@ func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	}
 	if e {
 		rLog.Info("IdP already exists")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nil
 	}
+
 	s := &coreV1.Secret{}
-	err = h.client.Get(context.TODO(), types.NamespacedName{
+	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Name:      cl.Spec.Secret,
 		Namespace: cl.Namespace,
-	}, s)
-	if err != nil {
-		return err
+	}, s); err != nil {
+		return errors.Wrapf(err, "unable to get secret: %s", cl.Spec.Secret)
 	}
-	err = kClient.CreateCentralIdentityProvider(rDto, &dto.Client{
+
+	if err := kClient.CreateCentralIdentityProvider(rDto, &dto.Client{
 		ClientId:     realm.Spec.RealmName,
 		ClientSecret: string(s.Data["clientSecret"]),
-	})
-	if err != nil {
-		return err
+	}); err != nil {
+		return errors.Wrap(err, "unable to create central identity provider")
 	}
-	rLog.Info("End put identity provider for realm")
-	return nextServeOrNil(h.next, realm, kClient)
+
+	return nil
 }

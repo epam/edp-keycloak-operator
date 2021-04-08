@@ -183,3 +183,8 @@ func (m *KeycloakClient) SyncRealmGroup(realmName string, spec *v1alpha1.Keycloa
 func (m *KeycloakClient) DeleteGroup(realm, groupName string) error {
 	return m.Called(realm, groupName).Error(0)
 }
+
+func (m *KeycloakClient) SyncRealmIdentityProviderMappers(realmName string,
+	mappers []dto.IdentityProviderMapper) error {
+	return m.Called(realmName, mappers).Error(0)
+}

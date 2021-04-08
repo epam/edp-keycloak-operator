@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sethvargo/go-password/password"
 	coreV1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -102,19 +103,29 @@ func (el *PutClient) getSecret(keycloakClient *v1v1alpha1.KeycloakClient) (strin
 }
 
 func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
-	clientSecret := coreV1.Secret{
-		ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
-			Name: fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)},
-		Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(32, 7, 4,
-			false, true))},
+	var clientSecret coreV1.Secret
+	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
+	err := el.Client.Get(context.Background(), types.NamespacedName{Namespace: keycloakClient.Namespace,
+		Name: secretName}, &clientSecret)
+	if err != nil && !k8sErrors.IsNotFound(err) {
+		return "", errors.Wrap(err, "unable to check client secret existance")
 	}
 
-	if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.Helper.GetScheme()); err != nil {
-		return "", errors.Wrap(err, "unable to set controller ref for secret")
-	}
+	if k8sErrors.IsNotFound(err) {
+		clientSecret = coreV1.Secret{
+			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
+				Name: secretName},
+			Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(32, 7, 4,
+				false, true))},
+		}
 
-	if err := el.Client.Create(context.Background(), &clientSecret); err != nil {
-		return "", errors.Wrapf(err, "unable to create secret %+v", clientSecret)
+		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.Helper.GetScheme()); err != nil {
+			return "", errors.Wrap(err, "unable to set controller ref for secret")
+		}
+
+		if err := el.Client.Create(context.Background(), &clientSecret); err != nil {
+			return "", errors.Wrapf(err, "unable to create secret %+v", clientSecret)
+		}
 	}
 
 	keycloakClient.Status.ClientSecretName = clientSecret.Name

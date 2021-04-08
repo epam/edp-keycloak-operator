@@ -18,18 +18,20 @@ import (
 )
 
 const (
-	idPResource              = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idPMapperResource        = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	clientRoleMapperResource = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
-	getOneIdP                = idPResource + "/{alias}"
-	openIdConfig             = "/auth/realms/{realm}/.well-known/openid-configuration"
-	authExecutions           = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
-	authExecutionConfig      = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	postClientScopeMapper    = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
-	getOneClientScope        = "/auth/admin/realms/{realm}/client-scopes"
-	linkClientScopeToClient  = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
-	postClientScope          = "/auth/admin/realms/{realm}/client-scopes"
-	getClientProtocolMappers = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
+	idPResource                    = "/auth/admin/realms/{realm}/identity-provider/instances"
+	idPMapperResource              = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	clientRoleMapperResource       = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
+	getOneIdP                      = idPResource + "/{alias}"
+	openIdConfig                   = "/auth/realms/{realm}/.well-known/openid-configuration"
+	authExecutions                 = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
+	authExecutionConfig            = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
+	postClientScopeMapper          = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
+	getOneClientScope              = "/auth/admin/realms/{realm}/client-scopes"
+	linkClientScopeToClient        = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
+	postClientScope                = "/auth/admin/realms/{realm}/client-scopes"
+	getClientProtocolMappers       = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
+	mapperToIdentityProvider       = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	updateMapperToIdentityProvider = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
 )
 
 var (
@@ -43,46 +45,6 @@ type GoCloakAdapter struct {
 	token  gocloak.JWT
 
 	basePath string
-}
-
-func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
-	reqLog := log.WithValues("realm", realmName)
-	reqLog.Info("Start check existing realm...")
-
-	_, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
-
-	res, err := strip404(err)
-	if err != nil {
-		return false, err
-	}
-
-	reqLog.Info("Check existing realm has been finished", "result", res)
-	return res, nil
-}
-
-func (a GoCloakAdapter) DeleteRealm(realmName string) error {
-	reqLog := log.WithValues("realm", realmName)
-	reqLog.Info("Start deleting realm...")
-
-	if err := a.client.DeleteRealm(context.Background(), a.token.AccessToken, realmName); err != nil {
-		return err
-	}
-
-	reqLog.Info("End deletion realm")
-	return nil
-}
-
-func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
-	reqLog := log.WithValues("realm", realm)
-	reqLog.Info("Start creating realm with default config...")
-
-	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
-	if err != nil {
-		return err
-	}
-
-	reqLog.Info("End creating realm with default config")
-	return nil
 }
 
 func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
