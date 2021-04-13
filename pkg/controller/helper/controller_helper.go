@@ -2,11 +2,15 @@ package helper
 
 import (
 	"context"
+	"fmt"
+	"github.com/epam/keycloak-operator/v2/pkg/util"
+	"os"
+	"path/filepath"
 	"time"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -18,8 +22,10 @@ import (
 )
 
 const (
-	DefaultRequeueTime = 120 * time.Second
-	StatusOK           = "OK"
+	DefaultRequeueTime         = 120 * time.Second
+	StatusOK                   = "OK"
+	defaultConfigsAbsolutePath = "/usr/local/configs/"
+	localConfigsRelativePath   = "configs"
 )
 
 type Helper struct {
@@ -62,7 +68,7 @@ func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*v1alpha1.KeycloakR
 	return &realm, nil
 }
 
-func (h *Helper) GetOwner(slave v1.ObjectMeta, owner runtime.Object, ownerType string) error {
+func (h *Helper) GetOwner(slave v1.ObjectMeta, owner client.Object, ownerType string) error {
 	ownerRefs := slave.GetOwnerReferences()
 	if len(ownerRefs) == 0 {
 		return ErrOwnerNotFound("owner not found")
@@ -234,7 +240,7 @@ func (h *Helper) CreateKeycloakClient(
 		dto.ConvertSpecToKeycloak(o.Spec, string(secret.Data["username"]), string(secret.Data["password"])))
 }
 
-func (h *Helper) UpdateStatus(obj runtime.Object) error {
+func (h *Helper) UpdateStatus(obj client.Object) error {
 	if err := h.client.Status().Update(context.TODO(), obj); err != nil {
 		return errors.Wrap(err, "unable to update object status")
 	}
@@ -279,4 +285,36 @@ func (h *Helper) TryToDelete(obj Deletable, terminator Terminator, finalizer str
 	}
 
 	return true, nil
+}
+
+func getExecutableFilePath() (string, error) {
+	executableFilePath, err := os.Executable()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Dir(executableFilePath), nil
+}
+
+func createPath(directory string, localRun bool) (string, error) {
+	if localRun {
+		executableFilePath, err := getExecutableFilePath()
+		if err != nil {
+			return "", errors.Wrapf(err, "Unable to get executable file path")
+		}
+		templatePath := fmt.Sprintf("%v/../%v/%v", executableFilePath, localConfigsRelativePath, directory)
+		return templatePath, nil
+	}
+
+	templatePath := fmt.Sprintf("%s/%s", defaultConfigsAbsolutePath, directory)
+	return templatePath, nil
+
+}
+
+func checkIfRunningLocally() bool {
+	return util.RunningInCluster()
+}
+
+func CreatePathToTemplateDirectory(directory string) (string, error) {
+	localRun := checkIfRunningLocally()
+	return createPath(directory, localRun)
 }

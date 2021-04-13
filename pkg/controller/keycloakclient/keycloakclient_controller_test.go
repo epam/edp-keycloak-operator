@@ -6,11 +6,10 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakclient/chain"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/mock"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/helper"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -138,13 +137,13 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	h := helper.MakeHelper(client, s)
 	//reconcile
 	r := ReconcileKeycloakClient{
-		client: client,
-		helper: h,
-		chain:  chain.Make(h, client, log.WithName("test"), factory),
+		Client: client,
+		Helper: h,
+		Log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -212,11 +211,14 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		Return(kclient, nil)
 
 	h := helper.MakeHelper(client, s)
-	r := ReconcileKeycloakClient{client: client, helper: h,
-		chain: chain.Make(h, client, log.WithName("test"), factory)}
+	r := ReconcileKeycloakClient{
+		Client: client,
+		Helper: h,
+		Log:    &mock.Logger{},
+	}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: "main", Namespace: "namespace"}}
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatal(err)
 	}

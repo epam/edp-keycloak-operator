@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
 )
 
 type RealmHandler interface {

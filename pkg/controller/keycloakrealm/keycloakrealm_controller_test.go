@@ -8,13 +8,13 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain"
-	"github.com/epmd-edp/keycloak-operator/pkg/model"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/adapter"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/mock"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/helper"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/keycloakrealm/chain"
+	"github.com/epam/keycloak-operator/v2/pkg/model"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -57,12 +57,13 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client: client,
-		helper: helper.MakeHelper(client, s),
+		Client: client,
+		Helper: helper.MakeHelper(client, s),
+		Log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -115,12 +116,13 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client: client,
-		helper: helper.MakeHelper(client, s),
+		Client: client,
+		Helper: helper.MakeHelper(client, s),
+		Log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -186,12 +188,13 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client: client,
-		helper: helper.MakeHelper(client, s),
+		Client: client,
+		Helper: helper.MakeHelper(client, s),
+		Log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -281,13 +284,14 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
+		Client:  client,
+		Factory: factory,
+		Helper:  helper.MakeHelper(client, s),
+		Log:     &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -372,13 +376,14 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
+		Client:  client,
+		Factory: factory,
+		Helper:  helper.MakeHelper(client, s),
+		Log:     &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -417,9 +422,14 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 		Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
-	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s)}
+	r := ReconcileKeycloakRealm{
+		Client:  client,
+		Factory: factory,
+		Helper:  helper.MakeHelper(client, s),
+		Log:     &mock.Logger{},
+	}
 
-	if _, err := r.Reconcile(req); err != nil {
+	if _, err := r.Reconcile(context.TODO(), req); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -478,10 +488,15 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 
 	nsName := types.NamespacedName{Name: kRealmName, Namespace: ns}
 	req := reconcile.Request{NamespacedName: nsName}
-	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s),
-		handler: chain.CreateDefChain(client, s)}
+	r := ReconcileKeycloakRealm{
+		Client:  client,
+		Scheme:  s,
+		Factory: factory,
+		Helper:  helper.MakeHelper(client, s),
+		Log:     &mock.Logger{},
+	}
 
-	if _, err := r.Reconcile(req); err != nil {
+	if _, err := r.Reconcile(context.TODO(), req); err != nil {
 		t.Fatal(err)
 	}
 

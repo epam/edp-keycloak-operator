@@ -2,79 +2,60 @@ package keycloakrealmgroup
 
 import (
 	"context"
+	"github.com/go-logr/logr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/helper"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_keycloakrealmgroup")
-
-const (
-	keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
-)
+const keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
 
 type ReconcileKeycloakRealmGroup struct {
-	client  client.Client
-	scheme  *runtime.Scheme
-	factory keycloak.ClientFactory
-	helper  *helper.Helper
+	Client  client.Client
+	Scheme  *runtime.Scheme
+	Factory keycloak.ClientFactory
+	Helper  *helper.Helper
+	Log     logr.Logger
 }
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKeycloakRealmGroup{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		factory: new(adapter.GoCloakAdapterFactory),
-		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
+func (r *ReconcileKeycloakRealmGroup) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		UpdateFunc: helper.IsFailuresUpdated,
 	}
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&keycloakApi.KeycloakRealmGroup{}, builder.WithPredicates(pred)).
+		Complete(r)
 }
 
-func Add(mgr manager.Manager) error {
-	c, err := controller.New("keycloakrealmgroup-controller", mgr, controller.Options{
-		Reconciler: newReconciler(mgr)})
-	if err != nil {
-		return err
-	}
+func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+	log := r.Log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log.Info("Reconciling KeycloakRealmGroup")
 
-	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmGroup{}}, &handler.EnqueueRequestForObject{},
-		predicate.Funcs{
-			UpdateFunc: helper.IsFailuresUpdated,
-		})
-}
-
-func (r *ReconcileKeycloakRealmGroup) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling KeycloakRealmGroup")
-
-	var instance v1alpha1.KeycloakRealmGroup
-	if err := r.client.Get(context.TODO(), request.NamespacedName, &instance); err != nil {
+	var instance keycloakApi.KeycloakRealmGroup
+	if err := r.Client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
 		return
 	}
 
 	if err := r.tryReconcile(&instance); err != nil {
 		instance.Status.Value = err.Error()
-		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		result.RequeueAfter = r.Helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak realm group", "name",
 			request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 	}
 
-	if err := r.helper.UpdateStatus(&instance); err != nil {
+	if err := r.Helper.UpdateStatus(&instance); err != nil {
 		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
@@ -82,12 +63,12 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(request reconcile.Request) (resu
 }
 
 func (r *ReconcileKeycloakRealmGroup) tryReconcile(keycloakRealmGroup *v1alpha1.KeycloakRealmGroup) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmGroup, keycloakRealmGroup.ObjectMeta)
+	realm, err := r.Helper.GetOrCreateRealmOwnerRef(keycloakRealmGroup, keycloakRealmGroup.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
+	kClient, err := r.Helper.CreateKeycloakClient(realm, r.Factory)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}
@@ -98,7 +79,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(keycloakRealmGroup *v1alpha1.
 	}
 	keycloakRealmGroup.Status.ID = id
 
-	if _, err := r.helper.TryToDelete(keycloakRealmGroup,
+	if _, err := r.Helper.TryToDelete(keycloakRealmGroup,
 		makeTerminator(kClient, realm.Spec.RealmName, keycloakRealmGroup.Spec.Name),
 		keyCloakRealmGroupOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm role")

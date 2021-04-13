@@ -1,15 +1,15 @@
 package chain
 
 import (
-	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
+	v1v1alpha1 "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/keycloakrealm/chain/handler"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var log = logf.Log.WithName("realm_handler")
+var log = ctrl.Log.WithName("realm_handler")
 
 func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmHandler {
 	return PutAcSecret{

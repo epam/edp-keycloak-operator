@@ -2,10 +2,11 @@ package adapter
 
 import (
 	"errors"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/mock"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +25,9 @@ func TestNewAdapterValidCredentials(t *testing.T) {
 		User: "user",
 		Pwd:  "password",
 	}
-	factory := new(GoCloakAdapterFactory)
+	factory := GoCloakAdapterFactory{
+		Log: &mock.Logger{},
+	}
 
 	//test
 	client, err := factory.New(key)
@@ -47,7 +50,10 @@ func TestNewAdapterInValidCredentials(t *testing.T) {
 		User: "user",
 		Pwd:  "invalid",
 	}
-	factory := new(GoCloakAdapterFactory)
+
+	factory := GoCloakAdapterFactory{
+		Log: &mock.Logger{},
+	}
 
 	//test
 	ad, err := factory.New(key)

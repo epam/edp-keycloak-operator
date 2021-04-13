@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 )

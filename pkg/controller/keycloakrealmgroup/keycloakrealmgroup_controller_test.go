@@ -1,14 +1,15 @@
 package keycloakrealmgroup
 
 import (
+	"context"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"testing"
 	"time"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/mock"
+	"github.com/epam/keycloak-operator/v2/pkg/controller/helper"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -20,9 +21,7 @@ import (
 
 func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -46,13 +45,14 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	kClient.On("DeleteGroup", "ns.realm1", group.Spec.Name).Return(nil)
 
 	r := ReconcileKeycloakRealmGroup{
-		client:  client,
-		helper:  helper.MakeHelper(client, scheme),
-		scheme:  scheme,
-		factory: factory,
+		Client:  client,
+		Helper:  helper.MakeHelper(client, scheme),
+		Scheme:  scheme,
+		Factory: factory,
+		Log:     &mock.Logger{},
 	}
 
-	if _, err := r.Reconcile(reconcile.Request{NamespacedName: types.NamespacedName{
+	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: ns,
 		Name:      "group1",
 	}}); err != nil {
