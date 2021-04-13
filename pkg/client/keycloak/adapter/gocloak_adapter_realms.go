@@ -158,7 +158,7 @@ func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dt
 		return errors.Wrapf(err, "unable to update identity provider mapper: %+v", mapper)
 	}
 
-	if resp.StatusCode() != http.StatusOK {
+	if resp.StatusCode() >= 300 {
 		return errors.Errorf("unable to update identity provider mapper: %+v, response: %s", mapper,
 			resp.String())
 	}
