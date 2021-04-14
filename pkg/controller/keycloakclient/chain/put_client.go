@@ -115,8 +115,8 @@ func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (
 		clientSecret = coreV1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
 				Name: secretName},
-			Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(32, 7, 4,
-				false, true))},
+			Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(36, 9, 0,
+				true, true))},
 		}
 
 		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.Helper.GetScheme()); err != nil {
