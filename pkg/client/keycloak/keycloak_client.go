@@ -2,9 +2,9 @@ package keycloak
 
 import (
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/keycloak-operator/pkg/model"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/model"
 )
 
 type Client interface {

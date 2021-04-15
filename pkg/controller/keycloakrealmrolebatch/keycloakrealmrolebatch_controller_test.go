@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/keycloak-operator/pkg/controller/helper"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

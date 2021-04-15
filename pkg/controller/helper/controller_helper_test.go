@@ -4,9 +4,9 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"testing"
 
-	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

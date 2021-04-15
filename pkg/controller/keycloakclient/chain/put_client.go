@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	v1v1alpha1 "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
+	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	"github.com/sethvargo/go-password/password"
 	coreV1 "k8s.io/api/core/v1"

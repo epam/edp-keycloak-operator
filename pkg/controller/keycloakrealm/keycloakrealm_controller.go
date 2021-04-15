@@ -2,10 +2,10 @@ package keycloakrealm
 
 import (
 	"context"
-	keycloakApi "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/pkg/controller/helper"
-	"github.com/epam/keycloak-operator/pkg/controller/keycloakrealm/chain"
+	keycloakApi "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakrealm/chain"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

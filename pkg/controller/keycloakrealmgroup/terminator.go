@@ -1,7 +1,7 @@
 package keycloakrealmgroup
 
 import (
-	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/pkg/errors"
 )
 

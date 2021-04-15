@@ -1,8 +1,8 @@
 package handler
 
 import (
-	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
 	"github.com/stretchr/testify/mock"
 )
 

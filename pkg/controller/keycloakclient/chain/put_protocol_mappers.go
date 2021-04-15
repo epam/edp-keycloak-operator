@@ -2,8 +2,8 @@ package chain
 
 import (
 	"github.com/Nerzal/gocloak/v8"
-	v1v1alpha1 "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
+	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
 

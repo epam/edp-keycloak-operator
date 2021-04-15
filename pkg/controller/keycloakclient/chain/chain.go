@@ -1,8 +1,8 @@
 package chain
 
 import (
-	"github.com/epam/keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/pkg/controller/helper"
+	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
+	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
