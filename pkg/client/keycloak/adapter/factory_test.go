@@ -2,11 +2,11 @@ package adapter
 
 import (
 	"errors"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/mock"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/mock"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/assert"
 )
 

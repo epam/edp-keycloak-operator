@@ -2,11 +2,11 @@ package chain
 
 import (
 	"context"
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/adapter"
-	"github.com/epam/keycloak-operator/v2/pkg/controller/helper"
-	"github.com/epam/keycloak-operator/v2/pkg/controller/keycloakrealm/chain/handler"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/keycloak-operator/pkg/controller/helper"
+	"github.com/epam/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/sethvargo/go-password/password"
 	coreV1 "k8s.io/api/core/v1"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"

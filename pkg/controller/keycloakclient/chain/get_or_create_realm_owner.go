@@ -3,8 +3,8 @@ package chain
 import (
 	"context"
 
-	v1v1alpha1 "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/v2/pkg/controller/keycloakrealm/chain"
+	v1v1alpha1 "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/controller/keycloakrealm/chain"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"

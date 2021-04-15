@@ -11,19 +11,19 @@ import (
 
 func GetOpenAPIDefinitions(ref common.ReferenceCallback) map[string]common.OpenAPIDefinition {
 	return map[string]common.OpenAPIDefinition{
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.Composite":               schema_pkg_apis_v1_v1alpha1_Composite(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.Keycloak":                schema_pkg_apis_v1_v1alpha1_Keycloak(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClient":          schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientSpec":      schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientStatus":    schema_pkg_apis_v1_v1alpha1_KeycloakClientStatus(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealm":           schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRole":       schema_pkg_apis_v1_v1alpha1_KeycloakRealmRole(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec":   schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleSpec(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus": schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleStatus(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmSpec":       schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmStatus":     schema_pkg_apis_v1_v1alpha1_KeycloakRealmStatus(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakSpec":            schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref),
-		"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakStatus":          schema_pkg_apis_v1_v1alpha1_KeycloakStatus(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.Composite":               schema_pkg_apis_v1_v1alpha1_Composite(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.Keycloak":                schema_pkg_apis_v1_v1alpha1_Keycloak(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClient":          schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec":      schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus":    schema_pkg_apis_v1_v1alpha1_KeycloakClientStatus(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealm":           schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRole":       schema_pkg_apis_v1_v1alpha1_KeycloakRealmRole(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec":   schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleSpec(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus": schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleStatus(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec":       schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus":     schema_pkg_apis_v1_v1alpha1_KeycloakRealmStatus(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec":            schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref),
+		"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus":          schema_pkg_apis_v1_v1alpha1_KeycloakStatus(ref),
 	}
 }
 
@@ -77,20 +77,20 @@ func schema_pkg_apis_v1_v1alpha1_Keycloak(ref common.ReferenceCallback) common.O
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakSpec"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakStatus"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakSpec", "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakSpec", "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -124,20 +124,20 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakClient(ref common.ReferenceCallback) co
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientSpec"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientStatus"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientSpec", "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakClientStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientSpec", "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakClientStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -169,7 +169,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref common.ReferenceCallback
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.RealmRole"),
+										Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.RealmRole"),
 									},
 								},
 							},
@@ -259,7 +259,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref common.ReferenceCallback
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.ProtocolMapper"),
+										Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.ProtocolMapper"),
 									},
 								},
 							},
@@ -270,7 +270,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakClientSpec(ref common.ReferenceCallback
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.ProtocolMapper", "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.RealmRole"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.ProtocolMapper", "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.RealmRole"},
 	}
 }
 
@@ -332,20 +332,20 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealm(ref common.ReferenceCallback) com
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmSpec"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmSpec", "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmSpec", "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -378,20 +378,20 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealmRole(ref common.ReferenceCallback)
 					"spec": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec"),
 						},
 					},
 					"status": {
 						SchemaProps: spec.SchemaProps{
 							Default: map[string]interface{}{},
-							Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus"),
+							Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus"),
 						},
 					},
 				},
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec", "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleSpec", "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.KeycloakRealmRoleStatus", "k8s.io/apimachinery/pkg/apis/meta/v1.ObjectMeta"},
 	}
 }
 
@@ -459,7 +459,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleSpec(ref common.ReferenceCallb
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.Composite"),
+										Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.Composite"),
 									},
 								},
 							},
@@ -470,7 +470,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealmRoleSpec(ref common.ReferenceCallb
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.Composite"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.Composite"},
 	}
 }
 
@@ -535,7 +535,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref common.ReferenceCallback)
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.User"),
+										Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.User"),
 									},
 								},
 							},
@@ -546,7 +546,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakRealmSpec(ref common.ReferenceCallback)
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.User"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.User"},
 	}
 }
 
@@ -610,7 +610,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref common.ReferenceCallback) comm
 								Schema: &spec.Schema{
 									SchemaProps: spec.SchemaProps{
 										Default: map[string]interface{}{},
-										Ref:     ref("github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.User"),
+										Ref:     ref("github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.User"),
 									},
 								},
 							},
@@ -621,7 +621,7 @@ func schema_pkg_apis_v1_v1alpha1_KeycloakSpec(ref common.ReferenceCallback) comm
 			},
 		},
 		Dependencies: []string{
-			"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1.User"},
+			"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1.User"},
 	}
 }
 

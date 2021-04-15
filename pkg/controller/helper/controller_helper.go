@@ -3,14 +3,14 @@ package helper
 import (
 	"context"
 	"fmt"
-	"github.com/epam/keycloak-operator/v2/pkg/util"
+	"github.com/epam/keycloak-operator/pkg/util"
 	"os"
 	"path/filepath"
 	"time"
 
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

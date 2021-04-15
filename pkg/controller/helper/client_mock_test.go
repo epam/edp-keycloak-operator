@@ -2,12 +2,12 @@ package helper
 
 import (
 	"context"
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

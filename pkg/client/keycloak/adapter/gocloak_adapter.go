@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/api"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
-	"github.com/epam/keycloak-operator/v2/pkg/consts"
-	"github.com/epam/keycloak-operator/v2/pkg/model"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/api"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/consts"
+	"github.com/epam/keycloak-operator/pkg/model"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 )

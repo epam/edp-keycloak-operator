@@ -3,7 +3,7 @@ package keycloakrealmrolebatch
 import (
 	"context"
 
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )

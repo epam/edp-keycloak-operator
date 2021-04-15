@@ -3,7 +3,7 @@ package dto
 import (
 	"testing"
 
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
 )
 
 func TestConvertSpecToClient(t *testing.T) {

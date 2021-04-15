@@ -1,8 +1,8 @@
 package chain
 
 import (
-	v1v1alpha1 "github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/v2/pkg/consts"
+	v1v1alpha1 "github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/consts"
 	"github.com/pkg/errors"
 )
 

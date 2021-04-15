@@ -1,8 +1,8 @@
 package mock
 
 import (
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/mock"
 )
 

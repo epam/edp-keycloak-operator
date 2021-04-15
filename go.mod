@@ -1,4 +1,4 @@
-module github.com/epam/keycloak-operator/v2
+module github.com/epam/keycloak-operator
 
 go 1.14
 

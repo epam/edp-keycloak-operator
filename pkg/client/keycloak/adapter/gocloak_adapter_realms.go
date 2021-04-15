@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"context"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak/dto"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	"net/http"
 )

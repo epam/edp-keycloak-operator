@@ -1,7 +1,7 @@
 package keycloakclient
 
 import (
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"

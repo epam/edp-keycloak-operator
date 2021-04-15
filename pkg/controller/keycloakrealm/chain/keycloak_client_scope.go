@@ -1,11 +1,11 @@
 package chain
 
 import (
-	"github.com/epam/keycloak-operator/v2/pkg/apis/v1/v1alpha1"
-	"github.com/epam/keycloak-operator/v2/pkg/client/keycloak"
-	"github.com/epam/keycloak-operator/v2/pkg/consts"
-	"github.com/epam/keycloak-operator/v2/pkg/controller/keycloakrealm/chain/handler"
-	"github.com/epam/keycloak-operator/v2/pkg/model"
+	"github.com/epam/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/keycloak-operator/pkg/consts"
+	"github.com/epam/keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
+	"github.com/epam/keycloak-operator/pkg/model"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
