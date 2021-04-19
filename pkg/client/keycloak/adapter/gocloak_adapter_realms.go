@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
 

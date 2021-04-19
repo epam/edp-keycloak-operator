@@ -9,8 +9,8 @@ import (
 
 	edpCompApi "github.com/epmd-edp/edp-component-operator/pkg/apis"
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	"github.com/epmd-edp/keycloak-operator/pkg/apis"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller"
+	"github.com/epam/edp-keycloak-operator/pkg/apis"
+	"github.com/epam/edp-keycloak-operator/pkg/controller"
 	"github.com/operator-framework/operator-sdk/pkg/k8sutil"
 	"github.com/operator-framework/operator-sdk/pkg/leader"
 	"github.com/operator-framework/operator-sdk/pkg/log/zap"

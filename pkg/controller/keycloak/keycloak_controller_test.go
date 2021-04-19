@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	v1alpha12 "github.com/epmd-edp/edp-component-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
