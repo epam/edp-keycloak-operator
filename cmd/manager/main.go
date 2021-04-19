@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -40,6 +41,8 @@ func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+
+	utilruntime.Must(edpCompApi.AddToScheme(scheme))
 
 	//+kubebuilder:scaffold:scheme
 }
