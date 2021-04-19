@@ -1,7 +1,7 @@
 package controller
 
 import (
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloak"
 )
 
 func init() {

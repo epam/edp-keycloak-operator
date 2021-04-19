@@ -1,7 +1,7 @@
 package keycloakrealmrole
 
 import (
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 )
