@@ -901,7 +901,7 @@ func (a GoCloakAdapter) createRedirectConfig(realm *dto.Realm, eId string) error
 		resp, err := a.startRestyRequest().SetPathParams(map[string]string{"realm": realm.Name}).
 			SetBody(map[string]string{
 				"id":          eId,
-				"requirement": "ALTERNATIVE",
+				"requirement": "DISABLED",
 			}).Put(a.basePath + authExecutions)
 		if err != nil {
 			return errors.Wrap(err, "error during resty request")
