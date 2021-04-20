@@ -3,8 +3,8 @@ description: A Helm chart for EDP Keycloak Operator
 home: https://solutionshub.epam.com/solution/epam-delivery-platform
 name: keycloak-operator
 type: application
-version: 1.7.0
-appVersion: v1.7.0
+version: 1.7.2
+appVersion: v1.7.2
 maintainers:
     - name: EPAM EDP Team
 sources:
