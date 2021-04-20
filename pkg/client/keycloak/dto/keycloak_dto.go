@@ -26,8 +26,6 @@ type Realm struct {
 	SsoRealmName           string
 	SsoRealmEnabled        bool
 	SsoAutoRedirectEnabled bool
-	ACReaderPass           string `json:"-"`
-	ACCreatorPass          string `json:"-"`
 }
 
 type User struct {
@@ -42,6 +40,7 @@ func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) *PrimaryRealmRole {
 		IsComposite: spec.Composite,
 		Attributes:  spec.Attributes,
 		Composites:  make([]string, 0, len(spec.Composites)),
+		IsDefault:   spec.IsDefault,
 	}
 
 	for _, comp := range spec.Composites {
@@ -88,6 +87,7 @@ type PrimaryRealmRole struct {
 	IsComposite bool
 	Description string
 	Attributes  map[string][]string
+	IsDefault   bool
 }
 
 type IncludedRealmRole struct {

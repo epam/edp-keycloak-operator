@@ -23,6 +23,7 @@ type GoCloakRealms interface {
 	GetRealm(ctx context.Context, token, realm string) (*gocloak.RealmRepresentation, error)
 	DeleteRealm(ctx context.Context, token, realm string) error
 	CreateRealm(ctx context.Context, token string, realm gocloak.RealmRepresentation) (string, error)
+	UpdateRealm(ctx context.Context, token string, realm gocloak.RealmRepresentation) error
 }
 
 type GoCloakClients interface {

@@ -3,12 +3,9 @@ package chain
 import (
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -58,22 +55,6 @@ func (h PutRealm) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.C
 		rLog.Info("Realm already exists")
 		return nextServeOrNil(h.next, realm, kClient)
 	}
-	crS, err := helper.GetSecret(h.client, types.NamespacedName{
-		Namespace: realm.Namespace,
-		Name:      adapter.AcCreatorUsername,
-	})
-	if err != nil {
-		return errors.Wrap(err, "unable to get ac-creator secret")
-	}
-	rDto.ACCreatorPass = string(crS.Data["password"])
-	rS, err := helper.GetSecret(h.client, types.NamespacedName{
-		Namespace: realm.Namespace,
-		Name:      adapter.AcReaderUsername,
-	})
-	if err != nil {
-		return errors.Wrap(err, "unable to get ac-reader secret")
-	}
-	rDto.ACReaderPass = string(rS.Data["password"])
 	err = kClient.CreateRealmWithDefaultConfig(rDto)
 	if err != nil {
 		return errors.Wrap(err, "unable to create realm with default config")

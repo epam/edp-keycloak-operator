@@ -12,25 +12,21 @@ import (
 var log = logf.Log.WithName("realm_handler")
 
 func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmHandler {
-	return PutAcSecret{
-		next: PutRealm{
-			next: SetLabels{
-				next: PutKeycloakClientScope{
-					next: PutKeycloakClientCR{
-						next: PutKeycloakClientSecret{
-							next: PutUsers{
-								next: PutUsersRoles{
-									next: PutOpenIdConfigAnnotation{
-										next: PutIdentityProvider{
-											next:   PutDefaultIdP{},
-											client: client,
-										},
+	return PutRealm{
+		next: SetLabels{
+			next: PutKeycloakClientScope{
+				next: PutKeycloakClientCR{
+					next: PutKeycloakClientSecret{
+						next: PutUsers{
+							next: PutUsersRoles{
+								next: PutOpenIdConfigAnnotation{
+									next: PutIdentityProvider{
+										next:   PutDefaultIdP{},
 										client: client,
 									},
+									client: client,
 								},
 							},
-							client: client,
-							scheme: scheme,
 						},
 						client: client,
 						scheme: scheme,
@@ -39,6 +35,7 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmH
 					scheme: scheme,
 				},
 				client: client,
+				scheme: scheme,
 			},
 			client: client,
 		},
