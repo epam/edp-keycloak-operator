@@ -2,6 +2,7 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -16,11 +17,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	client2 "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
-func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
+func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
 	if err := apis.AddToScheme(scheme); err != nil {
 		t.Fatal(err)
@@ -37,10 +39,59 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 	now := metav1.Time{Time: time.Now()}
 	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
-		DeletionTimestamp: &now, OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
+		DeletionTimestamp: &now,
+		OwnerReferences:   []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
 		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []v1alpha1.BatchRole{
-			{Name: "test1"},
-			{Name: "test2"},
+			{Name: "sub-role1"},
+			{Name: "sub-role2", IsDefault: true},
+		}},
+		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
+
+	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret)
+
+	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
+		logger: &mock.Logger{}}
+
+	if _, err := rkr.Reconcile(reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: ns,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	var checkList v1alpha1.KeycloakRealmRoleList
+	if err := client.List(context.Background(), &client2.ListOptions{}, &checkList); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(checkList.Items) > 0 {
+		t.Fatal("batch roles is not deleted")
+	}
+
+}
+
+func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
+	scheme := runtime.NewScheme()
+	if err := apis.AddToScheme(scheme); err != nil {
+		t.Fatal(err)
+	}
+	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+
+	ns := "security"
+	keycloak := v1alpha1.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
+	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
+		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
+		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
+	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
+		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []v1alpha1.BatchRole{
+			{Name: "sub-role1"},
+			{Name: "sub-role2", IsDefault: true},
 		}},
 		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
 
@@ -78,6 +129,21 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	if checkBatch.Status.Value != helper.StatusOK {
 		t.Log(checkBatch.Status.Value)
 		t.Fatal("batch status not updated on success")
+	}
+
+	var roles v1alpha1.KeycloakRealmRoleList
+	if err := client.List(context.Background(), &client2.ListOptions{}, &roles); err != nil {
+		t.Fatal(err)
+	}
+
+	var checkRole v1alpha1.KeycloakRealmRole
+	if err := client.Get(context.Background(), types.NamespacedName{Namespace: ns,
+		Name: fmt.Sprintf("%s-sub-role2", batch.Name)}, &checkRole); err != nil {
+		t.Fatal(err)
+	}
+
+	if !checkRole.Spec.IsDefault {
+		t.Fatal("sub-role2 is not default")
 	}
 }
 

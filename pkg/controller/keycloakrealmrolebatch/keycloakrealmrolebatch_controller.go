@@ -139,6 +139,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(batch *v1alpha1.KeycloakRealm
 				Composites:  role.Composites,
 				Description: role.Description,
 				Attributes:  role.Attributes,
+				IsDefault:   role.IsDefault,
 			}}
 		if err := r.client.Create(context.TODO(), &newRole); err != nil {
 			return nil, errors.Wrap(err, "unable to create child role from batch")

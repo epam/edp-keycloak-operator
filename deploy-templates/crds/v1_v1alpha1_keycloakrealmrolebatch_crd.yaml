@@ -43,6 +43,9 @@ spec:
                   properties:
                     name:
                       type: string
+                    isDefault:
+                      description: 'make role default for realm'
+                      type: boolean
                     composite:
                       type: boolean
                     composites:
