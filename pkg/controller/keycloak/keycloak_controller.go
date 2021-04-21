@@ -5,35 +5,29 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"os"
-
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	edpCompApi "github.com/epmd-edp/edp-component-operator/pkg/apis/v1/v1alpha1"
-	platformHelper "github.com/epmd-edp/jenkins-operator/v2/pkg/service/platform/helper"
+	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
+	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"os"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
-
-var log = logf.Log.WithName("controller_keycloak")
 
 const (
 	defaultRealmName = "openshift"
@@ -41,110 +35,79 @@ const (
 	keycloakIcon     = "keycloak.svg"
 )
 
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
-// Add creates a new Keycloak Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger) *ReconcileKeycloak {
 	return &ReconcileKeycloak{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		factory: new(adapter.GoCloakAdapterFactory),
+		client: client,
+		scheme: scheme,
+		log:    log.WithName("keycloak"),
+		factory: adapter.GoCloakAdapterFactory{
+			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
+		},
 	}
 }
 
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("keycloak-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
+// ReconcileKeycloak reconciles a Keycloak object
+type ReconcileKeycloak struct {
+	client  client.Client
+	scheme  *runtime.Scheme
+	log     logr.Logger
+	factory keycloak.ClientFactory
+}
 
+func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return false
 		},
 	}
-
-	// Watch for changes to primary resource Keycloak
-	return c.Watch(&source.Kind{Type: &v1v1alpha1.Keycloak{}}, &handler.EnqueueRequestForObject{}, pred)
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&keycloakApi.Keycloak{}, builder.WithPredicates(pred)).
+		Complete(r)
 }
 
-// blank assignment to verify that ReconcileKeycloak implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileKeycloak{}
+func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log.Info("Reconciling Keycloak")
 
-// ReconcileKeycloak reconciles a Keycloak object
-type ReconcileKeycloak struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
-	client  client.Client
-	scheme  *runtime.Scheme
-	factory keycloak.ClientFactory
-}
-
-// Reconcile reads that state of the cluster for a Keycloak object and makes changes based on the state read
-// and what is in the Keycloak.Spec
-// Note:
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileKeycloak) Reconcile(request reconcile.Request) (reconcile.Result, error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling Keycloak")
-
-	// Fetch the Keycloak instance
-	instance := &v1v1alpha1.Keycloak{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
-	if err != nil {
+	instance := &keycloakApi.Keycloak{}
+	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return reconcile.Result{}, nil
 		}
-		// Error reading the object - requeue the request.
 		return reconcile.Result{}, err
 	}
 
-	err = r.updateConnectionStatusToKeycloak(instance)
-	if err != nil {
+	if err := r.updateConnectionStatusToKeycloak(ctx, instance); err != nil {
 		return reconcile.Result{}, err
 	}
-	con, err := r.isStatusConnected(request)
+
+	con, err := r.isStatusConnected(ctx, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
 	if !con {
-		reqLogger.Info("Status is not connected")
+		log.Info("Status is not connected")
 		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
 	}
-	err = r.putMainRealm(instance)
-	if err != nil {
-		return reconcile.Result{}, err
-	}
-	err = r.putEDPComponent(instance)
-	if err != nil {
+
+	if err := r.putMainRealm(ctx, instance); err != nil {
 		return reconcile.Result{}, err
 	}
 
-	reqLogger.Info("Reconciling Keycloak has been finished")
+	if err := r.putEDPComponent(ctx, instance); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	log.Info("Reconciling Keycloak has been finished")
 	return reconcile.Result{}, err
 }
 
-func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha1.Keycloak) error {
-	reqLogger := log.WithValues("instance", instance)
-	reqLogger.Info("Start updating connection status to Keycloak")
+func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.Keycloak) error {
+	log := r.log.WithValues("keycloak cr", instance)
+	log.Info("Start updating connection status to Keycloak")
 
 	secret := &v1.Secret{}
-	err := r.client.Get(context.TODO(), types.NamespacedName{
+	err := r.client.Get(ctx, types.NamespacedName{
 		Name:      instance.Spec.Secret,
 		Namespace: instance.Namespace,
 	}, secret)
@@ -156,56 +119,56 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(instance *v1v1alpha
 
 	_, err = r.factory.New(dto.ConvertSpecToKeycloak(instance.Spec, user, pwd))
 	if err != nil {
-		reqLogger.Error(err, "error during the creation of connection")
+		log.Error(err, "error during the creation of connection")
 	}
 	instance.Status.Connected = err == nil
-	err = r.client.Status().Update(context.TODO(), instance)
+	err = r.client.Status().Update(ctx, instance)
 	if err != nil {
-		reqLogger.Error(err, "unable to update keycloak cr status")
-		err := r.client.Update(context.TODO(), instance)
+		log.Error(err, "unable to update keycloak cr status")
+		err := r.client.Update(ctx, instance)
 		if err != nil {
-			reqLogger.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
+			log.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
 			return err
 		}
 	}
-	reqLogger.Info("Status has been updated", "status", instance.Status)
+	log.Info("Status has been updated", "status", instance.Status)
 	return nil
 }
 
-func (r *ReconcileKeycloak) putMainRealm(instance *v1v1alpha1.Keycloak) error {
-	reqLog := log.WithValues("instance", instance)
-	reqLog.Info("Start put main realm into k8s")
+func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
+	log := r.log.WithValues("keycloak cr", instance)
+	log.Info("Start put main realm into k8s")
 	if !instance.Spec.GetInstallMainRealm() {
-		reqLog.Info("Creation of main realm disabled")
+		log.Info("Creation of main realm disabled")
 		return nil
 	}
 	nsn := types.NamespacedName{
 		Name:      "main",
 		Namespace: instance.Namespace,
 	}
-	realmCr := &v1v1alpha1.KeycloakRealm{}
-	err := r.client.Get(context.TODO(), nsn, realmCr)
-	reqLog.Info("Realm has been retrieved from k8s", "realmCr", realmCr)
+	realmCr := &keycloakApi.KeycloakRealm{}
+	err := r.client.Get(ctx, nsn, realmCr)
+	log.Info("Realm has been retrieved from k8s", "realmCr", realmCr)
 	if errors.IsNotFound(err) {
-		return r.createMainRealm(instance)
+		return r.createMainRealm(ctx, instance)
 	}
 	return err
 }
 
-func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error {
-	reqLog := log.WithValues("instance", instance)
-	reqLog.Info("Start creation of main Keycloak Realm CR")
+func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
+	log := r.log.WithValues("keycloak cr", instance)
+	log.Info("Start creation of main Keycloak Realm CR")
 	ssoRealm := defaultRealmName
 	if len(instance.Spec.SsoRealmName) != 0 {
 		ssoRealm = instance.Spec.SsoRealmName
 	}
 
-	realmCr := &v1v1alpha1.KeycloakRealm{
+	realmCr := &keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "main",
 			Namespace: instance.Namespace,
 		},
-		Spec: v1v1alpha1.KeycloakRealmSpec{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			KeycloakOwner: instance.Name,
 			RealmName:     fmt.Sprintf("%s-%s", instance.Namespace, "main"),
 			Users:         instance.Spec.Users,
@@ -218,48 +181,48 @@ func (r *ReconcileKeycloak) createMainRealm(instance *v1v1alpha1.Keycloak) error
 		return pkgErrors.Wrapf(err, "unable to update ControllerReference of main realm, realm: %+v", realmCr)
 	}
 
-	if err := r.client.Create(context.TODO(), realmCr); err != nil {
+	if err := r.client.Create(ctx, realmCr); err != nil {
 		return pkgErrors.Wrapf(err, "unable to create main realm cr: %+v", realmCr)
 	}
 
-	reqLog.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
+	log.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
 	return nil
 }
 
-func (r *ReconcileKeycloak) isStatusConnected(request reconcile.Request) (bool, error) {
-	log.Info("Check is status of CR is connected", "request", request)
-	instance := &v1v1alpha1.Keycloak{}
-	err := r.client.Get(context.TODO(), request.NamespacedName, instance)
+func (r *ReconcileKeycloak) isStatusConnected(ctx context.Context, request reconcile.Request) (bool, error) {
+	r.log.Info("Check is status of CR is connected", "request", request)
+	instance := &keycloakApi.Keycloak{}
+	err := r.client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		return false, pkgErrors.Wrapf(err, "unable to get keycloak instance, request: %+v", request)
 	}
-	log.Info("Retrieved the actual cr for Keycloak", "keycloak cr", instance)
+	r.log.Info("Retrieved the actual cr for Keycloak", "keycloak cr", instance)
 	return instance.Status.Connected, nil
 }
 
-func (r *ReconcileKeycloak) putEDPComponent(instance *v1v1alpha1.Keycloak) error {
-	reqLog := log.WithValues("instance", instance)
-	reqLog.Info("Start put edp component")
+func (r *ReconcileKeycloak) putEDPComponent(ctx context.Context, instance *keycloakApi.Keycloak) error {
+	log := r.log.WithValues("instance", instance)
+	log.Info("Start put edp component")
 	nsn := types.NamespacedName{
 		Name:      fmt.Sprintf("%v-keycloak", instance.Name),
 		Namespace: instance.Namespace,
 	}
 	comp := &edpCompApi.EDPComponent{}
-	err := r.client.Get(context.TODO(), nsn, comp)
+	err := r.client.Get(ctx, nsn, comp)
 	if err == nil {
-		reqLog.V(1).Info("EDP Component has been retrieved from k8s", "edp component", comp)
+		log.V(1).Info("EDP Component has been retrieved from k8s", "edp component", comp)
 		return nil
 	}
 	if errors.IsNotFound(err) {
-		return r.createEDPComponent(instance)
+		return r.createEDPComponent(ctx, instance)
 	}
 
 	return pkgErrors.Wrapf(err, "unable to get edp component")
 }
 
-func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) error {
-	reqLog := log.WithValues("instance", instance)
-	reqLog.Info("Start creation of EDP Component for Keycloak")
+func (r *ReconcileKeycloak) createEDPComponent(ctx context.Context, instance *keycloakApi.Keycloak) error {
+	log := r.log.WithValues("instance", instance)
+	log.Info("Start creation of EDP Component for Keycloak")
 
 	icon, err := getIcon()
 	if err != nil {
@@ -283,16 +246,16 @@ func (r *ReconcileKeycloak) createEDPComponent(instance *v1v1alpha1.Keycloak) er
 	if err != nil {
 		return pkgErrors.Wrapf(err, "unable to set controller reference for component: %+v", comp)
 	}
-	err = r.client.Create(context.TODO(), comp)
+	err = r.client.Create(ctx, comp)
 	if err != nil {
 		return pkgErrors.Wrapf(err, "unable to create component: %+v", comp)
 	}
-	reqLog.Info("EDP component has been created", "edp component", comp)
+	log.Info("EDP component has been created", "edp component", comp)
 	return nil
 }
 
 func getIcon() (*string, error) {
-	p, err := platformHelper.CreatePathToTemplateDirectory(imgFolder)
+	p, err := helper.CreatePathToTemplateDirectory(imgFolder)
 	if err != nil {
 		return nil, pkgErrors.Wrapf(err, "unable to create path to template dir: %s", imgFolder)
 	}

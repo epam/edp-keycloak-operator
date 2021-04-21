@@ -58,10 +58,11 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -116,10 +117,11 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -187,10 +189,11 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -283,10 +286,11 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		client:  client,
 		factory: factory,
 		helper:  helper.MakeHelper(client, s),
+		log:     &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -374,10 +378,11 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 		client:  client,
 		factory: factory,
 		helper:  helper.MakeHelper(client, s),
+		log:     &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -416,9 +421,14 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 		Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
-	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s)}
+	r := ReconcileKeycloakRealm{
+		client:  client,
+		factory: factory,
+		helper:  helper.MakeHelper(client, s),
+		log:     &mock.Logger{},
+	}
 
-	if _, err := r.Reconcile(req); err != nil {
+	if _, err := r.Reconcile(context.TODO(), req); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -471,10 +481,15 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 
 	nsName := types.NamespacedName{Name: kRealmName, Namespace: ns}
 	req := reconcile.Request{NamespacedName: nsName}
-	r := ReconcileKeycloakRealm{client: client, factory: factory, helper: helper.MakeHelper(client, s),
-		handler: chain.CreateDefChain(client, s)}
+	r := ReconcileKeycloakRealm{
+		client:  client,
+		scheme:  s,
+		factory: factory,
+		helper:  helper.MakeHelper(client, s),
+		log:     &mock.Logger{},
+	}
 
-	if _, err := r.Reconcile(req); err != nil {
+	if _, err := r.Reconcile(context.TODO(), req); err != nil {
 		t.Fatal(err)
 	}
 

@@ -48,8 +48,10 @@ func (c *clientRealmFinder) GetNamespace() string {
 func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
 	var realmList v1v1alpha1.KeycloakRealmList
 	listOpts := client.MatchingLabels(map[string]string{chain.TargetRealmLabel: c.parent.Spec.TargetRealm})
-	listOpts.Namespace = c.parent.Namespace
-	if err := c.client.List(context.Background(), listOpts, &realmList); err != nil {
+	listOpts.ApplyToList(&client.ListOptions{
+		Namespace: c.parent.Namespace,
+	})
+	if err := c.client.List(context.Background(), &realmList, listOpts); err != nil {
 		return "", errors.Wrap(err, "unable to get reams by label")
 	}
 
@@ -57,7 +59,7 @@ func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
 		return realmList.Items[0].Name, nil
 	}
 
-	if err := c.client.List(context.Background(), &client.ListOptions{Namespace: c.Namespace}, &realmList); err != nil {
+	if err := c.client.List(context.Background(), &realmList, &client.ListOptions{Namespace: c.Namespace}); err != nil {
 		return "", errors.Wrap(err, "unable to get all reams")
 	}
 	for _, r := range realmList.Items {

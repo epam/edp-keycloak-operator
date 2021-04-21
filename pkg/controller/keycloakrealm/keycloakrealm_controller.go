@@ -2,97 +2,66 @@ package keycloakrealm
 
 import (
 	"context"
-
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
-	rHand "github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-const (
-	keyCloakRealmOperatorFinalizerName = "keycloak.realm.operator.finalizer.name"
-)
+const keyCloakRealmOperatorFinalizerName = "keycloak.realm.operator.finalizer.name"
 
-var log = logf.Log.WithName("controller_keycloakrealm")
-
-/**
-* USER ACTION REQUIRED: This is a scaffold file intended for the user to modify with their own Controller
-* business logic.  Delete these comments after modifying this file.*
- */
-
-// Add creates a new KeycloakRealm Controller and adds it to the Manager. The Manager will set fields on the Controller
-// and Start it when the Manager is Started.
-func Add(mgr manager.Manager) error {
-	return add(mgr, newReconciler(mgr))
-}
-
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
+func NewReconcileKeycloakRealm(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper *helper.Helper) *ReconcileKeycloakRealm {
 	return &ReconcileKeycloakRealm{
-		client:  mgr.GetClient(),
-		factory: new(adapter.GoCloakAdapterFactory),
-		handler: chain.CreateDefChain(mgr.GetClient(), mgr.GetScheme()),
-		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
+		client: client,
+		scheme: scheme,
+		factory: adapter.GoCloakAdapterFactory{
+			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
+		},
+		helper: helper,
+		log:    log.WithName("keycloak-realm"),
 	}
 }
-
-// add adds a new Controller to mgr with r as the reconcile.Reconciler
-func add(mgr manager.Manager, r reconcile.Reconciler) error {
-	// Create a new controller
-	c, err := controller.New("keycloakrealm-controller", mgr, controller.Options{Reconciler: r})
-	if err != nil {
-		return err
-	}
-
-	// Watch for changes to primary resource KeycloakRealm
-	return c.Watch(&source.Kind{Type: &v1v1alpha1.KeycloakRealm{}}, &handler.EnqueueRequestForObject{}, predicate.Funcs{
-		UpdateFunc: helper.IsFailuresUpdated,
-	})
-}
-
-// blank assignment to verify that ReconcileKeycloakRealm implements reconcile.Reconciler
-var _ reconcile.Reconciler = &ReconcileKeycloakRealm{}
 
 // ReconcileKeycloakRealm reconciles a KeycloakRealm object
 type ReconcileKeycloakRealm struct {
-	// This client, initialized using mgr.Client() above, is a split client
-	// that reads objects from the cache and writes to the apiserver
 	client  client.Client
+	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
-	handler rHand.RealmHandler
 	helper  *helper.Helper
+	log     logr.Logger
 }
 
-// Reconcile reads that state of the cluster for a KeycloakRealm object and makes changes based on the state read
-// and what is in the KeycloakRealm.Spec
-// The Controller will requeue the Request to be processed again if the returned error is non-nil or
-// Result.Requeue is true, otherwise upon completion it will remove the work from the queue.
-func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling KeycloakRealm")
+func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		UpdateFunc: helper.IsFailuresUpdated,
+	}
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&keycloakApi.KeycloakRealm{}, builder.WithPredicates(pred)).
+		Complete(r)
+}
 
-	// Fetch the KeycloakRealm instance
-	instance := &v1v1alpha1.KeycloakRealm{}
-	if err := r.client.Get(context.TODO(), request.NamespacedName, instance); err != nil {
+func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log.Info("Reconciling KeycloakRealm")
+
+	instance := &keycloakApi.KeycloakRealm{}
+	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
 			return
 		}
-		// Error reading the object - requeue the request.
 		resultErr = err
 		return
 	}
@@ -114,7 +83,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(request reconcile.Request) (result re
 	return
 }
 
-func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) error {
+func (r *ReconcileKeycloakRealm) tryReconcile(realm *keycloakApi.KeycloakRealm) error {
 	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
 	if err != nil {
 		return err
@@ -129,7 +98,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(realm *v1v1alpha1.KeycloakRealm) e
 		return nil
 	}
 
-	if err := r.handler.ServeRequest(realm, kClient); err != nil {
+	if err := chain.CreateDefChain(r.client, r.scheme).ServeRequest(realm, kClient); err != nil {
 		return errors.Wrap(err, "error during realm chain")
 	}
 

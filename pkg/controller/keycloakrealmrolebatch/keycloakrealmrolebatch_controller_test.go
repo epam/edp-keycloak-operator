@@ -3,31 +3,27 @@ package keycloakrealmrolebatch
 import (
 	"context"
 	"fmt"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/epam/edp-keycloak-operator/pkg/apis"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	client2 "sigs.k8s.io/controller-runtime/pkg/client"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+	"strings"
+	"testing"
+	"time"
 )
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -50,9 +46,9 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret)
 
 	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
-		logger: &mock.Logger{}}
+		log: &mock.Logger{}}
 
-	if _, err := rkr.Reconcile(reconcile.Request{
+	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
@@ -62,7 +58,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	}
 
 	var checkList v1alpha1.KeycloakRealmRoleList
-	if err := client.List(context.Background(), &client2.ListOptions{}, &checkList); err != nil {
+	if err := client.List(context.Background(), &checkList, &k8sCLient.ListOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -74,10 +70,8 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 
 func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -106,10 +100,13 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
 
-	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
-		logger: &mock.Logger{}}
+	rkr := ReconcileKeycloakRealmRoleBatch{
+		scheme: scheme,
+		client: client,
+		helper: helper.MakeHelper(client, scheme),
+		log:    &mock.Logger{}}
 
-	if _, err := rkr.Reconcile(reconcile.Request{
+	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
@@ -132,7 +129,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	}
 
 	var roles v1alpha1.KeycloakRealmRoleList
-	if err := client.List(context.Background(), &client2.ListOptions{}, &roles); err != nil {
+	if err := client.List(context.Background(), &roles, &k8sCLient.ListOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -149,10 +146,8 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -179,10 +174,14 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
 
 	logger := mock.Logger{}
-	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
-		logger: &logger}
+	rkr := ReconcileKeycloakRealmRoleBatch{
+		scheme: scheme,
+		client: client,
+		helper: helper.MakeHelper(client, scheme),
+		log:    &logger,
+	}
 
-	_, err := rkr.Reconcile(reconcile.Request{
+	_, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "batch1",
 			Namespace: ns,
