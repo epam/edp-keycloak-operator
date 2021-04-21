@@ -2,17 +2,16 @@ package keycloakrealmrole
 
 import (
 	"context"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -23,14 +22,16 @@ import (
 
 func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns},
+		Spec: v1alpha1.KeycloakSpec{
+			Secret: "keycloak-secret",
+		},
+		Status: v1alpha1.KeycloakStatus{Connected: true}}
 	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
@@ -53,17 +54,15 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
 		Return(kClient, nil)
 
-	logger := mock.Logger{}
-
 	rkr := ReconcileKeycloakRealmRole{
 		scheme:  scheme,
 		client:  client,
 		helper:  helper.MakeHelper(client, scheme),
 		factory: factory,
-		logger:  &logger,
+		log:     &mock.Logger{},
 	}
 
-	if _, err := rkr.Reconcile(reconcile.Request{
+	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test-role",
 			Namespace: ns,
@@ -87,14 +86,16 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 
 func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns},
+		Spec: v1alpha1.KeycloakSpec{
+			Secret: "keycloak-secret",
+		},
+		Status: v1alpha1.KeycloakStatus{Connected: true}}
 	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
@@ -120,11 +121,15 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 		Return(kClient, nil)
 
 	logger := mock.Logger{}
+	rkr := ReconcileKeycloakRealmRole{
+		scheme:  scheme,
+		client:  client,
+		helper:  helper.MakeHelper(client, scheme),
+		factory: factory,
+		log:     &logger,
+	}
 
-	rkr := ReconcileKeycloakRealmRole{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
-		factory: factory, logger: &logger}
-
-	_, err := rkr.Reconcile(reconcile.Request{
+	_, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,

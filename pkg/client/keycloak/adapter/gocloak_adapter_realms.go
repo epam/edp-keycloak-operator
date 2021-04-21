@@ -2,15 +2,14 @@ package adapter
 
 import (
 	"context"
-	"net/http"
-
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
+	"net/http"
 )
 
 func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
-	reqLog := log.WithValues("realm", realmName)
-	reqLog.Info("Start check existing realm...")
+	log := a.log.WithValues("realm", realmName)
+	log.Info("Start check existing realm...")
 
 	_, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
 
@@ -19,32 +18,32 @@ func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
 		return false, err
 	}
 
-	reqLog.Info("Check existing realm has been finished", "result", res)
+	log.Info("Check existing realm has been finished", "result", res)
 	return res, nil
 }
 
 func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
-	reqLog := log.WithValues("realm", realm)
-	reqLog.Info("Start creating realm with default config...")
+	log := a.log.WithValues("realm", realm)
+	log.Info("Start creating realm with default config...")
 
 	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
 	if err != nil {
 		return err
 	}
 
-	reqLog.Info("End creating realm with default config")
+	log.Info("End creating realm with default config")
 	return nil
 }
 
 func (a GoCloakAdapter) DeleteRealm(realmName string) error {
-	reqLog := log.WithValues("realm", realmName)
-	reqLog.Info("Start deleting realm...")
+	log := a.log.WithValues("realm", realmName)
+	log.Info("Start deleting realm...")
 
 	if err := a.client.DeleteRealm(context.Background(), a.token.AccessToken, realmName); err != nil {
 		return err
 	}
 
-	reqLog.Info("End deletion realm")
+	log.Info("End deletion realm")
 	return nil
 }
 

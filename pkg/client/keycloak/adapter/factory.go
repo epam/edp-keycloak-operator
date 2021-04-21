@@ -3,11 +3,13 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 var goCloakClientSupplier = func(url string) GoCloak {
@@ -15,11 +17,12 @@ var goCloakClientSupplier = func(url string) GoCloak {
 }
 
 type GoCloakAdapterFactory struct {
+	Log logr.Logger
 }
 
-func (GoCloakAdapterFactory) New(keycloak dto.Keycloak) (keycloak.Client, error) {
-	reqLog := log.WithValues("keycloak dto", keycloak)
-	reqLog.Info("Start creation new Keycloak Client...")
+func (a GoCloakAdapterFactory) New(keycloak dto.Keycloak) (keycloak.Client, error) {
+	log := a.Log.WithValues("keycloak dto", keycloak)
+	log.Info("Start creation new Keycloak Client...")
 
 	client := goCloakClientSupplier(keycloak.Url)
 	token, err := client.LoginAdmin(context.Background(), keycloak.User, keycloak.Pwd, "master")
@@ -28,10 +31,11 @@ func (GoCloakAdapterFactory) New(keycloak dto.Keycloak) (keycloak.Client, error)
 		return nil, errors.Wrap(err, errMsg)
 	}
 
-	reqLog.Info("Connection has been successfully established")
+	log.Info("Connection has been successfully established")
 	return GoCloakAdapter{
 		client:   client,
 		token:    *token,
 		basePath: keycloak.Url,
+		log:      ctrl.Log.WithName("go-cloak-adapter"),
 	}, nil
 }

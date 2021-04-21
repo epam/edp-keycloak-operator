@@ -10,7 +10,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient/chain"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -140,11 +139,11 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	r := ReconcileKeycloakClient{
 		client: client,
 		helper: h,
-		chain:  chain.Make(h, client, log.WithName("test"), factory),
+		log:    &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.Nil(t, err)
@@ -212,11 +211,14 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		Return(kclient, nil)
 
 	h := helper.MakeHelper(client, s)
-	r := ReconcileKeycloakClient{client: client, helper: h,
-		chain: chain.Make(h, client, log.WithName("test"), factory)}
+	r := ReconcileKeycloakClient{
+		client: client,
+		helper: h,
+		log:    &mock.Logger{},
+	}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: "main", Namespace: "namespace"}}
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatal(err)
 	}

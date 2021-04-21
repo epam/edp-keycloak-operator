@@ -16,7 +16,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 func TestPrivateClientSecret(t *testing.T) {
@@ -52,7 +51,7 @@ func TestPrivateClientSecret(t *testing.T) {
 		},
 		Helper: h,
 		Client: client,
-		Logger: logf.Log.WithName("controller_keycloakclient"),
+		Logger: &mock.Logger{},
 	}
 	putCl := PutClient{
 		BaseElement: baseElement,
@@ -131,7 +130,7 @@ func TestMake(t *testing.T) {
 	factory.On("New", keycloakDto).
 		Return(kClient, nil)
 
-	chain := Make(h, client, logf.Log.WithName("controller_keycloakclient"), factory)
+	chain := Make(h, client, &mock.Logger{}, factory)
 
 	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).

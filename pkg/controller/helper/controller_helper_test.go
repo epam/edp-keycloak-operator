@@ -1,9 +1,9 @@
 package helper
 
 import (
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -18,9 +18,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	mc := Client{}
 
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
 	helper := MakeHelper(&mc, scheme)
 
@@ -70,9 +68,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 	mc := Client{}
 
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
 	helper := MakeHelper(&mc, scheme)
 
@@ -130,9 +126,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	mc := Client{}
 
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
 	helper := MakeHelper(&mc, scheme)
 
@@ -183,9 +177,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 	mc := Client{}
 
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
 	helper := MakeHelper(&mc, scheme)
 
@@ -287,9 +279,7 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 	mc := Client{}
 
 	scheme := runtime.NewScheme()
-	if err := apis.AddToScheme(scheme); err != nil {
-		t.Fatal(err)
-	}
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
 	helper := MakeHelper(&mc, scheme)
 	realm := v1alpha1.KeycloakRealm{
