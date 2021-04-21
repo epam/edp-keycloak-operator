@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"net/url"
 	"testing"
 
@@ -25,6 +26,7 @@ func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
 		Name: "realmName",
@@ -46,6 +48,7 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
 		Name: "realmName",
@@ -67,6 +70,7 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
 		Name: "realmName",
@@ -247,6 +251,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		client:   mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	if err := adapter.SyncClientProtocolMapper(&client, crMappers); err != nil {
@@ -276,6 +281,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 		client:   mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	err := adapter.SyncClientProtocolMapper(&client, []gocloak.ProtocolMapperRepresentation{})
@@ -323,6 +329,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		client:   &mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	role := dto.PrimaryRealmRole{Name: roleName, Composites: []string{"foo", "bar"}, IsComposite: true,
@@ -341,6 +348,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 		client:   &mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	mockClient.On("GetClientServiceAccount", "realm", "client").Return(&gocloak.User{
@@ -413,6 +421,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 		client:   &mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	oldChildGroup := gocloak.Group{Name: gocloak.StringP("old-group")}
@@ -510,6 +519,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 		client:   &mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 	mockClient.On("GetGroups", "realm1", gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
 		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1")}}, nil)
@@ -526,6 +536,7 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 		client:   &mockClient,
 		token:    gocloak.JWT{AccessToken: "token"},
 		basePath: "",
+		log:      &mock.Logger{},
 	}
 
 	realm := dto.Realm{Name: "realm1", SsoAutoRedirectEnabled: false}

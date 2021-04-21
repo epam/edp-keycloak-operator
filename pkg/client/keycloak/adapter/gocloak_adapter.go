@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"net/http"
 	"reflect"
 	"strings"
@@ -14,13 +15,11 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/model"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
 const (
 	idPResource                    = "/auth/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource              = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	clientRoleMapperResource       = "/auth/admin/realms/{realm}/users/{user}/role-mappings/clients/{client}"
 	getOneIdP                      = idPResource + "/{alias}"
 	openIdConfig                   = "/auth/realms/{realm}/.well-known/openid-configuration"
 	authExecutions                 = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
@@ -34,20 +33,17 @@ const (
 	updateMapperToIdentityProvider = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
 )
 
-var (
-	log = logf.Log.WithName("gocloak_adapter")
-)
-
 type GoCloakAdapter struct {
 	client GoCloak
 	token  gocloak.JWT
+	log    logr.Logger
 
 	basePath string
 }
 
 func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
-	reqLog := log.WithValues("realm", realm)
-	reqLog.Info("Start check central identity provider in realm")
+	log := a.log.WithValues("realm", realm)
+	log.Info("Start check central identity provider in realm")
 
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
@@ -68,13 +64,13 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, er
 		return false, errors.Errorf("errors in get idP, response: %s", resp.String())
 	}
 
-	reqLog.Info("End check central identity provider in realm")
+	log.Info("End check central identity provider in realm")
 	return true, nil
 }
 
 func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error {
-	reqLog := log.WithValues("realm", realm, "keycloak client", client)
-	reqLog.Info("Start create central identity provider...")
+	log := a.log.WithValues("realm", realm, "keycloak client", client)
+	log.Info("Start create central identity provider...")
 
 	idP := a.getCentralIdP(client, realm.SsoRealmName)
 
@@ -92,7 +88,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
-		reqLog.Info("requested url", "url", resp.Request.URL)
+		log.Info("requested url", "url", resp.Request.URL)
 		return fmt.Errorf("error in create IdP, responce status: %s", resp.Status())
 	}
 
@@ -102,7 +98,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *
 		return err
 	}
 
-	reqLog.Info("End create central identity provider")
+	log.Info("End create central identity provider")
 	return nil
 }
 
@@ -126,8 +122,8 @@ func (a GoCloakAdapter) getCentralIdP(client *dto.Client, ssoRealmName string) a
 }
 
 func (a GoCloakAdapter) CreateCentralIdPMappers(realm *dto.Realm, client *dto.Client) error {
-	reqLog := log.WithValues("realm", realm)
-	reqLog.Info("Start create central IdP mappers...")
+	log := a.log.WithValues("realm", realm)
+	log.Info("Start create central IdP mappers...")
 
 	err := a.createIdPMapper(realm, client.ClientId+".administrator", "administrator")
 	if err != nil {
@@ -142,7 +138,7 @@ func (a GoCloakAdapter) CreateCentralIdPMappers(realm *dto.Realm, client *dto.Cl
 		return err
 	}
 
-	reqLog.Info("End create central IdP mappers")
+	log.Info("End create central IdP mappers")
 	return nil
 }
 
@@ -167,8 +163,8 @@ func (a GoCloakAdapter) createIdPMapper(realm *dto.Realm, externalRole string, r
 }
 
 func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
-	reqLog := log.WithValues("clientID", clientID, "realm", realm)
-	reqLog.Info("Start check client in Keycloak...")
+	log := a.log.WithValues("clientID", clientID, "realm", realm)
+	log.Info("Start check client in Keycloak...")
 
 	clns, err := a.client.GetClients(context.Background(), a.token.AccessToken, realm, gocloak.GetClientsParams{
 		ClientID: &clientID,
@@ -180,13 +176,13 @@ func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
 
 	res := checkFullNameMatch(clientID, clns)
 
-	reqLog.Info("End check client in Keycloak")
+	log.Info("End check client in Keycloak")
 	return res, nil
 }
 
 func (a GoCloakAdapter) ExistClientRole(client *dto.Client, clientRole string) (bool, error) {
-	reqLog := log.WithValues("client dto", client, "client role", clientRole)
-	reqLog.Info("Start check client role in Keycloak...")
+	log := a.log.WithValues("client dto", client, "client role", clientRole)
+	log.Info("Start check client role in Keycloak...")
 
 	id, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
@@ -207,13 +203,13 @@ func (a GoCloakAdapter) ExistClientRole(client *dto.Client, clientRole string) (
 		}
 	}
 
-	reqLog.Info("End check client role in Keycloak", "result", res)
+	log.Info("End check client role in Keycloak", "result", res)
 	return res, nil
 }
 
 func (a GoCloakAdapter) CreateClientRole(client *dto.Client, clientRole string) error {
-	reqLog := log.WithValues("client dto", client, "client role", clientRole)
-	reqLog.Info("Start create client role in Keycloak...")
+	log := a.log.WithValues("client dto", client, "client role", clientRole)
+	log.Info("Start create client role in Keycloak...")
 
 	id, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
@@ -227,7 +223,7 @@ func (a GoCloakAdapter) CreateClientRole(client *dto.Client, clientRole string) 
 		return errors.Wrap(err, "unable to create client role")
 	}
 
-	reqLog.Info("Keycloak client role has been created")
+	log.Info("Keycloak client role has been created")
 	return nil
 }
 
@@ -271,27 +267,27 @@ func checkFullNameMatch(clientID string, clients []*gocloak.Client) bool {
 }
 
 func (a GoCloakAdapter) DeleteClient(kkClientID, realmName string) error {
-	reqLog := log.WithValues("client id", kkClientID)
-	reqLog.Info("Start delete client in Keycloak...")
+	log := a.log.WithValues("client id", kkClientID)
+	log.Info("Start delete client in Keycloak...")
 
 	if err := a.client.DeleteClient(context.Background(), a.token.AccessToken, realmName, kkClientID); err != nil {
 		return errors.Wrap(err, "unable to delete client")
 	}
 
-	reqLog.Info("Keycloak client has been deleted")
+	log.Info("Keycloak client has been deleted")
 	return nil
 }
 
 func (a GoCloakAdapter) CreateClient(client *dto.Client) error {
-	reqLog := log.WithValues("client dto", client)
-	reqLog.Info("Start create client in Keycloak...")
+	log := a.log.WithValues("client dto", client)
+	log.Info("Start create client in Keycloak...")
 
 	_, err := a.client.CreateClient(context.Background(), a.token.AccessToken, client.RealmName, getGclCln(client))
 	if err != nil {
 		return err
 	}
 
-	reqLog.Info("Keycloak client has been created")
+	log.Info("Keycloak client has been created")
 	return nil
 }
 
@@ -384,8 +380,8 @@ func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderM
 }
 
 func (a GoCloakAdapter) CreateRealmUser(realmName string, user *dto.User) error {
-	reqLog := log.WithValues("user dto", user, "realm", realmName)
-	reqLog.Info("Start create realm user in Keycloak...")
+	log := a.log.WithValues("user dto", user, "realm", realmName)
+	log.Info("Start create realm user in Keycloak...")
 
 	userDto := gocloak.User{
 		Username: &user.Username,
@@ -398,13 +394,13 @@ func (a GoCloakAdapter) CreateRealmUser(realmName string, user *dto.User) error 
 		return err
 	}
 
-	reqLog.Info("Keycloak realm user has been created")
+	log.Info("Keycloak realm user has been created")
 	return nil
 }
 
 func (a GoCloakAdapter) ExistRealmUser(realmName string, user *dto.User) (bool, error) {
-	reqLog := log.WithValues("user dto", user, "realm", realmName)
-	reqLog.Info("Start check user in Keycloak realm...")
+	log := a.log.WithValues("user dto", user, "realm", realmName)
+	log.Info("Start check user in Keycloak realm...")
 
 	usr, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: &user.Username,
@@ -417,13 +413,13 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user *dto.User) (bool, 
 
 	res := checkFullUsernameMatch(user.Username, usr)
 
-	reqLog.Info("End check user in Keycloak", "result", res)
+	log.Info("End check user in Keycloak", "result", res)
 	return res, nil
 }
 
 func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error) {
-	reqLog := log.WithValues("role", role, "realm", realmName, "user dto", user)
-	reqLog.Info("Start check user roles in Keycloak realm...")
+	log := a.log.WithValues("role", role, "realm", realmName, "user dto", user)
+	log.Info("Start check user roles in Keycloak realm...")
 
 	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: &user.Username,
@@ -443,13 +439,13 @@ func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role 
 
 	res := checkFullRoleNameMatch(role, rolesMapping.RealmMappings)
 
-	reqLog.Info("End check user role in Keycloak", "result", res)
+	log.Info("End check user role in Keycloak", "result", res)
 	return res, nil
 }
 
 func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error) {
-	reqLog := log.WithValues("role", role, "client", clientId, "realm", realmName, "user dto", user)
-	reqLog.Info("Start check user roles in Keycloak realm...")
+	log := a.log.WithValues("role", role, "client", clientId, "realm", realmName, "user dto", user)
+	log.Info("Start check user roles in Keycloak realm...")
 
 	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: &user.Username,
@@ -472,7 +468,7 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 		res = checkFullRoleNameMatch(role, clientMap.Mappings)
 	}
 
-	reqLog.Info("End check user role in Keycloak", "result", res)
+	log.Info("End check user role in Keycloak", "result", res)
 	return res, nil
 }
 
@@ -503,8 +499,8 @@ func (a GoCloakAdapter) AddRealmRoleToUser(realmName string, user *dto.User, rol
 }
 
 func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, user *dto.User, roleName string) error {
-	reqLog := log.WithValues("role", roleName, "realm", realmName, "user", user.Username)
-	reqLog.Info("Start mapping realm role to user in Keycloak...")
+	log := a.log.WithValues("role", roleName, "realm", realmName, "user", user.Username)
+	log.Info("Start mapping realm role to user in Keycloak...")
 
 	client, err := a.client.GetClients(context.Background(), a.token.AccessToken, realmName, gocloak.GetClientsParams{
 		ClientID: &clientId,
@@ -539,7 +535,7 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 		return err
 	}
 
-	reqLog.Info("Role to user has been added")
+	log.Info("Role to user has been added")
 	return nil
 }
 
@@ -558,6 +554,7 @@ func getDefaultRealm(realm *dto.Realm) gocloak.RealmRepresentation {
 		Enabled: gocloak.BoolP(true),
 	}
 }
+
 func strip404(in error) (bool, error) {
 	if in == nil {
 		return true, nil
@@ -573,8 +570,8 @@ func is404(e error) bool {
 }
 
 func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.IncludedRealmRole) error {
-	reqLog := log.WithValues("realm", realmName, "role", role)
-	reqLog.Info("Start create realm roles in Keycloak...")
+	log := a.log.WithValues("realm", realmName, "role", role)
+	log.Info("Start create realm roles in Keycloak...")
 
 	realmRole := gocloak.Role{
 		Name: &role.Name,
@@ -597,13 +594,13 @@ func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.Incl
 		return err
 	}
 
-	reqLog.Info("Keycloak roles has been created")
+	log.Info("Keycloak roles has been created")
 	return nil
 }
 
 func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
-	reqLog := log.WithValues("realm name", realmName, "role", role)
-	reqLog.Info("Start create realm roles in Keycloak...")
+	log := a.log.WithValues("realm name", realmName, "role", role)
+	log.Info("Start create realm roles in Keycloak...")
 
 	realmRole := gocloak.Role{
 		Name:        &role.Name,
@@ -635,13 +632,13 @@ func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.Prima
 		}
 	}
 
-	reqLog.Info("Keycloak roles has been created")
+	log.Info("Keycloak roles has been created")
 	return nil
 }
 
 func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {
-	reqLog := log.WithValues("realm dto", realm)
-	reqLog.Info("Start get openid configuration...")
+	log := a.log.WithValues("realm dto", realm)
+	log.Info("Start get openid configuration...")
 
 	resp, err := a.client.RestyClient().R().
 		SetPathParams(map[string]string{
@@ -653,13 +650,13 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {
 	}
 	res := resp.String()
 
-	reqLog.Info("End get openid configuration", "result", res)
+	log.Info("End get openid configuration", "result", res)
 	return res, nil
 }
 
 func (a GoCloakAdapter) PutDefaultIdp(realm *dto.Realm) error {
-	reqLog := log.WithValues("realm dto", realm)
-	reqLog.Info("Start put default IdP...")
+	log := a.log.WithValues("realm dto", realm)
+	log.Info("Start put default IdP...")
 
 	eId, err := a.getIdPRedirectExecutionId(realm)
 	if err != nil {
@@ -669,7 +666,7 @@ func (a GoCloakAdapter) PutDefaultIdp(realm *dto.Realm) error {
 	if err != nil {
 		return err
 	}
-	reqLog.Info("Default IdP was successfully configured!")
+	log.Info("Default IdP was successfully configured!")
 	return nil
 }
 
@@ -810,8 +807,8 @@ func (a GoCloakAdapter) mapperNeedsToBeUpdated(
 
 func (a GoCloakAdapter) SyncClientProtocolMapper(
 	client *dto.Client, claimedMappers []gocloak.ProtocolMapperRepresentation) error {
-	reqLog := log.WithValues("clientId", client.ClientId)
-	reqLog.Info("Start put Client protocol mappers...")
+	log := a.log.WithValues("clientId", client.ClientId)
+	log.Info("Start put Client protocol mappers...")
 
 	clientID, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
@@ -842,7 +839,7 @@ func (a GoCloakAdapter) SyncClientProtocolMapper(
 		}
 	}
 
-	reqLog.Info("Client protocol mapper was successfully configured!")
+	log.Info("Client protocol mapper was successfully configured!")
 	return nil
 }
 
@@ -870,8 +867,8 @@ func (a GoCloakAdapter) GetClientProtocolMappers(client *dto.Client,
 }
 
 func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName string) error {
-	reqLog := log.WithValues("scopeId", scopeId, "realm", realmName, "clientId", clientName)
-	reqLog.Info("Start put Client Scope mapper...")
+	log := a.log.WithValues("scopeId", scopeId, "realm", realmName, "clientId", clientName)
+	log.Info("Start put Client Scope mapper...")
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
@@ -881,14 +878,14 @@ func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName stri
 		}).
 		SetBody(getProtocolMapper(clientName)).
 		Post(a.basePath + postClientScopeMapper)
-	if err := checkError(err, resp); err != nil {
+	if err := a.checkError(err, resp); err != nil {
 		return err
 	}
-	reqLog.Info("Client Scope mapper was successfully configured!")
+	log.Info("Client Scope mapper was successfully configured!")
 	return nil
 }
 
-func checkError(err error, response *resty.Response) error {
+func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	if err != nil {
 		return err
 	}
@@ -897,7 +894,7 @@ func checkError(err error, response *resty.Response) error {
 	}
 	if response.IsError() {
 		if response.StatusCode() == 409 {
-			log.Info("entity already exists. creating skipped", "url", response.Request.URL)
+			a.log.Info("entity already exists. creating skipped", "url", response.Request.URL)
 			return nil
 		}
 		return errors.New(response.Status())
@@ -918,8 +915,8 @@ func getProtocolMapper(clientId string) model.ProtocolMappers {
 }
 
 func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*model.ClientScope, error) {
-	reqLog := log.WithValues("scopeName", scopeName, "realm", realmName)
-	reqLog.Info("Start get Client Scope...")
+	log := a.log.WithValues("scopeName", scopeName, "realm", realmName)
+	log.Info("Start get Client Scope...")
 	var result []*model.ClientScope
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
@@ -929,7 +926,7 @@ func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*model.Clie
 		}).
 		SetResult(&result).
 		Get(a.basePath + getOneClientScope)
-	if err := checkError(err, resp); err != nil {
+	if err := a.checkError(err, resp); err != nil {
 		return nil, err
 	}
 	if result == nil {
@@ -939,7 +936,7 @@ func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*model.Clie
 	if err != nil {
 		return nil, err
 	}
-	reqLog.Info("End get Client Scope", "scope", scope)
+	log.Info("End get Client Scope", "scope", scope)
 	return scope, err
 }
 
@@ -953,8 +950,8 @@ func getClientScope(name string, clientScopes []*model.ClientScope) (*model.Clie
 }
 
 func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName string) error {
-	reqLog := log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
-	reqLog.Info("Start link Client Scope to client...")
+	log := a.log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
+	log.Info("Start link Client Scope to client...")
 	clientID, err := a.GetClientID(clientName, realmName)
 	if err != nil {
 		return errors.Wrap(err, "error during GetClientId")
@@ -969,16 +966,16 @@ func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName s
 			"scopeId":  scopeID,
 		}).
 		Put(a.basePath + linkClientScopeToClient)
-	if err := checkError(err, resp); err != nil {
+	if err := a.checkError(err, resp); err != nil {
 		return errors.Wrapf(err, "error during %s", linkClientScopeToClient)
 	}
-	reqLog.Info("End link Client Scope to client...")
+	log.Info("End link Client Scope to client...")
 	return nil
 }
 
 func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientScope) error {
-	reqLog := log.WithValues("realm", realmName, "scope", scope.Name)
-	reqLog.Info("Start creating Client Scope...")
+	log := a.log.WithValues("realm", realmName, "scope", scope.Name)
+	log.Info("Start creating Client Scope...")
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader("Content-Type", "application/json").
@@ -987,9 +984,9 @@ func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientSc
 		}).
 		SetBody(scope).
 		Post(a.basePath + postClientScope)
-	if err := checkError(err, resp); err != nil {
+	if err := a.checkError(err, resp); err != nil {
 		return err
 	}
-	reqLog.Info("Client Scope was created!")
+	log.Info("Client Scope was created!")
 	return nil
 }

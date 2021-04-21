@@ -2,65 +2,59 @@ package keycloakrealmgroup
 
 import (
 	"context"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/go-logr/logr"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller"
-	"sigs.k8s.io/controller-runtime/pkg/handler"
-	"sigs.k8s.io/controller-runtime/pkg/manager"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
-	"sigs.k8s.io/controller-runtime/pkg/source"
 )
 
-var log = logf.Log.WithName("controller_keycloakrealmgroup")
+const keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
 
-const (
-	keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
-)
+func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper *helper.Helper) *ReconcileKeycloakRealmGroup {
+	return &ReconcileKeycloakRealmGroup{
+		client: client,
+		scheme: scheme,
+		factory: adapter.GoCloakAdapterFactory{
+			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
+		},
+		helper: helper,
+		log:    log.WithName("keycloak-realm-group"),
+	}
+}
 
 type ReconcileKeycloakRealmGroup struct {
 	client  client.Client
 	scheme  *runtime.Scheme
 	factory keycloak.ClientFactory
 	helper  *helper.Helper
+	log     logr.Logger
 }
 
-// newReconciler returns a new reconcile.Reconciler
-func newReconciler(mgr manager.Manager) reconcile.Reconciler {
-	return &ReconcileKeycloakRealmGroup{
-		client:  mgr.GetClient(),
-		scheme:  mgr.GetScheme(),
-		factory: new(adapter.GoCloakAdapterFactory),
-		helper:  helper.MakeHelper(mgr.GetClient(), mgr.GetScheme()),
+func (r *ReconcileKeycloakRealmGroup) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		UpdateFunc: helper.IsFailuresUpdated,
 	}
+	return ctrl.NewControllerManagedBy(mgr).
+		For(&keycloakApi.KeycloakRealmGroup{}, builder.WithPredicates(pred)).
+		Complete(r)
 }
 
-func Add(mgr manager.Manager) error {
-	c, err := controller.New("keycloakrealmgroup-controller", mgr, controller.Options{
-		Reconciler: newReconciler(mgr)})
-	if err != nil {
-		return err
-	}
+func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log.Info("Reconciling KeycloakRealmGroup")
 
-	return c.Watch(&source.Kind{Type: &v1alpha1.KeycloakRealmGroup{}}, &handler.EnqueueRequestForObject{},
-		predicate.Funcs{
-			UpdateFunc: helper.IsFailuresUpdated,
-		})
-}
-
-func (r *ReconcileKeycloakRealmGroup) Reconcile(request reconcile.Request) (result reconcile.Result, resultErr error) {
-	reqLogger := log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
-	reqLogger.Info("Reconciling KeycloakRealmGroup")
-
-	var instance v1alpha1.KeycloakRealmGroup
-	if err := r.client.Get(context.TODO(), request.NamespacedName, &instance); err != nil {
+	var instance keycloakApi.KeycloakRealmGroup
+	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
 		return
 	}

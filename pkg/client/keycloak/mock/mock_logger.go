@@ -30,8 +30,8 @@ func (l *Logger) LastError() error {
 	return l.errors[len(l.errors)-1]
 }
 
-func (Logger) V(level int) logr.InfoLogger {
-	return InfoLogger{}
+func (Logger) V(level int) logr.Logger {
+	return &Logger{}
 }
 
 func (l *Logger) WithValues(keysAndValues ...interface{}) logr.Logger {

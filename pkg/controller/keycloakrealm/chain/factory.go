@@ -5,11 +5,11 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	logf "sigs.k8s.io/controller-runtime/pkg/runtime/log"
 )
 
-var log = logf.Log.WithName("realm_handler")
+var log = ctrl.Log.WithName("realm_handler")
 
 func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmHandler {
 	return PutRealm{

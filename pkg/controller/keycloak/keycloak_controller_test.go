@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
+	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	v1alpha12 "github.com/epmd-edp/edp-component-operator/pkg/apis/v1/v1alpha1"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -77,10 +77,11 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		client:  client,
 		scheme:  s,
 		factory: factory,
+		log:     &mock.Logger{},
 	}
 
 	//test
-	res, err := r.Reconcile(req)
+	res, err := r.Reconcile(context.TODO(), req)
 
 	//verify
 	assert.NoError(t, err)
@@ -108,7 +109,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
 	}
-	comp := &v1alpha12.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
+	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
@@ -120,9 +121,14 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	factory.On("New", keycloakDto).Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
-	r := ReconcileKeycloak{client: client, scheme: s, factory: factory}
+	r := ReconcileKeycloak{
+		client:  client,
+		scheme:  s,
+		factory: factory,
+		log:     &mock.Logger{},
+	}
 
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -140,7 +146,7 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
 	}
-	comp := &v1alpha12.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
+	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
@@ -152,9 +158,14 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	factory.On("New", keycloakDto).Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
-	r := ReconcileKeycloak{client: client, scheme: s, factory: factory}
+	r := ReconcileKeycloak{
+		client:  client,
+		scheme:  s,
+		factory: factory,
+		log:     &mock.Logger{},
+	}
 
-	_, err := r.Reconcile(req)
+	_, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}

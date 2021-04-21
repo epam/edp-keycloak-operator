@@ -59,7 +59,7 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 }
 
 func (a GoCloakAdapter) ExistRealmRole(realmName string, roleName string) (bool, error) {
-	reqLog := log.WithValues("realm name", realmName, "role name", roleName)
+	reqLog := a.log.WithValues("realm name", realmName, "role name", roleName)
 	reqLog.Info("Start check existing realm role...")
 
 	_, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, roleName)
