@@ -8,7 +8,7 @@ spec:
     - name: developer
       composite: true
       description: "default developer role"
-      isDefault: true
+      isDefault: false
     - name: administrator
       composite: true
       description: "default administrator role"
