@@ -10,7 +10,7 @@ replace (
 require (
 	github.com/Nerzal/gocloak/v8 v8.1.1
 	github.com/emicklei/go-restful v2.12.0+incompatible // indirect
-	github.com/epam/edp-component-operator v0.1.1-0.20210413101042-1d8f823f27cc
+	github.com/epam/edp-component-operator v0.1.1-0.20210427065236-c7dce7f4ea2b
 	github.com/go-logr/logr v0.3.0
 	github.com/go-openapi/spec v0.19.3
 	github.com/go-resty/resty/v2 v2.3.0
