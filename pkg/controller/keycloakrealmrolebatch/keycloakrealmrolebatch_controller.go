@@ -2,7 +2,7 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
-	"fmt"
+
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -86,13 +86,40 @@ func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *v1alpha1.KeycloakRealmR
 	return false
 }
 
+func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context,
+	batch *v1alpha1.KeycloakRealmRoleBatch) error {
+
+	var (
+		namespaceRoles v1alpha1.KeycloakRealmRoleList
+		specRoles      = make(map[string]struct{})
+	)
+
+	if err := r.client.List(ctx, &namespaceRoles); err != nil {
+		return errors.Wrap(err, "unable to get keycloak realm roles")
+	}
+
+	for _, r := range batch.Spec.Roles {
+		specRoles[batch.FormattedRoleName(r.Name)] = struct{}{}
+	}
+
+	for _, currentRole := range namespaceRoles.Items {
+		if _, ok := specRoles[currentRole.Name]; !ok && r.helper.IsOwner(&currentRole, batch) {
+			if err := r.client.Delete(ctx, &currentRole); err != nil {
+				return errors.Wrap(err, "unable to delete keycloak realm role")
+			}
+		}
+	}
+
+	return nil
+}
+
 func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *v1alpha1.KeycloakRealmRoleBatch,
 	realm *v1alpha1.KeycloakRealm) (roles []v1alpha1.KeycloakRealmRole, resultErr error) {
 	log := r.log.WithValues("keycloak role batch cr", batch)
 	log.Info("Start putting keycloak cr role batch...")
 
 	for _, role := range batch.Spec.Roles {
-		roleName := fmt.Sprintf("%s-%s", batch.Name, role.Name)
+		roleName := batch.FormattedRoleName(role.Name)
 
 		var crRole v1alpha1.KeycloakRealmRole
 		err := r.client.Get(ctx, types.NamespacedName{Namespace: batch.Namespace, Name: roleName},
@@ -148,6 +175,10 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 	createdRoles, err := r.putRoles(ctx, batch, realm)
 	if err != nil {
 		return errors.Wrap(err, "unable to put roles batch")
+	}
+
+	if err := r.removeRoles(ctx, batch); err != nil {
+		return errors.Wrap(err, "unable to delete roles")
 	}
 
 	if _, err := r.helper.TryToDelete(batch,

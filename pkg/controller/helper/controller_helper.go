@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 	"fmt"
-	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,6 +10,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -66,6 +66,16 @@ func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*v1alpha1.KeycloakR
 	}
 
 	return &realm, nil
+}
+
+func (h *Helper) IsOwner(slave client.Object, master client.Object) bool {
+	for _, ref := range slave.GetOwnerReferences() {
+		if ref.UID == master.GetUID() {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (h *Helper) GetOwner(slave v1.ObjectMeta, owner client.Object, ownerType string) error {
