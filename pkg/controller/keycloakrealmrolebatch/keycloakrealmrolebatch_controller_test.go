@@ -3,6 +3,10 @@ package keycloakrealmrolebatch
 import (
 	"context"
 	"fmt"
+	"strings"
+	"testing"
+	"time"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -15,9 +19,6 @@ import (
 	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-	"strings"
-	"testing"
-	"time"
 )
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
@@ -141,6 +142,25 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 	if !checkRole.Spec.IsDefault {
 		t.Fatal("sub-role2 is not default")
+	}
+
+	checkBatch.Spec.Roles = checkBatch.Spec.Roles[1:]
+	if err := client.Update(context.Background(), &checkBatch); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      "test",
+			Namespace: ns,
+		},
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := client.Get(context.Background(), types.NamespacedName{Namespace: ns,
+		Name: fmt.Sprintf("%s-sub-role1", batch.Name)}, &checkRole); err == nil {
+		t.Fatal("sub role is not marked for deletion")
 	}
 }
 

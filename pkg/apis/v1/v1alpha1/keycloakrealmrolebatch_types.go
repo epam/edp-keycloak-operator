@@ -1,6 +1,10 @@
 package v1alpha1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	"fmt"
+
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+)
 
 // +k8s:openapi-gen=true
 type KeycloakRealmRoleBatchSpec struct {
@@ -53,6 +57,10 @@ type KeycloakRealmRoleBatch struct {
 
 	Spec   KeycloakRealmRoleBatchSpec   `json:"spec,omitempty"`
 	Status KeycloakRealmRoleBatchStatus `json:"status,omitempty"`
+}
+
+func (in *KeycloakRealmRoleBatch) FormattedRoleName(baseRoleName string) string {
+	return fmt.Sprintf("%s-%s", in.Name, baseRoleName)
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
