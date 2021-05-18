@@ -2,18 +2,15 @@ package keycloakrealm
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
-	"github.com/epam/edp-keycloak-operator/pkg/model"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -41,10 +38,9 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 		},
 	}
 	//client and scheme
-	objs := []runtime.Object{kr}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
+	client := fake.NewClientBuilder().WithRuntimeObjects(kr).Build()
 
 	//request
 	req := reconcile.Request{
@@ -98,12 +94,9 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 		},
 	})
 	//client and scheme
-	objs := []runtime.Object{
-		kr,
-	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
+	client := fake.NewClientBuilder().WithRuntimeObjects(kr).Build()
 
 	//request
 	req := reconcile.Request{
@@ -170,12 +163,9 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 		},
 	})
 	//client and scheme
-	objs := []runtime.Object{
-		k, kr,
-	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
+	client := fake.NewClientBuilder().WithRuntimeObjects(k, kr).Build()
 
 	//request
 	req := reconcile.Request{
@@ -256,22 +246,9 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		},
 	})
 	//client and scheme
-	objs := []runtime.Object{
-		k, kr, secret,
-	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
-
-	//keycloak client, factory and handler
-	keycloakDto := dto.Keycloak{
-		Url:  kServerUrl,
-		User: kServerUsr,
-		Pwd:  kServerPwd,
-	}
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).
-		Return(nil, errors.New("invalid credentials"))
+	client := fake.NewClientBuilder().WithRuntimeObjects(k, kr, secret).Build()
 
 	//request
 	req := reconcile.Request{
@@ -283,10 +260,9 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
-		log:     &mock.Logger{},
+		client: client,
+		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	//test
@@ -353,17 +329,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(objs...)
-
-	//keycloak client, factory and handler
-	keycloakDto := dto.Keycloak{
-		Url:  kServerUrl,
-		User: kServerUsr,
-		Pwd:  kServerPwd,
-	}
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).
-		Return(nil, errors.New("invalid credentials"))
+	client := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
 	//request
 	req := reconcile.Request{
@@ -375,10 +341,9 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 
 	//reconcile
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
-		log:     &mock.Logger{},
+		client: client,
+		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	//test
@@ -411,21 +376,16 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
 
-	kClient := new(mock.KeycloakClient)
+	kClient := new(adapter.Mock)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
-	factory := new(mock.GoCloakFactory)
-
-	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
-		Return(kClient, nil)
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
-		log:     &mock.Logger{},
+		client: client,
+		helper: helper.MakeHelper(client, s),
+		log:    &mock.Logger{},
 	}
 
 	if _, err := r.Reconcile(context.TODO(), req); err != nil {
@@ -434,71 +394,43 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 }
 
 func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
-	ns, kSecretName, kServerUsr, kServerPwd, kRealmName, realmName := "test", "test", "test", "test", "test", "test.test"
-	k := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: ns},
-		Spec: v1alpha1.KeycloakSpec{Secret: kSecretName}, Status: v1alpha1.KeycloakStatus{Connected: true},
-	}
-	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
+	ns, kRealmName := "namespace", "realm-11"
 	ssoRealmMappers := []v1alpha1.SSORealmMapper{{}}
 
 	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "apps/v1"},
+		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: "keycloak-main", RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 			SSORealmMappers: &ssoRealmMappers},
+		Status: v1alpha1.KeycloakRealmStatus{Available: true},
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr)
+	s.AddKnownTypes(v1.SchemeGroupVersion, &kr, &v1alpha1.KeycloakClient{})
+	client := fake.NewClientBuilder().WithRuntimeObjects(&kr).Build()
 
-	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
-	kClient := new(mock.KeycloakClient)
-	kClient.On("DeleteRealm", "test.test").Return(nil)
-	kClient.On("ExistRealm", testRealm.Name).
-		Return(false, nil)
-	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
-			SsoAutoRedirectEnabled: true}).Return(nil)
-	kClient.On("CreateClientScope", realmName, model.ClientScope{
-		Name:        gocloak.StringP("edp"),
-		Description: gocloak.StringP("default edp scope required for ac and nexus"),
-		Protocol:    gocloak.StringP("openid-connect"),
-		ClientScopeAttributes: &model.ClientScopeAttributes{
-			IncludeInTokenScope: gocloak.StringP("true"),
-		},
-	}).Return(nil)
-	kClient.On("GetOpenIdConfig", &testRealm).
-		Return("fooClient", nil)
-	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
-	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
-	kClient.On("SyncRealmIdentityProviderMappers", kr.Spec.RealmName,
-		dto.ConvertSSOMappersToIdentityProviderMappers(kr.Spec.SsoRealmName, ssoRealmMappers)).Return(nil)
-	factory := new(mock.GoCloakFactory)
-
-	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
-		Return(kClient, nil)
-
+	kClient := new(adapter.Mock)
 	nsName := types.NamespacedName{Name: kRealmName, Namespace: ns}
 	req := reconcile.Request{NamespacedName: nsName}
+
+	h := helper.Mock{}
+	logger := mock.Logger{}
+	h.On("CreateKeycloakClientForRealm", &kr, &logger).Return(kClient, nil)
+	h.On("TryToDelete", &kr,
+		makeTerminator(kr.Spec.RealmName, kClient),
+		keyCloakRealmOperatorFinalizerName).Return(false, nil)
+	h.On("UpdateStatus", &kr).Return(nil)
+	ch := handler.MockRealmHandler{}
 	r := ReconcileKeycloakRealm{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-		helper:  helper.MakeHelper(client, s),
-		log:     &mock.Logger{},
+		client: client,
+		scheme: s,
+		helper: &h,
+		log:    &logger,
+		chain:  &ch,
 	}
+
+	ch.On("ServeRequest", &kr, kClient).Return(nil)
 
 	if _, err := r.Reconcile(context.TODO(), req); err != nil {
 		t.Fatal(err)
-	}
-
-	var checkRealm v1alpha1.KeycloakRealm
-	if err := client.Get(context.Background(), nsName, &checkRealm); err != nil {
-		t.Fatal(err)
-	}
-
-	if label, ok := checkRealm.Labels[chain.TargetRealmLabel]; !ok || label == "" || label != checkRealm.Spec.RealmName {
-		t.Fatal("target realm label is not set")
 	}
 }

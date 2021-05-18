@@ -44,7 +44,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 		}},
 		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
 
-	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret)
+	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&batch, &realm, &keycloak, &secret).Build()
 
 	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
 		log: &mock.Logger{}}
@@ -99,7 +99,8 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
 	}
 
-	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
+	client := fake.NewClientBuilder().WithScheme(scheme).
+		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).Build()
 
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		scheme: scheme,
@@ -191,7 +192,8 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
 	}
 
-	client := fake.NewFakeClientWithScheme(scheme, &batch, &realm, &keycloak, &secret, &role)
+	client := fake.NewClientBuilder().WithScheme(scheme).
+		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).Build()
 
 	logger := mock.Logger{}
 	rkr := ReconcileKeycloakRealmRoleBatch{

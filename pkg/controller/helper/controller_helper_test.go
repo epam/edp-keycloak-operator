@@ -1,17 +1,17 @@
 package helper
 
 import (
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"strings"
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
@@ -304,11 +304,12 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 		Name:      "",
 	}, &v1.Secret{}).Return(nil)
 
-	clientFactory := ClientFactory{}
-	clientFactory.On("New", dto.Keycloak{}).Return(adapter.GoCloakAdapter{}, nil)
+	_, err := helper.CreateKeycloakClientForRealm(&realm, &mock.Logger{})
+	if err == nil {
+		t.Fatal("no error on trying to connect to keycloak")
+	}
 
-	_, err := helper.CreateKeycloakClient(&realm, &clientFactory)
-	if err != nil {
-		t.Fatal(err)
+	if !strings.Contains(err.Error(), "could not get token") {
+		t.Fatal("wrong error returned")
 	}
 }

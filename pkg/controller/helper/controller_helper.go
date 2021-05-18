@@ -9,8 +9,9 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -24,7 +25,7 @@ import (
 const (
 	DefaultRequeueTime         = 120 * time.Second
 	StatusOK                   = "OK"
-	defaultConfigsAbsolutePath = "/usr/local/configs/"
+	defaultConfigsAbsolutePath = "/usr/local/configs"
 	localConfigsRelativePath   = "configs"
 )
 
@@ -226,8 +227,17 @@ func (h *Helper) GetOrCreateRealmOwnerRef(
 	return realm, nil
 }
 
-func (h *Helper) CreateKeycloakClient(
-	realm *v1alpha1.KeycloakRealm, factory keycloak.ClientFactory) (keycloak.Client, error) {
+func (h *Helper) CreateKeycloakClient(url, user, password string, log logr.Logger) (keycloak.Client, error) {
+	clientAdapter, err := adapter.Make(url, user, password, log)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to init kc client adapter")
+	}
+
+	return clientAdapter, nil
+}
+
+func (h *Helper) CreateKeycloakClientForRealm(
+	realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error) {
 
 	o, err := h.GetOrCreateKeycloakOwnerRef(realm)
 	if err != nil {
@@ -246,8 +256,13 @@ func (h *Helper) CreateKeycloakClient(
 		return nil, err
 	}
 
-	return factory.New(
-		dto.ConvertSpecToKeycloak(o.Spec, string(secret.Data["username"]), string(secret.Data["password"])))
+	clientAdapter, err := h.CreateKeycloakClient(o.Spec.Url, string(secret.Data["username"]), string(secret.Data["password"]),
+		log)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to init kc client adapter")
+	}
+
+	return clientAdapter, nil
 }
 
 func (h *Helper) UpdateStatus(obj client.Object) error {
@@ -321,7 +336,7 @@ func createPath(directory string, localRun bool) (string, error) {
 }
 
 func checkIfRunningLocally() bool {
-	return util.RunningInCluster()
+	return !util.RunningInCluster()
 }
 
 func CreatePathToTemplateDirectory(directory string) (string, error) {

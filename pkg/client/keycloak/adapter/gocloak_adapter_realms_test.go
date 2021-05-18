@@ -19,7 +19,7 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 	}
 

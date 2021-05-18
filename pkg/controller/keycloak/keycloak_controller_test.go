@@ -2,15 +2,16 @@ package keycloak
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -26,7 +27,6 @@ import (
 func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
 	//client & scheme
-
 	cr := &v1alpha1.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "NewKeycloak",
@@ -51,18 +51,8 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		cr, secret,
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
-	client := fake.NewFakeClient(objs...)
-
-	//factory
-	keycloakDto := dto.Keycloak{
-		Url:  "https://some",
-		User: "user",
-		Pwd:  "pass",
-	}
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).
-		Return(nil, errors.New("some error"))
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, &edpCompApi.EDPComponent{})
+	client := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
 	//request
 	req := reconcile.Request{
@@ -72,12 +62,17 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		},
 	}
 
+	logger := mock.Logger{}
+	h := helper.Mock{}
+
+	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
+		Return(nil, errors.New("fatal"))
 	//reconcile
 	r := ReconcileKeycloak{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-		log:     &mock.Logger{},
+		client: client,
+		scheme: s,
+		log:    &logger,
+		helper: &h,
 	}
 
 	//test
@@ -113,19 +108,20 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
-	client := fake.NewFakeClient(cr, secret, comp)
-	keycloakDto := dto.Keycloak{Url: "https://some", User: "user", Pwd: "pass"}
-
-	kClient := new(mock.KeycloakClient)
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).Return(kClient, nil)
+	client := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
+
+	kClient := adapter.Mock{}
+	logger := mock.Logger{}
+	h := helper.Mock{}
+	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
+		Return(&kClient, nil)
 	r := ReconcileKeycloak{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-		log:     &mock.Logger{},
+		client: client,
+		scheme: s,
+		log:    &logger,
+		helper: &h,
 	}
 
 	_, err := r.Reconcile(context.TODO(), req)
@@ -150,19 +146,19 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
-	client := fake.NewFakeClient(cr, secret, comp)
-	keycloakDto := dto.Keycloak{Url: "https://some", User: "user", Pwd: "pass"}
-
-	kClient := new(mock.KeycloakClient)
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).Return(kClient, nil)
+	client := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
+	kClient := adapter.Mock{}
+	logger := mock.Logger{}
+	h := helper.Mock{}
+	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
+		Return(&kClient, nil)
 	r := ReconcileKeycloak{
-		client:  client,
-		scheme:  s,
-		factory: factory,
-		log:     &mock.Logger{},
+		client: client,
+		scheme: s,
+		log:    &logger,
+		helper: &h,
 	}
 
 	_, err := r.Reconcile(context.TODO(), req)

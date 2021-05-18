@@ -2,16 +2,14 @@ package adapter
 
 import (
 	"fmt"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"net/url"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
-
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-
 	"github.com/Nerzal/gocloak/v8"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -25,7 +23,7 @@ func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 		Return(&gocloak.RealmRepresentation{Realm: gocloak.StringP("realm")}, nil)
 	adapter := GoCloakAdapter{
 		client: mockClient,
-		token:  gocloak.JWT{AccessToken: "token"},
+		token:  &gocloak.JWT{AccessToken: "token"},
 		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
@@ -47,7 +45,7 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 		Return(nil, errors.New("404"))
 	adapter := GoCloakAdapter{
 		client: mockClient,
-		token:  gocloak.JWT{AccessToken: "token"},
+		token:  &gocloak.JWT{AccessToken: "token"},
 		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
@@ -69,7 +67,7 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 		Return(nil, errors.New("error in get realm"))
 	adapter := GoCloakAdapter{
 		client: mockClient,
-		token:  gocloak.JWT{AccessToken: "token"},
+		token:  &gocloak.JWT{AccessToken: "token"},
 		log:    &mock.Logger{},
 	}
 	realm := dto.Realm{
@@ -103,7 +101,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 	}
 
@@ -138,7 +136,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 	}
 
@@ -249,7 +247,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -279,7 +277,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -327,7 +325,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -346,7 +344,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -419,7 +417,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -517,7 +515,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}
@@ -534,7 +532,7 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
-		token:    gocloak.JWT{AccessToken: "token"},
+		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
 		log:      &mock.Logger{},
 	}

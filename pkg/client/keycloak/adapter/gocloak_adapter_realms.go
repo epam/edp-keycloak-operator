@@ -2,9 +2,10 @@ package adapter
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
-	"net/http"
 )
 
 func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
@@ -157,10 +158,5 @@ func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dt
 		return errors.Wrapf(err, "unable to update identity provider mapper: %+v", mapper)
 	}
 
-	if resp.StatusCode() >= 300 {
-		return errors.Errorf("unable to update identity provider mapper: %+v, response: %s", mapper,
-			resp.String())
-	}
-
-	return nil
+	return extractError(resp)
 }

@@ -2,10 +2,13 @@ package main
 
 import (
 	"flag"
+	"os"
+
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakauthflow"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmgroup"
@@ -14,7 +17,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/rest"
-	"os"
+
 	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
@@ -25,6 +28,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
 	//+kubebuilder:scaffold:imports
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
@@ -132,6 +136,12 @@ func main() {
 	krrbCtrl := keycloakrealmrolebatch.NewReconcileKeycloakRealmRoleBatch(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
 	if err := krrbCtrl.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-role-batch")
+		os.Exit(1)
+	}
+
+	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
+	if err := kafCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "keycloak-auth-flow")
 		os.Exit(1)
 	}
 

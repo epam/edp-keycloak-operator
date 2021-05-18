@@ -2,6 +2,7 @@ package chain
 
 import (
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
@@ -11,22 +12,22 @@ type PutClientRole struct {
 	next Element
 }
 
-func (el *PutClientRole) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	if err := el.putKeycloakClientRole(keycloakClient); err != nil {
+func (el *PutClientRole) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+	if err := el.putKeycloakClientRole(keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "unable to put keycloak client role")
 	}
 
-	return el.NextServeOrNil(el.next, keycloakClient)
+	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutClientRole) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient) error {
+func (el *PutClientRole) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client role...")
 
 	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "")
 
 	for _, role := range clientDto.Roles {
-		exist, err := el.State.AdapterClient.ExistClientRole(clientDto, role)
+		exist, err := adapterClient.ExistClientRole(clientDto, role)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistClientRole")
 		}
@@ -36,7 +37,7 @@ func (el *PutClientRole) putKeycloakClientRole(keycloakClient *v1v1alpha1.Keyclo
 			continue
 		}
 
-		if err := el.State.AdapterClient.CreateClientRole(clientDto, role); err != nil {
+		if err := adapterClient.CreateClientRole(clientDto, role); err != nil {
 			return errors.Wrap(err, "unable to create client role")
 		}
 	}

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -36,20 +37,17 @@ func TestPrivateClientSecret(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &kc)
-	client := fake.NewFakeClient(&kc, &secret)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&kc, &secret).Build()
 	h := helper.MakeHelper(client, s)
 
 	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 
-	kClient := new(mock.KeycloakClient)
+	kClient := new(adapter.Mock)
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).Return(true, nil)
 	kClient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).Return("3333", nil)
 
 	baseElement := BaseElement{
-		State: &State{
-			AdapterClient: kClient,
-		},
-		Helper: h,
+		scheme: h.GetScheme(),
 		Client: client,
 		Logger: &mock.Logger{},
 	}
@@ -57,13 +55,13 @@ func TestPrivateClientSecret(t *testing.T) {
 		BaseElement: baseElement,
 	}
 
-	if err := putCl.Serve(&kc); err != nil {
+	if err := putCl.Serve(&kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	kc.Spec.Secret = ""
 
-	if err := putCl.Serve(&kc); err != nil {
+	if err := putCl.Serve(&kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -117,20 +115,11 @@ func TestMake(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &v1alpha1.KeycloakRealm{}, &v1alpha1.KeycloakRealmList{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &kc)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &kc).Build()
 	h := helper.MakeHelper(client, s)
 
-	keycloakDto := dto.Keycloak{
-		Url:  "https://some",
-		User: "user",
-		Pwd:  "pass",
-	}
-	kClient := new(mock.KeycloakClient)
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", keycloakDto).
-		Return(kClient, nil)
-
-	chain := Make(h, client, &mock.Logger{}, factory)
+	kClient := new(adapter.Mock)
+	chain := Make(h.GetScheme(), client, &mock.Logger{})
 
 	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).
@@ -151,7 +140,7 @@ func TestMake(t *testing.T) {
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
-	if err := chain.Serve(&kc); err != nil {
+	if err := chain.Serve(&kc, kClient); err != nil {
 		t.Fatal(err)
 	}
 

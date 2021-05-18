@@ -2,12 +2,11 @@ package keycloakrealmgroup
 
 import (
 	"context"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"testing"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	v1 "k8s.io/api/apps/v1"
@@ -15,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -35,21 +35,17 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 
-	client := fake.NewFakeClientWithScheme(scheme, &group, &realm, &keycloak, &secret)
-	kClient := new(mock.KeycloakClient)
-	factory := new(mock.GoCloakFactory)
-	factory.On("New", dto.Keycloak{User: "user", Pwd: "pass"}).
-		Return(kClient, nil)
+	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&group, &realm, &keycloak, &secret).Build()
+	kClient := new(adapter.Mock)
 
 	kClient.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("gid1", nil)
 	kClient.On("DeleteGroup", "ns.realm1", group.Spec.Name).Return(nil)
 
 	r := ReconcileKeycloakRealmGroup{
-		client:  client,
-		helper:  helper.MakeHelper(client, scheme),
-		scheme:  scheme,
-		factory: factory,
-		log:     &mock.Logger{},
+		client: client,
+		helper: helper.MakeHelper(client, scheme),
+		scheme: scheme,
+		log:    &mock.Logger{},
 	}
 
 	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{

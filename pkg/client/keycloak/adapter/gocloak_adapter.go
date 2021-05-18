@@ -3,10 +3,11 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"github.com/go-logr/logr"
 	"net/http"
 	"reflect"
 	"strings"
+
+	"github.com/go-logr/logr"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
@@ -31,14 +32,32 @@ const (
 	getClientProtocolMappers       = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
 	mapperToIdentityProvider       = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	updateMapperToIdentityProvider = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	authFlows                      = "/auth/admin/realms/{realm}/authentication/flows"
+	authFlow                       = "/auth/admin/realms/{realm}/authentication/flows/{id}"
+	authFlowExecutionCreate        = "/auth/admin/realms/{realm}/authentication/executions"
+	authFlowExecutionConfig        = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
 )
 
 type GoCloakAdapter struct {
-	client GoCloak
-	token  gocloak.JWT
-	log    logr.Logger
-
+	client   GoCloak
+	token    *gocloak.JWT
+	log      logr.Logger
 	basePath string
+}
+
+func Make(url, user, password string, log logr.Logger) (*GoCloakAdapter, error) {
+	kcCl := gocloak.NewClient(url)
+	token, err := kcCl.LoginAdmin(context.Background(), user, password, "master")
+	if err != nil {
+		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", user)
+	}
+
+	return &GoCloakAdapter{
+		client:   kcCl,
+		token:    token,
+		log:      log,
+		basePath: url,
+	}, nil
 }
 
 func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
@@ -988,5 +1007,13 @@ func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientSc
 		return err
 	}
 	log.Info("Client Scope was created!")
+	return nil
+}
+
+func extractError(resp *resty.Response) error {
+	if !resp.IsSuccess() {
+		return errors.Errorf("status: %d, body: %s", resp.StatusCode(), resp.String())
+	}
+
 	return nil
 }
