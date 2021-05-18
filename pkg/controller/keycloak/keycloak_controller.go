@@ -5,21 +5,20 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
+	"os"
+
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
-	"io/ioutil"
 	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"os"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -35,23 +34,25 @@ const (
 	keycloakIcon     = "keycloak.svg"
 )
 
+type Helper interface {
+	CreateKeycloakClient(url, user, password string, log logr.Logger) (keycloak.Client, error)
+}
+
 func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger) *ReconcileKeycloak {
 	return &ReconcileKeycloak{
 		client: client,
 		scheme: scheme,
 		log:    log.WithName("keycloak"),
-		factory: adapter.GoCloakAdapterFactory{
-			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
-		},
+		helper: helper.MakeHelper(client, scheme),
 	}
 }
 
 // ReconcileKeycloak reconciles a Keycloak object
 type ReconcileKeycloak struct {
-	client  client.Client
-	scheme  *runtime.Scheme
-	log     logr.Logger
-	factory keycloak.ClientFactory
+	client client.Client
+	scheme *runtime.Scheme
+	log    logr.Logger
+	helper Helper
 }
 
 func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager) error {
@@ -117,7 +118,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 	user := string(secret.Data["username"])
 	pwd := string(secret.Data["password"])
 
-	_, err = r.factory.New(dto.ConvertSpecToKeycloak(instance.Spec, user, pwd))
+	_, err = r.helper.CreateKeycloakClient(instance.Spec.Url, user, pwd, log)
 	if err != nil {
 		log.Error(err, "error during the creation of connection")
 	}

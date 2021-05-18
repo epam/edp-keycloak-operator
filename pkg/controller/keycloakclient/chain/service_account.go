@@ -2,6 +2,7 @@ package chain
 
 import (
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/pkg/errors"
 )
 
@@ -10,9 +11,9 @@ type ServiceAccount struct {
 	next Element
 }
 
-func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
+func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	if keycloakClient.Spec.ServiceAccount == nil || !keycloakClient.Spec.ServiceAccount.Enabled {
-		return el.NextServeOrNil(el.next, keycloakClient)
+		return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 	}
 
 	if keycloakClient.Spec.ServiceAccount != nil && keycloakClient.Spec.Public {
@@ -24,10 +25,10 @@ func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error
 		clientRoles[v.ClientID] = v.Roles
 	}
 
-	if err := el.State.AdapterClient.SyncServiceAccountRoles(keycloakClient.Spec.TargetRealm,
+	if err := adapterClient.SyncServiceAccountRoles(keycloakClient.Spec.TargetRealm,
 		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles); err != nil {
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 
-	return el.NextServeOrNil(el.next, keycloakClient)
+	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 }

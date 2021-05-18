@@ -1,4 +1,4 @@
-package chain
+package keycloakclient
 
 import (
 	"context"
@@ -6,39 +6,33 @@ import (
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-type GetOrCreateRealmOwner struct {
-	BaseElement
-	next Element
-}
+func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(
+	keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
 
-func (g *GetOrCreateRealmOwner) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	realm, err := g.Helper.GetOrCreateRealmOwnerRef(&clientRealmFinder{parent: keycloakClient,
-		client: g.BaseElement.Client},
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(&clientRealmFinder{parent: keycloakClient,
+		client: r.client},
 		keycloakClient.ObjectMeta)
 	if err != nil {
-		return errors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
+		return nil, errors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
 	}
 
-	if err = g.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName); err != nil {
-		return errors.Wrap(err, "unable to addTargetRealmIfNeed")
+	if err = r.addTargetRealmIfNeed(keycloakClient, realm.Spec.RealmName); err != nil {
+		return nil, errors.Wrap(err, "unable to addTargetRealmIfNeed")
 	}
 
-	g.State.KeycloakRealm = realm
-
-	return g.NextServeOrNil(g.next, keycloakClient)
+	return realm, nil
 }
 
 type clientRealmFinder struct {
 	client client.Client
 	parent *v1v1alpha1.KeycloakClient
 
-	metav1.TypeMeta
-	metav1.ObjectMeta
+	v1.TypeMeta
+	v1.ObjectMeta
 }
 
 func (c *clientRealmFinder) GetNamespace() string {
@@ -75,14 +69,14 @@ func (c *clientRealmFinder) SetOwnerReferences(or []v1.OwnerReference) {
 	c.parent.SetOwnerReferences(or)
 }
 
-func (g *GetOrCreateRealmOwner) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient,
+func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient,
 	reamName string) error {
 	if keycloakClient.Spec.TargetRealm != "" {
 		return nil
 	}
 
 	keycloakClient.Spec.TargetRealm = reamName
-	if err := g.Client.Update(context.TODO(), keycloakClient); err != nil {
+	if err := r.client.Update(context.TODO(), keycloakClient); err != nil {
 		return errors.Wrap(err, "unable to set keycloak client target realm")
 	}
 

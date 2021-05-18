@@ -3,6 +3,7 @@ package keycloak
 import (
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/model"
 )
@@ -14,6 +15,7 @@ type Client interface {
 	KCloakClients
 	KCloakRealmRoles
 	KCloakClientRoles
+	KAuthFlow
 
 	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
 	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
@@ -21,6 +23,11 @@ type Client interface {
 	PutDefaultIdp(realm *dto.Realm) error
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string) error
+}
+
+type KAuthFlow interface {
+	SyncAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error
+	DeleteAuthFlow(realmName, alias string) error
 }
 
 type KCloakGroups interface {
@@ -68,8 +75,4 @@ type KCloakClientRoles interface {
 	CreateClientRole(role *dto.Client, clientRole string) error
 	HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error)
 	AddClientRoleToUser(realmName string, clientId string, user *dto.User, role string) error
-}
-
-type ClientFactory interface {
-	New(keycloak dto.Keycloak) (Client, error)
 }

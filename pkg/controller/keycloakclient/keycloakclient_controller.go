@@ -2,13 +2,18 @@ package keycloakclient
 
 import (
 	"context"
+	"time"
+
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient/chain"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -16,24 +21,35 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+type Helper interface {
+	SetFailureCount(fc helper.FailureCountable) time.Duration
+	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	GetScheme() *runtime.Scheme
+	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	UpdateStatus(obj client.Object) error
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
+}
+
 const (
 	Fail                                = "FAIL"
 	keyCloakClientOperatorFinalizerName = "keycloak.client.operator.finalizer.name"
 )
 
-func NewReconcileKeycloakClient(client client.Client, log logr.Logger, helper *helper.Helper) *ReconcileKeycloakClient {
+func NewReconcileKeycloakClient(client client.Client, log logr.Logger, helper Helper) *ReconcileKeycloakClient {
 	return &ReconcileKeycloakClient{
 		client: client,
 		helper: helper,
 		log:    log.WithName("keycloak-client"),
+		chain:  chain.Make(helper.GetScheme(), client, log.WithName("chain").WithName("keycloak-client")),
 	}
 }
 
 // ReconcileKeycloakClient reconciles a KeycloakClient object
 type ReconcileKeycloakClient struct {
 	client client.Client
-	helper *helper.Helper
+	helper Helper
 	log    logr.Logger
+	chain  chain.Element
 }
 
 func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager) error {
@@ -78,16 +94,22 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *keycloakApi.KeycloakClient) error {
-	ch := chain.Make(r.helper, r.client, ctrl.Log.WithName("chain").WithName("keycloak-client"),
-		adapter.GoCloakAdapterFactory{
-			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
-		})
-	if err := ch.Serve(keycloakClient); err != nil {
+	realm, err := r.getOrCreateRealmOwner(keycloakClient)
+	if err != nil {
+		return pkgErrors.Wrap(err, "unable to get realm for client")
+	}
+
+	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
+	if err != nil {
+		return pkgErrors.Wrap(err, "unable to create keycloak adapter client")
+	}
+
+	if err := r.chain.Serve(keycloakClient, kClient); err != nil {
 		return pkgErrors.Wrap(err, "error during kc chain")
 	}
 
 	if _, err := r.helper.TryToDelete(keycloakClient, makeTerminator(keycloakClient.Status.ClientID,
-		keycloakClient.Spec.TargetRealm, ch.GetState().AdapterClient),
+		keycloakClient.Spec.TargetRealm, kClient),
 		keyCloakClientOperatorFinalizerName); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")
 	}

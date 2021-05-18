@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/model"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -33,10 +34,10 @@ func TestCreateDefChain(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &clientSecret)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
-	kClient := new(mock.KeycloakClient)
+	kClient := new(adapter.Mock)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
@@ -59,10 +60,6 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
 		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
-	factory := new(mock.GoCloakFactory)
-
-	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
-		Return(kClient, nil)
 
 	chain := CreateDefChain(client, s)
 	if err := chain.ServeRequest(&kr, kClient); err != nil {
@@ -88,12 +85,12 @@ func TestCreateDefChain2(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift", SsoAutoRedirectEnabled: true,
 		Users: []dto.User{realmUser}}
-	kClient := new(mock.KeycloakClient)
+	kClient := new(adapter.Mock)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
@@ -123,10 +120,6 @@ func TestCreateDefChain2(t *testing.T) {
 	kClient.On("HasUserClientRole", "openshift", "test.test", &realmUser, "bar").
 		Return(false, nil)
 	kClient.On("AddClientRoleToUser", "openshift", "test.test", &realmUser, "bar").Return(nil)
-	factory := new(mock.GoCloakFactory)
-
-	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
-		Return(kClient, nil)
 
 	chain := CreateDefChain(client, s)
 	if err := chain.ServeRequest(&kr, kClient); err != nil {
@@ -151,10 +144,10 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr)
+	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: false, Users: []dto.User{{}}}
-	kClient := new(mock.KeycloakClient)
+	kClient := new(adapter.Mock)
 	kClient.On("DeleteRealm", "test.test").Return(nil)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
@@ -187,10 +180,6 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
 	kClient.On("AddRealmRoleToUser", testRealm.Name, &realmUser, "foo").Return(nil)
-	factory := new(mock.GoCloakFactory)
-
-	factory.On("New", dto.Keycloak{User: "test", Pwd: "test"}).
-		Return(kClient, nil)
 
 	chain := CreateDefChain(client, s)
 	if err := chain.ServeRequest(&kr, kClient); err != nil {

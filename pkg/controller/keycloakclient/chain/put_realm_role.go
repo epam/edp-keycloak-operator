@@ -2,6 +2,7 @@ package chain
 
 import (
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
@@ -11,15 +12,15 @@ type PutRealmRole struct {
 	next Element
 }
 
-func (el *PutRealmRole) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	if err := el.putRealmRoles(keycloakClient); err != nil {
+func (el *PutRealmRole) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+	if err := el.putRealmRoles(keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "unable to put realm roles")
 	}
 
-	return el.NextServeOrNil(el.next, keycloakClient)
+	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient) error {
+func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put realm roles...")
 
@@ -33,7 +34,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient)
 			Name:      role.Name,
 			Composite: role.Composite,
 		}
-		exist, err := el.State.AdapterClient.ExistRealmRole(keycloakClient.Spec.TargetRealm, roleDto.Name)
+		exist, err := adapterClient.ExistRealmRole(keycloakClient.Spec.TargetRealm, roleDto.Name)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistRealmRole")
 		}
@@ -41,7 +42,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient)
 			reqLog.Info("Client already exists")
 			return nil
 		}
-		err = el.State.AdapterClient.CreateIncludedRealmRole(keycloakClient.Spec.TargetRealm, roleDto)
+		err = adapterClient.CreateIncludedRealmRole(keycloakClient.Spec.TargetRealm, roleDto)
 		if err != nil {
 			return errors.Wrap(err, "error during CreateRealmRole")
 		}

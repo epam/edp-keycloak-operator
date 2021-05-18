@@ -1,39 +1,30 @@
 package chain
 
 import (
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
-func Make(helper *helper.Helper, client client.Client, logger logr.Logger, factory keycloak.ClientFactory) Element {
+func Make(scheme *runtime.Scheme, client client.Client, logger logr.Logger) Element {
 	baseElement := BaseElement{
-		State:  &State{},
-		Helper: helper,
+		scheme: scheme,
 		Client: client,
 		Logger: logger,
 	}
 
-	return &GetOrCreateRealmOwner{
+	return &PutClient{
 		BaseElement: baseElement,
-		next: &CreateAdapter{
-			factory:     factory,
+		next: &PutClientRole{
 			BaseElement: baseElement,
-			next: &PutClient{
+			next: &PutRealmRole{
 				BaseElement: baseElement,
-				next: &PutClientRole{
+				next: &PutClientScope{
 					BaseElement: baseElement,
-					next: &PutRealmRole{
+					next: &PutProtocolMappers{
 						BaseElement: baseElement,
-						next: &PutClientScope{
+						next: &ServiceAccount{
 							BaseElement: baseElement,
-							next: &PutProtocolMappers{
-								BaseElement: baseElement,
-								next: &ServiceAccount{
-									BaseElement: baseElement,
-								},
-							},
 						},
 					},
 				},

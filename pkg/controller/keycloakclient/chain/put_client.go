@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	"github.com/sethvargo/go-password/password"
@@ -22,17 +23,17 @@ type PutClient struct {
 	next Element
 }
 
-func (el *PutClient) Serve(keycloakClient *v1v1alpha1.KeycloakClient) error {
-	id, err := el.putKeycloakClient(keycloakClient)
+func (el *PutClient) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+	id, err := el.putKeycloakClient(keycloakClient, adapterClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to put keycloak client")
 	}
 	keycloakClient.Status.ClientID = id
 
-	return el.NextServeOrNil(el.next, keycloakClient)
+	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
+func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) (string, error) {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
@@ -41,23 +42,23 @@ func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient
 		return "", errors.Wrap(err, "error during convertCrToDto")
 	}
 
-	exist, err := el.State.AdapterClient.ExistClient(clientDto.ClientId, clientDto.RealmName)
+	exist, err := adapterClient.ExistClient(clientDto.ClientId, clientDto.RealmName)
 	if err != nil {
 		return "", errors.Wrap(err, "error during ExistClient")
 	}
 
 	if exist {
 		reqLog.Info("Client already exists")
-		return el.State.AdapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
+		return adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
 	}
 
-	err = el.State.AdapterClient.CreateClient(clientDto)
+	err = adapterClient.CreateClient(clientDto)
 	if err != nil {
 		return "", errors.Wrap(err, "error during CreateClient")
 	}
 
 	reqLog.Info("End put keycloak client")
-	id, err := el.State.AdapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
+	id, err := adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to get client id")
 	}
@@ -119,7 +120,7 @@ func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (
 				true, true))},
 		}
 
-		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.Helper.GetScheme()); err != nil {
+		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.scheme); err != nil {
 			return "", errors.Wrap(err, "unable to set controller ref for secret")
 		}
 

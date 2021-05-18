@@ -2,6 +2,7 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
+	"time"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -11,6 +12,7 @@ import (
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -22,7 +24,16 @@ import (
 
 const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.operator.finalizer.name"
 
-func NewReconcileKeycloakRealmRoleBatch(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper *helper.Helper) *ReconcileKeycloakRealmRoleBatch {
+type Helper interface {
+	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
+	IsOwner(slave client.Object, master client.Object) bool
+	UpdateStatus(obj client.Object) error
+	SetFailureCount(fc helper.FailureCountable) time.Duration
+}
+
+func NewReconcileKeycloakRealmRoleBatch(client client.Client, scheme *runtime.Scheme, log logr.Logger,
+	helper Helper) *ReconcileKeycloakRealmRoleBatch {
 	return &ReconcileKeycloakRealmRoleBatch{
 		client: client,
 		scheme: scheme,
@@ -34,7 +45,7 @@ func NewReconcileKeycloakRealmRoleBatch(client client.Client, scheme *runtime.Sc
 type ReconcileKeycloakRealmRoleBatch struct {
 	client client.Client
 	scheme *runtime.Scheme
-	helper *helper.Helper
+	helper Helper
 	log    logr.Logger
 }
 

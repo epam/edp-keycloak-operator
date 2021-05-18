@@ -2,12 +2,11 @@ package helper
 
 import (
 	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -55,13 +54,4 @@ func (c *Client) Update(ctx context.Context, obj client.Object, options ...clien
 
 func (c *Client) Status() client.StatusWriter {
 	return c.Called().Get(0).(client.StatusWriter)
-}
-
-type ClientFactory struct {
-	mock.Mock
-}
-
-func (c *ClientFactory) New(kc dto.Keycloak) (keycloak.Client, error) {
-	args := c.Called(kc)
-	return args.Get(0).(keycloak.Client), args.Error(1)
 }

@@ -1,0 +1,27 @@
+package keycloakauthflow
+
+import (
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/pkg/errors"
+)
+
+type terminator struct {
+	realmName, flowAlias string
+	kClient              keycloak.Client
+}
+
+func makeTerminator(realmName, flowAlias string, kClient keycloak.Client) *terminator {
+	return &terminator{
+		realmName: realmName,
+		flowAlias: flowAlias,
+		kClient:   kClient,
+	}
+}
+
+func (t *terminator) DeleteResource() error {
+	if err := t.kClient.DeleteAuthFlow(t.realmName, t.flowAlias); err != nil {
+		return errors.Wrap(err, "unable to delete auth flow")
+	}
+
+	return nil
+}

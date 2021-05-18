@@ -2,17 +2,18 @@ package keycloakrealmgroup
 
 import (
 	"context"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/go-logr/logr"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/builder"
+	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -20,24 +21,29 @@ import (
 
 const keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
 
-func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper *helper.Helper) *ReconcileKeycloakRealmGroup {
+type Helper interface {
+	SetFailureCount(fc helper.FailureCountable) time.Duration
+	UpdateStatus(obj client.Object) error
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
+	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+}
+
+func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme, log logr.Logger,
+	helper Helper) *ReconcileKeycloakRealmGroup {
 	return &ReconcileKeycloakRealmGroup{
 		client: client,
 		scheme: scheme,
-		factory: adapter.GoCloakAdapterFactory{
-			Log: ctrl.Log.WithName("go-cloak-adapter-factory"),
-		},
 		helper: helper,
 		log:    log.WithName("keycloak-realm-group"),
 	}
 }
 
 type ReconcileKeycloakRealmGroup struct {
-	client  client.Client
-	scheme  *runtime.Scheme
-	factory keycloak.ClientFactory
-	helper  *helper.Helper
-	log     logr.Logger
+	client client.Client
+	scheme *runtime.Scheme
+	helper Helper
+	log    logr.Logger
 }
 
 func (r *ReconcileKeycloakRealmGroup) SetupWithManager(mgr ctrl.Manager) error {
@@ -81,7 +87,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(keycloakRealmGroup *v1alpha1.
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClient(realm, r.factory)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}
