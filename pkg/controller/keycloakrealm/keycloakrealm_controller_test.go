@@ -9,7 +9,6 @@ import (
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
@@ -432,19 +431,13 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
-	creatorSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcCreatorUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
-	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
 	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
 		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName)},
 	}
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
+	client := fake.NewFakeClient(&secret, &k, &kr)
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
 	kClient := new(mock.KeycloakClient)
@@ -452,8 +445,8 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true,
-			ACCreatorPass: "test", ACReaderPass: "test"}).Return(nil)
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
+			SsoAutoRedirectEnabled: true}).Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
 		Description: gocloak.StringP("default edp scope required for ac and nexus"),

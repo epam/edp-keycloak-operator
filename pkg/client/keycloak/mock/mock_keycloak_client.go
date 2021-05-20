@@ -166,8 +166,8 @@ func (m *KeycloakClient) SyncClientProtocolMapper(
 	return m.Called(client, crMappers).Error(0)
 }
 
-func (m *KeycloakClient) SyncRealmRole(realm *dto.Realm, role *dto.PrimaryRealmRole) error {
-	return m.Called(realm, role).Error(0)
+func (m *KeycloakClient) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
+	return m.Called(realmName, role).Error(0)
 }
 
 func (m *KeycloakClient) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,

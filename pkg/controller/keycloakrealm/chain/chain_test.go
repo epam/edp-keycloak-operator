@@ -1,15 +1,11 @@
 package chain
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
-	"k8s.io/apimachinery/pkg/types"
-
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epmd-edp/keycloak-operator/pkg/model"
@@ -28,12 +24,6 @@ func TestCreateDefChain(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
-	creatorSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcCreatorUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
-	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
 	clientSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-client.test.test.secret", Namespace: ns},
 		Data: map[string][]byte{"clientSecret": []byte(kServerUsr)}}
 
@@ -43,7 +33,7 @@ func TestCreateDefChain(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret, &clientSecret)
+	client := fake.NewFakeClient(&secret, &k, &kr, &clientSecret)
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
 	kClient := new(mock.KeycloakClient)
@@ -52,8 +42,7 @@ func TestCreateDefChain(t *testing.T) {
 		Return(false, nil)
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
-			SsoAutoRedirectEnabled: true,
-			ACCreatorPass:          "test", ACReaderPass: "test"}).
+			SsoAutoRedirectEnabled: true}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
@@ -89,12 +78,6 @@ func TestCreateDefChain2(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
-	creatorSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcCreatorUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
-	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
 	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
 		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 			SsoRealmName: "openshift",
@@ -105,7 +88,7 @@ func TestCreateDefChain2(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
+	client := fake.NewFakeClient(&secret, &k, &kr)
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift", SsoAutoRedirectEnabled: true,
@@ -117,8 +100,7 @@ func TestCreateDefChain2(t *testing.T) {
 
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
-			SsoAutoRedirectEnabled: true,
-			ACCreatorPass:          "test", ACReaderPass: "test", Users: []dto.User{realmUser}}).
+			SsoAutoRedirectEnabled: true, Users: []dto.User{realmUser}}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
@@ -160,12 +142,6 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
-	creatorSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcCreatorUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
-	readerSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: adapter.AcReaderUsername, Namespace: ns}, Data: map[string][]byte{
-		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
-
 	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
 		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 			SsoRealmEnabled: gocloak.BoolP(false), Users: []v1alpha1.User{
@@ -175,7 +151,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &v1alpha1.KeycloakClient{})
-	client := fake.NewFakeClient(&secret, &k, &kr, &creatorSecret, &readerSecret)
+	client := fake.NewFakeClient(&secret, &k, &kr)
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: false, Users: []dto.User{{}}}
 	kClient := new(mock.KeycloakClient)
@@ -183,8 +159,8 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false, SsoAutoRedirectEnabled: true,
-			ACCreatorPass: "test", ACReaderPass: "test", Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false,
+			SsoAutoRedirectEnabled: true, Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
 		Return(nil)
 	kClient.On("CreateClientScope", realmName, model.ClientScope{
 		Name:        gocloak.StringP("edp"),
@@ -219,36 +195,5 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	chain := CreateDefChain(client, s)
 	if err := chain.ServeRequest(&kr, kClient); err != nil {
 		t.Fatal(err)
-	}
-}
-
-func TestPutAcSecret_ServeRequest(t *testing.T) {
-	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "test"},
-		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: "test", RealmName: "test",
-			SsoRealmEnabled: gocloak.BoolP(false), Users: []v1alpha1.User{
-				{RealmRoles: []string{"foo", "bar"}},
-			}},
-	}
-
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &kr)
-	client := fake.NewFakeClient(&kr)
-
-	acSecret := PutAcSecret{
-		client: client,
-	}
-
-	kClient := new(mock.KeycloakClient)
-
-	if err := acSecret.ServeRequest(&kr, kClient); err != nil {
-		t.Fatal(err)
-	}
-
-	var k8sAcSecret corev1.Secret
-	if err := client.Get(context.Background(), types.NamespacedName{
-		Name:      adapter.AcReaderUsername,
-		Namespace: "test",
-	}, &k8sAcSecret); err != nil {
-		t.Fatal("creator secret not found")
 	}
 }

@@ -10,6 +10,7 @@ type KeycloakRealmRoleSpec struct {
 	Attributes  map[string][]string `json:"attributes"`
 	Composite   bool                `json:"composite"`
 	Composites  []Composite         `json:"composites"`
+	IsDefault   bool                `json:"isDefault,omitempty"`
 }
 
 // +k8s:openapi-gen=true
