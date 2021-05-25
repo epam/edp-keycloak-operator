@@ -20,6 +20,7 @@ type KeycloakRealmSpec struct {
 	SsoAutoRedirectEnabled *bool             `json:"ssoAutoRedirectEnabled,omitempty"`
 	Users                  []User            `json:"users,omitempty"`
 	SSORealmMappers        *[]SSORealmMapper `json:"ssoRealmMappers,omitempty"`
+	BrowserFlow            *string           `json:"browserFlow"`
 }
 
 func (in KeycloakRealmSpec) SSOEnabled() bool {

@@ -28,6 +28,7 @@ type Client interface {
 type KAuthFlow interface {
 	SyncAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error
 	DeleteAuthFlow(realmName, alias string) error
+	SetRealmBrowserFlow(realmName string, flowAlias string) error
 }
 
 type KCloakGroups interface {
