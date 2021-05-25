@@ -196,3 +196,7 @@ func (m *Mock) DeleteAuthFlow(realmName, alias string) error {
 func (m *Mock) SyncAuthFlow(realmName string, flow *KeycloakAuthFlow) error {
 	return m.Called(realmName, flow).Error(0)
 }
+
+func (m *Mock) SetRealmBrowserFlow(realmName string, flowAlias string) error {
+	return m.Called(realmName, flowAlias).Error(0)
+}

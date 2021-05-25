@@ -8,6 +8,7 @@ import (
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
+	"github.com/pkg/errors"
 )
 
 func TestGoCloakAdapter_SyncAuthFlow(t *testing.T) {
@@ -102,5 +103,73 @@ func TestGoCloakAdapter_DeleteAuthFlow(t *testing.T) {
 
 	if err := adapter.DeleteAuthFlow(realmName, flowAlias); err != nil {
 		t.Fatalf("%+v", err)
+	}
+}
+
+func TestGoCloakAdapter_SetRealmBrowserFlow(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		basePath: "",
+		token:    &gocloak.JWT{AccessToken: "token"},
+	}
+	realm := gocloak.RealmRepresentation{
+		BrowserFlow: gocloak.StringP("flow1"),
+	}
+
+	mockClient.On("GetRealm", "token", "realm1").Return(&realm, nil)
+	mockClient.On("UpdateRealm", realm).Return(nil)
+
+	if err := adapter.SetRealmBrowserFlow("realm1", "flow1"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestGoCloakAdapter_SetRealmBrowserFlow_FailureGetRealm(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		basePath: "",
+		token:    &gocloak.JWT{AccessToken: "token"},
+	}
+
+	mockErr := errors.New("mock err")
+
+	mockClient.On("GetRealm", "token", "realm1").Return(nil, mockErr)
+
+	err := adapter.SetRealmBrowserFlow("realm1", "flow1")
+	if err == nil {
+		t.Fatal("no error on mock fatal")
+	}
+	if errors.Cause(err) != mockErr {
+		t.Log(err)
+		t.Fatal("wrong error returned")
+	}
+}
+
+func TestGoCloakAdapter_SetRealmBrowserFlow_FailureUpdateRealm(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		basePath: "",
+		token:    &gocloak.JWT{AccessToken: "token"},
+	}
+
+	mockErr := errors.New("mock err")
+
+	realm := gocloak.RealmRepresentation{
+		BrowserFlow: gocloak.StringP("flow1"),
+	}
+
+	mockClient.On("GetRealm", "token", "realm1").Return(&realm, nil)
+	mockClient.On("UpdateRealm", realm).Return(mockErr)
+
+	err := adapter.SetRealmBrowserFlow("realm1", "flow1")
+	if err == nil {
+		t.Fatal("no error on mock fatal")
+	}
+	if errors.Cause(err) != mockErr {
+		t.Log(err)
+		t.Fatal("wrong error returned")
 	}
 }

@@ -21,7 +21,9 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmH
 							next: PutUsersRoles{
 								next: PutOpenIdConfigAnnotation{
 									next: PutIdentityProvider{
-										next:   PutDefaultIdP{},
+										next: PutDefaultIdP{
+											next: AuthFlow{},
+										},
 										client: client,
 									},
 									client: client,

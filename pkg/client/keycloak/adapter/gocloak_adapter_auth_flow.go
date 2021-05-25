@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"net/http"
 	"sort"
 	"strings"
@@ -65,6 +66,20 @@ func (a GoCloakAdapter) SyncAuthFlow(realmName string, flow *KeycloakAuthFlow) e
 		if err := a.addAuthFlowExecution(realmName, &e); err != nil {
 			return errors.Wrap(err, "unable to add auth execution")
 		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) SetRealmBrowserFlow(realmName string, flowAlias string) error {
+	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
+	if err != nil {
+		return errors.Wrap(err, "unable to get realm")
+	}
+
+	realm.BrowserFlow = &flowAlias
+	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
+		return errors.Wrap(err, "unable to update realm")
 	}
 
 	return nil
