@@ -3,10 +3,10 @@ package keycloakclient
 import (
 	"context"
 
-	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/keycloakclient/chain"
+	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient/chain"
 	pkgErrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"

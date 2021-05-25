@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

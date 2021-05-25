@@ -3,10 +3,10 @@ package helper
 import (
 	"testing"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/apis"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"

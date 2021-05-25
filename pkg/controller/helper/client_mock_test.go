@@ -3,10 +3,10 @@ package helper
 import (
 	"context"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"

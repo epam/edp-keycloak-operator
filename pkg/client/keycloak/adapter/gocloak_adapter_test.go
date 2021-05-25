@@ -5,12 +5,12 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/api"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"

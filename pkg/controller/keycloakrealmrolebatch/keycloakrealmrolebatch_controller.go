@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v8"
-	"github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"

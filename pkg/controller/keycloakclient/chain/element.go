@@ -1,9 +1,9 @@
 package chain
 
 import (
-	v1v1alpha1 "github.com/epmd-edp/keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epmd-edp/keycloak-operator/pkg/client/keycloak"
-	"github.com/epmd-edp/keycloak-operator/pkg/controller/helper"
+	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
