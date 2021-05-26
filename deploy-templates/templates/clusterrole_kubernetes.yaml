@@ -30,6 +30,9 @@ rules:
     - keycloakrealmgroups
     - keycloakrealmgroups/finalizers
     - keycloakrealmgroups/status
+    - keycloakauthflows
+    - keycloakauthflows/finalizers
+    - keycloakauthflows/status
   verbs:
      - '*'
 - apiGroups:
