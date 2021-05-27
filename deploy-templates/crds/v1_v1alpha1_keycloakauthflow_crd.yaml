@@ -56,7 +56,13 @@ spec:
                     authenticatorConfig:
                       nullable: true
                       type: object
-                      additionalProperties: true
+                      properties:
+                        alias:
+                          type: string
+                        config:
+                          type: object
+                          nullable: true
+                          additionalProperties: true
                     priority:
                       type: integer
                     requirement:
