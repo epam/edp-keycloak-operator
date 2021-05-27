@@ -46,6 +46,7 @@ spec:
               builtIn:
                 type: boolean
               authenticationExecutions:
+                nullable: true
                 type: array
                 items:
                   type: object
@@ -65,6 +66,9 @@ spec:
             required:
               - realm
               - alias
+              - providerId
+              - topLevel
+              - builtIn
             type: object
           status:
             type: object
