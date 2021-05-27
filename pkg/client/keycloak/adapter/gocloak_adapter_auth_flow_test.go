@@ -43,8 +43,8 @@ func TestGoCloakAdapter_SyncAuthFlow(t *testing.T) {
 				Requirement:      "DISABLED",
 				AuthenticatorConfig: &AuthenticatorConfig{
 					Alias: "config-12",
-					Config: map[string]interface{}{
-						"bar": 3,
+					Config: map[string]string{
+						"bar": "3",
 					},
 				},
 			},

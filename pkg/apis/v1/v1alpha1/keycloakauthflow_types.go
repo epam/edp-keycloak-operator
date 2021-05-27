@@ -35,8 +35,8 @@ type AuthenticationExecution struct {
 
 // +k8s:openapi-gen=true
 type AuthenticatorConfig struct {
-	Alias  string `json:"alias"`
-	Config map[string]interface{}
+	Alias  string            `json:"alias"`
+	Config map[string]string `json:"config"`
 }
 
 type KeycloakAuthFlowStatus struct {

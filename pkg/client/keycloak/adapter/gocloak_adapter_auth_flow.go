@@ -30,8 +30,8 @@ type AuthenticationExecution struct {
 }
 
 type AuthenticatorConfig struct {
-	Alias  string                 `json:"alias"`
-	Config map[string]interface{} `json:"config"`
+	Alias  string            `json:"alias"`
+	Config map[string]string `json:"config"`
 }
 
 type orderByPriority []AuthenticationExecution
