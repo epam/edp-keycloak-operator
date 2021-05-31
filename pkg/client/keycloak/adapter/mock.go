@@ -200,3 +200,6 @@ func (m *Mock) SyncAuthFlow(realmName string, flow *KeycloakAuthFlow) error {
 func (m *Mock) SetRealmBrowserFlow(realmName string, flowAlias string) error {
 	return m.Called(realmName, flowAlias).Error(0)
 }
+func (m *Mock) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
+	return m.Called(realmName, realmSettings).Error(0)
+}
