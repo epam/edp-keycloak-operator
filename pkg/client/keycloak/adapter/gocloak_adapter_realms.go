@@ -8,6 +8,53 @@ import (
 	"github.com/pkg/errors"
 )
 
+type RealmSettings struct {
+	Themes                 *RealmThemes
+	BrowserSecurityHeaders *map[string]string
+}
+
+type RealmThemes struct {
+	LoginTheme                  *string
+	AccountTheme                *string
+	AdminConsoleTheme           *string
+	EmailTheme                  *string
+	InternationalizationEnabled *bool
+}
+
+func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
+	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
+	if err != nil {
+		return errors.Wrapf(err, "unable to realm: %s", realmName)
+	}
+
+	if realmSettings.Themes != nil {
+		realm.LoginTheme = realmSettings.Themes.LoginTheme
+		realm.AccountTheme = realmSettings.Themes.AccountTheme
+		realm.AdminTheme = realmSettings.Themes.AdminConsoleTheme
+		realm.EmailTheme = realmSettings.Themes.EmailTheme
+		realm.InternationalizationEnabled = realmSettings.Themes.InternationalizationEnabled
+	}
+
+	if realmSettings.BrowserSecurityHeaders != nil {
+		if realm.BrowserSecurityHeaders == nil {
+			bsh := make(map[string]string)
+			realm.BrowserSecurityHeaders = &bsh
+		}
+
+		realmBrowserSecurityHeaders := *realm.BrowserSecurityHeaders
+		for k, v := range *realmSettings.BrowserSecurityHeaders {
+			realmBrowserSecurityHeaders[k] = v
+		}
+		realm.BrowserSecurityHeaders = &realmBrowserSecurityHeaders
+	}
+
+	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
+		return errors.Wrap(err, "unable to update realm")
+	}
+
+	return nil
+}
+
 func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
 	log := a.log.WithValues("realm", realmName)
 	log.Info("Start check existing realm...")
@@ -53,7 +100,6 @@ func (a GoCloakAdapter) SyncRealmIdentityProviderMappers(realmName string, mappe
 	if err != nil {
 		return errors.Wrapf(err, "unable to get realm by name: %s", realmName)
 	}
-
 	currentMappers := make(map[string]*dto.IdentityProviderMapper)
 
 	if realm.IdentityProviderMappers != nil {

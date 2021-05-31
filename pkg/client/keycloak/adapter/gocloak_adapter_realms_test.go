@@ -11,6 +11,45 @@ import (
 	"github.com/jarcoal/httpmock"
 )
 
+func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+	adapter := GoCloakAdapter{
+		client:   mockClient,
+		token:    &gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+	}
+
+	settings := RealmSettings{
+		Themes: &RealmThemes{
+			LoginTheme: gocloak.StringP("keycloak"),
+		},
+		BrowserSecurityHeaders: &map[string]string{
+			"foo": "bar",
+		},
+	}
+	realmName := "ream11"
+
+	realm := gocloak.RealmRepresentation{
+		BrowserSecurityHeaders: &map[string]string{
+			"test": "dets",
+		},
+	}
+	mockClient.On("GetRealm", adapter.token.AccessToken, realmName).Return(&realm, nil)
+
+	updateRealm := gocloak.RealmRepresentation{
+		LoginTheme: settings.Themes.LoginTheme,
+		BrowserSecurityHeaders: &map[string]string{
+			"test": "dets",
+			"foo":  "bar",
+		},
+	}
+	mockClient.On("UpdateRealm", updateRealm).Return(nil)
+
+	if err := adapter.UpdateRealmSettings(realmName, &settings); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 	restyClient := resty.New()
