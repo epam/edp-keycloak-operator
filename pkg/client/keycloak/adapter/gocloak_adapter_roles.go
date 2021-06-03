@@ -93,9 +93,11 @@ func (a GoCloakAdapter) syncRoleComposites(
 		return errors.Wrap(err, "error during SyncCreateNewComposites")
 	}
 
-	if err := a.syncDeleteOldComposites(realmName, role, currentComposites); err != nil {
-		return errors.Wrap(err, "error during SyncDeleteOldComposites")
-	}
+	// temporary disable deletion of old composites to remove conflict with keycloak client roles
+
+	//if err := a.syncDeleteOldComposites(realmName, role, currentComposites); err != nil {
+	//	return errors.Wrap(err, "error during SyncDeleteOldComposites")
+	//}
 
 	return nil
 }
