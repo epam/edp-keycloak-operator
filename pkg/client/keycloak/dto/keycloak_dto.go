@@ -33,18 +33,22 @@ type User struct {
 	RealmRoles []string `json:"realmRoles"`
 }
 
-func ConvertSpecToRole(spec *v1alpha1.KeycloakRealmRoleSpec) *PrimaryRealmRole {
+func ConvertSpecToRole(roleInstance *v1alpha1.KeycloakRealmRole) *PrimaryRealmRole {
 	rr := PrimaryRealmRole{
-		Name:        spec.Name,
-		Description: spec.Description,
-		IsComposite: spec.Composite,
-		Attributes:  spec.Attributes,
-		Composites:  make([]string, 0, len(spec.Composites)),
-		IsDefault:   spec.IsDefault,
+		Name:        roleInstance.Spec.Name,
+		Description: roleInstance.Spec.Description,
+		IsComposite: roleInstance.Spec.Composite,
+		Attributes:  roleInstance.Spec.Attributes,
+		Composites:  make([]string, 0, len(roleInstance.Spec.Composites)),
+		IsDefault:   roleInstance.Spec.IsDefault,
 	}
 
-	for _, comp := range spec.Composites {
+	for _, comp := range roleInstance.Spec.Composites {
 		rr.Composites = append(rr.Composites, comp.Name)
+	}
+
+	if roleInstance.Status.ID != "" {
+		rr.ID = &roleInstance.Status.ID
 	}
 
 	return &rr

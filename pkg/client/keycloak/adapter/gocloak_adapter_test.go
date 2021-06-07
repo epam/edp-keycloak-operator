@@ -292,6 +292,31 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 	}
 }
 
+func TestGoCloakAdapter_SyncRealmRole_Duplicated(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	currentRole := gocloak.Role{Name: gocloak.StringP("role1")}
+
+	mockClient.On("GetRealmRole", "realm1", "role1").Return(&currentRole, nil)
+
+	adapter := GoCloakAdapter{
+		client: &mockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
+	}
+
+	role := dto.PrimaryRealmRole{Name: "role1"}
+
+	err := adapter.SyncRealmRole("realm1", &role)
+	if err == nil {
+		t.Fatal("no error returned on duplicated role")
+	}
+
+	if !IsErrDuplicated(err) {
+		t.Log(err)
+		t.Fatal("wrong error returned")
+	}
+}
+
 func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	realmName, roleName, roleID := "realm1", "role1", "id321"
@@ -333,7 +358,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	role := dto.PrimaryRealmRole{Name: roleName, Composites: []string{"foo", "bar"}, IsComposite: true,
 		Attributes: map[string][]string{
 			"foo": []string{"foo", "bar"},
-		}, IsDefault: true}
+		}, IsDefault: true, ID: gocloak.StringP("id321")}
 
 	if err := adapter.SyncRealmRole(realmName, &role); err != nil {
 		t.Fatal(err)

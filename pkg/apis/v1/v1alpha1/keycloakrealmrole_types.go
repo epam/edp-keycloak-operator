@@ -2,6 +2,8 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+const StatusDuplicated = "duplicated"
+
 // +k8s:openapi-gen=true
 type KeycloakRealmRoleSpec struct {
 	Name        string              `json:"name"`
