@@ -7,6 +7,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
@@ -66,7 +67,18 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		return
 	}
 
+	if instance.Status.Value == keycloakApi.StatusDuplicated {
+		log.Info("Role is duplicated, exit.")
+		return
+	}
+
 	if err := r.tryReconcile(&instance); err != nil {
+		if adapter.IsErrDuplicated(err) {
+			instance.Status.Value = keycloakApi.StatusDuplicated
+			log.Info("Role is duplicated", "name", instance.Name)
+			return
+		}
+
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak realm role", "name",
@@ -113,7 +125,7 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	log := r.log.WithValues("keycloak role cr", keycloakRealmRole)
 	log.Info("Start put keycloak cr role...")
 
-	role := dto.ConvertSpecToRole(&keycloakRealmRole.Spec)
+	role := dto.ConvertSpecToRole(keycloakRealmRole)
 
 	if err := kClient.SyncRealmRole(keycloakRealm.Spec.RealmName, role); err != nil {
 		return errors.Wrap(err, "unable to sync realm role CR")
@@ -122,6 +134,7 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	if role.ID != nil {
 		keycloakRealmRole.Status.ID = *role.ID
 	}
+
 	log.Info("Done putting keycloak cr role...")
 
 	return nil

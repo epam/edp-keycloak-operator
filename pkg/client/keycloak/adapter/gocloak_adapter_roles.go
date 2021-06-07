@@ -8,6 +8,21 @@ import (
 	"github.com/pkg/errors"
 )
 
+type ErrDuplicated string
+
+func (e ErrDuplicated) Error() string {
+	return string(e)
+}
+
+func IsErrDuplicated(err error) bool {
+	switch errors.Cause(err).(type) {
+	case ErrDuplicated:
+		return true
+	}
+
+	return false
+}
+
 func (a GoCloakAdapter) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
 	if err := a.createOrUpdateRealmRole(realmName, role); err != nil {
 		return errors.Wrap(err, "error during createOrUpdateRealmRole")
@@ -40,6 +55,10 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 		return nil
 	}
 
+	if role.ID == nil {
+		return ErrDuplicated("role is duplicated")
+	}
+
 	if err := a.syncRoleComposites(realmName, role, currentRealmRole); err != nil {
 		return errors.Wrap(err, "error during syncRoleComposites")
 	}
@@ -52,8 +71,6 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 		*currentRealmRole); err != nil {
 		return errors.Wrap(err, "unable to update realm role")
 	}
-
-	role.ID = currentRealmRole.ID
 
 	return nil
 }

@@ -3,10 +3,15 @@ package mock
 import "github.com/go-logr/logr"
 
 type InfoLogger struct {
+	InfoMessages map[string][]interface{}
 }
 
-func (InfoLogger) Info(msg string, keysAndValues ...interface{}) {
+func (i *InfoLogger) Info(msg string, keysAndValues ...interface{}) {
+	if i.InfoMessages == nil {
+		i.InfoMessages = make(map[string][]interface{})
+	}
 
+	i.InfoMessages[msg] = keysAndValues
 }
 
 func (InfoLogger) Enabled() bool {

@@ -68,6 +68,106 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	}
 }
 
+func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
+	ns := "namespace"
+	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
+		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   v1alpha1.KeycloakRealmRoleStatus{Value: v1alpha1.StatusDuplicated},
+	}
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+
+	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role).Build()
+	logger := mock.Logger{}
+	rkr := ReconcileKeycloakRealmRole{
+		log:    &logger,
+		client: client,
+	}
+
+	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      role.Name,
+			Namespace: role.Namespace,
+		}}); err != nil {
+	}
+
+	if _, ok := logger.InfoMessages["Role is duplicated, exit."]; !ok {
+		t.Fatal("duplicated message is not printed to log")
+	}
+
+	var checkRole v1alpha1.KeycloakRealmRole
+	if err := client.Get(context.Background(), types.NamespacedName{
+		Name:      role.Name,
+		Namespace: role.Namespace,
+	}, &checkRole); err != nil {
+		t.Fatal(err)
+	}
+
+	if checkRole.Status.Value != v1alpha1.StatusDuplicated {
+		t.Fatal("wrong status in duplicated role")
+	}
+}
+
+func TestReconcileRoleMarkDuplicated(t *testing.T) {
+	ns := "namespace"
+	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
+		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   v1alpha1.KeycloakRealmRoleStatus{},
+	}
+
+	duplicatedRole := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		ResourceVersion: "999",
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
+		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   v1alpha1.KeycloakRealmRoleStatus{Value: v1alpha1.StatusDuplicated},
+	}
+
+	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "v1.edp.epam.com/v1alpha1"},
+		Spec:     v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+
+	scheme := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+
+	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role).Build()
+	logger := mock.Logger{}
+
+	prr := dto.ConvertSpecToRole(&role)
+	kClient := new(adapter.Mock)
+	kClient.On("SyncRealmRole", "test", prr).
+		Return(errors.Wrap(adapter.ErrDuplicated("dup"), "test unwrap"))
+
+	h := helper.Mock{}
+	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kClient, nil)
+	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
+
+	h.On("UpdateStatus", &duplicatedRole).Return(nil)
+
+	rkr := ReconcileKeycloakRealmRole{
+		log:    &logger,
+		client: client,
+		helper: &h,
+	}
+
+	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+		NamespacedName: types.NamespacedName{
+			Name:      role.Name,
+			Namespace: role.Namespace,
+		}}); err != nil {
+	}
+
+	if _, ok := logger.InfoMessages["Role is duplicated"]; !ok {
+		t.Fatal("duplicated message is not printed to log")
+	}
+}
+
 func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
