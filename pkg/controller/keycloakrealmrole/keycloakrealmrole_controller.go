@@ -72,6 +72,12 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		return
 	}
 
+	defer func() {
+		if err := r.helper.UpdateStatus(&instance); err != nil {
+			resultErr = err
+		}
+	}()
+
 	if err := r.tryReconcile(&instance); err != nil {
 		if adapter.IsErrDuplicated(err) {
 			instance.Status.Value = keycloakApi.StatusDuplicated
@@ -83,13 +89,11 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak realm role", "name",
 			request.Name)
-	} else {
-		helper.SetSuccessStatus(&instance)
+
+		return
 	}
 
-	if err := r.helper.UpdateStatus(&instance); err != nil {
-		resultErr = err
-	}
+	helper.SetSuccessStatus(&instance)
 
 	return
 }
