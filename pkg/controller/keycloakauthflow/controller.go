@@ -2,6 +2,7 @@ package keycloakauthflow
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -16,6 +17,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -48,11 +50,18 @@ func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger)
 
 func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
-		UpdateFunc: helper.IsFailuresUpdated,
+		UpdateFunc: isSpecUpdated,
 	}
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakAuthFlow{}, builder.WithPredicates(pred)).
 		Complete(r)
+}
+
+func isSpecUpdated(e event.UpdateEvent) bool {
+	oo := e.ObjectOld.(*keycloakApi.KeycloakAuthFlow)
+	no := e.ObjectNew.(*keycloakApi.KeycloakAuthFlow)
+
+	return !reflect.DeepEqual(oo.Spec, no.Spec)
 }
 
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result,
@@ -78,6 +87,8 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	if err := r.helper.UpdateStatus(&instance); err != nil {
 		resultErr = err
 	}
+
+	log.Info("Reconciling KeycloakAuthFlow done.")
 
 	return
 }
