@@ -54,10 +54,21 @@ func TestGoCloakAdapter_SyncAuthFlow(t *testing.T) {
 	realmName := "realm-name1"
 	existFlowID := "flow-id-1"
 	httpmock.RegisterResponder("GET", strings.ReplaceAll(authFlows, "{realm}", realmName),
-		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{{Alias: flow.Alias, ID: existFlowID}}))
+		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{{Alias: flow.Alias, ID: existFlowID},
+			{Alias: "some-another-flow", ID: "321"}}))
 	deleteURL := strings.ReplaceAll(authFlow, "{realm}", realmName)
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
+
+	mockClient.On("GetRealm", "token", realmName).Return(&gocloak.RealmRepresentation{
+		BrowserFlow: gocloak.StringP("alias1"),
+	}, nil)
+	mockClient.On("UpdateRealm",
+		gocloak.RealmRepresentation{BrowserFlow: gocloak.StringP("some-another-flow")}).
+		Return(nil).Once()
+	mockClient.On("UpdateRealm",
+		gocloak.RealmRepresentation{BrowserFlow: gocloak.StringP("alias1")}).
+		Return(nil).Once()
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
 	createFlowResponse.Header.Set("Location", "id/new-flow-id")
@@ -100,6 +111,8 @@ func TestGoCloakAdapter_DeleteAuthFlow(t *testing.T) {
 	deleteURL := strings.ReplaceAll(authFlow, "{realm}", realmName)
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
+
+	mockClient.On("GetRealm", "token", "realm-name").Return(&gocloak.RealmRepresentation{}, nil)
 
 	if err := adapter.DeleteAuthFlow(realmName, flowAlias); err != nil {
 		t.Fatalf("%+v", err)
