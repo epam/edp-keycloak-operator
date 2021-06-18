@@ -203,3 +203,7 @@ func (m *Mock) SetRealmBrowserFlow(realmName string, flowAlias string) error {
 func (m *Mock) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
 	return m.Called(realmName, realmSettings).Error(0)
 }
+
+func (m *Mock) SyncRealmUser(realmName string, user *KeycloakUser) error {
+	return m.Called(realmName, user).Error(0)
+}
