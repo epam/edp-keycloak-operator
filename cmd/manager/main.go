@@ -14,6 +14,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmgroup"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrole"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrolebatch"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmuser"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/rest"
@@ -142,6 +143,12 @@ func main() {
 	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
 	if err := kafCtrl.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-auth-flow")
+		os.Exit(1)
+	}
+
+	kruCtrl := keycloakrealmuser.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
+	if err := kruCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-user")
 		os.Exit(1)
 	}
 

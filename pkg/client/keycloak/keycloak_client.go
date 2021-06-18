@@ -39,6 +39,7 @@ type KCloakGroups interface {
 type KCloakUsers interface {
 	ExistRealmUser(realmName string, user *dto.User) (bool, error)
 	CreateRealmUser(realmName string, user *dto.User) error
+	SyncRealmUser(realmName string, user *adapter.KeycloakUser) error
 }
 
 type KCloakRealms interface {
