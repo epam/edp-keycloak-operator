@@ -30,5 +30,12 @@ func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapt
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 
+	if keycloakClient.Spec.ServiceAccount.Attributes != nil {
+		if err := adapterClient.SetServiceAccountAttributes(keycloakClient.Spec.TargetRealm, keycloakClient.Status.ClientID,
+			keycloakClient.Spec.ServiceAccount.Attributes); err != nil {
+			return errors.Wrap(err, "unable to set service account attributes")
+		}
+	}
+
 	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
 }

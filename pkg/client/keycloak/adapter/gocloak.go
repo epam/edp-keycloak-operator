@@ -44,6 +44,7 @@ type GoCloakUsers interface {
 	GetUsers(ctx context.Context, accessToken, realm string, params gocloak.GetUsersParams) ([]*gocloak.User, error)
 	GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
 		userID string) (*gocloak.MappingsRepresentation, error)
+	UpdateUser(ctx context.Context, accessToken, realm string, user gocloak.User) error
 }
 
 type GoCloakClientRoles interface {
