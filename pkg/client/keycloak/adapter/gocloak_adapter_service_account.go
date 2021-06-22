@@ -30,3 +30,23 @@ func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRol
 
 	return nil
 }
+
+func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error {
+	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
+	if err != nil {
+		return errors.Wrap(err, "unable to get client service account")
+	}
+
+	svcAttributes := make(map[string][]string)
+	for k, v := range attributes {
+		svcAttributes[k] = []string{v}
+	}
+
+	user.Attributes = &svcAttributes
+
+	if err := a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
+		return errors.Wrapf(err, "unable to update service account user: %s", clientID)
+	}
+
+	return nil
+}

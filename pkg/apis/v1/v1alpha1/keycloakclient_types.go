@@ -31,9 +31,10 @@ type KeycloakClientSpec struct {
 
 // +k8s:openapi-gen=true
 type ServiceAccount struct {
-	Enabled     bool         `json:"enabled"`
-	RealmRoles  []string     `json:"realmRoles"`
-	ClientRoles []ClientRole `json:"clientRoles"`
+	Enabled     bool              `json:"enabled"`
+	RealmRoles  []string          `json:"realmRoles"`
+	ClientRoles []ClientRole      `json:"clientRoles"`
+	Attributes  map[string]string `json:"attributes"`
 }
 
 // +k8s:openapi-gen=true

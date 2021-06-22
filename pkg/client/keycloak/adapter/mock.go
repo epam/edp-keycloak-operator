@@ -207,3 +207,7 @@ func (m *Mock) UpdateRealmSettings(realmName string, realmSettings *RealmSetting
 func (m *Mock) SyncRealmUser(realmName string, user *KeycloakUser) error {
 	return m.Called(realmName, user).Error(0)
 }
+
+func (m *Mock) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error {
+	return m.Called(realm, clientID, attributes).Error(0)
+}
