@@ -265,3 +265,7 @@ func (m *MockGoCloakClient) CreateGroup(ctx context.Context, accessToken, realm 
 	called := m.Called(realm, group)
 	return called.String(0), called.Error(1)
 }
+
+func (m *MockGoCloakClient) UpdateUser(ctx context.Context, accessToken, realm string, user gocloak.User) error {
+	return m.Called(realm, user).Error(0)
+}
