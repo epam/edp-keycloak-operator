@@ -124,8 +124,8 @@ func (m *Mock) ExistMapRoleToUser(realmName string, user dto.User, role string) 
 	panic("implement me")
 }
 
-func (m *Mock) AddRealmRoleToUser(realmName string, user *dto.User, roleName string) error {
-	return m.Called(realmName, user, roleName).Error(0)
+func (m *Mock) AddRealmRoleToUser(realmName, username, roleName string) error {
+	return m.Called(realmName, username, roleName).Error(0)
 }
 
 func (m *Mock) CreateClientScope(realmName string, scope model.ClientScope) error {

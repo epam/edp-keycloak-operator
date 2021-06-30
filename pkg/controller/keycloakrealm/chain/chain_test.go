@@ -179,7 +179,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("CreateIncludedRealmRole", testRealm.Name, &dto.IncludedRealmRole{Name: "foo"}).Return(nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
-	kClient.On("AddRealmRoleToUser", testRealm.Name, &realmUser, "foo").Return(nil)
+	kClient.On("AddRealmRoleToUser", testRealm.Name, realmUser.Username, "foo").Return(nil)
 
 	chain := CreateDefChain(client, s)
 	if err := chain.ServeRequest(&kr, kClient); err != nil {
