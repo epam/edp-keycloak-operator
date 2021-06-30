@@ -491,15 +491,15 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	return res, nil
 }
 
-func (a GoCloakAdapter) AddRealmRoleToUser(realmName string, user *dto.User, roleName string) error {
+func (a GoCloakAdapter) AddRealmRoleToUser(realmName, username, roleName string) error {
 	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: &user.Username,
+		Username: &username,
 	})
 	if err != nil {
 		return errors.Wrap(err, "error during get kc users")
 	}
 	if len(users) == 0 {
-		return errors.Errorf("no users with username %s found", user.Username)
+		return errors.Errorf("no users with username %s found", username)
 	}
 
 	rl, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, roleName)
