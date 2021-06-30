@@ -59,7 +59,7 @@ func putOneRealmRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kCl
 		return nil
 	}
 
-	if err := kClient.AddRealmRoleToUser(realm.Name, user, role); err != nil {
+	if err := kClient.AddRealmRoleToUser(realm.Name, user.Username, role); err != nil {
 		return errors.Wrap(err, "unable to add realm role to user")
 	}
 

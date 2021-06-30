@@ -50,5 +50,11 @@ func (a GoCloakAdapter) SyncRealmUser(realmName string, user *KeycloakUser) erro
 		return errors.Wrap(err, "unable to create user")
 	}
 
+	for _, realmRole := range user.Roles {
+		if err := a.AddRealmRoleToUser(realmName, user.Username, realmRole); err != nil {
+			return errors.Wrap(err, "unable to add realm role to user")
+		}
+	}
+
 	return nil
 }
