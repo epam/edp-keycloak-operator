@@ -75,9 +75,9 @@ func (m *Mock) CreateIncludedRealmRole(realm string, role *dto.IncludedRealmRole
 	return args.Error(0)
 }
 
-func (m *Mock) CreatePrimaryRealmRole(realm string, role *dto.PrimaryRealmRole) error {
+func (m *Mock) CreatePrimaryRealmRole(realm string, role *dto.PrimaryRealmRole) (string, error) {
 	args := m.Called(realm, role)
-	return args.Error(0)
+	return args.String(0), args.Error(1)
 }
 
 func (m *Mock) ExistRealmUser(realmName string, user *dto.User) (bool, error) {
