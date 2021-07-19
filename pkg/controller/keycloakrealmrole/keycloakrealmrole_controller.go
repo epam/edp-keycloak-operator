@@ -2,6 +2,7 @@ package keycloakrealmrole
 
 import (
 	"context"
+	"reflect"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -12,11 +13,13 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -50,11 +53,20 @@ type ReconcileKeycloakRealmRole struct {
 
 func (r *ReconcileKeycloakRealmRole) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
-		UpdateFunc: helper.IsFailuresUpdated,
+		UpdateFunc: isSpecUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmRole{}, builder.WithPredicates(pred)).
 		Complete(r)
+}
+
+func isSpecUpdated(e event.UpdateEvent) bool {
+	oo := e.ObjectOld.(*keycloakApi.KeycloakRealmRole)
+	no := e.ObjectNew.(*keycloakApi.KeycloakRealmRole)
+
+	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
+		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
 }
 
 func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -63,6 +75,10 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 
 	var instance keycloakApi.KeycloakRealmRole
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return
+		}
+
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role from k8s")
 		return
 	}
@@ -78,7 +94,8 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		}
 	}()
 
-	if err := r.tryReconcile(&instance); err != nil {
+	roleID, err := r.tryReconcile(&instance)
+	if err != nil {
 		if adapter.IsErrDuplicated(err) {
 			instance.Status.Value = keycloakApi.StatusDuplicated
 			log.Info("Role is duplicated", "name", instance.Name)
@@ -94,37 +111,39 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	}
 
 	helper.SetSuccessStatus(&instance)
+	instance.Status.ID = roleID
 
 	return
 }
 
-func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.KeycloakRealmRole) error {
+func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.KeycloakRealmRole) (string, error) {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmRole, keycloakRealmRole.ObjectMeta)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm owner ref")
+		return "", errors.Wrap(err, "unable to get realm owner ref")
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
 	if err != nil {
-		return errors.Wrap(err, "unable to create keycloak client")
+		return "", errors.Wrap(err, "unable to create keycloak client")
 	}
 
-	if err := r.putRole(realm, keycloakRealmRole, kClient); err != nil {
-		return errors.Wrap(err, "unable to put role")
+	roleID, err := r.putRole(realm, keycloakRealmRole, kClient)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to put role")
 	}
 
 	if _, err := r.helper.TryToDelete(keycloakRealmRole,
 		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient),
 		keyCloakRealmRoleOperatorFinalizerName); err != nil {
-		return errors.Wrap(err, "unable to tryToDelete realm role")
+		return "", errors.Wrap(err, "unable to tryToDelete realm role")
 	}
 
-	return nil
+	return roleID, nil
 }
 
 func (r *ReconcileKeycloakRealmRole) putRole(
 	keycloakRealm *v1alpha1.KeycloakRealm, keycloakRealmRole *v1alpha1.KeycloakRealmRole,
-	kClient keycloak.Client) error {
+	kClient keycloak.Client) (string, error) {
 
 	log := r.log.WithValues("keycloak role cr", keycloakRealmRole)
 	log.Info("Start put keycloak cr role...")
@@ -132,14 +151,16 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	role := dto.ConvertSpecToRole(keycloakRealmRole)
 
 	if err := kClient.SyncRealmRole(keycloakRealm.Spec.RealmName, role); err != nil {
-		return errors.Wrap(err, "unable to sync realm role CR")
+		return "", errors.Wrap(err, "unable to sync realm role CR")
 	}
 
+	var roleID string
+
 	if role.ID != nil {
-		keycloakRealmRole.Status.ID = *role.ID
+		roleID = *role.ID
 	}
 
 	log.Info("Done putting keycloak cr role...")
 
-	return nil
+	return roleID, nil
 }

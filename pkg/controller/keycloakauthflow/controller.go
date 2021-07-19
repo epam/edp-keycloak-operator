@@ -5,6 +5,8 @@ import (
 	"reflect"
 	"time"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -61,7 +63,8 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 	oo := e.ObjectOld.(*keycloakApi.KeycloakAuthFlow)
 	no := e.ObjectNew.(*keycloakApi.KeycloakAuthFlow)
 
-	return !reflect.DeepEqual(oo.Spec, no.Spec)
+	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
+		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
 }
 
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result,
@@ -71,6 +74,10 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 
 	var instance keycloakApi.KeycloakAuthFlow
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return
+		}
+
 		resultErr = errors.Wrap(err, "unable to get keycloak auth flow from k8s")
 		return
 	}

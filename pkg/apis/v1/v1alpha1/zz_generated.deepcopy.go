@@ -911,6 +911,8 @@ func (in *KeycloakRealmUser) DeepCopyInto(out *KeycloakRealmUser) {
 	*out = *in
 	out.TypeMeta = in.TypeMeta
 	in.ObjectMeta.DeepCopyInto(&out.ObjectMeta)
+	in.Spec.DeepCopyInto(&out.Spec)
+	out.Status = in.Status
 	return
 }
 
@@ -1172,6 +1174,13 @@ func (in *ServiceAccount) DeepCopyInto(out *ServiceAccount) {
 		*out = make([]ClientRole, len(*in))
 		for i := range *in {
 			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
+	if in.Attributes != nil {
+		in, out := &in.Attributes, &out.Attributes
+		*out = make(map[string]string, len(*in))
+		for key, val := range *in {
+			(*out)[key] = val
 		}
 	}
 	return

@@ -617,7 +617,7 @@ func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.Incl
 	return nil
 }
 
-func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
+func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) (string, error) {
 	log := a.log.WithValues("realm name", realmName, "role", role)
 	log.Info("Start create realm roles in Keycloak...")
 
@@ -628,9 +628,9 @@ func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.Prima
 		Composite:   &role.IsComposite,
 	}
 
-	_, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realmName, realmRole)
+	id, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realmName, realmRole)
 	if err != nil {
-		return errors.Wrap(err, "unable to create realm role")
+		return "", errors.Wrap(err, "unable to create realm role")
 	}
 
 	if role.IsComposite && len(role.Composites) > 0 {
@@ -638,7 +638,7 @@ func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.Prima
 		for _, composite := range role.Composites {
 			role, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, composite)
 			if err != nil {
-				return errors.Wrap(err, "unable to get realm role")
+				return "", errors.Wrap(err, "unable to get realm role")
 			}
 			compositeRoles = append(compositeRoles, *role)
 		}
@@ -646,13 +646,13 @@ func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.Prima
 		if len(compositeRoles) > 0 {
 			if err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
 				role.Name, compositeRoles); err != nil {
-				return errors.Wrap(err, "unable to add role composite")
+				return "", errors.Wrap(err, "unable to add role composite")
 			}
 		}
 	}
 
 	log.Info("Keycloak roles has been created")
-	return nil
+	return id, nil
 }
 
 func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {

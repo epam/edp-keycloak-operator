@@ -65,6 +65,10 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 
 	var instance v1alpha1.KeycloakRealmRoleBatch
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return
+		}
+
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role batch from k8s")
 		return
 	}

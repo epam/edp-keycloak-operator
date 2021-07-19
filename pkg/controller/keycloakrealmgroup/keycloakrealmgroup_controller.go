@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -61,6 +63,10 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 
 	var instance keycloakApi.KeycloakRealmGroup
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return
+		}
+
 		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
 		return
 	}

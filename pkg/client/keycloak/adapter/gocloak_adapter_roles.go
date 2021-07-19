@@ -43,7 +43,8 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 	}
 
 	if !exists {
-		if err := a.CreatePrimaryRealmRole(realmName, role); err != nil {
+		_, err := a.CreatePrimaryRealmRole(realmName, role)
+		if err != nil {
 			return errors.Wrap(err, "unable to create realm role during sync")
 		}
 
@@ -51,6 +52,7 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 		if err != nil {
 			return errors.Wrap(err, "unable to get realm role")
 		}
+
 		role.ID = currentRealmRole.ID
 		return nil
 	}
