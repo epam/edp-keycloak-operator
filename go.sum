@@ -112,6 +112,8 @@ github.com/epam/edp-component-operator v0.1.1-0.20210413101042-1d8f823f27cc h1:2
 github.com/epam/edp-component-operator v0.1.1-0.20210413101042-1d8f823f27cc/go.mod h1:fxiH4grhavez0q1vBcDleIcQ5mXiIrtSK34TRtgQ4Ec=
 github.com/epam/edp-component-operator v0.1.1-0.20210427065236-c7dce7f4ea2b h1:wFz1XBg83O7C5WrvwPsQJh37gG8yP2jzozM1ntG4Fhw=
 github.com/epam/edp-component-operator v0.1.1-0.20210427065236-c7dce7f4ea2b/go.mod h1:fxiH4grhavez0q1vBcDleIcQ5mXiIrtSK34TRtgQ4Ec=
+github.com/epam/edp-component-operator v0.1.1-0.20210712140516-09b8bb3a4cff h1:+jj6bPiWhAoq8YIRBY1QM16L4jkefEzX7qY3KrxtZo4=
+github.com/epam/edp-component-operator v0.1.1-0.20210712140516-09b8bb3a4cff/go.mod h1:fxiH4grhavez0q1vBcDleIcQ5mXiIrtSK34TRtgQ4Ec=
 github.com/evanphx/json-patch v4.0.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
 github.com/evanphx/json-patch v4.5.0+incompatible h1:ouOWdg56aJriqS0huScTkVXPC5IcNrDCXZ6OoTAWu7M=
 github.com/evanphx/json-patch v4.5.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=
