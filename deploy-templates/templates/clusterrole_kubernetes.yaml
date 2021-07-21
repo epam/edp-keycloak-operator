@@ -33,6 +33,9 @@ rules:
     - keycloakauthflows
     - keycloakauthflows/finalizers
     - keycloakauthflows/status
+    - keycloakrealmusers
+    - keycloakrealmusers/finalizers
+    - keycloakrealmusers/status
   verbs:
      - '*'
 - apiGroups:
