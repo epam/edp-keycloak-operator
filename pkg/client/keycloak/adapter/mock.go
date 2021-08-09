@@ -1,6 +1,8 @@
 package adapter
 
 import (
+	"context"
+
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -128,10 +130,6 @@ func (m *Mock) AddRealmRoleToUser(realmName, username, roleName string) error {
 	return m.Called(realmName, username, roleName).Error(0)
 }
 
-func (m *Mock) CreateClientScope(realmName string, scope model.ClientScope) error {
-	return m.Called(realmName, scope).Error(0)
-}
-
 func (m *Mock) DeleteClient(kkClientID string, realName string) error {
 	return m.Called(kkClientID, realName).Error(0)
 }
@@ -145,7 +143,12 @@ func (m *Mock) DeleteRealm(realmName string) error {
 }
 
 func (m *Mock) GetClientScope(scopeName, realmName string) (*model.ClientScope, error) {
-	panic("implement me")
+	called := m.Called(scopeName, realmName)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*model.ClientScope), nil
 }
 
 func (m *Mock) HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error) {
@@ -210,4 +213,21 @@ func (m *Mock) SyncRealmUser(realmName string, user *KeycloakUser) error {
 
 func (m *Mock) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error {
 	return m.Called(realm, clientID, attributes).Error(0)
+}
+
+func (m *Mock) CreateClientScope(ctx context.Context, realmName string, scope *ClientScope) (string, error) {
+	called := m.Called(realmName, scope)
+	if err := called.Error(1); err != nil {
+		return "", err
+	}
+
+	return called.String(0), nil
+}
+
+func (m *Mock) DeleteClientScope(ctx context.Context, realmName, scopeID string) error {
+	return m.Called(realmName, scopeID).Error(0)
+}
+
+func (m *Mock) UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *ClientScope) error {
+	return m.Called(realmName, scopeID, scope).Error(0)
 }

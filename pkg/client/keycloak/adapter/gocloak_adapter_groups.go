@@ -14,7 +14,7 @@ func (e ErrNotFound) Error() string {
 	return string(e)
 }
 
-func isErrNotFound(err error) bool {
+func IsErrNotFound(err error) bool {
 	switch errors.Cause(err).(type) {
 	case ErrNotFound:
 		return true
@@ -107,7 +107,7 @@ func (a GoCloakAdapter) syncSubGroups(realm string, group *gocloak.Group, subGro
 func (a GoCloakAdapter) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error) {
 	group, err := a.getGroup(realmName, spec.Name)
 	if err != nil {
-		if !isErrNotFound(err) {
+		if !IsErrNotFound(err) {
 			return "", errors.Wrapf(err, "unable to get group with spec %+v", spec)
 		}
 

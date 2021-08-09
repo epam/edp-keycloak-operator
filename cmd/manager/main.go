@@ -4,6 +4,8 @@ import (
 	"flag"
 	"os"
 
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclientscope"
+
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -149,6 +151,12 @@ func main() {
 	kruCtrl := keycloakrealmuser.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
 	if err := kruCtrl.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-user")
+		os.Exit(1)
+	}
+
+	if err := keycloakclientscope.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog).
+		SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "keycloak-client-scope")
 		os.Exit(1)
 	}
 

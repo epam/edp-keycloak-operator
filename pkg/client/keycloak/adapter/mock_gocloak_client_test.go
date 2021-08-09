@@ -269,3 +269,16 @@ func (m *MockGoCloakClient) CreateGroup(ctx context.Context, accessToken, realm 
 func (m *MockGoCloakClient) UpdateUser(ctx context.Context, accessToken, realm string, user gocloak.User) error {
 	return m.Called(realm, user).Error(0)
 }
+
+func (m *MockGoCloakClient) DeleteClientScope(ctx context.Context, accessToken, realm, scopeID string) error {
+	return m.Called(realm, scopeID).Error(0)
+}
+
+func (m *MockGoCloakClient) GetClientScope(ctx context.Context, token, realm, scopeID string) (*gocloak.ClientScope, error) {
+	called := m.Called(realm, scopeID)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*gocloak.ClientScope), nil
+}
