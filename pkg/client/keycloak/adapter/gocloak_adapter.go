@@ -19,23 +19,28 @@ import (
 )
 
 const (
-	idPResource                    = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idPMapperResource              = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	getOneIdP                      = idPResource + "/{alias}"
-	openIdConfig                   = "/auth/realms/{realm}/.well-known/openid-configuration"
-	authExecutions                 = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
-	authExecutionConfig            = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	postClientScopeMapper          = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
-	getOneClientScope              = "/auth/admin/realms/{realm}/client-scopes"
-	linkClientScopeToClient        = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
-	postClientScope                = "/auth/admin/realms/{realm}/client-scopes"
-	getClientProtocolMappers       = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
-	mapperToIdentityProvider       = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	updateMapperToIdentityProvider = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
-	authFlows                      = "/auth/admin/realms/{realm}/authentication/flows"
-	authFlow                       = "/auth/admin/realms/{realm}/authentication/flows/{id}"
-	authFlowExecutionCreate        = "/auth/admin/realms/{realm}/authentication/executions"
-	authFlowExecutionConfig        = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
+	idPResource                     = "/auth/admin/realms/{realm}/identity-provider/instances"
+	idPMapperResource               = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	getOneIdP                       = idPResource + "/{alias}"
+	openIdConfig                    = "/auth/realms/{realm}/.well-known/openid-configuration"
+	authExecutions                  = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
+	authExecutionConfig             = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
+	postClientScopeMapper           = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
+	getOneClientScope               = "/auth/admin/realms/{realm}/client-scopes"
+	linkClientScopeToClient         = "/auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}"
+	postClientScope                 = "/auth/admin/realms/{realm}/client-scopes"
+	putClientScope                  = "/auth/admin/realms/{realm}/client-scopes/{id}"
+	getClientProtocolMappers        = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
+	mapperToIdentityProvider        = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	updateMapperToIdentityProvider  = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	authFlows                       = "/auth/admin/realms/{realm}/authentication/flows"
+	authFlow                        = "/auth/admin/realms/{realm}/authentication/flows/{id}"
+	authFlowExecutionCreate         = "/auth/admin/realms/{realm}/authentication/executions"
+	authFlowExecutionConfig         = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
+	deleteClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
+	createClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
+	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 )
 
 type GoCloakAdapter struct {
@@ -906,7 +911,7 @@ func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName stri
 
 func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	if err != nil {
-		return err
+		return errors.Wrap(err, "response error")
 	}
 	if response == nil {
 		return errors.New("empty response")
@@ -933,41 +938,6 @@ func getProtocolMapper(clientId string) model.ProtocolMappers {
 	}
 }
 
-func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*model.ClientScope, error) {
-	log := a.log.WithValues("scopeName", scopeName, "realm", realmName)
-	log.Info("Start get Client Scope...")
-	var result []*model.ClientScope
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm": realmName,
-		}).
-		SetResult(&result).
-		Get(a.basePath + getOneClientScope)
-	if err := a.checkError(err, resp); err != nil {
-		return nil, err
-	}
-	if result == nil {
-		return nil, fmt.Errorf("realm %v doesnt contain client scopes", realmName)
-	}
-	scope, err := getClientScope(scopeName, result)
-	if err != nil {
-		return nil, err
-	}
-	log.Info("End get Client Scope", "scope", scope)
-	return scope, err
-}
-
-func getClientScope(name string, clientScopes []*model.ClientScope) (*model.ClientScope, error) {
-	for _, cs := range clientScopes {
-		if *cs.Name == name {
-			return cs, nil
-		}
-	}
-	return nil, fmt.Errorf("scope %v was not found", name)
-}
-
 func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName string) error {
 	log := a.log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
 	log.Info("Start link Client Scope to client...")
@@ -989,24 +959,6 @@ func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName s
 		return errors.Wrapf(err, "error during %s", linkClientScopeToClient)
 	}
 	log.Info("End link Client Scope to client...")
-	return nil
-}
-
-func (a GoCloakAdapter) CreateClientScope(realmName string, scope model.ClientScope) error {
-	log := a.log.WithValues("realm", realmName, "scope", scope.Name)
-	log.Info("Start creating Client Scope...")
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm": realmName,
-		}).
-		SetBody(scope).
-		Post(a.basePath + postClientScope)
-	if err := a.checkError(err, resp); err != nil {
-		return err
-	}
-	log.Info("Client Scope was created!")
 	return nil
 }
 

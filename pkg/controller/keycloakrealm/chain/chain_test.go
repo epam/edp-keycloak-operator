@@ -9,7 +9,6 @@ import (
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/model"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,14 +44,14 @@ func TestCreateDefChain(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
 			SsoAutoRedirectEnabled: true}).
 		Return(nil)
-	kClient.On("CreateClientScope", realmName, model.ClientScope{
-		Name:        gocloak.StringP("edp"),
-		Description: gocloak.StringP("default edp scope required for ac and nexus"),
-		Protocol:    gocloak.StringP("openid-connect"),
-		ClientScopeAttributes: &model.ClientScopeAttributes{
-			IncludeInTokenScope: gocloak.StringP("true"),
+	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
+		Name:        "edp",
+		Description: "default edp scope required for ac and nexus",
+		Protocol:    "openid-connect",
+		Attributes: map[string]string{
+			"include.in.token.scope": "true",
 		},
-	}).Return(nil)
+	}).Return("", nil)
 	kClient.On("GetOpenIdConfig", &testRealm).
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(false, nil)
@@ -99,14 +98,14 @@ func TestCreateDefChain2(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
 			SsoAutoRedirectEnabled: true, Users: []dto.User{realmUser}}).
 		Return(nil)
-	kClient.On("CreateClientScope", realmName, model.ClientScope{
-		Name:        gocloak.StringP("edp"),
-		Description: gocloak.StringP("default edp scope required for ac and nexus"),
-		Protocol:    gocloak.StringP("openid-connect"),
-		ClientScopeAttributes: &model.ClientScopeAttributes{
-			IncludeInTokenScope: gocloak.StringP("true"),
+	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
+		Name:        "edp",
+		Description: "default edp scope required for ac and nexus",
+		Protocol:    "openid-connect",
+		Attributes: map[string]string{
+			"include.in.token.scope": "true",
 		},
-	}).Return(nil)
+	}).Return("", nil)
 	kClient.On("GetOpenIdConfig", &testRealm).
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
@@ -155,14 +154,14 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false,
 			SsoAutoRedirectEnabled: true, Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
 		Return(nil)
-	kClient.On("CreateClientScope", realmName, model.ClientScope{
-		Name:        gocloak.StringP("edp"),
-		Description: gocloak.StringP("default edp scope required for ac and nexus"),
-		Protocol:    gocloak.StringP("openid-connect"),
-		ClientScopeAttributes: &model.ClientScopeAttributes{
-			IncludeInTokenScope: gocloak.StringP("true"),
+	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
+		Name:        "edp",
+		Description: "default edp scope required for ac and nexus",
+		Protocol:    "openid-connect",
+		Attributes: map[string]string{
+			"include.in.token.scope": "true",
 		},
-	}).Return(nil)
+	}).Return("", nil)
 	kClient.On("GetOpenIdConfig", &testRealm).
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)

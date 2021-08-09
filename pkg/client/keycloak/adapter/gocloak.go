@@ -37,6 +37,8 @@ type GoCloakClients interface {
 		mapper gocloak.ProtocolMapperRepresentation) error
 	DeleteClientProtocolMapper(ctx context.Context, token, realm, clientID, mapperID string) error
 	GetClientServiceAccount(ctx context.Context, token, realm, clientID string) (*gocloak.User, error)
+	DeleteClientScope(ctx context.Context, accessToken, realm, scopeID string) error
+	GetClientScope(ctx context.Context, token, realm, scopeID string) (*gocloak.ClientScope, error)
 }
 
 type GoCloakUsers interface {

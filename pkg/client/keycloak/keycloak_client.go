@@ -1,6 +1,8 @@
 package keycloak
 
 import (
+	"context"
+
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -55,13 +57,15 @@ type KCloakClients interface {
 	ExistClient(clientID, realm string) (bool, error)
 	CreateClient(client *dto.Client) error
 	DeleteClient(kkClientID, realmName string) error
-	CreateClientScope(realmName string, scope model.ClientScope) error
+	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
 	GetClientID(clientID, realm string) (string, error)
 	PutClientScopeMapper(clientName, scopeId, realmName string) error
 	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)
 	LinkClientScopeToClient(clientName, scopeId, realmName string) error
+	UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *adapter.ClientScope) error
+	DeleteClientScope(ctx context.Context, realmName, scopeID string) error
 }
 
 type KCloakRealmRoles interface {

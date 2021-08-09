@@ -97,7 +97,7 @@ func (a GoCloakAdapter) syncBaseAuthFlow(realmName string, flow *KeycloakAuthFlo
 	)
 
 	authFlow, err := a.getAuthFlow(realmName, flow.Alias)
-	if err != nil && !isErrNotFound(errors.Cause(err)) {
+	if err != nil && !IsErrNotFound(errors.Cause(err)) {
 		return "", errors.Wrap(err, "unable to get auth flow")
 	} else if err == nil {
 		realm, isBrowserFlowUnset, err = a.unsetBrowserFlow(realmName, flow.Alias)

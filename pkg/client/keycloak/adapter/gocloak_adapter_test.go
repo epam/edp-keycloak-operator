@@ -438,6 +438,33 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 	}
 }
 
+func TestGoCloakAdapter_SyncRealmGroup_FailureGetGroupsFatal(t *testing.T) {
+	clMock := MockGoCloakClient{}
+
+	adapter := GoCloakAdapter{
+		client: &clMock,
+		token:  &gocloak.JWT{AccessToken: "token"},
+	}
+
+	group := v1alpha1.KeycloakRealmGroupSpec{
+		Name: "group1",
+	}
+
+	clMock.On("GetGroups", "realm1", gocloak.GetGroupsParams{
+		Search: &group.Name,
+	}).Return(nil, errors.New("fatal mock"))
+
+	_, err := adapter.SyncRealmGroup("realm1", &group)
+
+	if err == nil {
+		t.Fatal("error is not returned")
+	}
+
+	if errors.Cause(err).Error() != "fatal mock" {
+		t.Fatalf("wrong error returned: %s", errors.Cause(err).Error())
+	}
+}
+
 func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
