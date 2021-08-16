@@ -5,7 +5,7 @@ ENV OPERATOR=/usr/local/bin/keycloak-operator \
     USER_NAME=keycloak-operator
 
 # install operator binary
-COPY keycloak-operator ${OPERATOR}
+COPY go-binary ${OPERATOR}
 
 COPY build/bin /usr/local/bin
 COPY build/configs /usr/local/configs
