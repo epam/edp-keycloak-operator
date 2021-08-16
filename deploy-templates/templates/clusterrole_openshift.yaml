@@ -47,6 +47,9 @@ rules:
     - keycloakrealmusers
     - keycloakrealmusers/finalizers
     - keycloakrealmusers/status
+    - keycloakclientscopes/finalizers
+    - keycloakclientscopes/status
+    - keycloakclientscopes
   verbs:
      - '*'
 - apiGroups:
