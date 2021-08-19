@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
@@ -20,6 +21,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -52,7 +54,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, &edpCompApi.EDPComponent{})
-	client := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
+	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
 	//request
 	req := reconcile.Request{
@@ -69,7 +71,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		Return(nil, errors.New("fatal"))
 	//reconcile
 	r := ReconcileKeycloak{
-		client: client,
+		client: cl,
 		scheme: s,
 		log:    &logger,
 		helper: &h,
@@ -83,7 +85,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	assert.False(t, res.Requeue)
 
 	persisted := &v1alpha1.Keycloak{}
-	err = client.Get(context.TODO(), req.NamespacedName, persisted)
+	err = cl.Get(context.TODO(), req.NamespacedName, persisted)
 	assert.False(t, persisted.Status.Connected)
 
 	realm := &v1alpha1.KeycloakRealm{}
@@ -91,7 +93,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		Name:      "main",
 		Namespace: "namespace",
 	}
-	err = client.Get(context.TODO(), nsnRealm, realm)
+	err = cl.Get(context.TODO(), nsnRealm, realm)
 
 	assert.Error(t, err)
 
@@ -108,7 +110,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
-	client := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
+	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
 
@@ -118,7 +120,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
 		Return(&kClient, nil)
 	r := ReconcileKeycloak{
-		client: client,
+		client: cl,
 		scheme: s,
 		log:    &logger,
 		helper: &h,
@@ -129,7 +131,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	if err := client.Get(context.Background(),
+	if err := cl.Get(context.Background(),
 		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &v1alpha1.KeycloakRealm{}); err != nil {
 		t.Fatal(err)
 	}
@@ -146,7 +148,7 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
-	client := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
+	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
 	kClient := adapter.Mock{}
@@ -155,7 +157,7 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
 		Return(&kClient, nil)
 	r := ReconcileKeycloak{
-		client: client,
+		client: cl,
 		scheme: s,
 		log:    &logger,
 		helper: &h,
@@ -166,8 +168,187 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	if err := client.Get(context.Background(),
+	if err := cl.Get(context.Background(),
 		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &v1alpha1.KeycloakRealm{}); err == nil {
 		t.Fatal("main realm has been created")
+	}
+}
+
+func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
+	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
+			InstallMainRealm: gocloak.BoolP(false)}}
+
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
+	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
+
+	logger := mock.Logger{}
+	r := ReconcileKeycloak{
+		client: cl,
+		scheme: s,
+		log:    &logger,
+	}
+
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo23", Namespace: "bar23"}}
+
+	res, err := r.Reconcile(context.Background(), rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.RequeueAfter != 0 {
+		t.Fatal("RequeueAfter is set")
+	}
+
+	if _, ok := logger.InfoMessages["instance not found"]; !ok {
+		t.Fatal("not found message is not logged")
+	}
+
+	mockK8S := helper.K8SClientMock{}
+	r.client = &mockK8S
+
+	var kc v1alpha1.Keycloak
+	mockK8S.On("Get", rq.NamespacedName, &kc).Return(errors.New("get keycloak fatal"))
+	res, err = r.Reconcile(context.Background(), rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if res.RequeueAfter == 0 {
+		t.Fatal("RequeueAfter is not set")
+	}
+
+	err = logger.LastError()
+	if err == nil {
+		t.Fatal("no error logged")
+	}
+
+	if !strings.Contains(err.Error(), "get keycloak fatal") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *testing.T) {
+	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
+			InstallMainRealm: gocloak.BoolP(false)}}
+
+	s := scheme.Scheme
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
+	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
+
+	logger := mock.Logger{}
+	r := ReconcileKeycloak{
+		client: cl,
+		scheme: s,
+		log:    &logger,
+	}
+
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
+
+	_, err := r.Reconcile(context.Background(), rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = logger.LastError()
+	if err == nil {
+		t.Fatal("no error logged")
+	}
+
+	if !strings.Contains(err.Error(), `secrets "keycloak-secret" not found`) {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
+	clStatus := helper.K8SStatusMock{}
+	cl := helper.K8SClientMock{}
+	cl.SetStatus(&clStatus)
+	hm := helper.Mock{}
+	kClMock := adapter.Mock{}
+
+	logger := mock.Logger{}
+	r := ReconcileKeycloak{
+		client: &cl,
+		scheme: cl.Scheme(),
+		log:    &logger,
+		helper: &hm,
+	}
+
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "baz", Namespace: "bar"}}
+	cr := v1alpha1.Keycloak{}
+	sec := corev1.Secret{}
+
+	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
+	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
+	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
+
+	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
+	var updateOpts []client.UpdateOption
+	clStatus.On("Update", &crConnected, updateOpts).Return(nil)
+	cl.On("Get", rq.NamespacedName, &cr).Return(errors.New("isStatusConnected fatal")).Once()
+
+	_, err := r.Reconcile(context.Background(), rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = logger.LastError()
+	if err == nil {
+		t.Fatal("no error logged")
+	}
+
+	if !strings.Contains(err.Error(), `isStatusConnected fatal`) {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
+	clStatus := helper.K8SStatusMock{}
+	cl := helper.K8SClientMock{}
+	cl.SetStatus(&clStatus)
+	hm := helper.Mock{}
+	kClMock := adapter.Mock{}
+
+	logger := mock.Logger{}
+	r := ReconcileKeycloak{
+		client: &cl,
+		scheme: cl.Scheme(),
+		log:    &logger,
+		helper: &hm,
+	}
+
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "baz", Namespace: "bar"}}
+	cr := v1alpha1.Keycloak{}
+	sec := corev1.Secret{}
+	realmCr := v1alpha1.KeycloakRealm{}
+
+	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
+	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
+	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
+
+	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
+	cl.On("Get", rq.NamespacedName, &cr).Return(nil, &crConnected).Once()
+
+	var updateOpts []client.UpdateOption
+	clStatus.On("Update", &crConnected, updateOpts).Return(nil)
+	cl.On("Get", rq.NamespacedName, &cr).Return(errors.New("isStatusConnected fatal")).Once()
+	cl.On("Get", types.NamespacedName{Name: "main"}, &realmCr).
+		Return(errors.New("get main realm fatal"))
+
+	_, err := r.Reconcile(context.Background(), rq)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = logger.LastError()
+	if err == nil {
+		t.Fatal("no error logged")
+	}
+
+	if !strings.Contains(err.Error(), `get main realm fatal`) {
+		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }
