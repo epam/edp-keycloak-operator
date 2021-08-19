@@ -73,34 +73,46 @@ func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Req
 	instance := &keycloakApi.Keycloak{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if errors.IsNotFound(err) {
+			log.Info("instance not found")
 			return reconcile.Result{}, nil
 		}
-		return reconcile.Result{}, err
+
+		log.Error(err, "unable to get keycloak cr")
+		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
 	}
 
+	if err := r.tryToReconcile(ctx, instance, request); err != nil {
+		log.Error(err, "error during reconcilation")
+		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
+	}
+
+	log.Info("Reconciling Keycloak has been finished")
+	return reconcile.Result{}, nil
+}
+
+func (r *ReconcileKeycloak) tryToReconcile(ctx context.Context, instance *keycloakApi.Keycloak,
+	request reconcile.Request) error {
 	if err := r.updateConnectionStatusToKeycloak(ctx, instance); err != nil {
-		return reconcile.Result{}, err
+		return pkgErrors.Wrap(err, "unable to update connection status to keycloak")
 	}
 
 	con, err := r.isStatusConnected(ctx, request)
 	if err != nil {
-		return reconcile.Result{}, err
+		return pkgErrors.Wrap(err, "unable to check connection status")
 	}
 	if !con {
-		log.Info("Status is not connected")
-		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
+		return pkgErrors.New("Keycloak CR status is not connected")
 	}
 
 	if err := r.putMainRealm(ctx, instance); err != nil {
-		return reconcile.Result{}, err
+		return pkgErrors.Wrap(err, "unable to put main realm")
 	}
 
 	if err := r.putEDPComponent(ctx, instance); err != nil {
-		return reconcile.Result{}, err
+		return pkgErrors.Wrap(err, "unable to put edp component")
 	}
 
-	log.Info("Reconciling Keycloak has been finished")
-	return reconcile.Result{}, err
+	return nil
 }
 
 func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.Keycloak) error {
