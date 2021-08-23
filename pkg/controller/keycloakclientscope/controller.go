@@ -30,7 +30,7 @@ type Helper interface {
 	UpdateStatus(obj client.Object) error
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 }
 
 type Reconcile struct {
@@ -82,13 +82,15 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
-	if err := r.tryReconcile(ctx, &instance); err != nil {
+	scopeID, err := r.tryReconcile(ctx, &instance)
+	if err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak auth flow", "name",
+		log.Error(err, "an error has occurred while handling keycloak client scope", "name",
 			request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
+		instance.Status.ID = scopeID
 	}
 
 	if err := r.helper.UpdateStatus(&instance); err != nil {
@@ -99,35 +101,36 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	return
 }
 
-func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakClientScope) error {
+func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakClientScope) (string, error) {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, instance.ObjectMeta)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm owner ref")
+		return "", errors.Wrap(err, "unable to get realm owner ref")
 	}
 
 	cl, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
 	if err != nil {
-		return errors.Wrap(err, "unable to create keycloak client")
+		return "", errors.Wrap(err, "unable to create keycloak client")
 	}
 
-	if err := syncClientScope(ctx, instance, realm, cl); err != nil {
-		return errors.Wrap(err, "unable to sync client scope")
+	scopeID, err := syncClientScope(ctx, instance, realm, cl)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to sync client scope")
 	}
 
-	if _, err := r.helper.TryToDelete(instance,
+	if _, err := r.helper.TryToDelete(ctx, instance,
 		makeTerminator(ctx, cl, realm.Spec.RealmName, instance.Status.ID), finalizerName); err != nil {
-		return errors.Wrap(err, "error during TryToDelete")
+		return "", errors.Wrap(err, "error during TryToDelete")
 	}
 
-	return nil
+	return scopeID, nil
 }
 
 func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realm *v1alpha1.KeycloakRealm,
-	cl keycloak.Client) error {
+	cl keycloak.Client) (string, error) {
 
 	_, err := cl.GetClientScope(instance.Spec.Name, realm.Spec.RealmName)
 	if err != nil && !adapter.IsErrNotFound(err) {
-		return errors.Wrap(err, "unable to get client scope")
+		return "", errors.Wrap(err, "unable to get client scope")
 	}
 
 	cScope := adapter.ClientScope{
@@ -141,20 +144,19 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 
 	if err == nil {
 		if err := cl.UpdateClientScope(ctx, realm.Spec.RealmName, instance.Status.ID, &cScope); err != nil {
-			return errors.Wrap(err, "unable to update client scope")
+			return "", errors.Wrap(err, "unable to update client scope")
 		}
 
-		return nil
+		return instance.Status.ID, nil
 	}
 
 	id, err := cl.CreateClientScope(ctx, realm.Spec.RealmName, &cScope)
 	if err != nil {
-		return errors.Wrap(err, "unable to create client scope")
+		return "", errors.Wrap(err, "unable to create client scope")
 	}
 
 	instance.Status.ID = id
-
-	return nil
+	return instance.Status.ID, nil
 }
 
 func convertProtocolMappers(mappers []keycloakApi.ProtocolMapper) []adapter.ProtocolMapper {

@@ -282,7 +282,7 @@ type Terminator interface {
 	DeleteResource() error
 }
 
-func (h *Helper) TryToDelete(obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
+func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
 	finalizers := obj.GetFinalizers()
 
 	if obj.GetDeletionTimestamp().IsZero() {
@@ -290,7 +290,7 @@ func (h *Helper) TryToDelete(obj Deletable, terminator Terminator, finalizer str
 			finalizers = append(finalizers, finalizer)
 			obj.SetFinalizers(finalizers)
 
-			if err := h.client.Update(context.TODO(), obj); err != nil {
+			if err := h.client.Update(ctx, obj); err != nil {
 				return false, errors.Wrap(err, "unable to update deletable object")
 			}
 		}
@@ -305,7 +305,7 @@ func (h *Helper) TryToDelete(obj Deletable, terminator Terminator, finalizer str
 	finalizers = RemoveString(finalizers, finalizer)
 	obj.SetFinalizers(finalizers)
 
-	if err := h.client.Update(context.TODO(), obj); err != nil {
+	if err := h.client.Update(ctx, obj); err != nil {
 		return false, errors.Wrap(err, "unable to update realm role cr")
 	}
 

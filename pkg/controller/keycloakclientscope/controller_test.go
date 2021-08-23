@@ -168,7 +168,7 @@ func TestSyncClientScope(t *testing.T) {
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).Return(nil)
 
-	if err := syncClientScope(context.Background(), instance, &realm, kClient); err != nil {
+	if _, err := syncClientScope(context.Background(), instance, &realm, kClient); err != nil {
 		t.Fatal(err)
 	}
 }
