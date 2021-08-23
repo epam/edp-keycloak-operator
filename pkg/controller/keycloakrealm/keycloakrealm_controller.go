@@ -26,7 +26,7 @@ const keyCloakRealmOperatorFinalizerName = "keycloak.realm.operator.finalizer.na
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 }
 
@@ -74,7 +74,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		return
 	}
 
-	if err := r.tryReconcile(instance); err != nil {
+	if err := r.tryReconcile(ctx, instance); err != nil {
 		instance.Status.Available = false
 		result.RequeueAfter = r.helper.SetFailureCount(instance)
 		log.Error(err, "an error has occurred while handling keycloak realm", "name",
@@ -91,13 +91,13 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 	return
 }
 
-func (r *ReconcileKeycloakRealm) tryReconcile(realm *keycloakApi.KeycloakRealm) error {
+func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keycloakApi.KeycloakRealm) error {
 	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
 	if err != nil {
 		return err
 	}
 
-	deleted, err := r.helper.TryToDelete(realm, makeTerminator(realm.Spec.RealmName, kClient),
+	deleted, err := r.helper.TryToDelete(ctx, realm, makeTerminator(realm.Spec.RealmName, kClient),
 		keyCloakRealmOperatorFinalizerName)
 	if err != nil {
 		return errors.Wrap(err, "error during realm deletion")

@@ -27,7 +27,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 }
 
@@ -71,7 +71,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 		return
 	}
 
-	if err := r.tryReconcile(&instance); err != nil {
+	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak realm group", "name",
@@ -87,7 +87,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 	return
 }
 
-func (r *ReconcileKeycloakRealmGroup) tryReconcile(keycloakRealmGroup *v1alpha1.KeycloakRealmGroup) error {
+func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloakRealmGroup *v1alpha1.KeycloakRealmGroup) error {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmGroup, keycloakRealmGroup.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
@@ -104,7 +104,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(keycloakRealmGroup *v1alpha1.
 	}
 	keycloakRealmGroup.Status.ID = id
 
-	if _, err := r.helper.TryToDelete(keycloakRealmGroup,
+	if _, err := r.helper.TryToDelete(ctx, keycloakRealmGroup,
 		makeTerminator(kClient, realm.Spec.RealmName, keycloakRealmGroup.Spec.Name),
 		keyCloakRealmGroupOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm role")

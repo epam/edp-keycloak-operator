@@ -23,7 +23,7 @@ import (
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	GetScheme() *runtime.Scheme
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 	UpdateStatus(obj client.Object) error
@@ -77,7 +77,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 		return
 	}
 
-	if err := r.tryReconcile(&instance); err != nil {
+	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = Fail
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak client", "name",
@@ -93,7 +93,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	return
 }
 
-func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *keycloakApi.KeycloakClient) error {
+func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) error {
 	realm, err := r.getOrCreateRealmOwner(keycloakClient)
 	if err != nil {
 		return pkgErrors.Wrap(err, "unable to get realm for client")
@@ -108,7 +108,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(keycloakClient *keycloakApi.Keycl
 		return pkgErrors.Wrap(err, "error during kc chain")
 	}
 
-	if _, err := r.helper.TryToDelete(keycloakClient, makeTerminator(keycloakClient.Status.ClientID,
+	if _, err := r.helper.TryToDelete(ctx, keycloakClient, makeTerminator(keycloakClient.Status.ClientID,
 		keycloakClient.Spec.TargetRealm, kClient),
 		keyCloakClientOperatorFinalizerName); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")

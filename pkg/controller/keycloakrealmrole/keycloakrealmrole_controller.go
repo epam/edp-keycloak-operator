@@ -29,7 +29,7 @@ const keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.fina
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 }
@@ -94,7 +94,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		}
 	}()
 
-	roleID, err := r.tryReconcile(&instance)
+	roleID, err := r.tryReconcile(ctx, &instance)
 	if err != nil {
 		if adapter.IsErrDuplicated(err) {
 			instance.Status.Value = keycloakApi.StatusDuplicated
@@ -116,7 +116,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	return
 }
 
-func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.KeycloakRealmRole) (string, error) {
+func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakRealmRole *v1alpha1.KeycloakRealmRole) (string, error) {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmRole, keycloakRealmRole.ObjectMeta)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to get realm owner ref")
@@ -132,7 +132,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(keycloakRealmRole *v1alpha1.Ke
 		return "", errors.Wrap(err, "unable to put role")
 	}
 
-	if _, err := r.helper.TryToDelete(keycloakRealmRole,
+	if _, err := r.helper.TryToDelete(ctx, keycloakRealmRole,
 		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient),
 		keyCloakRealmRoleOperatorFinalizerName); err != nil {
 		return "", errors.Wrap(err, "unable to tryToDelete realm role")

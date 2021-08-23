@@ -1,6 +1,7 @@
 package helper
 
 import (
+	"context"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -17,7 +18,7 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) TryToDelete(obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
+func (m *Mock) TryToDelete(_ context.Context, obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
 	called := m.Called(obj, terminator, finalizer)
 	if err := called.Error(1); err != nil {
 		return false, err

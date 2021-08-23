@@ -29,7 +29,7 @@ const finalizerName = "keycloak.authflow.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 }
@@ -82,7 +82,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
-	if err := r.tryReconcile(&instance); err != nil {
+	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak auth flow", "name",
@@ -100,7 +100,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	return
 }
 
-func (r *Reconcile) tryReconcile(keycloakAuthFlow *keycloakApi.KeycloakAuthFlow) error {
+func (r *Reconcile) tryReconcile(ctx context.Context, keycloakAuthFlow *keycloakApi.KeycloakAuthFlow) error {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakAuthFlow, keycloakAuthFlow.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
@@ -116,7 +116,7 @@ func (r *Reconcile) tryReconcile(keycloakAuthFlow *keycloakApi.KeycloakAuthFlow)
 		return errors.Wrap(err, "unable to sync auth flow")
 	}
 
-	if _, err := r.helper.TryToDelete(keycloakAuthFlow,
+	if _, err := r.helper.TryToDelete(ctx, keycloakAuthFlow,
 		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow.Spec.Alias, kClient), finalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete auth flow")
 	}

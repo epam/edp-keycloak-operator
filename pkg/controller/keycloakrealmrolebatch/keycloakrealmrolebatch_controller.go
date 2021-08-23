@@ -25,7 +25,7 @@ import (
 const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.operator.finalizer.name"
 
 type Helper interface {
-	TryToDelete(obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 	IsOwner(slave client.Object, master client.Object) bool
 	UpdateStatus(obj client.Object) error
@@ -196,7 +196,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 		return errors.Wrap(err, "unable to delete roles")
 	}
 
-	if _, err := r.helper.TryToDelete(batch,
+	if _, err := r.helper.TryToDelete(ctx, batch,
 		makeTerminator(r.client, createdRoles), keyCloakRealmRoleBatchOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to remove child entity")
 	}
