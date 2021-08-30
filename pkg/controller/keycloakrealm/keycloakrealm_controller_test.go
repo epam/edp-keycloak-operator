@@ -416,7 +416,7 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	logger := mock.Logger{}
 	h.On("CreateKeycloakClientForRealm", &kr, &logger).Return(kClient, nil)
 	h.On("TryToDelete", &kr,
-		makeTerminator(kr.Spec.RealmName, kClient),
+		makeTerminator(kr.Spec.RealmName, kClient, &logger),
 		keyCloakRealmOperatorFinalizerName).Return(false, nil)
 	h.On("UpdateStatus", &kr).Return(nil)
 	ch := handler.MockRealmHandler{}

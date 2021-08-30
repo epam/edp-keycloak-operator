@@ -97,7 +97,8 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 		return err
 	}
 
-	deleted, err := r.helper.TryToDelete(ctx, realm, makeTerminator(realm.Spec.RealmName, kClient),
+	deleted, err := r.helper.TryToDelete(ctx, realm,
+		makeTerminator(realm.Spec.RealmName, kClient, r.log.WithName("realm-group-term")),
 		keyCloakRealmOperatorFinalizerName)
 	if err != nil {
 		return errors.Wrap(err, "error during realm deletion")

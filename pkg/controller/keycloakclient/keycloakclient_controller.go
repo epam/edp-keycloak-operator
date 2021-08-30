@@ -109,7 +109,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, keycloakClient, makeTerminator(keycloakClient.Status.ClientID,
-		keycloakClient.Spec.TargetRealm, kClient),
+		keycloakClient.Spec.TargetRealm, kClient, r.log.WithName("kclient-term")),
 		keyCloakClientOperatorFinalizerName); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")
 	}

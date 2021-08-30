@@ -4,7 +4,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	ctrl "sigs.k8s.io/controller-runtime"
 )
 
 type terminator struct {
@@ -21,15 +20,18 @@ func (t *terminator) DeleteResource() error {
 		return errors.Wrap(err, "unable to delete realm")
 	}
 
-	log.Info("client deletion done")
-
+	log.Info("realm deletion done")
 	return nil
 }
 
-func makeTerminator(realmName string, kClient keycloak.Client) *terminator {
+func (t *terminator) GetLogger() logr.Logger {
+	return t.log
+}
+
+func makeTerminator(realmName string, kClient keycloak.Client, log logr.Logger) *terminator {
 	return &terminator{
 		realmName: realmName,
 		kClient:   kClient,
-		log:       ctrl.Log.WithName("keycloak-realm-terminator"),
+		log:       log,
 	}
 }

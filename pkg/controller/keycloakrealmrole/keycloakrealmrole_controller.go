@@ -133,7 +133,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, keycloakRealmRole,
-		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient),
+		makeTerminator(realm.Spec.RealmName, keycloakRealmRole.Spec.Name, kClient, r.log.WithName("realm-role-term")),
 		keyCloakRealmRoleOperatorFinalizerName); err != nil {
 		return "", errors.Wrap(err, "unable to tryToDelete realm role")
 	}

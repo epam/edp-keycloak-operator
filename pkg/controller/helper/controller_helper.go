@@ -280,13 +280,18 @@ type Deletable interface {
 
 type Terminator interface {
 	DeleteResource() error
+	GetLogger() logr.Logger
 }
 
 func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
 	finalizers := obj.GetFinalizers()
+	logger := terminator.GetLogger()
 
 	if obj.GetDeletionTimestamp().IsZero() {
+		logger.Info("instance timestamp is zero")
+
 		if !ContainsString(finalizers, finalizer) {
+			logger.Info("instance has not finalizers, adding...")
 			finalizers = append(finalizers, finalizer)
 			obj.SetFinalizers(finalizers)
 
@@ -295,13 +300,16 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 			}
 		}
 
+		logger.Info("processing finalizers done, exit.")
 		return false, nil
 	}
 
+	logger.Info("terminator deleting resource")
 	if err := terminator.DeleteResource(); err != nil {
 		return false, errors.Wrap(err, "error during keycloak client delete func")
 	}
 
+	logger.Info("terminator removing finalizers")
 	finalizers = RemoveString(finalizers, finalizer)
 	obj.SetFinalizers(finalizers)
 
@@ -309,6 +317,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 		return false, errors.Wrap(err, "unable to update realm role cr")
 	}
 
+	logger.Info("terminator deleting instance done, exit")
 	return true, nil
 }
 

@@ -197,7 +197,8 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, batch,
-		makeTerminator(r.client, createdRoles), keyCloakRealmRoleBatchOperatorFinalizerName); err != nil {
+		makeTerminator(r.client, createdRoles, r.log.WithName("realm-role-batch-term")),
+		keyCloakRealmRoleBatchOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to remove child entity")
 	}
 

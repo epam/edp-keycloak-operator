@@ -105,7 +105,8 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	keycloakRealmGroup.Status.ID = id
 
 	if _, err := r.helper.TryToDelete(ctx, keycloakRealmGroup,
-		makeTerminator(kClient, realm.Spec.RealmName, keycloakRealmGroup.Spec.Name),
+		makeTerminator(kClient, realm.Spec.RealmName, keycloakRealmGroup.Spec.Name,
+			r.log.WithName("realm-group-term")),
 		keyCloakRealmGroupOperatorFinalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm role")
 	}
