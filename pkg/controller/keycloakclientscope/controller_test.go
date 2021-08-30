@@ -80,7 +80,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	h.On("UpdateStatus", updatedClientScopeWithStatus).Return(nil)
 
 	h.On("TryToDelete", updatedClientScopeWithID,
-		makeTerminator(context.Background(), kClient, realm.Spec.RealmName, "scope12"), finalizerName).
+		makeTerminator(context.Background(), kClient, realm.Spec.RealmName, "scope12", &logger), finalizerName).
 		Return(true, nil)
 
 	rkr := Reconcile{

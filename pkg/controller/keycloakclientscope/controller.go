@@ -118,7 +118,8 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, instance,
-		makeTerminator(ctx, cl, realm.Spec.RealmName, instance.Status.ID), finalizerName); err != nil {
+		makeTerminator(ctx, cl, realm.Spec.RealmName, instance.Status.ID, r.log.WithName("client-scope-term")),
+		finalizerName); err != nil {
 		return "", errors.Wrap(err, "error during TryToDelete")
 	}
 

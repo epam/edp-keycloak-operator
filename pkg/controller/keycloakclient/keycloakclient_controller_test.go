@@ -138,7 +138,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		client: client}, kc.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kclient, nil)
 	h.On("TryToDelete", &kc,
-		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient),
+		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient, &logger),
 		keyCloakClientOperatorFinalizerName).Return(true, nil)
 	h.On("UpdateStatus", &kc).Return(nil)
 	r := ReconcileKeycloakClient{

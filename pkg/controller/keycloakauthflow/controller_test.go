@@ -58,7 +58,7 @@ func TestNewReconcile(t *testing.T) {
 	}).Return(nil)
 
 	h.On("TryToDelete", &flow,
-		makeTerminator(realm.Spec.RealmName, flow.Spec.Alias, &kClient), finalizerName).Return(false, nil)
+		makeTerminator(realm.Spec.RealmName, flow.Spec.Alias, &kClient, &log), finalizerName).Return(false, nil)
 	h.On("UpdateStatus", &flow).Return(nil)
 
 	r := Reconcile{

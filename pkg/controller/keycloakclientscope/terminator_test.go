@@ -5,14 +5,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/pkg/errors"
 )
 
 func TestTerminator_DeleteResource(t *testing.T) {
+	logger := mock.Logger{}
 	kClient := new(adapter.Mock)
 	kClient.On("DeleteClientScope", "foo", "bar").Return(nil).Once()
-	term := makeTerminator(context.Background(), kClient, "foo", "bar")
+	term := makeTerminator(context.Background(), kClient, "foo", "bar", &logger)
 	if err := term.DeleteResource(); err != nil {
 		t.Fatal(err)
 	}

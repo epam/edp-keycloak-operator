@@ -117,7 +117,8 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakAuthFlow *keycloak
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, keycloakAuthFlow,
-		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow.Spec.Alias, kClient), finalizerName); err != nil {
+		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow.Spec.Alias, kClient,
+			r.log.WithName("auth-flow-term")), finalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete auth flow")
 	}
 
