@@ -3,6 +3,8 @@ package chain
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -21,9 +23,19 @@ type PutKeycloakClientScope struct {
 func (h PutKeycloakClientScope) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start Keycloak Scope")
-	if _, err := kClient.CreateClientScope(context.Background(), realm.Spec.RealmName, getDefClientScope()); err != nil {
-		return err
+	defaultScope := getDefClientScope()
+
+	_, err := kClient.GetClientScope(defaultScope.Name, realm.Spec.RealmName)
+	if err != nil && !adapter.IsErrNotFound(err) {
+		return errors.Wrap(err, "unable to get client scope")
 	}
+
+	if adapter.IsErrNotFound(err) {
+		if _, err := kClient.CreateClientScope(context.Background(), realm.Spec.RealmName, getDefClientScope()); err != nil {
+			return err
+		}
+	}
+
 	rLog.Info("End of put Keycloak Scope")
 	return nextServeOrNil(h.next, realm, kClient)
 }

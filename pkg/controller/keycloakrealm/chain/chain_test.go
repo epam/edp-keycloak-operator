@@ -44,6 +44,8 @@ func TestCreateDefChain(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
 			SsoAutoRedirectEnabled: true}).
 		Return(nil)
+	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
+		adapter.ErrNotFound("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
@@ -98,6 +100,8 @@ func TestCreateDefChain2(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
 			SsoAutoRedirectEnabled: true, Users: []dto.User{realmUser}}).
 		Return(nil)
+	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
+		adapter.ErrNotFound("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
@@ -154,6 +158,8 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false,
 			SsoAutoRedirectEnabled: true, Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
 		Return(nil)
+	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
+		adapter.ErrNotFound("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
