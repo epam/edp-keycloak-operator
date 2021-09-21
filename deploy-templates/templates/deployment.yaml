@@ -25,9 +25,9 @@ spec:
         - name: {{ .Values.name }}
           # Replace this with the built image name
           image: {{ .Values.image.name }}:{{ .Values.image.version | default .Chart.AppVersion }}
+          imagePullPolicy: "{{ .Values.imagePullPolicy }}"
           command:
             - {{ .Values.name }}
-          imagePullPolicy: Always
           securityContext:
             allowPrivilegeEscalation: false
           env:
