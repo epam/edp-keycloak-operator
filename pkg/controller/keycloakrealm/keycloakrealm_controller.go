@@ -76,11 +76,13 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 
 	if err := r.tryReconcile(ctx, instance); err != nil {
 		instance.Status.Available = false
+		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(instance)
 		log.Error(err, "an error has occurred while handling keycloak realm", "name",
 			request.Name)
 	} else {
 		instance.Status.Available = true
+		instance.Status.Value = helper.StatusOK
 		instance.Status.FailureCount = 0
 	}
 

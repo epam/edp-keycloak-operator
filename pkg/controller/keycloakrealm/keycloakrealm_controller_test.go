@@ -401,7 +401,7 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "apps/v1"},
 		Spec: v1alpha1.KeycloakRealmSpec{KeycloakOwner: "keycloak-main", RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 			SSORealmMappers: &ssoRealmMappers},
-		Status: v1alpha1.KeycloakRealmStatus{Available: true},
+		Status: v1alpha1.KeycloakRealmStatus{Available: true, Value: helper.StatusOK},
 	}
 
 	s := scheme.Scheme

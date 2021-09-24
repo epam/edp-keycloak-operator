@@ -38,6 +38,17 @@ func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 	assert.True(t, res)
 }
 
+func TestGetDefaultRealm(t *testing.T) {
+	id := "test"
+	r := getDefaultRealm(&dto.Realm{
+		ID: &id,
+	})
+
+	if *r.ID != id {
+		t.Fatal("wrong realm id")
+	}
+}
+
 func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 	//prepare
 	mockClient := new(MockGoCloakClient)

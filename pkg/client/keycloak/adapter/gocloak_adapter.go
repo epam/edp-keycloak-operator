@@ -7,13 +7,12 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/go-logr/logr"
-
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/consts"
 	"github.com/epam/edp-keycloak-operator/pkg/model"
+	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 )
@@ -576,6 +575,7 @@ func getDefaultRealm(realm *dto.Realm) gocloak.RealmRepresentation {
 	return gocloak.RealmRepresentation{
 		Realm:   &realm.Name,
 		Enabled: gocloak.BoolP(true),
+		ID:      realm.ID,
 	}
 }
 

@@ -26,6 +26,7 @@ type Realm struct {
 	SsoRealmName           string
 	SsoRealmEnabled        bool
 	SsoAutoRedirectEnabled bool
+	ID                     *string
 }
 
 type User struct {
@@ -66,6 +67,7 @@ func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) *Realm {
 		SsoRealmName:           spec.SsoRealmName,
 		SsoRealmEnabled:        spec.SSOEnabled(),
 		SsoAutoRedirectEnabled: spec.SSOAutoRedirectEnabled(),
+		ID:                     spec.ID,
 	}
 }
 
