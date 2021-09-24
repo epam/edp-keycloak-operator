@@ -24,6 +24,16 @@ type KeycloakRealmSpec struct {
 	Themes                 *RealmThemes       `json:"themes,omitempty"`
 	BrowserSecurityHeaders *map[string]string `json:"browserSecurityHeaders,omitempty"`
 	ID                     *string            `json:"id"`
+	RealmEventConfig       *RealmEventConfig  `json:"realmEventConfig"`
+}
+
+type RealmEventConfig struct {
+	AdminEventsDetailsEnabled bool     `json:"adminEventsDetailsEnabled"`
+	AdminEventsEnabled        bool     `json:"adminEventsEnabled"`
+	EnabledEventTypes         []string `json:"enabledEventTypes"`
+	EventsEnabled             bool     `json:"eventsEnabled"`
+	EventsExpiration          int      `json:"eventsExpiration"`
+	EventsListeners           []string `json:"eventsListeners"`
 }
 
 type RealmThemes struct {

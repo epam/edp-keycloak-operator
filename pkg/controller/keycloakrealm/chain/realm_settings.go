@@ -16,6 +16,19 @@ func (h RealmSettings) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start updating of Keycloak realm settings")
 
+	if realm.Spec.RealmEventConfig != nil {
+		if err := kClient.SetRealmEventConfig(realm.Spec.RealmName, &adapter.RealmEventConfig{
+			AdminEventsDetailsEnabled: realm.Spec.RealmEventConfig.AdminEventsDetailsEnabled,
+			AdminEventsEnabled:        realm.Spec.RealmEventConfig.AdminEventsEnabled,
+			EnabledEventTypes:         realm.Spec.RealmEventConfig.EnabledEventTypes,
+			EventsEnabled:             realm.Spec.RealmEventConfig.EventsEnabled,
+			EventsExpiration:          realm.Spec.RealmEventConfig.EventsExpiration,
+			EventsListeners:           realm.Spec.RealmEventConfig.EventsListeners,
+		}); err != nil {
+			return errors.Wrap(err, "unable to set realm event config")
+		}
+	}
+
 	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil {
 		rLog.Info("Realm settings is not set, exit.")
 		return nextServeOrNil(h.next, realm, kClient)
