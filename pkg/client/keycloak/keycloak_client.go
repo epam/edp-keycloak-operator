@@ -51,6 +51,7 @@ type KCloakRealms interface {
 	DeleteRealm(realmName string) error
 	SyncRealmIdentityProviderMappers(realmName string, mappers []dto.IdentityProviderMapper) error
 	UpdateRealmSettings(realmName string, realmSettings *adapter.RealmSettings) error
+	SetRealmEventConfig(realmName string, eventConfig *adapter.RealmEventConfig) error
 }
 
 type KCloakClients interface {

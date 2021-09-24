@@ -40,6 +40,7 @@ const (
 	createClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
 	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
 )
 
 type GoCloakAdapter struct {

@@ -1,0 +1,23 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakRealm
+metadata:
+  name: d2-id-k8s-realm-name
+spec:
+  id: d1-id-kc-realm-name
+  realmName: d2-id-kc-realm-name
+  keycloakOwner: main
+  ssoRealmName: openshift
+  ssoRealmEnabled: false # new one
+  ssoAutoRedirectEnabled: false # new one
+  realmEventConfig:
+    adminEventsDetailsEnabled: false
+    adminEventsEnabled: true
+    enabledEventTypes:
+      - UPDATE_CONSENT_ERROR
+      - CLIENT_LOGIN
+    eventsEnabled: true
+    eventsExpiration: 15000
+    eventsListeners:
+      - jboss-logging
+
+

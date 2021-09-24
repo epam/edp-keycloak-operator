@@ -231,3 +231,7 @@ func (m *Mock) DeleteClientScope(ctx context.Context, realmName, scopeID string)
 func (m *Mock) UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *ClientScope) error {
 	return m.Called(realmName, scopeID, scope).Error(0)
 }
+
+func (m *Mock) SetRealmEventConfig(realmName string, eventConfig *RealmEventConfig) error {
+	return m.Called(realmName, eventConfig).Error(0)
+}
