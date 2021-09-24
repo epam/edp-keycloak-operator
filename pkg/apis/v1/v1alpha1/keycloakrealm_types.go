@@ -23,6 +23,7 @@ type KeycloakRealmSpec struct {
 	BrowserFlow            *string            `json:"browserFlow"`
 	Themes                 *RealmThemes       `json:"themes,omitempty"`
 	BrowserSecurityHeaders *map[string]string `json:"browserSecurityHeaders,omitempty"`
+	ID                     *string            `json:"id"`
 }
 
 type RealmThemes struct {
@@ -50,8 +51,9 @@ type SSORealmMapper struct {
 // KeycloakRealmStatus defines the observed state of KeycloakRealm
 // +k8s:openapi-gen=true
 type KeycloakRealmStatus struct {
-	Available    bool  `json:"available,omitempty"`
-	FailureCount int64 `json:"failureCount"`
+	Available    bool   `json:"available,omitempty"`
+	FailureCount int64  `json:"failureCount"`
+	Value        string `json:"value"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
