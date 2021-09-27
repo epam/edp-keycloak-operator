@@ -124,6 +124,7 @@ func (r *Reconcile) tryReconcile(instance *keycloakApi.KeycloakRealmUser) error 
 		EmailVerified:       instance.Spec.EmailVerified,
 		Enabled:             instance.Spec.Enabled,
 		Email:               instance.Spec.Email,
+		Attributes:          instance.Spec.Attributes,
 	}); err != nil {
 		return errors.Wrap(err, "unable to sync realm user")
 	}

@@ -17,6 +17,7 @@ type KeycloakUser struct {
 	RequiredUserActions []string
 	Roles               []string
 	Groups              []string
+	Attributes          map[string]string
 }
 
 func (a GoCloakAdapter) SyncRealmUser(realmName string, user *KeycloakUser) error {
@@ -44,6 +45,14 @@ func (a GoCloakAdapter) SyncRealmUser(realmName string, user *KeycloakUser) erro
 		RealmRoles:      &user.Roles,
 		Groups:          &user.Groups,
 		Email:           &user.Email,
+	}
+
+	if user.Attributes != nil && len(user.Attributes) > 0 {
+		attrs := make(map[string][]string)
+		for k, v := range user.Attributes {
+			attrs[k] = []string{v}
+		}
+		usr.Attributes = &attrs
 	}
 
 	if _, err := a.client.CreateUser(context.Background(), a.token.AccessToken, realmName, usr); err != nil {

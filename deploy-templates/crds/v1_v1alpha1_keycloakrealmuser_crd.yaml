@@ -71,6 +71,10 @@ spec:
                   nullable: true
                   items:
                     type: string
+                attributes:
+                  description: "user attributes"
+                  type: object
+                  additionalProperties: true
               required:
                 - realm
                 - username
