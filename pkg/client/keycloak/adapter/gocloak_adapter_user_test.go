@@ -17,6 +17,9 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 
 	usr := KeycloakUser{
 		Username: "vasia",
+		Attributes: map[string]string{
+			"foo": "bar",
+		},
 	}
 
 	realmName := "realm1"
@@ -34,6 +37,9 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 		RealmRoles:      &usr.Roles,
 		Groups:          &usr.Groups,
 		Email:           &usr.Email,
+		Attributes: &map[string][]string{
+			"foo": []string{"bar"},
+		},
 	}
 
 	mockClient.On("CreateUser", realmName, goClUser).Return(nil)
