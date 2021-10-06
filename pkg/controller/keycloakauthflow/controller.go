@@ -29,8 +29,10 @@ const finalizerName = "keycloak.authflow.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator,
+		finalizer string) (isDeleted bool, resultErr error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm,
+		log logr.Logger) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 }
 
@@ -106,7 +108,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakAuthFlow *keycloak
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm, r.log)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}

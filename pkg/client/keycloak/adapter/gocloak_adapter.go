@@ -2,10 +2,12 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
@@ -43,11 +45,42 @@ const (
 	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
 )
 
+type ErrTokenExpired string
+
+func (e ErrTokenExpired) Error() string {
+	return string(e)
+}
+
+func IsErrTokenExpired(err error) bool {
+	_, ok := err.(ErrTokenExpired)
+	return ok
+}
+
 type GoCloakAdapter struct {
 	client   GoCloak
 	token    *gocloak.JWT
 	log      logr.Logger
 	basePath string
+}
+
+func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
+	kcCl := gocloak.NewClient(url)
+
+	var token gocloak.JWT
+	if err := json.Unmarshal(tokenData, &token); err != nil {
+		return nil, errors.Wrapf(err, "unable decode json data")
+	}
+
+	if int64(token.ExpiresIn) < time.Now().Unix() {
+		return nil, ErrTokenExpired("token is expired")
+	}
+
+	return &GoCloakAdapter{
+		client:   kcCl,
+		token:    &token,
+		log:      log,
+		basePath: url,
+	}, nil
 }
 
 func Make(url, user, password string, log logr.Logger) (*GoCloakAdapter, error) {
@@ -63,6 +96,15 @@ func Make(url, user, password string, log logr.Logger) (*GoCloakAdapter, error) 
 		log:      log,
 		basePath: url,
 	}, nil
+}
+
+func (a GoCloakAdapter) ExportToken() ([]byte, error) {
+	tokenData, err := json.Marshal(a.token)
+	if err != nil {
+		return nil, errors.Wrap(err, "unable to json encode token")
+	}
+
+	return tokenData, nil
 }
 
 func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {

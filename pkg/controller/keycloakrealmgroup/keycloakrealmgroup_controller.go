@@ -28,7 +28,7 @@ type Helper interface {
 	UpdateStatus(obj client.Object) error
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 }
 
 func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme, log logr.Logger,
@@ -93,7 +93,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm, r.log)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}

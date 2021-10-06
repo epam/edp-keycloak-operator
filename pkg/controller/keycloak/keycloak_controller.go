@@ -9,8 +9,10 @@ import (
 	"os"
 
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
@@ -36,6 +38,8 @@ const (
 
 type Helper interface {
 	CreateKeycloakClient(url, user, password string, log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak,
+		log logr.Logger) (keycloak.Client, error)
 }
 
 func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger) *ReconcileKeycloak {
@@ -119,22 +123,12 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 	log := r.log.WithValues("keycloak cr", instance)
 	log.Info("Start updating connection status to Keycloak")
 
-	secret := &v1.Secret{}
-	err := r.client.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Secret,
-		Namespace: instance.Namespace,
-	}, secret)
+	connected, err := r.isInstanceConnected(ctx, instance, log)
 	if err != nil {
-		return pkgErrors.Wrapf(err, "unable to get secret: %s", instance.Spec.Secret)
+		return pkgErrors.Wrap(err, "error during kc checking connection")
 	}
-	user := string(secret.Data["username"])
-	pwd := string(secret.Data["password"])
 
-	_, err = r.helper.CreateKeycloakClient(instance.Spec.Url, user, pwd, log)
-	if err != nil {
-		log.Error(err, "error during the creation of connection")
-	}
-	instance.Status.Connected = err == nil
+	instance.Status.Connected = connected
 	err = r.client.Status().Update(ctx, instance)
 	if err != nil {
 		log.Error(err, "unable to update keycloak cr status")
@@ -146,6 +140,36 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 	}
 	log.Info("Status has been updated", "status", instance.Status)
 	return nil
+}
+
+func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *keycloakApi.Keycloak,
+	logger logr.Logger) (bool, error) {
+	_, err := r.helper.CreateKeycloakClientFromTokenSecret(ctx, instance, logger)
+	if err == nil {
+		return true, nil
+	}
+
+	if !errors.IsNotFound(err) && !adapter.IsErrTokenExpired(err) {
+		return false, err
+	}
+
+	secret := &v1.Secret{}
+	err = r.client.Get(ctx, types.NamespacedName{
+		Name:      instance.Spec.Secret,
+		Namespace: instance.Namespace,
+	}, secret)
+	if err != nil {
+		return false, pkgErrors.Wrapf(err, "unable to get secret: %s", instance.Spec.Secret)
+	}
+	user := string(secret.Data["username"])
+	pwd := string(secret.Data["password"])
+
+	_, err = r.helper.CreateKeycloakClient(instance.Spec.Url, user, pwd, logger)
+	if err != nil {
+		logger.Error(err, "error during the creation of connection")
+	}
+
+	return err == nil, nil
 }
 
 func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
