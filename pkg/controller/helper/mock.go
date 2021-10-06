@@ -35,7 +35,7 @@ func (m *Mock) UpdateStatus(obj client.Object) error {
 	return m.Called(obj).Error(0)
 }
 
-func (m *Mock) CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error) {
+func (m *Mock) CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error) {
 	called := m.Called(realm, log)
 	if err := called.Error(1); err != nil {
 		return nil, err
@@ -68,4 +68,14 @@ func (m *Mock) GetScheme() *runtime.Scheme {
 
 func (m *Mock) IsOwner(slave client.Object, master client.Object) bool {
 	return m.Called(slave, master).Bool(0)
+}
+
+func (m *Mock) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak,
+	log logr.Logger) (keycloak.Client, error) {
+	called := m.Called(kc)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(keycloak.Client), nil
 }

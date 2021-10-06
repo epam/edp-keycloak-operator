@@ -26,7 +26,7 @@ import (
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 }
 
@@ -81,7 +81,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
-	if err := r.tryReconcile(&instance); err != nil {
+	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak auth flow", "name",
@@ -103,13 +103,13 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	return
 }
 
-func (r *Reconcile) tryReconcile(instance *keycloakApi.KeycloakRealmUser) error {
+func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) error {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, instance.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm, r.log)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}

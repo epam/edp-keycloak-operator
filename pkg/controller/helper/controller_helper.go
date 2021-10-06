@@ -8,8 +8,6 @@ import (
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -225,44 +223,6 @@ func (h *Helper) GetOrCreateRealmOwnerRef(
 	}
 
 	return realm, nil
-}
-
-func (h *Helper) CreateKeycloakClient(url, user, password string, log logr.Logger) (keycloak.Client, error) {
-	clientAdapter, err := adapter.Make(url, user, password, log)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to init kc client adapter")
-	}
-
-	return clientAdapter, nil
-}
-
-func (h *Helper) CreateKeycloakClientForRealm(
-	realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error) {
-
-	o, err := h.GetOrCreateKeycloakOwnerRef(realm)
-	if err != nil {
-		return nil, err
-	}
-
-	if !o.Status.Connected {
-		return nil, errors.New("Owner keycloak is not in connected status")
-	}
-
-	var secret coreV1.Secret
-	if err = h.client.Get(context.TODO(), types.NamespacedName{
-		Name:      o.Spec.Secret,
-		Namespace: o.Namespace,
-	}, &secret); err != nil {
-		return nil, err
-	}
-
-	clientAdapter, err := h.CreateKeycloakClient(o.Spec.Url, string(secret.Data["username"]), string(secret.Data["password"]),
-		log)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to init kc client adapter")
-	}
-
-	return clientAdapter, nil
 }
 
 func (h *Helper) UpdateStatus(obj client.Object) error {

@@ -25,7 +25,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	GetScheme() *runtime.Scheme
-	CreateKeycloakClientForRealm(realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
 	UpdateStatus(obj client.Object) error
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 }
@@ -99,7 +99,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		return pkgErrors.Wrap(err, "unable to get realm for client")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(realm, r.log)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm, r.log)
 	if err != nil {
 		return pkgErrors.Wrap(err, "unable to create keycloak adapter client")
 	}

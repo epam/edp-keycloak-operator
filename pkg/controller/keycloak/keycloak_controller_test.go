@@ -30,6 +30,10 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
 	//client & scheme
 	cr := &v1alpha1.Keycloak{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Keycloak",
+			APIVersion: "apps/v1",
+		},
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "NewKeycloak",
 			Namespace: "namespace",
@@ -66,7 +70,8 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 
 	logger := mock.Logger{}
 	h := helper.Mock{}
-
+	h.On("CreateKeycloakClientFromTokenSecret", cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
 	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
 		Return(nil, errors.New("fatal"))
 	//reconcile
@@ -101,8 +106,13 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 }
 
 func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
-	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
+	cr := &v1alpha1.Keycloak{
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "Keycloak",
+			APIVersion: "apps/v1",
+		},
+		ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+		Spec:       v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
 	}
@@ -117,6 +127,8 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	kClient := adapter.Mock{}
 	logger := mock.Logger{}
 	h := helper.Mock{}
+	h.On("CreateKeycloakClientFromTokenSecret", cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
 	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
 		Return(&kClient, nil)
 	r := ReconcileKeycloak{
@@ -138,7 +150,10 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 }
 
 func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
-	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+	cr := &v1alpha1.Keycloak{TypeMeta: metav1.TypeMeta{
+		Kind:       "Keycloak",
+		APIVersion: "apps/v1",
+	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
 		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
 			InstallMainRealm: gocloak.BoolP(false)}}
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
@@ -154,6 +169,8 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	kClient := adapter.Mock{}
 	logger := mock.Logger{}
 	h := helper.Mock{}
+	h.On("CreateKeycloakClientFromTokenSecret", cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
 	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
 		Return(&kClient, nil)
 	r := ReconcileKeycloak{
@@ -230,7 +247,10 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 }
 
 func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *testing.T) {
-	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+	cr := &v1alpha1.Keycloak{TypeMeta: metav1.TypeMeta{
+		Kind:       "Keycloak",
+		APIVersion: "apps/v1",
+	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
 		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
 			InstallMainRealm: gocloak.BoolP(false)}}
 
@@ -239,10 +259,15 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
 
 	logger := mock.Logger{}
+	h := helper.Mock{}
+	h.On("CreateKeycloakClientFromTokenSecret", cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
+
 	r := ReconcileKeycloak{
 		client: cl,
 		scheme: s,
 		log:    &logger,
+		helper: &h,
 	}
 
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
@@ -283,6 +308,8 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 
 	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
+	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
 	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
 
 	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
@@ -327,6 +354,8 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 
 	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
+	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
 	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
 
 	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}

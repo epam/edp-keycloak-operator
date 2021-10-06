@@ -1,0 +1,20 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakClientScope
+metadata:
+  name: test-role-list
+  namespace: mdtu-ddm-edp-cicd-data-int-dev
+spec:
+  name: role_list
+  realm: officer-portal
+  description: "test role list"
+  protocol: saml
+  protocolMappers:
+    - name: "role list"
+      protocol: saml
+      protocolMapper: "saml-role-list-mapper"
+      config:
+        "attribute.name": "za321"
+        "attribute.nameformat": "Basic"
+        "friendly.name": "za123"
+        "single": "true"
+

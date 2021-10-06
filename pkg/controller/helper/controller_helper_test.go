@@ -1,8 +1,12 @@
 package helper
 
 import (
+	"context"
+	"net/http"
 	"strings"
 	"testing"
+
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -304,12 +308,22 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 		Name:      "",
 	}, &v1.Secret{}).Return(nil)
 
-	_, err := helper.CreateKeycloakClientForRealm(&realm, &mock.Logger{})
+	mc.On("Get", types.NamespacedName{
+		Namespace: "",
+		Name:      "kc-token-",
+	}, &v1.Secret{}).Return(&k8sErrors.StatusError{ErrStatus: metav1.Status{
+		Status:  metav1.StatusFailure,
+		Code:    http.StatusNotFound,
+		Reason:  metav1.StatusReasonNotFound,
+		Message: "not found",
+	}})
+
+	_, err := helper.CreateKeycloakClientForRealm(context.Background(), &realm, &mock.Logger{})
 	if err == nil {
 		t.Fatal("no error on trying to connect to keycloak")
 	}
 
 	if !strings.Contains(err.Error(), "could not get token") {
-		t.Fatal("wrong error returned")
+		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }
