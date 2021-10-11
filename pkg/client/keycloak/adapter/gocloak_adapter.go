@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -52,7 +53,7 @@ func (e ErrTokenExpired) Error() string {
 }
 
 func IsErrTokenExpired(err error) bool {
-	_, ok := err.(ErrTokenExpired)
+	_, ok := errors.Cause(err).(ErrTokenExpired)
 	return ok
 }
 
@@ -63,6 +64,14 @@ type GoCloakAdapter struct {
 	basePath string
 }
 
+type JWTPayload struct {
+	Exp int64 `json:"exp"`
+}
+
+func (a *GoCloakAdapter) GetGoCloak() GoCloak {
+	return a.client
+}
+
 func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
 	kcCl := gocloak.NewClient(url)
 
@@ -71,7 +80,20 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 		return nil, errors.Wrapf(err, "unable decode json data")
 	}
 
-	if int64(token.ExpiresIn) < time.Now().Unix() {
+	tokenParts := strings.Split(token.AccessToken, ".")
+	if len(tokenParts) < 3 {
+		return nil, errors.New("wrong JWT token structure")
+	}
+	tokenPayload, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	if err != nil {
+		return nil, errors.Wrap(err, "wrong JWT token base64 encoding")
+	}
+	var tokenPayloadDecoded JWTPayload
+	if err := json.Unmarshal(tokenPayload, &tokenPayloadDecoded); err != nil {
+		return nil, errors.Wrap(err, "unable to decode JWT payload json")
+	}
+
+	if tokenPayloadDecoded.Exp < time.Now().Unix() {
 		return nil, ErrTokenExpired("token is expired")
 	}
 
@@ -83,9 +105,16 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 	}, nil
 }
 
-func Make(url, user, password string, log logr.Logger) (*GoCloakAdapter, error) {
+func Make(ctx context.Context, url, user, password string, log logr.Logger,
+	restyClient *resty.Client) (*GoCloakAdapter, error) {
 	kcCl := gocloak.NewClient(url)
-	token, err := kcCl.LoginAdmin(context.Background(), user, password, "master")
+
+	if restyClient == nil {
+		restyClient = resty.New()
+	}
+	kcCl.SetRestyClient(restyClient)
+
+	token, err := kcCl.LoginAdmin(ctx, user, password, "master")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", user)
 	}

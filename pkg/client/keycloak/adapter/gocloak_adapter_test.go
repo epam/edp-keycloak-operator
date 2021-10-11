@@ -1,9 +1,13 @@
 package adapter
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -630,5 +634,56 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 
 	if err := adapter.PutDefaultIdp(&realm); err != nil {
 		t.Fatalf("%+v", err)
+	}
+}
+
+func TestGoCloakAdapter_GetGoCloak(t *testing.T) {
+	gcl := GoCloakAdapter{}
+	if gcl.GetGoCloak() != nil {
+		t.Fatal("go cloak must be nil")
+	}
+}
+
+func TestMakeFromToken(t *testing.T) {
+	realToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
+	tok := gocloak.JWT{AccessToken: realToken}
+	bts, _ := json.Marshal(&tok)
+	_, err := MakeFromToken("test_url", bts, nil)
+	if err == nil {
+		t.Fatal("no error on expired token")
+	}
+
+	if !IsErrTokenExpired(err) || err.Error() != "token is expired" {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	_, err = MakeFromToken("test", []byte("qwdqwdwq"), nil)
+	if err == nil {
+		t.Fatal("no error on wrong json returned")
+	}
+
+	if !strings.Contains(err.Error(), "invalid character") {
+		t.Fatalf("wrong err returned: %s", err.Error())
+	}
+
+	tokenParts := strings.Split(realToken, ".")
+	rawTokenPayload, _ := base64.RawURLEncoding.DecodeString(tokenParts[1])
+	var decodedTokenPayload JWTPayload
+	_ = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
+	decodedTokenPayload.Exp = time.Now().Unix() + 1000
+	rawTokenPayload, _ = json.Marshal(decodedTokenPayload)
+	tokenParts[1] = base64.RawURLEncoding.EncodeToString(rawTokenPayload)
+	realToken = strings.Join(tokenParts, ".")
+
+	tok = gocloak.JWT{AccessToken: realToken}
+	bts, _ = json.Marshal(&tok)
+	cl, err := MakeFromToken("test_url", bts, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exportToken, _ := cl.ExportToken()
+	if string(exportToken) != string(bts) {
+		t.Fatalf("wrong token exported: %s", string(exportToken))
 	}
 }

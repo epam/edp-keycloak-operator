@@ -110,7 +110,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme())
+	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
 
 	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), ctrlLog, h)
 	if err := keycloakClientCtrl.SetupWithManager(mgr); err != nil {

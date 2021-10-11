@@ -26,7 +26,7 @@ import (
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm, log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
 }
 
@@ -38,11 +38,13 @@ type Reconcile struct {
 }
 
 func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger) *Reconcile {
+	logger := log.WithName("keycloak-realm-user")
+
 	return &Reconcile{
 		client: client,
 		scheme: scheme,
-		helper: helper.MakeHelper(client, scheme),
-		log:    log.WithName("keycloak-realm-user"),
+		helper: helper.MakeHelper(client, scheme, logger),
+		log:    logger,
 	}
 }
 
@@ -109,7 +111,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm, r.log)
+	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm)
 	if err != nil {
 		return errors.Wrap(err, "unable to create keycloak client")
 	}

@@ -65,7 +65,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 
 	logger := mock.Logger{}
 	h := helper.Mock{}
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
 	h.On("GetOrCreateRealmOwnerRef", clientScope, clientScope.ObjectMeta).Return(&realm, nil)
 
 	updatedClientScopeWithID := getTestClientScope(realm.Name)
@@ -213,7 +213,7 @@ func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 
 	h := helper.Mock{}
 	h.On("GetOrCreateRealmOwnerRef", clientScope, clientScope.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).
+	h.On("CreateKeycloakClientForRealm", &realm).
 		Return(nil, errors.New("fatal"))
 
 	updatedClientScope := getTestClientScope(realm.Name)

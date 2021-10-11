@@ -43,7 +43,7 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 
 	r := ReconcileKeycloakRealmGroup{
 		client: client,
-		helper: helper.MakeHelper(client, scheme),
+		helper: helper.MakeHelper(client, scheme, nil),
 		scheme: scheme,
 		log:    &mock.Logger{},
 	}

@@ -46,7 +46,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&batch, &realm, &keycloak, &secret).Build()
 
-	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme),
+	rkr := ReconcileKeycloakRealmRoleBatch{scheme: scheme, client: client, helper: helper.MakeHelper(client, scheme, nil),
 		log: &mock.Logger{}}
 
 	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
@@ -105,7 +105,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		scheme: scheme,
 		client: client,
-		helper: helper.MakeHelper(client, scheme),
+		helper: helper.MakeHelper(client, scheme, nil),
 		log:    &mock.Logger{}}
 
 	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
@@ -199,7 +199,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		scheme: scheme,
 		client: client,
-		helper: helper.MakeHelper(client, scheme),
+		helper: helper.MakeHelper(client, scheme, &logger),
 		log:    &logger,
 	}
 
