@@ -1,10 +1,11 @@
 {{- if eq .Values.global.platform "openshift" -}}
 apiVersion: authorization.openshift.io/v1
-kind: ClusterRole
+kind: Role
 metadata:
+  namespace: {{ .Values.global.edpName }}
   labels:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
-  name: edp-{{ .Values.name }}-{{ .Values.global.edpName }}
+  name: edp-{{ .Values.name }}
 rules:
 - apiGroups:
     - '*'
