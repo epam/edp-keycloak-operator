@@ -50,7 +50,7 @@ func TestNewReconcile(t *testing.T) {
 	kClient := adapter.Mock{}
 
 	h.On("GetOrCreateRealmOwnerRef", &flow, flow.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &log).Return(&kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 
 	kClient.On("SyncAuthFlow", realm.Spec.RealmName, &adapter.KeycloakAuthFlow{
 		Alias:                    flow.Spec.Alias,
@@ -108,7 +108,7 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	kClient := adapter.Mock{}
 
 	h.On("GetOrCreateRealmOwnerRef", &flow, flow.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &log).Return(&kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 	h.On("SetFailureCount", &flow).Return(time.Second)
 	h.On("UpdateStatus", &flow).Return(nil)
 

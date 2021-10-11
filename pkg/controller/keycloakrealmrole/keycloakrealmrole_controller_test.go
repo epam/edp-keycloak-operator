@@ -54,7 +54,7 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	rkr := ReconcileKeycloakRealmRole{
 		scheme: scheme,
 		client: client,
-		helper: helper.MakeHelper(client, scheme),
+		helper: helper.MakeHelper(client, scheme, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -145,7 +145,7 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 		Return(errors.Wrap(adapter.ErrDuplicated("dup"), "test unwrap"))
 
 	h := helper.Mock{}
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
 	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
 
 	h.On("UpdateStatus", &duplicatedRole).Return(nil)
@@ -203,7 +203,7 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 
 	h := helper.Mock{}
 	logger := mock.Logger{}
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
 	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
 	h.On("SetFailureCount", &role).Return(time.Second)
 	h.On("UpdateStatus", &role).Return(nil)

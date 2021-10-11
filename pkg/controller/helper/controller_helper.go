@@ -10,6 +10,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"github.com/go-logr/logr"
+	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -28,18 +29,21 @@ const (
 )
 
 type Helper struct {
-	client client.Client
-	scheme *runtime.Scheme
+	client      client.Client
+	scheme      *runtime.Scheme
+	restyClient *resty.Client
+	logger      logr.Logger
 }
 
 func (h *Helper) GetScheme() *runtime.Scheme {
 	return h.scheme
 }
 
-func MakeHelper(client client.Client, scheme *runtime.Scheme) *Helper {
+func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger) *Helper {
 	return &Helper{
 		client: client,
 		scheme: scheme,
+		logger: logger,
 	}
 }
 

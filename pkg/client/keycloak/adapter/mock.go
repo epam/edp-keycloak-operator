@@ -12,6 +12,8 @@ import (
 
 type Mock struct {
 	mock.Mock
+	exportTokenResult []byte
+	exportTokenErr    error
 }
 
 func (m *Mock) PutDefaultIdp(realm *dto.Realm) error {
@@ -234,4 +236,8 @@ func (m *Mock) UpdateClientScope(ctx context.Context, realmName, scopeID string,
 
 func (m *Mock) SetRealmEventConfig(realmName string, eventConfig *RealmEventConfig) error {
 	return m.Called(realmName, eventConfig).Error(0)
+}
+
+func (m *Mock) ExportToken() ([]byte, error) {
+	return m.exportTokenResult, m.exportTokenErr
 }

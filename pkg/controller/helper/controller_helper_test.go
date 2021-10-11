@@ -9,7 +9,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -24,7 +23,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
-	helper := MakeHelper(&mc, scheme)
+	helper := MakeHelper(&mc, scheme, nil)
 
 	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -74,7 +73,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
-	helper := MakeHelper(&mc, scheme)
+	helper := MakeHelper(&mc, scheme, nil)
 
 	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -132,7 +131,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
-	helper := MakeHelper(&mc, scheme)
+	helper := MakeHelper(&mc, scheme, nil)
 
 	realm := v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
@@ -183,7 +182,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
-	helper := MakeHelper(&mc, scheme)
+	helper := MakeHelper(&mc, scheme, nil)
 
 	realm := v1alpha1.KeycloakRealm{}
 
@@ -285,7 +284,7 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(v1alpha1.AddToScheme(scheme))
 
-	helper := MakeHelper(&mc, scheme)
+	helper := MakeHelper(&mc, scheme, nil)
 	realm := v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
@@ -318,7 +317,7 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 		Message: "not found",
 	}})
 
-	_, err := helper.CreateKeycloakClientForRealm(context.Background(), &realm, &mock.Logger{})
+	_, err := helper.CreateKeycloakClientForRealm(context.Background(), &realm)
 	if err == nil {
 		t.Fatal("no error on trying to connect to keycloak")
 	}

@@ -16,7 +16,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
-	v1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -37,17 +36,19 @@ const (
 )
 
 type Helper interface {
-	CreateKeycloakClient(url, user, password string, log logr.Logger) (keycloak.Client, error)
-	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak,
-		log logr.Logger) (keycloak.Client, error)
+	CreateKeycloakClient(ctx context.Context, url, user, password string) (keycloak.Client, error)
+	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
+	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
 }
 
 func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger) *ReconcileKeycloak {
+	logger := log.WithName("keycloak")
+
 	return &ReconcileKeycloak{
 		client: client,
 		scheme: scheme,
-		log:    log.WithName("keycloak"),
-		helper: helper.MakeHelper(client, scheme),
+		log:    logger,
+		helper: helper.MakeHelper(client, scheme, logger),
 	}
 }
 
@@ -144,7 +145,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 
 func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *keycloakApi.Keycloak,
 	logger logr.Logger) (bool, error) {
-	_, err := r.helper.CreateKeycloakClientFromTokenSecret(ctx, instance, logger)
+	_, err := r.helper.CreateKeycloakClientFromTokenSecret(ctx, instance)
 	if err == nil {
 		return true, nil
 	}
@@ -153,18 +154,7 @@ func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *k
 		return false, err
 	}
 
-	secret := &v1.Secret{}
-	err = r.client.Get(ctx, types.NamespacedName{
-		Name:      instance.Spec.Secret,
-		Namespace: instance.Namespace,
-	}, secret)
-	if err != nil {
-		return false, pkgErrors.Wrapf(err, "unable to get secret: %s", instance.Spec.Secret)
-	}
-	user := string(secret.Data["username"])
-	pwd := string(secret.Data["password"])
-
-	_, err = r.helper.CreateKeycloakClient(instance.Spec.Url, user, pwd, logger)
+	_, err = r.helper.CreateKeycloakClientFromLoginPassword(ctx, instance)
 	if err != nil {
 		logger.Error(err, "error during the creation of connection")
 	}

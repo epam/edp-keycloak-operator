@@ -38,7 +38,7 @@ func TestPrivateClientSecret(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(&kc, &secret).Build()
-	h := helper.MakeHelper(client, s)
+	h := helper.MakeHelper(client, s, nil)
 
 	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
 
@@ -116,7 +116,7 @@ func TestMake(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &v1alpha1.KeycloakRealm{}, &v1alpha1.KeycloakRealmList{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &kc).Build()
-	h := helper.MakeHelper(client, s)
+	h := helper.MakeHelper(client, s, nil)
 
 	kClient := new(adapter.Mock)
 	chain := Make(h.GetScheme(), client, &mock.Logger{})

@@ -53,7 +53,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -109,7 +109,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -178,7 +178,7 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -261,7 +261,7 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -342,7 +342,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	//reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -384,7 +384,7 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s),
+		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
@@ -414,7 +414,7 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 
 	h := helper.Mock{}
 	logger := mock.Logger{}
-	h.On("CreateKeycloakClientForRealm", &kr, &logger).Return(kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &kr).Return(kClient, nil)
 	h.On("TryToDelete", &kr,
 		makeTerminator(kr.Spec.RealmName, kClient, &logger),
 		keyCloakRealmOperatorFinalizerName).Return(false, nil)

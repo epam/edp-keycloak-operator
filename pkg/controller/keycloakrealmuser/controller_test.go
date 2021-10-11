@@ -50,7 +50,7 @@ func TestNewReconcile(t *testing.T) {
 	kClient := adapter.Mock{}
 
 	h.On("GetOrCreateRealmOwnerRef", &usr, usr.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &log).Return(&kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 
 	r := Reconcile{
 		helper: &h,

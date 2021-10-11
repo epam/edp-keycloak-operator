@@ -26,6 +26,7 @@ type Client interface {
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string) error
 	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error
+	ExportToken() ([]byte, error)
 }
 
 type KAuthFlow interface {

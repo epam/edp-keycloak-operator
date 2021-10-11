@@ -72,8 +72,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
-		Return(nil, errors.New("fatal"))
+	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(nil, errors.New("fatal"))
 	//reconcile
 	r := ReconcileKeycloak{
 		client: cl,
@@ -129,8 +128,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
-		Return(&kClient, nil)
+	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
 	r := ReconcileKeycloak{
 		client: cl,
 		scheme: s,
@@ -171,8 +169,8 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	h.On("CreateKeycloakClient", "https://some", "user", "pass", &logger).
-		Return(&kClient, nil)
+	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
+
 	r := ReconcileKeycloak{
 		client: cl,
 		scheme: s,
@@ -262,6 +260,8 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
+	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(nil,
+		errors.New(`secrets "keycloak-secret" not found`))
 
 	r := ReconcileKeycloak{
 		client: cl,
@@ -282,7 +282,7 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 		t.Fatal("no error logged")
 	}
 
-	if !strings.Contains(err.Error(), `secrets "keycloak-secret" not found`) {
+	if !strings.Contains(err.Error(), `Keycloak CR status is not connected`) {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }
@@ -310,7 +310,7 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
 	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
+	hm.On("CreateKeycloakClientFromLoginPassword", &cr).Return(&kClMock, nil)
 
 	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
 	var updateOpts []client.UpdateOption
@@ -356,7 +356,7 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
 	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	hm.On("CreateKeycloakClient", "", "", "", &logger).Return(&kClMock, nil)
+	hm.On("CreateKeycloakClientFromLoginPassword", &cr).Return(&kClMock, nil)
 
 	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
 	cl.On("Get", rq.NamespacedName, &cr).Return(nil, &crConnected).Once()

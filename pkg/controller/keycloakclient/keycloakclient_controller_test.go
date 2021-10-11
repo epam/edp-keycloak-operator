@@ -79,7 +79,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	h.On("UpdateStatus", kc).Return(nil)
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: kc,
 		client: client}, kc.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(&kClient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 
 	//reconcile
 	r := ReconcileKeycloakClient{
@@ -136,7 +136,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	realm := v1alpha1.KeycloakRealm{}
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: &kc,
 		client: client}, kc.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm, &logger).Return(kclient, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(kclient, nil)
 	h.On("TryToDelete", &kc,
 		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient, &logger),
 		keyCloakClientOperatorFinalizerName).Return(true, nil)
