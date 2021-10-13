@@ -26,6 +26,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+func TestNewReconcileKeycloak(t *testing.T) {
+	kc := NewReconcileKeycloak(nil, nil, &mock.Logger{})
+	if kc.scheme != nil {
+		t.Fatal("something went wrong")
+	}
+}
+
 func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
 	//client & scheme

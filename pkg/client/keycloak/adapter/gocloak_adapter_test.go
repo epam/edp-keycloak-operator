@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -19,6 +20,40 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMake(t *testing.T) {
+	rCl := resty.New()
+	httpmock.ActivateNonDefault(rCl.GetClient())
+	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
+		httpmock.NewStringResponder(200, "{}"))
+	_, err := Make(context.Background(), "foo", "bar", "baz", nil, rCl)
+	if err != nil {
+		t.Fatalf("%+v", err)
+	}
+}
+
+func TestMake_Failure(t *testing.T) {
+	_, err := Make(context.Background(), "foo", "bar", "baz", nil, nil)
+	if err == nil {
+		t.Fatal("no error on make failure")
+	}
+	if !strings.Contains(err.Error(), "unsupported protocol scheme") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	rCl := resty.New()
+	httpmock.ActivateNonDefault(rCl.GetClient())
+	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
+		httpmock.NewStringResponder(400, "{}"))
+	_, err = Make(context.Background(), "foo", "bar", "baz", nil, rCl)
+	if err == nil {
+		t.Fatal("no error on make failure")
+	}
+
+	if !strings.Contains(err.Error(), "400") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
 
 func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
 	//prepare
@@ -641,6 +676,44 @@ func TestGoCloakAdapter_GetGoCloak(t *testing.T) {
 	gcl := GoCloakAdapter{}
 	if gcl.GetGoCloak() != nil {
 		t.Fatal("go cloak must be nil")
+	}
+}
+
+func TestMakeFromToken_WrongStructure(t *testing.T) {
+	realToken := "foo.bar"
+	tok := gocloak.JWT{AccessToken: realToken}
+	bts, _ := json.Marshal(&tok)
+	_, err := MakeFromToken("test_url", bts, nil)
+	if err == nil {
+		t.Fatal("no error on wrong token")
+	}
+
+	if !strings.Contains(err.Error(), "wrong JWT token structure") {
+		t.Fatalf("wrong err returned: %s", err.Error())
+	}
+
+	realToken = "foo.bar .baz"
+	tok = gocloak.JWT{AccessToken: realToken}
+	bts, _ = json.Marshal(&tok)
+	_, err = MakeFromToken("test_url", bts, nil)
+	if err == nil {
+		t.Fatal("no error on wrong token")
+	}
+
+	if !strings.Contains(err.Error(), "wrong JWT token base64 encoding") {
+		t.Fatalf("wrong err returned: %s", err.Error())
+	}
+
+	realToken = "foo.bar.baz"
+	tok = gocloak.JWT{AccessToken: realToken}
+	bts, _ = json.Marshal(&tok)
+	_, err = MakeFromToken("test_url", bts, nil)
+	if err == nil {
+		t.Fatal("no error on wrong token")
+	}
+
+	if !strings.Contains(err.Error(), "unable to decode JWT payload json") {
+		t.Fatalf("wrong err returned: %s", err.Error())
 	}
 }
 

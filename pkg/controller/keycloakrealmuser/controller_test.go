@@ -17,6 +17,13 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+func TestNewReconcile_Init(t *testing.T) {
+	c := NewReconcile(nil, nil, &mock.Logger{})
+	if c.client != nil {
+		t.Fatal("something went wrong")
+	}
+}
+
 func TestNewReconcile(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
