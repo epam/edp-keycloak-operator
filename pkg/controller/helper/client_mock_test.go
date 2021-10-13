@@ -3,7 +3,6 @@ package helper
 import (
 	"context"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -27,29 +26,53 @@ func (c *Client) RESTMapper() meta.RESTMapper {
 }
 
 func (c *Client) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
-	err := c.Called(key, obj).Error(0)
-
-	if kc, ok := obj.(*v1alpha1.Keycloak); ok {
-		kc.Status.Connected = true
+	called := c.Called(key, obj)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Get(ctx, key, obj)
 	}
 
-	return err
+	return called.Error(0)
 }
 
 func (c *Client) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	return c.Called(opts, list).Error(0)
+	called := c.Called(list, opts)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.List(ctx, list, opts...)
+	}
+
+	return called.Error(0)
 }
 
 func (c *Client) Create(ctx context.Context, obj client.Object, options ...client.CreateOption) error {
-	return c.Called(obj).Error(0)
+	called := c.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Create(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
 func (c *Client) Delete(ctx context.Context, obj client.Object, options ...client.DeleteOption) error {
-	return c.Called(obj, options).Error(0)
+	called := c.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Delete(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
 func (c *Client) Update(ctx context.Context, obj client.Object, options ...client.UpdateOption) error {
-	return c.Called(obj).Error(0)
+	called := c.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Update(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
 func (c *Client) Status() client.StatusWriter {

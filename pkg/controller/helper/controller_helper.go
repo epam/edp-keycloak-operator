@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
@@ -28,11 +30,15 @@ const (
 	localConfigsRelativePath   = "configs"
 )
 
+type adapterBuilder func(ctx context.Context, url, user, password string, log logr.Logger,
+	restyClient *resty.Client) (keycloak.Client, error)
+
 type Helper struct {
-	client      client.Client
-	scheme      *runtime.Scheme
-	restyClient *resty.Client
-	logger      logr.Logger
+	client         client.Client
+	scheme         *runtime.Scheme
+	restyClient    *resty.Client
+	logger         logr.Logger
+	adapterBuilder adapterBuilder
 }
 
 func (h *Helper) GetScheme() *runtime.Scheme {
@@ -44,6 +50,10 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 		client: client,
 		scheme: scheme,
 		logger: logger,
+		adapterBuilder: func(ctx context.Context, url, user, password string, log logr.Logger,
+			restyClient *resty.Client) (keycloak.Client, error) {
+			return adapter.Make(ctx, url, user, password, log, restyClient)
+		},
 	}
 }
 

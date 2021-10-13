@@ -6,15 +6,16 @@ import (
 	"strings"
 	"testing"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
@@ -281,10 +282,8 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 func TestHelper_CreateKeycloakClient(t *testing.T) {
 	mc := Client{}
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-
-	helper := MakeHelper(&mc, scheme, nil)
+	utilruntime.Must(v1alpha1.AddToScheme(scheme.Scheme))
+	helper := MakeHelper(&mc, scheme.Scheme, nil)
 	realm := v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
@@ -297,19 +296,27 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 		},
 	}
 
+	kc := v1alpha1.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testOwnerReference"},
+		Status:     v1alpha1.KeycloakStatus{Connected: true},
+		Spec:       v1alpha1.KeycloakSpec{Secret: "ss1"},
+	}
+
+	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
+
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testOwnerReference",
-	}, &v1alpha1.Keycloak{}).Return(nil)
+	}, &v1alpha1.Keycloak{}).Return(fakeCl)
 
 	mc.On("Get", types.NamespacedName{
-		Namespace: "",
-		Name:      "",
+		Namespace: "test",
+		Name:      kc.Spec.Secret,
 	}, &v1.Secret{}).Return(nil)
 
 	mc.On("Get", types.NamespacedName{
-		Namespace: "",
-		Name:      "kc-token-",
+		Namespace: "test",
+		Name:      "kc-token-testOwnerReference",
 	}, &v1.Secret{}).Return(&k8sErrors.StatusError{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusNotFound,

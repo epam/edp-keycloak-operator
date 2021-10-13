@@ -36,3 +36,14 @@ func TestMock_OneLiners(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMock_ExportToken(t *testing.T) {
+	m := Mock{
+		ExportTokenErr: errors.New("fatal"),
+	}
+
+	if _, err := m.ExportToken(); err == nil {
+		t.Fatal("no error returned")
+	}
+
+}

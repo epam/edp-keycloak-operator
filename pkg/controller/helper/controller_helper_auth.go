@@ -37,7 +37,7 @@ func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context,
 	}
 
 	if !k8sErrors.IsNotFound(err) && !adapter.IsErrTokenExpired(err) {
-		return nil, err
+		return nil, errors.Wrap(err, "unexpected error")
 	}
 
 	clientAdapter, err = h.CreateKeycloakClientFromLoginPassword(ctx, kc)
@@ -76,7 +76,7 @@ func (h *Helper) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *
 }
 
 func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password string) (keycloak.Client, error) {
-	clientAdapter, err := adapter.Make(ctx, url, user, password, h.logger, h.restyClient)
+	clientAdapter, err := h.adapterBuilder(ctx, url, user, password, h.logger, h.restyClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to init kc client adapter")
 	}
