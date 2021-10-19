@@ -160,10 +160,12 @@ func TestSyncClientScope(t *testing.T) {
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
 	instance := getTestClientScope(realm.Name)
-	instance.Status.ID = "scopeID1"
+	scopeID := "scopeID1"
 
-	kClient.On("GetClientScope", instance.Spec.Name, realm.Spec.RealmName).Return(&model.ClientScope{}, nil)
-	kClient.On("UpdateClientScope", realm.Spec.RealmName, instance.Status.ID, &adapter.ClientScope{
+	kClient.On("GetClientScope", instance.Spec.Name, realm.Spec.RealmName).Return(&model.ClientScope{
+		ID: &scopeID,
+	}, nil)
+	kClient.On("UpdateClientScope", realm.Spec.RealmName, scopeID, &adapter.ClientScope{
 		Name:            instance.Spec.Name,
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).Return(nil)
