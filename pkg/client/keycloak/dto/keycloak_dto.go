@@ -84,6 +84,7 @@ type Client struct {
 	Attributes              map[string]string
 	AdvancedProtocolMappers bool
 	ServiceAccountEnabled   bool
+	FrontChannelLogout      bool
 }
 
 type PrimaryRealmRole struct {
@@ -114,6 +115,7 @@ func ConvertSpecToClient(spec *v1alpha1.KeycloakClientSpec, clientSecret string)
 		Attributes:              spec.Attributes,
 		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 		ServiceAccountEnabled:   spec.ServiceAccount != nil && spec.ServiceAccount.Enabled,
+		FrontChannelLogout:      spec.FrontChannelLogout,
 	}
 }
 
