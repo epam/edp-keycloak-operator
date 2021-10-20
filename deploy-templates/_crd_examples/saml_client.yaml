@@ -1,0 +1,19 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: redash-test
+spec:
+  clientId: redash-test
+  public: true
+  directAccess: true
+  audRequired: true
+  secret: ''
+  clientRoles: null
+  attributes:
+    saml.assertion.signature: 'true'
+    saml.client.signature: 'false'
+  advancedProtocolMappers: false
+  protocol: saml
+  frontChannelLogout: true
+  webUrl: https://example.com
+  targetRealm: d1-id-kc-realm-name

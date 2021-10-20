@@ -407,6 +407,7 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		AdminURL:               &client.WebUrl,
 		ProtocolMappers:        &protocolMappers,
 		ServiceAccountsEnabled: &client.ServiceAccountEnabled,
+		FrontChannelLogout:     &client.FrontChannelLogout,
 	}
 }
 
