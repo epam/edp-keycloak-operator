@@ -4,7 +4,7 @@ kind: RoleBinding
 metadata:
   labels:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
-  name: edp-{{ .Values.name }}-admin-{{ .Values.global.edpName }}
+  name: edp-{{ .Values.name }}-admin
 roleRef:
   name: admin
   apiGroup: rbac.authorization.k8s.io

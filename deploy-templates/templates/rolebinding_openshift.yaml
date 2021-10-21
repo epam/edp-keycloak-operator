@@ -6,7 +6,9 @@ metadata:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
   name: edp-{{ .Values.name }}
 roleRef:
+  kind: Role
   name: edp-{{ .Values.name }}
+  namespace: {{ .Values.global.edpName }}
 subjects:
   - kind: ServiceAccount
     name: edp-{{ .Values.name }}
