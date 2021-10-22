@@ -51,6 +51,7 @@ rules:
     - keycloakclientscopes/finalizers
     - keycloakclientscopes/status
     - keycloakclientscopes
+    - events
   verbs:
      - '*'
 - apiGroups:
