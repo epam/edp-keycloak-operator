@@ -36,7 +36,6 @@ const (
 )
 
 type Helper interface {
-	CreateKeycloakClient(ctx context.Context, url, user, password string) (keycloak.Client, error)
 	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
 	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
 }

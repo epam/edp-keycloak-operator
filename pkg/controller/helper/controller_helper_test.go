@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/go-resty/resty/v2"
+	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -276,6 +278,20 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 
 	if errors.Cause(err) != mockErr {
 		t.Fatal("wrong error returned")
+	}
+}
+
+func TestMakeHelper(t *testing.T) {
+	rCl := resty.New()
+	httpmock.ActivateNonDefault(rCl.GetClient())
+	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+		httpmock.NewStringResponder(200, "{}"))
+
+	h := MakeHelper(nil, nil, nil)
+	_, err := h.adapterBuilder(context.Background(), "k-url", "foo", "bar",
+		v1alpha1.KeycloakAdminTypeServiceAccount, nil, rCl)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -58,7 +58,7 @@ func (h *Helper) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *
 	}
 
 	clientAdapter, err := h.CreateKeycloakClient(ctx, kc.Spec.Url, string(secret.Data["username"]),
-		string(secret.Data["password"]))
+		string(secret.Data["password"]), kc.GetAdminType())
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to init kc client adapter")
 	}
@@ -75,8 +75,8 @@ func (h *Helper) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *
 	return clientAdapter, nil
 }
 
-func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password string) (keycloak.Client, error) {
-	clientAdapter, err := h.adapterBuilder(ctx, url, user, password, h.logger, h.restyClient)
+func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password, adminType string) (keycloak.Client, error) {
+	clientAdapter, err := h.adapterBuilder(ctx, url, user, password, adminType, h.logger, h.restyClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to init kc client adapter")
 	}
