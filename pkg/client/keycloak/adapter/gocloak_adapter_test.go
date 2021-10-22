@@ -21,6 +21,32 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestMakeFromServiceAccount(t *testing.T) {
+	rCl := resty.New()
+	httpmock.ActivateNonDefault(rCl.GetClient())
+	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+		httpmock.NewStringResponder(200, "{}"))
+
+	if _, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
+		"master", nil, rCl); err != nil {
+		t.Fatal(err)
+	}
+
+	httpmock.Reset()
+	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+		httpmock.NewStringResponder(400, "{}"))
+
+	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
+		"master", nil, rCl)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "unable to login with client creds, clientID: k-cl-id, realm: master: 400") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
 func TestMake(t *testing.T) {
 	rCl := resty.New()
 	httpmock.ActivateNonDefault(rCl.GetClient())

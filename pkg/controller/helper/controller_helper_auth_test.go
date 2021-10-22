@@ -96,7 +96,7 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 	adapterMock := adapter.Mock{
 		ExportTokenErr: errors.New("export token fatal"),
 	}
-	helper.adapterBuilder = func(ctx context.Context, url, user, password string, log logr.Logger,
+	helper.adapterBuilder = func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 		restyClient *resty.Client) (keycloak.Client, error) {
 		return &adapterMock, nil
 	}

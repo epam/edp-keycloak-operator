@@ -30,7 +30,7 @@ const (
 	localConfigsRelativePath   = "configs"
 )
 
-type adapterBuilder func(ctx context.Context, url, user, password string, log logr.Logger,
+type adapterBuilder func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 	restyClient *resty.Client) (keycloak.Client, error)
 
 type Helper struct {
@@ -50,8 +50,12 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 		client: client,
 		scheme: scheme,
 		logger: logger,
-		adapterBuilder: func(ctx context.Context, url, user, password string, log logr.Logger,
+		adapterBuilder: func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 			restyClient *resty.Client) (keycloak.Client, error) {
+			if adminType == v1alpha1.KeycloakAdminTypeServiceAccount {
+				return adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
+			}
+
 			return adapter.Make(ctx, url, user, password, log, restyClient)
 		},
 	}

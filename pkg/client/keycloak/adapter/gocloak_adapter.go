@@ -105,6 +105,29 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 	}, nil
 }
 
+func MakeFromServiceAccount(ctx context.Context, url, clientID, clientSecret, realm string, log logr.Logger,
+	restyClient *resty.Client) (*GoCloakAdapter, error) {
+	kcCl := gocloak.NewClient(url)
+
+	if restyClient == nil {
+		restyClient = resty.New()
+	}
+	kcCl.SetRestyClient(restyClient)
+
+	tok, err := kcCl.LoginClient(ctx, clientID, clientSecret, realm)
+	if err != nil {
+		return nil, errors.Wrapf(err, "unable to login with client creds, clientID: %s, realm: %s", clientID,
+			realm)
+	}
+
+	return &GoCloakAdapter{
+		client:   kcCl,
+		token:    tok,
+		log:      log,
+		basePath: url,
+	}, nil
+}
+
 func Make(ctx context.Context, url, user, password string, log logr.Logger,
 	restyClient *resty.Client) (*GoCloakAdapter, error) {
 	kcCl := gocloak.NewClient(url)

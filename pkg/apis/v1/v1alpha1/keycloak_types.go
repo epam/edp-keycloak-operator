@@ -16,9 +16,23 @@ type KeycloakSpec struct {
 	SsoRealmName     string `json:"ssoRealmName,omitempty"`
 	Users            []User `json:"users,omitempty"`
 	InstallMainRealm *bool  `json:"installMainRealm,omitempty"`
+	AdminType        string `json:"adminType,omitempty"`
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+}
+
+const (
+	KeycloakAdminTypeUser           = "user"
+	KeycloakAdminTypeServiceAccount = "serviceAccount"
+)
+
+func (in Keycloak) GetAdminType() string {
+	if in.Spec.AdminType == "" {
+		in.Spec.AdminType = KeycloakAdminTypeUser
+	}
+
+	return in.Spec.AdminType
 }
 
 func (in KeycloakSpec) GetInstallMainRealm() bool {
