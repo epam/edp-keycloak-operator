@@ -34,10 +34,11 @@ type Helper interface {
 }
 
 type Reconcile struct {
-	client client.Client
-	scheme *runtime.Scheme
-	log    logr.Logger
-	helper Helper
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	log                     logr.Logger
+	helper                  Helper
+	successReconcileTimeout time.Duration
 }
 
 func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger) *Reconcile {
@@ -50,7 +51,9 @@ func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger)
 	}
 }
 
-func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
@@ -92,6 +95,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	} else {
 		helper.SetSuccessStatus(&instance)
 		instance.Status.ID = scopeID
+		result.RequeueAfter = r.successReconcileTimeout
 	}
 
 	if err := r.helper.UpdateStatus(&instance); err != nil {

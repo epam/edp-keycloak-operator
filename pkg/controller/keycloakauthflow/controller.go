@@ -36,10 +36,11 @@ type Helper interface {
 }
 
 type Reconcile struct {
-	client client.Client
-	scheme *runtime.Scheme
-	helper Helper
-	log    logr.Logger
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	helper                  Helper
+	log                     logr.Logger
+	successReconcileTimeout time.Duration
 }
 
 func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger) *Reconcile {
@@ -53,7 +54,9 @@ func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger)
 	}
 }
 
-func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
+func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
@@ -91,6 +94,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		log.Error(err, "an error has occurred while handling keycloak auth flow", "name",
 			request.Name)
 	} else {
+		result.RequeueAfter = r.successReconcileTimeout
 		helper.SetSuccessStatus(&instance)
 	}
 

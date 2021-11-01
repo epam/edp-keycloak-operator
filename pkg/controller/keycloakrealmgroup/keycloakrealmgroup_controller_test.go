@@ -2,56 +2,112 @@ package keycloakrealmgroup
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
+
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+func TestReconcile_SetupWithManager(t *testing.T) {
+	l := mock.Logger{}
+	h := helper.MakeHelper(nil, scheme.Scheme, &l)
+
+	r := NewReconcileKeycloakRealmGroup(nil, nil, &l, h)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
+
 func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	scheme.AddKnownTypes(v1.SchemeGroupVersion, &corev1.Secret{})
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(corev1.AddToScheme(sch))
+
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
-		OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true},
+		Spec: v1alpha1.KeycloakSpec{Secret: "keycloak-secret"}}
+	realm := v1alpha1.KeycloakRealm{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealm",
+	},
+		ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
 		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.realm1"}}
-	now := metav1.Time{Time: time.Now()}
-	group := v1alpha1.KeycloakRealmGroup{ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "group1", DeletionTimestamp: &now},
-		Spec: v1alpha1.KeycloakRealmGroupSpec{Realm: "realm1", RealmRoles: []string{"role1", "role2"}, Name: "group1"}}
+	//now := metav1.Time{Time: time.Now()}
+	group := v1alpha1.KeycloakRealmGroup{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealmGroup",
+	}, ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "group1" /*, DeletionTimestamp: &now*/},
+		Spec:   v1alpha1.KeycloakRealmGroupSpec{Realm: "realm1", RealmRoles: []string{"role1", "role2"}, Name: "group1"},
+		Status: v1alpha1.KeycloakRealmGroupStatus{ID: "id11", Value: helper.StatusOK}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&group, &realm, &keycloak, &secret).Build()
+	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&group, &realm, &keycloak, &secret).Build()
 	kClient := new(adapter.Mock)
 
 	kClient.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("gid1", nil)
 	kClient.On("DeleteGroup", "ns.realm1", group.Spec.Name).Return(nil)
 
+	logger := mock.Logger{}
+	h := helper.Mock{}
+	kcMock := adapter.Mock{}
+
+	h.On("GetOrCreateRealmOwnerRef", &group, group.ObjectMeta).Return(&realm, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(&kcMock, nil)
+	kcMock.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("id11", nil)
+	h.On("TryToDelete", &group, makeTerminator(&kcMock, realm.Spec.RealmName, group.Spec.Name, &logger),
+		keyCloakRealmGroupOperatorFinalizerName).Return(true, nil)
+	h.On("UpdateStatus", &group).Return(nil)
+
 	r := ReconcileKeycloakRealmGroup{
-		client: client,
-		helper: helper.MakeHelper(client, scheme, nil),
-		scheme: scheme,
-		log:    &mock.Logger{},
+		client:                  client,
+		helper:                  &h,
+		scheme:                  sch,
+		log:                     &logger,
+		successReconcileTimeout: time.Hour,
 	}
 
-	if _, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{
+	res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: ns,
 		Name:      "group1",
-	}}); err != nil {
+	}})
+	if err != nil {
 		t.Fatalf("%+v", err)
+	}
+
+	if err := logger.LastError(); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if res.RequeueAfter != r.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 }

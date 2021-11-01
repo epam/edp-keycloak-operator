@@ -16,10 +16,36 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestReconcile_SetupWithManager(t *testing.T) {
+	l := mock.Logger{}
+	h := helper.MakeHelper(nil, scheme.Scheme, &l)
+
+	r := NewReconcileKeycloakRealmRoleBatch(nil, nil, &l, h)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -70,9 +96,9 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 }
 
 func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(corev1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(corev1.AddToScheme(sch))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -99,22 +125,35 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
 	}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).
+	client := fake.NewClientBuilder().WithScheme(sch).
 		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).Build()
 
-	rkr := ReconcileKeycloakRealmRoleBatch{
-		scheme: scheme,
-		client: client,
-		helper: helper.MakeHelper(client, scheme, nil),
-		log:    &mock.Logger{}}
+	logger := mock.Logger{}
 
-	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	rkr := ReconcileKeycloakRealmRoleBatch{
+		scheme:                  sch,
+		client:                  client,
+		helper:                  helper.MakeHelper(client, sch, nil),
+		log:                     &logger,
+		successReconcileTimeout: time.Hour,
+	}
+
+	res, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	if err := logger.LastError(); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if res.RequeueAfter != rkr.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 
 	var checkBatch v1alpha1.KeycloakRealmRoleBatch

@@ -3,6 +3,7 @@ package keycloakrealm
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -18,9 +19,34 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestReconcile_SetupWithManager(t *testing.T) {
+	l := mock.Logger{}
+	h := helper.MakeHelper(nil, scheme.Scheme, &l)
+
+	r := NewReconcileKeycloakRealm(nil, nil, &l, h)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
 
 func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 	//prepare
@@ -421,16 +447,22 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	h.On("UpdateStatus", &kr).Return(nil)
 	ch := handler.MockRealmHandler{}
 	r := ReconcileKeycloakRealm{
-		client: client,
-		scheme: s,
-		helper: &h,
-		log:    &logger,
-		chain:  &ch,
+		client:                  client,
+		scheme:                  s,
+		helper:                  &h,
+		log:                     &logger,
+		chain:                   &ch,
+		successReconcileTimeout: time.Hour,
 	}
 
 	ch.On("ServeRequest", &kr, kClient).Return(nil)
 
-	if _, err := r.Reconcile(context.TODO(), req); err != nil {
+	res, err := r.Reconcile(context.TODO(), req)
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	if res.RequeueAfter != r.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 }

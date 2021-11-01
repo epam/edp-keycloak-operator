@@ -3,8 +3,7 @@ package main
 import (
 	"flag"
 	"os"
-
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclientscope"
+	"time"
 
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -12,12 +11,14 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakauthflow"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclientscope"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmgroup"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrole"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrolebatch"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmuser"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/client-go/rest"
 
@@ -41,13 +42,14 @@ var (
 	setupLog = ctrl.Log.WithName("setup")
 )
 
-const keycloakOperatorLock = "edp-keycloak-operator-lock"
+const (
+	keycloakOperatorLock    = "edp-keycloak-operator-lock"
+	successReconcileTimeout = "SUCCESS_RECONCILE_TIMEOUT"
+)
 
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
-
 	utilruntime.Must(edpCompApi.AddToScheme(scheme))
 }
 
@@ -102,10 +104,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	successReconcileTimeoutValue, err := getSuccessReconcileTimeout()
+	if err != nil {
+		setupLog.Error(err, "unable to parse reconcile timeout")
+		os.Exit(1)
+	}
+
 	ctrlLog := ctrl.Log.WithName("controllers")
 
 	keycloakCtrl := keycloak.NewReconcileKeycloak(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
-	if err := keycloakCtrl.SetupWithManager(mgr); err != nil {
+	if err := keycloakCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak")
 		os.Exit(1)
 	}
@@ -113,37 +121,37 @@ func main() {
 	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
 
 	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), ctrlLog, h)
-	if err := keycloakClientCtrl.SetupWithManager(mgr); err != nil {
+	if err := keycloakClientCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-client")
 		os.Exit(1)
 	}
 
 	keycloakRealmCtrl := keycloakrealm.NewReconcileKeycloakRealm(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
-	if err := keycloakRealmCtrl.SetupWithManager(mgr); err != nil {
+	if err := keycloakRealmCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm")
 		os.Exit(1)
 	}
 
 	krgCtrl := keycloakrealmgroup.NewReconcileKeycloakRealmGroup(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
-	if err := krgCtrl.SetupWithManager(mgr); err != nil {
+	if err := krgCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-group")
 		os.Exit(1)
 	}
 
 	krrCtrl := keycloakrealmrole.NewReconcileKeycloakRealmRole(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
-	if err := krrCtrl.SetupWithManager(mgr); err != nil {
+	if err := krrCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-role")
 		os.Exit(1)
 	}
 
 	krrbCtrl := keycloakrealmrolebatch.NewReconcileKeycloakRealmRoleBatch(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
-	if err := krrbCtrl.SetupWithManager(mgr); err != nil {
+	if err := krrbCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-role-batch")
 		os.Exit(1)
 	}
 
 	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog)
-	if err := kafCtrl.SetupWithManager(mgr); err != nil {
+	if err := kafCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-auth-flow")
 		os.Exit(1)
 	}
@@ -155,7 +163,7 @@ func main() {
 	}
 
 	if err := keycloakclientscope.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog).
-		SetupWithManager(mgr); err != nil {
+		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-client-scope")
 		os.Exit(1)
 	}
@@ -175,4 +183,18 @@ func main() {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
 	}
+}
+
+func getSuccessReconcileTimeout() (time.Duration, error) {
+	val, exists := os.LookupEnv(successReconcileTimeout)
+	if !exists {
+		return 0, nil
+	}
+
+	d, err := time.ParseDuration(val)
+	if err != nil {
+		return 0, errors.Wrap(err, "wrong reconcile timeout duration format")
+	}
+
+	return d, nil
 }

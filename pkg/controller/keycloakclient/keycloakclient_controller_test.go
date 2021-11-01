@@ -2,6 +2,7 @@ package keycloakclient
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,9 +17,33 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestReconcile_SetupWithManager(t *testing.T) {
+	l := mock.Logger{}
+	h := helper.MakeHelper(nil, scheme.Scheme, &l)
+	r := NewReconcileKeycloakClient(nil, &l, h)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
 
 func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	kc := &v1alpha1.KeycloakClient{
@@ -142,15 +167,20 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		keyCloakClientOperatorFinalizerName).Return(true, nil)
 	h.On("UpdateStatus", &kc).Return(nil)
 	r := ReconcileKeycloakClient{
-		client: client,
-		helper: &h,
-		log:    &logger,
-		chain:  &chainMock,
+		client:                  client,
+		helper:                  &h,
+		log:                     &logger,
+		chain:                   &chainMock,
+		successReconcileTimeout: time.Hour,
 	}
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: "main", Namespace: "namespace"}}
-	_, err := r.Reconcile(context.TODO(), req)
+	res, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if res.RequeueAfter != r.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 }
