@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
@@ -11,8 +13,9 @@ import (
 
 var log = ctrl.Log.WithName("realm_handler")
 
-func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmHandler {
+func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) handler.RealmHandler {
 	return PutRealm{
+		hlp: hlp,
 		next: SetLabels{
 			next: PutKeycloakClientScope{
 				next: PutKeycloakClientCR{
@@ -47,10 +50,11 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme) handler.RealmH
 	}
 }
 
-func nextServeOrNil(next handler.RealmHandler, realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	if next != nil {
-		return next.ServeRequest(realm, kClient)
+		return next.ServeRequest(ctx, realm, kClient)
 	}
+
 	log.Info("handling of realm has been finished", "realm name", realm.Spec.RealmName)
 	return nil
 }

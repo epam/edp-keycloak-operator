@@ -84,6 +84,20 @@ func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password, 
 	return clientAdapter, nil
 }
 
+func (h *Helper) InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error {
+	var secret coreV1.Secret
+	if err := h.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: tokenSecretName(rootKeycloakName)},
+		&secret); err != nil {
+		return errors.Wrap(err, "unable to get client token secret")
+	}
+
+	if err := h.client.Delete(ctx, &secret); err != nil {
+		return errors.Wrap(err, "unable to delete client token secret")
+	}
+
+	return nil
+}
+
 func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak, token []byte) error {
 	var secret coreV1.Secret
 	err := h.client.Get(ctx, types.NamespacedName{Namespace: kc.Namespace, Name: tokenSecretName(kc.Name)}, &secret)

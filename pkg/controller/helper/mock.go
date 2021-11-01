@@ -86,3 +86,7 @@ func (m *Mock) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1
 
 	return called.Get(0).(keycloak.Client), nil
 }
+
+func (m *Mock) InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error {
+	return m.Called(namespace, rootKeycloakName).Error(0)
+}

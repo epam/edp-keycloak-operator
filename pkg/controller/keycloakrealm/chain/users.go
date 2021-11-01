@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -12,7 +14,7 @@ type PutUsers struct {
 	next handler.RealmHandler
 }
 
-func (h PutUsers) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutUsers) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
@@ -21,7 +23,7 @@ func (h PutUsers) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.C
 		return errors.Wrap(err, "error during createUsers")
 	}
 	rLog.Info("End put users to realm")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
 func createUsers(realm *dto.Realm, kClient keycloak.Client) error {

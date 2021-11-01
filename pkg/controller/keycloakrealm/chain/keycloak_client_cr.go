@@ -41,12 +41,12 @@ func (h PutKeycloakClientCR) getClientRoles(realm *v1alpha1.KeycloakRealm) []str
 	return clientRoles
 }
 
-func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client CR")
 	if !realm.Spec.SSOEnabled() {
 		rLog.Info("sso realm disabled skip creation of Keycloak client CR")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 	kc, err := helper.GetKeycloakClientCR(h.client, types.NamespacedName{
 		Namespace: realm.Namespace,
@@ -57,7 +57,7 @@ func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	}
 	if kc != nil {
 		rLog.Info("Required Keycloak client CR already exists")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	kc = &v1alpha1.KeycloakClient{
@@ -77,10 +77,10 @@ func (h PutKeycloakClientCR) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	if err != nil {
 		return errors.Wrap(err, "cannot set owner ref for keycloak client CR")
 	}
-	err = h.client.Create(context.TODO(), kc)
+	err = h.client.Create(ctx, kc)
 	if err != nil {
 		return errors.Wrap(err, "cannot create keycloak client cr")
 	}
 	rLog.Info("Keycloak client has been successfully created", "keycloak client", kc)
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

@@ -17,12 +17,12 @@ type PutOpenIdConfigAnnotation struct {
 	client client.Client
 }
 
-func (h PutOpenIdConfigAnnotation) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm spec", realm.Spec)
 	rLog.Info("Start put openid configuration annotation...")
 	if !realm.Spec.SSOEnabled() {
 		rLog.Info("sso realm disabled skip openid configuration annotation")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	con, err := kClient.GetOpenIdConfig(dto.ConvertSpecToRealm(realm.Spec))
@@ -35,11 +35,11 @@ func (h PutOpenIdConfigAnnotation) ServeRequest(realm *v1alpha1.KeycloakRealm, k
 	}
 	an[annotationKey] = con
 	realm.SetAnnotations(an)
-	err = h.client.Update(context.TODO(), realm)
+	err = h.client.Update(ctx, realm)
 	if err != nil {
 		return err
 	}
 
 	rLog.Info("end put openid configuration annotation")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

@@ -29,6 +29,9 @@ spec:
           type: object
         spec:
           type: object
+          properties:
+            frontChannelLogout:
+              type: boolean
         status:
           type: object
   version: v1alpha1

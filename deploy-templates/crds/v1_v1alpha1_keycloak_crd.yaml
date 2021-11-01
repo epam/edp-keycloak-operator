@@ -33,6 +33,9 @@ spec:
               type: string
             secret:
               type: string
+            adminType:
+              type: string
+              description: 'admin type can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token'
           required:
             - url
             - secret

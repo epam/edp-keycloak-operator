@@ -23,7 +23,6 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -323,34 +322,38 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 }
 
 func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
-	clStatus := helper.K8SStatusMock{}
 	cl := helper.K8SClientMock{}
-	cl.SetStatus(&clStatus)
 	hm := helper.Mock{}
 	kClMock := adapter.Mock{}
-
 	logger := mock.Logger{}
+	if err := v1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		t.Fatal(err)
+	}
+
+	kc := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Namespace: "kc-ns1", Name: "kc-name-1"},
+		Spec: v1alpha1.KeycloakSpec{Secret: "kc-secret-name-1"}}
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
+
+	fakeCl := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(&kc).Build()
+
 	r := ReconcileKeycloak{
 		client: &cl,
-		scheme: cl.Scheme(),
+		scheme: scheme.Scheme,
 		log:    &logger,
 		helper: &hm,
 	}
 
-	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "baz", Namespace: "bar"}}
-	cr := v1alpha1.Keycloak{}
-	sec := corev1.Secret{}
+	cl.On("Status").Return(fakeCl)
+	cl.On("Get", rq.NamespacedName, &kc).Return(fakeCl).Once()
+	cl.On("Get", types.NamespacedName{Namespace: kc.Namespace, Name: kc.Spec.Secret},
+	&corev1.Secret{}).Return(nil)
 
-	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
-	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
-	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
+	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
-	hm.On("CreateKeycloakClientFromLoginPassword", &cr).Return(&kClMock, nil)
+	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
 
-	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
-	var updateOpts []client.UpdateOption
-	clStatus.On("Update", &crConnected, updateOpts).Return(nil)
-	cl.On("Get", rq.NamespacedName, &cr).Return(errors.New("isStatusConnected fatal")).Once()
+	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).
+		Return(errors.New("isStatusConnected fatal")).Once()
 
 	_, err := r.Reconcile(context.Background(), rq)
 	if err != nil {
@@ -368,39 +371,47 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 }
 
 func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
-	clStatus := helper.K8SStatusMock{}
 	cl := helper.K8SClientMock{}
-	cl.SetStatus(&clStatus)
+	sch := runtime.NewScheme()
+
+	if err := v1alpha1.AddToScheme(sch); err != nil {
+		t.Fatal(err)
+	}
+
 	hm := helper.Mock{}
 	kClMock := adapter.Mock{}
-
 	logger := mock.Logger{}
+
+	kc := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}, ObjectMeta: metav1.ObjectMeta{
+		Name: "kc-main",
+		Namespace: "kc-ns",
+	}, Spec: v1alpha1.KeycloakSpec{Secret: "kc-secret-name"},
+	TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "Keycloak"}}
+
+	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
+	sec := corev1.Secret{}
+	realmCr := v1alpha1.KeycloakRealm{}
+
+	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&kc).Build()
+	cl.On("Scheme").Return(fakeCl)
+	cl.On("Status").Return(fakeCl)
+
+	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).Return(fakeCl).Once()
+	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
+	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
+		Return(nil, adapter.ErrTokenExpired("token expired"))
+	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
+
+	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).Return(fakeCl).Once()
+	cl.On("Get", types.NamespacedName{Name: "main", Namespace: kc.Namespace}, &realmCr).
+		Return(errors.New("get main realm fatal"))
+
 	r := ReconcileKeycloak{
 		client: &cl,
 		scheme: cl.Scheme(),
 		log:    &logger,
 		helper: &hm,
 	}
-
-	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "baz", Namespace: "bar"}}
-	cr := v1alpha1.Keycloak{}
-	sec := corev1.Secret{}
-	realmCr := v1alpha1.KeycloakRealm{}
-
-	cl.On("Get", rq.NamespacedName, &cr).Return(nil).Once()
-	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
-	hm.On("CreateKeycloakClientFromTokenSecret", &cr).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
-	hm.On("CreateKeycloakClientFromLoginPassword", &cr).Return(&kClMock, nil)
-
-	crConnected := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
-	cl.On("Get", rq.NamespacedName, &cr).Return(nil, &crConnected).Once()
-
-	var updateOpts []client.UpdateOption
-	clStatus.On("Update", &crConnected, updateOpts).Return(nil)
-	cl.On("Get", rq.NamespacedName, &cr).Return(errors.New("isStatusConnected fatal")).Once()
-	cl.On("Get", types.NamespacedName{Name: "main"}, &realmCr).
-		Return(errors.New("get main realm fatal"))
 
 	_, err := r.Reconcile(context.Background(), rq)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"strings"
 	"testing"
 	"time"
@@ -27,7 +28,7 @@ import (
 )
 
 func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
 	utilruntime.Must(v1alpha1.AddToScheme(scheme.Scheme))
 	helper := MakeHelper(&mc, scheme.Scheme, nil)
@@ -187,7 +188,7 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 		},
 	}
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &secret).Build()
-	mc := Client{}
+	mc := K8SClientMock{}
 	mc.On("Get", types.NamespacedName{Name: tokenSecretName(kc.Name)}, &corev1.Secret{}).
 		Return(errors.New("fatal secret"))
 
@@ -282,5 +283,60 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 
 	if _, err := h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestHelper_InvalidateKeycloakClientTokenSecret(t *testing.T) {
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: tokenSecretName("kc-name")},
+	}
+
+	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&sec).Build()
+	h := Helper{client: fakeCl}
+
+	if err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name"); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToGet(t *testing.T) {
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: tokenSecretName("wrong-name")},
+	}
+
+	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&sec).Build()
+	h := Helper{client: fakeCl}
+
+	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !k8sErrors.IsNotFound(errors.Cause(err)) {
+		t.Fatalf("wrong error returned: %+v", err)
+	}
+}
+
+func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToDelete(t *testing.T) {
+	sec := corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: tokenSecretName("kc-name")},
+		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+	}
+
+	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&sec).Build()
+	k8sMock := K8SClientMock{}
+	k8sMock.On("Get", types.NamespacedName{Namespace: sec.Namespace, Name: sec.Name}, &corev1.Secret{}).
+		Return(fakeCl)
+	var dOptions []client.DeleteOption
+	k8sMock.On("Delete", &sec, dOptions).Return(errors.New("deletion error"))
+	h := Helper{client: &k8sMock}
+
+	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "deletion error") {
+		t.Fatalf("wrong error returned: %+v", err)
 	}
 }

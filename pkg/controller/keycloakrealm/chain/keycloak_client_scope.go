@@ -20,7 +20,7 @@ type PutKeycloakClientScope struct {
 	scheme *runtime.Scheme
 }
 
-func (h PutKeycloakClientScope) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutKeycloakClientScope) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start Keycloak Scope")
 	defaultScope := getDefClientScope()
@@ -31,13 +31,13 @@ func (h PutKeycloakClientScope) ServeRequest(realm *v1alpha1.KeycloakRealm, kCli
 	}
 
 	if adapter.IsErrNotFound(err) {
-		if _, err := kClient.CreateClientScope(context.Background(), realm.Spec.RealmName, getDefClientScope()); err != nil {
+		if _, err := kClient.CreateClientScope(ctx, realm.Spec.RealmName, getDefClientScope()); err != nil {
 			return err
 		}
 	}
 
 	rLog.Info("End of put Keycloak Scope")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
 func getDefClientScope() *adapter.ClientScope {

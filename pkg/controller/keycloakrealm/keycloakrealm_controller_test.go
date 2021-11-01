@@ -448,7 +448,6 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	ch := handler.MockRealmHandler{}
 	r := ReconcileKeycloakRealm{
 		client:                  client,
-		scheme:                  s,
 		helper:                  &h,
 		log:                     &logger,
 		chain:                   &ch,

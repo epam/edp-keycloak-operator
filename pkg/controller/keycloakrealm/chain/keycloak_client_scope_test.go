@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -29,7 +30,7 @@ func TestPutKeycloakClientScope_ServeRequest(t *testing.T) {
 		Return(nil, adapter.ErrNotFound("not found"))
 	kClient.On("CreateClientScope", "realm1", getDefClientScope()).
 		Return("scope_id", nil)
-	if err := ps.ServeRequest(&realm, &kClient); err != nil {
+	if err := ps.ServeRequest(context.Background(), &realm, &kClient); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -50,7 +51,7 @@ func TestPutKeycloakClientScope_ServeRequest_Failure_GetClientScope(t *testing.T
 	kClient.On("GetClientScope", "edp", "realm1").
 		Return(nil, errors.New("get scope fatal"))
 
-	err := ps.ServeRequest(&realm, &kClient)
+	err := ps.ServeRequest(context.Background(), &realm, &kClient)
 	if err == nil {
 		t.Fatal("no error returned")
 	}
@@ -77,7 +78,7 @@ func TestPutKeycloakClientScope_ServeRequest_FailureCreateClientScope(t *testing
 		Return(nil, adapter.ErrNotFound("not found"))
 	kClient.On("CreateClientScope", "realm1", getDefClientScope()).
 		Return("", errors.New("create client scope fatal"))
-	err := ps.ServeRequest(&realm, &kClient)
+	err := ps.ServeRequest(context.Background(), &realm, &kClient)
 	if err == nil {
 		t.Fatal("no error returned")
 	}

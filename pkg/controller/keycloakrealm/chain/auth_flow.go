@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
@@ -11,13 +13,13 @@ type AuthFlow struct {
 	next handler.RealmHandler
 }
 
-func (a AuthFlow) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (a AuthFlow) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start configuring keycloak realm auth flow", "flow", realm.Spec.BrowserFlow)
 
 	if realm.Spec.BrowserFlow == nil {
 		rLog.Info("Browser flow is empty, exit")
-		return nil
+		return nextServeOrNil(ctx, a.next, realm, kClient)
 	}
 
 	if err := kClient.SetRealmBrowserFlow(realm.Spec.RealmName, *realm.Spec.BrowserFlow); err != nil {
@@ -25,5 +27,5 @@ func (a AuthFlow) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.C
 	}
 
 	rLog.Info("End of configuring keycloak realm auth flow")
-	return nil
+	return nextServeOrNil(ctx, a.next, realm, kClient)
 }

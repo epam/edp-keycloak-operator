@@ -138,9 +138,9 @@ func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*v1alp
 	return instance, nil
 }
 
-func GetSecret(client client.Client, nsn types.NamespacedName) (*coreV1.Secret, error) {
+func GetSecret(ctx context.Context, client client.Client, nsn types.NamespacedName) (*coreV1.Secret, error) {
 	secret := &coreV1.Secret{}
-	err := client.Get(context.TODO(), nsn, secret)
+	err := client.Get(ctx, nsn, secret)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return nil, nil //todo maybe refactor?

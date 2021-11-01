@@ -21,12 +21,12 @@ import (
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
 
-	helper := MakeHelper(&mc, scheme, nil)
+	helper := MakeHelper(&mc, sch, nil)
 
 	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -71,12 +71,12 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 }
 
 func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
 
-	helper := MakeHelper(&mc, scheme, nil)
+	helper := MakeHelper(&mc, sch, nil)
 
 	kcGroup := v1alpha1.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -129,12 +129,12 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 }
 
 func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
 
-	helper := MakeHelper(&mc, scheme, nil)
+	helper := MakeHelper(&mc, sch, nil)
 
 	realm := v1alpha1.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
@@ -180,12 +180,12 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 }
 
 func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
 
-	helper := MakeHelper(&mc, scheme, nil)
+	helper := MakeHelper(&mc, sch, nil)
 
 	realm := v1alpha1.KeycloakRealm{}
 
@@ -296,7 +296,7 @@ func TestMakeHelper(t *testing.T) {
 }
 
 func TestHelper_CreateKeycloakClient(t *testing.T) {
-	mc := Client{}
+	mc := K8SClientMock{}
 
 	utilruntime.Must(v1alpha1.AddToScheme(scheme.Scheme))
 	helper := MakeHelper(&mc, scheme.Scheme, nil)
