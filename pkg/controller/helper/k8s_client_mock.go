@@ -2,8 +2,6 @@ package helper
 
 import (
 	"context"
-	"encoding/json"
-
 	"github.com/stretchr/testify/mock"
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -12,50 +10,57 @@ import (
 
 type K8SClientMock struct {
 	mock.Mock
-	scheme     *runtime.Scheme
-	status     client.StatusWriter
 	restMapper meta.RESTMapper
 }
 
-func (m *K8SClientMock) SetScheme(s *runtime.Scheme) {
-	m.scheme = s
-}
-
-func (m *K8SClientMock) SetStatus(s client.StatusWriter) {
-	m.status = s
-}
-
-func (m *K8SClientMock) Get(_ context.Context, key client.ObjectKey, obj client.Object) error {
+func (m *K8SClientMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	called := m.Called(key, obj)
-
-	if len(called) > 1 {
-		if o := called.Get(1); o != nil {
-			object, ok := o.(client.Object)
-
-			if ok {
-				bts, _ := json.Marshal(object)
-				_ = json.Unmarshal(bts, obj)
-			}
-		}
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Get(ctx, key, obj)
 	}
 
 	return called.Error(0)
 }
 
-func (m *K8SClientMock) List(_ context.Context, list client.ObjectList, opts ...client.ListOption) error {
-	return m.Called(list, opts).Error(0)
+func (m *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
+	called := m.Called(list, opts)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.List(ctx, list, opts...)
+	}
+
+	return called.Error(0)
 }
 
-func (m *K8SClientMock) Create(_ context.Context, obj client.Object, opts ...client.CreateOption) error {
-	return m.Called(obj, opts).Error(0)
+func (m *K8SClientMock) Create(ctx context.Context, obj client.Object, options ...client.CreateOption) error {
+	called := m.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Create(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
-func (m *K8SClientMock) Delete(_ context.Context, obj client.Object, opts ...client.DeleteOption) error {
-	return m.Called(obj, opts).Error(0)
+func (m *K8SClientMock) Delete(ctx context.Context, obj client.Object, options ...client.DeleteOption) error {
+	called := m.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Delete(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
-func (m *K8SClientMock) Update(_ context.Context, obj client.Object, opts ...client.UpdateOption) error {
-	return m.Called(obj, opts).Error(0)
+func (m *K8SClientMock) Update(ctx context.Context, obj client.Object, options ...client.UpdateOption) error {
+	called := m.Called(obj, options)
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Update(ctx, obj, options...)
+	}
+
+	return called.Error(0)
 }
 
 func (m *K8SClientMock) Patch(_ context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
@@ -67,11 +72,23 @@ func (m *K8SClientMock) DeleteAllOf(_ context.Context, obj client.Object, opts .
 }
 
 func (m *K8SClientMock) Scheme() *runtime.Scheme {
-	return m.scheme
+	called := m.Called()
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Scheme()
+	}
+
+	return called.Get(0).(*runtime.Scheme)
 }
 
 func (m *K8SClientMock) Status() client.StatusWriter {
-	return m.status
+	called := m.Called()
+	parent, ok := called.Get(0).(client.Client)
+	if ok {
+		return parent.Status()
+	}
+
+	return called.Get(0).(client.StatusWriter)
 }
 
 func (m *K8SClientMock) RESTMapper() meta.RESTMapper {

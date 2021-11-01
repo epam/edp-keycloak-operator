@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"testing"
 
 	"github.com/pkg/errors"
@@ -19,13 +20,16 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 			RealmName: "realm1",
 		},
 	}
-	if err := af.ServeRequest(&realm, &kc); err != nil {
+
+	ctx := context.Background()
+
+	if err := af.ServeRequest(ctx, &realm, &kc); err != nil {
 		t.Fatal(err)
 	}
 
 	kc.On("SetRealmBrowserFlow", "realm1", "flow-alias-1").Return(nil)
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
-	if err := af.ServeRequest(&realm, &kc); err != nil {
+	if err := af.ServeRequest(ctx, &realm, &kc); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -44,7 +48,7 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 
 	kc.On("SetRealmBrowserFlow", "realm1", "flow-alias-1").Return(mockErr)
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
-	err := af.ServeRequest(&realm, &kc)
+	err := af.ServeRequest(context.Background(), &realm, &kc)
 	if err == nil {
 		t.Fatal("no error on mock fatal")
 	}

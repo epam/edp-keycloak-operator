@@ -1,8 +1,11 @@
 package chain
 
 import (
+	"context"
 	"fmt"
 	"testing"
+
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 
@@ -61,14 +64,15 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
 		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
-
-	chain := CreateDefChain(client, s)
-	if err := chain.ServeRequest(&kr, kClient); err != nil {
+	hm := helper.Mock{}
+	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, &hm)
+	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
 		t.Fatal(err)
 	}
 }
 
-func TestCreateDefChain2(t *testing.T) {
+func TestCreateDefChain_SSORealm(t *testing.T) {
 	ns, kSecretName, kServerUsr, kServerPwd, kRealmName, realmName := "test", "test", "test", "test", "test", "test.test"
 	k := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: ns},
 		Spec: v1alpha1.KeycloakSpec{Secret: kSecretName}, Status: v1alpha1.KeycloakStatus{Connected: true},
@@ -124,8 +128,10 @@ func TestCreateDefChain2(t *testing.T) {
 		Return(false, nil)
 	kClient.On("AddClientRoleToUser", "openshift", "test.test", &realmUser, "bar").Return(nil)
 
-	chain := CreateDefChain(client, s)
-	if err := chain.ServeRequest(&kr, kClient); err != nil {
+	hm := helper.Mock{}
+	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, &hm)
+	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -185,9 +191,10 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
 	kClient.On("AddRealmRoleToUser", testRealm.Name, realmUser.Username, "foo").Return(nil)
-
-	chain := CreateDefChain(client, s)
-	if err := chain.ServeRequest(&kr, kClient); err != nil {
+	hm := helper.Mock{}
+	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, &hm)
+	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -2,6 +2,9 @@ package helper
 
 import (
 	"context"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/kubernetes/scheme"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -71,14 +74,14 @@ func TestK8SClientMock_OneLiners(t *testing.T) {
 func TestK8SClientMock_Status(t *testing.T) {
 	s := K8SStatusMock{}
 	k8sMock := K8SClientMock{}
-	k8sMock.SetStatus(&s)
 	sch := runtime.Scheme{}
-	k8sMock.SetScheme(&sch)
 
+	k8sMock.On("Scheme").Return(&sch)
 	if k8sMock.Scheme() == nil {
 		t.Fatal("scheme must be not nil")
 	}
 
+	k8sMock.On("Status").Return(&s)
 	if k8sMock.Status() == nil {
 		t.Fatal("status must be not nil")
 	}
@@ -90,13 +93,20 @@ func TestK8SClientMock_Status(t *testing.T) {
 
 func TestK8SClientMock_Get(t *testing.T) {
 	k8sMock := K8SClientMock{}
+	if err := v1alpha1.AddToScheme(scheme.Scheme); err != nil {
+		t.Fatal(err)
+	}
+
 	var (
-		kcRequest v1alpha1.Keycloak
-		kcResult  = v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}}
+		kcRequest = v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"}}
+		kcResult  = v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"},
+			Status: v1alpha1.KeycloakStatus{Connected: true}}
 	)
 
-	k8sMock.On("Get", types.NamespacedName{}, &kcRequest).Return(nil, &kcResult)
-	if err := k8sMock.Get(context.Background(), types.NamespacedName{}, &kcRequest); err != nil {
+	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kcResult).Build()
+	rq := types.NamespacedName{Name: kcRequest.Name, Namespace: kcRequest.Namespace}
+	k8sMock.On("Get", rq, &kcRequest).Return(fakeCl)
+	if err := k8sMock.Get(context.Background(), rq, &kcRequest); err != nil {
 		t.Fatal(err)
 	}
 

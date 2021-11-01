@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -12,7 +14,7 @@ type RealmSettings struct {
 	next handler.RealmHandler
 }
 
-func (h RealmSettings) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start updating of Keycloak realm settings")
 
@@ -31,7 +33,7 @@ func (h RealmSettings) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 
 	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil {
 		rLog.Info("Realm settings is not set, exit.")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	settings := adapter.RealmSettings{}
@@ -54,5 +56,5 @@ func (h RealmSettings) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycl
 	}
 
 	rLog.Info("Realm settings is updating done.")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

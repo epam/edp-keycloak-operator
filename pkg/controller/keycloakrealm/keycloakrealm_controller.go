@@ -28,22 +28,21 @@ type Helper interface {
 	UpdateStatus(obj client.Object) error
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
+	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
 
 func NewReconcileKeycloakRealm(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper Helper) *ReconcileKeycloakRealm {
 	return &ReconcileKeycloakRealm{
 		client: client,
-		scheme: scheme,
 		helper: helper,
 		log:    log.WithName("keycloak-realm"),
-		chain:  chain.CreateDefChain(client, scheme),
+		chain:  chain.CreateDefChain(client, scheme, helper),
 	}
 }
 
 // ReconcileKeycloakRealm reconciles a KeycloakRealm object
 type ReconcileKeycloakRealm struct {
 	client                  client.Client
-	scheme                  *runtime.Scheme
 	helper                  Helper
 	log                     logr.Logger
 	chain                   handler.RealmHandler
@@ -113,7 +112,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 		return nil
 	}
 
-	if err := r.chain.ServeRequest(realm, kClient); err != nil {
+	if err := r.chain.ServeRequest(ctx, realm, kClient); err != nil {
 		return errors.Wrap(err, "error during realm chain")
 	}
 

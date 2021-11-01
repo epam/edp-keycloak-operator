@@ -23,16 +23,16 @@ type PutKeycloakClientSecret struct {
 	scheme *runtime.Scheme
 }
 
-func (h PutKeycloakClientSecret) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client secret")
 	if !realm.Spec.SSOEnabled() {
 		rLog.Info("sso realm disabled skip creation of Keycloak client secret")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	sn := fmt.Sprintf(clientSecretName, realm.Spec.RealmName)
-	s, err := helper.GetSecret(h.client, types.NamespacedName{
+	s, err := helper.GetSecret(ctx, h.client, types.NamespacedName{
 		Name:      sn,
 		Namespace: realm.Namespace,
 	})
@@ -41,7 +41,7 @@ func (h PutKeycloakClientSecret) ServeRequest(realm *v1alpha1.KeycloakRealm, kCl
 	}
 	if s != nil {
 		rLog.Info("Keycloak client secret already exist")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 	s = &coreV1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -53,7 +53,7 @@ func (h PutKeycloakClientSecret) ServeRequest(realm *v1alpha1.KeycloakRealm, kCl
 		},
 	}
 	cl := &v1alpha1.KeycloakClient{}
-	err = h.client.Get(context.TODO(), types.NamespacedName{
+	err = h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
 	}, cl)
@@ -64,10 +64,10 @@ func (h PutKeycloakClientSecret) ServeRequest(realm *v1alpha1.KeycloakRealm, kCl
 	if err != nil {
 		return err
 	}
-	err = h.client.Create(context.TODO(), s)
+	err = h.client.Create(ctx, s)
 	if err != nil {
 		return err
 	}
 	rLog.Info("End of put Keycloak client secret")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

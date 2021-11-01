@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -14,8 +15,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	rs := RealmSettings{}
 	kClient := new(adapter.Mock)
 	realm := keycloakApi.KeycloakRealm{}
+	ctx := context.Background()
 
-	if err := rs.ServeRequest(&realm, kClient); err != nil {
+	if err := rs.ServeRequest(ctx, &realm, kClient); err != nil {
 		t.Fatal(err)
 	}
 
@@ -47,7 +49,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		EventsListeners: []string{"foo", "bar"},
 	}).Return(nil).Once()
 
-	if err := rs.ServeRequest(&realm, kClient); err != nil {
+	if err := rs.ServeRequest(ctx, &realm, kClient); err != nil {
 		t.Fatal(err)
 	}
 
@@ -55,7 +57,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		EventsListeners: []string{"foo", "bar"},
 	}).Return(errors.New("event config fatal")).Once()
 
-	err := rs.ServeRequest(&realm, kClient)
+	err := rs.ServeRequest(ctx, &realm, kClient)
 	if err == nil {
 		t.Fatal("no error returned")
 	}

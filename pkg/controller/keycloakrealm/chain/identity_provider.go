@@ -19,17 +19,17 @@ type PutIdentityProvider struct {
 	client client.Client
 }
 
-func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutIdentityProvider) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Name, "realm namespace", realm.Namespace)
 	rLog.Info("Start put identity provider for realm...")
 
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
 	if !rDto.SsoRealmEnabled {
 		rLog.Info("sso realm disabled, skip put identity provider step")
-		return nextServeOrNil(h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	if err := h.setupIdentityProvider(realm, kClient, rLog, rDto); err != nil {
+	if err := h.setupIdentityProvider(ctx, realm, kClient, rLog, rDto); err != nil {
 		return errors.Wrap(err, "unable to setup identity provider")
 	}
 
@@ -42,14 +42,14 @@ func (h PutIdentityProvider) ServeRequest(realm *v1alpha1.KeycloakRealm, kClient
 	}
 
 	rLog.Info("End put identity provider for realm")
-	return nextServeOrNil(h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
-func (h PutIdentityProvider) setupIdentityProvider(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client,
+func (h PutIdentityProvider) setupIdentityProvider(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client,
 	rLog logr.Logger, rDto *dto.Realm) error {
 
 	cl := &v1alpha1.KeycloakClient{}
-	if err := h.client.Get(context.TODO(), types.NamespacedName{
+	if err := h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
 	}, cl); err != nil {
@@ -66,7 +66,7 @@ func (h PutIdentityProvider) setupIdentityProvider(realm *v1alpha1.KeycloakRealm
 	}
 
 	s := &coreV1.Secret{}
-	if err := h.client.Get(context.TODO(), types.NamespacedName{
+	if err := h.client.Get(ctx, types.NamespacedName{
 		Name:      cl.Spec.Secret,
 		Namespace: cl.Namespace,
 	}, s); err != nil {
