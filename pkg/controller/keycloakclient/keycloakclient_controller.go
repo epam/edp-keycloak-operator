@@ -46,13 +46,16 @@ func NewReconcileKeycloakClient(client client.Client, log logr.Logger, helper He
 
 // ReconcileKeycloakClient reconciles a KeycloakClient object
 type ReconcileKeycloakClient struct {
-	client client.Client
-	helper Helper
-	log    logr.Logger
-	chain  chain.Element
+	client                  client.Client
+	helper                  Helper
+	log                     logr.Logger
+	chain                   chain.Element
+	successReconcileTimeout time.Duration
 }
 
-func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
@@ -84,6 +87,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 			request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
+		result.RequeueAfter = r.successReconcileTimeout
 	}
 
 	if err := r.helper.UpdateStatus(&instance); err != nil {

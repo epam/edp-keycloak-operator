@@ -42,14 +42,17 @@ func NewReconcileKeycloakRealm(client client.Client, scheme *runtime.Scheme, log
 
 // ReconcileKeycloakRealm reconciles a KeycloakRealm object
 type ReconcileKeycloakRealm struct {
-	client client.Client
-	scheme *runtime.Scheme
-	helper Helper
-	log    logr.Logger
-	chain  handler.RealmHandler
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	helper                  Helper
+	log                     logr.Logger
+	chain                   handler.RealmHandler
+	successReconcileTimeout time.Duration
 }
 
-func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
@@ -84,6 +87,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		instance.Status.Available = true
 		instance.Status.Value = helper.StatusOK
 		instance.Status.FailureCount = 0
+		result.RequeueAfter = r.successReconcileTimeout
 	}
 
 	if err := r.helper.UpdateStatus(instance); err != nil {

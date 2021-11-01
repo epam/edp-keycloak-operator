@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Nerzal/gocloak/v8"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
@@ -21,10 +22,32 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestReconcile_SetupWithManager(t *testing.T) {
+	r := NewReconcileKeycloak(nil, nil, &mock.Logger{})
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
 
 func TestNewReconcileKeycloak(t *testing.T) {
 	kc := NewReconcileKeycloak(nil, nil, &mock.Logger{})
@@ -179,15 +202,20 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
 
 	r := ReconcileKeycloak{
-		client: cl,
-		scheme: s,
-		log:    &logger,
-		helper: &h,
+		client:                  cl,
+		scheme:                  s,
+		log:                     &logger,
+		helper:                  &h,
+		successReconcileTimeout: time.Hour,
 	}
 
-	_, err := r.Reconcile(context.TODO(), req)
+	res, err := r.Reconcile(context.TODO(), req)
 	if err != nil {
 		t.Fatalf("%+v", err)
+	}
+
+	if res.RequeueAfter != r.successReconcileTimeout {
+		t.Fatal("result RequeueAfter is not set")
 	}
 
 	if err := cl.Get(context.Background(),

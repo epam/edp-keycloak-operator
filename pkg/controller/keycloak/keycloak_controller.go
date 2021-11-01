@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -53,13 +54,16 @@ func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr
 
 // ReconcileKeycloak reconciles a Keycloak object
 type ReconcileKeycloak struct {
-	client client.Client
-	scheme *runtime.Scheme
-	log    logr.Logger
-	helper Helper
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	log                     logr.Logger
+	helper                  Helper
+	successReconcileTimeout time.Duration
 }
 
-func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		DeleteFunc: func(e event.DeleteEvent) bool {
 			return false
@@ -91,7 +95,10 @@ func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Req
 	}
 
 	log.Info("Reconciling Keycloak has been finished")
-	return reconcile.Result{}, nil
+
+	return reconcile.Result{
+		RequeueAfter: r.successReconcileTimeout,
+	}, nil
 }
 
 func (r *ReconcileKeycloak) tryToReconcile(ctx context.Context, instance *keycloakApi.Keycloak,

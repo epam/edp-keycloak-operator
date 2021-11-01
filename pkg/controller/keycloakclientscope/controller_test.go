@@ -17,10 +17,32 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
+
+func TestReconcile_SetupWithManager(t *testing.T) {
+	r := NewReconcile(nil, nil, &mock.Logger{})
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
 
 func getTestClientScope(realmName string) *v1alpha1.KeycloakClientScope {
 	return &v1alpha1.KeycloakClientScope{
@@ -84,17 +106,23 @@ func TestReconcile_Reconcile(t *testing.T) {
 		Return(true, nil)
 
 	rkr := Reconcile{
-		log:    &logger,
-		client: client,
-		helper: &h,
+		log:                     &logger,
+		client:                  client,
+		helper:                  &h,
+		successReconcileTimeout: time.Hour,
 	}
 
-	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	res, err := rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      clientScope.Name,
 			Namespace: clientScope.Namespace,
-		}}); err != nil {
+		}})
+	if err != nil {
 		t.Fatal(err)
+	}
+
+	if res.RequeueAfter != rkr.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 }
 

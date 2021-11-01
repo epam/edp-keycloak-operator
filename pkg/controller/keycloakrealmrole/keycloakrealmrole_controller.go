@@ -45,13 +45,16 @@ func NewReconcileKeycloakRealmRole(client client.Client, scheme *runtime.Scheme,
 }
 
 type ReconcileKeycloakRealmRole struct {
-	client client.Client
-	scheme *runtime.Scheme
-	helper Helper
-	log    logr.Logger
+	client                  client.Client
+	scheme                  *runtime.Scheme
+	helper                  Helper
+	log                     logr.Logger
+	successReconcileTimeout time.Duration
 }
 
-func (r *ReconcileKeycloakRealmRole) SetupWithManager(mgr ctrl.Manager) error {
+func (r *ReconcileKeycloakRealmRole) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
+	r.successReconcileTimeout = successReconcileTimeout
+
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
@@ -112,6 +115,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 
 	helper.SetSuccessStatus(&instance)
 	instance.Status.ID = roleID
+	result.RequeueAfter = r.successReconcileTimeout
 
 	return
 }

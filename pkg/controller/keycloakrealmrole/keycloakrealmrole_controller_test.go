@@ -2,6 +2,7 @@ package keycloakrealmrole
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,14 +17,40 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"k8s.io/client-go/kubernetes/scheme"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+func TestReconcile_SetupWithManager(t *testing.T) {
+	l := mock.Logger{}
+	h := helper.MakeHelper(nil, scheme.Scheme, &l)
+
+	r := NewReconcileKeycloakRealmRole(nil, nil, &l, h)
+	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	err = r.SetupWithManager(mgr, time.Second)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(), "no kind is registered for the type") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+
+	if r.successReconcileTimeout != time.Second {
+		t.Fatal("success reconcile timeout is not set")
+	}
+}
+
 func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	utilruntime.Must(corev1.AddToScheme(scheme))
+	sch := runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(corev1.AddToScheme(sch))
 
 	ns := "security"
 	keycloak := v1alpha1.Keycloak{
@@ -35,36 +62,55 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
-	now := metav1.Time{Time: time.Now()}
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{DeletionTimestamp: &now, Name: "test-role", Namespace: ns,
+	//now := metav1.Time{Time: time.Now()}
+	role := v1alpha1.KeycloakRealmRole{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealmRole",
+	}, ObjectMeta: metav1.ObjectMeta{ /*DeletionTimestamp: &now,*/ Name: "test-role", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
 		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "role-test"},
-		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
+		Status: v1alpha1.KeycloakRealmRoleStatus{Value: helper.StatusOK},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 
-	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role, &realm, &keycloak, &secret).Build()
+	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&role, &realm, &keycloak, &secret).Build()
 
 	kClient := new(adapter.Mock)
 	kClient.On("SyncRealmRole", "ns.test",
 		&dto.PrimaryRealmRole{Name: "role-test", Composites: []string{}}).Return(nil)
 	kClient.On("DeleteRealmRole", "ns.test", "role-test").Return(nil)
 
+	logger := mock.Logger{}
+	h := helper.Mock{}
+	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
+	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
+	h.On("UpdateStatus", &role).Return(nil)
+	h.On("TryToDelete", &role, makeTerminator(realm.Spec.RealmName, role.Spec.Name, kClient, &logger),
+		keyCloakRealmRoleOperatorFinalizerName).Return(true, nil)
+
 	rkr := ReconcileKeycloakRealmRole{
-		scheme: scheme,
+		scheme: sch,
 		client: client,
-		helper: helper.MakeHelper(client, scheme, nil),
-		log:    &mock.Logger{},
+		helper: &h,
+		log:    &logger,
 	}
 
-	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	res, err := rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test-role",
 			Namespace: ns,
 		},
-	}); err != nil {
+	})
+	if err != nil {
 		t.Fatalf("%+v", err)
+	}
+
+	if err := logger.LastError(); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	if res.RequeueAfter != rkr.successReconcileTimeout {
+		t.Fatal("success reconcile timeout is not set")
 	}
 }
 
