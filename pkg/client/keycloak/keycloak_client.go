@@ -24,8 +24,8 @@ type Client interface {
 	GetOpenIdConfig(realm *dto.Realm) (string, error)
 	PutDefaultIdp(realm *dto.Realm) error
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
-		clientRoles map[string][]string) error
-	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error
+		clientRoles map[string][]string, addOnly bool) error
+	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
 	ExportToken() ([]byte, error)
 }
 
@@ -61,7 +61,7 @@ type KCloakClients interface {
 	DeleteClient(kkClientID, realmName string) error
 	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
 	SyncClientProtocolMapper(
-		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error
+		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
 	GetClientID(clientID, realm string) (string, error)
 	PutClientScopeMapper(clientName, scopeId, realmName string) error
 	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)

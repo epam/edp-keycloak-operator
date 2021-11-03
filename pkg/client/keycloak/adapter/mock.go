@@ -167,8 +167,8 @@ func (m *Mock) PutClientScopeMapper(clientName, scopeId, realmName string) error
 }
 
 func (m *Mock) SyncClientProtocolMapper(
-	client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation) error {
-	return m.Called(client, crMappers).Error(0)
+	client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error {
+	return m.Called(client, crMappers, addOnly).Error(0)
 }
 
 func (m *Mock) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
@@ -176,8 +176,8 @@ func (m *Mock) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error
 }
 
 func (m *Mock) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
-	clientRoles map[string][]string) error {
-	return m.Called(realm, clientID, realmRoles, clientRoles).Error(0)
+	clientRoles map[string][]string, addOnly bool) error {
+	return m.Called(realm, clientID, realmRoles, clientRoles, addOnly).Error(0)
 }
 
 func (m *Mock) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error) {
@@ -213,8 +213,8 @@ func (m *Mock) SyncRealmUser(realmName string, user *KeycloakUser) error {
 	return m.Called(realmName, user).Error(0)
 }
 
-func (m *Mock) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string) error {
-	return m.Called(realm, clientID, attributes).Error(0)
+func (m *Mock) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error {
+	return m.Called(realm, clientID, attributes, addOnly).Error(0)
 }
 
 func (m *Mock) CreateClientScope(ctx context.Context, realmName string, scope *ClientScope) (string, error) {

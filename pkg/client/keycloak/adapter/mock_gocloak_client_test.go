@@ -96,7 +96,11 @@ func (m *MockGoCloakClient) GetClientRoles(ctx context.Context, accessToken, rea
 func (m *MockGoCloakClient) GetClients(ctx context.Context, accessToken, realm string,
 	params gocloak.GetClientsParams) ([]*gocloak.Client, error) {
 	args := m.Called(realm, params)
-	return args.Get(0).([]*gocloak.Client), args.Error(1)
+	if err := args.Error(1); err != nil {
+		return nil, err
+	}
+
+	return args.Get(0).([]*gocloak.Client), nil
 }
 
 func (m *MockGoCloakClient) GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {

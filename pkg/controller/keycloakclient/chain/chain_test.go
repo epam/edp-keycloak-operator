@@ -135,7 +135,7 @@ func TestMake(t *testing.T) {
 			ProtocolMapper: gocloak.StringP("")},
 		{Name: gocloak.StringP("foo"), Protocol: gocloak.StringP(""), Config: &map[string]string{"foo": "2"},
 			ProtocolMapper: gocloak.StringP("")},
-	}).Return(nil)
+	}, false).Return(nil)
 
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
