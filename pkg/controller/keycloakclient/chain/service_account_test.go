@@ -36,9 +36,9 @@ func TestServiceAccount_Serve(t *testing.T) {
 	kClient.On("SyncServiceAccountRoles", kc.Spec.TargetRealm, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.RealmRoles,
 		map[string][]string{
-			kc.Spec.ServiceAccount.ClientRoles[0].ClientID: kc.Spec.ServiceAccount.ClientRoles[0].Roles}).Return(nil)
+			kc.Spec.ServiceAccount.ClientRoles[0].ClientID: kc.Spec.ServiceAccount.ClientRoles[0].Roles}, false).Return(nil)
 	kClient.On("SetServiceAccountAttributes", kc.Spec.TargetRealm, kc.Status.ClientID,
-		kc.Spec.ServiceAccount.Attributes).Return(nil)
+		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
 
 	if err := sa.Serve(&kc, kClient); err != nil {
 		t.Fatal(err)

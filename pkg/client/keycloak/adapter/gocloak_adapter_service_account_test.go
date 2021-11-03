@@ -18,14 +18,15 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 	usr1 := gocloak.User{
 		Username: gocloak.StringP("user1"),
 		Attributes: &map[string][]string{
-			"foo1": []string{"bar1"},
+			"foo1": {"bar1"},
 		},
 	}
 
 	usr2 := gocloak.User{
 		Username: gocloak.StringP("user1"),
 		Attributes: &map[string][]string{
-			"foo": {"bar"},
+			"foo":  {"bar"},
+			"foo1": {"bar1"},
 		},
 	}
 
@@ -33,7 +34,7 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 	mockClient.On("UpdateUser", "realm1", usr2).Return(nil)
 
 	if err := adapter.SetServiceAccountAttributes("realm1", "clientID1",
-		map[string]string{"foo": "bar"}); err != nil {
+		map[string]string{"foo": "bar"}, true); err != nil {
 		t.Fatal(err)
 	}
 }

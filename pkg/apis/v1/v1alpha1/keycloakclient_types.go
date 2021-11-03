@@ -4,6 +4,11 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+const (
+	ReconciliationStrategyFull    = "full"
+	ReconciliationStrategyAddOnly = "addOnly"
+)
+
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
@@ -25,9 +30,19 @@ type KeycloakClientSpec struct {
 	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers,omitempty"`
 	ServiceAccount          *ServiceAccount   `json:"serviceAccount,omitempty"`
 	FrontChannelLogout      bool              `json:"frontChannelLogout,omitempty"`
+	ReconciliationStrategy  string            `json:"reconciliationStrategy,omitempty"`
+
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+}
+
+func (in KeycloakClient) GetReconciliationStrategy() string {
+	if in.Spec.ReconciliationStrategy == "" {
+		return ReconciliationStrategyFull
+	}
+
+	return in.Spec.ReconciliationStrategy
 }
 
 // +k8s:openapi-gen=true

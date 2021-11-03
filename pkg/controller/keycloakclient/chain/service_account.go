@@ -24,15 +24,16 @@ func (el *ServiceAccount) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapt
 	for _, v := range keycloakClient.Spec.ServiceAccount.ClientRoles {
 		clientRoles[v.ClientID] = v.Roles
 	}
+	addOnly := keycloakClient.GetReconciliationStrategy() == v1v1alpha1.ReconciliationStrategyAddOnly
 
 	if err := adapterClient.SyncServiceAccountRoles(keycloakClient.Spec.TargetRealm,
-		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles); err != nil {
+		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles, false); err != nil {
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 
 	if keycloakClient.Spec.ServiceAccount.Attributes != nil {
 		if err := adapterClient.SetServiceAccountAttributes(keycloakClient.Spec.TargetRealm, keycloakClient.Status.ClientID,
-			keycloakClient.Spec.ServiceAccount.Attributes); err != nil {
+			keycloakClient.Spec.ServiceAccount.Attributes, addOnly); err != nil {
 			return errors.Wrap(err, "unable to set service account attributes")
 		}
 	}

@@ -51,7 +51,7 @@ func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *v1v1alpha1.Keyc
 
 	if err := adapterClient.SyncClientProtocolMapper(
 		dto.ConvertSpecToClient(&keycloakClient.Spec, ""),
-		protocolMappers); err != nil {
+		protocolMappers, keycloakClient.GetReconciliationStrategy() == v1v1alpha1.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync protocol mapper")
 	}
 

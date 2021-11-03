@@ -32,6 +32,9 @@ spec:
           properties:
             frontChannelLogout:
               type: boolean
+            reconciliationStrategy:
+              type: string
+              description: 'full, addOnly'
         status:
           type: object
   version: v1alpha1

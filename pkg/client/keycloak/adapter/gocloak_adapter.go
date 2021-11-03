@@ -926,7 +926,7 @@ func (a GoCloakAdapter) mapperNeedsToBeUpdated(
 }
 
 func (a GoCloakAdapter) SyncClientProtocolMapper(
-	client *dto.Client, claimedMappers []gocloak.ProtocolMapperRepresentation) error {
+	client *dto.Client, claimedMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error {
 	log := a.log.WithValues("clientId", client.ClientId)
 	log.Info("Start put Client protocol mappers...")
 
@@ -950,11 +950,13 @@ func (a GoCloakAdapter) SyncClientProtocolMapper(
 		}
 	}
 
-	for _, kc := range currentMappersMap {
-		if _, ok := claimedMappersMap[*kc.Name]; !ok { //current mapper not exists in claimed, must be deleted
-			if err := a.client.DeleteClientProtocolMapper(context.Background(), a.token.AccessToken, client.RealmName,
-				clientID, *kc.ID); err != nil {
-				return errors.Wrap(err, "unable to delete client protocol mapper")
+	if !addOnly {
+		for _, kc := range currentMappersMap {
+			if _, ok := claimedMappersMap[*kc.Name]; !ok { //current mapper not exists in claimed, must be deleted
+				if err := a.client.DeleteClientProtocolMapper(context.Background(), a.token.AccessToken, client.RealmName,
+					clientID, *kc.ID); err != nil {
+					return errors.Wrap(err, "unable to delete client protocol mapper")
+				}
 			}
 		}
 	}

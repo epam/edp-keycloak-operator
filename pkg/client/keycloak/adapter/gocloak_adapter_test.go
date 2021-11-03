@@ -328,7 +328,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		log:      &mock.Logger{},
 	}
 
-	if err := adapter.SyncClientProtocolMapper(&client, crMappers); err != nil {
+	if err := adapter.SyncClientProtocolMapper(&client, crMappers, false); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -358,7 +358,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 		log:      &mock.Logger{},
 	}
 
-	err := adapter.SyncClientProtocolMapper(&client, []gocloak.ProtocolMapperRepresentation{})
+	err := adapter.SyncClientProtocolMapper(&client, []gocloak.ProtocolMapperRepresentation{}, false)
 	if err == nil {
 		t.Fatal("no error on get clients fatal")
 	}
@@ -441,6 +441,43 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	}
 }
 
+func TestGoCloakAdapter_SyncServiceAccountRoles_AddOnly(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    &gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+		log:      &mock.Logger{},
+	}
+
+	mockClient.On("GetClientServiceAccount", "realm", "client").Return(&gocloak.User{
+		ID: gocloak.StringP("id"),
+	}, nil)
+
+	mockClient.On("GetRoleMappingByUserID", "realm", "id").
+		Return(&gocloak.MappingsRepresentation{}, nil)
+	mockClient.On("GetRealmRole", "realm", "foo").
+		Return(&gocloak.Role{}, nil)
+	mockClient.On("AddRealmRoleToUser", "realm", "id", []gocloak.Role{{}}).
+		Return(nil)
+	mockClient.On("GetClients", "realm",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("bar")}).Return(nil,
+		errors.New("get clients fatal"))
+
+	err := adapter.SyncServiceAccountRoles("realm", "client", []string{"foo"},
+		map[string][]string{
+			"bar": {"john"},
+		}, true)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if !strings.Contains(err.Error(),
+		"unable to sync service account client roles: error during syncOneEntityClientRole: unable to get client id, realm: realm, clientID bar: get clients fatal") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
 func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 	mockClient := MockGoCloakClient{}
 	adapter := GoCloakAdapter{
@@ -509,7 +546,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 		map[string][]string{
 			"foo": {"foo", "bar"},
 			"bar": {"john"},
-		}); err != nil {
+		}, false); err != nil {
 		t.Fatal(err)
 	}
 }
