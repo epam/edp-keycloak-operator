@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Nerzal/gocloak/v8"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
 
@@ -46,4 +48,33 @@ func TestMock_ExportToken(t *testing.T) {
 		t.Fatal("no error returned")
 	}
 
+}
+
+func TestMock_SyncClientProtocolMapper(t *testing.T) {
+	m := Mock{}
+	dt := dto.Client{}
+	mappers := []gocloak.ProtocolMapperRepresentation{{}}
+	addOnly := false
+
+	m.On("SyncClientProtocolMapper", &dt, mappers, addOnly).Return(nil)
+	if err := m.SyncClientProtocolMapper(&dt, mappers, addOnly); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMock_SyncServiceAccountRoles(t *testing.T) {
+	m := Mock{}
+	m.On("SyncServiceAccountRoles", "", "", []string{}, map[string][]string{}, false).Return(nil)
+	if err := m.SyncServiceAccountRoles("", "", []string{}, map[string][]string{}, false); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMock_SetServiceAccountAttributes(t *testing.T) {
+	m := Mock{}
+
+	m.On("SetServiceAccountAttributes", "", "", map[string]string{}, false).Return(nil)
+	if err := m.SetServiceAccountAttributes("", "", map[string]string{}, false); err != nil {
+		t.Fatal(err)
+	}
 }
