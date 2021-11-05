@@ -18,17 +18,26 @@ type KeycloakRealmUserList struct {
 }
 
 type KeycloakRealmUserSpec struct {
-	Realm               string            `json:"realm"`
-	Username            string            `json:"username"`
-	Email               string            `json:"email"`
-	FirstName           string            `json:"firstName"`
-	LastName            string            `json:"lastName"`
-	Enabled             bool              `json:"enabled"`
-	EmailVerified       bool              `json:"emailVerified"`
-	RequiredUserActions []string          `json:"requiredUserActions"`
-	Roles               []string          `json:"roles"`
-	Groups              []string          `json:"groups"`
-	Attributes          map[string]string `json:"attributes"`
+	Realm                  string            `json:"realm"`
+	Username               string            `json:"username"`
+	Email                  string            `json:"email"`
+	FirstName              string            `json:"firstName"`
+	LastName               string            `json:"lastName"`
+	Enabled                bool              `json:"enabled"`
+	EmailVerified          bool              `json:"emailVerified"`
+	RequiredUserActions    []string          `json:"requiredUserActions"`
+	Roles                  []string          `json:"roles"`
+	Groups                 []string          `json:"groups"`
+	Attributes             map[string]string `json:"attributes"`
+	ReconciliationStrategy string            `json:"reconciliationStrategy,omitempty"`
+}
+
+func (in KeycloakRealmUser) GetReconciliationStrategy() string {
+	if in.Spec.ReconciliationStrategy == "" {
+		return ReconciliationStrategyFull
+	}
+
+	return in.Spec.ReconciliationStrategy
 }
 
 type KeycloakRealmUserStatus struct {

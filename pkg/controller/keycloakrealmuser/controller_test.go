@@ -78,7 +78,7 @@ func TestNewReconcile(t *testing.T) {
 		Email:               usr.Spec.Email,
 	}
 
-	kClient.On("SyncRealmUser", realmName, &adapterUser).Return(nil)
+	kClient.On("SyncRealmUser", realmName, &adapterUser, false).Return(nil)
 
 	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: ns,

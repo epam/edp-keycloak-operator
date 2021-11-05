@@ -43,7 +43,7 @@ type KCloakGroups interface {
 type KCloakUsers interface {
 	ExistRealmUser(realmName string, user *dto.User) (bool, error)
 	CreateRealmUser(realmName string, user *dto.User) error
-	SyncRealmUser(realmName string, user *adapter.KeycloakUser) error
+	SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error
 }
 
 type KCloakRealms interface {
@@ -75,7 +75,7 @@ type KCloakRealmRoles interface {
 	CreateIncludedRealmRole(realmName string, role *dto.IncludedRealmRole) error
 	CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) (string, error)
 	HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error)
-	AddRealmRoleToUser(realmName, username, roleName string) error
+	AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error
 	SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error
 	DeleteRealmRole(realm, roleName string) error
 }

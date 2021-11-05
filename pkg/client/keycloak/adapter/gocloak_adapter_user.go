@@ -20,49 +20,82 @@ type KeycloakUser struct {
 	Attributes          map[string]string
 }
 
-func (a GoCloakAdapter) SyncRealmUser(realmName string, user *KeycloakUser) error {
-	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, user *KeycloakUser, addOnly bool) error {
+	users, err := a.client.GetUsers(ctx, a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: gocloak.StringP(user.Username),
 	})
-
 	if err != nil {
 		return errors.Wrap(err, "unable to list users")
 	}
 
+	var keycloakUser gocloak.User
 	for _, usr := range users {
 		if *usr.Username == user.Username {
-			return ErrDuplicated("user already exists")
+			keycloakUser = *usr
+			break
 		}
 	}
 
-	usr := gocloak.User{
-		Username:        &user.Username,
-		Enabled:         &user.Enabled,
-		EmailVerified:   &user.EmailVerified,
-		FirstName:       &user.FirstName,
-		LastName:        &user.LastName,
-		RequiredActions: &user.RequiredUserActions,
-		RealmRoles:      &user.Roles,
-		Groups:          &user.Groups,
-		Email:           &user.Email,
-	}
-
-	if user.Attributes != nil && len(user.Attributes) > 0 {
-		attrs := make(map[string][]string)
-		for k, v := range user.Attributes {
-			attrs[k] = []string{v}
+	if keycloakUser.ID == nil {
+		keycloakUser = gocloak.User{
+			Username:        &user.Username,
+			Enabled:         &user.Enabled,
+			EmailVerified:   &user.EmailVerified,
+			FirstName:       &user.FirstName,
+			LastName:        &user.LastName,
+			RequiredActions: &user.RequiredUserActions,
+			Email:           &user.Email,
 		}
-		usr.Attributes = &attrs
 	}
 
-	if _, err := a.client.CreateUser(context.Background(), a.token.AccessToken, realmName, usr); err != nil {
-		return errors.Wrap(err, "unable to create user")
+	if err := a.setUserParams(ctx, realmName, &keycloakUser, user, addOnly); err != nil {
+		return errors.Wrap(err, "unable to set user params")
 	}
 
-	for _, realmRole := range user.Roles {
-		if err := a.AddRealmRoleToUser(realmName, user.Username, realmRole); err != nil {
+	for _, roleName := range user.Roles {
+		if err := a.AddRealmRoleToUser(ctx, realmName, user.Username, roleName); err != nil {
 			return errors.Wrap(err, "unable to add realm role to user")
 		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, keycloakUser *gocloak.User,
+	userCR *KeycloakUser, addOnly bool) error {
+
+	if len(userCR.Groups) > 0 {
+		if addOnly && keycloakUser.Groups != nil && len(*keycloakUser.Groups) > 0 {
+			userCR.Groups = append(userCR.Groups, *keycloakUser.Groups...)
+		}
+		keycloakUser.Groups = &userCR.Groups
+	}
+
+	if userCR.Attributes != nil && len(userCR.Attributes) > 0 {
+		attrs := make(map[string][]string)
+		for k, v := range userCR.Attributes {
+			attrs[k] = []string{v}
+		}
+
+		if addOnly && keycloakUser.Attributes != nil && len(*keycloakUser.Attributes) > 0 {
+			for k, v := range *keycloakUser.Attributes {
+				attrs[k] = v
+			}
+		}
+
+		keycloakUser.Attributes = &attrs
+	}
+
+	if keycloakUser.ID != nil {
+		if err := a.client.UpdateUser(ctx, a.token.AccessToken, realmName, *keycloakUser); err != nil {
+			return errors.Wrap(err, "unable to update user")
+		}
+
+		return nil
+	}
+
+	if _, err := a.client.CreateUser(ctx, a.token.AccessToken, realmName, *keycloakUser); err != nil {
+		return errors.Wrap(err, "unable to create user")
 	}
 
 	return nil

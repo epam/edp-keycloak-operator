@@ -18,7 +18,7 @@ func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
-	err := putRolesToUsers(rDto, kClient)
+	err := putRolesToUsers(ctx, rDto, kClient)
 	if err != nil {
 		return errors.Wrap(err, "error during putRolesToUsers")
 	}
@@ -26,9 +26,9 @@ func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
-func putRolesToUsers(realm *dto.Realm, kClient keycloak.Client) error {
+func putRolesToUsers(ctx context.Context, realm *dto.Realm, kClient keycloak.Client) error {
 	for _, user := range realm.Users {
-		err := putRolesToOneUser(realm, &user, kClient)
+		err := putRolesToOneUser(ctx, realm, &user, kClient)
 		if err != nil {
 			return errors.Wrap(err, "error during putRolesToOneUser")
 		}
@@ -36,14 +36,14 @@ func putRolesToUsers(realm *dto.Realm, kClient keycloak.Client) error {
 	return nil
 }
 
-func putRolesToOneUser(realm *dto.Realm, user *dto.User, kClient keycloak.Client) error {
+func putRolesToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, kClient keycloak.Client) error {
 	for _, role := range user.RealmRoles {
 		if realm.SsoRealmEnabled {
 			if err := putOneClientRoleToOneUser(realm, user, role, kClient); err != nil {
 				return errors.Wrap(err, "error during putOneRoleToOneUser")
 			}
 		} else {
-			if err := putOneRealmRoleToOneUser(realm, user, role, kClient); err != nil {
+			if err := putOneRealmRoleToOneUser(ctx, realm, user, role, kClient); err != nil {
 				return errors.Wrap(err, "error during putOneRoleToOneUser")
 			}
 		}
@@ -51,7 +51,7 @@ func putRolesToOneUser(realm *dto.Realm, user *dto.User, kClient keycloak.Client
 	return nil
 }
 
-func putOneRealmRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kClient keycloak.Client) error {
+func putOneRealmRoleToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, role string, kClient keycloak.Client) error {
 	exist, err := kClient.HasUserRealmRole(realm.Name, user, role)
 	if err != nil {
 		return errors.Wrap(err, "error during check of client role")
@@ -61,7 +61,7 @@ func putOneRealmRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kCl
 		return nil
 	}
 
-	if err := kClient.AddRealmRoleToUser(realm.Name, user.Username, role); err != nil {
+	if err := kClient.AddRealmRoleToUser(ctx, realm.Name, user.Username, role); err != nil {
 		return errors.Wrap(err, "unable to add realm role to user")
 	}
 

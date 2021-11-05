@@ -76,7 +76,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 			ClientRoles:             nil,
 		},
 		Status: v1alpha1.KeycloakClientStatus{
-			Value: Fail,
+			Value: "error during kc chain: fatal",
 		},
 	}
 	s := scheme.Scheme
@@ -126,7 +126,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 
 	persKc := &v1alpha1.KeycloakClient{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKc)
-	assert.Equal(t, "FAIL", persKc.Status.Value)
+	assert.Equal(t, "error during kc chain: fatal", persKc.Status.Value)
 	assert.Empty(t, persKc.Status.ClientID)
 }
 
