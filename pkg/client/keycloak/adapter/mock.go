@@ -128,7 +128,7 @@ func (m *Mock) ExistMapRoleToUser(realmName string, user dto.User, role string) 
 	panic("implement me")
 }
 
-func (m *Mock) AddRealmRoleToUser(realmName, username, roleName string) error {
+func (m *Mock) AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error {
 	return m.Called(realmName, username, roleName).Error(0)
 }
 
@@ -209,8 +209,8 @@ func (m *Mock) UpdateRealmSettings(realmName string, realmSettings *RealmSetting
 	return m.Called(realmName, realmSettings).Error(0)
 }
 
-func (m *Mock) SyncRealmUser(realmName string, user *KeycloakUser) error {
-	return m.Called(realmName, user).Error(0)
+func (m *Mock) SyncRealmUser(ctx context.Context, realmName string, user *KeycloakUser, addOnly bool) error {
+	return m.Called(realmName, user, addOnly).Error(0)
 }
 
 func (m *Mock) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error {

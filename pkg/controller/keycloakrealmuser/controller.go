@@ -116,7 +116,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return errors.Wrap(err, "unable to create keycloak client")
 	}
 
-	if err := kClient.SyncRealmUser(realm.Spec.RealmName, &adapter.KeycloakUser{
+	if err := kClient.SyncRealmUser(ctx, realm.Spec.RealmName, &adapter.KeycloakUser{
 		Username:            instance.Spec.Username,
 		Groups:              instance.Spec.Groups,
 		Roles:               instance.Spec.Roles,
@@ -127,7 +127,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		Enabled:             instance.Spec.Enabled,
 		Email:               instance.Spec.Email,
 		Attributes:          instance.Spec.Attributes,
-	}); err != nil {
+	}, instance.GetReconciliationStrategy() == v1alpha1.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync realm user")
 	}
 

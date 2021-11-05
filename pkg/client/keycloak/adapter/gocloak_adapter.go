@@ -591,8 +591,8 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	return res, nil
 }
 
-func (a GoCloakAdapter) AddRealmRoleToUser(realmName, username, roleName string) error {
-	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
+func (a GoCloakAdapter) AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error {
+	users, err := a.client.GetUsers(ctx, a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: &username,
 	})
 	if err != nil {
@@ -602,12 +602,12 @@ func (a GoCloakAdapter) AddRealmRoleToUser(realmName, username, roleName string)
 		return errors.Errorf("no users with username %s found", username)
 	}
 
-	rl, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, roleName)
+	rl, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, roleName)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm role from keycloak")
 	}
 
-	if err := a.client.AddRealmRoleToUser(context.Background(), a.token.AccessToken, realmName, *users[0].ID,
+	if err := a.client.AddRealmRoleToUser(ctx, a.token.AccessToken, realmName, *users[0].ID,
 		[]gocloak.Role{
 			*rl,
 		}); err != nil {

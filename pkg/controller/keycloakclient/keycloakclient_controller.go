@@ -81,7 +81,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
-		instance.Status.Value = Fail
+		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak client", "name",
 			request.Name)
