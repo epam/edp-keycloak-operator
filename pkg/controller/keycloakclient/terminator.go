@@ -1,6 +1,8 @@
 package keycloakclient
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
@@ -25,11 +27,11 @@ func (t *terminator) GetLogger() logr.Logger {
 	return t.log
 }
 
-func (t *terminator) DeleteResource() error {
+func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := t.log.WithValues("keycloak client id", t.clientID)
 	log.Info("Start deleting keycloak client...")
 
-	if err := t.kClient.DeleteClient(t.clientID, t.realmName); err != nil {
+	if err := t.kClient.DeleteClient(ctx, t.clientID, t.realmName); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kk client")
 	}
 

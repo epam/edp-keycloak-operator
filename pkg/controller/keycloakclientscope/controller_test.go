@@ -24,7 +24,7 @@ import (
 )
 
 func TestReconcile_SetupWithManager(t *testing.T) {
-	r := NewReconcile(nil, nil, &mock.Logger{})
+	r := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -102,7 +102,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	h.On("UpdateStatus", updatedClientScopeWithStatus).Return(nil)
 
 	h.On("TryToDelete", updatedClientScopeWithID,
-		makeTerminator(context.Background(), kClient, realm.Spec.RealmName, "scope12", &logger), finalizerName).
+		makeTerminator(kClient, realm.Spec.RealmName, "scope12", &logger), finalizerName).
 		Return(true, nil)
 
 	rkr := Reconcile{
@@ -137,15 +137,19 @@ func TestSpecIsUpdated(t *testing.T) {
 }
 
 func TestNewReconcile(t *testing.T) {
-	scheme := runtime.NewScheme()
-	client := fake.NewClientBuilder().WithScheme(scheme).Build()
-	logger := mock.Logger{}
-	rec := NewReconcile(client, scheme, &logger)
+	var (
+		scheme = runtime.NewScheme()
+		client = fake.NewClientBuilder().WithScheme(scheme).Build()
+		logger mock.Logger
+		hlp    helper.Mock
+	)
+
+	rec := NewReconcile(client, &logger, &hlp)
 	if rec == nil {
 		t.Fatal("reconciler is not inited")
 	}
 
-	if rec.log != &logger || rec.client != client || rec.scheme != scheme {
+	if rec.log != &logger || rec.client != client {
 		t.Fatal("wrong reconciler params")
 	}
 }
@@ -156,7 +160,7 @@ func TestReconcile_Reconcile_NotFound(t *testing.T) {
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	logger := mock.Logger{}
-	rec := NewReconcile(client, scheme, &logger)
+	rec := NewReconcile(client, &logger, &helper.Mock{})
 
 	if _, err := rec.Reconcile(context.Background(),
 		reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "bar"}}); err != nil {
@@ -211,7 +215,7 @@ func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(instance).WithScheme(scheme).Build()
 	logger := mock.Logger{}
-	rec := NewReconcile(client, scheme, &logger)
+	rec := NewReconcile(client, &logger, helper.MakeHelper(client, scheme, &logger))
 
 	if _, err := rec.Reconcile(context.Background(),
 		reconcile.Request{NamespacedName: types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}}); err != nil {
@@ -239,9 +243,10 @@ func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(clientScope, &realm).WithScheme(scheme).Build()
 	logger := mock.Logger{}
-	rec := NewReconcile(client, scheme, &logger)
-
 	h := helper.Mock{}
+
+	rec := NewReconcile(client, &logger, &h)
+
 	h.On("GetOrCreateRealmOwnerRef", clientScope, clientScope.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).
 		Return(nil, errors.New("fatal"))

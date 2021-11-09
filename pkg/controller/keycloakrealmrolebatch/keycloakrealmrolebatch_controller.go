@@ -13,7 +13,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -32,11 +31,10 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 }
 
-func NewReconcileKeycloakRealmRoleBatch(client client.Client, scheme *runtime.Scheme, log logr.Logger,
+func NewReconcileKeycloakRealmRoleBatch(client client.Client, log logr.Logger,
 	helper Helper) *ReconcileKeycloakRealmRoleBatch {
 	return &ReconcileKeycloakRealmRoleBatch{
 		client: client,
-		scheme: scheme,
 		helper: helper,
 		log:    log.WithName("keycloak-realm-role-batch"),
 	}
@@ -44,7 +42,6 @@ func NewReconcileKeycloakRealmRoleBatch(client client.Client, scheme *runtime.Sc
 
 type ReconcileKeycloakRealmRoleBatch struct {
 	client                  client.Client
-	scheme                  *runtime.Scheme
 	helper                  Helper
 	log                     logr.Logger
 	successReconcileTimeout time.Duration
@@ -90,6 +87,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 		resultErr = err
 	}
 
+	log.Info("Reconciling done")
 	return
 }
 

@@ -41,14 +41,12 @@ type Helper interface {
 	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
 }
 
-func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger) *ReconcileKeycloak {
-	logger := log.WithName("keycloak")
-
+func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper Helper) *ReconcileKeycloak {
 	return &ReconcileKeycloak{
 		client: client,
 		scheme: scheme,
-		log:    logger,
-		helper: helper.MakeHelper(client, scheme, logger),
+		log:    log.WithName("keycloak"),
+		helper: helper,
 	}
 }
 

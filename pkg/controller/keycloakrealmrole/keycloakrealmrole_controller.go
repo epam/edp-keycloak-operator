@@ -15,7 +15,6 @@ import (
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -34,11 +33,9 @@ type Helper interface {
 	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
 }
 
-func NewReconcileKeycloakRealmRole(client client.Client, scheme *runtime.Scheme, log logr.Logger,
-	helper Helper) *ReconcileKeycloakRealmRole {
+func NewReconcileKeycloakRealmRole(client client.Client, log logr.Logger, helper Helper) *ReconcileKeycloakRealmRole {
 	return &ReconcileKeycloakRealmRole{
 		client: client,
-		scheme: scheme,
 		helper: helper,
 		log:    log.WithName("keycloak-realm-role"),
 	}
@@ -46,7 +43,6 @@ func NewReconcileKeycloakRealmRole(client client.Client, scheme *runtime.Scheme,
 
 type ReconcileKeycloakRealmRole struct {
 	client                  client.Client
-	scheme                  *runtime.Scheme
 	helper                  Helper
 	log                     logr.Logger
 	successReconcileTimeout time.Duration
@@ -116,6 +112,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	helper.SetSuccessStatus(&instance)
 	instance.Status.ID = roleID
 	result.RequeueAfter = r.successReconcileTimeout
+	log.Info("Reconciling done")
 
 	return
 }

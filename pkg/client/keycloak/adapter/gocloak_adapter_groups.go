@@ -136,13 +136,13 @@ func (a GoCloakAdapter) SyncRealmGroup(realmName string, spec *v1alpha1.Keycloak
 	return *group.ID, nil
 }
 
-func (a GoCloakAdapter) DeleteGroup(realm, groupName string) error {
+func (a GoCloakAdapter) DeleteGroup(ctx context.Context, realm, groupName string) error {
 	group, err := a.getGroup(realm, groupName)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get group, realm: %s, group: %s", realm, groupName)
 	}
 
-	if err := a.client.DeleteGroup(context.Background(), a.token.AccessToken, realm, *group.ID); err != nil {
+	if err := a.client.DeleteGroup(ctx, a.token.AccessToken, realm, *group.ID); err != nil {
 		return errors.Wrapf(err, "unable to delete group, realm: %s, group: %s", realm, groupName)
 	}
 

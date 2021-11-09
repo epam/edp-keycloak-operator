@@ -1,6 +1,7 @@
 package keycloakrealm
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -19,12 +20,12 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteRealm", "realm").Return(nil).Once()
-	if err := term.DeleteResource(); err != nil {
+	if err := term.DeleteResource(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
 	kClient.On("DeleteRealm", "realm").Return(errors.New("fatal")).Once()
-	if err := term.DeleteResource(); err == nil {
+	if err := term.DeleteResource(context.Background()); err == nil {
 		t.Fatal("no error returned")
 	}
 

@@ -21,14 +21,14 @@ import (
 )
 
 func TestNewReconcile_Init(t *testing.T) {
-	c := NewReconcile(nil, nil, &mock.Logger{})
+	c := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
 	if c.client != nil {
 		t.Fatal("something went wrong")
 	}
 }
 
 func TestReconcile_SetupWithManager(t *testing.T) {
-	r := NewReconcile(nil, nil, &mock.Logger{})
+	r := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -95,7 +95,6 @@ func TestNewReconcile(t *testing.T) {
 		helper:                  &h,
 		log:                     &log,
 		client:                  client,
-		scheme:                  scheme,
 		successReconcileTimeout: time.Hour,
 	}
 
@@ -158,7 +157,6 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 		helper: &h,
 		log:    &log,
 		client: client,
-		scheme: scheme,
 	}
 
 	result, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{

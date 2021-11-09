@@ -78,3 +78,35 @@ func TestMock_SetServiceAccountAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMock_Component(t *testing.T) {
+	var (
+		m   Mock
+		ctx context.Context
+	)
+
+	m.On("CreateComponent", "foo", testComponent()).Return(nil)
+	if err := m.CreateComponent(ctx, "foo", testComponent()); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("UpdateComponent", "foo", testComponent()).Return(nil)
+	if err := m.UpdateComponent(ctx, "foo", testComponent()); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("GetComponent", "foo", "bar").Return(testComponent(), nil).Once()
+	if _, err := m.GetComponent(ctx, "foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("GetComponent", "foo", "bar").Return(nil, errors.New("fatal"))
+	if _, err := m.GetComponent(ctx, "foo", "bar"); err == nil {
+		t.Fatal("no error returned")
+	}
+
+	m.On("DeleteComponent", "foo", "bar").Return(nil)
+	if err := m.DeleteComponent(ctx, "foo", "bar"); err != nil {
+		t.Fatal(err)
+	}
+}

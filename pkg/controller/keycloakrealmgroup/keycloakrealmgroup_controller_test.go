@@ -6,8 +6,6 @@ import (
 	"testing"
 	"time"
 
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -16,6 +14,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"k8s.io/client-go/kubernetes/scheme"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -26,7 +25,7 @@ func TestReconcile_SetupWithManager(t *testing.T) {
 	l := mock.Logger{}
 	h := helper.MakeHelper(nil, scheme.Scheme, &l)
 
-	r := NewReconcileKeycloakRealmGroup(nil, nil, &l, h)
+	r := NewReconcileKeycloakRealmGroup(nil, &l, h)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -90,7 +89,6 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	r := ReconcileKeycloakRealmGroup{
 		client:                  client,
 		helper:                  &h,
-		scheme:                  sch,
 		log:                     &logger,
 		successReconcileTimeout: time.Hour,
 	}

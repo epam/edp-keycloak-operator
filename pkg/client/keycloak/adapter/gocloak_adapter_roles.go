@@ -91,8 +91,8 @@ func (a GoCloakAdapter) ExistRealmRole(realmName string, roleName string) (bool,
 	return res, nil
 }
 
-func (a GoCloakAdapter) DeleteRealmRole(realm, roleName string) error {
-	if err := a.client.DeleteRealmRole(context.Background(), a.token.AccessToken, realm, roleName); err != nil {
+func (a GoCloakAdapter) DeleteRealmRole(ctx context.Context, realm, roleName string) error {
+	if err := a.client.DeleteRealmRole(ctx, a.token.AccessToken, realm, roleName); err != nil {
 		return errors.Wrap(err, "unable to delete realm role")
 	}
 

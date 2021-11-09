@@ -1,6 +1,8 @@
 package keycloakrealm
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -12,11 +14,11 @@ type terminator struct {
 	log       logr.Logger
 }
 
-func (t *terminator) DeleteResource() error {
+func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := t.log.WithValues("keycloak realm cr", t.realmName)
 	log.Info("Start deleting keycloak realm...")
 
-	if err := t.kClient.DeleteRealm(t.realmName); err != nil {
+	if err := t.kClient.DeleteRealm(ctx, t.realmName); err != nil {
 		return errors.Wrap(err, "unable to delete realm")
 	}
 

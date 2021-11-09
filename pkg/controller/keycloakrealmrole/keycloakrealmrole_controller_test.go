@@ -27,7 +27,7 @@ func TestReconcile_SetupWithManager(t *testing.T) {
 	l := mock.Logger{}
 	h := helper.MakeHelper(nil, scheme.Scheme, &l)
 
-	r := NewReconcileKeycloakRealmRole(nil, nil, &l, h)
+	r := NewReconcileKeycloakRealmRole(nil, &l, h)
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -89,7 +89,6 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 		keyCloakRealmRoleOperatorFinalizerName).Return(true, nil)
 
 	rkr := ReconcileKeycloakRealmRole{
-		scheme: sch,
 		client: client,
 		helper: &h,
 		log:    &logger,
@@ -255,7 +254,6 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	h.On("UpdateStatus", &role).Return(nil)
 
 	rkr := ReconcileKeycloakRealmRole{
-		scheme: scheme,
 		client: client,
 		helper: &h,
 		log:    &logger,

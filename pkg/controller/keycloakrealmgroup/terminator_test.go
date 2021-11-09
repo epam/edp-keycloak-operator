@@ -1,6 +1,7 @@
 package keycloakrealmgroup
 
 import (
+	"context"
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -18,12 +19,12 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteGroup", "foo", "bar").Return(nil).Once()
-	if err := term.DeleteResource(); err != nil {
+	if err := term.DeleteResource(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
 	kClient.On("DeleteGroup", "foo", "bar").Return(errors.New("fatal")).Once()
-	if err := term.DeleteResource(); err == nil {
+	if err := term.DeleteResource(context.Background()); err == nil {
 		t.Fatal("no error returned")
 	}
 

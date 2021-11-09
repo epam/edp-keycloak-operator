@@ -1,6 +1,7 @@
 package keycloakrealmrole
 
 import (
+	"context"
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -14,7 +15,7 @@ func TestTerminator(t *testing.T) {
 
 	term := makeTerminator("foo", "bar", kClient, &lg)
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(nil).Once()
-	if err := term.DeleteResource(); err != nil {
+	if err := term.DeleteResource(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 
@@ -23,7 +24,7 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(errors.New("fatal")).Once()
-	if err := term.DeleteResource(); err == nil {
+	if err := term.DeleteResource(context.Background()); err == nil {
 		t.Fatal("no error returned")
 	}
 

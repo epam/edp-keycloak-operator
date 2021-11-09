@@ -16,10 +16,10 @@ type terminator struct {
 	log        logr.Logger
 }
 
-func (t *terminator) DeleteResource() error {
+func (t *terminator) DeleteResource(ctx context.Context) error {
 	t.log.Info("start deleting keycloak realm role batch")
 	for _, r := range t.childRoles {
-		if err := t.client.Delete(context.Background(), &r); err != nil {
+		if err := t.client.Delete(ctx, &r); err != nil {
 			return errors.Wrap(err, "unable to delete child role")
 		}
 	}

@@ -1,6 +1,8 @@
 package keycloakauthflow
 
 import (
+	"context"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -25,7 +27,7 @@ func (t *terminator) GetLogger() logr.Logger {
 	return t.log
 }
 
-func (t *terminator) DeleteResource() error {
+func (t *terminator) DeleteResource(ctx context.Context) error {
 	logger := t.log.WithValues("realm name", t.realmName, "flow alias", t.flowAlias)
 
 	logger.Info("start deleting auth flow")
