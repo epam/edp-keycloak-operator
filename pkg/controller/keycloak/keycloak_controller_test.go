@@ -28,7 +28,7 @@ import (
 )
 
 func TestReconcile_SetupWithManager(t *testing.T) {
-	r := NewReconcileKeycloak(nil, nil, &mock.Logger{})
+	r := NewReconcileKeycloak(nil, nil, &mock.Logger{}, &helper.Mock{})
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
 	if err != nil {
 		t.Fatal(err)
@@ -49,7 +49,7 @@ func TestReconcile_SetupWithManager(t *testing.T) {
 }
 
 func TestNewReconcileKeycloak(t *testing.T) {
-	kc := NewReconcileKeycloak(nil, nil, &mock.Logger{})
+	kc := NewReconcileKeycloak(nil, nil, &mock.Logger{}, &helper.Mock{})
 	if kc.scheme != nil {
 		t.Fatal("something went wrong")
 	}
@@ -346,7 +346,7 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 	cl.On("Status").Return(fakeCl)
 	cl.On("Get", rq.NamespacedName, &kc).Return(fakeCl).Once()
 	cl.On("Get", types.NamespacedName{Namespace: kc.Namespace, Name: kc.Spec.Secret},
-	&corev1.Secret{}).Return(nil)
+		&corev1.Secret{}).Return(nil)
 
 	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
@@ -383,10 +383,10 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	logger := mock.Logger{}
 
 	kc := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}, ObjectMeta: metav1.ObjectMeta{
-		Name: "kc-main",
+		Name:      "kc-main",
 		Namespace: "kc-ns",
 	}, Spec: v1alpha1.KeycloakSpec{Secret: "kc-secret-name"},
-	TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "Keycloak"}}
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "Keycloak"}}
 
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
 	sec := corev1.Secret{}

@@ -18,6 +18,7 @@ type Client interface {
 	KCloakRealmRoles
 	KCloakClientRoles
 	KAuthFlow
+	KCloakComponents
 
 	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
 	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
@@ -37,7 +38,7 @@ type KAuthFlow interface {
 
 type KCloakGroups interface {
 	SyncRealmGroup(realm string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error)
-	DeleteGroup(realm, groupName string) error
+	DeleteGroup(ctx context.Context, realm, groupName string) error
 }
 
 type KCloakUsers interface {
@@ -49,7 +50,7 @@ type KCloakUsers interface {
 type KCloakRealms interface {
 	ExistRealm(realm string) (bool, error)
 	CreateRealmWithDefaultConfig(realm *dto.Realm) error
-	DeleteRealm(realmName string) error
+	DeleteRealm(ctx context.Context, realmName string) error
 	SyncRealmIdentityProviderMappers(realmName string, mappers []dto.IdentityProviderMapper) error
 	UpdateRealmSettings(realmName string, realmSettings *adapter.RealmSettings) error
 	SetRealmEventConfig(realmName string, eventConfig *adapter.RealmEventConfig) error
@@ -58,7 +59,7 @@ type KCloakRealms interface {
 type KCloakClients interface {
 	ExistClient(clientID, realm string) (bool, error)
 	CreateClient(client *dto.Client) error
-	DeleteClient(kkClientID, realmName string) error
+	DeleteClient(ctx context.Context, kcClientID, realmName string) error
 	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
@@ -77,7 +78,7 @@ type KCloakRealmRoles interface {
 	HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error)
 	AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error
 	SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error
-	DeleteRealmRole(realm, roleName string) error
+	DeleteRealmRole(ctx context.Context, realm, roleName string) error
 }
 
 type KCloakClientRoles interface {
@@ -85,4 +86,11 @@ type KCloakClientRoles interface {
 	CreateClientRole(role *dto.Client, clientRole string) error
 	HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error)
 	AddClientRoleToUser(realmName string, clientId string, user *dto.User, role string) error
+}
+
+type KCloakComponents interface {
+	CreateComponent(ctx context.Context, realmName string, component *adapter.Component) error
+	UpdateComponent(ctx context.Context, realmName string, component *adapter.Component) error
+	DeleteComponent(ctx context.Context, realmName, componentName string) error
+	GetComponent(ctx context.Context, realmName, componentName string) (*adapter.Component, error)
 }

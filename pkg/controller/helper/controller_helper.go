@@ -257,7 +257,7 @@ type Deletable interface {
 }
 
 type Terminator interface {
-	DeleteResource() error
+	DeleteResource(ctx context.Context) error
 	GetLogger() logr.Logger
 }
 
@@ -283,7 +283,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 	}
 
 	logger.Info("terminator deleting resource")
-	if err := terminator.DeleteResource(); err != nil {
+	if err := terminator.DeleteResource(ctx); err != nil {
 		return false, errors.Wrap(err, "error during keycloak client delete func")
 	}
 

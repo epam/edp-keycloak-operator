@@ -44,6 +44,8 @@ const (
 	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
+	realmComponent                  = "/auth/admin/realms/{realm}/components"
+	realmComponentEntity            = "/auth/admin/realms/{realm}/components/{id}"
 )
 
 type ErrTokenExpired string
@@ -384,11 +386,11 @@ func checkFullNameMatch(clientID string, clients []*gocloak.Client) bool {
 	return false
 }
 
-func (a GoCloakAdapter) DeleteClient(kkClientID, realmName string) error {
-	log := a.log.WithValues("client id", kkClientID)
+func (a GoCloakAdapter) DeleteClient(ctx context.Context, kcClientID, realmName string) error {
+	log := a.log.WithValues("client id", kcClientID)
 	log.Info("Start delete client in Keycloak...")
 
-	if err := a.client.DeleteClient(context.Background(), a.token.AccessToken, realmName, kkClientID); err != nil {
+	if err := a.client.DeleteClient(ctx, a.token.AccessToken, realmName, kcClientID); err != nil {
 		return errors.Wrap(err, "unable to delete client")
 	}
 
@@ -1015,11 +1017,14 @@ func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 		return errors.New("empty response")
 	}
 	if response.IsError() {
+		//TODO: remove this
 		if response.StatusCode() == 409 {
 			a.log.Info("entity already exists. creating skipped", "url", response.Request.URL)
 			return nil
 		}
-		return errors.New(response.Status())
+		//todo: end
+
+		return errors.Errorf("status: %s, body: %s", response.Status(), response.String())
 	}
 	return nil
 }

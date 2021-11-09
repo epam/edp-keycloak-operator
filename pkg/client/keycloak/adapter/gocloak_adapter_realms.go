@@ -83,11 +83,11 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
 	return nil
 }
 
-func (a GoCloakAdapter) DeleteRealm(realmName string) error {
+func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error {
 	log := a.log.WithValues("realm", realmName)
 	log.Info("Start deleting realm...")
 
-	if err := a.client.DeleteRealm(context.Background(), a.token.AccessToken, realmName); err != nil {
+	if err := a.client.DeleteRealm(ctx, a.token.AccessToken, realmName); err != nil {
 		return err
 	}
 

@@ -13,7 +13,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -31,11 +30,10 @@ type Helper interface {
 	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
 }
 
-func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme, log logr.Logger,
+func NewReconcileKeycloakRealmGroup(client client.Client, log logr.Logger,
 	helper Helper) *ReconcileKeycloakRealmGroup {
 	return &ReconcileKeycloakRealmGroup{
 		client: client,
-		scheme: scheme,
 		helper: helper,
 		log:    log.WithName("keycloak-realm-group"),
 	}
@@ -43,7 +41,6 @@ func NewReconcileKeycloakRealmGroup(client client.Client, scheme *runtime.Scheme
 
 type ReconcileKeycloakRealmGroup struct {
 	client                  client.Client
-	scheme                  *runtime.Scheme
 	helper                  Helper
 	log                     logr.Logger
 	successReconcileTimeout time.Duration
@@ -88,6 +85,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
+	log.Info("Reconciling done")
 	return
 }
 

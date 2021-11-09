@@ -18,7 +18,7 @@ import (
 )
 
 func TestNewReconcile_Init(t *testing.T) {
-	c := NewReconcile(nil, nil, &mock.Logger{})
+	c := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
 	if c.client != nil {
 		t.Fatal("something went wrong")
 	}
@@ -63,7 +63,6 @@ func TestNewReconcile(t *testing.T) {
 		helper: &h,
 		log:    &log,
 		client: client,
-		scheme: scheme,
 	}
 
 	adapterUser := adapter.KeycloakUser{

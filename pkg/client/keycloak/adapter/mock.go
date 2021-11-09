@@ -132,15 +132,15 @@ func (m *Mock) AddRealmRoleToUser(ctx context.Context, realmName, username, role
 	return m.Called(realmName, username, roleName).Error(0)
 }
 
-func (m *Mock) DeleteClient(kkClientID string, realName string) error {
-	return m.Called(kkClientID, realName).Error(0)
+func (m *Mock) DeleteClient(ctx context.Context, kcClientID string, realName string) error {
+	return m.Called(kcClientID, realName).Error(0)
 }
 
-func (m *Mock) DeleteRealmRole(realm, roleName string) error {
+func (m *Mock) DeleteRealmRole(ctx context.Context, realm, roleName string) error {
 	return m.Called(realm, roleName).Error(0)
 }
 
-func (m *Mock) DeleteRealm(realmName string) error {
+func (m *Mock) DeleteRealm(ctx context.Context, realmName string) error {
 	return m.Called(realmName).Error(0)
 }
 
@@ -185,7 +185,7 @@ func (m *Mock) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGrou
 	return called.String(0), called.Error(1)
 }
 
-func (m *Mock) DeleteGroup(realm, groupName string) error {
+func (m *Mock) DeleteGroup(ctx context.Context, realm, groupName string) error {
 	return m.Called(realm, groupName).Error(0)
 }
 
@@ -240,4 +240,25 @@ func (m *Mock) SetRealmEventConfig(realmName string, eventConfig *RealmEventConf
 
 func (m *Mock) ExportToken() ([]byte, error) {
 	return m.ExportTokenResult, m.ExportTokenErr
+}
+
+func (m *Mock) CreateComponent(ctx context.Context, realmName string, component *Component) error {
+	return m.Called(realmName, component).Error(0)
+}
+
+func (m *Mock) UpdateComponent(ctx context.Context, realmName string, component *Component) error {
+	return m.Called(realmName, component).Error(0)
+}
+
+func (m *Mock) DeleteComponent(ctx context.Context, realmName, componentName string) error {
+	return m.Called(realmName, componentName).Error(0)
+}
+
+func (m *Mock) GetComponent(ctx context.Context, realmName, componentName string) (*Component, error) {
+	called := m.Called(realmName, componentName)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*Component), nil
 }

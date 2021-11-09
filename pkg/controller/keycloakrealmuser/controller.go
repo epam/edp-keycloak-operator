@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -32,19 +31,15 @@ type Helper interface {
 
 type Reconcile struct {
 	client client.Client
-	scheme *runtime.Scheme
 	helper Helper
 	log    logr.Logger
 }
 
-func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger) *Reconcile {
-	logger := log.WithName("keycloak-realm-user")
-
+func NewReconcile(client client.Client, log logr.Logger, helper Helper) *Reconcile {
 	return &Reconcile{
 		client: client,
-		scheme: scheme,
-		helper: helper.MakeHelper(client, scheme, logger),
-		log:    logger,
+		helper: helper,
+		log:    log.WithName("keycloak-realm-user"),
 	}
 }
 

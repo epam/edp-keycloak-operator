@@ -688,7 +688,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1")}}, nil)
 	mockClient.On("DeleteGroup", "realm1", "1").Return(nil)
 
-	if err := adapter.DeleteGroup("realm1", "group1"); err != nil {
+	if err := adapter.DeleteGroup(context.Background(), "realm1", "group1"); err != nil {
 		t.Fatalf("%+v", err)
 	}
 }
