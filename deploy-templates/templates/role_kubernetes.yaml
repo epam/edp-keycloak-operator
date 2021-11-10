@@ -52,4 +52,11 @@ rules:
     - get
     - list
     - update
+- apiGroups:
+    - v1.edp.epam.com
+  resources:
+    - keycloakrealmcomponents
+  verbs:
+    - list
+    - watch
 {{ end }}
