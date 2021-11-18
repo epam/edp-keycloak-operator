@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -15,6 +16,7 @@ import (
 
 type Mock struct {
 	mock.Mock
+	tokenSecretLock sync.Mutex
 }
 
 func (m *Mock) TryToDelete(_ context.Context, obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
@@ -89,4 +91,8 @@ func (m *Mock) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1
 
 func (m *Mock) InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error {
 	return m.Called(namespace, rootKeycloakName).Error(0)
+}
+
+func (m *Mock) TokenSecretLock() *sync.Mutex {
+	return &m.tokenSecretLock
 }
