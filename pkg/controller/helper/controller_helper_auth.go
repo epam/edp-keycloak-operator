@@ -31,6 +31,9 @@ func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context,
 		return nil, errors.New("Owner keycloak is not in connected status")
 	}
 
+	h.tokenSecretLock.Lock()
+	defer h.tokenSecretLock.Unlock()
+
 	clientAdapter, err := h.CreateKeycloakClientFromTokenSecret(ctx, kc)
 	if err == nil {
 		return clientAdapter, nil

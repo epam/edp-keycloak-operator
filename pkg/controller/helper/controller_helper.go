@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -34,11 +35,16 @@ type adapterBuilder func(ctx context.Context, url, user, password, adminType str
 	restyClient *resty.Client) (keycloak.Client, error)
 
 type Helper struct {
-	client         client.Client
-	scheme         *runtime.Scheme
-	restyClient    *resty.Client
-	logger         logr.Logger
-	adapterBuilder adapterBuilder
+	client          client.Client
+	scheme          *runtime.Scheme
+	restyClient     *resty.Client
+	logger          logr.Logger
+	adapterBuilder  adapterBuilder
+	tokenSecretLock *sync.Mutex
+}
+
+func (h *Helper) TokenSecretLock() *sync.Mutex {
+	return h.tokenSecretLock
 }
 
 func (h *Helper) GetScheme() *runtime.Scheme {
@@ -47,9 +53,10 @@ func (h *Helper) GetScheme() *runtime.Scheme {
 
 func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger) *Helper {
 	return &Helper{
-		client: client,
-		scheme: scheme,
-		logger: logger,
+		tokenSecretLock: new(sync.Mutex),
+		client:          client,
+		scheme:          scheme,
+		logger:          logger,
 		adapterBuilder: func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 			restyClient *resty.Client) (keycloak.Client, error) {
 			if adminType == v1alpha1.KeycloakAdminTypeServiceAccount {
@@ -284,7 +291,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 
 	logger.Info("terminator deleting resource")
 	if err := terminator.DeleteResource(ctx); err != nil {
-		return false, errors.Wrap(err, "error during keycloak client delete func")
+		return false, errors.Wrap(err, "error during keycloak resource deletion")
 	}
 
 	logger.Info("terminator removing finalizers")

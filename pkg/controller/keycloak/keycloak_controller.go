@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 	"time"
 
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
@@ -39,6 +40,7 @@ const (
 type Helper interface {
 	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
 	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
+	TokenSecretLock() *sync.Mutex
 }
 
 func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper Helper) *ReconcileKeycloak {
@@ -149,6 +151,10 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 
 func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *keycloakApi.Keycloak,
 	logger logr.Logger) (bool, error) {
+
+	r.helper.TokenSecretLock().Lock()
+	defer r.helper.TokenSecretLock().Unlock()
+
 	_, err := r.helper.CreateKeycloakClientFromTokenSecret(ctx, instance)
 	if err == nil {
 		return true, nil

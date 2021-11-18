@@ -76,7 +76,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
 
 	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create realm")
 	}
 
 	log.Info("End creating realm with default config")
@@ -88,7 +88,7 @@ func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error
 	log.Info("Start deleting realm...")
 
 	if err := a.client.DeleteRealm(ctx, a.token.AccessToken, realmName); err != nil {
-		return err
+		return errors.Wrap(err, "unable to delete realm")
 	}
 
 	log.Info("End deletion realm")
