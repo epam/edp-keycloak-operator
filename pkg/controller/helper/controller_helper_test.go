@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -346,6 +349,45 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 	}
 
 	if !strings.Contains(err.Error(), "could not get token") {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+type testTerminator struct {
+	err error
+	log logr.Logger
+}
+
+func (t *testTerminator) DeleteResource(ctx context.Context) error {
+	return t.err
+}
+func (t *testTerminator) GetLogger() logr.Logger {
+	return t.log
+}
+
+func TestHelper_TryToDelete(t *testing.T) {
+	logger := mock.Logger{}
+
+	term := testTerminator{
+		log: &logger,
+	}
+	secret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret1"}}
+	fakeClient := fake.NewClientBuilder().WithRuntimeObjects(&secret).Build()
+	h := Helper{client: fakeClient}
+
+	if _, err := h.TryToDelete(context.Background(), &secret, &term, "fin"); err != nil {
+		t.Fatal(err)
+	}
+
+	term.err = errors.New("delete resource fatal")
+	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+
+	_, err := h.TryToDelete(context.Background(), &secret, &term, "fin")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "error during keycloak resource deletion: delete resource fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }

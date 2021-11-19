@@ -119,3 +119,10 @@ func TestMock_OneLiners(t *testing.T) {
 		t.Fatal("wrong owner")
 	}
 }
+
+func TestMock_TokenSecretLock(t *testing.T) {
+	m := Mock{}
+	if m.TokenSecretLock() != &m.tokenSecretLock {
+		t.Fatal("wrong token secret lock")
+	}
+}

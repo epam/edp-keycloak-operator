@@ -32,8 +32,11 @@ func (m *MockGoCloakClient) GetRealm(ctx context.Context, token, realm string) (
 }
 
 func (m *MockGoCloakClient) CreateRealm(ctx context.Context, token string, realm gocloak.RealmRepresentation) (string, error) {
-	args := m.Called(token, realm)
-	return "", args.Error(0)
+	args := m.Called(realm)
+	if err := args.Error(1); err != nil {
+		return "", err
+	}
+	return args.String(0), nil
 }
 
 func (m *MockGoCloakClient) AddClientRoleToUser(ctx context.Context, token, realm, clientID, userID string,
@@ -75,7 +78,7 @@ func (m *MockGoCloakClient) DeleteClient(ctx context.Context, accessToken, realm
 }
 
 func (m *MockGoCloakClient) DeleteRealm(ctx context.Context, token, realm string) error {
-	panic("implement me")
+	return m.Called(realm).Error(0)
 }
 
 func (m *MockGoCloakClient) GetClientRole(ctx context.Context, token, realm, clientID,

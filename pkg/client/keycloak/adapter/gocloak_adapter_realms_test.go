@@ -1,23 +1,19 @@
 package adapter
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 )
 
 func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		token:    &gocloak.JWT{AccessToken: "token"},
-		basePath: "",
-	}
+	adapter, mockClient, _, _ := initAdapter()
 
 	settings := RealmSettings{
 		Themes: &RealmThemes{
@@ -51,16 +47,8 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 }
 
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
-	restyClient := resty.New()
+	adapter, mockClient, restyClient, _ := initAdapter()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
-
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		token:    &gocloak.JWT{AccessToken: "token"},
-		basePath: "",
-	}
 
 	currentMapperID := "mp1id"
 
@@ -106,5 +94,45 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 			},
 		}); err != nil {
 		t.Fatalf("%+v", err)
+	}
+}
+
+func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
+	adapter, mockClient, _, _ := initAdapter()
+	r := dto.Realm{}
+
+	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("id1", nil).Once()
+	if err := adapter.CreateRealmWithDefaultConfig(&r); err != nil {
+		t.Fatal(err)
+	}
+
+	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("",
+		errors.New("create realm fatal")).Once()
+	err := adapter.CreateRealmWithDefaultConfig(&r)
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "unable to create realm: create realm fatal" {
+		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
+	adapter, mockClient, _, _ := initAdapter()
+
+	mockClient.On("DeleteRealm", "test-realm1").Return(nil).Once()
+	if err := adapter.DeleteRealm(context.Background(), "test-realm1"); err != nil {
+		t.Fatal(err)
+	}
+
+	mockClient.On("DeleteRealm", "test-realm2").Return(errors.New("delete fatal")).Once()
+	err := adapter.DeleteRealm(context.Background(), "test-realm2")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "unable to delete realm: delete fatal" {
+		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }
