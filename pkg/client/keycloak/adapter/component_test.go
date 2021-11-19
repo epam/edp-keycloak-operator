@@ -5,21 +5,24 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v8"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 )
 
-func initAdapter() (*GoCloakAdapter, *MockGoCloakClient, *resty.Client) {
+func initAdapter() (*GoCloakAdapter, *MockGoCloakClient, *resty.Client, *mock.Logger) {
 	mockClient := new(MockGoCloakClient)
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
+	logger := mock.Logger{}
 
 	return &GoCloakAdapter{
 		client:   mockClient,
 		basePath: "",
 		token:    &gocloak.JWT{AccessToken: "token"},
-	}, mockClient, restyClient
+		log:      &logger,
+	}, mockClient, restyClient, &logger
 }
 
 func testComponent() *Component {
@@ -33,7 +36,7 @@ func testComponent() *Component {
 }
 
 func TestGoCloakAdapter_CreateComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _, _ := initAdapter()
 	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(200, ""))
 
@@ -56,7 +59,7 @@ func TestGoCloakAdapter_CreateComponent(t *testing.T) {
 }
 
 func TestMock_UpdateComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _, _ := initAdapter()
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
@@ -97,7 +100,7 @@ func TestMock_UpdateComponent(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _, _ := initAdapter()
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
@@ -138,7 +141,7 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetComponent_Failure(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _, _ := initAdapter()
 	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(422, "forbidden"))
 	_, err := kcAdapter.GetComponent(context.Background(), "realm-name", "test-name")
