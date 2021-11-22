@@ -106,6 +106,7 @@ func (el *PutClient) getSecret(keycloakClient *v1v1alpha1.KeycloakClient) (strin
 func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
 	var clientSecret coreV1.Secret
 	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
+	//TODO: get context from controller
 	err := el.Client.Get(context.Background(), types.NamespacedName{Namespace: keycloakClient.Namespace,
 		Name: secretName}, &clientSecret)
 	if err != nil && !k8sErrors.IsNotFound(err) {
@@ -123,7 +124,7 @@ func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (
 		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.scheme); err != nil {
 			return "", errors.Wrap(err, "unable to set controller ref for secret")
 		}
-
+		//TODO: get context from controller
 		if err := el.Client.Create(context.Background(), &clientSecret); err != nil {
 			return "", errors.Wrapf(err, "unable to create secret %+v", clientSecret)
 		}
@@ -131,7 +132,7 @@ func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (
 
 	keycloakClient.Status.ClientSecretName = clientSecret.Name
 	keycloakClient.Spec.Secret = clientSecret.Name
-
+	//TODO: get context from controller
 	if err := el.Client.Update(context.Background(), keycloakClient); err != nil {
 		return "", errors.Wrapf(err, "unable to update client with new secret: %s", clientSecret.Name)
 	}

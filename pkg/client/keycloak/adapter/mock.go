@@ -6,7 +6,6 @@ import (
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/model"
 	"github.com/stretchr/testify/mock"
 )
 
@@ -144,13 +143,13 @@ func (m *Mock) DeleteRealm(ctx context.Context, realmName string) error {
 	return m.Called(realmName).Error(0)
 }
 
-func (m *Mock) GetClientScope(scopeName, realmName string) (*model.ClientScope, error) {
+func (m *Mock) GetClientScope(scopeName, realmName string) (*ClientScope, error) {
 	called := m.Called(scopeName, realmName)
 	if err := called.Error(1); err != nil {
 		return nil, err
 	}
 
-	return called.Get(0).(*model.ClientScope), nil
+	return called.Get(0).(*ClientScope), nil
 }
 
 func (m *Mock) HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error) {
@@ -159,11 +158,11 @@ func (m *Mock) HasUserRealmRole(realmName string, user *dto.User, role string) (
 }
 
 func (m *Mock) LinkClientScopeToClient(clientName, scopeId, realmName string) error {
-	panic("implement me")
+	return m.Called(clientName, scopeId, realmName).Error(0)
 }
 
-func (m *Mock) PutClientScopeMapper(clientName, scopeId, realmName string) error {
-	panic("implement me")
+func (m *Mock) PutClientScopeMapper(realmName, scopeID string, protocolMapper *ProtocolMapper) error {
+	return m.Called(realmName, scopeID, protocolMapper).Error(0)
 }
 
 func (m *Mock) SyncClientProtocolMapper(
@@ -261,4 +260,22 @@ func (m *Mock) GetComponent(ctx context.Context, realmName, componentName string
 	}
 
 	return called.Get(0).(*Component), nil
+}
+
+func (m *Mock) GetDefaultClientScopesForRealm(ctx context.Context, realm string) ([]ClientScope, error) {
+	called := m.Called(realm)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]ClientScope), nil
+}
+
+func (m *Mock) GetClientScopeMappers(ctx context.Context, realmName, scopeID string) ([]ProtocolMapper, error) {
+	called := m.Called(realmName, scopeID)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]ProtocolMapper), nil
 }

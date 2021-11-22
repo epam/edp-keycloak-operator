@@ -29,6 +29,7 @@ const (
 	StatusOK                   = "OK"
 	defaultConfigsAbsolutePath = "/usr/local/configs"
 	localConfigsRelativePath   = "configs"
+	DefaultClientScopeName     = "edp"
 )
 
 type adapterBuilder func(ctx context.Context, url, user, password, adminType string, log logr.Logger,

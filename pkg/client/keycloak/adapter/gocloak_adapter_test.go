@@ -473,7 +473,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles_AddOnly(t *testing.T) {
 	}
 
 	if !strings.Contains(err.Error(),
-		"unable to sync service account client roles: error during syncOneEntityClientRole: unable to get client id, realm: realm, clientID bar: get clients fatal") {
+		"unable to sync service account client roles: error during syncOneEntityClientRole: unable to get client id, realm: realm, clientID bar: unable to get realm clients: get clients fatal") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 }

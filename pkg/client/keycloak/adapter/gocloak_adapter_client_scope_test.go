@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/model"
-
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 
@@ -196,6 +194,8 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 	putDefaultClientScope := strings.ReplaceAll(putDefaultClientScope, "{realm}", realmName)
 	putDefaultClientScope = strings.ReplaceAll(putDefaultClientScope, "{clientScopeID}", scopeID)
 	httpmock.RegisterResponder("PUT", putDefaultClientScope, httpmock.NewStringResponder(200, ""))
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/default-default-client-scopes",
+		httpmock.NewJsonResponderOrPanic(200, []ClientScope{}))
 
 	if err := adapter.UpdateClientScope(context.Background(), realmName, scopeID, &ClientScope{
 		Name: "scope1",
@@ -219,6 +219,21 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("%+v", err)
 	}
+
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/default-default-client-scopes",
+		httpmock.NewJsonResponderOrPanic(200, []ClientScope{{Name: "scope1"}}))
+
+	if err := adapter.UpdateClientScope(context.Background(), realmName, scopeID, &ClientScope{
+		Name: "scope1",
+		ProtocolMappers: []ProtocolMapper{
+			{
+				Name: "mp2",
+			},
+		},
+		Default: false,
+	}); err != nil {
+		t.Fatalf("%+v", err)
+	}
 }
 
 func TestGoCloakAdapter_GetClientScope(t *testing.T) {
@@ -234,7 +249,7 @@ func TestGoCloakAdapter_GetClientScope(t *testing.T) {
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
 
-	result := []*model.ClientScope{{Name: gocloak.StringP("name1")}}
+	result := []ClientScope{{Name: "name1"}}
 
 	getOneClientScope := strings.ReplaceAll(getOneClientScope, "{realm}", "realm1")
 	httpmock.RegisterResponder("GET", getOneClientScope,
@@ -270,7 +285,7 @@ func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
 }
 
 func TestGetClientScope(t *testing.T) {
-	_, err := getClientScope("scope1", []*model.ClientScope{})
+	_, err := getClientScope("scope1", []ClientScope{})
 	if !IsErrNotFound(err) {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
@@ -312,5 +327,99 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "unable to delete client scope") {
 		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
+	kcClient, _, _, _ := initAdapter()
+	httpmock.Reset()
+	httpmock.RegisterResponder("GET",
+		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
+		httpmock.NewStringResponder(200, ""))
+
+	if _, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope1"); err != nil {
+		t.Fatal(err)
+	}
+
+	httpmock.RegisterResponder("GET",
+		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
+		httpmock.NewStringResponder(422, "forbidden"))
+
+	_, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope2")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "unable to get client scope mappers: status: 422, body: forbidden" {
+		t.Fatalf("wrong error returned: '%s'", err.Error())
+	}
+}
+
+func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
+	kcClient, _, _, _ := initAdapter()
+
+	httpmock.RegisterResponder("POST",
+		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
+		httpmock.NewStringResponder(200, ""))
+	if err := kcClient.PutClientScopeMapper("realm1", "scope1", &ProtocolMapper{}); err != nil {
+		t.Fatal(err)
+	}
+
+	httpmock.RegisterResponder("POST",
+		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
+		httpmock.NewStringResponder(422, "forbidden"))
+
+	err := kcClient.PutClientScopeMapper("realm1", "scope2", &ProtocolMapper{})
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "unable to put client scope mapper: status: 422, body: forbidden" {
+		t.Fatalf("wrong error returned: '%s'", err.Error())
+	}
+}
+
+func TestGoCloakAdapter_LinkClientScopeToClient(t *testing.T) {
+	kcClient, goCloakMock, _, _ := initAdapter()
+
+	goCloakMock.On("GetClients", "realm-name-1",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("clName1")}).
+		Return([]*gocloak.Client{
+			{ClientID: gocloak.StringP("clName1"), ID: gocloak.StringP("id31")},
+		}, nil)
+	httpmock.RegisterResponder("PUT",
+		"/auth/admin/realms/realm-name-1/clients/id31/default-client-scopes/scope-id-1",
+		httpmock.NewStringResponder(200, ""))
+
+	if err := kcClient.LinkClientScopeToClient("clName1", "scope-id-1",
+		"realm-name-1"); err != nil {
+		t.Fatalf("%+v", err)
+	}
+
+	httpmock.RegisterResponder("PUT",
+		"/auth/admin/realms/realm-name-1/clients/id31/default-client-scopes/scope-id-1",
+		httpmock.NewStringResponder(422, "forbidden"))
+
+	err := kcClient.LinkClientScopeToClient("clName1", "scope-id-1", "realm-name-1")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "error during /auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}: status: 422, body: forbidden" {
+		t.Fatalf("wrong error returned: '%s'", err.Error())
+	}
+
+	goCloakMock.On("GetClients", "realm-name-1",
+		gocloak.GetClientsParams{ClientID: gocloak.StringP("clName2")}).
+		Return(nil, errors.New("get clients fatal"))
+
+	err = kcClient.LinkClientScopeToClient("clName2", "scope-id-1",
+		"realm-name-1")
+	if err == nil {
+		t.Fatal("no error returned")
+	}
+
+	if err.Error() != "error during GetClientId: unable to get realm clients: get clients fatal" {
+		t.Fatalf("wrong error returned: '%s'", err.Error())
 	}
 }

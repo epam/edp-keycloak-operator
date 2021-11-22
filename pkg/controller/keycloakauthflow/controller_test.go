@@ -2,7 +2,6 @@ package keycloakauthflow
 
 import (
 	"context"
-	"strings"
 	"testing"
 	"time"
 
@@ -15,7 +14,6 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -24,27 +22,6 @@ func TestNewReconcile_Init(t *testing.T) {
 	c := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
 	if c.client != nil {
 		t.Fatal("something went wrong")
-	}
-}
-
-func TestReconcile_SetupWithManager(t *testing.T) {
-	r := NewReconcile(nil, &mock.Logger{}, &helper.Mock{})
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{MetricsBindAddress: "0"})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	err = r.SetupWithManager(mgr, time.Second)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
-
-	if !strings.Contains(err.Error(), "no kind is registered for the type") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
-
-	if r.successReconcileTimeout != time.Second {
-		t.Fatal("success reconcile timeout is not set")
 	}
 }
 

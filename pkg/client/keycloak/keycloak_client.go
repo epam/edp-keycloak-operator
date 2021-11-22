@@ -7,7 +7,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/model"
 )
 
 type Client interface {
@@ -19,6 +18,7 @@ type Client interface {
 	KCloakClientRoles
 	KAuthFlow
 	KCloakComponents
+	KCloakClientScope
 
 	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
 	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
@@ -60,15 +60,20 @@ type KCloakClients interface {
 	ExistClient(clientID, realm string) (bool, error)
 	CreateClient(client *dto.Client) error
 	DeleteClient(ctx context.Context, kcClientID, realmName string) error
-	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
 	GetClientID(clientID, realm string) (string, error)
-	PutClientScopeMapper(clientName, scopeId, realmName string) error
-	GetClientScope(scopeName, realmName string) (*model.ClientScope, error)
+}
+
+type KCloakClientScope interface {
+	PutClientScopeMapper(realmName, scopeID string, protocolMapper *adapter.ProtocolMapper) error
+	GetClientScope(scopeName, realmName string) (*adapter.ClientScope, error)
 	LinkClientScopeToClient(clientName, scopeId, realmName string) error
 	UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *adapter.ClientScope) error
 	DeleteClientScope(ctx context.Context, realmName, scopeID string) error
+	GetDefaultClientScopesForRealm(ctx context.Context, realm string) ([]adapter.ClientScope, error)
+	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
+	GetClientScopeMappers(ctx context.Context, realmName, scopeID string) ([]adapter.ProtocolMapper, error)
 }
 
 type KCloakRealmRoles interface {

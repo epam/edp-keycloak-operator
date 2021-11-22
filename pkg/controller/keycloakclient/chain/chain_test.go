@@ -148,3 +148,24 @@ func TestMake(t *testing.T) {
 		t.Fatal("keycloak client status not changed")
 	}
 }
+
+func TestPutClientScope_Serve(t *testing.T) {
+	pcs := PutClientScope{}
+	kc := v1alpha1.KeycloakClient{Spec: v1alpha1.KeycloakClientSpec{AudRequired: true, ClientId: "clid1",
+		TargetRealm: "realm1"}}
+	kClient := new(adapter.Mock)
+	adapterScope := adapter.ClientScope{ID: "scope-id1"}
+
+	kClient.On("GetClientScope", helper.DefaultClientScopeName, kc.Spec.TargetRealm).Return(&adapterScope, nil)
+	kClient.On("GetClientScopeMappers", kc.Spec.TargetRealm, adapterScope.ID).
+		Return([]adapter.ProtocolMapper{}, nil)
+	kClient.On("PutClientScopeMapper", kc.Spec.TargetRealm, adapterScope.ID,
+		getAudienceProtocolMapper(kc.Spec.ClientId)).Return(nil)
+	kClient.On("LinkClientScopeToClient", kc.Spec.ClientId, adapterScope.ID, kc.Spec.TargetRealm).
+		Return(nil)
+
+	if err := pcs.putClientScope(&kc, kClient); err != nil {
+		t.Fatal(err)
+	}
+
+}
