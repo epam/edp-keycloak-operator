@@ -13,8 +13,6 @@ import (
 	"github.com/Nerzal/gocloak/v8"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/consts"
-	"github.com/epam/edp-keycloak-operator/pkg/model"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -43,6 +41,7 @@ const (
 	createClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
 	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	getDefaultClientScopes          = "/auth/admin/realms/{realm}/default-default-client-scopes"
 	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
 	realmComponent                  = "/auth/admin/realms/{realm}/components"
 	realmComponentEntity            = "/auth/admin/realms/{realm}/components/{id}"
@@ -477,7 +476,7 @@ func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
 			ClientID: &clientID,
 		})
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "unable to get realm clients")
 	}
 
 	for _, item := range clients {
@@ -485,7 +484,7 @@ func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
 			return *item.ID, nil
 		}
 	}
-	return "", fmt.Errorf("unable to get Client ID. Client %v doesn't exist", clientID)
+	return "", errors.Errorf("unable to get Client ID. Client %v doesn't exist", clientID)
 }
 
 func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {
@@ -990,81 +989,24 @@ func (a GoCloakAdapter) GetClientProtocolMappers(client *dto.Client,
 	return mappers, nil
 }
 
-func (a GoCloakAdapter) PutClientScopeMapper(clientName, scopeId, realmName string) error {
-	log := a.log.WithValues("scopeId", scopeId, "realm", realmName, "clientId", clientName)
-	log.Info("Start put Client Scope mapper...")
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm":   realmName,
-			"scopeId": scopeId,
-		}).
-		SetBody(getProtocolMapper(clientName)).
-		Post(a.basePath + postClientScopeMapper)
-	if err := a.checkError(err, resp); err != nil {
-		return err
-	}
-	log.Info("Client Scope mapper was successfully configured!")
-	return nil
-}
-
 func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	if err != nil {
 		return errors.Wrap(err, "response error")
 	}
+
 	if response == nil {
 		return errors.New("empty response")
 	}
-	if response.IsError() {
-		//TODO: remove this
-		if response.StatusCode() == 409 {
-			a.log.Info("entity already exists. creating skipped", "url", response.Request.URL)
-			return nil
-		}
-		//todo: end
 
+	if response.IsError() {
 		return errors.Errorf("status: %s, body: %s", response.Status(), response.String())
 	}
+
 	return nil
 }
 
-func getProtocolMapper(clientId string) model.ProtocolMappers {
-	return model.ProtocolMappers{
-		Name:           gocloak.StringP(fmt.Sprintf("%v-%v", clientId, "audience")),
-		Protocol:       gocloak.StringP(consts.OpenIdProtocol),
-		ProtocolMapper: gocloak.StringP(consts.ProtocolMapper),
-		ProtocolMappersConfig: &model.ProtocolMappersConfig{
-			AccessTokenClaim:       gocloak.StringP("true"),
-			IncludedClientAudience: gocloak.StringP(clientId),
-		},
-	}
-}
-
-func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName string) error {
-	log := a.log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
-	log.Info("Start link Client Scope to client...")
-	clientID, err := a.GetClientID(clientName, realmName)
-	if err != nil {
-		return errors.Wrap(err, "error during GetClientId")
-	}
-
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm":    realmName,
-			"clientId": clientID,
-			"scopeId":  scopeID,
-		}).
-		Put(a.basePath + linkClientScopeToClient)
-	if err := a.checkError(err, resp); err != nil {
-		return errors.Wrapf(err, "error during %s", linkClientScopeToClient)
-	}
-	log.Info("End link Client Scope to client...")
-	return nil
-}
-
+// TODO: replace with check error
+// Deprecated: Please use checkError instead.
 func extractError(resp *resty.Response) error {
 	if !resp.IsSuccess() {
 		return errors.Errorf("status: %d, body: %s", resp.StatusCode(), resp.String())

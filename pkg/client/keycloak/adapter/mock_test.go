@@ -110,3 +110,58 @@ func TestMock_Component(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestMock_GetClientScope(t *testing.T) {
+	m := Mock{}
+	m.On("GetClientScope", "scopeName", "realmName").Return(&ClientScope{}, nil).Once()
+	if _, err := m.GetClientScope("scopeName", "realmName"); err != nil {
+		t.Fatal(err)
+	}
+	m.On("GetClientScope", "scopeName", "realmName").Return(nil, errors.New("fatal")).Once()
+	if _, err := m.GetClientScope("scopeName", "realmName"); err == nil {
+		t.Fatal("no error returned")
+	}
+}
+
+func TestMock_PutClientScopeMapper(t *testing.T) {
+	m := Mock{}
+	m.On("PutClientScopeMapper", "realmName", "scopeID", &ProtocolMapper{}).Return(nil)
+	if err := m.PutClientScopeMapper("realmName", "scopeID", &ProtocolMapper{}); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestMock_GetDefaultClientScopesForRealm(t *testing.T) {
+	m := Mock{}
+	m.On("GetDefaultClientScopesForRealm", "realm").Return([]ClientScope{}, nil).Once()
+	if _, err := m.GetDefaultClientScopesForRealm(context.Background(), "realm"); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("GetDefaultClientScopesForRealm", "realm").Return(nil, errors.New("fatal")).Once()
+	if _, err := m.GetDefaultClientScopesForRealm(context.Background(), "realm"); err == nil {
+		t.Fatal("no error returned")
+	}
+}
+
+func TestMock_GetClientScopeMappers(t *testing.T) {
+	m := Mock{}
+	m.On("GetClientScopeMappers", "realm", "scope").Return([]ProtocolMapper{}, nil).Once()
+	if _, err := m.GetClientScopeMappers(context.Background(), "realm", "scope"); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("GetClientScopeMappers", "realm", "scope").
+		Return(nil, errors.New("fatal")).Once()
+	if _, err := m.GetClientScopeMappers(context.Background(), "realm", "scope"); err == nil {
+		t.Fatal("no error returned")
+	}
+}
+
+func TestMock_LinkClientScopeToClient(t *testing.T) {
+	m := Mock{}
+	m.On("LinkClientScopeToClient", "clientName", "scopeID", "realmName").Return(nil)
+	if err := m.LinkClientScopeToClient("clientName", "scopeID", "realmName"); err != nil {
+		t.Fatal(err)
+	}
+}

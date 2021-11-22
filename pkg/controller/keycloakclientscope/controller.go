@@ -146,7 +146,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 
 	if err == nil {
 		if instance.Status.ID == "" {
-			instance.Status.ID = *clientScope.ID
+			instance.Status.ID = clientScope.ID
 		}
 		if err := cl.UpdateClientScope(ctx, realm.Spec.RealmName, instance.Status.ID, &cScope); err != nil {
 			return "", errors.Wrap(err, "unable to update client scope")

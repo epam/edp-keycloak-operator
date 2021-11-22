@@ -3,13 +3,12 @@ package chain
 import (
 	"context"
 
-	"github.com/pkg/errors"
-
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/consts"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
+	"github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -42,9 +41,9 @@ func (h PutKeycloakClientScope) ServeRequest(ctx context.Context, realm *v1alpha
 
 func getDefClientScope() *adapter.ClientScope {
 	return &adapter.ClientScope{
-		Name:        consts.DefaultClientScopeName,
+		Name:        helper.DefaultClientScopeName,
 		Description: "default edp scope required for ac and nexus",
-		Protocol:    consts.OpenIdProtocol,
+		Protocol:    adapter.OpenIdProtocol,
 		Attributes: map[string]string{
 			"include.in.token.scope": "true",
 		},
