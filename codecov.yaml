@@ -1,0 +1,6 @@
+ignore:
+  - "**/*_test.go"
+  - "**/zz_generated.deepcopy.go"
+  - "**/service_types.go"
+  - "**/factory.go"
+  - "**/mock_*.go"
