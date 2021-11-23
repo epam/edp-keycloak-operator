@@ -1,0 +1,31 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+
+env:
+  GOLANG_VERSION: '1.14.3'
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+
+    - name: Build
+      run: go build -o /tmp/operator cmd/manager/main.go
+
+    - name: Test
+      run: go test -v ./... -coverprofile=coverage.out
+
+    - name: Upload codecov
+      uses: codecov/codecov-action@v2.1.0
+      with:
+        file: coverage.out
