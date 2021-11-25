@@ -45,6 +45,10 @@ const (
 	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
 	realmComponent                  = "/auth/admin/realms/{realm}/components"
 	realmComponentEntity            = "/auth/admin/realms/{realm}/components/{id}"
+	identityProviderEntity          = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}"
+	identityProviderCreateList      = "/auth/admin/realms/{realm}/identity-provider/instances"
+	idpMapperCreateList             = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idpMapperEntity                 = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
 )
 
 type ErrTokenExpired string
@@ -1000,16 +1004,6 @@ func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 
 	if response.IsError() {
 		return errors.Errorf("status: %s, body: %s", response.Status(), response.String())
-	}
-
-	return nil
-}
-
-// TODO: replace with check error
-// Deprecated: Please use checkError instead.
-func extractError(resp *resty.Response) error {
-	if !resp.IsSuccess() {
-		return errors.Errorf("status: %d, body: %s", resp.StatusCode(), resp.String())
 	}
 
 	return nil

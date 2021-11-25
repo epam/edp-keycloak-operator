@@ -16,6 +16,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmcomponent"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmgroup"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmidentityprovider"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrole"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrolebatch"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmuser"
@@ -183,6 +184,12 @@ func main() {
 	if err := keycloakrealmcomponent.NewReconcile(mgr.GetClient(), ctrlLog, h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-component")
+		os.Exit(1)
+	}
+
+	if err := keycloakrealmidentityprovider.NewReconcile(mgr.GetClient(), ctrlLog, h).
+		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-identity-provider")
 		os.Exit(1)
 	}
 

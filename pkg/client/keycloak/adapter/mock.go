@@ -279,3 +279,46 @@ func (m *Mock) GetClientScopeMappers(ctx context.Context, realmName, scopeID str
 
 	return called.Get(0).([]ProtocolMapper), nil
 }
+
+func (m *Mock) CreateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *IdentityProviderMapper) (string, error) {
+	called := m.Called(realm, idpAlias, mapper)
+	return called.String(0), called.Error(1)
+}
+
+func (m *Mock) UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *IdentityProviderMapper) error {
+	return m.Called(realm, idpAlias, mapper).Error(0)
+}
+
+func (m *Mock) DeleteIDPMapper(ctx context.Context, realm, idpAlias, mapperID string) error {
+	return m.Called(realm, idpAlias, mapperID).Error(0)
+}
+
+func (m *Mock) GetIDPMappers(ctx context.Context, realm, idpAlias string) ([]IdentityProviderMapper, error) {
+	called := m.Called(realm, idpAlias)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]IdentityProviderMapper), nil
+}
+
+func (m *Mock) DeleteIdentityProvider(ctx context.Context, realm, alias string) error {
+	return m.Called(realm, alias).Error(0)
+}
+
+func (m *Mock) GetIdentityProvider(ctx context.Context, realm, alias string) (*IdentityProvider, error) {
+	called := m.Called(realm, alias)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*IdentityProvider), nil
+}
+
+func (m *Mock) UpdateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
+	return m.Called(realm, idp).Error(0)
+}
+
+func (m *Mock) CreateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
+	return m.Called(realm, idp).Error(0)
+}

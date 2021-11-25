@@ -151,12 +151,9 @@ func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow,
 		}).
 		SetResult(&flows).
 		Get(a.basePath + authFlows)
-	if err != nil {
-		return nil, errors.Wrap(err, "unable to list auth flow by realm")
-	}
 
-	if err := extractError(resp); err != nil {
-		return nil, err
+	if err := a.checkError(err, resp); err != nil {
+		return nil, errors.Wrap(err, "unable to list auth flow by realm")
 	}
 
 	return flows, nil
@@ -169,12 +166,9 @@ func (a GoCloakAdapter) createAuthFlow(realmName string, flow *KeycloakAuthFlow)
 		}).
 		SetBody(flow).
 		Post(a.basePath + authFlows)
-	if err != nil {
-		return "", errors.Wrap(err, "unable to create auth flow in realm")
-	}
 
-	if err := extractError(resp); err != nil {
-		return "", err
+	if err := a.checkError(err, resp); err != nil {
+		return "", errors.Wrap(err, "unable to create auth flow in realm")
 	}
 
 	id, err = getIDFromResponseLocation(resp.RawResponse)
@@ -192,11 +186,12 @@ func (a GoCloakAdapter) deleteAuthFlow(realmName, ID string) error {
 			"id":    ID,
 		}).
 		Delete(a.basePath + authFlow)
-	if err != nil {
+
+	if err := a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to delete auth flow")
 	}
 
-	return extractError(resp)
+	return nil
 }
 
 func (a GoCloakAdapter) addAuthFlowExecution(realmName string, flowExec *AuthenticationExecution) error {
@@ -206,12 +201,9 @@ func (a GoCloakAdapter) addAuthFlowExecution(realmName string, flowExec *Authent
 		}).
 		SetBody(flowExec).
 		Post(a.basePath + authFlowExecutionCreate)
-	if err != nil {
-		return errors.Wrap(err, "unable to add auth flow execution")
-	}
 
-	if err := extractError(resp); err != nil {
-		return err
+	if err := a.checkError(err, resp); err != nil {
+		return errors.Wrap(err, "unable to add auth flow execution")
 	}
 
 	flowExec.ID, err = getIDFromResponseLocation(resp.RawResponse)
@@ -236,11 +228,12 @@ func (a GoCloakAdapter) createAuthFlowExecutionConfig(realmName string, flowExec
 		}).
 		SetBody(flowExec.AuthenticatorConfig).
 		Post(a.basePath + authFlowExecutionConfig)
-	if err != nil {
+
+	if err := a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to add auth flow execution")
 	}
 
-	return extractError(resp)
+	return nil
 }
 
 func getIDFromResponseLocation(response *http.Response) (string, error) {
