@@ -52,6 +52,12 @@ rules:
     - keycloakclientscopes/status
     - keycloakclientscopes
     - events
+    - keycloakrealmcomponents
+    - keycloakrealmcomponents/finalizers
+    - keycloakrealmcomponents/status
+    - keycloakrealmidentityproviders
+    - keycloakrealmidentityproviders/finalizers
+    - keycloakrealmidentityproviders/status
   verbs:
      - '*'
 - apiGroups:
@@ -63,11 +69,4 @@ rules:
     - get
     - list
     - update
-- apiGroups:
-    - v1.edp.epam.com
-  resources:
-    - keycloakrealmcomponents
-  verbs:
-    - list
-    - watch
 {{ end }}

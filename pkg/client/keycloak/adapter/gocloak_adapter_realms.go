@@ -200,9 +200,9 @@ func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dt
 		"id":    mapper.ID,
 	}).SetBody(mapper).Put(a.basePath + updateMapperToIdentityProvider)
 
-	if err != nil {
+	if err := a.checkError(err, resp); err != nil {
 		return errors.Wrapf(err, "unable to update identity provider mapper: %+v", mapper)
 	}
 
-	return extractError(resp)
+	return nil
 }

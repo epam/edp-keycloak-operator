@@ -19,6 +19,7 @@ type Client interface {
 	KAuthFlow
 	KCloakComponents
 	KCloakClientScope
+	KIdentityProvider
 
 	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
 	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
@@ -28,6 +29,18 @@ type Client interface {
 		clientRoles map[string][]string, addOnly bool) error
 	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
 	ExportToken() ([]byte, error)
+}
+
+type KIdentityProvider interface {
+	CreateIdentityProvider(ctx context.Context, realm string, idp *adapter.IdentityProvider) error
+	UpdateIdentityProvider(ctx context.Context, realm string, idp *adapter.IdentityProvider) error
+	GetIdentityProvider(ctx context.Context, realm, alias string) (*adapter.IdentityProvider, error)
+	DeleteIdentityProvider(ctx context.Context, realm, alias string) error
+
+	CreateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *adapter.IdentityProviderMapper) (string, error)
+	UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *adapter.IdentityProviderMapper) error
+	DeleteIDPMapper(ctx context.Context, realm, idpAlias, mapperID string) error
+	GetIDPMappers(ctx context.Context, realm, idpAlias string) ([]adapter.IdentityProviderMapper, error)
 }
 
 type KAuthFlow interface {
