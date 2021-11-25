@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	buildInfo "github.com/epam/edp-common/pkg/config"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -78,7 +79,19 @@ func main() {
 	opts.BindFlags(flag.CommandLine)
 	flag.Parse()
 
+	v := buildInfo.Get()
+
 	ctrl.SetLogger(zap.New(zap.UseFlagOptions(&opts)))
+
+	setupLog.Info("Starting the Keycloak Operator",
+		"version", v.Version,
+		"git-commit", v.GitCommit,
+		"git-tag", v.GitTag,
+		"build-date", v.BuildDate,
+		"go-version", v.Go,
+		"go-client", v.KubectlVersion,
+		"platform", v.Platform,
+	)
 
 	ns, err := util.GetWatchNamespace()
 	if err != nil {

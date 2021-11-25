@@ -320,7 +320,7 @@ func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToGet(t *testing.T) {
 func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToDelete(t *testing.T) {
 	sec := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "ns", Name: tokenSecretName("kc-name")},
-		TypeMeta: metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
+		TypeMeta:   metav1.TypeMeta{Kind: "Secret", APIVersion: "v1"},
 	}
 
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&sec).Build()
