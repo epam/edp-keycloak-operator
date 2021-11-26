@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/go-logr/logr"
@@ -312,7 +312,7 @@ func (a GoCloakAdapter) ExistClientRole(client *dto.Client, clientRole string) (
 		return false, err
 	}
 
-	clientRoles, err := a.client.GetClientRoles(context.Background(), a.token.AccessToken, client.RealmName, id)
+	clientRoles, err := a.client.GetClientRoles(context.Background(), a.token.AccessToken, client.RealmName, id, gocloak.GetRoleParams{})
 	_, err = strip404(err)
 	if err != nil {
 		return false, err
