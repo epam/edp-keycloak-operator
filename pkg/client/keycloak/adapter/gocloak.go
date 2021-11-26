@@ -3,7 +3,7 @@ package adapter
 import (
 	"context"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/go-resty/resty/v2"
 )
 
@@ -50,7 +50,7 @@ type GoCloakUsers interface {
 }
 
 type GoCloakClientRoles interface {
-	GetClientRoles(ctx context.Context, accessToken, realm, clientID string) ([]*gocloak.Role, error)
+	GetClientRoles(ctx context.Context, accessToken, realm, clientID string, params gocloak.GetRoleParams) ([]*gocloak.Role, error)
 	CreateClientRole(ctx context.Context, accessToken, realm, clientID string, role gocloak.Role) (string, error)
 	GetClientRole(ctx context.Context, token, realm, clientID, roleName string) (*gocloak.Role, error)
 	AddClientRoleToUser(ctx context.Context, token, realm, clientID, userID string, roles []gocloak.Role) error

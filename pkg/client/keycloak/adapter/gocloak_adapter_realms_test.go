@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/jarcoal/httpmock"
 )

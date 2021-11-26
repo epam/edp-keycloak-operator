@@ -4,7 +4,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/mock"
 )
@@ -92,7 +92,7 @@ func (m *MockGoCloakClient) GetClientRole(ctx context.Context, token, realm, cli
 }
 
 func (m *MockGoCloakClient) GetClientRoles(ctx context.Context, accessToken, realm,
-	clientID string) ([]*gocloak.Role, error) {
+	clientID string, params gocloak.GetRoleParams) ([]*gocloak.Role, error) {
 	panic("implement me")
 }
 

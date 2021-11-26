@@ -8,7 +8,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 
 	"github.com/pkg/errors"

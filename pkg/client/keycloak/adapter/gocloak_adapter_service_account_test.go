@@ -3,7 +3,7 @@ package adapter
 import (
 	"testing"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 )
 
 func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {

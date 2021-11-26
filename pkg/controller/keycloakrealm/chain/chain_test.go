@@ -9,7 +9,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	v1 "k8s.io/api/apps/v1"

@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v8"
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
