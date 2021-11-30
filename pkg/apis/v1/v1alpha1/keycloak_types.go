@@ -41,7 +41,7 @@ func (in KeycloakSpec) GetInstallMainRealm() bool {
 
 type User struct {
 	Username   string   `json:"username"`
-	RealmRoles []string `json:"realmRoles, omitempty"`
+	RealmRoles []string `json:"realmRoles,omitempty"`
 }
 
 // KeycloakStatus defines the observed state of Keycloak
