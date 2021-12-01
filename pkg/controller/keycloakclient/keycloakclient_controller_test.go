@@ -100,7 +100,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	assert.False(t, res.Requeue)
 
 	persKc := &v1alpha1.KeycloakClient{}
-	err = client.Get(context.TODO(), req.NamespacedName, persKc)
+	assert.Nil(t, client.Get(context.TODO(), req.NamespacedName, persKc))
 	assert.Equal(t, "error during kc chain: fatal", persKc.Status.Value)
 	assert.Empty(t, persKc.Status.ClientID)
 }

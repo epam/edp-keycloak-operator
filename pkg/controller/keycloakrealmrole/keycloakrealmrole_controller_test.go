@@ -110,6 +110,7 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 			Name:      role.Name,
 			Namespace: role.Namespace,
 		}}); err != nil {
+		t.Fatal(err)
 	}
 
 	if _, ok := logger.InfoMessages["Role is duplicated, exit."]; !ok {
@@ -179,6 +180,7 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 			Name:      role.Name,
 			Namespace: role.Namespace,
 		}}); err != nil {
+		t.Fatal(err)
 	}
 
 	if _, ok := logger.InfoMessages["Role is duplicated"]; !ok {

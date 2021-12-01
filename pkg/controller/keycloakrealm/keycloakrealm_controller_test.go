@@ -69,6 +69,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.Nil(t, err)
 	assert.False(t, persKr.Status.Available)
 }
 
@@ -125,6 +126,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.Nil(t, err)
 	assert.False(t, persKr.Status.Available)
 }
 
@@ -194,6 +196,7 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.Nil(t, err)
 	assert.False(t, persKr.Status.Available)
 }
 
@@ -277,6 +280,7 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.Nil(t, err)
 	assert.False(t, persKr.Status.Available)
 }
 
@@ -358,6 +362,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 
 	persKr := &v1alpha1.KeycloakRealm{}
 	err = client.Get(context.TODO(), req.NamespacedName, persKr)
+	assert.Nil(t, err)
 	assert.False(t, persKr.Status.Available)
 }
 
