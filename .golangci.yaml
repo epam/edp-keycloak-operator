@@ -1,0 +1,7 @@
+# options for analysis running
+run:
+  skip-files:
+    - ".*deepcopy.*"
+linters:
+  disable:
+    - unused

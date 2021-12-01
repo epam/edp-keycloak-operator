@@ -97,6 +97,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 
 	persisted := &v1alpha1.Keycloak{}
 	err = cl.Get(context.TODO(), req.NamespacedName, persisted)
+	assert.Nil(t, err)
 	assert.False(t, persisted.Status.Connected)
 
 	realm := &v1alpha1.KeycloakRealm{}

@@ -126,9 +126,7 @@ func (a GoCloakAdapter) syncEntityClientRoles(realm, entityID string, claimedRol
 	for clientName, client := range currentRoles {
 		if _, ok := claimedRoles[clientName]; !ok && client.Mappings != nil {
 			rolesToDelete := make([]gocloak.Role, 0, len(currentRoles))
-			for _, role := range *client.Mappings {
-				rolesToDelete = append(rolesToDelete, role)
-			}
+			rolesToDelete = append(rolesToDelete, *client.Mappings...)
 
 			if len(rolesToDelete) > 0 {
 				if err := delRoleFunc(context.Background(), a.token.AccessToken, realm,
