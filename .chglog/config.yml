@@ -1,0 +1,51 @@
+style: none
+template: CHANGELOG.tpl.md
+info:
+  title: CHANGELOG
+  repository_url: https://github.com/epam/edp-keycloak-operator
+
+options:
+  tag_filter_pattern: '^v'
+  sort: "semVer"
+
+  commits:
+    filters:
+      Type:
+        - chore
+        - docs
+        - feat
+        - fix
+        - refactor
+        - style
+        - test
+
+  commit_groups:
+    group_by: Type
+    sort_by: Custom
+    title_order:
+      - feat
+      - fix
+      - refactor
+      - style
+      - test
+      - chore
+      - docs
+    title_maps:
+      chore: Routine
+      docs: Documentation
+      feat: Features
+      fix: Bug Fixes
+      refactor: Code Refactoring
+      style: Formatting
+      test: Testing
+
+  header:
+    pattern: "^\\[(EPMDEDP-\\d{4})\\]:\\s(feat|fix|docs|style|refactor|test|chore)+!?:\\s(.*)$"
+    pattern_maps:
+      - JiraIssueID
+      - Type
+      - Subject
+
+  notes:
+    keywords:
+      - "BREAKING CHANGES"
