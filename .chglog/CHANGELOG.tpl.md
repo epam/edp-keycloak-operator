@@ -20,7 +20,7 @@
 ### {{ .Title }}
 
 {{ range .Commits -}}
-- {{ if .Scope }}**{{ .Scope }}:** {{ end }}{{ .Subject }}
+- {{ if .Scope }}**{{ .Scope }}:** {{ end }}{{ .Subject }} [{{ .JiraIssueID }}](https://jiraeu.epam.com/browse/{{ .JiraIssueID }})
 {{ end }}
 {{ end -}}
 
