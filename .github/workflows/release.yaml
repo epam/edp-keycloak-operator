@@ -1,0 +1,53 @@
+name: Create EDP release
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+    GOLANG_VERSION: '1.17'
+
+jobs:
+  prepare-release:
+    name: Perform automatic release on trigger ${{ github.ref }}
+    runs-on: ubuntu-latest
+    env:
+      # The name of the tag as supplied by the GitHub event
+      SOURCE_TAG: ${{ github.ref }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ env.GOLANG_VERSION }}
+
+      - name: Check if the published tag is well formed and setup vars
+        run: |
+          set -xue
+            # refs/tags/v2.10.7 -> v2.10.7
+            RELEASE_TAG="${SOURCE_TAG##*/}"
+
+            # dowload git-chglog
+            go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
+
+            git-chglog -o release.md ${RELEASE_TAG}
+
+            echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+
+      - name: Read release notes file
+        id: release-notes
+        uses: juliangruber/read-file-action@v1
+        with:
+          path: release.md
+
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        id: create_release
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          release_name: ${{ env.RELEASE_TAG }}
+          body: ${{ steps.release-notes.outputs.content }}

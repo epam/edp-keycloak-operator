@@ -42,10 +42,10 @@ options:
   header:
     pattern: "^\\[(EPMDEDP-\\d{4})\\]:\\s(feat|fix|docs|style|refactor|test|chore)+!?:\\s(.*)$"
     pattern_maps:
-      - JiraIssueID
+      - Scope
       - Type
       - Subject
 
   notes:
     keywords:
-      - "BREAKING CHANGES"
+      - "BREAKING CHANGE:"
