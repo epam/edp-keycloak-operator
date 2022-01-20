@@ -25,4 +25,4 @@ resources:
     memory: 64Mi
 
 keycloak:
-  url: "https://keycloak-keycloak.delivery.aws.main.edp.projects.epam.com"
+  url: "https://keycloak.example.com"
