@@ -1,6 +1,11 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Routine
+
+- Update release CI pipelines [EPMDEDP-7847](https://jiraeu.epam.com/browse/EPMDEDP-7847)
+- Update keycloak URL link [EPMDEDP-8204](https://jiraeu.epam.com/browse/EPMDEDP-8204)
+
 
 <a name="v1.10.0"></a>
 ## [v1.10.0] - 2021-12-06
