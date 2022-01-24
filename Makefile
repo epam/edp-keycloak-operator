@@ -48,3 +48,8 @@ build: clean ## build operator's binary
 .PHONY: clean
 clean:  ## clean up
 	-rm -rf ${DIST_DIR}
+
+# use https://github.com/git-chglog/git-chglog/
+.PHONY: changelog
+changelog: ## generate changelog
+	@git-chglog -o CHANGELOG.md v1.7.0..
