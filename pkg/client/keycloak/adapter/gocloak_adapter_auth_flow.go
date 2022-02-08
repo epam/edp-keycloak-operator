@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"net/http"
+	"path"
 	"sort"
 	"strings"
 
@@ -17,7 +18,16 @@ type KeycloakAuthFlow struct {
 	ProviderID               string                    `json:"providerId"`
 	TopLevel                 bool                      `json:"topLevel"`
 	BuiltIn                  bool                      `json:"builtIn"`
+	ParentName               string                    `json:"-"`
+	ChildType                string                    `json:"-"`
 	AuthenticationExecutions []AuthenticationExecution `json:"-"`
+}
+
+type KeycloakChildAuthFlow struct {
+	Alias       string `json:"alias"`
+	Description string `json:"description"`
+	Provider    string `json:"provider"`
+	Type        string `json:"type"`
 }
 
 type AuthenticationExecution struct {
@@ -160,12 +170,27 @@ func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow,
 }
 
 func (a GoCloakAdapter) createAuthFlow(realmName string, flow *KeycloakAuthFlow) (id string, err error) {
+	var (
+		body       interface{} = flow
+		requestURL             = a.basePath + authFlows
+	)
+
+	if flow.ParentName != "" {
+		requestURL = a.basePath + path.Join(authFlows, flow.ParentName, "executions/flow")
+		body = KeycloakChildAuthFlow{
+			Description: flow.Description,
+			Alias:       flow.Alias,
+			Provider:    flow.ProviderID,
+			Type:        flow.ChildType,
+		}
+	}
+
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
 			"realm": realmName,
 		}).
-		SetBody(flow).
-		Post(a.basePath + authFlows)
+		SetBody(body).
+		Post(requestURL)
 
 	if err := a.checkError(err, resp); err != nil {
 		return "", errors.Wrap(err, "unable to create auth flow in realm")

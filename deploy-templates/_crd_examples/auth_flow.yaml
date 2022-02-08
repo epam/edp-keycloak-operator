@@ -1,0 +1,22 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakAuthFlow
+metadata:
+  name: d1-auth-flow
+spec:
+  realm: d2-id-k8s-realm-name
+  alias: MyBrowser
+  description: browser with idp
+  providerId: basic-flow
+  topLevel: true
+  builtIn: false
+  authenticationExecutions:
+    - authenticator: "auth-cookie"
+      priority: 0
+      requirement: "ALTERNATIVE"
+    - authenticator: "identity-provider-redirector"
+      priority: 1
+      requirement: "REQUIRED"
+      authenticatorConfig:
+        alias: diia
+        config:
+          "defaultProvider": "diia"

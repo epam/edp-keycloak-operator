@@ -1,0 +1,51 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakAuthFlow
+metadata:
+  name: demo-tree
+spec:
+  realm: main
+  alias: demo-tree
+  description: flow tree demo
+  providerId: basic-flow
+  topLevel: true
+  builtIn: false
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakAuthFlow
+metadata:
+  name: demo-sub-tree
+spec:
+  realm: main
+  alias: demo-sub-tree
+  description: flow sub tree demo
+  providerId: "registration-page-form"
+  topLevel: false
+  builtIn: false
+  parentName: demo-tree
+  childType: "form-flow"
+  authenticationExecutions:
+    - authenticator: "auth-cookie"
+      priority: 0
+      requirement: "ALTERNATIVE"
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakAuthFlow
+metadata:
+  name: demo-sub-sub-tree
+spec:
+  realm: main
+  alias: demo-sub-sub-tree
+  description: flow sub tree demo
+  providerId: "registration-page-form"
+  topLevel: false
+  builtIn: false
+  parentName: demo-sub-tree
+  childType: "form-flow"
+  authenticationExecutions:
+    - authenticator: "auth-cookie"
+      priority: 0
+      requirement: "ALTERNATIVE"

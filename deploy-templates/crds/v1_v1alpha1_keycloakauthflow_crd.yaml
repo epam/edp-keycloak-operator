@@ -41,10 +41,16 @@ spec:
                 type: string
               providerId:
                 type: string
+                description: "providerId for root auth flow and provider for child auth flows"
               topLevel:
                 type: boolean
               builtIn:
                 type: boolean
+              parentName:
+                type: string
+              childType:
+                type: string
+                description: "type for auth flow if it has a parent, available options: basic-flow, form-flow"
               authenticationExecutions:
                 nullable: true
                 type: array
