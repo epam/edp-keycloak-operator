@@ -300,7 +300,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 	obj.SetFinalizers(finalizers)
 
 	if err := h.client.Update(ctx, obj); err != nil {
-		return false, errors.Wrap(err, "unable to update realm role cr")
+		return false, errors.Wrap(err, "unable to update instance")
 	}
 
 	logger.Info("terminator deleting instance done, exit")

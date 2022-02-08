@@ -22,6 +22,8 @@ type KeycloakAuthFlowSpec struct {
 	TopLevel                 bool                      `json:"topLevel"`
 	BuiltIn                  bool                      `json:"builtIn"`
 	AuthenticationExecutions []AuthenticationExecution `json:"authenticationExecutions"`
+	ParentName               string                    `json:"parentName"`
+	ChildType                string                    `json:"childType"`
 }
 
 // +k8s:openapi-gen=true

@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"path"
 	"strings"
 	"testing"
 
@@ -9,7 +10,39 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestGoCloakAdapter_CreateAuthFlowParent(t *testing.T) {
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient := new(MockGoCloakClient)
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	adapter := GoCloakAdapter{
+		client: mockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+	}
+
+	createFlowResponse := httpmock.NewStringResponse(200, "")
+	createFlowResponse.Header.Set("Location", "id/new-flow-id")
+
+	var (
+		realmName  = "realm-name"
+		parentName = "parent-name"
+	)
+
+	httpmock.RegisterResponder("POST", strings.ReplaceAll(path.Join(authFlows, parentName, "executions/flow"), "{realm}", realmName),
+		httpmock.ResponderFromResponse(createFlowResponse))
+
+	flowID, err := adapter.createAuthFlow(realmName, &KeycloakAuthFlow{
+		ParentName: parentName,
+	})
+
+	assert.NoError(t, err)
+	assert.Equal(t, flowID, "new-flow-id")
+}
 
 func TestGoCloakAdapter_SyncAuthFlow(t *testing.T) {
 	mockClient := new(MockGoCloakClient)

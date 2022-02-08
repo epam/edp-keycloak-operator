@@ -135,6 +135,7 @@ func authFlowSpecToAdapterAuthFlow(spec *keycloakApi.KeycloakAuthFlowSpec) *adap
 		ProviderID:               spec.ProviderID,
 		TopLevel:                 spec.TopLevel,
 		AuthenticationExecutions: make([]adapter.AuthenticationExecution, 0, len(spec.AuthenticationExecutions)),
+		ParentName:               spec.ParentName,
 	}
 
 	for _, ae := range spec.AuthenticationExecutions {
