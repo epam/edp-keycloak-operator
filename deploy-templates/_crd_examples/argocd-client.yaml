@@ -1,0 +1,13 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakClient
+metadata:
+  name: argocd
+spec:
+  advancedProtocolMappers: true
+  audRequired: true
+  clientId: agocd
+  directAccess: true
+  public: false
+  secret: ''
+  targetRealm: edp-delivery-main
+  webUrl: https://argocd.example.com
