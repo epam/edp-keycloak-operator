@@ -1,10 +1,18 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Features
+
+- Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
+- implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
+
 ### Routine
 
 - Update release CI pipelines [EPMDEDP-7847](https://jiraeu.epam.com/browse/EPMDEDP-7847)
+- Add artifacthub tags [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
 - Update keycloak URL link [EPMDEDP-8204](https://jiraeu.epam.com/browse/EPMDEDP-8204)
+- Update changelog [EPMDEDP-8227](https://jiraeu.epam.com/browse/EPMDEDP-8227)
+- Add examples for ArgoCD config in Keycloak [EPMDEDP-8312](https://jiraeu.epam.com/browse/EPMDEDP-8312)
 
 
 <a name="v1.10.0"></a>
