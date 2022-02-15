@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,6 +12,11 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestNewReconcile_Init(t *testing.T) {
@@ -64,8 +65,10 @@ func TestNewReconcile(t *testing.T) {
 		AuthenticationExecutions: []adapter.AuthenticationExecution{},
 	}).Return(nil)
 
+	keycloakAuthFlow := authFlowSpecToAdapterAuthFlow(&flow.Spec)
+
 	h.On("TryToDelete", &flow,
-		makeTerminator(realm.Spec.RealmName, flow.Spec.Alias, &kClient, &log), finalizerName).Return(false, nil)
+		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow, client, &kClient, &log), finalizerName).Return(false, nil)
 	h.On("UpdateStatus", &flow).Return(nil)
 
 	r := Reconcile{
@@ -123,6 +126,9 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 	h.On("SetFailureCount", &flow).Return(time.Second)
 	h.On("UpdateStatus", &flow).Return(nil)
+	h.On("TryToDelete", &flow,
+		makeTerminator(realm.Spec.RealmName, authFlowSpecToAdapterAuthFlow(&flow.Spec), client, &kClient, &log),
+		finalizerName).Return(false, nil)
 
 	mockErr := errors.New("fatal")
 	kClient.On("SyncAuthFlow", realm.Spec.RealmName, &adapter.KeycloakAuthFlow{

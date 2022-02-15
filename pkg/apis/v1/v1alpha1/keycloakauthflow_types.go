@@ -33,6 +33,7 @@ type AuthenticationExecution struct {
 	AuthenticatorFlow   bool                 `json:"authenticatorFlow"`
 	Priority            int                  `json:"priority"`
 	Requirement         string               `json:"requirement"`
+	Alias               string               `json:"alias"`
 }
 
 // +k8s:openapi-gen=true
