@@ -51,7 +51,6 @@ type ReconcileKeycloakRealm struct {
 
 func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
 	r.successReconcileTimeout = successReconcileTimeout
-
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}

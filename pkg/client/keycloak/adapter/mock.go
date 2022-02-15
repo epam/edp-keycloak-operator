@@ -4,9 +4,10 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v10"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/stretchr/testify/mock"
 )
 
 type Mock struct {
@@ -193,8 +194,8 @@ func (m *Mock) SyncRealmIdentityProviderMappers(realmName string,
 	return m.Called(realmName, mappers).Error(0)
 }
 
-func (m *Mock) DeleteAuthFlow(realmName, alias string) error {
-	return m.Called(realmName, alias).Error(0)
+func (m *Mock) DeleteAuthFlow(realmName string, flow *KeycloakAuthFlow) error {
+	return m.Called(realmName, flow).Error(0)
 }
 
 func (m *Mock) SyncAuthFlow(realmName string, flow *KeycloakAuthFlow) error {

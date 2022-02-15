@@ -75,6 +75,8 @@ spec:
                       type: string
                     authenticatorFlow:
                       type: boolean
+                    alias:
+                      type: string
             required:
               - realm
               - alias

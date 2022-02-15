@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v10"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -45,7 +46,7 @@ type KIdentityProvider interface {
 
 type KAuthFlow interface {
 	SyncAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error
-	DeleteAuthFlow(realmName, alias string) error
+	DeleteAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error
 	SetRealmBrowserFlow(realmName string, flowAlias string) error
 }
 

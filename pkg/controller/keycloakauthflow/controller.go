@@ -5,15 +5,9 @@ import (
 	"reflect"
 	"time"
 
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -21,6 +15,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 const finalizerName = "keycloak.authflow.operator.finalizer.name"
@@ -102,8 +102,8 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	return
 }
 
-func (r *Reconcile) tryReconcile(ctx context.Context, keycloakAuthFlow *keycloakApi.KeycloakAuthFlow) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakAuthFlow, keycloakAuthFlow.ObjectMeta)
+func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakAuthFlow) error {
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, instance.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
@@ -113,15 +113,21 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakAuthFlow *keycloak
 		return errors.Wrap(err, "unable to create keycloak client")
 	}
 
-	if err := kClient.SyncAuthFlow(realm.Spec.RealmName,
-		authFlowSpecToAdapterAuthFlow(&keycloakAuthFlow.Spec)); err != nil {
-		return errors.Wrap(err, "unable to sync auth flow")
+	keycloakAuthFlow := authFlowSpecToAdapterAuthFlow(&instance.Spec)
+
+	deleted, err := r.helper.TryToDelete(ctx, instance,
+		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow, r.client, kClient,
+			r.log.WithName("auth-flow-term")), finalizerName)
+	if err != nil {
+		return errors.Wrap(err, "unable to tryToDelete auth flow")
 	}
 
-	if _, err := r.helper.TryToDelete(ctx, keycloakAuthFlow,
-		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow.Spec.Alias, kClient,
-			r.log.WithName("auth-flow-term")), finalizerName); err != nil {
-		return errors.Wrap(err, "unable to tryToDelete auth flow")
+	if deleted {
+		return nil
+	}
+
+	if err := kClient.SyncAuthFlow(realm.Spec.RealmName, keycloakAuthFlow); err != nil {
+		return errors.Wrap(err, "unable to sync auth flow")
 	}
 
 	return nil
@@ -136,6 +142,7 @@ func authFlowSpecToAdapterAuthFlow(spec *keycloakApi.KeycloakAuthFlowSpec) *adap
 		TopLevel:                 spec.TopLevel,
 		AuthenticationExecutions: make([]adapter.AuthenticationExecution, 0, len(spec.AuthenticationExecutions)),
 		ParentName:               spec.ParentName,
+		ChildType:                spec.ChildType,
 	}
 
 	for _, ae := range spec.AuthenticationExecutions {
@@ -144,6 +151,7 @@ func authFlowSpecToAdapterAuthFlow(spec *keycloakApi.KeycloakAuthFlowSpec) *adap
 			Requirement:      ae.Requirement,
 			Priority:         ae.Priority,
 			AutheticatorFlow: ae.AuthenticatorFlow,
+			Alias:            ae.Alias,
 		}
 
 		if ae.AuthenticatorConfig != nil {
