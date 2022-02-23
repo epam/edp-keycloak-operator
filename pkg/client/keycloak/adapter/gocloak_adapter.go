@@ -211,7 +211,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *
 		Post(a.basePath + idPResource)
 
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create central idp")
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
@@ -219,10 +219,10 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *
 		return fmt.Errorf("error in create IdP, responce status: %s", resp.Status())
 	}
 
-	err = a.CreateCentralIdPMappers(realm, client)
-
-	if err != nil {
-		return err
+	if !realm.DisableCentralIDPMappers {
+		if err = a.CreateCentralIdPMappers(realm, client); err != nil {
+			return errors.Wrap(err, "unable to create central idp mappers")
+		}
 	}
 
 	log.Info("End create central identity provider")
@@ -254,15 +254,15 @@ func (a GoCloakAdapter) CreateCentralIdPMappers(realm *dto.Realm, client *dto.Cl
 
 	err := a.createIdPMapper(realm, client.ClientId+".administrator", "administrator")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create central idp mapper")
 	}
 	err = a.createIdPMapper(realm, client.ClientId+".developer", "developer")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create central idp mapper")
 	}
 	err = a.createIdPMapper(realm, client.ClientId+".administrator", "realm-management.realm-admin")
 	if err != nil {
-		return err
+		return errors.Wrap(err, "unable to create central idp mapper")
 	}
 
 	log.Info("End create central IdP mappers")

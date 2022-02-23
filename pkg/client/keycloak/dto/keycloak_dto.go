@@ -12,21 +12,14 @@ type Keycloak struct {
 	Pwd  string `json:"-"`
 }
 
-func ConvertSpecToKeycloak(spec v1alpha1.KeycloakSpec, user string, pwd string) Keycloak {
-	return Keycloak{
-		Url:  spec.Url,
-		User: user,
-		Pwd:  pwd,
-	}
-}
-
 type Realm struct {
-	Name                   string
-	Users                  []User
-	SsoRealmName           string
-	SsoRealmEnabled        bool
-	SsoAutoRedirectEnabled bool
-	ID                     *string
+	Name                     string
+	Users                    []User
+	SsoRealmName             string
+	SsoRealmEnabled          bool
+	SsoAutoRedirectEnabled   bool
+	ID                       *string
+	DisableCentralIDPMappers bool
 }
 
 type User struct {
@@ -62,12 +55,13 @@ func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) *Realm {
 	}
 
 	return &Realm{
-		Name:                   spec.RealmName,
-		Users:                  users,
-		SsoRealmName:           spec.SsoRealmName,
-		SsoRealmEnabled:        spec.SSOEnabled(),
-		SsoAutoRedirectEnabled: spec.SSOAutoRedirectEnabled(),
-		ID:                     spec.ID,
+		Name:                     spec.RealmName,
+		Users:                    users,
+		SsoRealmName:             spec.SsoRealmName,
+		SsoRealmEnabled:          spec.SSOEnabled(),
+		SsoAutoRedirectEnabled:   spec.SSOAutoRedirectEnabled(),
+		ID:                       spec.ID,
+		DisableCentralIDPMappers: spec.DisableCentralIDPMappers,
 	}
 }
 
