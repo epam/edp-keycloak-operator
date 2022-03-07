@@ -9,6 +9,11 @@ spec:
   ssoRealmName: openshift
   ssoRealmEnabled: false # new one
   ssoAutoRedirectEnabled: false # new one
+  passwordPolicy:
+    - type: "forceExpiredPasswordChange"
+      value: "365"
+    - type: "length"
+      value: "8"
   realmEventConfig:
     adminEventsDetailsEnabled: false
     adminEventsEnabled: true

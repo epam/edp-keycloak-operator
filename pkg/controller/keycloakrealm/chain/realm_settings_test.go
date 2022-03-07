@@ -33,6 +33,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			RealmEventConfig: &keycloakApi.RealmEventConfig{
 				EventsListeners: []string{"foo", "bar"},
 			},
+			PasswordPolicies: []keycloakApi.PasswordPolicy{
+				{Type: "foo", Value: "bar"},
+			},
 		},
 	}
 
@@ -42,6 +45,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		},
 		BrowserSecurityHeaders: &map[string]string{
 			"foo": "bar",
+		},
+		PasswordPolicies: []adapter.PasswordPolicy{
+			{Type: "foo", Value: "bar"},
 		},
 	}).Return(nil)
 
@@ -65,4 +71,6 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	if !strings.Contains(err.Error(), "unable to set realm event config") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
+
+	kClient.AssertExpectations(t)
 }

@@ -2,8 +2,11 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 )
@@ -11,6 +14,12 @@ import (
 type RealmSettings struct {
 	Themes                 *RealmThemes
 	BrowserSecurityHeaders *map[string]string
+	PasswordPolicies       []PasswordPolicy
+}
+
+type PasswordPolicy struct {
+	Type  string
+	Value string
 }
 
 type RealmThemes struct {
@@ -46,6 +55,15 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 			realmBrowserSecurityHeaders[k] = v
 		}
 		realm.BrowserSecurityHeaders = &realmBrowserSecurityHeaders
+	}
+
+	if len(realmSettings.PasswordPolicies) > 0 {
+		policies := make([]string, 0, len(realmSettings.PasswordPolicies))
+		for _, v := range realmSettings.PasswordPolicies {
+			policies = append(policies, fmt.Sprintf("%s(%s)", v.Type, v.Value))
+		}
+
+		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " AND "))
 	}
 
 	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {

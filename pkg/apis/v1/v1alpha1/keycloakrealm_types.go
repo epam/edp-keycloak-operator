@@ -26,6 +26,12 @@ type KeycloakRealmSpec struct {
 	ID                       *string            `json:"id"`
 	RealmEventConfig         *RealmEventConfig  `json:"realmEventConfig"`
 	DisableCentralIDPMappers bool               `json:"disableCentralIDPMappers"`
+	PasswordPolicies         []PasswordPolicy   `json:"passwordPolicy"`
+}
+
+type PasswordPolicy struct {
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 type RealmEventConfig struct {
