@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"net/http"
 	"path"
 	"strings"
 	"testing"
@@ -133,6 +134,38 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	assert.NoError(e.T(), err)
 }
 
+func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
+	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
+			{DisplayName: flow.Alias, ID: "id12"},
+		}))
+	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
+		httpmock.NewStringResponder(http.StatusOK, ""))
+	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
+	assert.NoError(e.T(), err)
+}
+
+func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
+	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+		httpmock.NewJsonResponderOrPanic(http.StatusNotFound, nil))
+	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
+	assert.Error(e.T(), err)
+}
+
+func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableDelete() {
+	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
+			{DisplayName: flow.Alias, ID: "id12"},
+		}))
+	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
+		httpmock.NewStringResponder(http.StatusBadRequest, ""))
+	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
+	assert.Error(e.T(), err)
+}
+
 func (e *ExecFlowTestSuite) TestDeleteAuthFlow() {
 	var (
 		flowAlias           = "flow-alias"
@@ -254,6 +287,30 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "child flows validation failed: not all child flows created")
+}
+
+func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
+	flow := KeycloakAuthFlow{ParentName: "parent", Alias: "fff"}
+	_, err := e.adapter.getFlowExecutionID(e.realmName, &flow)
+
+	assert.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "no responder found")
+
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{}))
+	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
+	assert.Error(e.T(), err)
+	assert.EqualError(e.T(), err, "auth flow not found")
+
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
+			{
+				DisplayName: flow.Alias,
+				ID:          "as12",
+			},
+		}))
+	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
+	assert.NoError(e.T(), err)
 }
 
 func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {

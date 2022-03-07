@@ -67,6 +67,19 @@ func (a orderByPriority) Swap(i, j int)      { a[i], a[j] = a[j], a[i] }
 func (a orderByPriority) Less(i, j int) bool { return a[i].Priority < a[j].Priority }
 
 func (a GoCloakAdapter) DeleteAuthFlow(realmName string, flow *KeycloakAuthFlow) error {
+	if flow.ParentName != "" {
+		execID, err := a.getFlowExecutionID(realmName, flow)
+		if err != nil {
+			return errors.Wrap(err, "unable to get flow exec id")
+		}
+
+		if err := a.deleteFlowExecution(realmName, execID); err != nil {
+			return errors.Wrap(err, "unable to delete execution")
+		}
+
+		return nil
+	}
+
 	flowID, err := a.getAuthFlowID(realmName, flow)
 	if err != nil {
 		return errors.Wrap(err, "unable to get auth flow")
@@ -255,6 +268,21 @@ func (a GoCloakAdapter) deleteFlowExecution(realmName, id string) error {
 	}
 
 	return nil
+}
+
+func (a GoCloakAdapter) getFlowExecutionID(realmName string, flow *KeycloakAuthFlow) (string, error) {
+	execs, err := a.getFlowExecutions(realmName, flow.ParentName)
+	if err != nil {
+		return "", errors.Wrap(err, "unable to get auth flow executions")
+	}
+
+	for _, e := range execs {
+		if e.DisplayName == flow.Alias {
+			return e.ID, nil
+		}
+	}
+
+	return "", ErrNotFound("auth flow not found")
 }
 
 func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) (string, error) {
