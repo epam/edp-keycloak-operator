@@ -68,7 +68,7 @@ func TestNewReconcile(t *testing.T) {
 	keycloakAuthFlow := authFlowSpecToAdapterAuthFlow(&flow.Spec)
 
 	h.On("TryToDelete", &flow,
-		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow, client, &kClient, &log), finalizerName).Return(false, nil)
+		makeTerminator(&realm, keycloakAuthFlow, client, &kClient, &log), finalizerName).Return(false, nil)
 	h.On("UpdateStatus", &flow).Return(nil)
 
 	r := Reconcile{
@@ -127,7 +127,7 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	h.On("SetFailureCount", &flow).Return(time.Second)
 	h.On("UpdateStatus", &flow).Return(nil)
 	h.On("TryToDelete", &flow,
-		makeTerminator(realm.Spec.RealmName, authFlowSpecToAdapterAuthFlow(&flow.Spec), client, &kClient, &log),
+		makeTerminator(&realm, authFlowSpecToAdapterAuthFlow(&flow.Spec), client, &kClient, &log),
 		finalizerName).Return(false, nil)
 
 	mockErr := errors.New("fatal")

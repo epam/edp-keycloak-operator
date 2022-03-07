@@ -116,7 +116,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	keycloakAuthFlow := authFlowSpecToAdapterAuthFlow(&instance.Spec)
 
 	deleted, err := r.helper.TryToDelete(ctx, instance,
-		makeTerminator(realm.Spec.RealmName, keycloakAuthFlow, r.client, kClient,
+		makeTerminator(realm, keycloakAuthFlow, r.client, kClient,
 			r.log.WithName("auth-flow-term")), finalizerName)
 	if err != nil {
 		return errors.Wrap(err, "unable to tryToDelete auth flow")
