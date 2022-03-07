@@ -26,6 +26,9 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			{Type: "foo", Value: "bar"},
 			{Type: "bar", Value: "baz"},
 		},
+		BruteForceProtection: &BruteForceProtection{
+			Enabled: true,
+		},
 	}
 	realmName := "ream11"
 
@@ -42,7 +45,15 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"test": "dets",
 			"foo":  "bar",
 		},
-		PasswordPolicy: gocloak.StringP("foo(bar) AND bar(baz)"),
+		PasswordPolicy:               gocloak.StringP("foo(bar) AND bar(baz)"),
+		MaxDeltaTimeSeconds:          gocloak.IntP(0),
+		MaxFailureWaitSeconds:        gocloak.IntP(0),
+		MinimumQuickLoginWaitSeconds: gocloak.IntP(0),
+		PermanentLockout:             gocloak.BoolP(false),
+		QuickLoginCheckMilliSeconds:  gocloak.Int64P(0),
+		WaitIncrementSeconds:         gocloak.IntP(0),
+		BruteForceProtected:          gocloak.BoolP(true),
+		FailureFactor:                gocloak.IntP(0),
 	}
 	mockClient.On("UpdateRealm", updateRealm).Return(nil)
 

@@ -36,6 +36,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			PasswordPolicies: []keycloakApi.PasswordPolicy{
 				{Type: "foo", Value: "bar"},
 			},
+			BruteForceProtection: &keycloakApi.BruteForceProtection{
+				Enabled: true,
+			},
 		},
 	}
 
@@ -48,6 +51,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		},
 		PasswordPolicies: []adapter.PasswordPolicy{
 			{Type: "foo", Value: "bar"},
+		},
+		BruteForceProtection: &adapter.BruteForceProtection{
+			Enabled: true,
 		},
 	}).Return(nil)
 

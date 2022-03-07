@@ -31,33 +31,14 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 		}
 	}
 
-	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil && len(realm.Spec.PasswordPolicies) == 0 {
+	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil && len(realm.Spec.PasswordPolicies) == 0 &&
+		realm.Spec.BruteForceProtection == nil {
 		rLog.Info("Realm settings is not set, exit.")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	settings := adapter.RealmSettings{}
-	if realm.Spec.Themes != nil {
-		settings.Themes = &adapter.RealmThemes{
-			InternationalizationEnabled: realm.Spec.Themes.InternationalizationEnabled,
-			EmailTheme:                  realm.Spec.Themes.EmailTheme,
-			AdminConsoleTheme:           realm.Spec.Themes.AdminConsoleTheme,
-			AccountTheme:                realm.Spec.Themes.AccountTheme,
-			LoginTheme:                  realm.Spec.Themes.LoginTheme,
-		}
-	}
-
-	if realm.Spec.BrowserSecurityHeaders != nil {
-		settings.BrowserSecurityHeaders = realm.Spec.BrowserSecurityHeaders
-	}
-
-	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = make([]adapter.PasswordPolicy, 0, len(realm.Spec.PasswordPolicies))
-		for _, v := range realm.Spec.PasswordPolicies {
-			settings.PasswordPolicies = append(settings.PasswordPolicies,
-				adapter.PasswordPolicy{Type: v.Type, Value: v.Value})
-		}
-	}
+	setAdapterSettings(&settings, &realm.Spec)
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
 		return errors.Wrap(err, "unable to update realm settings")
@@ -65,4 +46,41 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 
 	rLog.Info("Realm settings is updating done.")
 	return nextServeOrNil(ctx, h.next, realm, kClient)
+}
+
+func setAdapterSettings(settings *adapter.RealmSettings, spec *v1alpha1.KeycloakRealmSpec) {
+	if spec.Themes != nil {
+		settings.Themes = &adapter.RealmThemes{
+			InternationalizationEnabled: spec.Themes.InternationalizationEnabled,
+			EmailTheme:                  spec.Themes.EmailTheme,
+			AdminConsoleTheme:           spec.Themes.AdminConsoleTheme,
+			AccountTheme:                spec.Themes.AccountTheme,
+			LoginTheme:                  spec.Themes.LoginTheme,
+		}
+	}
+
+	if spec.BrowserSecurityHeaders != nil {
+		settings.BrowserSecurityHeaders = spec.BrowserSecurityHeaders
+	}
+
+	if len(spec.PasswordPolicies) > 0 {
+		settings.PasswordPolicies = make([]adapter.PasswordPolicy, 0, len(spec.PasswordPolicies))
+		for _, v := range spec.PasswordPolicies {
+			settings.PasswordPolicies = append(settings.PasswordPolicies,
+				adapter.PasswordPolicy{Type: v.Type, Value: v.Value})
+		}
+	}
+
+	if spec.BruteForceProtection != nil {
+		settings.BruteForceProtection = &adapter.BruteForceProtection{
+			Enabled:                      spec.BruteForceProtection.Enabled,
+			FailureFactor:                spec.BruteForceProtection.FailureFactor,
+			MaxDeltaTimeSeconds:          spec.BruteForceProtection.MaxDeltaTimeSeconds,
+			MaxFailureWaitSeconds:        spec.BruteForceProtection.MaxFailureWaitSeconds,
+			MinimumQuickLoginWaitSeconds: spec.BruteForceProtection.MinimumQuickLoginWaitSeconds,
+			PermanentLockout:             spec.BruteForceProtection.PermanentLockout,
+			QuickLoginCheckMilliSeconds:  spec.BruteForceProtection.QuickLoginCheckMilliSeconds,
+			WaitIncrementSeconds:         spec.BruteForceProtection.WaitIncrementSeconds,
+		}
+	}
 }

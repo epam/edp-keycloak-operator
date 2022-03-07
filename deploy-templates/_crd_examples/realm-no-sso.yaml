@@ -14,6 +14,23 @@ spec:
       value: "365"
     - type: "length"
       value: "8"
+  browserSecurityHeaders:
+    "contentSecurityPolicyReportOnly": "ww3",
+    "xContentTypeOptions": "ww4",
+    "xRobotsTag": "ww5",
+    "xFrameOptions": "ww1",
+    "contentSecurityPolicy": "ww2",
+    "xXSSProtection": "ww6",
+    "strictTransportSecurity": "ww7"
+  bruteForceProtection:
+    enabled: true
+    permanentLockout: false
+    failureFactor: 1
+    quickLoginCheckMilliSeconds: 1
+    minimumQuickLoginWaitSeconds: 1
+    waitIncrementSeconds: 1
+    maxFailureWaitSeconds: 1
+    maxDeltaTimeSeconds: 1
   realmEventConfig:
     adminEventsDetailsEnabled: false
     adminEventsEnabled: true

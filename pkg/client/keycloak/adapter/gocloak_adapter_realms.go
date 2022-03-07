@@ -15,11 +15,23 @@ type RealmSettings struct {
 	Themes                 *RealmThemes
 	BrowserSecurityHeaders *map[string]string
 	PasswordPolicies       []PasswordPolicy
+	BruteForceProtection   *BruteForceProtection
 }
 
 type PasswordPolicy struct {
 	Type  string
 	Value string
+}
+
+type BruteForceProtection struct {
+	Enabled                      bool `json:"enabled"`
+	PermanentLockout             bool `json:"permanentLockout"`
+	FailureFactor                int  `json:"failureFactor"`
+	QuickLoginCheckMilliSeconds  int  `json:"quickLoginCheckMilliSeconds"`
+	MinimumQuickLoginWaitSeconds int  `json:"minimumQuickLoginWaitSeconds"`
+	WaitIncrementSeconds         int  `json:"waitIncrementSeconds"`
+	MaxFailureWaitSeconds        int  `json:"maxFailureWaitSeconds"`
+	MaxDeltaTimeSeconds          int  `json:"maxDeltaTimeSeconds"`
 }
 
 type RealmThemes struct {
@@ -30,12 +42,7 @@ type RealmThemes struct {
 	InternationalizationEnabled *bool
 }
 
-func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
-	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
-	if err != nil {
-		return errors.Wrapf(err, "unable to realm: %s", realmName)
-	}
-
+func (realmSettings *RealmSettings) setToRealm(realm *gocloak.RealmRepresentation) {
 	if realmSettings.Themes != nil {
 		realm.LoginTheme = realmSettings.Themes.LoginTheme
 		realm.AccountTheme = realmSettings.Themes.AccountTheme
@@ -65,6 +72,26 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 
 		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " AND "))
 	}
+
+	if realmSettings.BruteForceProtection != nil {
+		realm.BruteForceProtected = &realmSettings.BruteForceProtection.Enabled
+		realm.PermanentLockout = &realmSettings.BruteForceProtection.PermanentLockout
+		realm.FailureFactor = &realmSettings.BruteForceProtection.FailureFactor
+		realm.QuickLoginCheckMilliSeconds = gocloak.Int64P(int64(realmSettings.BruteForceProtection.QuickLoginCheckMilliSeconds))
+		realm.MinimumQuickLoginWaitSeconds = &realmSettings.BruteForceProtection.MinimumQuickLoginWaitSeconds
+		realm.WaitIncrementSeconds = &realmSettings.BruteForceProtection.WaitIncrementSeconds
+		realm.MaxFailureWaitSeconds = &realmSettings.BruteForceProtection.MaxFailureWaitSeconds
+		realm.MaxDeltaTimeSeconds = &realmSettings.BruteForceProtection.MaxDeltaTimeSeconds
+	}
+}
+
+func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
+	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
+	if err != nil {
+		return errors.Wrapf(err, "unable to realm: %s", realmName)
+	}
+
+	realmSettings.setToRealm(realm)
 
 	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
 		return errors.Wrap(err, "unable to update realm")
