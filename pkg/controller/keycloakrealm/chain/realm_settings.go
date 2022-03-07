@@ -31,7 +31,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 		}
 	}
 
-	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil {
+	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil && len(realm.Spec.PasswordPolicies) == 0 {
 		rLog.Info("Realm settings is not set, exit.")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
@@ -49,6 +49,13 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 
 	if realm.Spec.BrowserSecurityHeaders != nil {
 		settings.BrowserSecurityHeaders = realm.Spec.BrowserSecurityHeaders
+	}
+
+	if len(realm.Spec.PasswordPolicies) > 0 {
+		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies), len(realm.Spec.PasswordPolicies))
+		for i, v := range realm.Spec.PasswordPolicies {
+			settings.PasswordPolicies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
+		}
 	}
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {

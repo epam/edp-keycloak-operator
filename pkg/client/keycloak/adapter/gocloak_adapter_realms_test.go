@@ -22,6 +22,10 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 		BrowserSecurityHeaders: &map[string]string{
 			"foo": "bar",
 		},
+		PasswordPolicies: []PasswordPolicy{
+			{Type: "foo", Value: "bar"},
+			{Type: "bar", Value: "baz"},
+		},
 	}
 	realmName := "ream11"
 
@@ -38,6 +42,7 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"test": "dets",
 			"foo":  "bar",
 		},
+		PasswordPolicy: gocloak.StringP("foo(bar) AND bar(baz)"),
 	}
 	mockClient.On("UpdateRealm", updateRealm).Return(nil)
 
