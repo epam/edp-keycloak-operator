@@ -10,6 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/suite"
+
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
@@ -21,86 +23,88 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMakeFromServiceAccount(t *testing.T) {
-	rCl := resty.New()
-	httpmock.ActivateNonDefault(rCl.GetClient())
+type AdapterTestSuite struct {
+	suite.Suite
+	restyClient       *resty.Client
+	goCloakMockClient *MockGoCloakClient
+	adapter           *GoCloakAdapter
+	realmName         string
+	log               *mock.Logger
+}
+
+func (e *AdapterTestSuite) SetupTest() {
+	e.restyClient = resty.New()
+	httpmock.Reset()
+	httpmock.ActivateNonDefault(e.restyClient.GetClient())
+
+	e.goCloakMockClient = new(MockGoCloakClient)
+	e.goCloakMockClient.On("RestyClient").Return(e.restyClient)
+
+	e.adapter = &GoCloakAdapter{
+		client: e.goCloakMockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
+	}
+
+	e.realmName = "realm123"
+}
+
+func TestAdapterTestSuite(t *testing.T) {
+	suite.Run(t, new(AdapterTestSuite))
+}
+
+func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
+	t := e.T()
+
 	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
-
-	if _, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", nil, rCl); err != nil {
-		t.Fatal(err)
-	}
+	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
+		"master", nil, e.restyClient)
+	assert.NoError(t, err)
 
 	httpmock.Reset()
 	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
 
-	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", nil, rCl)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
-
-	if !strings.Contains(err.Error(), "unable to login with client creds, clientID: k-cl-id, realm: master: 400") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
+	_, err = MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
+		"master", nil, e.restyClient)
+	assert.Error(t, err)
+	assert.EqualError(t, err, "unable to login with client creds, clientID: k-cl-id, realm: master: 400")
 }
 
-func TestMake(t *testing.T) {
-	rCl := resty.New()
-	httpmock.ActivateNonDefault(rCl.GetClient())
+func (e *AdapterTestSuite) TestMake() {
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
-	_, err := Make(context.Background(), "foo", "bar", "baz", nil, rCl)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
+	_, err := Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
+	assert.NoError(e.T(), err)
 }
 
-func TestMake_Failure(t *testing.T) {
+func (e *AdapterTestSuite) TestMake_Failure() {
+	t := e.T()
 	_, err := Make(context.Background(), "foo", "bar", "baz", nil, nil)
-	if err == nil {
-		t.Fatal("no error on make failure")
-	}
-	if !strings.Contains(err.Error(), "unsupported protocol scheme") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "unsupported protocol scheme")
 
-	rCl := resty.New()
-	httpmock.ActivateNonDefault(rCl.GetClient())
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
-	_, err = Make(context.Background(), "foo", "bar", "baz", nil, rCl)
-	if err == nil {
-		t.Fatal("no error on make failure")
-	}
-
-	if !strings.Contains(err.Error(), "400") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
+	_, err = Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "400")
 }
 
-func TestGoCloakAdapter_ExistRealmPositive(t *testing.T) {
-	//prepare
-	mockClient := new(MockGoCloakClient)
-	mockClient.On("GetRealm", "token", "realmName").
+func (e *AdapterTestSuite) TestGoCloakAdapter_ExistRealmPositive() {
+	e.goCloakMockClient.On("GetRealm", "token", "realmName").
 		Return(&gocloak.RealmRepresentation{Realm: gocloak.StringP("realm")}, nil)
-	adapter := GoCloakAdapter{
-		client: mockClient,
-		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    &mock.Logger{},
-	}
+
 	realm := dto.Realm{
 		Name: "realmName",
 	}
 
-	//test
-	res, err := adapter.ExistRealm(realm.Name)
+	res, err := e.adapter.ExistRealm(realm.Name)
 
 	//verify
-	assert.NoError(t, err)
-	assert.True(t, res)
+	assert.NoError(e.T(), err)
+	assert.True(e.T(), res)
 }
 
 func TestGetDefaultRealm(t *testing.T) {
@@ -856,4 +860,44 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 	assert.Error(t, err)
 	assert.EqualError(t, err,
 		"unable to create central idp mappers: unable to create central idp mapper: error in creation idP mapper by name administrator")
+}
+
+func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
+	username := "username"
+	httpmock.RegisterResponder("DELETE",
+		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		httpmock.NewStringResponder(200, ""))
+	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
+		Return([]*gocloak.User{
+			{Username: &username, ID: &username},
+		}, nil).Once()
+	err := e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
+	assert.NoError(e.T(), err)
+
+	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
+		Return([]*gocloak.User{
+			{Username: &username, ID: &username},
+		}, nil).Once()
+	httpmock.RegisterResponder("DELETE",
+		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		httpmock.NewStringResponder(404, ""))
+	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
+	assert.Error(e.T(), err)
+	assert.EqualError(e.T(), err, "unable to delete user: status: 404, body: ")
+
+	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
+		Return([]*gocloak.User{
+			{},
+		}, nil).Once()
+
+	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
+	assert.Error(e.T(), err)
+	assert.EqualError(e.T(), err, "user not found")
+
+	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
+		Return(nil, errors.New("fatal get users")).Once()
+
+	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
+	assert.Error(e.T(), err)
+	assert.EqualError(e.T(), err, "unable to get users: fatal get users")
 }

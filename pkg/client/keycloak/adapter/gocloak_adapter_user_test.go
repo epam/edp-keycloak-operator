@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v10"
+	"github.com/go-resty/resty/v2"
+	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 )
 
@@ -17,6 +19,14 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 		token:    &gocloak.JWT{AccessToken: "token"},
 	}
 
+	restyClient := resty.New()
+	httpmock.Reset()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/user-id1/reset-password",
+		httpmock.NewStringResponder(200, ""))
+
 	usr := KeycloakUser{
 		Username: "vasia",
 		Attributes: map[string]string{
@@ -24,6 +34,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 		},
 		RequiredUserActions: []string{"FOO"},
 		Groups:              []string{"group1"},
+		Password:            "123",
 	}
 
 	realmName := "realm1"
@@ -45,7 +56,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 		},
 	}
 
-	mockClient.On("CreateUser", realmName, goClUser).Return(nil)
+	mockClient.On("CreateUser", realmName, goClUser).Return("user-id1", nil)
 
 	if err := adapter.SyncRealmUser(context.Background(), realmName, &usr, false); err != nil {
 		t.Fatal(err)

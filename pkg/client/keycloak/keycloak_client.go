@@ -59,6 +59,7 @@ type KCloakUsers interface {
 	ExistRealmUser(realmName string, user *dto.User) (bool, error)
 	CreateRealmUser(realmName string, user *dto.User) error
 	SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error
+	DeleteRealmUser(ctx context.Context, realmName, username string) error
 }
 
 type KCloakRealms interface {
