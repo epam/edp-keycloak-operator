@@ -70,7 +70,11 @@ func (m *MockGoCloakClient) CreateRealmRole(ctx context.Context, token, realm st
 }
 
 func (m *MockGoCloakClient) CreateUser(ctx context.Context, token, realm string, user gocloak.User) (string, error) {
-	return "", m.Called(realm, user).Error(0)
+	called := m.Called(realm, user)
+	if err := called.Error(1); err != nil {
+		return "", err
+	}
+	return called.String(0), nil
 }
 
 func (m *MockGoCloakClient) DeleteClient(ctx context.Context, accessToken, realm, clientID string) error {

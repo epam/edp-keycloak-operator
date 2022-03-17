@@ -22,11 +22,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
 
+const finalizer = "keycloak.realmuser.operator.finalizer.name"
+
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
 	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
 	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
+	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 }
 
 type Reconcile struct {
@@ -83,17 +86,12 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 		log.Error(err, "an error has occurred while handling keycloak auth flow", "name",
 			request.Name)
-
-		if err := r.helper.UpdateStatus(&instance); err != nil {
-			resultErr = err
-		}
-
-		return
+	} else {
+		helper.SetSuccessStatus(&instance)
 	}
 
-	if err := r.client.Delete(context.Background(), &instance); err != nil {
-		resultErr = errors.Wrap(err, "unable to delete instance of keycloak realm user")
-		return
+	if err := r.helper.UpdateStatus(&instance); err != nil {
+		resultErr = err
 	}
 
 	log.Info("Reconciling KeycloakRealmUser done.")
@@ -122,8 +120,20 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		Enabled:             instance.Spec.Enabled,
 		Email:               instance.Spec.Email,
 		Attributes:          instance.Spec.Attributes,
+		Password:            instance.Spec.Password,
 	}, instance.GetReconciliationStrategy() == v1alpha1.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync realm user")
+	}
+
+	if instance.Spec.KeepResource {
+		if _, err := r.helper.TryToDelete(ctx, instance,
+			makeTerminator(realm.Spec.RealmName, instance.Spec.Username, kClient, r.log), finalizer); err != nil {
+			return errors.Wrap(err, "unable to set finalizers")
+		}
+	} else {
+		if err := r.client.Delete(ctx, instance); err != nil {
+			return errors.Wrap(err, "unable to delete instance of keycloak realm user")
+		}
 	}
 
 	return nil

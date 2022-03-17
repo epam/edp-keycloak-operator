@@ -1249,10 +1249,24 @@ Resource Types:
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>keepResource</b></td>
+        <td>boolean</td>
+        <td>
+          keep realm user resource<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>lastName</b></td>
         <td>string</td>
         <td>
           user last name<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>password</b></td>
+        <td>string</td>
+        <td>
+          user tmp password<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -78,6 +78,12 @@ spec:
                 reconciliationStrategy:
                   type: string
                   description: 'full, addOnly'
+                password:
+                  type: string
+                  description: 'user tmp password'
+                keepResource:
+                  type: boolean
+                  description: 'keep realm user resource'
               required:
                 - realm
                 - username

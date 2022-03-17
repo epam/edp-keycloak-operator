@@ -30,6 +30,8 @@ type KeycloakRealmUserSpec struct {
 	Groups                 []string          `json:"groups"`
 	Attributes             map[string]string `json:"attributes"`
 	ReconciliationStrategy string            `json:"reconciliationStrategy,omitempty"`
+	Password               string            `json:"password"`
+	KeepResource           bool              `json:"keepResource"`
 }
 
 func (in KeycloakRealmUser) GetReconciliationStrategy() string {
