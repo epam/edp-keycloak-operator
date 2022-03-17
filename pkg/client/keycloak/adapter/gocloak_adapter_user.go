@@ -18,6 +18,7 @@ type KeycloakUser struct {
 	Roles               []string
 	Groups              []string
 	Attributes          map[string]string
+	Password            string
 }
 
 func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, user *KeycloakUser, addOnly bool) error {
@@ -94,8 +95,32 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 		return nil
 	}
 
-	if _, err := a.client.CreateUser(ctx, a.token.AccessToken, realmName, *keycloakUser); err != nil {
+	userID, err := a.client.CreateUser(ctx, a.token.AccessToken, realmName, *keycloakUser)
+	if err != nil {
 		return errors.Wrap(err, "unable to create user")
+	}
+
+	if userCR.Password != "" {
+		if err := a.setUserPassword(realmName, userID, userCR.Password); err != nil {
+			return errors.Wrapf(err, "unable to set user password, user id: %s", userID)
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) error {
+	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
+		"realm": realmName,
+		"id":    userID,
+	}).SetBody(map[string]interface{}{
+		"temporary": true,
+		"type":      "password",
+		"value":     password,
+	}).Put(a.basePath + setRealmUserPassword)
+
+	if err := a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "unable to set user password")
 	}
 
 	return nil

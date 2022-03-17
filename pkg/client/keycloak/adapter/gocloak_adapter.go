@@ -53,6 +53,8 @@ const (
 	identityProviderCreateList      = "/auth/admin/realms/{realm}/identity-provider/instances"
 	idpMapperCreateList             = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	idpMapperEntity                 = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	deleteRealmUser                 = "/auth/admin/realms/{realm}/users/{id}"
+	setRealmUserPassword            = "/auth/admin/realms/{realm}/users/{id}/reset-password"
 )
 
 type ErrTokenExpired string
@@ -367,16 +369,16 @@ func checkFullRoleNameMatch(role string, roles *[]gocloak.Role) bool {
 	return false
 }
 
-func checkFullUsernameMatch(userName string, users []*gocloak.User) bool {
+func checkFullUsernameMatch(userName string, users []*gocloak.User) (*gocloak.User, bool) {
 	if users == nil {
-		return false
+		return nil, false
 	}
 	for _, el := range users {
 		if el.Username != nil && *el.Username == userName {
-			return true
+			return el, true
 		}
 	}
-	return false
+	return nil, false
 }
 
 func checkFullNameMatch(clientID string, clients []*gocloak.Client) bool {
@@ -539,10 +541,36 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user *dto.User) (bool, 
 		return false, err
 	}
 
-	res := checkFullUsernameMatch(user.Username, usr)
+	_, res := checkFullUsernameMatch(user.Username, usr)
 
 	log.Info("End check user in Keycloak", "result", res)
 	return res, nil
+}
+
+func (a GoCloakAdapter) DeleteRealmUser(ctx context.Context, realmName, username string) error {
+	usrs, err := a.client.GetUsers(ctx, a.token.AccessToken, realmName, gocloak.GetUsersParams{
+		Username: &username,
+	})
+
+	if err != nil {
+		return errors.Wrap(err, "unable to get users")
+	}
+
+	usr, exists := checkFullUsernameMatch(username, usrs)
+	if !exists {
+		return ErrNotFound("user not found")
+	}
+
+	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
+		"realm": realmName,
+		"id":    *usr.ID,
+	}).Delete(a.basePath + deleteRealmUser)
+
+	if err := a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "unable to delete user")
+	}
+
+	return nil
 }
 
 func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error) {

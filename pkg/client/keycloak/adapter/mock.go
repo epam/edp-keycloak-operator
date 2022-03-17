@@ -20,6 +20,10 @@ func (m *Mock) PutDefaultIdp(realm *dto.Realm) error {
 	return m.Called(realm).Error(0)
 }
 
+func (m *Mock) DeleteRealmUser(ctx context.Context, realmName, username string) error {
+	return m.Called(realmName, username).Error(0)
+}
+
 func (m *Mock) ExistRealm(realm string) (bool, error) {
 	args := m.Called(realm)
 	if args.Get(0) == nil {

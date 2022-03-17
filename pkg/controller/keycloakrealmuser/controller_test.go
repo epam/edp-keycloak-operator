@@ -4,15 +4,20 @@ import (
 	"context"
 	"testing"
 
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+
+	"github.com/stretchr/testify/assert"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/stretchr/testify/suite"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 )
@@ -24,16 +29,29 @@ func TestNewReconcile_Init(t *testing.T) {
 	}
 }
 
-func TestNewReconcile(t *testing.T) {
-	ns := "namespace1"
-	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	realmName := "realm1"
+type TestControllerSuite struct {
+	suite.Suite
+	namespace   string
+	scheme      *runtime.Scheme
+	realmName   string
+	kcRealmUser *v1alpha1.KeycloakRealmUser
+	k8sClient   client.Client
+	helper      *helper.Mock
+	logger      *mock.Logger
+	kcRealm     *v1alpha1.KeycloakRealm
+	kClient     *adapter.Mock
+	adapterUser *adapter.KeycloakUser
+}
 
-	usr := v1alpha1.KeycloakRealmUser{
+func (e *TestControllerSuite) SetupTest() {
+	e.namespace = "ns"
+	e.scheme = runtime.NewScheme()
+	utilruntime.Must(v1alpha1.AddToScheme(e.scheme))
+	e.realmName = "realmName"
+	e.kcRealmUser = &v1alpha1.KeycloakRealmUser{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "user321",
-			Namespace: ns,
+			Namespace: e.namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakRealmUser",
@@ -42,58 +60,90 @@ func TestNewReconcile(t *testing.T) {
 		Spec: v1alpha1.KeycloakRealmUserSpec{
 			Email:    "usr@gmail.com",
 			Username: "user.g1",
-			Realm:    realmName,
+			Realm:    e.realmName,
+		},
+		Status: v1alpha1.KeycloakRealmUserStatus{
+			Value: helper.StatusOK,
 		},
 	}
-
-	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&usr).Build()
-	h := helper.Mock{}
-	log := mock.Logger{}
-	realm := v1alpha1.KeycloakRealm{
+	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
+	e.helper = &helper.Mock{}
+	e.logger = &mock.Logger{}
+	e.kcRealm = &v1alpha1.KeycloakRealm{
 		Spec: v1alpha1.KeycloakRealmSpec{
-			RealmName: realmName,
+			RealmName: e.realmName,
 		},
 	}
-	kClient := adapter.Mock{}
+	e.kClient = &adapter.Mock{}
+	e.adapterUser = &adapter.KeycloakUser{
+		Username:            e.kcRealmUser.Spec.Username,
+		Groups:              e.kcRealmUser.Spec.Groups,
+		Roles:               e.kcRealmUser.Spec.Roles,
+		RequiredUserActions: e.kcRealmUser.Spec.RequiredUserActions,
+		LastName:            e.kcRealmUser.Spec.LastName,
+		FirstName:           e.kcRealmUser.Spec.FirstName,
+		EmailVerified:       e.kcRealmUser.Spec.EmailVerified,
+		Enabled:             e.kcRealmUser.Spec.Enabled,
+		Email:               e.kcRealmUser.Spec.Email,
+	}
+}
 
-	h.On("GetOrCreateRealmOwnerRef", &usr, usr.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
+func (e *TestControllerSuite) TestNewReconcile() {
+	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
+	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
 
 	r := Reconcile{
-		helper: &h,
-		log:    &log,
-		client: client,
+		helper: e.helper,
+		log:    e.logger,
+		client: e.k8sClient,
 	}
 
-	adapterUser := adapter.KeycloakUser{
-		Username:            usr.Spec.Username,
-		Groups:              usr.Spec.Groups,
-		Roles:               usr.Spec.Roles,
-		RequiredUserActions: usr.Spec.RequiredUserActions,
-		LastName:            usr.Spec.LastName,
-		FirstName:           usr.Spec.FirstName,
-		EmailVerified:       usr.Spec.EmailVerified,
-		Enabled:             usr.Spec.Enabled,
-		Email:               usr.Spec.Email,
-	}
-
-	kClient.On("SyncRealmUser", realmName, &adapterUser, false).Return(nil)
-
-	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
-		Namespace: ns,
-		Name:      usr.Name,
-	}}); err != nil {
-		t.Fatal(err)
-	}
+	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
+	e.helper.On("UpdateStatus", e.kcRealmUser).Return(nil)
+	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+		Namespace: e.namespace,
+		Name:      e.kcRealmUser.Name,
+	}})
+	assert.NoError(e.T(), err)
 
 	var checkUser v1alpha1.KeycloakRealmUser
-	err := client.Get(context.Background(), types.NamespacedName{Name: usr.Name, Namespace: usr.Namespace}, &checkUser)
-	if err == nil {
-		t.Fatal("user is not deleted")
+	err = e.k8sClient.Get(context.Background(),
+		types.NamespacedName{Name: e.kcRealmUser.Name, Namespace: e.kcRealmUser.Namespace}, &checkUser)
+	assert.Error(e.T(), err, "user is not deleted")
+	assert.True(e.T(), k8sErrors.IsNotFound(err), "wrong error returned")
+}
+
+func (e *TestControllerSuite) TestReconcileKeep() {
+	e.kcRealmUser.Spec.KeepResource = true
+	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
+
+	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
+	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
+	e.helper.On("TryToDelete", e.kcRealmUser,
+		makeTerminator(e.realmName, e.kcRealmUser.Spec.Username, e.kClient, e.logger), finalizer).
+		Return(false, nil)
+	e.helper.On("UpdateStatus", e.kcRealmUser).Return(nil)
+
+	r := Reconcile{
+		helper: e.helper,
+		log:    e.logger,
+		client: e.k8sClient,
 	}
 
-	if !k8sErrors.IsNotFound(err) {
-		t.Log(err)
-		t.Fatal("wrong error returned")
-	}
+	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
+
+	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+		Namespace: e.namespace,
+		Name:      e.kcRealmUser.Name,
+	}})
+	assert.NoError(e.T(), err)
+
+	var checkUser v1alpha1.KeycloakRealmUser
+	err = e.k8sClient.Get(context.Background(),
+		types.NamespacedName{Name: e.kcRealmUser.Name, Namespace: e.kcRealmUser.Namespace}, &checkUser)
+	assert.NoError(e.T(), err)
+}
+
+func TestAdapterTestSuite(t *testing.T) {
+	suite.Run(t, new(TestControllerSuite))
 }
