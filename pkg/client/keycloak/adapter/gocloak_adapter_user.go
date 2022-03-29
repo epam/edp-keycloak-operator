@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
@@ -69,6 +70,13 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 		if addOnly && keycloakUser.Groups != nil && len(*keycloakUser.Groups) > 0 {
 			userCR.Groups = append(userCR.Groups, *keycloakUser.Groups...)
 		}
+
+		for _, gr := range userCR.Groups {
+			if _, err := a.getGroup(realmName, gr); err != nil {
+				return ErrNotFound(fmt.Sprintf("group [%s] not found", gr))
+			}
+		}
+
 		keycloakUser.Groups = &userCR.Groups
 	}
 

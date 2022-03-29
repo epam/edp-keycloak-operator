@@ -42,6 +42,11 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 
 	mockClient.On("GetUsers", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
 		Return([]*gocloak.User{}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("group1"),
+		},
+	}, nil)
 
 	goClUser := gocloak.User{
 		Username:        &usr.Username,
@@ -101,6 +106,27 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 		Groups:     &[]string{"foo", "bar", "g1", "g2"},
 	}).Return(nil)
 
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("foo")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("foo"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("bar")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("bar"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("g1")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("g1"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("g2")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("g2"),
+		},
+	}, nil)
+
 	mockClient.On("GetRealmRole", realmName, "r3").Return(&gocloak.Role{}, nil)
 	mockClient.On("GetRealmRole", realmName, "r4").Return(&gocloak.Role{}, nil)
 	mockClient.On("AddRealmRoleToUser", realmName, "id1", []gocloak.Role{{}}).Return(nil)
@@ -151,6 +177,26 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
 	mockClient.On("GetRealmRole", realmName, "r4").Return(&gocloak.Role{}, nil)
 	mockClient.On("AddRealmRoleToUser", realmName, "id1", []gocloak.Role{{}}).
 		Return(errors.New("add realm role fatal"))
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("g1")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("g1"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("g2")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("g2"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("foo")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("foo"),
+		},
+	}, nil)
+	mockClient.On("GetGroups", realmName, gocloak.GetGroupsParams{Search: gocloak.StringP("bar")}).Return([]*gocloak.Group{
+		{
+			Name: gocloak.StringP("bar"),
+		},
+	}, nil)
 
 	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)
 	if err == nil {
