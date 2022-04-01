@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"math"
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/event"
@@ -32,7 +31,7 @@ func (h *Helper) SetFailureCount(fc FailureCountable) time.Duration {
 }
 
 func (h *Helper) getTimeout(factor int64, baseDuration time.Duration) time.Duration {
-	return time.Duration(float64(baseDuration) * math.Pow(math.E, float64(factor+1)))
+	return baseDuration * time.Duration(factor+1)
 }
 
 func IsFailuresUpdated(e event.UpdateEvent) bool {
