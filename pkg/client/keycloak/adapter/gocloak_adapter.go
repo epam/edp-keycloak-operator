@@ -55,6 +55,9 @@ const (
 	idpMapperEntity                 = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
 	deleteRealmUser                 = "/auth/admin/realms/{realm}/users/{id}"
 	setRealmUserPassword            = "/auth/admin/realms/{realm}/users/{id}/reset-password"
+	getUserRealmRoleMappings        = "/auth/admin/realms/{realm}/users/{id}/role-mappings/realm"
+	getUserGroupMappings            = "/auth/admin/realms/{realm}/users/{id}/groups"
+	manageUserGroups                = "/auth/admin/realms/{realm}/users/{userID}/groups/{groupID}"
 )
 
 type ErrTokenExpired string

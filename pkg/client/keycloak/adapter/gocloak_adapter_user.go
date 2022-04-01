@@ -2,7 +2,6 @@ package adapter
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
@@ -20,6 +19,16 @@ type KeycloakUser struct {
 	Groups              []string
 	Attributes          map[string]string
 	Password            string
+}
+
+type UserRealmRoleMapping struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+type UserGroupMapping struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, user *KeycloakUser, addOnly bool) error {
@@ -54,6 +63,55 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 		return errors.Wrap(err, "unable to set user params")
 	}
 
+	if err := a.syncUserRoles(ctx, realmName, *keycloakUser.ID, user, addOnly); err != nil {
+		return errors.Wrap(err, "unable to sync user roles")
+	}
+
+	if err := a.syncUserGroups(ctx, realmName, *keycloakUser.ID, user, addOnly); err != nil {
+		return errors.Wrap(err, "unable to sync user group")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) syncUserGroups(ctx context.Context, realmName string, userID string, user *KeycloakUser, addOnly bool) error {
+	if !addOnly {
+		if err := a.clearUserGroups(ctx, realmName, userID); err != nil {
+			return errors.Wrap(err, "unable to clear user groups")
+		}
+	}
+
+	groups, err := a.client.GetGroups(ctx, a.token.AccessToken, realmName, gocloak.GetGroupsParams{})
+	if err != nil {
+		return errors.Wrap(err, "unable to get realm groups")
+	}
+
+	groupDict := make(map[string]string)
+	for _, gr := range groups {
+		groupDict[*gr.Name] = *gr.ID
+	}
+
+	for _, gr := range user.Groups {
+		groupID, ok := groupDict[gr]
+		if !ok {
+			return errors.Errorf("group %s not found", gr)
+		}
+
+		if err := a.AddUserToGroup(ctx, realmName, userID, groupID); err != nil {
+			return errors.Wrap(err, "unable to add user to group")
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) syncUserRoles(ctx context.Context, realmName string, userID string, user *KeycloakUser, addOnly bool) error {
+	if !addOnly {
+		if err := a.clearUserRealmRoles(ctx, realmName, userID); err != nil {
+			return errors.Wrap(err, "unable to clear realm roles")
+		}
+	}
+
 	for _, roleName := range user.Roles {
 		if err := a.AddRealmRoleToUser(ctx, realmName, user.Username, roleName); err != nil {
 			return errors.Wrap(err, "unable to add realm role to user")
@@ -63,23 +121,103 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 	return nil
 }
 
-func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, keycloakUser *gocloak.User,
-	userCR *KeycloakUser, addOnly bool) error {
+func (a GoCloakAdapter) GetUserRealmRoleMappings(ctx context.Context, realmName string, userID string) ([]UserRealmRoleMapping, error) {
+	var roles []UserRealmRoleMapping
 
-	if len(userCR.Groups) > 0 {
-		if addOnly && keycloakUser.Groups != nil && len(*keycloakUser.Groups) > 0 {
-			userCR.Groups = append(userCR.Groups, *keycloakUser.Groups...)
-		}
+	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
+		"realm": realmName,
+		"id":    userID,
+	}).SetResult(&roles).Get(a.basePath + getUserRealmRoleMappings)
 
-		for _, gr := range userCR.Groups {
-			if _, err := a.getGroup(realmName, gr); err != nil {
-				return ErrNotFound(fmt.Sprintf("group [%s] not found", gr))
-			}
-		}
-
-		keycloakUser.Groups = &userCR.Groups
+	if err := a.checkError(err, rsp); err != nil {
+		return nil, errors.Wrap(err, "unable to get realm role mappings")
 	}
 
+	return roles, nil
+}
+
+func (a GoCloakAdapter) GetUserGroupMappings(ctx context.Context, realmName string, userID string) ([]UserGroupMapping, error) {
+	var groups []UserGroupMapping
+
+	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
+		"realm": realmName,
+		"id":    userID,
+	}).SetResult(&groups).Get(a.basePath + getUserGroupMappings)
+
+	if err := a.checkError(err, rsp); err != nil {
+		return nil, errors.Wrap(err, "unable to get group mappings")
+	}
+
+	return groups, nil
+}
+
+func (a GoCloakAdapter) RemoveUserFromGroup(ctx context.Context, realmName, userID, groupID string) error {
+	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
+		"realm":   realmName,
+		"userID":  userID,
+		"groupID": groupID,
+	}).Delete(a.basePath + manageUserGroups)
+
+	if err := a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "unable to remove user from group")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, groupID string) error {
+	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
+		"realm":   realmName,
+		"userID":  userID,
+		"groupID": groupID,
+	}).SetBody(map[string]string{
+		"groupId": groupID,
+		"realm":   realmName,
+		"userId":  userID,
+	}).Put(a.basePath + manageUserGroups)
+
+	if err := a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "unable to add user to group")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) clearUserGroups(ctx context.Context, realmName, userID string) error {
+	groups, err := a.GetUserGroupMappings(ctx, realmName, userID)
+	if err != nil {
+		return errors.Wrap(err, "unable to get user groups")
+	}
+
+	for _, gr := range groups {
+		if err := a.RemoveUserFromGroup(ctx, realmName, userID, gr.ID); err != nil {
+			return errors.Wrap(err, "unable to remove user from group")
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) clearUserRealmRoles(ctx context.Context, realmName string, userID string) error {
+	roles, err := a.GetUserRealmRoleMappings(ctx, realmName, userID)
+	if err != nil {
+		return errors.Wrap(err, "unable to get user realm role map")
+	}
+
+	goRoles := make([]gocloak.Role, 0, len(roles))
+	for _, r := range roles {
+		goRoles = append(goRoles, gocloak.Role{ID: &r.ID, Name: &r.Name})
+	}
+
+	if err := a.client.DeleteRealmRoleFromUser(ctx, a.token.AccessToken, realmName, userID, goRoles); err != nil {
+		return errors.Wrap(err, "unable to delete realm role from user")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, keycloakUser *gocloak.User,
+	userCR *KeycloakUser, addOnly bool) error {
 	if userCR.Attributes != nil && len(userCR.Attributes) > 0 {
 		attrs := make(map[string][]string)
 		for k, v := range userCR.Attributes {
@@ -113,6 +251,7 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 			return errors.Wrapf(err, "unable to set user password, user id: %s", userID)
 		}
 	}
+	keycloakUser.ID = &userID
 
 	return nil
 }
