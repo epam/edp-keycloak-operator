@@ -24,8 +24,9 @@ func TestTerminator(t *testing.T) {
 	kClient := new(adapter.Mock)
 
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
+	realm := v1alpha1.KeycloakRealm{Spec: v1alpha1.KeycloakRealmSpec{RealmName: "foo"}}
 
-	term := makeTerminator("foo", &keycloakAuthFlow, fakeClient, kClient, &lg)
+	term := makeTerminator(&realm, &keycloakAuthFlow, fakeClient, kClient, &lg)
 
 	if term.GetLogger() != &lg {
 		t.Fatal("wrong logger set")

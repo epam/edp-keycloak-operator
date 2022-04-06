@@ -133,6 +133,18 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	assert.NoError(e.T(), err)
 }
 
+func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
+	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/par/executions",
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
+			{DisplayName: flow.Alias, ID: "id12"},
+		}))
+	httpmock.RegisterResponder("DELETE", "/auth/admin/realms/realm123/authentication/executions/id12",
+		httpmock.NewStringResponder(200, ""))
+	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
+	assert.NoError(e.T(), err)
+}
+
 func (e *ExecFlowTestSuite) TestDeleteAuthFlow() {
 	var (
 		flowAlias           = "flow-alias"
@@ -254,6 +266,34 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "child flows validation failed: not all child flows created")
+}
+
+func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
+	flow := KeycloakAuthFlow{}
+	_, err := e.adapter.getFlowExecutionID(e.realmName, &flow)
+	assert.EqualError(e.T(), err, "flow is not execution")
+
+	flow = KeycloakAuthFlow{ParentName: "parent", Alias: "fff"}
+	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
+
+	assert.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "no responder found")
+
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{}))
+	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
+	assert.Error(e.T(), err)
+	assert.EqualError(e.T(), err, "auth flow not found")
+
+	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
+			{
+				DisplayName: flow.Alias,
+				ID:          "as12",
+			},
+		}))
+	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
+	assert.NoError(e.T(), err)
 }
 
 func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {

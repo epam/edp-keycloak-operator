@@ -13,18 +13,18 @@ import (
 )
 
 type terminator struct {
-	realmName        string
+	realm            *v1alpha1.KeycloakRealm
 	kClient          keycloak.Client
 	log              logr.Logger
 	k8sClient        client.Client
 	keycloakAuthFlow *adapter.KeycloakAuthFlow
 }
 
-func makeTerminator(realmName string, authFlow *adapter.KeycloakAuthFlow, k8sClient client.Client,
+func makeTerminator(realm *v1alpha1.KeycloakRealm, authFlow *adapter.KeycloakAuthFlow, k8sClient client.Client,
 	kClient keycloak.Client, log logr.Logger) *terminator {
 
 	return &terminator{
-		realmName:        realmName,
+		realm:            realm,
 		keycloakAuthFlow: authFlow,
 		kClient:          kClient,
 		log:              log,
@@ -37,7 +37,7 @@ func (t *terminator) GetLogger() logr.Logger {
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	logger := t.log.WithValues("realm name", t.realmName, "flow alias", t.keycloakAuthFlow.Alias)
+	logger := t.log.WithValues("realm name", t.realm.Spec.RealmName, "flow alias", t.keycloakAuthFlow.Alias)
 
 	var authFlowList v1alpha1.KeycloakAuthFlowList
 	if err := t.k8sClient.List(ctx, &authFlowList); err != nil {
@@ -45,14 +45,14 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	}
 
 	for _, af := range authFlowList.Items {
-		if af.Spec.ParentName == t.keycloakAuthFlow.Alias {
+		if af.Spec.Realm == t.realm.Name && af.Spec.ParentName == t.keycloakAuthFlow.Alias {
 			return errors.Errorf("Unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
 				af.Spec.Alias)
 		}
 	}
 
 	logger.Info("start deleting auth flow")
-	if err := t.kClient.DeleteAuthFlow(t.realmName, t.keycloakAuthFlow); err != nil {
+	if err := t.kClient.DeleteAuthFlow(t.realm.Spec.RealmName, t.keycloakAuthFlow); err != nil {
 		return errors.Wrap(err, "unable to delete auth flow")
 	}
 
