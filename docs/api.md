@@ -192,6 +192,13 @@ Resource Types:
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>alias</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>authenticator</b></td>
         <td>string</td>
         <td>
