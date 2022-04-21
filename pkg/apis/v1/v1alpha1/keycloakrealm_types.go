@@ -13,18 +13,19 @@ type KeycloakRealmSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
 	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	RealmName              string             `json:"realmName"`
-	KeycloakOwner          string             `json:"keycloakOwner,omitempty"`
-	SsoRealmName           string             `json:"ssoRealmName,omitempty"`
-	SsoRealmEnabled        *bool              `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
-	SsoAutoRedirectEnabled *bool              `json:"ssoAutoRedirectEnabled,omitempty"`
-	Users                  []User             `json:"users,omitempty"`
-	SSORealmMappers        *[]SSORealmMapper  `json:"ssoRealmMappers,omitempty"`
-	BrowserFlow            *string            `json:"browserFlow"`
-	Themes                 *RealmThemes       `json:"themes,omitempty"`
-	BrowserSecurityHeaders *map[string]string `json:"browserSecurityHeaders,omitempty"`
-	ID                     *string            `json:"id"`
-	RealmEventConfig       *RealmEventConfig  `json:"realmEventConfig"`
+	RealmName                string             `json:"realmName"`
+	KeycloakOwner            string             `json:"keycloakOwner,omitempty"`
+	SsoRealmName             string             `json:"ssoRealmName,omitempty"`
+	SsoRealmEnabled          *bool              `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
+	SsoAutoRedirectEnabled   *bool              `json:"ssoAutoRedirectEnabled,omitempty"`
+	Users                    []User             `json:"users,omitempty"`
+	SSORealmMappers          *[]SSORealmMapper  `json:"ssoRealmMappers,omitempty"`
+	BrowserFlow              *string            `json:"browserFlow"`
+	Themes                   *RealmThemes       `json:"themes,omitempty"`
+	BrowserSecurityHeaders   *map[string]string `json:"browserSecurityHeaders,omitempty"`
+	ID                       *string            `json:"id"`
+	RealmEventConfig         *RealmEventConfig  `json:"realmEventConfig"`
+	DisableCentralIDPMappers bool               `json:"disableCentralIDPMappers"`
 }
 
 type RealmEventConfig struct {
