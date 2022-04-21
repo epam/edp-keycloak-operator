@@ -823,3 +823,37 @@ func TestMakeFromToken(t *testing.T) {
 		t.Fatalf("wrong token exported: %s", string(exportToken))
 	}
 }
+
+func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	a := GoCloakAdapter{
+		log:    &mock.Logger{},
+		client: &mockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+	}
+	realm := dto.Realm{Name: "name1", SsoRealmName: "sso-realm1"}
+
+	httpmock.RegisterResponder("POST",
+		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances", realm.Name),
+		httpmock.NewStringResponder(201, ""))
+
+	httpmock.RegisterResponder("POST",
+		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		httpmock.NewStringResponder(201, ""))
+
+	err := a.CreateCentralIdentityProvider(&realm, &dto.Client{})
+	assert.NoError(t, err)
+
+	httpmock.RegisterResponder("POST",
+		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		httpmock.NewStringResponder(500, "fatal"))
+
+	err = a.CreateCentralIdentityProvider(&realm, &dto.Client{})
+	assert.Error(t, err)
+	assert.EqualError(t, err,
+		"unable to create central idp mappers: unable to create central idp mapper: error in creation idP mapper by name administrator")
+}
