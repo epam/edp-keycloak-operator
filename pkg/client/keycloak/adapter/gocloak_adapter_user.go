@@ -204,9 +204,9 @@ func (a GoCloakAdapter) clearUserRealmRoles(ctx context.Context, realmName strin
 		return errors.Wrap(err, "unable to get user realm role map")
 	}
 
-	goRoles := make([]gocloak.Role, len(roles), len(roles))
-	for i, r := range roles {
-		goRoles[i] = gocloak.Role{ID: &r.ID, Name: &r.Name}
+	goRoles := make([]gocloak.Role, 0, len(roles))
+	for i := range roles {
+		goRoles = append(goRoles, gocloak.Role{ID: &roles[i].ID, Name: &roles[i].Name})
 	}
 
 	if err := a.client.DeleteRealmRoleFromUser(ctx, a.token.AccessToken, realmName, userID, goRoles); err != nil {
@@ -246,12 +246,10 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 		return errors.Wrap(err, "unable to create user")
 	}
 
-	if len(userCR.Password) == 0 {
-		return nil
-	}
-
-	if err := a.setUserPassword(realmName, userID, userCR.Password); err != nil {
-		return errors.Wrapf(err, "unable to set user password, user id: %s", userID)
+	if userCR.Password != "" {
+		if err := a.setUserPassword(realmName, userID, userCR.Password); err != nil {
+			return errors.Wrapf(err, "unable to set user password, user id: %s", userID)
+		}
 	}
 	keycloakUser.ID = &userID
 
