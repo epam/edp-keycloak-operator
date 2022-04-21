@@ -205,8 +205,8 @@ func (a GoCloakAdapter) clearUserRealmRoles(ctx context.Context, realmName strin
 	}
 
 	goRoles := make([]gocloak.Role, 0, len(roles))
-	for _, r := range roles {
-		goRoles = append(goRoles, gocloak.Role{ID: &r.ID, Name: &r.Name})
+	for i := range roles {
+		goRoles = append(goRoles, gocloak.Role{ID: &roles[i].ID, Name: &roles[i].Name})
 	}
 
 	if err := a.client.DeleteRealmRoleFromUser(ctx, a.token.AccessToken, realmName, userID, goRoles); err != nil {
