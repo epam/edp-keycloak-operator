@@ -5,14 +5,40 @@
 
 - Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
 - implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
+- add priority and requirement params to child auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
+- Generate CRDs and helm docs automatically [EPMDEDP-8385](https://jiraeu.epam.com/browse/EPMDEDP-8385)
+- Password policy for realm [EPMDEDP-8395](https://jiraeu.epam.com/browse/EPMDEDP-8395)
+- Add ability to disable central idp mappers creation [EPMDEDP-8397](https://jiraeu.epam.com/browse/EPMDEDP-8397)
+- Full reconciliation for keycloak realm user [EPMDEDP-8786](https://jiraeu.epam.com/browse/EPMDEDP-8786)
+
+### Bug Fixes
+
+- Fix changelog generation in GH Release Action [EPMDEDP-8468](https://jiraeu.epam.com/browse/EPMDEDP-8468)
+- User group sync [EPMDEDP-8786](https://jiraeu.epam.com/browse/EPMDEDP-8786)
+- Keycloak auth flow deletion [EPMDEDP-8903](https://jiraeu.epam.com/browse/EPMDEDP-8903)
+
+### Routine
+
+- Update release CI pipelines [EPMDEDP-7847](https://jiraeu.epam.com/browse/EPMDEDP-7847)
+- Update changelog [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
+- Add artifacthub tags [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
+- Update keycloak URL link [EPMDEDP-8204](https://jiraeu.epam.com/browse/EPMDEDP-8204)
+- Update changelog [EPMDEDP-8227](https://jiraeu.epam.com/browse/EPMDEDP-8227)
+- Add examples for ArgoCD config in Keycloak [EPMDEDP-8312](https://jiraeu.epam.com/browse/EPMDEDP-8312)
+- Update base docker image to alpine 3.15.4 [EPMDEDP-8853](https://jiraeu.epam.com/browse/EPMDEDP-8853)
+
+
+<a name="v1.10.1"></a>
+## [v1.10.1] - 2022-02-09
+### Features
+
+- Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
 
 ### Routine
 
 - Update release CI pipelines [EPMDEDP-7847](https://jiraeu.epam.com/browse/EPMDEDP-7847)
 - Add artifacthub tags [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
-- Update keycloak URL link [EPMDEDP-8204](https://jiraeu.epam.com/browse/EPMDEDP-8204)
 - Update changelog [EPMDEDP-8227](https://jiraeu.epam.com/browse/EPMDEDP-8227)
-- Add examples for ArgoCD config in Keycloak [EPMDEDP-8312](https://jiraeu.epam.com/browse/EPMDEDP-8312)
 
 
 <a name="v1.10.0"></a>
@@ -85,7 +111,8 @@
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...HEAD
+[v1.10.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.9.0...v1.10.0
 [v1.9.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.8.0...v1.9.0
 [v1.8.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.7.3...v1.8.0
