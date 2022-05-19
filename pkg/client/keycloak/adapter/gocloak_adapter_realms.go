@@ -63,7 +63,7 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 			policies[i] = fmt.Sprintf("%s(%s)", v.Type, v.Value)
 		}
 
-		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " AND "))
+		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " and "))
 	}
 
 	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
