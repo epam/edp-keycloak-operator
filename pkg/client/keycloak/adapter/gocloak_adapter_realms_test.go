@@ -42,7 +42,7 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"test": "dets",
 			"foo":  "bar",
 		},
-		PasswordPolicy: gocloak.StringP("foo(bar) AND bar(baz)"),
+		PasswordPolicy: gocloak.StringP("foo(bar) and bar(baz)"),
 	}
 	mockClient.On("UpdateRealm", updateRealm).Return(nil)
 
