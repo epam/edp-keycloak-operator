@@ -16,6 +16,8 @@
 - Fix changelog generation in GH Release Action [EPMDEDP-8468](https://jiraeu.epam.com/browse/EPMDEDP-8468)
 - User group sync [EPMDEDP-8786](https://jiraeu.epam.com/browse/EPMDEDP-8786)
 - Keycloak auth flow deletion [EPMDEDP-8903](https://jiraeu.epam.com/browse/EPMDEDP-8903)
+- User roles sync [EPMDEDP-9006](https://jiraeu.epam.com/browse/EPMDEDP-9006)
+- Realm password policy [EPMDEDP-9223](https://jiraeu.epam.com/browse/EPMDEDP-9223)
 
 ### Routine
 
@@ -26,6 +28,7 @@
 - Update changelog [EPMDEDP-8227](https://jiraeu.epam.com/browse/EPMDEDP-8227)
 - Add examples for ArgoCD config in Keycloak [EPMDEDP-8312](https://jiraeu.epam.com/browse/EPMDEDP-8312)
 - Update base docker image to alpine 3.15.4 [EPMDEDP-8853](https://jiraeu.epam.com/browse/EPMDEDP-8853)
+- Update changelog [EPMDEDP-9185](https://jiraeu.epam.com/browse/EPMDEDP-9185)
 
 
 <a name="v1.10.1"></a>
