@@ -29,12 +29,10 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "true"
   artifacthub.io/images: |
-    - name: keycloak-operator:1.10.0
-      image: epamedp/keycloak-operator:1.10.0
-    - name: keycloak-operator:1.9.0
-      image: epamedp/keycloak-operator:1.9.0
-    - name: keycloak-operator:1.8.0
-      image: epamedp/keycloak-operator:1.8.0
+    - name: keycloak-operator:1.11.0
+      image: epamedp/keycloak-operator:1.11.0
+    - name: alpine:3.15.4
+      image: alpine:3.15.4
   artifacthub.io/operatorCapabilities: Auto Pilot
   artifacthub.io/crds: |
     - kind: Keycloak
@@ -96,7 +94,7 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakClientScope
       metadata:
-      name: groups
+        name: groups
       spec:
         name: groups
         realm: main
@@ -131,6 +129,7 @@ annotations:
       metadata:
         name: argocd-admins
       spec:
+        clientRoles: null
         name: ArgoCDAdmins
         realm: main
     - apiVersion: v1.edp.epam.com/v1alpha1
@@ -144,6 +143,17 @@ annotations:
         providerId: basic-flow
         topLevel: true
         builtIn: false
+        authenticationExecutions:
+          - authenticator: "auth-cookie"
+            priority: 0
+            requirement: "ALTERNATIVE"
+          - authenticatorFlow: true
+            alias: demo-sub-tree3
+            priority: 1
+            requirement: "CONDITIONAL"
+          - authenticator: "deny-access-authenticator"
+            priority: 2
+            requirement: "REQUIRED"
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakAuthFlow
       metadata:
@@ -163,9 +173,9 @@ annotations:
             priority: 1
             requirement: "REQUIRED"
             authenticatorConfig:
-              alias: diia
+              alias: my-alias
               config:
-                "defaultProvider": "oidc"
+                "defaultProvider": "my-alias"
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakRealmComponent
       metadata:
@@ -231,6 +241,11 @@ annotations:
         ssoRealmName: openshift
         ssoRealmEnabled: false # new one
         ssoAutoRedirectEnabled: false # new one
+        passwordPolicy:
+          - type: "forceExpiredPasswordChange"
+            value: "365"
+          - type: "length"
+            value: "8"
         realmEventConfig:
           adminEventsDetailsEnabled: false
           adminEventsEnabled: true
@@ -253,11 +268,60 @@ annotations:
         email: "john.snow13@gmail.com"
         enabled: true
         emailVerified: true
+        password: "12345678"
+        keepResource: true
         requiredUserActions:
           - UPDATE_PASSWORD
         attributes:
           foo: "bar"
           baz: "jazz"
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: Keycloak
+      metadata:
+        annotations:
+          meta.helm.sh/release-name: keycloak
+          meta.helm.sh/release-namespace: my-keycloak-ns
+      spec:
+        secret: my-keycloak-secret
+          url: https://test.com
+          users:
+            - realmRoles:
+                - administrator
+              username: test@net.com
+            - realmRoles:
+                - developer
+              username: test-dev@net.com
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: KeycloakRealmRoleBatch
+      metadata:
+        meta.helm.sh/release-name: keycloak-operator
+        meta.helm.sh/release-namespace: edp-delivery
+      spec:
+        realm: main
+        roles:
+          - attributes: null
+            composite: true
+            composites: null
+            description: default developer role
+            isDefault: false
+            name: developer
+          - attributes: null
+            composite: true
+            composites: null
+            description: default administrator role
+            isDefault: false
+            name: administrator
+      - apiVersion: v1.edp.epam.com/v1alpha1
+        kind: KeycloakRealmRole
+        metadata:
+          generation: 1
+        spec:
+          attributes: null
+          composite: true
+          composites: null
+          description: default developer role
+          name: developer
+          realm: main
   artifacthub.io/links: |
     - name: EDP Documentation
       url: https://epam.github.io/edp-install/
