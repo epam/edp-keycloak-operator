@@ -17,6 +17,6 @@ spec:
       priority: 1
       requirement: "REQUIRED"
       authenticatorConfig:
-        alias: diia
+        alias: my-alias
         config:
-          "defaultProvider": "diia"
+          "defaultProvider": "my-alias"
