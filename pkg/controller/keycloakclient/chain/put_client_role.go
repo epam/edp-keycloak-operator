@@ -1,10 +1,13 @@
 package chain
 
 import (
+	"context"
+
+	"github.com/pkg/errors"
+
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/pkg/errors"
 )
 
 type PutClientRole struct {
@@ -12,12 +15,12 @@ type PutClientRole struct {
 	next Element
 }
 
-func (el *PutClientRole) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	if err := el.putKeycloakClientRole(keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "unable to put keycloak client role")
 	}
 
-	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
 func (el *PutClientRole) putKeycloakClientRole(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {

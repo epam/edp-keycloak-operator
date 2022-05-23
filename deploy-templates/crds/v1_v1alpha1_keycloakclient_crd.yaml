@@ -35,6 +35,12 @@ spec:
             reconciliationStrategy:
               type: string
               description: 'full, addOnly'
+            defaultClientScopes:
+              type: array
+              description: 'A list of default client scopes for a keycloak client.'
+              nullable: true
+              items:
+                type: string
         status:
           type: object
   version: v1alpha1

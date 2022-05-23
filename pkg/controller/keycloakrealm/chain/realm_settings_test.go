@@ -21,11 +21,13 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	theme := "LoginTheme test"
+
 	realm = keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm1",
 			Themes: &keycloakApi.RealmThemes{
-				LoginTheme: stringP("LoginTheme test"),
+				LoginTheme: &theme,
 			},
 			BrowserSecurityHeaders: &map[string]string{
 				"foo": "bar",
@@ -41,7 +43,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 
 	kClient.On("UpdateRealmSettings", realm.Spec.RealmName, &adapter.RealmSettings{
 		Themes: &adapter.RealmThemes{
-			LoginTheme: stringP("LoginTheme test"),
+			LoginTheme: &theme,
 		},
 		BrowserSecurityHeaders: &map[string]string{
 			"foo": "bar",

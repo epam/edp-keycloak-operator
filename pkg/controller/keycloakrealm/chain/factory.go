@@ -3,12 +3,13 @@ package chain
 import (
 	"context"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
@@ -17,26 +18,22 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) ha
 	return PutRealm{
 		hlp: hlp,
 		next: SetLabels{
-			next: PutKeycloakClientScope{
-				next: PutKeycloakClientCR{
-					next: PutKeycloakClientSecret{
-						next: PutUsers{
-							next: PutUsersRoles{
-								next: PutOpenIdConfigAnnotation{
-									next: PutIdentityProvider{
-										next: PutDefaultIdP{
-											next: RealmSettings{
-												next: AuthFlow{},
-											},
+			next: PutKeycloakClientCR{
+				next: PutKeycloakClientSecret{
+					next: PutUsers{
+						next: PutUsersRoles{
+							next: PutOpenIdConfigAnnotation{
+								next: PutIdentityProvider{
+									next: PutDefaultIdP{
+										next: RealmSettings{
+											next: AuthFlow{},
 										},
-										client: client,
 									},
 									client: client,
 								},
+								client: client,
 							},
 						},
-						client: client,
-						scheme: scheme,
 					},
 					client: client,
 					scheme: scheme,

@@ -157,11 +157,3 @@ func TestMock_GetClientScopeMappers(t *testing.T) {
 		t.Fatal("no error returned")
 	}
 }
-
-func TestMock_LinkClientScopeToClient(t *testing.T) {
-	m := Mock{}
-	m.On("LinkClientScopeToClient", "clientName", "scopeID", "realmName").Return(nil)
-	if err := m.LinkClientScopeToClient("clientName", "scopeID", "realmName"); err != nil {
-		t.Fatal(err)
-	}
-}

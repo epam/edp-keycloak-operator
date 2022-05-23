@@ -125,6 +125,8 @@ annotations:
         secret: ''
         targetRealm: edp-delivery-main
         webUrl: https://argocd.example.com
+        defaultClientScopes:
+          - argocd_groups
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakRealmGroup
       metadata:

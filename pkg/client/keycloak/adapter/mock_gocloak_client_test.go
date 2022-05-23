@@ -293,3 +293,16 @@ func (m *MockGoCloakClient) GetClientScope(ctx context.Context, token, realm, sc
 
 	return called.Get(0).(*gocloak.ClientScope), nil
 }
+
+func (m *MockGoCloakClient) GetClientsDefaultScopes(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error) {
+	called := m.Called(realm, clientID)
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]*gocloak.ClientScope), nil
+}
+
+func (m *MockGoCloakClient) AddDefaultScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error {
+	return m.Called(realm, clientID, scopeID).Error(0)
+}

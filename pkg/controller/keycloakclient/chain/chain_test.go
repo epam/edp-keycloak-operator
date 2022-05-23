@@ -11,6 +11,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -55,13 +56,15 @@ func TestPrivateClientSecret(t *testing.T) {
 		BaseElement: baseElement,
 	}
 
-	if err := putCl.Serve(&kc, kClient); err != nil {
+	ctx := context.Background()
+
+	if err := putCl.Serve(ctx, &kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	kc.Spec.Secret = ""
 
-	if err := putCl.Serve(&kc, kClient); err != nil {
+	if err := putCl.Serve(ctx, &kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -140,7 +143,7 @@ func TestMake(t *testing.T) {
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
-	if err := chain.Serve(&kc, kClient); err != nil {
+	if err := chain.Serve(context.Background(), &kc, kClient); err != nil {
 		t.Fatal(err)
 	}
 
@@ -156,16 +159,12 @@ func TestPutClientScope_Serve(t *testing.T) {
 	kClient := new(adapter.Mock)
 	adapterScope := adapter.ClientScope{ID: "scope-id1"}
 
-	kClient.On("GetClientScope", helper.DefaultClientScopeName, kc.Spec.TargetRealm).Return(&adapterScope, nil)
-	kClient.On("GetClientScopeMappers", kc.Spec.TargetRealm, adapterScope.ID).
-		Return([]adapter.ProtocolMapper{}, nil)
-	kClient.On("PutClientScopeMapper", kc.Spec.TargetRealm, adapterScope.ID,
-		getAudienceProtocolMapper(kc.Spec.ClientId)).Return(nil)
-	kClient.On("LinkClientScopeToClient", kc.Spec.ClientId, adapterScope.ID, kc.Spec.TargetRealm).
+	ctx := context.Background()
+
+	kClient.On("GetClientScopesByNames", ctx, adapterScope.ID, kc.Spec.TargetRealm).Return([]adapter.ClientScope{adapterScope}, nil)
+	kClient.On("AddDefaultScopeToClient", ctx, kc.Spec.TargetRealm, adapterScope.ID).
 		Return(nil)
 
-	if err := pcs.putClientScope(&kc, kClient); err != nil {
-		t.Fatal(err)
-	}
-
+	err := pcs.putClientScope(ctx, &kc, kClient)
+	assert.NoError(t, err)
 }

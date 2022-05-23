@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -127,7 +128,7 @@ func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScop
 			"realm": realmName,
 		}).
 		SetResult(&result).
-		Get(a.basePath + getOneClientScope)
+		Get(a.basePath + getRealmClientScopes)
 	if err := a.checkError(err, resp); err != nil {
 		return nil, err
 	}
@@ -149,6 +150,52 @@ func getClientScope(name string, clientScopes []ClientScope) (*ClientScope, erro
 		}
 	}
 	return nil, ErrNotFound(fmt.Sprintf("scope %v was not found", name))
+}
+
+func (a GoCloakAdapter) GetClientScopesByNames(ctx context.Context, realmName string, scopeNames []string) ([]ClientScope, error) {
+	log := a.log.WithValues("scopeNames", strings.Join(scopeNames, ","), "realm", realmName)
+	log.Info("Start get Client Scopes by name...")
+
+	var result []ClientScope
+
+	resp, err := a.client.RestyClient().R().
+		SetContext(ctx).
+		SetAuthToken(a.token.AccessToken).
+		SetHeader("Content-Type", "application/json").
+		SetPathParams(map[string]string{
+			"realm": realmName,
+		}).
+		SetResult(&result).
+		Get(a.basePath + getRealmClientScopes)
+
+	if err := a.checkError(err, resp); err != nil {
+		return nil, err
+	}
+
+	log.Info("End get Client Scopes...")
+
+	return a.filterClientScopes(scopeNames, result), nil
+}
+
+func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []ClientScope) []ClientScope {
+	clientScopesMap := make(map[string]ClientScope)
+	for _, s := range clientScopes {
+		clientScopesMap[s.Name] = s
+	}
+
+	result := make([]ClientScope, 0, len(scopeNames))
+
+	for _, sn := range scopeNames {
+		scope, ok := clientScopesMap[sn]
+		if ok {
+			result = append(result, scope)
+			continue
+		}
+
+		a.log.Error(errors.New("failed to get keycloak client scope"), sn)
+	}
+
+	return result
 }
 
 func (a GoCloakAdapter) DeleteClientScope(ctx context.Context, realmName, scopeID string) error {
@@ -272,29 +319,5 @@ func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocol
 		return errors.Wrap(err, "unable to put client scope mapper")
 	}
 	log.Info("Client Scope mapper was successfully configured!")
-	return nil
-}
-
-func (a GoCloakAdapter) LinkClientScopeToClient(clientName, scopeID, realmName string) error {
-	log := a.log.WithValues("clientName", clientName, "scopeId", scopeID, "realm", realmName)
-	log.Info("Start link Client Scope to client...")
-	clientID, err := a.GetClientID(clientName, realmName)
-	if err != nil {
-		return errors.Wrap(err, "error during GetClientId")
-	}
-
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			"realm":    realmName,
-			"clientId": clientID,
-			"scopeId":  scopeID,
-		}).
-		Put(a.basePath + linkClientScopeToClient)
-	if err := a.checkError(err, resp); err != nil {
-		return errors.Wrapf(err, "error during %s", linkClientScopeToClient)
-	}
-	log.Info("End link Client Scope to client...")
 	return nil
 }

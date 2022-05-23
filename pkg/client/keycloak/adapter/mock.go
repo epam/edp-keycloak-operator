@@ -162,8 +162,8 @@ func (m *Mock) HasUserRealmRole(realmName string, user *dto.User, role string) (
 	return called.Bool(0), called.Error(1)
 }
 
-func (m *Mock) LinkClientScopeToClient(clientName, scopeId, realmName string) error {
-	return m.Called(clientName, scopeId, realmName).Error(0)
+func (m *Mock) AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
+	return m.Called(ctx, realmName, clientName, scopes).Error(0)
 }
 
 func (m *Mock) PutClientScopeMapper(realmName, scopeID string, protocolMapper *ProtocolMapper) error {
@@ -326,4 +326,14 @@ func (m *Mock) UpdateIdentityProvider(ctx context.Context, realm string, idp *Id
 
 func (m *Mock) CreateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
 	return m.Called(realm, idp).Error(0)
+}
+
+func (m *Mock) GetClientScopesByNames(ctx context.Context, realmName string, scopeNames []string) ([]ClientScope, error) {
+	called := m.Called(ctx, realmName, scopeNames)
+
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).([]ClientScope), nil
 }

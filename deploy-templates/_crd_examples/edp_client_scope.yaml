@@ -1,0 +1,22 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: KeycloakClientScope
+metadata:
+  name: edp
+spec:
+  name: edp
+  realm: main
+  description: "default edp scope required for ac and nexus"
+  protocol: openid-connect
+  protocolMappers:
+    - name: nexus-audience
+      protocol: openid-connect
+      protocolMapper: "oidc-audience-mapper"
+      config:
+        "access.token.claim": "true"
+        "included.client.audience": "nexus"
+    - name: admin-console-client-audience
+      protocol: openid-connect
+      protocolMapper: "oidc-audience-mapper"
+      config:
+        "access.token.claim": "true"
+        "included.client.audience": "admin-console-client"

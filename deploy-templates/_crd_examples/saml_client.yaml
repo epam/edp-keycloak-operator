@@ -17,3 +17,5 @@ spec:
   frontChannelLogout: true
   webUrl: https://example.com
   targetRealm: d1-id-kc-realm-name
+  defaultClientScopes:
+    - edp
