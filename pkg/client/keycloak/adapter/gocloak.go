@@ -39,6 +39,8 @@ type GoCloakClients interface {
 	GetClientServiceAccount(ctx context.Context, token, realm, clientID string) (*gocloak.User, error)
 	DeleteClientScope(ctx context.Context, accessToken, realm, scopeID string) error
 	GetClientScope(ctx context.Context, token, realm, scopeID string) (*gocloak.ClientScope, error)
+	GetClientsDefaultScopes(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error)
+	AddDefaultScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
 }
 
 type GoCloakUsers interface {

@@ -2,16 +2,18 @@ package adapter
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
-
-	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestIsErrNotFound(t *testing.T) {
@@ -251,7 +253,7 @@ func TestGoCloakAdapter_GetClientScope(t *testing.T) {
 
 	result := []ClientScope{{Name: "name1"}}
 
-	getOneClientScope := strings.ReplaceAll(getOneClientScope, "{realm}", "realm1")
+	getOneClientScope := strings.ReplaceAll(getRealmClientScopes, "{realm}", "realm1")
 	httpmock.RegisterResponder("GET", getOneClientScope,
 		httpmock.NewJsonResponderOrPanic(200, &result))
 
@@ -379,47 +381,68 @@ func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
 	}
 }
 
-func TestGoCloakAdapter_LinkClientScopeToClient(t *testing.T) {
-	kcClient, goCloakMock, _, _ := initAdapter()
+func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
+	t.Parallel()
 
-	goCloakMock.On("GetClients", "realm-name-1",
-		gocloak.GetClientsParams{ClientID: gocloak.StringP("clName1")}).
-		Return([]*gocloak.Client{
-			{ClientID: gocloak.StringP("clName1"), ID: gocloak.StringP("id31")},
-		}, nil)
-	httpmock.RegisterResponder("PUT",
-		"/auth/admin/realms/realm-name-1/clients/id31/default-client-scopes/scope-id-1",
-		httpmock.NewStringResponder(200, ""))
-
-	if err := kcClient.LinkClientScopeToClient("clName1", "scope-id-1",
-		"realm-name-1"); err != nil {
-		t.Fatalf("%+v", err)
+	tests := map[string]struct {
+		realm      string
+		response   httpmock.Responder
+		scopeNames []string
+		expectRes  []ClientScope
+		expectErr  bool
+	}{
+		"success": {
+			realm: "realm1",
+			response: httpmock.NewJsonResponderOrPanic(http.StatusOK, []ClientScope{
+				{
+					ID:   "testScope",
+					Name: "scope1",
+				},
+			}),
+			scopeNames: []string{"scope1"},
+			expectRes: []ClientScope{
+				{
+					ID:   "testScope",
+					Name: "scope1",
+				},
+			},
+		},
+		"scope names not fond": {
+			realm: "realm2",
+			response: httpmock.NewJsonResponderOrPanic(http.StatusOK, []ClientScope{
+				{
+					ID:   "testScope",
+					Name: "scope2",
+				},
+			}),
+			scopeNames: []string{"scope1"},
+			expectRes:  []ClientScope{},
+		},
+		"failed to get scopes": {
+			realm:      "realm3",
+			response:   httpmock.NewStringResponder(http.StatusBadRequest, ""),
+			scopeNames: []string{"scope1"},
+			expectRes:  nil,
+			expectErr:  true,
+		},
 	}
 
-	httpmock.RegisterResponder("PUT",
-		"/auth/admin/realms/realm-name-1/clients/id31/default-client-scopes/scope-id-1",
-		httpmock.NewStringResponder(422, "forbidden"))
+	adapter, _, _, _ := initAdapter()
 
-	err := kcClient.LinkClientScopeToClient("clName1", "scope-id-1", "realm-name-1")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	for name, tc := range tests {
+		tc := tc
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
 
-	if err.Error() != "error during /auth/admin/realms/{realm}/clients/{clientId}/default-client-scopes/{scopeId}: status: 422, body: forbidden" {
-		t.Fatalf("wrong error returned: '%s'", err.Error())
-	}
+			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/auth/admin/realms/%s/client-scopes", tc.realm), tc.response)
 
-	goCloakMock.On("GetClients", "realm-name-1",
-		gocloak.GetClientsParams{ClientID: gocloak.StringP("clName2")}).
-		Return(nil, errors.New("get clients fatal"))
-
-	err = kcClient.LinkClientScopeToClient("clName2", "scope-id-1",
-		"realm-name-1")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
-
-	if err.Error() != "error during GetClientId: unable to get realm clients: get clients fatal" {
-		t.Fatalf("wrong error returned: '%s'", err.Error())
+			gotRes, err := adapter.GetClientScopesByNames(context.Background(), tc.realm, tc.scopeNames)
+			assert.Equal(t, tc.expectRes, gotRes)
+			if tc.expectErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
 	}
 }

@@ -55,8 +55,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		},
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion,
-		kc)
+	s.AddKnownTypes(v1.SchemeGroupVersion, kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
 
 	//request

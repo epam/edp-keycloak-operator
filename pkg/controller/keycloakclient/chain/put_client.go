@@ -4,9 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
 	"github.com/sethvargo/go-password/password"
 	coreV1 "k8s.io/api/core/v1"
@@ -14,6 +11,10 @@ import (
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 const clientSecretKey = "clientSecret"
@@ -23,14 +24,14 @@ type PutClient struct {
 	next Element
 }
 
-func (el *PutClient) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClient) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	id, err := el.putKeycloakClient(keycloakClient, adapterClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to put keycloak client")
 	}
 	keycloakClient.Status.ClientID = id
 
-	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
 func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) (string, error) {

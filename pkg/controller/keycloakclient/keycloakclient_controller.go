@@ -108,7 +108,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		return pkgErrors.Wrap(err, "unable to create keycloak adapter client")
 	}
 
-	if err := r.chain.Serve(keycloakClient, kClient); err != nil {
+	if err := r.chain.Serve(ctx, keycloakClient, kClient); err != nil {
 		return pkgErrors.Wrap(err, "error during kc chain")
 	}
 

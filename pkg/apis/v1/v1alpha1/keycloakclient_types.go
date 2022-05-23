@@ -31,10 +31,10 @@ type KeycloakClientSpec struct {
 	ServiceAccount          *ServiceAccount   `json:"serviceAccount,omitempty"`
 	FrontChannelLogout      bool              `json:"frontChannelLogout,omitempty"`
 	ReconciliationStrategy  string            `json:"reconciliationStrategy,omitempty"`
-
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// A list of default client scopes for a keycloak client.
+	// +nullable
+	// +optional
+	DefaultClientScopes []string `json:"defaultClientScopes,omitempty"`
 }
 
 func (in KeycloakClient) GetReconciliationStrategy() string {
