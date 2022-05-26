@@ -118,7 +118,6 @@ annotations:
         name: argocd
       spec:
         advancedProtocolMappers: true
-        audRequired: true
         clientId: agocd
         directAccess: true
         public: false
