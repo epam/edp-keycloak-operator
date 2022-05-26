@@ -154,8 +154,7 @@ func TestMake(t *testing.T) {
 
 func TestPutClientScope_Serve(t *testing.T) {
 	pcs := PutClientScope{}
-	kc := v1alpha1.KeycloakClient{Spec: v1alpha1.KeycloakClientSpec{AudRequired: true, ClientId: "clid1",
-		TargetRealm: "realm1"}}
+	kc := v1alpha1.KeycloakClient{Spec: v1alpha1.KeycloakClientSpec{ClientId: "clid1", TargetRealm: "realm1"}}
 	kClient := new(adapter.Mock)
 	adapterScope := adapter.ClientScope{ID: "scope-id1"}
 

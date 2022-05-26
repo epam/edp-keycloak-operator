@@ -63,7 +63,6 @@ clientId=realm.realmName
         Boolean directAccess
         Boolean advancedProtocolMappers
         []String clientRoles
-        Boolean audRequired
         -- status --
         String value
         String id

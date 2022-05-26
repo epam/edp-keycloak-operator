@@ -6,7 +6,6 @@ spec:
   clientId: redash-test
   public: true
   directAccess: true
-  audRequired: true
   secret: ''
   clientRoles: null
   attributes:

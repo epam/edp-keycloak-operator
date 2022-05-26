@@ -26,7 +26,6 @@ type KeycloakClientSpec struct {
 	DirectAccess            bool              `json:"directAccess"`
 	AdvancedProtocolMappers bool              `json:"advancedProtocolMappers"`
 	ClientRoles             []string          `json:"clientRoles,omitempty"`
-	AudRequired             bool              `json:"audRequired"`
 	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers,omitempty"`
 	ServiceAccount          *ServiceAccount   `json:"serviceAccount,omitempty"`
 	FrontChannelLogout      bool              `json:"frontChannelLogout,omitempty"`
