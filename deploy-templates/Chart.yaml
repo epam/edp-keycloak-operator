@@ -29,12 +29,8 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "true"
   artifacthub.io/images: |
-    - name: keycloak-operator:1.10.0
-      image: epamedp/keycloak-operator:1.10.0
-    - name: keycloak-operator:1.9.0
-      image: epamedp/keycloak-operator:1.9.0
-    - name: keycloak-operator:1.8.0
-      image: epamedp/keycloak-operator:1.8.0
+    - name: keycloak-operator:1.11.0
+      image: epamedp/keycloak-operator:1.11.0
   artifacthub.io/operatorCapabilities: Auto Pilot
   artifacthub.io/crds: |
     - kind: Keycloak
@@ -132,17 +128,6 @@ annotations:
       spec:
         name: ArgoCDAdmins
         realm: main
-    - apiVersion: v1.edp.epam.com/v1alpha1
-      kind: KeycloakAuthFlow
-      metadata:
-        name: demo-tree
-      spec:
-        realm: main
-        alias: demo-tree
-        description: flow tree demo
-        providerId: basic-flow
-        topLevel: true
-        builtIn: false
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakAuthFlow
       metadata:
