@@ -135,28 +135,6 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakAuthFlow
       metadata:
-        name: demo-tree
-      spec:
-        realm: main
-        alias: demo-tree
-        description: flow tree demo
-        providerId: basic-flow
-        topLevel: true
-        builtIn: false
-        authenticationExecutions:
-          - authenticator: "auth-cookie"
-            priority: 0
-            requirement: "ALTERNATIVE"
-          - authenticatorFlow: true
-            alias: demo-sub-tree3
-            priority: 1
-            requirement: "CONDITIONAL"
-          - authenticator: "deny-access-authenticator"
-            priority: 2
-            requirement: "REQUIRED"
-    - apiVersion: v1.edp.epam.com/v1alpha1
-      kind: KeycloakAuthFlow
-      metadata:
         name: d1-auth-flow
       spec:
         realm: d2-id-k8s-realm-name
