@@ -243,7 +243,7 @@ annotations:
         username: "john.snow13"
         firstName: "John"
         lastName: "Snow"
-        email: "john.snow13@gmail.com"
+        email: "john.snow13@example.com"
         enabled: true
         emailVerified: true
         password: "12345678"
@@ -256,24 +256,21 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: Keycloak
       metadata:
-        annotations:
-          meta.helm.sh/release-name: keycloak
-          meta.helm.sh/release-namespace: my-keycloak-ns
+        name: my-keycloak
       spec:
         secret: my-keycloak-secret
-          url: https://test.com
-          users:
-            - realmRoles:
-                - administrator
-              username: test@net.com
-            - realmRoles:
-                - developer
-              username: test-dev@net.com
+        url: https://example.com
+        users:
+        - realmRoles:
+          - administrator
+          username: test@example.com
+        - realmRoles:
+          - developer
+          username: test-dev@example.com
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakRealmRoleBatch
       metadata:
-        meta.helm.sh/release-name: keycloak-operator
-        meta.helm.sh/release-namespace: edp-delivery
+        name: myrole
       spec:
         realm: main
         roles:
@@ -289,17 +286,17 @@ annotations:
             description: default administrator role
             isDefault: false
             name: administrator
-      - apiVersion: v1.edp.epam.com/v1alpha1
-        kind: KeycloakRealmRole
-        metadata:
-          generation: 1
-        spec:
-          attributes: null
-          composite: true
-          composites: null
-          description: default developer role
-          name: developer
-          realm: main
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: KeycloakRealmRole
+      metadata:
+        name: realmrole
+      spec:
+        attributes: null
+        composite: true
+        composites: null
+        description: default developer role
+        name: developer
+        realm: main
   artifacthub.io/links: |
     - name: EDP Documentation
       url: https://epam.github.io/edp-install/
