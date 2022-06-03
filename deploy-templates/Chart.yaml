@@ -31,6 +31,8 @@ annotations:
   artifacthub.io/images: |
     - name: keycloak-operator:1.11.0
       image: epamedp/keycloak-operator:1.11.0
+    - name: alpine:3.15.4
+      image: alpine:3.15.4
   artifacthub.io/operatorCapabilities: Auto Pilot
   artifacthub.io/crds: |
     - kind: Keycloak
@@ -92,7 +94,7 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakClientScope
       metadata:
-      name: groups
+        name: groups
       spec:
         name: groups
         realm: main
@@ -114,18 +116,20 @@ annotations:
         name: argocd
       spec:
         advancedProtocolMappers: true
-        audRequired: true
         clientId: agocd
         directAccess: true
         public: false
         secret: ''
         targetRealm: edp-delivery-main
         webUrl: https://argocd.example.com
+        defaultClientScopes:
+          - argocd_groups
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakRealmGroup
       metadata:
         name: argocd-admins
       spec:
+        clientRoles: null
         name: ArgoCDAdmins
         realm: main
     - apiVersion: v1.edp.epam.com/v1alpha1
@@ -147,9 +151,9 @@ annotations:
             priority: 1
             requirement: "REQUIRED"
             authenticatorConfig:
-              alias: diia
+              alias: my-alias
               config:
-                "defaultProvider": "oidc"
+                "defaultProvider": "my-alias"
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: KeycloakRealmComponent
       metadata:
@@ -215,6 +219,11 @@ annotations:
         ssoRealmName: openshift
         ssoRealmEnabled: false # new one
         ssoAutoRedirectEnabled: false # new one
+        passwordPolicy:
+          - type: "forceExpiredPasswordChange"
+            value: "365"
+          - type: "length"
+            value: "8"
         realmEventConfig:
           adminEventsDetailsEnabled: false
           adminEventsEnabled: true
@@ -234,14 +243,60 @@ annotations:
         username: "john.snow13"
         firstName: "John"
         lastName: "Snow"
-        email: "john.snow13@gmail.com"
+        email: "john.snow13@example.com"
         enabled: true
         emailVerified: true
+        password: "12345678"
+        keepResource: true
         requiredUserActions:
           - UPDATE_PASSWORD
         attributes:
           foo: "bar"
           baz: "jazz"
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: Keycloak
+      metadata:
+        name: my-keycloak
+      spec:
+        secret: my-keycloak-secret
+        url: https://example.com
+        users:
+        - realmRoles:
+          - administrator
+          username: test@example.com
+        - realmRoles:
+          - developer
+          username: test-dev@example.com
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: KeycloakRealmRoleBatch
+      metadata:
+        name: myrole
+      spec:
+        realm: main
+        roles:
+          - attributes: null
+            composite: true
+            composites: null
+            description: default developer role
+            isDefault: false
+            name: developer
+          - attributes: null
+            composite: true
+            composites: null
+            description: default administrator role
+            isDefault: false
+            name: administrator
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: KeycloakRealmRole
+      metadata:
+        name: realmrole
+      spec:
+        attributes: null
+        composite: true
+        composites: null
+        description: default developer role
+        name: developer
+        realm: main
   artifacthub.io/links: |
     - name: EDP Documentation
       url: https://epam.github.io/edp-install/
