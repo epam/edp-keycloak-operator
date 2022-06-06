@@ -8,25 +8,57 @@ import (
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
 // KeycloakRealmSpec defines the desired state of KeycloakRealm
-// +k8s:openapi-gen=true
 type KeycloakRealmSpec struct {
-	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
-	RealmName                string             `json:"realmName"`
-	KeycloakOwner            string             `json:"keycloakOwner,omitempty"`
-	SsoRealmName             string             `json:"ssoRealmName,omitempty"`
-	SsoRealmEnabled          *bool              `json:"ssoRealmEnabled,omitempty"` // default (nil, not set) must be true
-	SsoAutoRedirectEnabled   *bool              `json:"ssoAutoRedirectEnabled,omitempty"`
-	Users                    []User             `json:"users,omitempty"`
-	SSORealmMappers          *[]SSORealmMapper  `json:"ssoRealmMappers,omitempty"`
-	BrowserFlow              *string            `json:"browserFlow"`
-	Themes                   *RealmThemes       `json:"themes,omitempty"`
-	BrowserSecurityHeaders   *map[string]string `json:"browserSecurityHeaders,omitempty"`
-	ID                       *string            `json:"id"`
-	RealmEventConfig         *RealmEventConfig  `json:"realmEventConfig"`
-	DisableCentralIDPMappers bool               `json:"disableCentralIDPMappers"`
-	PasswordPolicies         []PasswordPolicy   `json:"passwordPolicy"`
+	RealmName string `json:"realmName"`
+
+	// +optional
+	KeycloakOwner string `json:"keycloakOwner,omitempty"`
+
+	// +optional
+	SsoRealmName string `json:"ssoRealmName,omitempty"`
+
+	// +nullable
+	// +optional
+	SsoRealmEnabled *bool `json:"ssoRealmEnabled,omitempty"`
+
+	// +nullable
+	// +optional
+	SsoAutoRedirectEnabled *bool `json:"ssoAutoRedirectEnabled,omitempty"`
+
+	// +nullable
+	// +optional
+	Users []User `json:"users,omitempty"`
+
+	// +nullable
+	// +optional
+	SSORealmMappers *[]SSORealmMapper `json:"ssoRealmMappers,omitempty"`
+
+	// +nullable
+	// +optional
+	BrowserFlow *string `json:"browserFlow,omitempty"`
+
+	// +nullable
+	// +optional
+	Themes *RealmThemes `json:"themes,omitempty"`
+
+	// +nullable
+	// +optional
+	BrowserSecurityHeaders *map[string]string `json:"browserSecurityHeaders,omitempty"`
+
+	// +nullable
+	// +optional
+	ID *string `json:"id,omitempty"`
+
+	// +nullable
+	// +optional
+	RealmEventConfig *RealmEventConfig `json:"realmEventConfig,omitempty"`
+
+	// +optional
+	DisableCentralIDPMappers bool `json:"disableCentralIDPMappers,omitempty"`
+
+	// +nullable
+	// +optional
+	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
 }
 
 type PasswordPolicy struct {
@@ -35,20 +67,47 @@ type PasswordPolicy struct {
 }
 
 type RealmEventConfig struct {
-	AdminEventsDetailsEnabled bool     `json:"adminEventsDetailsEnabled"`
-	AdminEventsEnabled        bool     `json:"adminEventsEnabled"`
-	EnabledEventTypes         []string `json:"enabledEventTypes"`
-	EventsEnabled             bool     `json:"eventsEnabled"`
-	EventsExpiration          int      `json:"eventsExpiration"`
-	EventsListeners           []string `json:"eventsListeners"`
+	// +optional
+	AdminEventsDetailsEnabled bool `json:"adminEventsDetailsEnabled,omitempty"`
+
+	// +optional
+	AdminEventsEnabled bool `json:"adminEventsEnabled,omitempty"`
+
+	// +optional
+	// +nullable
+	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
+
+	// +optional
+	EventsEnabled bool `json:"eventsEnabled,omitempty"`
+
+	// +optional
+	EventsExpiration int `json:"eventsExpiration,omitempty"`
+
+	// +optional
+	// +nullable
+	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 
 type RealmThemes struct {
-	LoginTheme                  *string `json:"loginTheme"`
-	AccountTheme                *string `json:"accountTheme"`
-	AdminConsoleTheme           *string `json:"adminConsoleTheme"`
-	EmailTheme                  *string `json:"emailTheme"`
-	InternationalizationEnabled *bool   `json:"internationalizationEnabled"`
+	// +nullable
+	// +optional
+	LoginTheme *string `json:"loginTheme"`
+
+	// +nullable
+	// +optional
+	AccountTheme *string `json:"accountTheme"`
+
+	// +nullable
+	// +optional
+	AdminConsoleTheme *string `json:"adminConsoleTheme"`
+
+	// +nullable
+	// +optional
+	EmailTheme *string `json:"emailTheme"`
+
+	// +nullable
+	// +optional
+	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
 }
 
 func (in KeycloakRealmSpec) SSOEnabled() bool {
@@ -60,20 +119,27 @@ func (in KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
 }
 
 type SSORealmMapper struct {
-	IdentityProviderMapper string            `json:"identityProviderMapper"`
-	Name                   string            `json:"name"`
-	Config                 map[string]string `json:"config"`
+	// +optional
+	IdentityProviderMapper string `json:"identityProviderMapper,omitempty"`
+
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// +nullable
+	// +optional
+	Config map[string]string `json:"config,omitempty"`
 }
 
 // KeycloakRealmStatus defines the observed state of KeycloakRealm
-// +k8s:openapi-gen=true
 type KeycloakRealmStatus struct {
-	Available    bool   `json:"available,omitempty"`
-	FailureCount int64  `json:"failureCount"`
-	Value        string `json:"value"`
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// +optional
+	Available bool `json:"available,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// +optional
+	Value string `json:"value,omitempty"`
 }
 
 func (in KeycloakRealm) GetFailureCount() int64 {
@@ -84,11 +150,11 @@ func (in *KeycloakRealm) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 
 // KeycloakRealm is the Schema for the keycloakrealms API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
 type KeycloakRealm struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -97,13 +163,14 @@ type KeycloakRealm struct {
 	Status KeycloakRealmStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // KeycloakRealmList contains a list of KeycloakRealm
 type KeycloakRealmList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakRealm `json:"items"`
+
+	Items []KeycloakRealm `json:"items"`
 }
 
 func init() {

@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -33,11 +33,11 @@ type TestControllerSuite struct {
 	namespace   string
 	scheme      *runtime.Scheme
 	realmName   string
-	kcRealmUser *v1alpha1.KeycloakRealmUser
+	kcRealmUser *keycloakApi.KeycloakRealmUser
 	k8sClient   client.Client
 	helper      *helper.Mock
 	logger      *mock.Logger
-	kcRealm     *v1alpha1.KeycloakRealm
+	kcRealm     *keycloakApi.KeycloakRealm
 	kClient     *adapter.Mock
 	adapterUser *adapter.KeycloakUser
 }
@@ -45,31 +45,31 @@ type TestControllerSuite struct {
 func (e *TestControllerSuite) SetupTest() {
 	e.namespace = "ns"
 	e.scheme = runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(e.scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(e.scheme))
 	e.realmName = "realmName"
-	e.kcRealmUser = &v1alpha1.KeycloakRealmUser{
+	e.kcRealmUser = &keycloakApi.KeycloakRealmUser{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "user321",
 			Namespace: e.namespace,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakRealmUser",
-			APIVersion: "v1.edp.epam.com/v1alpha1",
+			APIVersion: "v1.edp.epam.com/v1",
 		},
-		Spec: v1alpha1.KeycloakRealmUserSpec{
+		Spec: keycloakApi.KeycloakRealmUserSpec{
 			Email:    "usr@gmail.com",
 			Username: "user.g1",
 			Realm:    e.realmName,
 		},
-		Status: v1alpha1.KeycloakRealmUserStatus{
+		Status: keycloakApi.KeycloakRealmUserStatus{
 			Value: helper.StatusOK,
 		},
 	}
 	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
 	e.helper = &helper.Mock{}
 	e.logger = &mock.Logger{}
-	e.kcRealm = &v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	e.kcRealm = &keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: e.realmName,
 		},
 	}
@@ -105,7 +105,7 @@ func (e *TestControllerSuite) TestNewReconcile() {
 	}})
 	assert.NoError(e.T(), err)
 
-	var checkUser v1alpha1.KeycloakRealmUser
+	var checkUser keycloakApi.KeycloakRealmUser
 	err = e.k8sClient.Get(context.Background(),
 		types.NamespacedName{Name: e.kcRealmUser.Name, Namespace: e.kcRealmUser.Namespace}, &checkUser)
 	assert.Error(e.T(), err, "user is not deleted")
@@ -137,7 +137,7 @@ func (e *TestControllerSuite) TestReconcileKeep() {
 	}})
 	assert.NoError(e.T(), err)
 
-	var checkUser v1alpha1.KeycloakRealmUser
+	var checkUser keycloakApi.KeycloakRealmUser
 	err = e.k8sClient.Get(context.Background(),
 		types.NamespacedName{Name: e.kcRealmUser.Name, Namespace: e.kcRealmUser.Namespace}, &checkUser)
 	assert.NoError(e.T(), err)

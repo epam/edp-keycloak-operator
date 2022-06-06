@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
@@ -14,7 +14,7 @@ type ServiceAccount struct {
 	next Element
 }
 
-func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	if keycloakClient.Spec.ServiceAccount == nil || !keycloakClient.Spec.ServiceAccount.Enabled {
 		return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 	}
@@ -27,7 +27,7 @@ func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *v1v1alpha1.
 	for _, v := range keycloakClient.Spec.ServiceAccount.ClientRoles {
 		clientRoles[v.ClientID] = v.Roles
 	}
-	addOnly := keycloakClient.GetReconciliationStrategy() == v1v1alpha1.ReconciliationStrategyAddOnly
+	addOnly := keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly
 
 	if err := adapterClient.SyncServiceAccountRoles(keycloakClient.Spec.TargetRealm,
 		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles, addOnly); err != nil {

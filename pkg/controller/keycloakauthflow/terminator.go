@@ -7,20 +7,20 @@ import (
 	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 type terminator struct {
-	realm            *v1alpha1.KeycloakRealm
+	realm            *keycloakApi.KeycloakRealm
 	kClient          keycloak.Client
 	log              logr.Logger
 	k8sClient        client.Client
 	keycloakAuthFlow *adapter.KeycloakAuthFlow
 }
 
-func makeTerminator(realm *v1alpha1.KeycloakRealm, authFlow *adapter.KeycloakAuthFlow, k8sClient client.Client,
+func makeTerminator(realm *keycloakApi.KeycloakRealm, authFlow *adapter.KeycloakAuthFlow, k8sClient client.Client,
 	kClient keycloak.Client, log logr.Logger) *terminator {
 
 	return &terminator{
@@ -39,7 +39,7 @@ func (t *terminator) GetLogger() logr.Logger {
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	logger := t.log.WithValues("realm name", t.realm.Spec.RealmName, "flow alias", t.keycloakAuthFlow.Alias)
 
-	var authFlowList v1alpha1.KeycloakAuthFlowList
+	var authFlowList keycloakApi.KeycloakAuthFlowList
 	if err := t.k8sClient.List(ctx, &authFlowList); err != nil {
 		return errors.Wrap(err, "unable to list auth flows")
 	}

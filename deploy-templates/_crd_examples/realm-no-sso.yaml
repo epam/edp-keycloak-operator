@@ -1,4 +1,4 @@
-apiVersion: v1.edp.epam.com/v1alpha1
+apiVersion: v1.edp.epam.com/v1
 kind: KeycloakRealm
 metadata:
   name: d2-id-k8s-realm-name

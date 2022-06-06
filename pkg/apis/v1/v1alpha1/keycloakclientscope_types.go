@@ -2,9 +2,9 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakClientScope struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -14,9 +14,14 @@ type KeycloakClientScope struct {
 }
 
 type KeycloakClientScopeStatus struct {
-	ID           string `json:"id"`
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	ID string `json:"id,omitempty"`
+
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
 func (in *KeycloakClientScope) K8SParentRealmName() (string, error) {
@@ -40,20 +45,36 @@ func (in *KeycloakClientScope) SetStatus(value string) {
 }
 
 type KeycloakClientScopeSpec struct {
-	Name            string            `json:"name"`
-	Realm           string            `json:"realm"`
-	Description     string            `json:"description"`
-	Protocol        string            `json:"protocol"`
-	Attributes      map[string]string `json:"attributes"`
-	Default         bool              `json:"default"`
-	ProtocolMappers []ProtocolMapper  `json:"protocolMappers"`
+	// Name of keycloak client scope
+	Name string `json:"name"`
+
+	// Realm is name of keycloak realm
+	Realm string `json:"realm"`
+
+	// Protocol is SSO protocol configuration which is being supplied by this client scope
+	Protocol string `json:"protocol"`
+
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// +nullable
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// +optional
+	Default bool `json:"default,omitempty"`
+
+	// +nullable
+	// +optional
+	ProtocolMappers []ProtocolMapper `json:"protocolMappers,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakClientScopeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakClientScope `json:"items"`
+
+	Items []KeycloakClientScope `json:"items"`
 }
 
 func init() {

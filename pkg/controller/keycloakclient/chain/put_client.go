@@ -12,7 +12,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -24,7 +24,7 @@ type PutClient struct {
 	next Element
 }
 
-func (el *PutClient) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	id, err := el.putKeycloakClient(keycloakClient, adapterClient)
 	if err != nil {
 		return errors.Wrap(err, "unable to put keycloak client")
@@ -34,7 +34,7 @@ func (el *PutClient) Serve(ctx context.Context, keycloakClient *v1v1alpha1.Keycl
 	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) (string, error) {
+func (el *PutClient) putKeycloakClient(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) (string, error) {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
@@ -67,7 +67,7 @@ func (el *PutClient) putKeycloakClient(keycloakClient *v1v1alpha1.KeycloakClient
 	return id, nil
 }
 
-func (el *PutClient) convertCrToDto(keycloakClient *v1v1alpha1.KeycloakClient) (*dto.Client, error) {
+func (el *PutClient) convertCrToDto(keycloakClient *keycloakApi.KeycloakClient) (*dto.Client, error) {
 	if keycloakClient.Spec.Public {
 		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "")
 		return res, nil
@@ -90,7 +90,7 @@ func (el *PutClient) convertCrToDto(keycloakClient *v1v1alpha1.KeycloakClient) (
 	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret), nil
 }
 
-func (el *PutClient) getSecret(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
+func (el *PutClient) getSecret(keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	var clientSecret coreV1.Secret
 
 	if err := el.Client.Get(context.TODO(), types.NamespacedName{
@@ -104,7 +104,7 @@ func (el *PutClient) getSecret(keycloakClient *v1v1alpha1.KeycloakClient) (strin
 	return string(clientSecret.Data["clientSecret"]), nil
 }
 
-func (el *PutClient) generateSecret(keycloakClient *v1v1alpha1.KeycloakClient) (string, error) {
+func (el *PutClient) generateSecret(keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	var clientSecret coreV1.Secret
 	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
 	//TODO: get context from controller

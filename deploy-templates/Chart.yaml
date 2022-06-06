@@ -36,62 +36,62 @@ annotations:
   artifacthub.io/operatorCapabilities: Auto Pilot
   artifacthub.io/crds: |
     - kind: Keycloak
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloak
       displayName: keycloak
       description: Keycloak instance baseline configuraion
     - kind: KeycloakAuthFlow
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakauthflows
       displayName: keycloakauthflows
       description: Keycloak AuthFlow Management
     - kind: KeycloakClient
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakpermissiontemplate
       displayName: KeycloakClient
       description: Keycloak client Management
     - kind: KeycloakClientScope
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakclientscope
       displayName: KeycloakClientScope
       description: Keycloak Client Scope Management
     - kind: KeycloakRealm
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealm
       displayName: KeycloakRealm
       description: Keycloak Realm Management
     - kind: KeycloakRealmComponent
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmcomponent
       displayName: KeycloakRealmComponent
       description: Keycloak Realm Component Management
     - kind: KeycloakRealmGroup
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmgroup
       displayName: KeycloakRealmGroup
       description: Keycloak Realm Group Management
     - kind: KeycloakRealmIdentityProvider
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmidentityprovider
       displayName: KeycloakRealmIdentityProvider
       description: Keycloak Realm Indentity Provider Management
     - kind: KeycloakRealmRole
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmrole
       displayName: KeycloakRealmRole
       description: Keycloak Realm Role Management
     - kind: KeycloakRealmRoleBatch
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmrolebatch
       displayName: KeycloakRealmRoleBatch
       description: Keycloak Realm Role Management in a batch mode
     - kind: KeycloakRealmUser
-      version: v1.edp.epam.com/v1alpha1
+      version: v1.edp.epam.com/v1
       name: keycloakrealmuser
       displayName: KeycloakRealmUser
       description: Keycloak Realm User Management
   artifacthub.io/crdsExamples: |
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakClientScope
       metadata:
         name: groups
@@ -110,7 +110,7 @@ annotations:
               "full.path": "false"
               "id.token.claim": "true"
               "userinfo.token.claim": "true"
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakClient
       metadata:
         name: argocd
@@ -124,7 +124,7 @@ annotations:
         webUrl: https://argocd.example.com
         defaultClientScopes:
           - argocd_groups
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmGroup
       metadata:
         name: argocd-admins
@@ -132,7 +132,7 @@ annotations:
         clientRoles: null
         name: ArgoCDAdmins
         realm: main
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakAuthFlow
       metadata:
         name: d1-auth-flow
@@ -154,7 +154,7 @@ annotations:
               alias: my-alias
               config:
                 "defaultProvider": "my-alias"
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmComponent
       metadata:
         name: kerberos-test
@@ -177,7 +177,7 @@ annotations:
           priority: ["0"]
           serverPrincipal: ["srv-principal-test"]
           updateProfileFirstLogin: ["true"]
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmIdentityProvider
       metadata:
         name: instagram-test
@@ -208,7 +208,7 @@ annotations:
               attribute: "foo"
               "attribute.value": "bar"
               syncMode: "IMPORT"
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealm
       metadata:
         name: d2-id-k8s-realm-name
@@ -234,7 +234,7 @@ annotations:
           eventsExpiration: 15000
           eventsListeners:
             - jboss-logging
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmUser
       metadata:
         name: d1-user-test1
@@ -253,7 +253,7 @@ annotations:
         attributes:
           foo: "bar"
           baz: "jazz"
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: Keycloak
       metadata:
         name: my-keycloak
@@ -267,7 +267,7 @@ annotations:
         - realmRoles:
           - developer
           username: test-dev@example.com
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmRoleBatch
       metadata:
         name: myrole
@@ -286,7 +286,7 @@ annotations:
             description: default administrator role
             isDefault: false
             name: administrator
-    - apiVersion: v1.edp.epam.com/v1alpha1
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmRole
       metadata:
         name: realmrole

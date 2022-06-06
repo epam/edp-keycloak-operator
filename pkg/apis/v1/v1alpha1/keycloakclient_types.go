@@ -9,27 +9,60 @@ const (
 	ReconciliationStrategyAddOnly = "addOnly"
 )
 
-// EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
-// NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
-
 // KeycloakClientSpec defines the desired state of KeycloakClient
-// +k8s:openapi-gen=true
 type KeycloakClientSpec struct {
-	TargetRealm             string            `json:"targetRealm"`
-	Secret                  string            `json:"secret"`
-	RealmRoles              *[]RealmRole      `json:"realmRoles,omitempty"`
-	Public                  bool              `json:"public"`
-	ClientId                string            `json:"clientId"`
-	WebUrl                  string            `json:"webUrl"`
-	Protocol                *string           `json:"protocol,omitempty"`
-	Attributes              map[string]string `json:"attributes,omitempty"`
-	DirectAccess            bool              `json:"directAccess"`
-	AdvancedProtocolMappers bool              `json:"advancedProtocolMappers"`
-	ClientRoles             []string          `json:"clientRoles,omitempty"`
-	ProtocolMappers         *[]ProtocolMapper `json:"protocolMappers,omitempty"`
-	ServiceAccount          *ServiceAccount   `json:"serviceAccount,omitempty"`
-	FrontChannelLogout      bool              `json:"frontChannelLogout,omitempty"`
-	ReconciliationStrategy  string            `json:"reconciliationStrategy,omitempty"`
+	// ClientId is a unique keycloak client ID referenced in URI and tokens.
+	ClientId string `json:"clientId"`
+
+	// +optional
+	TargetRealm string `json:"targetRealm,omitempty"`
+
+	// +optional
+	Secret string `json:"secret,omitempty"`
+
+	// +nullable
+	// +optional
+	RealmRoles *[]RealmRole `json:"realmRoles,omitempty"`
+
+	// +optional
+	Public bool `json:"public,omitempty"`
+
+	// +optional
+	WebUrl string `json:"webUrl,omitempty"`
+
+	// +nullable
+	// +optional
+	Protocol *string `json:"protocol,omitempty"`
+
+	// +nullable
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// +optional
+	DirectAccess bool `json:"directAccess,omitempty"`
+
+	// +optional
+	AdvancedProtocolMappers bool `json:"advancedProtocolMappers,omitempty"`
+
+	// +nullable
+	// +optional
+	ClientRoles []string `json:"clientRoles,omitempty"`
+
+	// +nullable
+	// +optional
+	ProtocolMappers *[]ProtocolMapper `json:"protocolMappers,omitempty"`
+
+	// +nullable
+	// +optional
+	ServiceAccount *ServiceAccount `json:"serviceAccount,omitempty"`
+
+	// +optional
+	FrontChannelLogout bool `json:"frontChannelLogout,omitempty"`
+
+	// +optional
+	// +kubebuilder:validation:Enum=full;addOnly
+	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
+
 	// A list of default client scopes for a keycloak client.
 	// +nullable
 	// +optional
@@ -44,42 +77,66 @@ func (in KeycloakClient) GetReconciliationStrategy() string {
 	return in.Spec.ReconciliationStrategy
 }
 
-// +k8s:openapi-gen=true
 type ServiceAccount struct {
-	Enabled     bool              `json:"enabled"`
-	RealmRoles  []string          `json:"realmRoles"`
-	ClientRoles []ClientRole      `json:"clientRoles"`
-	Attributes  map[string]string `json:"attributes"`
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// +nullable
+	// +optional
+	RealmRoles []string `json:"realmRoles"`
+
+	// +nullable
+	// +optional
+	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
+
+	// +nullable
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
 }
 
-// +k8s:openapi-gen=true
 type ClientRole struct {
-	ClientID string   `json:"clientId"`
-	Roles    []string `json:"roles"`
+	ClientID string `json:"clientId"`
+
+	// +nullable
+	// +optional
+	Roles []string `json:"roles,omitempty"`
 }
 
 type ProtocolMapper struct {
-	Name           string            `json:"name"`
-	Protocol       string            `json:"protocol"`
-	ProtocolMapper string            `json:"protocolMapper"`
-	Config         map[string]string `json:"config,omitempty"`
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// +optional
+	Protocol string `json:"protocol,omitempty"`
+
+	// +optional
+	ProtocolMapper string `json:"protocolMapper,omitempty"`
+
+	// +nullable
+	// +optional
+	Config map[string]string `json:"config,omitempty"`
 }
 
 type RealmRole struct {
-	Name      string `json:"name"`
+	// +optional
+	Name string `json:"name,omitempty"`
+
 	Composite string `json:"composite"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient
-// +k8s:openapi-gen=true
 type KeycloakClientStatus struct {
-	Value            string `json:"value"`
-	ClientID         string `json:"clientId"`
-	FailureCount     int64  `json:"failureCount"`
-	ClientSecretName string `json:"clientSecretName"`
-	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
-	// Important: Run "operator-sdk generate k8s" to regenerate code after modifying this file
-	// Add custom validation using kubebuilder tags: https://book-v1.book.kubebuilder.io/beyond_basics/generating_crd.html
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	ClientID string `json:"clientId,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// +optional
+	ClientSecretName string `json:"clientSecretName,omitempty"`
 }
 
 func (in KeycloakClient) GetFailureCount() int64 {
@@ -98,11 +155,11 @@ func (in *KeycloakClient) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 
 // KeycloakClient is the Schema for the keycloakclients API
-// +k8s:openapi-gen=true
-// +kubebuilder:subresource:status
 type KeycloakClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -111,13 +168,14 @@ type KeycloakClient struct {
 	Status KeycloakClientStatus `json:"status,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 
 // KeycloakClientList contains a list of KeycloakClient
 type KeycloakClientList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakClient `json:"items"`
+
+	Items []KeycloakClient `json:"items"`
 }
 
 func init() {

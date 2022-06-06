@@ -13,7 +13,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -29,20 +29,20 @@ func TestNewReconcile_Init(t *testing.T) {
 func TestNewReconcile(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	flow := v1alpha1.KeycloakAuthFlow{
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",
 			Namespace: ns,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakAuthFlow",
-			APIVersion: "v1.edp.epam.com/v1alpha1",
+			APIVersion: "v1.edp.epam.com/v1",
 		},
-		Spec: v1alpha1.KeycloakAuthFlowSpec{
+		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias: "flow123",
 		},
-		Status: v1alpha1.KeycloakAuthFlowStatus{
+		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: helper.StatusOK,
 		},
 	}
@@ -50,8 +50,8 @@ func TestNewReconcile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
 	h := helper.Mock{}
 	log := mock.Logger{}
-	realm := v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm11",
 		},
 	}
@@ -94,20 +94,20 @@ func TestNewReconcile(t *testing.T) {
 func TestReconcile_Reconcile_Failure(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	flow := v1alpha1.KeycloakAuthFlow{
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",
 			Namespace: ns,
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakAuthFlow",
-			APIVersion: "v1.edp.epam.com/v1alpha1",
+			APIVersion: "v1.edp.epam.com/v1",
 		},
-		Spec: v1alpha1.KeycloakAuthFlowSpec{
+		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias: "flow123",
 		},
-		Status: v1alpha1.KeycloakAuthFlowStatus{
+		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: "unable to sync auth flow: fatal",
 		},
 	}
@@ -115,8 +115,8 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
 	h := helper.Mock{}
 	log := mock.Logger{}
-	realm := v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm11",
 		},
 	}

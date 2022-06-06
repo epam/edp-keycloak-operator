@@ -2,9 +2,9 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakAuthFlow struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -13,38 +13,69 @@ type KeycloakAuthFlow struct {
 	Status KeycloakAuthFlowStatus `json:"status,omitempty"`
 }
 
-// +k8s:openapi-gen=true
 type KeycloakAuthFlowSpec struct {
-	Realm                    string                    `json:"realm"` //realm name
-	Alias                    string                    `json:"alias"`
-	Description              string                    `json:"description"`
-	ProviderID               string                    `json:"providerId"`
-	TopLevel                 bool                      `json:"topLevel"`
-	BuiltIn                  bool                      `json:"builtIn"`
-	AuthenticationExecutions []AuthenticationExecution `json:"authenticationExecutions"`
-	ParentName               string                    `json:"parentName"`
-	ChildType                string                    `json:"childType"`
+	// Realm is name of keycloak realm
+	Realm string `json:"realm"`
+
+	// Alias is display name for authentication flow
+	Alias string `json:"alias"`
+
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// ProviderID for root auth flow and provider for child auth flows
+	ProviderID string `json:"providerId"`
+	TopLevel   bool   `json:"topLevel"`
+	BuiltIn    bool   `json:"builtIn"`
+
+	// +nullable
+	// +optional
+	AuthenticationExecutions []AuthenticationExecution `json:"authenticationExecutions,omitempty"`
+
+	// +optional
+	ParentName string `json:"parentName,omitempty"`
+
+	// ChildType is type for auth flow if it has a parent, available options: basic-flow, form-flow
+	// +optional
+	ChildType string `json:"childType,omitempty"`
 }
 
-// +k8s:openapi-gen=true
 type AuthenticationExecution struct {
-	Authenticator       string               `json:"authenticator"`
-	AuthenticatorConfig *AuthenticatorConfig `json:"authenticatorConfig"`
-	AuthenticatorFlow   bool                 `json:"authenticatorFlow"`
-	Priority            int                  `json:"priority"`
-	Requirement         string               `json:"requirement"`
-	Alias               string               `json:"alias"`
+	// +optional
+	Authenticator string `json:"authenticator,omitempty"`
+
+	// +nullable
+	// +optional
+	AuthenticatorConfig *AuthenticatorConfig `json:"authenticatorConfig,omitempty"`
+
+	// +optional
+	AuthenticatorFlow bool `json:"authenticatorFlow,omitempty"`
+
+	// +optional
+	Priority int `json:"priority,omitempty"`
+
+	// +optional
+	Requirement string `json:"requirement,omitempty"`
+
+	// +optional
+	Alias string `json:"alias,omitempty"`
 }
 
-// +k8s:openapi-gen=true
 type AuthenticatorConfig struct {
-	Alias  string            `json:"alias"`
-	Config map[string]string `json:"config"`
+	// +optional
+	Alias string `json:"alias,omitempty"`
+
+	// +optional
+	// +nullable
+	Config map[string]string `json:"config,omitempty"`
 }
 
 type KeycloakAuthFlowStatus struct {
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
 func (in *KeycloakAuthFlow) K8SParentRealmName() (string, error) {
@@ -67,11 +98,12 @@ func (in *KeycloakAuthFlow) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakAuthFlowList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakAuthFlow `json:"items"`
+
+	Items []KeycloakAuthFlow `json:"items"`
 }
 
 func init() {

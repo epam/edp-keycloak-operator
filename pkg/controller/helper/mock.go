@@ -5,13 +5,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/stretchr/testify/mock"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
 type Mock struct {
@@ -36,7 +36,7 @@ func (m *Mock) UpdateStatus(obj client.Object) error {
 	return m.Called(obj).Error(0)
 }
 
-func (m *Mock) CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error) {
+func (m *Mock) CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error) {
 	called := m.Called(realm)
 	if err := called.Error(1); err != nil {
 		return nil, err
@@ -54,13 +54,13 @@ func (m *Mock) CreateKeycloakClient(ctx context.Context, url, user, password str
 	return called.Get(0).(keycloak.Client), nil
 }
 
-func (m *Mock) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
+func (m *Mock) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	called := m.Called(object, objectMeta)
 	if err := called.Error(1); err != nil {
 		return nil, err
 	}
 
-	return called.Get(0).(*v1alpha1.KeycloakRealm), nil
+	return called.Get(0).(*keycloakApi.KeycloakRealm), nil
 }
 
 func (m *Mock) GetScheme() *runtime.Scheme {
@@ -71,7 +71,7 @@ func (m *Mock) IsOwner(slave client.Object, master client.Object) bool {
 	return m.Called(slave, master).Bool(0)
 }
 
-func (m *Mock) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error) {
+func (m *Mock) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error) {
 	called := m.Called(kc)
 	if err := called.Error(1); err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func (m *Mock) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1al
 	return called.Get(0).(keycloak.Client), nil
 }
 
-func (m *Mock) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error) {
+func (m *Mock) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error) {
 	called := m.Called(kc)
 	if err := called.Error(1); err != nil {
 		return nil, err

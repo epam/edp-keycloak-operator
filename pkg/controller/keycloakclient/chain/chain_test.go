@@ -6,11 +6,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,15 +13,21 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestPrivateClientSecret(t *testing.T) {
-	kc := v1alpha1.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
-			RealmRoles: &[]v1alpha1.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
+	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
+		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
+			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: false, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
-			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]v1alpha1.ProtocolMapper{
+			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]keycloakApi.ProtocolMapper{
 				{Name: "bar", Config: map[string]string{"bar": "1"}},
 				{Name: "foo", Config: map[string]string{"foo": "2"}},
 			},
@@ -70,7 +71,7 @@ func TestPrivateClientSecret(t *testing.T) {
 
 	var (
 		checkSecret corev1.Secret
-		checkClient v1alpha1.KeycloakClient
+		checkClient keycloakApi.KeycloakClient
 	)
 
 	if err := client.Get(context.Background(), types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace},
@@ -93,23 +94,23 @@ func TestPrivateClientSecret(t *testing.T) {
 }
 
 func TestMake(t *testing.T) {
-	k := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: "namespace"},
-		Spec:   v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"},
-		Status: v1alpha1.KeycloakStatus{Connected: true}}
+	k := keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: "namespace"},
+		Spec:   keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"},
+		Status: keycloakApi.KeycloakStatus{Connected: true}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
-	kr := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
+	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test-keycloak", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "namespace.main"},
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "namespace.main"},
 	}
 	delTime := metav1.Time{Time: time.Now()}
-	kc := v1alpha1.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
+	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
 		DeletionTimestamp: &delTime},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
-			RealmRoles: &[]v1alpha1.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
+		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
+			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: true, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
-			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]v1alpha1.ProtocolMapper{
+			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]keycloakApi.ProtocolMapper{
 				{Name: "bar", Config: map[string]string{"bar": "1"}},
 				{Name: "foo", Config: map[string]string{"foo": "2"}},
 			},
@@ -117,7 +118,7 @@ func TestMake(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &v1alpha1.KeycloakRealm{}, &v1alpha1.KeycloakRealmList{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &keycloakApi.KeycloakRealm{}, &keycloakApi.KeycloakRealmList{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &kc).Build()
 	h := helper.MakeHelper(client, s, nil)
 
@@ -154,7 +155,7 @@ func TestMake(t *testing.T) {
 
 func TestPutClientScope_Serve(t *testing.T) {
 	pcs := PutClientScope{}
-	kc := v1alpha1.KeycloakClient{Spec: v1alpha1.KeycloakClientSpec{ClientId: "clid1", TargetRealm: "realm1"}}
+	kc := keycloakApi.KeycloakClient{Spec: keycloakApi.KeycloakClientSpec{ClientId: "clid1", TargetRealm: "realm1"}}
 	kClient := new(adapter.Mock)
 	adapterScope := adapter.ClientScope{ID: "scope-id1"}
 

@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/jarcoal/httpmock"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {

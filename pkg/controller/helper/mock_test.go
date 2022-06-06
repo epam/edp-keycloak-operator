@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 func TestMock_CreateKeycloakClient(t *testing.T) {
@@ -27,7 +28,7 @@ func TestMock_CreateKeycloakClient(t *testing.T) {
 
 func TestMock_CreateKeycloakClientForRealm(t *testing.T) {
 	m := Mock{}
-	r := v1alpha1.KeycloakRealm{}
+	r := keycloakApi.KeycloakRealm{}
 	m.On("CreateKeycloakClientForRealm", &r).Return(&adapter.Mock{}, nil).Once()
 	if _, err := m.CreateKeycloakClientForRealm(context.Background(), &r); err != nil {
 		t.Fatal(err)
@@ -41,7 +42,7 @@ func TestMock_CreateKeycloakClientForRealm(t *testing.T) {
 
 func TestMock_CreateKeycloakClientFromLoginPassword(t *testing.T) {
 	m := Mock{}
-	kc := v1alpha1.Keycloak{}
+	kc := keycloakApi.Keycloak{}
 	m.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&adapter.Mock{}, nil).Once()
 	if _, err := m.CreateKeycloakClientFromLoginPassword(context.Background(), &kc); err != nil {
 		t.Fatal(err)
@@ -55,7 +56,7 @@ func TestMock_CreateKeycloakClientFromLoginPassword(t *testing.T) {
 
 func TestMock_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	m := Mock{}
-	kc := v1alpha1.Keycloak{}
+	kc := keycloakApi.Keycloak{}
 	m.On("CreateKeycloakClientFromTokenSecret", &kc).Return(&adapter.Mock{}, nil).Once()
 	if _, err := m.CreateKeycloakClientFromTokenSecret(context.Background(), &kc); err != nil {
 		t.Fatal(err)
@@ -70,7 +71,7 @@ func TestMock_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 func TestMock_GetOrCreateRealmOwnerRef(t *testing.T) {
 	m := Mock{}
 	meta := metav1.ObjectMeta{}
-	r := v1alpha1.KeycloakRealm{}
+	r := keycloakApi.KeycloakRealm{}
 	m.On("GetOrCreateRealmOwnerRef", nil, meta).Return(&r, nil).Once()
 	if _, err := m.GetOrCreateRealmOwnerRef(nil, meta); err != nil {
 		t.Fatal(err)

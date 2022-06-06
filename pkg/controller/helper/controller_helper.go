@@ -8,10 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/util"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -22,6 +18,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/util"
 )
 
 const (
@@ -59,7 +60,7 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 		logger:          logger,
 		adapterBuilder: func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 			restyClient *resty.Client) (keycloak.Client, error) {
-			if adminType == v1alpha1.KeycloakAdminTypeServiceAccount {
+			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
 				return adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
 			}
 
@@ -74,8 +75,8 @@ func (e ErrOwnerNotFound) Error() string {
 	return string(e)
 }
 
-func (h *Helper) GetOwnerKeycloak(slave v1.ObjectMeta) (*v1alpha1.Keycloak, error) {
-	var kc v1alpha1.Keycloak
+func (h *Helper) GetOwnerKeycloak(slave v1.ObjectMeta) (*keycloakApi.Keycloak, error) {
+	var kc keycloakApi.Keycloak
 	if err := h.GetOwner(slave, &kc, "Keycloak"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak owner")
 	}
@@ -83,8 +84,8 @@ func (h *Helper) GetOwnerKeycloak(slave v1.ObjectMeta) (*v1alpha1.Keycloak, erro
 	return &kc, nil
 }
 
-func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
-	var realm v1alpha1.KeycloakRealm
+func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
+	var realm keycloakApi.KeycloakRealm
 	if err := h.GetOwner(slave, &realm, "KeycloakRealm"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak realm owner")
 	}
@@ -133,8 +134,8 @@ func getOwnerRef(references []v1.OwnerReference, typeName string) *v1.OwnerRefer
 	return nil
 }
 
-func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*v1alpha1.KeycloakClient, error) {
-	instance := &v1alpha1.KeycloakClient{}
+func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*keycloakApi.KeycloakClient, error) {
+	instance := &keycloakApi.KeycloakClient{}
 	err := client.Get(context.TODO(), nsn, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -176,13 +177,13 @@ func RemoveString(slice []string, s string) (result []string) {
 	return
 }
 
-func (h *Helper) getKeycloakFromSpec(realm *v1alpha1.KeycloakRealm) (*v1alpha1.Keycloak, error) {
+func (h *Helper) getKeycloakFromSpec(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
 	if realm.Spec.KeycloakOwner == "" {
 		return nil, errors.Errorf(
 			"keycloak owner is not specified neither in ownerReference nor in spec for realm %s", realm.Name)
 	}
 
-	var k v1alpha1.Keycloak
+	var k keycloakApi.Keycloak
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.KeycloakOwner,
@@ -193,7 +194,7 @@ func (h *Helper) getKeycloakFromSpec(realm *v1alpha1.KeycloakRealm) (*v1alpha1.K
 	return &k, controllerutil.SetControllerReference(&k, realm, h.scheme)
 }
 
-func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *v1alpha1.KeycloakRealm) (*v1alpha1.Keycloak, error) {
+func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
 	o, err := h.GetOwnerKeycloak(realm.ObjectMeta)
 	if err != nil {
 		switch errors.Cause(err).(type) {
@@ -210,8 +211,8 @@ func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *v1alpha1.KeycloakRealm) (*v1
 	return o, nil
 }
 
-func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*v1alpha1.KeycloakRealm, error) {
-	var realm v1alpha1.KeycloakRealm
+func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*keycloakApi.KeycloakRealm, error) {
+	var realm keycloakApi.KeycloakRealm
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Name:      name,
 		Namespace: object.GetNamespace(),
@@ -228,7 +229,7 @@ type RealmChild interface {
 }
 
 func (h *Helper) GetOrCreateRealmOwnerRef(
-	object RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error) {
+	object RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
 		switch errors.Cause(err).(type) {

@@ -4,10 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/google/uuid"
 	coreV1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,6 +11,11 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 )
 
 type PutKeycloakClientSecret struct {
@@ -23,7 +24,7 @@ type PutKeycloakClientSecret struct {
 	scheme *runtime.Scheme
 }
 
-func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client secret")
 	if !realm.Spec.SSOEnabled() {
@@ -52,7 +53,7 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *v1alph
 			"clientSecret": []byte(uuid.New().String()),
 		},
 	}
-	cl := &v1alpha1.KeycloakClient{}
+	cl := &keycloakApi.KeycloakClient{}
 	err = h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,

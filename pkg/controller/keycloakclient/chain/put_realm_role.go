@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -15,7 +15,7 @@ type PutRealmRole struct {
 	next Element
 }
 
-func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	if err := el.putRealmRoles(keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "unable to put realm roles")
 	}
@@ -23,7 +23,7 @@ func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *v1v1alpha1.Ke
 	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutRealmRole) putRealmRoles(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put realm roles...")
 

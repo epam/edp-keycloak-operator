@@ -2,36 +2,69 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakRealmUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              KeycloakRealmUserSpec   `json:"spec"`
-	Status            KeycloakRealmUserStatus `json:"status"`
+
+	Spec   KeycloakRealmUserSpec   `json:"spec"`
+	Status KeycloakRealmUserStatus `json:"status"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakRealmUserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakRealmUser `json:"items"`
+
+	Items []KeycloakRealmUser `json:"items"`
 }
 
 type KeycloakRealmUserSpec struct {
-	Realm                  string            `json:"realm"`
-	Username               string            `json:"username"`
-	Email                  string            `json:"email"`
-	FirstName              string            `json:"firstName"`
-	LastName               string            `json:"lastName"`
-	Enabled                bool              `json:"enabled"`
-	EmailVerified          bool              `json:"emailVerified"`
-	RequiredUserActions    []string          `json:"requiredUserActions"`
-	Roles                  []string          `json:"roles"`
-	Groups                 []string          `json:"groups"`
-	Attributes             map[string]string `json:"attributes"`
-	ReconciliationStrategy string            `json:"reconciliationStrategy,omitempty"`
-	Password               string            `json:"password"`
-	KeepResource           bool              `json:"keepResource"`
+	Realm    string `json:"realm"`
+	Username string `json:"username"`
+
+	// +optional
+	Email string `json:"email,omitempty"`
+
+	// +optional
+	FirstName string `json:"firstName,omitempty"`
+
+	// +optional
+	LastName string `json:"lastName,omitempty"`
+
+	// +optional
+	Enabled bool `json:"enabled,omitempty"`
+
+	// +optional
+	EmailVerified bool `json:"emailVerified,omitempty"`
+
+	//RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL
+	// +nullable
+	// +optional
+	RequiredUserActions []string `json:"requiredUserActions,omitempty"`
+
+	// +nullable
+	// +optional
+	Roles []string `json:"roles,omitempty"`
+
+	// +nullable
+	// +optional
+	Groups []string `json:"groups,omitempty"`
+
+	// +nullable
+	// +optional
+	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// +optional
+	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
+
+	// +optional
+	Password string `json:"password,omitempty"`
+
+	// +optional
+	KeepResource bool `json:"keepResource,omitempty"`
 }
 
 func (in KeycloakRealmUser) GetReconciliationStrategy() string {
@@ -43,8 +76,11 @@ func (in KeycloakRealmUser) GetReconciliationStrategy() string {
 }
 
 type KeycloakRealmUserStatus struct {
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
 func (in *KeycloakRealmUser) K8SParentRealmName() (string, error) {

@@ -2,40 +2,71 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakRealmIdentityProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              KeycloakRealmIdentityProviderSpec   `json:"spec"`
-	Status            KeycloakRealmIdentityProviderStatus `json:"status"`
+
+	Spec   KeycloakRealmIdentityProviderSpec   `json:"spec"`
+	Status KeycloakRealmIdentityProviderStatus `json:"status"`
 }
 
 type KeycloakRealmIdentityProviderSpec struct {
-	Realm                     string                   `json:"realm"`
-	ProviderID                string                   `json:"providerId"`
-	Config                    map[string]string        `json:"config"`
-	AddReadTokenRoleOnCreate  bool                     `json:"addReadTokenRoleOnCreate"`
-	Alias                     string                   `json:"alias"`
-	AuthenticateByDefault     bool                     `json:"authenticateByDefault"`
-	DisplayName               string                   `json:"displayName"`
-	Enabled                   bool                     `json:"enabled"`
-	FirstBrokerLoginFlowAlias string                   `json:"firstBrokerLoginFlowAlias"`
-	LinkOnly                  bool                     `json:"linkOnly"`
-	StoreToken                bool                     `json:"storeToken"`
-	TrustEmail                bool                     `json:"trustEmail"`
-	Mappers                   []IdentityProviderMapper `json:"mappers"`
+	Realm      string            `json:"realm"`
+	ProviderID string            `json:"providerId"`
+	Alias      string            `json:"alias"`
+	Config     map[string]string `json:"config"`
+	Enabled    bool              `json:"enabled"`
+
+	// +optional
+	AddReadTokenRoleOnCreate bool `json:"addReadTokenRoleOnCreate,omitempty"`
+
+	// +optional
+	AuthenticateByDefault bool `json:"authenticateByDefault,omitempty"`
+
+	// +optional
+	DisplayName string `json:"displayName,omitempty"`
+
+	// +optional
+	FirstBrokerLoginFlowAlias string `json:"firstBrokerLoginFlowAlias,omitempty"`
+
+	// +optional
+	LinkOnly bool `json:"linkOnly,omitempty"`
+
+	// +optional
+	StoreToken bool `json:"storeToken,omitempty"`
+
+	// +optional
+	TrustEmail bool `json:"trustEmail,omitempty"`
+
+	// +nullable
+	// +optional
+	Mappers []IdentityProviderMapper `json:"mappers,omitempty"`
 }
 
 type IdentityProviderMapper struct {
-	IdentityProviderAlias  string            `json:"identityProviderAlias"`
-	IdentityProviderMapper string            `json:"identityProviderMapper"`
-	Name                   string            `json:"name"`
-	Config                 map[string]string `json:"config"`
+	// +optional
+	IdentityProviderAlias string `json:"identityProviderAlias,omitempty"`
+
+	// +optional
+	IdentityProviderMapper string `json:"identityProviderMapper,omitempty"`
+
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// +nullable
+	// +optional
+	Config map[string]string `json:"config,omitempty"`
 }
 
 type KeycloakRealmIdentityProviderStatus struct {
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
 func (in KeycloakRealmIdentityProvider) GetFailureCount() int64 {
@@ -58,11 +89,12 @@ func (in *KeycloakRealmIdentityProvider) K8SParentRealmName() (string, error) {
 	return in.Spec.Realm, nil
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakRealmIdentityProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakRealmIdentityProvider `json:"items"`
+
+	Items []KeycloakRealmIdentityProvider `json:"items"`
 }
 
 func init() {

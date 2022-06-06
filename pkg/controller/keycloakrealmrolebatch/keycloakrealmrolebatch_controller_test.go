@@ -7,9 +7,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,30 +16,34 @@ import (
 	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	keycloak := keycloakApi.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "test"}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 	now := metav1.Time{Time: time.Now()}
-	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	batch := keycloakApi.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		DeletionTimestamp: &now,
 		OwnerReferences:   []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []v1alpha1.BatchRole{
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []keycloakApi.BatchRole{
 			{Name: "sub-role1"},
 			{Name: "sub-role2", IsDefault: true},
 		}},
-		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
+		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&batch, &realm, &keycloak, &secret).Build()
 
@@ -58,7 +59,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var checkList v1alpha1.KeycloakRealmRoleList
+	var checkList keycloakApi.KeycloakRealmRoleList
 	if err := client.List(context.Background(), &checkList, &k8sCLient.ListOptions{}); err != nil {
 		t.Fatal(err)
 	}
@@ -71,32 +72,32 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 
 func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	keycloak := keycloakApi.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "test"}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
-	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	batch := keycloakApi.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []v1alpha1.BatchRole{
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []keycloakApi.BatchRole{
 			{Name: "sub-role1"},
 			{Name: "sub-role2", IsDefault: true},
 		}},
-		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
+		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test2", Namespace: ns,
+	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test2", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{
 			{Name: "test", Kind: "KeycloakRealm"},
 			{Name: "test", Kind: batch.Kind},
 		}},
-		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
-		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
+		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
+		Status: keycloakApi.KeycloakRealmRoleStatus{Value: ""},
 	}
 
 	client := fake.NewClientBuilder().WithScheme(sch).
@@ -129,7 +130,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		t.Fatal("success reconcile timeout is not set")
 	}
 
-	var checkBatch v1alpha1.KeycloakRealmRoleBatch
+	var checkBatch keycloakApi.KeycloakRealmRoleBatch
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "test",
@@ -142,12 +143,12 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		t.Fatal("batch status not updated on success")
 	}
 
-	var roles v1alpha1.KeycloakRealmRoleList
+	var roles keycloakApi.KeycloakRealmRoleList
 	if err := client.List(context.Background(), &roles, &k8sCLient.ListOptions{}); err != nil {
 		t.Fatal(err)
 	}
 
-	var checkRole v1alpha1.KeycloakRealmRole
+	var checkRole keycloakApi.KeycloakRealmRole
 	if err := client.Get(context.Background(), types.NamespacedName{Namespace: ns,
 		Name: fmt.Sprintf("%s-sub-role2", batch.Name)}, &checkRole); err != nil {
 		t.Fatal(err)
@@ -179,29 +180,29 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
+	keycloak := keycloakApi.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns-realm1"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns-realm1"}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 	now := metav1.Time{Time: time.Now()}
-	batch := v1alpha1.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "batch1", Namespace: ns,
+	batch := keycloakApi.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "batch1", Namespace: ns,
 		DeletionTimestamp: &now},
-		Spec: v1alpha1.KeycloakRealmRoleBatchSpec{Realm: "realm1", Roles: []v1alpha1.BatchRole{
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "realm1", Roles: []keycloakApi.BatchRole{
 			{Name: "role1"},
 			{Name: "role2"},
 		}},
-		Status: v1alpha1.KeycloakRealmRoleBatchStatus{}}
+		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "batch1-role2", Namespace: ns},
-		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "batch1-role2", Realm: "realm1"},
-		Status: v1alpha1.KeycloakRealmRoleStatus{Value: ""},
+	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "batch1-role2", Namespace: ns},
+		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "batch1-role2", Realm: "realm1"},
+		Status: keycloakApi.KeycloakRealmRoleStatus{Value: ""},
 	}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).
@@ -235,7 +236,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		t.Fatal("wrong error returned")
 	}
 
-	var checkBatch v1alpha1.KeycloakRealmRoleBatch
+	var checkBatch keycloakApi.KeycloakRealmRoleBatch
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "batch1",

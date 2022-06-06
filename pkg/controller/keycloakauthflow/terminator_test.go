@@ -11,7 +11,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -19,7 +19,7 @@ import (
 
 func TestTerminator(t *testing.T) {
 	sch := runtime.NewScheme()
-	assert.NoError(t, v1alpha1.AddToScheme(sch))
+	assert.NoError(t, keycloakApi.AddToScheme(sch))
 
 	fakeClient := fake.NewClientBuilder().WithScheme(sch).Build()
 
@@ -27,7 +27,7 @@ func TestTerminator(t *testing.T) {
 	kClient := new(adapter.Mock)
 
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
-	realm := v1alpha1.KeycloakRealm{Spec: v1alpha1.KeycloakRealmSpec{RealmName: "foo"}}
+	realm := keycloakApi.KeycloakRealm{Spec: keycloakApi.KeycloakRealmSpec{RealmName: "foo"}}
 
 	term := makeTerminator(&realm, &keycloakAuthFlow, fakeClient, kClient, &lg)
 
@@ -52,22 +52,22 @@ func TestTerminator(t *testing.T) {
 
 func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
-	flow := v1alpha1.KeycloakAuthFlow{
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",
 			Namespace: "namespace1",
 		},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakAuthFlow",
-			APIVersion: "v1.edp.epam.com/v1alpha1",
+			APIVersion: "v1.edp.epam.com/v1",
 		},
-		Spec: v1alpha1.KeycloakAuthFlowSpec{
+		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias:      "flow123",
 			Realm:      "foo",
 			ParentName: "foo",
 		},
-		Status: v1alpha1.KeycloakAuthFlowStatus{
+		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: helper.StatusOK,
 		},
 	}
@@ -75,8 +75,8 @@ func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 	lg := mock.Logger{}
 	kClient := new(adapter.Mock)
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
-	realm := v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "foo",
 		},
 		ObjectMeta: metav1.ObjectMeta{

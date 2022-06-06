@@ -5,8 +5,9 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 func TestMock_CreateClientScope(t *testing.T) {

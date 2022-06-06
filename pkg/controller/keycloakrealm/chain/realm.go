@@ -3,12 +3,13 @@ package chain
 import (
 	"context"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/pkg/errors"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
-	"github.com/pkg/errors"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 type Helper interface {
@@ -21,7 +22,7 @@ type PutRealm struct {
 	hlp    Helper
 }
 
-func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)
@@ -52,7 +53,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakReal
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
-func (h PutRealm) putRealmRoles(realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutRealm) putRealmRoles(realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	allRoles := make(map[string]string)
 	//check if all user roles exists
 	for _, u := range realm.Spec.Users {

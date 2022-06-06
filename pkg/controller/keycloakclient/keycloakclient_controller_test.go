@@ -5,11 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient/chain"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
@@ -18,10 +13,16 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakclient/chain"
 )
 
 func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
-	kc := &v1alpha1.KeycloakClient{
+	kc := &keycloakApi.KeycloakClient{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "main",
 			Namespace: "namespace",
@@ -30,10 +31,10 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 			Kind:       "KeycloakClient",
 			APIVersion: "apps/v1",
 		},
-		Spec: v1alpha1.KeycloakClientSpec{
+		Spec: keycloakApi.KeycloakClientSpec{
 			TargetRealm: "main",
 			Secret:      "keycloak-secret",
-			RealmRoles: &[]v1alpha1.RealmRole{
+			RealmRoles: &[]keycloakApi.RealmRole{
 				{
 					Name:      "fake-client-administrators",
 					Composite: "administrator",
@@ -50,7 +51,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 			AdvancedProtocolMappers: true,
 			ClientRoles:             nil,
 		},
-		Status: v1alpha1.KeycloakClientStatus{
+		Status: keycloakApi.KeycloakClientStatus{
 			Value: "error during kc chain: fatal",
 		},
 	}
@@ -69,7 +70,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	chainMock := chain.Mock{}
-	realm := v1alpha1.KeycloakRealm{}
+	realm := keycloakApi.KeycloakRealm{}
 	kClient := adapter.Mock{}
 
 	chainMock.On("Serve", kc).Return(errors.New("fatal"))
@@ -98,28 +99,28 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	}
 	assert.False(t, res.Requeue)
 
-	persKc := &v1alpha1.KeycloakClient{}
+	persKc := &keycloakApi.KeycloakClient{}
 	assert.Nil(t, client.Get(context.TODO(), req.NamespacedName, persKc))
 	assert.Equal(t, "error during kc chain: fatal", persKc.Status.Value)
 	assert.Empty(t, persKc.Status.ClientID)
 }
 
 func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
-	kc := v1alpha1.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
+	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "KeycloakClient",
 			APIVersion: "apps/v1",
 		},
-		Spec: v1alpha1.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
-			RealmRoles: &[]v1alpha1.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
+		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
+			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: true, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
-			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]v1alpha1.ProtocolMapper{
+			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]keycloakApi.ProtocolMapper{
 				{Name: "bar", Config: map[string]string{"bar": "1"}},
 				{Name: "foo", Config: map[string]string{"foo": "2"}},
 			},
 		},
-		Status: v1alpha1.KeycloakClientStatus{
+		Status: keycloakApi.KeycloakClientStatus{
 			Value: helper.StatusOK,
 		},
 	}
@@ -132,7 +133,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	h := helper.Mock{}
 	chainMock := chain.Mock{}
 	chainMock.On("Serve", &kc).Return(nil)
-	realm := v1alpha1.KeycloakRealm{}
+	realm := keycloakApi.KeycloakRealm{}
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: &kc,
 		client: client}, kc.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kclient, nil)

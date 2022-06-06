@@ -10,17 +10,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/suite"
-
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 type AdapterTestSuite struct {
@@ -563,7 +563,7 @@ func TestGoCloakAdapter_SyncRealmGroup_FailureGetGroupsFatal(t *testing.T) {
 		token:  &gocloak.JWT{AccessToken: "token"},
 	}
 
-	group := v1alpha1.KeycloakRealmGroupSpec{
+	group := keycloakApi.KeycloakRealmGroupSpec{
 		Name: "group1",
 	}
 
@@ -660,13 +660,13 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	mockClient.On("DeleteClientRoleFromGroup", "realm1", "3214", "1",
 		[]gocloak.Role{oldClientRole3}).Return(nil)
 
-	groupID, err := adapter.SyncRealmGroup("realm1", &v1alpha1.KeycloakRealmGroupSpec{
+	groupID, err := adapter.SyncRealmGroup("realm1", &keycloakApi.KeycloakRealmGroupSpec{
 		Name:       "group1",
 		Attributes: map[string][]string{"foo": {"foo", "bar"}},
 		Access:     map[string]bool{},
 		SubGroups:  []string{"subgroup1", "subgroup2"},
 		RealmRoles: []string{"realm-role1", "realm-role2"},
-		ClientRoles: []v1alpha1.ClientRole{
+		ClientRoles: []keycloakApi.ClientRole{
 			{ClientID: "client1", Roles: []string{"client-role1", "client-role2"}},
 			{ClientID: "old-cl-3", Roles: []string{"client-role4"}},
 		},

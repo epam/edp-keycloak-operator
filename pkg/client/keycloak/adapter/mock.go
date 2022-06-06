@@ -6,7 +6,7 @@ import (
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
@@ -184,7 +184,7 @@ func (m *Mock) SyncServiceAccountRoles(realm, clientID string, realmRoles []stri
 	return m.Called(realm, clientID, realmRoles, clientRoles, addOnly).Error(0)
 }
 
-func (m *Mock) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error) {
+func (m *Mock) SyncRealmGroup(realmName string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error) {
 	called := m.Called(realmName, spec)
 	return called.String(0), called.Error(1)
 }

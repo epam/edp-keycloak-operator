@@ -5,11 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,30 +13,36 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
+	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns},
-		Spec: v1alpha1.KeycloakSpec{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "keycloak-secret",
 		},
-		Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
 	//now := metav1.Time{Time: time.Now()}
-	role := v1alpha1.KeycloakRealmRole{TypeMeta: metav1.TypeMeta{
-		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealmRole",
+	role := keycloakApi.KeycloakRealmRole{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmRole",
 	}, ObjectMeta: metav1.ObjectMeta{ /*DeletionTimestamp: &now,*/ Name: "test-role", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec:   v1alpha1.KeycloakRealmRoleSpec{Name: "role-test"},
-		Status: v1alpha1.KeycloakRealmRoleStatus{Value: helper.StatusOK},
+		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "role-test"},
+		Status: keycloakApi.KeycloakRealmRoleStatus{Value: helper.StatusOK},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
@@ -88,15 +89,15 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 
 func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 	ns := "namespace"
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   v1alpha1.KeycloakRealmRoleStatus{Value: v1alpha1.StatusDuplicated},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: keycloakApi.StatusDuplicated},
 	}
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role).Build()
 	logger := mock.Logger{}
@@ -117,7 +118,7 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 		t.Fatal("duplicated message is not printed to log")
 	}
 
-	var checkRole v1alpha1.KeycloakRealmRole
+	var checkRole keycloakApi.KeycloakRealmRole
 	if err := client.Get(context.Background(), types.NamespacedName{
 		Name:      role.Name,
 		Namespace: role.Namespace,
@@ -125,35 +126,35 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if checkRole.Status.Value != v1alpha1.StatusDuplicated {
+	if checkRole.Status.Value != keycloakApi.StatusDuplicated {
 		t.Fatal("wrong status in duplicated role")
 	}
 }
 
 func TestReconcileRoleMarkDuplicated(t *testing.T) {
 	ns := "namespace"
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   v1alpha1.KeycloakRealmRoleStatus{},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   keycloakApi.KeycloakRealmRoleStatus{},
 	}
 
-	duplicatedRole := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	duplicatedRole := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		ResourceVersion: "999",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   v1alpha1.KeycloakRealmRoleStatus{Value: v1alpha1.StatusDuplicated},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: keycloakApi.StatusDuplicated},
 	}
 
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmSpec{RealmName: "test"}}
 
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role).Build()
 	logger := mock.Logger{}
@@ -190,25 +191,25 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 
 func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
+	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns},
-		Spec: v1alpha1.KeycloakSpec{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "keycloak-secret",
 		},
-		Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmSpec{RealmName: "test"}}
-	role := v1alpha1.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmSpec{RealmName: "test"}}
+	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec:     v1alpha1.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   v1alpha1.KeycloakRealmRoleStatus{Value: "unable to put role: unable to sync realm role CR: test mock fatal"},
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
+		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
+		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: "unable to put role: unable to sync realm role CR: test mock fatal"},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}

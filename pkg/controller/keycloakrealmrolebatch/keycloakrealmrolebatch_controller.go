@@ -5,9 +5,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,13 +16,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.operator.finalizer.name"
 
 type Helper interface {
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*v1alpha1.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	IsOwner(slave client.Object, master client.Object) bool
 	UpdateStatus(obj client.Object) error
 	SetFailureCount(fc helper.FailureCountable) time.Duration
@@ -63,7 +63,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
 	log.Info("Reconciling KeycloakRealmRoleBatch")
 
-	var instance v1alpha1.KeycloakRealmRoleBatch
+	var instance keycloakApi.KeycloakRealmRoleBatch
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return
@@ -91,8 +91,8 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 	return
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *v1alpha1.KeycloakRealmRoleBatch,
-	role v1alpha1.KeycloakRealmRole) bool {
+func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *keycloakApi.KeycloakRealmRoleBatch,
+	role keycloakApi.KeycloakRealmRole) bool {
 
 	for _, owner := range role.GetOwnerReferences() {
 		if owner.Kind == batch.Kind && owner.Name == batch.Name && owner.UID == batch.UID {
@@ -104,10 +104,10 @@ func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *v1alpha1.KeycloakRealmR
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context,
-	batch *v1alpha1.KeycloakRealmRoleBatch) error {
+	batch *keycloakApi.KeycloakRealmRoleBatch) error {
 
 	var (
-		namespaceRoles v1alpha1.KeycloakRealmRoleList
+		namespaceRoles keycloakApi.KeycloakRealmRoleList
 		specRoles      = make(map[string]struct{})
 	)
 
@@ -130,15 +130,15 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context,
 	return nil
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *v1alpha1.KeycloakRealmRoleBatch,
-	realm *v1alpha1.KeycloakRealm) (roles []v1alpha1.KeycloakRealmRole, resultErr error) {
+func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch,
+	realm *keycloakApi.KeycloakRealm) (roles []keycloakApi.KeycloakRealmRole, resultErr error) {
 	log := r.log.WithValues("keycloak role batch cr", batch)
 	log.Info("Start putting keycloak cr role batch...")
 
 	for _, role := range batch.Spec.Roles {
 		roleName := batch.FormattedRoleName(role.Name)
 
-		var crRole v1alpha1.KeycloakRealmRole
+		var crRole keycloakApi.KeycloakRealmRole
 		err := r.client.Get(ctx, types.NamespacedName{Namespace: batch.Namespace, Name: roleName},
 			&crRole)
 
@@ -154,7 +154,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *v
 			return nil, errors.New("one of batch role already exists")
 		}
 
-		newRole := v1alpha1.KeycloakRealmRole{
+		newRole := keycloakApi.KeycloakRealmRole{
 			ObjectMeta: metav1.ObjectMeta{Name: roleName,
 				Namespace: batch.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
@@ -163,7 +163,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *v
 					{Name: batch.Name, Kind: batch.Kind, BlockOwnerDeletion: gocloak.BoolP(true), UID: batch.UID,
 						APIVersion: batch.APIVersion},
 				}},
-			Spec: v1alpha1.KeycloakRealmRoleSpec{
+			Spec: keycloakApi.KeycloakRealmRoleSpec{
 				Name:        role.Name,
 				Realm:       realm.Name,
 				Composite:   role.Composite,
@@ -183,7 +183,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *v
 	return
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *v1alpha1.KeycloakRealmRoleBatch) error {
+func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(batch, batch.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")

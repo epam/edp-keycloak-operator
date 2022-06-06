@@ -3,9 +3,10 @@ package keycloakrealmuser
 import (
 	"context"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
 type terminator struct {

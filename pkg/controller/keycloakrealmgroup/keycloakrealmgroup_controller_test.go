@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,29 +12,34 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: v1alpha1.KeycloakStatus{Connected: true},
-		Spec: v1alpha1.KeycloakSpec{Secret: "keycloak-secret"}}
-	realm := v1alpha1.KeycloakRealm{TypeMeta: metav1.TypeMeta{
-		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealm",
+	keycloak := keycloakApi.Keycloak{
+		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true},
+		Spec: keycloakApi.KeycloakSpec{Secret: "keycloak-secret"}}
+	realm := keycloakApi.KeycloakRealm{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealm",
 	},
 		ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
 			OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.realm1"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.realm1"}}
 	//now := metav1.Time{Time: time.Now()}
-	group := v1alpha1.KeycloakRealmGroup{TypeMeta: metav1.TypeMeta{
-		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealmGroup",
+	group := keycloakApi.KeycloakRealmGroup{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmGroup",
 	}, ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "group1" /*, DeletionTimestamp: &now*/},
-		Spec:   v1alpha1.KeycloakRealmGroupSpec{Realm: "realm1", RealmRoles: []string{"role1", "role2"}, Name: "group1"},
-		Status: v1alpha1.KeycloakRealmGroupStatus{ID: "id11", Value: helper.StatusOK}}
+		Spec:   keycloakApi.KeycloakRealmGroupSpec{Realm: "realm1", RealmRoles: []string{"role1", "role2"}, Name: "group1"},
+		Status: keycloakApi.KeycloakRealmGroupStatus{ID: "id11", Value: helper.StatusOK}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 

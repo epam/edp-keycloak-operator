@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/pkg/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/pkg/errors"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestTerminator_DeleteResource(t *testing.T) {
