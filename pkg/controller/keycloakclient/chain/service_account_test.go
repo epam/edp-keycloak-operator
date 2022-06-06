@@ -4,22 +4,22 @@ import (
 	"context"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 func TestServiceAccount_Serve(t *testing.T) {
 	sa := ServiceAccount{}
 
-	kc := v1alpha1.KeycloakClient{
-		Spec: v1alpha1.KeycloakClientSpec{
+	kc := keycloakApi.KeycloakClient{
+		Spec: keycloakApi.KeycloakClientSpec{
 			TargetRealm: "realm1",
-			ServiceAccount: &v1alpha1.ServiceAccount{
+			ServiceAccount: &keycloakApi.ServiceAccount{
 				Enabled: true,
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
-				ClientRoles: []v1alpha1.ClientRole{
+				ClientRoles: []keycloakApi.ClientRole{
 					{
 						ClientID: "clid2",
 						Roles:    []string{"foo", "bar"},
@@ -28,7 +28,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 				RealmRoles: []string{"baz", "zaz"},
 			},
 		},
-		Status: v1alpha1.KeycloakClientStatus{
+		Status: keycloakApi.KeycloakClientStatus{
 			ClientID: "clid1",
 		},
 	}

@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/pkg/errors"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 )
 
 type ErrNotFound string
@@ -40,7 +41,7 @@ func (a GoCloakAdapter) getGroup(realm, groupName string) (*gocloak.Group, error
 	return nil, ErrNotFound("group not found")
 }
 
-func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *v1alpha1.KeycloakRealmGroupSpec) error {
+func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *keycloakApi.KeycloakRealmGroupSpec) error {
 	roleMap, err := a.client.GetRoleMappingByGroupID(context.Background(), a.token.AccessToken, realmName, groupID)
 	if err != nil {
 		return errors.Wrapf(err, "unable to get role mappings for group spec %+v", spec)
@@ -104,7 +105,7 @@ func (a GoCloakAdapter) syncSubGroups(realm string, group *gocloak.Group, subGro
 	return nil
 }
 
-func (a GoCloakAdapter) SyncRealmGroup(realmName string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error) {
+func (a GoCloakAdapter) SyncRealmGroup(realmName string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error) {
 	group, err := a.getGroup(realmName, spec.Name)
 	if err != nil {
 		if !IsErrNotFound(err) {

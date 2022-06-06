@@ -6,10 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -19,15 +15,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
-func getTestClientScope(realmName string) *v1alpha1.KeycloakClientScope {
-	return &v1alpha1.KeycloakClientScope{
+func getTestClientScope(realmName string) *keycloakApi.KeycloakClientScope {
+	return &keycloakApi.KeycloakClientScope{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "scope1",
 		},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakClientScope", APIVersion: "v1.edp.epam.com/v1alpha1"},
-		Spec: v1alpha1.KeycloakClientScopeSpec{
+		TypeMeta: metav1.TypeMeta{Kind: "KeycloakClientScope", APIVersion: "v1.edp.epam.com/v1"},
+		Spec: keycloakApi.KeycloakClientScopeSpec{
 			Name:  "scope1name",
 			Realm: realmName,
 		},
@@ -36,19 +37,19 @@ func getTestClientScope(realmName string) *v1alpha1.KeycloakClientScope {
 
 func TestReconcile_Reconcile(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
 	ns := "security"
-	keycloak := v1alpha1.Keycloak{
+	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns},
-		Spec: v1alpha1.KeycloakSpec{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "keycloak-secret",
 		},
-		Status: v1alpha1.KeycloakStatus{Connected: true}}
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
+		Status: keycloakApi.KeycloakStatus{Connected: true}}
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
 
 	clientScope := getTestClientScope(realm.Name)
 
@@ -133,7 +134,7 @@ func TestNewReconcile(t *testing.T) {
 
 func TestReconcile_Reconcile_NotFound(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	logger := mock.Logger{}
@@ -150,7 +151,7 @@ func TestReconcile_Reconcile_NotFound(t *testing.T) {
 }
 
 func TestConvertProtocolMappers(t *testing.T) {
-	mappers := convertProtocolMappers([]v1alpha1.ProtocolMapper{
+	mappers := convertProtocolMappers([]keycloakApi.ProtocolMapper{
 		{Name: "test1"},
 	})
 
@@ -165,9 +166,9 @@ func TestConvertProtocolMappers(t *testing.T) {
 
 func TestSyncClientScope(t *testing.T) {
 	kClient := new(adapter.Mock)
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
 	instance := getTestClientScope(realm.Name)
 	scopeID := "scopeID1"
 
@@ -186,7 +187,7 @@ func TestSyncClientScope(t *testing.T) {
 
 func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	instance := getTestClientScope("test")
 
@@ -210,12 +211,12 @@ func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 }
 func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 	scheme := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
-	realm := v1alpha1.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
+	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
 	clientScope := getTestClientScope(realm.Name)
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(clientScope, &realm).WithScheme(scheme).Build()

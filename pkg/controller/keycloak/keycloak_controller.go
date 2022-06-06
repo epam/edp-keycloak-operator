@@ -10,12 +10,6 @@ import (
 	"sync"
 	"time"
 
-	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -29,6 +23,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 const (
@@ -38,8 +38,8 @@ const (
 )
 
 type Helper interface {
-	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
-	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error)
+	CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error)
+	CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error)
 	TokenSecretLock() *sync.Mutex
 }
 

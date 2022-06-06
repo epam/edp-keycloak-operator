@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,29 +14,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestReconcile_Reconcile(t *testing.T) {
 	logger := mock.Logger{}
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	var (
 		hlp       helper.Mock
 		kcAdapter adapter.Mock
-		comp      = v1alpha1.KeycloakRealmComponent{
+		comp      = keycloakApi.KeycloakRealmComponent{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-comp-name", Namespace: "ns"},
-			TypeMeta:   metav1.TypeMeta{Kind: "KeycloakRealmComponent", APIVersion: "v1.edp.epam.com/v1alpha1"},
-			Spec:       v1alpha1.KeycloakComponentSpec{Name: "test-comp"},
-			Status:     v1alpha1.KeycloakComponentStatus{Value: helper.StatusOK},
+			TypeMeta:   metav1.TypeMeta{Kind: "KeycloakRealmComponent", APIVersion: "v1.edp.epam.com/v1"},
+			Spec:       keycloakApi.KeycloakComponentSpec{Name: "test-comp"},
+			Status:     keycloakApi.KeycloakComponentStatus{Value: helper.StatusOK},
 		}
-		realm = v1alpha1.KeycloakRealm{TypeMeta: metav1.TypeMeta{
-			APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealm",
+		realm = keycloakApi.KeycloakRealm{TypeMeta: metav1.TypeMeta{
+			APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealm",
 		},
 			ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: "ns",
 				OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
-			Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.realm1"}}
+			Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.realm1"}}
 		testComp = adapter.Component{ID: "component-id1", Name: comp.Spec.Name}
 	)
 
@@ -99,7 +100,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 }
 
 func TestIsSpecUpdated(t *testing.T) {
-	comp := v1alpha1.KeycloakRealmComponent{}
+	comp := keycloakApi.KeycloakRealmComponent{}
 	if isSpecUpdated(event.UpdateEvent{ObjectNew: &comp, ObjectOld: &comp}) {
 		t.Fatal("spec is updated")
 	}

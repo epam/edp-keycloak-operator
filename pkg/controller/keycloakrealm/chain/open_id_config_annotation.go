@@ -3,11 +3,12 @@ package chain
 import (
 	"context"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 var annotationKey = "openid-configuration"
@@ -17,7 +18,7 @@ type PutOpenIdConfigAnnotation struct {
 	client client.Client
 }
 
-func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm spec", realm.Spec)
 	rLog.Info("Start put openid configuration annotation...")
 	if !realm.Spec.SSOEnabled() {

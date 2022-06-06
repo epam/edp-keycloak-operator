@@ -7,7 +7,8 @@ import (
 
 	buildInfo "github.com/epam/edp-common/pkg/config"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakauthflow"
@@ -52,6 +53,7 @@ const (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi1alpha1.AddToScheme(scheme))
 	utilruntime.Must(edpCompApi.AddToScheme(scheme))
 }
 

@@ -1,7 +1,7 @@
 package dto
 
 import (
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 )
 
 const defaultClientProtocol = "openid-connect"
@@ -27,7 +27,7 @@ type User struct {
 	RealmRoles []string `json:"realmRoles"`
 }
 
-func ConvertSpecToRole(roleInstance *v1alpha1.KeycloakRealmRole) *PrimaryRealmRole {
+func ConvertSpecToRole(roleInstance *keycloakApi.KeycloakRealmRole) *PrimaryRealmRole {
 	rr := PrimaryRealmRole{
 		Name:        roleInstance.Spec.Name,
 		Description: roleInstance.Spec.Description,
@@ -48,7 +48,7 @@ func ConvertSpecToRole(roleInstance *v1alpha1.KeycloakRealmRole) *PrimaryRealmRo
 	return &rr
 }
 
-func ConvertSpecToRealm(spec v1alpha1.KeycloakRealmSpec) *Realm {
+func ConvertSpecToRealm(spec keycloakApi.KeycloakRealmSpec) *Realm {
 	var users []User
 	for _, item := range spec.Users {
 		users = append(users, User(item))
@@ -96,7 +96,7 @@ type IncludedRealmRole struct {
 	Composite string
 }
 
-func ConvertSpecToClient(spec *v1alpha1.KeycloakClientSpec, clientSecret string) *Client {
+func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret string) *Client {
 	return &Client{
 		RealmName:               spec.TargetRealm,
 		ClientId:                spec.ClientId,
@@ -129,7 +129,7 @@ type IdentityProviderMapper struct {
 }
 
 func ConvertSSOMappersToIdentityProviderMappers(idpAlias string,
-	ssoMappers []v1alpha1.SSORealmMapper) []IdentityProviderMapper {
+	ssoMappers []keycloakApi.SSORealmMapper) []IdentityProviderMapper {
 	idpMappers := make([]IdentityProviderMapper, 0, len(ssoMappers))
 	for _, sm := range ssoMappers {
 		idpMappers = append(idpMappers, IdentityProviderMapper{

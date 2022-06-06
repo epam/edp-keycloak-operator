@@ -3,8 +3,8 @@ package adapter
 import (
 	"context"
 	"fmt"
-	"github.com/Nerzal/gocloak/v10"
 
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
 )
 

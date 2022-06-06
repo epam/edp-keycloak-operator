@@ -5,10 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,11 +14,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestNewReconcileUnexpectedError(t *testing.T) {
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 	//fakeCl := fake.NewClientBuilder().WithScheme(sch).Build()
 	nn := types.NamespacedName{
@@ -30,7 +31,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 		Namespace: "bar",
 	}
 	fakeCl := helper.K8SClientMock{}
-	fakeCl.On("Get", nn, &v1alpha1.KeycloakRealmIdentityProvider{}).Return(errors.New("fatal"))
+	fakeCl.On("Get", nn, &keycloakApi.KeycloakRealmIdentityProvider{}).Return(errors.New("fatal"))
 	l := mock.Logger{}
 
 	r := NewReconcile(&fakeCl, &l, nil)
@@ -47,7 +48,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 
 func TestNewReconcileNotFound(t *testing.T) {
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 	fakeCl := fake.NewClientBuilder().WithScheme(sch).Build()
 
@@ -74,29 +75,29 @@ func TestNewReconcile(t *testing.T) {
 	hlp := helper.Mock{}
 	l := mock.Logger{}
 	kcAdapter := adapter.Mock{}
-	idp := v1alpha1.KeycloakRealmIdentityProvider{
+	idp := keycloakApi.KeycloakRealmIdentityProvider{
 		ObjectMeta: metav1.ObjectMeta{Name: "idp1", Namespace: "ns"},
-		TypeMeta:   metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealmIdentityProvider"},
-		Spec: v1alpha1.KeycloakRealmIdentityProviderSpec{
+		TypeMeta:   metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmIdentityProvider"},
+		Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
 			Alias: "alias1",
-			Mappers: []v1alpha1.IdentityProviderMapper{
+			Mappers: []keycloakApi.IdentityProviderMapper{
 				{
 					Name: "mapper1",
 				},
 			},
 		},
-		Status: v1alpha1.KeycloakRealmIdentityProviderStatus{Value: helper.StatusOK},
+		Status: keycloakApi.KeycloakRealmIdentityProviderStatus{Value: helper.StatusOK},
 	}
 
-	realm := v1alpha1.KeycloakRealm{TypeMeta: metav1.TypeMeta{
-		APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "KeycloakRealm",
+	realm := keycloakApi.KeycloakRealm{TypeMeta: metav1.TypeMeta{
+		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealm",
 	},
 		ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: "ns",
 			OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
-		Spec: v1alpha1.KeycloakRealmSpec{RealmName: "ns.realm1"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.realm1"}}
 
 	sch := runtime.NewScheme()
-	utilruntime.Must(v1alpha1.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
@@ -174,7 +175,7 @@ func TestNewReconcile(t *testing.T) {
 }
 
 func TestIsSpecUpdated(t *testing.T) {
-	idp := v1alpha1.KeycloakRealmIdentityProvider{}
+	idp := keycloakApi.KeycloakRealmIdentityProvider{}
 	if isSpecUpdated(event.UpdateEvent{ObjectOld: &idp, ObjectNew: &idp}) {
 		t.Fatal("spec updated")
 	}

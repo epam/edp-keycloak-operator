@@ -9,9 +9,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
@@ -25,14 +22,18 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 	mc := K8SClientMock{}
 
-	utilruntime.Must(v1alpha1.AddToScheme(scheme.Scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme.Scheme))
 	helper := MakeHelper(&mc, scheme.Scheme, nil)
-	realm := v1alpha1.KeycloakRealm{
+	realm := keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -44,10 +45,10 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 		},
 	}
 
-	kc := v1alpha1.Keycloak{
+	kc := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testOwnerReference"},
-		Status:     v1alpha1.KeycloakStatus{Connected: true},
-		Spec:       v1alpha1.KeycloakSpec{Secret: "ss1"},
+		Status:     keycloakApi.KeycloakStatus{Connected: true},
+		Spec:       keycloakApi.KeycloakSpec{Secret: "ss1"},
 	}
 
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
@@ -55,7 +56,7 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testOwnerReference",
-	}, &v1alpha1.Keycloak{}).Return(fakeCl)
+	}, &keycloakApi.Keycloak{}).Return(fakeCl)
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
@@ -74,10 +75,10 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 
 func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v1alpha1.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v1alpha1.Keycloak{
-		Spec: v1alpha1.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -113,10 +114,10 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 
 func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v1alpha1.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v1alpha1.Keycloak{
-		Spec: v1alpha1.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -146,9 +147,9 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 
 func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v1alpha1.AddToScheme(s))
-	kc := v1alpha1.Keycloak{
-		Spec: v1alpha1.KeycloakSpec{
+	utilruntime.Must(keycloakApi.AddToScheme(s))
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -171,9 +172,9 @@ func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 
 func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v1alpha1.AddToScheme(s))
-	kc := v1alpha1.Keycloak{
-		Spec: v1alpha1.KeycloakSpec{
+	utilruntime.Must(keycloakApi.AddToScheme(s))
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -223,9 +224,9 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 
 func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v1alpha1.AddToScheme(s))
-	kc := v1alpha1.Keycloak{
-		Spec: v1alpha1.KeycloakSpec{
+	utilruntime.Must(keycloakApi.AddToScheme(s))
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}

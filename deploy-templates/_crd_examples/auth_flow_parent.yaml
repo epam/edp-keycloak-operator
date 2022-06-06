@@ -1,4 +1,4 @@
-apiVersion: v1.edp.epam.com/v1alpha1
+apiVersion: v1.edp.epam.com/v1
 kind: KeycloakAuthFlow
 metadata:
   name: demo-tree
@@ -23,7 +23,7 @@ spec:
 
 ---
 
-apiVersion: v1.edp.epam.com/v1alpha1
+apiVersion: v1.edp.epam.com/v1
 kind: KeycloakAuthFlow
 metadata:
   name: demo-sub-tree3
@@ -50,7 +50,7 @@ spec:
 
 ---
 
-apiVersion: v1.edp.epam.com/v1alpha1
+apiVersion: v1.edp.epam.com/v1
 kind: KeycloakAuthFlow
 metadata:
   name: demo-sub-sub-tree2

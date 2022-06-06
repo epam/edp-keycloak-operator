@@ -6,26 +6,38 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// +k8s:openapi-gen=true
 type KeycloakRealmRoleBatchSpec struct {
 	Realm string      `json:"realm"` //realm name
 	Roles []BatchRole `json:"roles"`
 }
 
-// +k8s:openapi-gen=true
 type BatchRole struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	Attributes  map[string][]string `json:"attributes"`
-	Composite   bool                `json:"composite"`
-	Composites  []Composite         `json:"composites"`
-	IsDefault   bool                `json:"isDefault"`
+	Name string `json:"name"`
+
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// +nullable
+	// +optional
+	Attributes map[string][]string `json:"attributes,omitempty"`
+
+	// +optional
+	Composite bool `json:"composite,omitempty"`
+
+	// +nullable
+	// +optional
+	Composites []Composite `json:"composites,omitempty"`
+
+	// +optional
+	IsDefault bool `json:"isDefault,omitempty"`
 }
 
-// +k8s:openapi-gen=true
 type KeycloakRealmRoleBatchStatus struct {
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
 func (in KeycloakRealmRoleBatch) GetStatus() string {
@@ -48,9 +60,9 @@ func (in *KeycloakRealmRoleBatch) K8SParentRealmName() (string, error) {
 	return in.Spec.Realm, nil
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// +k8s:openapi-gen=true
+// +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakRealmRoleBatch struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -63,11 +75,12 @@ func (in *KeycloakRealmRoleBatch) FormattedRoleName(baseRoleName string) string 
 	return fmt.Sprintf("%s-%s", in.Name, baseRoleName)
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakRealmRoleBatchList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakRealmRoleBatch `json:"items"`
+
+	Items []KeycloakRealmRoleBatch `json:"items"`
 }
 
 func init() {

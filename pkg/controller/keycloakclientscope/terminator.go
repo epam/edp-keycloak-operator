@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/go-logr/logr"
+	"github.com/pkg/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/pkg/errors"
 )
 
 type terminator struct {

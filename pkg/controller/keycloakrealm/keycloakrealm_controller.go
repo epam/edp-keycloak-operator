@@ -4,12 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -19,6 +13,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 )
 
 const keyCloakRealmOperatorFinalizerName = "keycloak.realm.operator.finalizer.name"
@@ -27,7 +27,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	CreateKeycloakClientForRealm(ctx context.Context, realm *v1alpha1.KeycloakRealm) (keycloak.Client, error)
+	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
 

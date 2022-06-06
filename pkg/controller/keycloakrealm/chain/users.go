@@ -3,18 +3,19 @@ package chain
 import (
 	"context"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	"github.com/pkg/errors"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
-	"github.com/pkg/errors"
 )
 
 type PutUsers struct {
 	next handler.RealmHandler
 }
 
-func (h PutUsers) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")
 	rDto := dto.ConvertSpecToRealm(realm.Spec)

@@ -1,17 +1,20 @@
+// +kubebuilder:skip
+
 package keycloakclient
 
 import (
 	"context"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
 	"github.com/pkg/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
 )
 
 func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(
-	keycloakClient *v1v1alpha1.KeycloakClient) (*v1v1alpha1.KeycloakRealm, error) {
+	keycloakClient *keycloakApi.KeycloakClient) (*keycloakApi.KeycloakRealm, error) {
 
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(&clientRealmFinder{parent: keycloakClient,
 		client: r.client},
@@ -29,9 +32,10 @@ func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(
 
 type clientRealmFinder struct {
 	client client.Client
-	parent *v1v1alpha1.KeycloakClient
+	parent *keycloakApi.KeycloakClient
 
 	v1.TypeMeta
+	//TODO: get rid of this field here or refactor struct. Controller-get tool treat clientRealmFinder as CRD
 	v1.ObjectMeta
 }
 
@@ -40,7 +44,7 @@ func (c *clientRealmFinder) GetNamespace() string {
 }
 
 func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
-	var realmList v1v1alpha1.KeycloakRealmList
+	var realmList keycloakApi.KeycloakRealmList
 	listOpts := client.ListOptions{Namespace: c.parent.Namespace}
 	client.MatchingLabels(map[string]string{chain.TargetRealmLabel: c.parent.Spec.TargetRealm}).ApplyToList(&listOpts)
 
@@ -68,7 +72,7 @@ func (c *clientRealmFinder) SetOwnerReferences(or []v1.OwnerReference) {
 	c.parent.SetOwnerReferences(or)
 }
 
-func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *v1v1alpha1.KeycloakClient,
+func (r *ReconcileKeycloakClient) addTargetRealmIfNeed(keycloakClient *keycloakApi.KeycloakClient,
 	reamName string) error {
 	if keycloakClient.Spec.TargetRealm != "" {
 		return nil

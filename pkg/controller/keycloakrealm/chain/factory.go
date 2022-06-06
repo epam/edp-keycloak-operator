@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 )
@@ -47,7 +47,7 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) ha
 	}
 }
 
-func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *v1v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	if next != nil {
 		return next.ServeRequest(ctx, realm, kClient)
 	}

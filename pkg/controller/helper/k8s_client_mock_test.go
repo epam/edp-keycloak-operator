@@ -2,15 +2,16 @@ package helper
 
 import (
 	"context"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 )
 
 type fakePatch string
@@ -27,8 +28,8 @@ func TestK8SClientMock_OneLiners(t *testing.T) {
 	k8sMock := K8SClientMock{}
 
 	var (
-		kc              v1alpha1.Keycloak
-		kList           v1alpha1.KeycloakList
+		kc              keycloakApi.Keycloak
+		kList           keycloakApi.KeycloakList
 		createOpts      []client.CreateOption
 		deleteOpts      []client.DeleteOption
 		listOpts        []client.ListOption
@@ -93,14 +94,14 @@ func TestK8SClientMock_Status(t *testing.T) {
 
 func TestK8SClientMock_Get(t *testing.T) {
 	k8sMock := K8SClientMock{}
-	if err := v1alpha1.AddToScheme(scheme.Scheme); err != nil {
+	if err := keycloakApi.AddToScheme(scheme.Scheme); err != nil {
 		t.Fatal(err)
 	}
 
 	var (
-		kcRequest = v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"}}
-		kcResult  = v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"},
-			Status: v1alpha1.KeycloakStatus{Connected: true}}
+		kcRequest = keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"}}
+		kcResult  = keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"},
+			Status: keycloakApi.KeycloakStatus{Connected: true}}
 	)
 
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kcResult).Build()
@@ -121,7 +122,7 @@ func TestK8SStatusMock_OneLiners(t *testing.T) {
 		updateOpts []client.UpdateOption
 		patchOpts  []client.PatchOption
 		ctx        = context.Background()
-		kc         v1alpha1.Keycloak
+		kc         keycloakApi.Keycloak
 		fPath      fakePatch
 	)
 

@@ -6,7 +6,7 @@ import (
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -16,7 +16,7 @@ type PutProtocolMappers struct {
 	next Element
 }
 
-func (el *PutProtocolMappers) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutProtocolMappers) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	if err := el.putProtocolMappers(keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "unable to put protocol mappers")
 	}
@@ -33,7 +33,7 @@ func copyMap(in map[string]string) map[string]string {
 	return out
 }
 
-func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	var protocolMappers []gocloak.ProtocolMapperRepresentation
 
 	if keycloakClient.Spec.ProtocolMappers != nil {
@@ -54,7 +54,7 @@ func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *v1v1alpha1.Keyc
 
 	if err := adapterClient.SyncClientProtocolMapper(
 		dto.ConvertSpecToClient(&keycloakClient.Spec, ""),
-		protocolMappers, keycloakClient.GetReconciliationStrategy() == v1v1alpha1.ReconciliationStrategyAddOnly); err != nil {
+		protocolMappers, keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync protocol mapper")
 	}
 

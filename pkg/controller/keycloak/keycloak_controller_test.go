@@ -9,10 +9,6 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	v1 "k8s.io/api/apps/v1"
@@ -24,6 +20,11 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
 )
 
 func TestNewReconcileKeycloak(t *testing.T) {
@@ -36,7 +37,7 @@ func TestNewReconcileKeycloak(t *testing.T) {
 func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	//prepare
 	//client & scheme
-	cr := &v1alpha1.Keycloak{
+	cr := &keycloakApi.Keycloak{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Keycloak",
 			APIVersion: "apps/v1",
@@ -45,7 +46,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 			Name:      "NewKeycloak",
 			Namespace: "namespace",
 		},
-		Spec: v1alpha1.KeycloakSpec{
+		Spec: keycloakApi.KeycloakSpec{
 			Url:    "https://some",
 			Secret: "keycloak-secret",
 		},
@@ -64,7 +65,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		cr, secret,
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, &edpCompApi.EDPComponent{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, &edpCompApi.EDPComponent{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
 	//request
@@ -95,12 +96,12 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, res.Requeue)
 
-	persisted := &v1alpha1.Keycloak{}
+	persisted := &keycloakApi.Keycloak{}
 	err = cl.Get(context.TODO(), req.NamespacedName, persisted)
 	assert.Nil(t, err)
 	assert.False(t, persisted.Status.Connected)
 
-	realm := &v1alpha1.KeycloakRealm{}
+	realm := &keycloakApi.KeycloakRealm{}
 	nsnRealm := types.NamespacedName{
 		Name:      "main",
 		Namespace: "namespace",
@@ -113,20 +114,20 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 }
 
 func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
-	cr := &v1alpha1.Keycloak{
+	cr := &keycloakApi.Keycloak{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Keycloak",
 			APIVersion: "apps/v1",
 		},
 		ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec:       v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
+		Spec:       keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
 	}
 	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, comp)
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
@@ -150,17 +151,17 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	}
 
 	if err := cl.Get(context.Background(),
-		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &v1alpha1.KeycloakRealm{}); err != nil {
+		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{}); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
-	cr := &v1alpha1.Keycloak{TypeMeta: metav1.TypeMeta{
+	cr := &keycloakApi.Keycloak{TypeMeta: metav1.TypeMeta{
 		Kind:       "Keycloak",
 		APIVersion: "apps/v1",
 	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
+		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
 			InstallMainRealm: gocloak.BoolP(false)}}
 	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
@@ -168,7 +169,7 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
 		Namespace: cr.Namespace}}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{}, comp)
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, comp)
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
@@ -197,18 +198,18 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	}
 
 	if err := cl.Get(context.Background(),
-		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &v1alpha1.KeycloakRealm{}); err == nil {
+		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{}); err == nil {
 		t.Fatal("main realm has been created")
 	}
 }
 
 func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
-	cr := &v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
+	cr := &keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
+		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
 			InstallMainRealm: gocloak.BoolP(false)}}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
 
 	logger := mock.Logger{}
@@ -236,7 +237,7 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 	mockK8S := helper.K8SClientMock{}
 	r.client = &mockK8S
 
-	var kc v1alpha1.Keycloak
+	var kc keycloakApi.Keycloak
 	mockK8S.On("Get", rq.NamespacedName, &kc).Return(errors.New("get keycloak fatal"))
 	res, err = r.Reconcile(context.Background(), rq)
 	if err != nil {
@@ -258,15 +259,15 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 }
 
 func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *testing.T) {
-	cr := &v1alpha1.Keycloak{TypeMeta: metav1.TypeMeta{
+	cr := &keycloakApi.Keycloak{TypeMeta: metav1.TypeMeta{
 		Kind:       "Keycloak",
 		APIVersion: "apps/v1",
 	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: v1alpha1.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
+		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
 			InstallMainRealm: gocloak.BoolP(false)}}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &v1alpha1.KeycloakRealm{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
 
 	logger := mock.Logger{}
@@ -305,12 +306,12 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 	hm := helper.Mock{}
 	kClMock := adapter.Mock{}
 	logger := mock.Logger{}
-	if err := v1alpha1.AddToScheme(scheme.Scheme); err != nil {
+	if err := keycloakApi.AddToScheme(scheme.Scheme); err != nil {
 		t.Fatal(err)
 	}
 
-	kc := v1alpha1.Keycloak{ObjectMeta: metav1.ObjectMeta{Namespace: "kc-ns1", Name: "kc-name-1"},
-		Spec: v1alpha1.KeycloakSpec{Secret: "kc-secret-name-1"}}
+	kc := keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Namespace: "kc-ns1", Name: "kc-name-1"},
+		Spec: keycloakApi.KeycloakSpec{Secret: "kc-secret-name-1"}}
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
 
 	fakeCl := fake.NewClientBuilder().WithScheme(scheme.Scheme).WithRuntimeObjects(&kc).Build()
@@ -331,7 +332,7 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 		Return(nil, adapter.ErrTokenExpired("token expired"))
 	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
 
-	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).
+	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).
 		Return(errors.New("isStatusConnected fatal")).Once()
 
 	_, err := r.Reconcile(context.Background(), rq)
@@ -353,7 +354,7 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	cl := helper.K8SClientMock{}
 	sch := runtime.NewScheme()
 
-	if err := v1alpha1.AddToScheme(sch); err != nil {
+	if err := keycloakApi.AddToScheme(sch); err != nil {
 		t.Fatal(err)
 	}
 
@@ -361,27 +362,27 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	kClMock := adapter.Mock{}
 	logger := mock.Logger{}
 
-	kc := v1alpha1.Keycloak{Status: v1alpha1.KeycloakStatus{Connected: true}, ObjectMeta: metav1.ObjectMeta{
+	kc := keycloakApi.Keycloak{Status: keycloakApi.KeycloakStatus{Connected: true}, ObjectMeta: metav1.ObjectMeta{
 		Name:      "kc-main",
 		Namespace: "kc-ns",
-	}, Spec: v1alpha1.KeycloakSpec{Secret: "kc-secret-name"},
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1alpha1", Kind: "Keycloak"}}
+	}, Spec: keycloakApi.KeycloakSpec{Secret: "kc-secret-name"},
+		TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1", Kind: "Keycloak"}}
 
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
 	sec := corev1.Secret{}
-	realmCr := v1alpha1.KeycloakRealm{}
+	realmCr := keycloakApi.KeycloakRealm{}
 
 	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&kc).Build()
 	cl.On("Scheme").Return(fakeCl)
 	cl.On("Status").Return(fakeCl)
 
-	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).Return(fakeCl).Once()
+	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
 	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
 		Return(nil, adapter.ErrTokenExpired("token expired"))
 	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
 
-	cl.On("Get", rq.NamespacedName, &v1alpha1.Keycloak{}).Return(fakeCl).Once()
+	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
 	cl.On("Get", types.NamespacedName{Name: "main", Namespace: kc.Namespace}, &realmCr).
 		Return(errors.New("get main realm fatal"))
 

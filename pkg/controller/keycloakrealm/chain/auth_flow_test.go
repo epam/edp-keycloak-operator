@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
 
-	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
@@ -15,8 +15,8 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 	kc := adapter.Mock{}
 	af := AuthFlow{}
 
-	realm := v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm1",
 		},
 	}
@@ -38,8 +38,8 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 	kc := adapter.Mock{}
 	af := AuthFlow{}
 
-	realm := v1alpha1.KeycloakRealm{
-		Spec: v1alpha1.KeycloakRealmSpec{
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm1",
 		},
 	}

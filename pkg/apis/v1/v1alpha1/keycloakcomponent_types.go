@@ -2,32 +2,42 @@ package v1alpha1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:deprecatedversion
 type KeycloakRealmComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
-	Spec              KeycloakComponentSpec   `json:"spec"`
-	Status            KeycloakComponentStatus `json:"status"`
+
+	Spec   KeycloakComponentSpec   `json:"spec"`
+	Status KeycloakComponentStatus `json:"status"`
 }
 
 type KeycloakComponentSpec struct {
-	Name         string              `json:"name"`
-	Realm        string              `json:"realm"`
-	ProviderID   string              `json:"providerId"`
-	ProviderType string              `json:"providerType"`
-	Config       map[string][]string `json:"config"`
+	Name         string `json:"name"`
+	Realm        string `json:"realm"`
+	ProviderID   string `json:"providerId"`
+	ProviderType string `json:"providerType"`
+
+	// +nullable
+	// +optional
+	Config map[string][]string `json:"config,omitempty"`
 }
 
 type KeycloakComponentStatus struct {
-	Value        string `json:"value"`
-	FailureCount int64  `json:"failureCount"`
+	// +optional
+	Value string `json:"value,omitempty"`
+
+	// +optional
+	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+// +kubebuilder:object:root=true
 type KeycloakRealmComponentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
-	Items           []KeycloakRealmComponent `json:"items"`
+
+	Items []KeycloakRealmComponent `json:"items"`
 }
 
 func (in KeycloakRealmComponent) GetFailureCount() int64 {

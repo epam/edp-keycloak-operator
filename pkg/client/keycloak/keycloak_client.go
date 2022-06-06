@@ -5,7 +5,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -51,7 +51,7 @@ type KAuthFlow interface {
 }
 
 type KCloakGroups interface {
-	SyncRealmGroup(realm string, spec *v1alpha1.KeycloakRealmGroupSpec) (string, error)
+	SyncRealmGroup(realm string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error)
 	DeleteGroup(ctx context.Context, realm, groupName string) error
 }
 

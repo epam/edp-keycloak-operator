@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 
-	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
@@ -14,7 +14,7 @@ type PutClientScope struct {
 	next Element
 }
 
-func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	if err := el.putClientScope(ctx, keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "error during putClientScope")
 	}
@@ -22,7 +22,7 @@ func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *v1v1alpha1.
 	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutClientScope) putClientScope(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClientScope) putClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
 	kCloakSpec := keycloakClient.Spec
 	if len(kCloakSpec.DefaultClientScopes) == 0 {
 		return nil

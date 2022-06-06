@@ -4,14 +4,15 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 const (
@@ -20,7 +21,7 @@ const (
 )
 
 func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context,
-	realm *v1alpha1.KeycloakRealm) (keycloak.Client, error) {
+	realm *keycloakApi.KeycloakRealm) (keycloak.Client, error) {
 
 	kc, err := h.GetOrCreateKeycloakOwnerRef(realm)
 	if err != nil {
@@ -51,7 +52,7 @@ func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context,
 	return clientAdapter, nil
 }
 
-func (h *Helper) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error) {
+func (h *Helper) CreateKeycloakClientFromLoginPassword(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error) {
 	var secret coreV1.Secret
 	if err := h.client.Get(ctx, types.NamespacedName{
 		Name:      kc.Spec.Secret,
@@ -101,7 +102,7 @@ func (h *Helper) InvalidateKeycloakClientTokenSecret(ctx context.Context, namesp
 	return nil
 }
 
-func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak, token []byte) error {
+func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *keycloakApi.Keycloak, token []byte) error {
 	var secret coreV1.Secret
 	err := h.client.Get(ctx, types.NamespacedName{Namespace: kc.Namespace, Name: tokenSecretName(kc.Name)}, &secret)
 	if err == nil {
@@ -134,7 +135,7 @@ func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *v1alpha1
 	return errors.Wrap(err, "error during token secret retrieval")
 }
 
-func (h *Helper) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *v1alpha1.Keycloak) (keycloak.Client, error) {
+func (h *Helper) CreateKeycloakClientFromTokenSecret(ctx context.Context, kc *keycloakApi.Keycloak) (keycloak.Client, error) {
 	var tokenSecret coreV1.Secret
 	if err := h.client.Get(ctx, types.NamespacedName{
 		Name:      tokenSecretName(kc.Name),

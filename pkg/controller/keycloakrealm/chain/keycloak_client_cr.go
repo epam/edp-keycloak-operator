@@ -4,16 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 	"github.com/pkg/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
 )
 
 var clientSecretName = "keycloak-client.%s.secret"
@@ -24,7 +25,7 @@ type PutKeycloakClientCR struct {
 	scheme *runtime.Scheme
 }
 
-func (h PutKeycloakClientCR) getClientRoles(realm *v1alpha1.KeycloakRealm) []string {
+func (h PutKeycloakClientCR) getClientRoles(realm *keycloakApi.KeycloakRealm) []string {
 	userRoles := make(map[string]string)
 
 	for _, u := range realm.Spec.Users {
@@ -41,7 +42,7 @@ func (h PutKeycloakClientCR) getClientRoles(realm *v1alpha1.KeycloakRealm) []str
 	return clientRoles
 }
 
-func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *v1alpha1.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client CR")
 	if !realm.Spec.SSOEnabled() {
@@ -60,12 +61,12 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *v1alpha1.K
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	kc = &v1alpha1.KeycloakClient{
+	kc = &keycloakApi.KeycloakClient{
 		ObjectMeta: metaV1.ObjectMeta{
 			Name:      realm.Spec.RealmName,
 			Namespace: realm.Namespace,
 		},
-		Spec: v1alpha1.KeycloakClientSpec{
+		Spec: keycloakApi.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
 			TargetRealm: realm.Spec.SsoRealmName,
 			ClientId:    realm.Spec.RealmName,
