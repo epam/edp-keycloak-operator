@@ -415,8 +415,8 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 					Name: "scope2",
 				},
 			}),
-			scopeNames: []string{"scope1"},
-			expectRes:  []ClientScope{},
+			scopeNames: []string{"scope1, scope"},
+			expectErr:  true,
 		},
 		"failed to get scopes": {
 			realm:      "realm3",

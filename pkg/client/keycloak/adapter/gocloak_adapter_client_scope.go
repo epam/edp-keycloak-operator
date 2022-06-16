@@ -174,28 +174,33 @@ func (a GoCloakAdapter) GetClientScopesByNames(ctx context.Context, realmName st
 
 	log.Info("End get Client Scopes...")
 
-	return a.filterClientScopes(scopeNames, result), nil
+	return a.filterClientScopes(scopeNames, result)
 }
 
-func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []ClientScope) []ClientScope {
+func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []ClientScope) ([]ClientScope, error) {
 	clientScopesMap := make(map[string]ClientScope)
 	for _, s := range clientScopes {
 		clientScopesMap[s.Name] = s
 	}
 
 	result := make([]ClientScope, 0, len(scopeNames))
+	missingScopes := make([]string, 0, len(scopeNames))
 
-	for _, sn := range scopeNames {
-		scope, ok := clientScopesMap[sn]
+	for _, scopeName := range scopeNames {
+		scope, ok := clientScopesMap[scopeName]
 		if ok {
 			result = append(result, scope)
 			continue
 		}
 
-		a.log.Error(errors.New("failed to get keycloak client scope"), sn)
+		missingScopes = append(missingScopes, scopeName)
 	}
 
-	return result
+	if len(missingScopes) > 0 {
+		return nil, errors.Errorf("failed to get '%s' keycloak client scopes", strings.Join(missingScopes, ","))
+	}
+
+	return result, nil
 }
 
 func (a GoCloakAdapter) DeleteClientScope(ctx context.Context, realmName, scopeID string) error {
