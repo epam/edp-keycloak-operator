@@ -76,12 +76,17 @@ api-docs: crdoc	## generate CRD docs
 	$(CRDOC) --resources deploy-templates/crds --output docs/api.md
 
 .PHONY: helm-docs
-helm-docs: ## generate helm docs
+helm-docs: helmdocs	## generate helm docs
 	helm-docs
+
+HELMDOCS = ${CURRENT_DIR}/bin/helm-docs
+.PHONY: helmdocs
+helmdocs: ## Download helm-docs locally if necessary.
+	$(call go-get-tool,$(HELMDOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,v1.10.0)
 
 GITCHGLOG = ${CURRENT_DIR}/bin/git-chglog
 .PHONY: git-chglog
-git-chglog: ## Download crdoc locally if necessary.
+git-chglog: ## Download git-chglog locally if necessary.
 	$(call go-get-tool,$(GITCHGLOG),github.com/git-chglog/git-chglog/cmd/git-chglog,v0.15.1)
 
 CRDOC = ${CURRENT_DIR}/bin/crdoc
