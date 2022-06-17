@@ -3,6 +3,26 @@
 
 ### Features
 
+- Pre-create edp clientscope as a part of kecloakclientscope CR [EPMDEDP-8323](https://jiraeu.epam.com/browse/EPMDEDP-8323)
+- Default scopes can be assigned for keycloakclient CR [EPMDEDP-8323](https://jiraeu.epam.com/browse/EPMDEDP-8323)
+- Switch CRDs to v1 version [EPMDEDP-9219](https://jiraeu.epam.com/browse/EPMDEDP-9219)
+
+### Bug Fixes
+
+- Realm password policy [EPMDEDP-9223](https://jiraeu.epam.com/browse/EPMDEDP-9223)
+- Fix artifacthub.io CRD examples [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
+- Removed duplicate CRD example from Cart.yaml [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
+
+### Routine
+
+- Update current development version [EPMDEDP-8832](https://jiraeu.epam.com/browse/EPMDEDP-8832)
+- Update chart annotation [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
+
+
+<a name="v1.11.0"></a>
+## [v1.11.0] - 2022-05-25
+### Features
+
 - Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
 - implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
 - add priority and requirement params to child auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
@@ -114,7 +134,8 @@
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...HEAD
+[v1.11.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...v1.11.0
 [v1.10.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.9.0...v1.10.0
 [v1.9.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.8.0...v1.9.0

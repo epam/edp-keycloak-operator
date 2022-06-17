@@ -64,20 +64,30 @@ clean:  ## clean up
 
 # use https://github.com/git-chglog/git-chglog/
 .PHONY: changelog
-changelog: ## generate changelog
+changelog: git-chglog	## generate changelog
 ifneq (${NEXT_RELEASE_TAG},)
-	@git-chglog --next-tag v${NEXT_RELEASE_TAG} -o CHANGELOG.md v1.7.0..
+	$(GITCHGLOG) --next-tag v${NEXT_RELEASE_TAG} -o CHANGELOG.md v1.7.0..
 else
-	@git-chglog -o CHANGELOG.md v1.7.0..
+	$(GITCHGLOG) -o CHANGELOG.md v1.7.0..
 endif
 
 .PHONY: api-docs
-api-docs: ## generate CRD docs
-	crdoc --resources deploy-templates/crds --output docs/api.md
+api-docs: crdoc	## generate CRD docs
+	$(CRDOC) --resources deploy-templates/crds --output docs/api.md
 
 .PHONY: helm-docs
 helm-docs: ## generate helm docs
 	helm-docs
+
+GITCHGLOG = ${CURRENT_DIR}/bin/git-chglog
+.PHONY: git-chglog
+git-chglog: ## Download crdoc locally if necessary.
+	$(call go-get-tool,$(GITCHGLOG),github.com/git-chglog/git-chglog/cmd/git-chglog,v0.15.1)
+
+CRDOC = ${CURRENT_DIR}/bin/crdoc
+.PHONY: crdoc
+crdoc: ## Download crdoc locally if necessary.
+	$(call go-get-tool,$(CRDOC),fybrik.io/crdoc,v0.6.1)
 
 CONTROLLER_GEN = ${CURRENT_DIR}/bin/controller-gen
 .PHONY: controller-gen
