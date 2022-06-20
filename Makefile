@@ -77,7 +77,7 @@ api-docs: crdoc	## generate CRD docs
 
 .PHONY: helm-docs
 helm-docs: helmdocs	## generate helm docs
-	helm-docs
+	$(HELMDOCS)
 
 HELMDOCS = ${CURRENT_DIR}/bin/helm-docs
 .PHONY: helmdocs
