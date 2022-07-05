@@ -1,6 +1,6 @@
 module github.com/epam/edp-keycloak-operator
 
-go 1.17
+go 1.18
 
 replace (
 	git.apache.org/thrift.git => github.com/apache/thrift v0.12.0
