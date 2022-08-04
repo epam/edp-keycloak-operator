@@ -82,7 +82,7 @@ helm-docs: helmdocs	## generate helm docs
 HELMDOCS = ${CURRENT_DIR}/bin/helm-docs
 .PHONY: helmdocs
 helmdocs: ## Download helm-docs locally if necessary.
-	$(call go-get-tool,$(HELMDOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,v1.10.0)
+	$(call go-get-tool,$(HELMDOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,v1.11.0)
 
 GITCHGLOG = ${CURRENT_DIR}/bin/git-chglog
 .PHONY: git-chglog
@@ -97,7 +97,7 @@ crdoc: ## Download crdoc locally if necessary.
 CONTROLLER_GEN = ${CURRENT_DIR}/bin/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,v0.9.0)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,v0.9.2)
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
