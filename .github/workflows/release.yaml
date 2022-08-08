@@ -31,8 +31,8 @@ jobs:
             # refs/tags/v2.10.7 -> v2.10.7
             RELEASE_TAG="${SOURCE_TAG##*/}"
 
-            # dowload git-chglog
-            go get -u github.com/git-chglog/git-chglog/cmd/git-chglog
+            # install git-chglog
+            go install github.com/git-chglog/git-chglog/cmd/git-chglog@latest
 
             git-chglog --template .chglog/release.tpl.md -o release.md ${RELEASE_TAG}
 
