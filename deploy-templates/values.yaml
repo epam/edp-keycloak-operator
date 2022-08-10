@@ -12,9 +12,9 @@ nodeSelector: {}
 tolerations: []
 affinity: {}
 image:
-  name: epamedp/keycloak-operator
+  repository: epamedp/keycloak-operator
   # if not defined then .Chart.AppVersion is used
-  version:
+  tag:
 imagePullPolicy: "IfNotPresent"
 
 resources:
