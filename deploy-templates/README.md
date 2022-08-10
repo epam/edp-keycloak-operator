@@ -27,8 +27,8 @@ A Helm chart for EDP Keycloak Operator
 | global.developers[0] | string | `"stub_user_one@example.com"` |  |
 | global.edpName | string | `""` |  |
 | global.platform | string | `"openshift"` |  |
-| image.name | string | `"epamedp/keycloak-operator"` |  |
-| image.version | string | `nil` |  |
+| image.repository | string | `"epamedp/keycloak-operator"` |  |
+| image.tag | string | `nil` |  |
 | imagePullPolicy | string | `"IfNotPresent"` |  |
 | keycloak.url | string | `"https://keycloak.example.com"` |  |
 | name | string | `"keycloak-operator"` |  |
