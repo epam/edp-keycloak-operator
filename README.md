@@ -25,51 +25,31 @@ In order to install the Keycloak Operator, follow the steps below:
 
 1. To add the Helm EPAMEDP Charts for local client, run "helm repo add":
      ```bash
-     helm repo add epamedp https://chartmuseum.demo.edp-epam.com/
+     helm repo add epamedp https://epam.github.io/edp-helm-charts/stable
      ```
 2. Choose available Helm chart version:
      ```bash
-     helm search repo epamedp/keycloak-operator
+     helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
-     epamedp/keycloak-operator      v2.4.0                          Helm chart for Golang application/service deplo...
+     epamedp/keycloak-operator      1.11.0          1.11.0          A Helm chart for EDP Keycloak Operator
+     epamedp/keycloak-operator      1.10.0          1.10.0          A Helm chart for EDP Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest released version._
 
-3. For correct work, Keycloak Operator should have administrative access to Keycloak as it uses secret with credentials for this purpose.
-It is necessary to create such secret manually or from the existing secret using these commands as examples:
+3. Full chart parameters available in [deploy-templates/README.md](deploy-templates/README.md).
 
-    3.1 OpenShift:
+4. Install operator in the <edp-project> namespace with the helm command; find below the installation command example:
     ```bash
-    oc -n <edp_main_keycloak_project> get secret <edp_main_keycloak_secret> --export -o yaml | oc -n <edp_cicd_project> apply -f -
+    helm install keycloak-operator epamedp/keycloak-operator --version <chart_version> --namespace <edp-project> --set name=keycloak-operator --set global.edpName=<edp-project> --set global.platform=<platform_type>
     ```
-
-    3.2 Kubernetes:
-    ```bash
-    kubectl -n <edp_main_keycloak_project> get secret <edp_main_keycloak_secret> --export -o yaml | kubectl -n <edp_cicd_project> apply -f -
-    ```
-    >_INFO: The `<edp_main_keycloak_project>` parameter is the namespace with the deployed Keycloak; the `<edp_main_keycloak_secret>` parameter is the name of a Keycloak secret._
-
-   Full available chart parameters list:
-   ```
-     - chart_version                                 # a version of Keycloak operator Helm chart;
-     - global.edpName                                # a namespace or a project name (in case of OpenShift);
-     - global.platform                               # openshift or kubernetes;
-     - global.admins                                 # Administrators of your tenant separated by comma (,) (eg --set 'global.admins={test@example.com}');
-     - global.developers                             # Developers of your tenant separated by comma (,) (eg --set 'global.developers={test@example.com}');
-     - image.repository                              # EDP image. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator);
-     - image.tag                                     # EDP tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags);
-     - keycloak.url                                  # URL to Keycloak;
-   ```
-4. Install operator in the <edp_cicd_project> namespace with the helm command; find below the installation command example:
-    ```bash
-    helm install keycloak-operator epamedp/keycloak-operator --version <chart_version> --namespace <edp_cicd_project> --set name=keycloak-operator --set global.edpName=<edp_cicd_project> --set global.platform=<platform_type>
-    ```
-5. Check the <edp_cicd_project> namespace that should contain Deployment with your operator in a running status.
+5. Check the <edp-project> namespace that should contain Deployment with your operator in a running status.
 
 ## Local Development
 
-In order to develop the operator, first set up a local environment. For details, please refer to the [Local Development](documentation/local-development.md) page.
+In order to develop the operator, first set up a local environment. For details, please refer to the [Local Development](https://epam.github.io/edp-install/developer-guide/local-development/) page.
+
+Development versions are also available, please refer to the [snapshot helm chart repository](https://epam.github.io/edp-helm-charts/snapshot/) page.
 
 ### Related Articles
 

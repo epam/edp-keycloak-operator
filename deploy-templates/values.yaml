@@ -1,19 +1,26 @@
 global:
+  # -- namespace or a project name (in case of OpenShift)
   edpName: ""
+  # -- platform type that can be "kubernetes" or "openshift"
   platform: "openshift"
+  # -- Administrators of your tenant
   admins:
     - "stub_user_one@example.com"
+  # -- Developers of your tenant
   developers:
     - "stub_user_one@example.com"
 
+# -- component name
 name: keycloak-operator
 annotations: {}
 nodeSelector: {}
 tolerations: []
 affinity: {}
 image:
+  # -- EDP keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator)
   repository: epamedp/keycloak-operator
   # if not defined then .Chart.AppVersion is used
+  # -- EDP keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags)
   tag:
 imagePullPolicy: "IfNotPresent"
 
@@ -25,4 +32,5 @@ resources:
     memory: 64Mi
 
 keycloak:
+  # -- URL to Keycloak
   url: "https://keycloak.example.com"
