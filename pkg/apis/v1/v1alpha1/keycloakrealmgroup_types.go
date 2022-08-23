@@ -41,7 +41,7 @@ type KeycloakRealmGroupStatus struct {
 	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
-func (in KeycloakRealmGroup) GetFailureCount() int64 {
+func (in *KeycloakRealmGroup) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -49,7 +49,7 @@ func (in *KeycloakRealmGroup) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakRealmGroup) GetStatus() string {
+func (in *KeycloakRealmGroup) GetStatus() string {
 	return in.Status.Value
 }
 

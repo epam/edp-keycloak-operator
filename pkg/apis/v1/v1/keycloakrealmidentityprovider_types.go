@@ -73,7 +73,7 @@ type KeycloakRealmIdentityProvider struct {
 	Status KeycloakRealmIdentityProviderStatus `json:"status"`
 }
 
-func (in KeycloakRealmIdentityProvider) GetFailureCount() int64 {
+func (in *KeycloakRealmIdentityProvider) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -81,7 +81,7 @@ func (in *KeycloakRealmIdentityProvider) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakRealmIdentityProvider) GetStatus() string {
+func (in *KeycloakRealmIdentityProvider) GetStatus() string {
 	return in.Status.Value
 }
 

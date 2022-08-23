@@ -9,7 +9,7 @@ import (
 )
 
 func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
-	log := a.log.WithValues("clientName", clientName, "realm", realmName)
+	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
 	log.Info("Start add Client Scopes to client...")
 
 	clientID, err := a.GetClientID(clientName, realmName)

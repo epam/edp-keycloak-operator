@@ -59,7 +59,7 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 	}
 
 	if len(realmSettings.PasswordPolicies) > 0 {
-		policies := make([]string, len(realmSettings.PasswordPolicies), len(realmSettings.PasswordPolicies))
+		policies := make([]string, len(realmSettings.PasswordPolicies))
 		for i, v := range realmSettings.PasswordPolicies {
 			policies[i] = fmt.Sprintf("%s(%s)", v.Type, v.Value)
 		}
@@ -75,7 +75,7 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 }
 
 func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
-	log := a.log.WithValues("realm", realmName)
+	log := a.log.WithValues(logKeyRealm, realmName)
 	log.Info("Start check existing realm...")
 
 	_, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
@@ -90,7 +90,7 @@ func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
 }
 
 func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
-	log := a.log.WithValues("realm", realm)
+	log := a.log.WithValues(logKeyRealm, realm)
 	log.Info("Start creating realm with default config...")
 
 	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
@@ -103,7 +103,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
 }
 
 func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error {
-	log := a.log.WithValues("realm", realmName)
+	log := a.log.WithValues(logKeyRealm, realmName)
 	log.Info("Start deleting realm...")
 
 	if err := a.client.DeleteRealm(ctx, a.token.AccessToken, realmName); err != nil {
@@ -196,8 +196,8 @@ func decodeIdentityProviderMapper(mp interface{}) (*dto.IdentityProviderMapper, 
 
 func (a GoCloakAdapter) createIdentityProviderMapper(realmName string, mapper dto.IdentityProviderMapper) error {
 	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"alias": mapper.IdentityProviderAlias,
-		"realm": realmName,
+		keycloakApiParamAlias: mapper.IdentityProviderAlias,
+		keycloakApiParamRealm: realmName,
 	}).SetBody(mapper).Post(a.basePath + mapperToIdentityProvider)
 
 	if err != nil {
@@ -214,12 +214,12 @@ func (a GoCloakAdapter) createIdentityProviderMapper(realmName string, mapper dt
 
 func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dto.IdentityProviderMapper) error {
 	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"alias": mapper.IdentityProviderAlias,
-		"realm": realmName,
-		"id":    mapper.ID,
+		keycloakApiParamAlias: mapper.IdentityProviderAlias,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    mapper.ID,
 	}).SetBody(mapper).Put(a.basePath + updateMapperToIdentityProvider)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrapf(err, "unable to update identity provider mapper: %+v", mapper)
 	}
 

@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -16,9 +18,8 @@ func TestTerminator_DeleteResource(t *testing.T) {
 
 	kcAdapter.On("DeleteComponent", "foo", "bar").Return(nil)
 	term := makeTerminator("foo", "bar", &kcAdapter, &logger)
-	if err := term.DeleteResource(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 
 	if term.GetLogger() != &logger {
 		t.Fatal("wrong logger returned")

@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"path"
 	"strings"
@@ -12,6 +13,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -44,6 +46,7 @@ func (e *ExecFlowTestSuite) TestCreateAuthFlowParent() {
 	)
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
 	createFlowResponse.Header.Set("Location", fmt.Sprintf("id/%s", newFlowID))
 
 	httpmock.RegisterResponder("POST",
@@ -106,12 +109,14 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 		Return(nil).Once()
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
 	createFlowResponse.Header.Set("Location", "id/new-flow-id")
 
 	httpmock.RegisterResponder("POST", strings.ReplaceAll(authFlows, "{realm}", e.realmName),
 		httpmock.ResponderFromResponse(createFlowResponse))
 
 	createExecResponse := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
 	newExecID := "new-exec-id"
 	createExecResponse.Header.Set("Location", fmt.Sprintf("id/%s", newExecID))
 	httpmock.RegisterResponder("POST", strings.ReplaceAll(authFlowExecutionCreate, "{realm}", e.realmName),
@@ -272,6 +277,7 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{}))
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
 	createFlowResponse.Header.Set("Location", fmt.Sprintf("id/%s", flowID))
 
 	httpmock.RegisterResponder("POST",
@@ -358,4 +364,9 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 
 func TestExecFlowTestSuite(t *testing.T) {
 	suite.Run(t, new(ExecFlowTestSuite))
+}
+
+func closeWithFailOnError(t *testing.T, closer io.Closer) {
+	err := closer.Close()
+	require.NoError(t, err)
 }

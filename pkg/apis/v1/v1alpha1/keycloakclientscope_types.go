@@ -28,7 +28,7 @@ func (in *KeycloakClientScope) K8SParentRealmName() (string, error) {
 	return in.Spec.Realm, nil
 }
 
-func (in KeycloakClientScope) GetFailureCount() int64 {
+func (in *KeycloakClientScope) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -36,7 +36,7 @@ func (in *KeycloakClientScope) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakClientScope) GetStatus() string {
+func (in *KeycloakClientScope) GetStatus() string {
 	return in.Status.Value
 }
 

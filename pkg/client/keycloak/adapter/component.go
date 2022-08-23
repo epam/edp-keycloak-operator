@@ -17,9 +17,9 @@ type Component struct {
 
 func (a GoCloakAdapter) CreateComponent(ctx context.Context, realmName string, component *Component) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
+		keycloakApiParamRealm: realmName,
 	}).SetBody(component).Post(a.basePath + realmComponent)
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "error during request")
 	}
 
@@ -36,12 +36,12 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 	}
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    component.ID,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    component.ID,
 	}).SetBody(component).Put(a.basePath + realmComponentEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "error during request")
+	if err = a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "error during update component request")
 	}
 
 	return nil
@@ -54,12 +54,12 @@ func (a GoCloakAdapter) DeleteComponent(ctx context.Context, realmName, componen
 	}
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    component.ID,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    component.ID,
 	}).Delete(a.basePath + realmComponentEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "error during request")
+	if err = a.checkError(err, rsp); err != nil {
+		return errors.Wrap(err, "error during delete component request")
 	}
 
 	return nil
@@ -69,10 +69,10 @@ func (a GoCloakAdapter) GetComponent(ctx context.Context, realmName, componentNa
 	var components []Component
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
+		keycloakApiParamRealm: realmName,
 	}).SetResult(&components).Get(a.basePath + realmComponent)
-	if err := a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "error during request")
+	if err = a.checkError(err, rsp); err != nil {
+		return nil, errors.Wrap(err, "error during get component request")
 	}
 
 	for _, c := range components {
@@ -81,5 +81,5 @@ func (a GoCloakAdapter) GetComponent(ctx context.Context, realmName, componentNa
 		}
 	}
 
-	return nil, ErrNotFound("component not found")
+	return nil, NotFoundError("component not found")
 }

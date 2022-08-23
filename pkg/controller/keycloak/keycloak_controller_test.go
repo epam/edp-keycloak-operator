@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v10"
-	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -20,6 +20,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
+
+	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -35,8 +37,8 @@ func TestNewReconcileKeycloak(t *testing.T) {
 }
 
 func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
-	//prepare
-	//client & scheme
+	// prepare
+	// client & scheme
 	cr := &keycloakApi.Keycloak{
 		TypeMeta: metav1.TypeMeta{
 			Kind:       "Keycloak",
@@ -68,7 +70,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, &edpCompApi.EDPComponent{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
-	//request
+	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "NewKeycloak",
@@ -79,9 +81,9 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(nil, errors.New("fatal"))
-	//reconcile
+	// reconcile
 	r := ReconcileKeycloak{
 		client: cl,
 		scheme: s,
@@ -89,10 +91,10 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		helper: &h,
 	}
 
-	//test
+	// test
 	res, err := r.Reconcile(context.TODO(), req)
 
-	//verify
+	// verify
 	assert.NoError(t, err)
 	assert.False(t, res.Requeue)
 
@@ -136,7 +138,7 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
 	r := ReconcileKeycloak{
 		client: cl,
@@ -150,10 +152,9 @@ func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	if err := cl.Get(context.Background(),
-		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{}); err != nil {
-		t.Fatal(err)
-	}
+	err = cl.Get(context.Background(),
+		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{})
+	require.NoError(t, err)
 }
 
 func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
@@ -177,7 +178,7 @@ func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
 
 	r := ReconcileKeycloak{
@@ -222,9 +223,7 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo23", Namespace: "bar23"}}
 
 	res, err := r.Reconcile(context.Background(), rq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if res.RequeueAfter != 0 {
 		t.Fatal("RequeueAfter is set")
@@ -240,9 +239,7 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 	var kc keycloakApi.Keycloak
 	mockK8S.On("Get", rq.NamespacedName, &kc).Return(errors.New("get keycloak fatal"))
 	res, err = r.Reconcile(context.Background(), rq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if res.RequeueAfter == 0 {
 		t.Fatal("RequeueAfter is not set")
@@ -273,7 +270,7 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(nil,
 		errors.New(`secrets "keycloak-secret" not found`))
 
@@ -287,9 +284,7 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
 
 	_, err := r.Reconcile(context.Background(), rq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = logger.LastError()
 	if err == nil {
@@ -306,9 +301,8 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 	hm := helper.Mock{}
 	kClMock := adapter.Mock{}
 	logger := mock.Logger{}
-	if err := keycloakApi.AddToScheme(scheme.Scheme); err != nil {
-		t.Fatal(err)
-	}
+	err := keycloakApi.AddToScheme(scheme.Scheme)
+	require.NoError(t, err)
 
 	kc := keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Namespace: "kc-ns1", Name: "kc-name-1"},
 		Spec: keycloakApi.KeycloakSpec{Secret: "kc-secret-name-1"}}
@@ -329,16 +323,14 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 		&corev1.Secret{}).Return(nil)
 
 	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
 
 	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).
 		Return(errors.New("isStatusConnected fatal")).Once()
 
-	_, err := r.Reconcile(context.Background(), rq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err = r.Reconcile(context.Background(), rq)
+	require.NoError(t, err)
 
 	err = logger.LastError()
 	if err == nil {
@@ -354,9 +346,8 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	cl := helper.K8SClientMock{}
 	sch := runtime.NewScheme()
 
-	if err := keycloakApi.AddToScheme(sch); err != nil {
-		t.Fatal(err)
-	}
+	err := keycloakApi.AddToScheme(sch)
+	require.NoError(t, err)
 
 	hm := helper.Mock{}
 	kClMock := adapter.Mock{}
@@ -379,7 +370,7 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
 	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
 	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
-		Return(nil, adapter.ErrTokenExpired("token expired"))
+		Return(nil, adapter.TokenExpiredError("token expired"))
 	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
 
 	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
@@ -393,10 +384,8 @@ func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
 		helper: &hm,
 	}
 
-	_, err := r.Reconcile(context.Background(), rq)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err = r.Reconcile(context.Background(), rq)
+	require.NoError(t, err)
 
 	err = logger.LastError()
 	if err == nil {

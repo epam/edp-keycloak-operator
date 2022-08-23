@@ -55,7 +55,7 @@ type KeycloakRealmRoleBatch struct {
 	Status KeycloakRealmRoleBatchStatus `json:"status,omitempty"`
 }
 
-func (in KeycloakRealmRoleBatch) GetStatus() string {
+func (in *KeycloakRealmRoleBatch) GetStatus() string {
 	return in.Status.Value
 }
 
@@ -63,7 +63,7 @@ func (in *KeycloakRealmRoleBatch) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in KeycloakRealmRoleBatch) GetFailureCount() int64 {
+func (in *KeycloakRealmRoleBatch) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 

@@ -17,7 +17,12 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
-const clientSecretKey = "clientSecret"
+const (
+	clientSecretKey = "clientSecret"
+	passwordLength  = 36
+	passwordDigits  = 9
+	passwordSymbols = 0
+)
 
 type PutClient struct {
 	BaseElement
@@ -118,8 +123,11 @@ func (el *PutClient) generateSecret(keycloakClient *keycloakApi.KeycloakClient) 
 		clientSecret = coreV1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
 				Name: secretName},
-			Data: map[string][]byte{clientSecretKey: []byte(password.MustGenerate(36, 9, 0,
-				true, true))},
+			Data: map[string][]byte{
+				clientSecretKey: []byte(
+					password.MustGenerate(passwordLength, passwordDigits, passwordSymbols, true, true),
+				),
+			},
 		}
 
 		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.scheme); err != nil {

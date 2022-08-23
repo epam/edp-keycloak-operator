@@ -107,11 +107,11 @@ type RealmThemes struct {
 	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
 }
 
-func (in KeycloakRealmSpec) SSOEnabled() bool {
+func (in *KeycloakRealmSpec) SSOEnabled() bool {
 	return in.SsoRealmEnabled == nil || *in.SsoRealmEnabled
 }
 
-func (in KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
+func (in *KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
 	return in.SsoAutoRedirectEnabled == nil || *in.SsoAutoRedirectEnabled
 }
 
@@ -139,7 +139,7 @@ type KeycloakRealmStatus struct {
 	Value string `json:"value,omitempty"`
 }
 
-func (in KeycloakRealm) GetFailureCount() int64 {
+func (in *KeycloakRealm) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 

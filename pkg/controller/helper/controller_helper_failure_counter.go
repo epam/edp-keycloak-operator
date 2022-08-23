@@ -23,7 +23,8 @@ type StatusValueFailureCountable interface {
 
 func (h *Helper) SetFailureCount(fc FailureCountable) time.Duration {
 	failures := fc.GetFailureCount()
-	timeout := h.getTimeout(failures, 10*time.Second)
+	const timeoutSeconds = 10
+	timeout := h.getTimeout(failures, timeoutSeconds*time.Second)
 	failures += 1
 	fc.SetFailureCount(failures)
 

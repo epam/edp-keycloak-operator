@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -17,9 +18,8 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	realm := keycloakApi.KeycloakRealm{}
 	ctx := context.Background()
 
-	if err := rs.ServeRequest(ctx, &realm, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := rs.ServeRequest(ctx, &realm, kClient)
+	require.NoError(t, err)
 
 	theme := "LoginTheme test"
 
@@ -57,18 +57,15 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		EventsListeners: []string{"foo", "bar"},
 	}).Return(nil).Once()
 
-	if err := rs.ServeRequest(ctx, &realm, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err = rs.ServeRequest(ctx, &realm, kClient)
+	require.NoError(t, err)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
 		EventsListeners: []string{"foo", "bar"},
 	}).Return(errors.New("event config fatal")).Once()
 
-	err := rs.ServeRequest(ctx, &realm, kClient)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = rs.ServeRequest(ctx, &realm, kClient)
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to set realm event config") {
 		t.Fatalf("wrong error returned: %s", err.Error())

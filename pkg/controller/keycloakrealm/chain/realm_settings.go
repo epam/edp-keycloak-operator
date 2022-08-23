@@ -53,7 +53,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies), len(realm.Spec.PasswordPolicies))
+		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies))
 		for i, v := range realm.Spec.PasswordPolicies {
 			settings.PasswordPolicies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
 		}

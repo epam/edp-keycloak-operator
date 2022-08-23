@@ -13,6 +13,7 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -64,9 +65,7 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 	}, &v1.Secret{}).Return(errors.New("FATAL"))
 
 	_, err := helper.CreateKeycloakClientForRealm(context.Background(), &realm)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "FATAL") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -165,9 +164,8 @@ func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	if err := h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token")); err != nil {
-		t.Fatal(err)
-	}
+	err := h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
+	require.NoError(t, err)
 }
 
 func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
@@ -198,9 +196,8 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	}
 
 	err := h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
-	if err == nil {
-		t.Fatal(err)
-	}
+	require.Error(t, err)
+
 	if !strings.Contains(err.Error(), "fatal secret") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
@@ -214,9 +211,8 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	var updateOpts []client.UpdateOption
 	mc.On("Update", &secret, updateOpts).Return(errors.New("secret update fatal"))
 	err = h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
-	if err == nil {
-		t.Fatal(err)
-	}
+	require.Error(t, err)
+
 	if !strings.Contains(err.Error(), "secret update fatal") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
@@ -233,7 +229,10 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 
 	realToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
 	tok := gocloak.JWT{AccessToken: realToken}
-	bts, _ := json.Marshal(&tok)
+	bts, err := json.Marshal(&tok)
+	if err != nil {
+		t.Fatal("failed to marshal token")
+	}
 
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -249,7 +248,7 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	_, err := h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc)
+	_, err = h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc)
 	if err == nil {
 		t.Fatal("no error on expired token")
 	}
@@ -262,12 +261,18 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	var decodedTokenPayload adapter.JWTPayload
 	_ = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
 	decodedTokenPayload.Exp = time.Now().Unix() + 1000
-	rawTokenPayload, _ = json.Marshal(decodedTokenPayload)
+	rawTokenPayload, err = json.Marshal(decodedTokenPayload)
+	if err != nil {
+		t.Fatal("failed to marshal decoded token payload")
+	}
 	tokenParts[1] = base64.RawURLEncoding.EncodeToString(rawTokenPayload)
 	realToken = strings.Join(tokenParts, ".")
 
 	tok = gocloak.JWT{AccessToken: realToken}
-	bts, _ = json.Marshal(&tok)
+	bts, err = json.Marshal(&tok)
+	if err != nil {
+		t.Fatal("failed to marshal token")
+	}
 	secret = corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: tokenSecretName(kc.Name),
@@ -282,9 +287,8 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	if _, err := h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc); err != nil {
-		t.Fatal(err)
-	}
+	_, err = h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc)
+	require.NoError(t, err)
 }
 
 func TestHelper_InvalidateKeycloakClientTokenSecret(t *testing.T) {
@@ -295,9 +299,8 @@ func TestHelper_InvalidateKeycloakClientTokenSecret(t *testing.T) {
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&sec).Build()
 	h := Helper{client: fakeCl}
 
-	if err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name"); err != nil {
-		t.Fatal(err)
-	}
+	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
+	require.NoError(t, err)
 }
 
 func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToGet(t *testing.T) {
@@ -309,9 +312,7 @@ func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToGet(t *testing.T) {
 	h := Helper{client: fakeCl}
 
 	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !k8sErrors.IsNotFound(errors.Cause(err)) {
 		t.Fatalf("wrong error returned: %+v", err)
@@ -333,9 +334,7 @@ func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToDelete(t *testing.T
 	h := Helper{client: &k8sMock}
 
 	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "deletion error") {
 		t.Fatalf("wrong error returned: %+v", err)

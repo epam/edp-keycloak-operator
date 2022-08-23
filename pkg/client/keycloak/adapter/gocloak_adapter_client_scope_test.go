@@ -12,23 +12,24 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestIsErrNotFound(t *testing.T) {
-	err := errors.Wrap(ErrNotFound("not found"), "err")
+	err := errors.Wrap(NotFoundError("not found"), "err")
 
 	if errors.Cause(err).Error() != "not found" {
 		t.Fatalf("wrong error message: %s", err.Error())
 	}
 
 	if !IsErrNotFound(err) {
-		t.Fatal("error must be ErrNotFound")
+		t.Fatal("error must be NotFoundError")
 	}
 
 	if IsErrNotFound(errors.New("fake")) {
-		t.Fatal("error is not ErrNotFound")
+		t.Fatal("error is not NotFoundError")
 	}
 }
 
@@ -46,6 +47,7 @@ func TestGoCloakAdapter_CreateClientScope(t *testing.T) {
 	mockClient.On("RestyClient").Return(restyClient)
 
 	rsp := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(t, rsp.Body)
 	rsp.Header.Set("Location", "id/new-scope-id")
 
 	httpmock.RegisterResponder("POST", strings.Replace(postClientScope, "{realm}", "realm1", 1),
@@ -57,9 +59,7 @@ func TestGoCloakAdapter_CreateClientScope(t *testing.T) {
 
 	id, err := adapter.CreateClientScope(context.Background(), "realm1",
 		&ClientScope{Name: "demo", Default: true})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if id == "" {
 		t.Fatal("scope id is empty")
@@ -80,6 +80,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureSetDefault(t *testing.T) {
 	mockClient.On("RestyClient").Return(restyClient)
 
 	rsp := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(t, rsp.Body)
 	rsp.Header.Set("Location", "id/new-scope-id")
 	httpmock.Reset()
 	httpmock.RegisterResponder("POST", strings.Replace(postClientScope, "{realm}", "realm1", 1),
@@ -87,9 +88,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureSetDefault(t *testing.T) {
 
 	_, err := adapter.CreateClientScope(context.Background(), "realm1",
 		&ClientScope{Name: "demo", Default: true})
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to set default client scope for realm") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -111,9 +110,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureCreate(t *testing.T) {
 	_, err := adapter.CreateClientScope(context.Background(), "realm1",
 		&ClientScope{Name: "demo", Default: true})
 
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to create client scope") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -133,6 +130,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureGetID(t *testing.T) {
 	mockClient.On("RestyClient").Return(restyClient)
 
 	rsp := httpmock.NewStringResponse(200, "")
+	defer closeWithFailOnError(t, rsp.Body)
 	httpmock.RegisterResponder("POST", strings.Replace(postClientScope, "{realm}", "realm1", 1),
 		httpmock.ResponderFromResponse(rsp))
 
@@ -140,9 +138,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureGetID(t *testing.T) {
 		&ClientScope{Name: "demo", Default: true})
 
 	err = errors.Cause(err)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "location header is not set or empty") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -257,9 +253,8 @@ func TestGoCloakAdapter_GetClientScope(t *testing.T) {
 	httpmock.RegisterResponder("GET", getOneClientScope,
 		httpmock.NewJsonResponderOrPanic(200, &result))
 
-	if _, err := adapter.GetClientScope("name1", "realm1"); err != nil {
-		t.Fatal(err)
-	}
+	_, err := adapter.GetClientScope("name1", "realm1")
+	require.NoError(t, err)
 }
 
 func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
@@ -281,9 +276,8 @@ func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
 	httpmock.RegisterResponder("DELETE", deleteDefaultClientScope, httpmock.NewStringResponder(200, ""))
 	mockClient.On("DeleteClientScope", "realm1", "scope1").Return(nil)
 
-	if err := adapter.DeleteClientScope(context.Background(), "realm1", "scope1"); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.DeleteClientScope(context.Background(), "realm1", "scope1")
+	require.NoError(t, err)
 }
 
 func TestGetClientScope(t *testing.T) {
@@ -308,9 +302,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 	httpmock.Reset()
 
 	err := adapter.DeleteClientScope(context.Background(), "realm1", "scope1")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to unset default client scope for realm") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -323,9 +315,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 	mockClient.On("DeleteClientScope", "realm1", "scope1").Return(errors.New("mock fatal"))
 
 	err = adapter.DeleteClientScope(context.Background(), "realm1", "scope1")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to delete client scope") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -333,24 +323,21 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
-	kcClient, _, _, _ := initAdapter()
+	kcClient, _, _ := initAdapter()
 	httpmock.Reset()
 	httpmock.RegisterResponder("GET",
 		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
 		httpmock.NewStringResponder(200, ""))
 
-	if _, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope1"); err != nil {
-		t.Fatal(err)
-	}
+	_, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope1")
+	require.NoError(t, err)
 
 	httpmock.RegisterResponder("GET",
 		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
 		httpmock.NewStringResponder(422, "forbidden"))
 
-	_, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope2")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	_, err = kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope2")
+	require.Error(t, err)
 
 	if err.Error() != "unable to get client scope mappers: status: 422, body: forbidden" {
 		t.Fatalf("wrong error returned: '%s'", err.Error())
@@ -358,23 +345,20 @@ func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
 }
 
 func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
-	kcClient, _, _, _ := initAdapter()
+	kcClient, _, _ := initAdapter()
 
 	httpmock.RegisterResponder("POST",
 		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
 		httpmock.NewStringResponder(200, ""))
-	if err := kcClient.PutClientScopeMapper("realm1", "scope1", &ProtocolMapper{}); err != nil {
-		t.Fatal(err)
-	}
+	err := kcClient.PutClientScopeMapper("realm1", "scope1", &ProtocolMapper{})
+	require.NoError(t, err)
 
 	httpmock.RegisterResponder("POST",
 		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
 		httpmock.NewStringResponder(422, "forbidden"))
 
-	err := kcClient.PutClientScopeMapper("realm1", "scope2", &ProtocolMapper{})
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = kcClient.PutClientScopeMapper("realm1", "scope2", &ProtocolMapper{})
+	require.Error(t, err)
 
 	if err.Error() != "unable to put client scope mapper: status: 422, body: forbidden" {
 		t.Fatalf("wrong error returned: '%s'", err.Error())
@@ -427,7 +411,7 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 		},
 	}
 
-	adapter, _, _, _ := initAdapter()
+	adapter, _, _ := initAdapter()
 
 	for name, tc := range tests {
 		tc := tc

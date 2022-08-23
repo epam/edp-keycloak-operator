@@ -48,7 +48,7 @@ func ConvertSpecToRole(roleInstance *keycloakApi.KeycloakRealmRole) *PrimaryReal
 	return &rr
 }
 
-func ConvertSpecToRealm(spec keycloakApi.KeycloakRealmSpec) *Realm {
+func ConvertSpecToRealm(spec *keycloakApi.KeycloakRealmSpec) *Realm {
 	var users []User
 	for _, item := range spec.Users {
 		users = append(users, User(item))

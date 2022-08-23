@@ -7,12 +7,12 @@ import (
 )
 
 func TestConvertSpecToClient(t *testing.T) {
-	r := ConvertSpecToRealm(keycloakApi.KeycloakRealmSpec{})
+	r := ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{})
 	if !r.SsoRealmEnabled {
 		t.Fatal("sso realm enabled must be true when in spec is unset")
 	}
 
-	r = ConvertSpecToRealm(keycloakApi.KeycloakRealmSpec{
+	r = ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{
 		SsoRealmEnabled: nil,
 	})
 	if !r.SsoRealmEnabled {
@@ -20,7 +20,7 @@ func TestConvertSpecToClient(t *testing.T) {
 	}
 
 	b := true
-	r = ConvertSpecToRealm(keycloakApi.KeycloakRealmSpec{
+	r = ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{
 		SsoRealmEnabled: &b,
 	})
 	if !r.SsoRealmEnabled {
@@ -28,7 +28,7 @@ func TestConvertSpecToClient(t *testing.T) {
 	}
 
 	b = false
-	r = ConvertSpecToRealm(keycloakApi.KeycloakRealmSpec{
+	r = ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{
 		SsoRealmEnabled: &b,
 	})
 	if r.SsoRealmEnabled {

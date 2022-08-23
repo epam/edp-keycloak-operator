@@ -110,7 +110,7 @@ func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *keycloak
 			keycloakTokenSecretKey: token,
 		}
 
-		if err := h.client.Update(ctx, &secret); err != nil {
+		if err = h.client.Update(ctx, &secret); err != nil {
 			return errors.Wrap(err, "unable to update token secret")
 		}
 
@@ -125,7 +125,7 @@ func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *keycloak
 			keycloakTokenSecretKey: token,
 		}}
 
-		if err := h.client.Create(ctx, &secret); err != nil {
+		if err = h.client.Create(ctx, &secret); err != nil {
 			return errors.Wrap(err, "unable to create token secret")
 		}
 

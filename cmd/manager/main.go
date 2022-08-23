@@ -5,8 +5,25 @@ import (
 	"os"
 	"time"
 
+	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	"github.com/pkg/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
+	// to ensure that exec-entrypoint and run can make use of them.
+	"k8s.io/apimachinery/pkg/runtime"
+	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/client-go/rest"
+	ctrl "sigs.k8s.io/controller-runtime"
+	//+kubebuilder:scaffold:imports
+	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
+	"sigs.k8s.io/controller-runtime/pkg/healthz"
+	"sigs.k8s.io/controller-runtime/pkg/log/zap"
+
 	buildInfo "github.com/epam/edp-common/pkg/config"
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
+
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
@@ -22,22 +39,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmrolebatch"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealmuser"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
-	"github.com/pkg/errors"
-	"k8s.io/apimachinery/pkg/api/meta"
-	"k8s.io/client-go/rest"
-
-	// Import all Kubernetes client auth plugins (e.g. Azure, GCP, OIDC, etc.)
-	// to ensure that exec-entrypoint and run can make use of them.
-	"k8s.io/apimachinery/pkg/runtime"
-	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
-	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
-	_ "k8s.io/client-go/plugin/pkg/client/auth"
-	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/healthz"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
-
-	//+kubebuilder:scaffold:imports
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 )
 
 var (
@@ -48,6 +49,7 @@ var (
 const (
 	keycloakOperatorLock    = "edp-keycloak-operator-lock"
 	successReconcileTimeout = "SUCCESS_RECONCILE_TIMEOUT"
+	managerPort             = 9443
 )
 
 func init() {
@@ -107,7 +109,7 @@ func main() {
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
 		HealthProbeBindAddress: probeAddr,
-		Port:                   9443,
+		Port:                   managerPort,
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       keycloakOperatorLock,
 		MapperProvider: func(c *rest.Config) (meta.RESTMapper, error) {
@@ -131,67 +133,67 @@ func main() {
 
 	keycloakCtrl := keycloak.NewReconcileKeycloak(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
 	if err := keycloakCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak")
+		setupLog.Error(err, "unable to create keycloak controller")
 		os.Exit(1)
 	}
 
 	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), ctrlLog, h)
 	if err := keycloakClientCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-client")
+		setupLog.Error(err, "unable to create keycloak-client controller")
 		os.Exit(1)
 	}
 
 	keycloakRealmCtrl := keycloakrealm.NewReconcileKeycloakRealm(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h)
 	if err := keycloakRealmCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm")
+		setupLog.Error(err, "unable to create keycloak-realm controller")
 		os.Exit(1)
 	}
 
 	krgCtrl := keycloakrealmgroup.NewReconcileKeycloakRealmGroup(mgr.GetClient(), ctrlLog, h)
 	if err := krgCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-group")
+		setupLog.Error(err, "unable to create keycloak-realm-group controller")
 		os.Exit(1)
 	}
 
 	krrCtrl := keycloakrealmrole.NewReconcileKeycloakRealmRole(mgr.GetClient(), ctrlLog, h)
 	if err := krrCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-role")
+		setupLog.Error(err, "unable to create keycloak-realm-role controller")
 		os.Exit(1)
 	}
 
 	krrbCtrl := keycloakrealmrolebatch.NewReconcileKeycloakRealmRoleBatch(mgr.GetClient(), ctrlLog, h)
 	if err := krrbCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-role-batch")
+		setupLog.Error(err, "unable to create keycloak-realm-role-batch controller")
 		os.Exit(1)
 	}
 
 	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), ctrlLog, h)
 	if err := kafCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-auth-flow")
+		setupLog.Error(err, "unable to create keycloak-auth-flow controller")
 		os.Exit(1)
 	}
 
 	kruCtrl := keycloakrealmuser.NewReconcile(mgr.GetClient(), ctrlLog, h)
 	if err := kruCtrl.SetupWithManager(mgr); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-user")
+		setupLog.Error(err, "unable to create keycloak-realm-user controller")
 		os.Exit(1)
 	}
 
 	if err := keycloakclientscope.NewReconcile(mgr.GetClient(), ctrlLog, h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-client-scope")
+		setupLog.Error(err, "unable to create keycloak-client-scope controller")
 		os.Exit(1)
 	}
 
 	if err := keycloakrealmcomponent.NewReconcile(mgr.GetClient(), ctrlLog, h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-component")
+		setupLog.Error(err, "unable to create keycloak-realm-component controller")
 		os.Exit(1)
 	}
 
 	if err := keycloakrealmidentityprovider.NewReconcile(mgr.GetClient(), ctrlLog, h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "keycloak-realm-identity-provider")
+		setupLog.Error(err, "unable to create keycloak-realm-identity-provider controller")
 		os.Exit(1)
 	}
 

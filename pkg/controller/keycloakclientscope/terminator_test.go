@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -16,15 +17,12 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	kClient := new(adapter.Mock)
 	kClient.On("DeleteClientScope", "foo", "bar").Return(nil).Once()
 	term := makeTerminator(kClient, "foo", "bar", &logger)
-	if err := term.DeleteResource(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 
 	kClient.On("DeleteClientScope", "foo", "bar").Return(errors.New("fatal")).Once()
-	err := term.DeleteResource(context.Background())
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = term.DeleteResource(context.Background())
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to delete client scope") {
 		t.Fatalf("wrong error logged: %s", err.Error())

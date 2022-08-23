@@ -27,7 +27,7 @@ const finalizerName = "keycloak.realmidp.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 }
@@ -100,7 +100,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmIDP, keycloakRealmIDP.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmIDP, &keycloakRealmIDP.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
@@ -112,27 +112,27 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 
 	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
 
-	_, err = kClient.GetIdentityProvider(ctx, realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias)
-	if err == nil {
-		if err := kClient.UpdateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
+	providerExists, err := kClient.IdentityProviderExists(ctx, realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias)
+	if err != nil {
+		return err
+	}
+
+	if providerExists {
+		if err = kClient.UpdateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
 			return errors.Wrap(err, "unable to update idp")
 		}
-	} else if adapter.IsErrNotFound(err) {
-		if err := kClient.CreateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
+	} else {
+		if err = kClient.CreateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
 			return errors.Wrap(err, "unable to create idp")
 		}
-	} else {
-		return errors.Wrap(err, "unable to get idp, unexpected error")
 	}
 
 	if err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, kClient, realm.Spec.RealmName); err != nil {
 		return errors.Wrap(err, "unable to sync idp mappers")
 	}
 
-	if _, err := r.helper.TryToDelete(ctx, keycloakRealmIDP,
-		makeTerminator(realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias, kClient,
-			r.log.WithName("realm-idp-term")),
-		finalizerName); err != nil {
+	term := makeTerminator(realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias, kClient, r.log.WithName("realm-idp-term"))
+	if _, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName); err != nil {
 		return errors.Wrap(err, "unable to delete realm idp")
 	}
 

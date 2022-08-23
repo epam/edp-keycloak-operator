@@ -38,7 +38,7 @@ const (
 	KeycloakAdminTypeServiceAccount = "serviceAccount"
 )
 
-func (in Keycloak) GetAdminType() string {
+func (in *Keycloak) GetAdminType() string {
 	if in.Spec.AdminType == "" {
 		in.Spec.AdminType = KeycloakAdminTypeUser
 	}
@@ -46,7 +46,7 @@ func (in Keycloak) GetAdminType() string {
 	return in.Spec.AdminType
 }
 
-func (in KeycloakSpec) GetInstallMainRealm() bool {
+func (in *KeycloakSpec) GetInstallMainRealm() bool {
 	return in.InstallMainRealm == nil || *in.InstallMainRealm
 }
 

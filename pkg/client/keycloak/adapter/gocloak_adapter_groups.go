@@ -9,19 +9,16 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 )
 
-type ErrNotFound string
+type NotFoundError string
 
-func (e ErrNotFound) Error() string {
+func (e NotFoundError) Error() string {
 	return string(e)
 }
 
 func IsErrNotFound(err error) bool {
-	switch errors.Cause(err).(type) {
-	case ErrNotFound:
-		return true
-	default:
-		return false
-	}
+	errNotFound := NotFoundError("")
+
+	return errors.As(err, &errNotFound)
 }
 
 func (a GoCloakAdapter) getGroup(realm, groupName string) (*gocloak.Group, error) {
@@ -38,7 +35,7 @@ func (a GoCloakAdapter) getGroup(realm, groupName string) (*gocloak.Group, error
 		}
 	}
 
-	return nil, ErrNotFound("group not found")
+	return nil, NotFoundError("group not found")
 }
 
 func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *keycloakApi.KeycloakRealmGroupSpec) error {
@@ -94,7 +91,7 @@ func (a GoCloakAdapter) syncSubGroups(realm string, group *gocloak.Group, subGro
 
 	for name, current := range currentGroups {
 		if _, ok := claimedGroups[name]; !ok {
-			//this is strange but if we call create group on subgroup it will be detached from parent group %)
+			// this is strange but if we call create group on subgroup it will be detached from parent group %)
 			if _, err := a.client.CreateGroup(context.Background(), a.token.AccessToken, realm, current); err != nil {
 				return errors.Wrapf(err, "unable to detach subgroup from group, realm: %s, subgroup: %s, group: %+v",
 					realm, name, group)

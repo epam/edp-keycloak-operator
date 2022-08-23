@@ -31,10 +31,10 @@ type IdentityProviderMapper struct {
 
 func (a GoCloakAdapter) CreateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
+		keycloakApiParamRealm: realm,
 	}).SetBody(idp).Post(a.basePath + identityProviderCreateList)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to create idp")
 	}
 
@@ -43,11 +43,11 @@ func (a GoCloakAdapter) CreateIdentityProvider(ctx context.Context, realm string
 
 func (a GoCloakAdapter) UpdateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": idp.Alias,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: idp.Alias,
 	}).SetBody(idp).Put(a.basePath + identityProviderEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update idp")
 	}
 
@@ -57,13 +57,13 @@ func (a GoCloakAdapter) UpdateIdentityProvider(ctx context.Context, realm string
 func (a GoCloakAdapter) GetIdentityProvider(ctx context.Context, realm, alias string) (*IdentityProvider, error) {
 	var idp IdentityProvider
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": alias,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: alias,
 	}).SetResult(&idp).Get(a.basePath + identityProviderEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		if rsp.StatusCode() == http.StatusNotFound {
-			return nil, ErrNotFound("idp not found")
+			return nil, NotFoundError("idp not found")
 		}
 
 		return nil, errors.Wrap(err, "unable to get idp")
@@ -72,13 +72,26 @@ func (a GoCloakAdapter) GetIdentityProvider(ctx context.Context, realm, alias st
 	return &idp, nil
 }
 
+func (a GoCloakAdapter) IdentityProviderExists(ctx context.Context, realm, alias string) (bool, error) {
+	_, err := a.GetIdentityProvider(ctx, realm, alias)
+	if err != nil {
+		if IsErrNotFound(err) {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, "unable to get idp, unexpected error")
+	}
+
+	return true, nil
+}
+
 func (a GoCloakAdapter) DeleteIdentityProvider(ctx context.Context, realm, alias string) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": alias,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: alias,
 	}).Delete(a.basePath + identityProviderEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete idp")
 	}
 
@@ -88,11 +101,11 @@ func (a GoCloakAdapter) DeleteIdentityProvider(ctx context.Context, realm, alias
 func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias string,
 	mapper *IdentityProviderMapper) (string, error) {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": idpAlias,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: idpAlias,
 	}).SetBody(mapper).Post(a.basePath + idpMapperCreateList)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return "", errors.Wrap(err, "unable to create idp mapper")
 	}
 
@@ -106,12 +119,12 @@ func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias str
 
 func (a GoCloakAdapter) UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *IdentityProviderMapper) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": idpAlias,
-		"id":    mapper.ID,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: idpAlias,
+		keycloakApiParamId:    mapper.ID,
 	}).SetBody(mapper).Put(a.basePath + idpMapperEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update idp mapper")
 	}
 
@@ -120,12 +133,12 @@ func (a GoCloakAdapter) UpdateIDPMapper(ctx context.Context, realm, idpAlias str
 
 func (a GoCloakAdapter) DeleteIDPMapper(ctx context.Context, realm, idpAlias, mapperID string) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": idpAlias,
-		"id":    mapperID,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: idpAlias,
+		keycloakApiParamId:    mapperID,
 	}).Delete(a.basePath + idpMapperEntity)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete idp mapper")
 	}
 
@@ -135,11 +148,11 @@ func (a GoCloakAdapter) DeleteIDPMapper(ctx context.Context, realm, idpAlias, ma
 func (a GoCloakAdapter) GetIDPMappers(ctx context.Context, realm, idpAlias string) ([]IdentityProviderMapper, error) {
 	var res []IdentityProviderMapper
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realm,
-		"alias": idpAlias,
+		keycloakApiParamRealm: realm,
+		keycloakApiParamAlias: idpAlias,
 	}).SetResult(&res).Get(a.basePath + idpMapperCreateList)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get idp mappers")
 	}
 

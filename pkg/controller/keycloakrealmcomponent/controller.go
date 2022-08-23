@@ -27,7 +27,7 @@ const finalizerName = "keycloak.realmcomponent.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 }
@@ -99,7 +99,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmComponent *keycloakApi.KeycloakRealmComponent) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmComponent, keycloakRealmComponent.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmComponent, &keycloakRealmComponent.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}
@@ -112,24 +112,24 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmComponent *ke
 	keycloakComponent := createKeycloakComponentFromSpec(&keycloakRealmComponent.Spec)
 
 	cmp, err := kClient.GetComponent(ctx, realm.Spec.RealmName, keycloakRealmComponent.Spec.Name)
+	if err != nil && !adapter.IsErrNotFound(err) {
+		return errors.Wrap(err, "unable to get component, unexpected error")
+	}
+
 	if err == nil {
 		keycloakComponent.ID = cmp.ID
 
 		if err := kClient.UpdateComponent(ctx, realm.Spec.RealmName, keycloakComponent); err != nil {
 			return errors.Wrap(err, "unable to update component")
 		}
-	} else if adapter.IsErrNotFound(err) {
+	} else {
 		if err := kClient.CreateComponent(ctx, realm.Spec.RealmName, keycloakComponent); err != nil {
 			return errors.Wrap(err, "unable to create component")
 		}
-	} else {
-		return errors.Wrap(err, "unable to get component, unexpected error")
 	}
 
-	if _, err := r.helper.TryToDelete(ctx, keycloakRealmComponent,
-		makeTerminator(realm.Spec.RealmName, keycloakRealmComponent.Spec.Name, kClient,
-			r.log.WithName("realm-component-term")),
-		finalizerName); err != nil {
+	term := makeTerminator(realm.Spec.RealmName, keycloakRealmComponent.Spec.Name, kClient, r.log.WithName("realm-component-term"))
+	if _, err := r.helper.TryToDelete(ctx, keycloakRealmComponent, term, finalizerName); err != nil {
 		return errors.Wrap(err, "unable to tryToDelete realm component")
 	}
 

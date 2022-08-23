@@ -9,6 +9,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
@@ -85,9 +86,8 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/user-id1/groups/group-id-2",
 		httpmock.NewStringResponder(200, ""))
 
-	if err := adapter.SyncRealmUser(context.Background(), realmName, &usr, false); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, false)
+	require.NoError(t, err)
 
 	mockClient.AssertExpectations(t)
 }
@@ -146,9 +146,8 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/id1/groups/foo1",
 		httpmock.NewStringResponder(200, ""))
 
-	if err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)
+	require.NoError(t, err)
 
 	mockClient.AssertExpectations(t)
 }
@@ -196,9 +195,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
 		Return(errors.New("add realm role fatal"))
 
 	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if err.Error() != "unable to sync user roles: unable to add realm role to user: unable to add realm role to user: add realm role fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())

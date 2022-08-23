@@ -7,7 +7,7 @@ import (
 )
 
 type KeycloakRealmRoleBatchSpec struct {
-	Realm string      `json:"realm"` //realm name
+	Realm string      `json:"realm"` // realm name
 	Roles []BatchRole `json:"roles"`
 }
 
@@ -40,7 +40,7 @@ type KeycloakRealmRoleBatchStatus struct {
 	FailureCount int64 `json:"failureCount,omitempty"`
 }
 
-func (in KeycloakRealmRoleBatch) GetStatus() string {
+func (in *KeycloakRealmRoleBatch) GetStatus() string {
 	return in.Status.Value
 }
 
@@ -48,7 +48,7 @@ func (in *KeycloakRealmRoleBatch) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in KeycloakRealmRoleBatch) GetFailureCount() int64 {
+func (in *KeycloakRealmRoleBatch) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 

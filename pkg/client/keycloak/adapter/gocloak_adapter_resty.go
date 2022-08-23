@@ -7,5 +7,5 @@ import (
 func (a GoCloakAdapter) startRestyRequest() *resty.Request {
 	return a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json")
+		SetHeader(contentTypeHeader, contentTypeJson)
 }

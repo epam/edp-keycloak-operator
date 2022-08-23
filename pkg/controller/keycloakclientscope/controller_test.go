@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -56,7 +57,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(clientScope, &realm, &keycloak).Build()
 	kClient := new(adapter.Mock)
 	kClient.On("GetClientScope", clientScope.Spec.Name, realm.Spec.RealmName).
-		Return(nil, adapter.ErrNotFound("not found"))
+		Return(nil, adapter.NotFoundError("not found"))
 	kClient.On("CreateClientScope", realm.Spec.RealmName, &adapter.ClientScope{
 		Name:            clientScope.Spec.Name,
 		ProtocolMappers: []adapter.ProtocolMapper{},
@@ -66,7 +67,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	logger := mock.Logger{}
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", clientScope, clientScope.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", clientScope, &clientScope.ObjectMeta).Return(&realm, nil)
 
 	updatedClientScopeWithID := getTestClientScope(realm.Name)
 	updatedClientScopeWithID.Status.ID = "scope12"
@@ -95,9 +96,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 			Name:      clientScope.Name,
 			Namespace: clientScope.Namespace,
 		}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if res.RequeueAfter != rkr.successReconcileTimeout {
 		t.Fatal("success reconcile timeout is not set")
@@ -140,10 +139,8 @@ func TestReconcile_Reconcile_NotFound(t *testing.T) {
 	logger := mock.Logger{}
 	rec := NewReconcile(client, &logger, &helper.Mock{})
 
-	if _, err := rec.Reconcile(context.Background(),
-		reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "bar"}}); err != nil {
-		t.Fatal(err)
-	}
+	_, err := rec.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "bar"}})
+	require.NoError(t, err)
 
 	if _, ok := logger.InfoMessages["instance not found"]; !ok {
 		t.Fatal("no info messages is logged")
@@ -180,9 +177,8 @@ func TestSyncClientScope(t *testing.T) {
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).Return(nil)
 
-	if _, err := syncClientScope(context.Background(), instance, &realm, kClient); err != nil {
-		t.Fatal(err)
-	}
+	_, err := syncClientScope(context.Background(), instance, &realm, kClient)
+	require.NoError(t, err)
 }
 
 func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
@@ -225,7 +221,7 @@ func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 
 	rec := NewReconcile(client, &logger, &h)
 
-	h.On("GetOrCreateRealmOwnerRef", clientScope, clientScope.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", clientScope, &clientScope.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).
 		Return(nil, errors.New("fatal"))
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -59,7 +60,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
 
-	//request
+	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "main",
@@ -78,10 +79,10 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	h.On("SetFailureCount", kc).Return(time.Second)
 	h.On("UpdateStatus", kc).Return(nil)
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: kc,
-		client: client}, kc.ObjectMeta).Return(&realm, nil)
+		client: client}, &kc.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 
-	//reconcile
+	// reconcile
 	r := ReconcileKeycloakClient{
 		client: client,
 		helper: &h,
@@ -89,10 +90,10 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		chain:  &chainMock,
 	}
 
-	//test
+	// test
 	res, err := r.Reconcile(context.TODO(), req)
 
-	//verify
+	// verify
 	assert.Nil(t, err)
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
@@ -135,7 +136,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	chainMock.On("Serve", &kc).Return(nil)
 	realm := keycloakApi.KeycloakRealm{}
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: &kc,
-		client: client}, kc.ObjectMeta).Return(&realm, nil)
+		client: client}, &kc.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kclient, nil)
 	h.On("TryToDelete", &kc,
 		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient, &logger),
@@ -151,9 +152,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: "main", Namespace: "namespace"}}
 	res, err := r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	if res.RequeueAfter != r.successReconcileTimeout {
 		t.Fatal("success reconcile timeout is not set")

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v10"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -47,7 +48,7 @@ func TestCreateDefChain(t *testing.T) {
 			SsoAutoRedirectEnabled: true}).
 		Return(nil)
 	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.ErrNotFound("not found"))
+		adapter.NotFoundError("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
@@ -66,9 +67,8 @@ func TestCreateDefChain(t *testing.T) {
 	hm := helper.Mock{}
 	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
 	chain := CreateDefChain(client, s, &hm)
-	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := chain.ServeRequest(context.Background(), &kr, kClient)
+	require.NoError(t, err)
 }
 
 func TestCreateDefChain_SSORealm(t *testing.T) {
@@ -104,7 +104,7 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 			SsoAutoRedirectEnabled: true, Users: []dto.User{realmUser}}).
 		Return(nil)
 	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.ErrNotFound("not found"))
+		adapter.NotFoundError("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
@@ -130,9 +130,8 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 	hm := helper.Mock{}
 	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
 	chain := CreateDefChain(client, s, &hm)
-	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := chain.ServeRequest(context.Background(), &kr, kClient)
+	require.NoError(t, err)
 }
 
 func TestCreateDefChainNoSSO(t *testing.T) {
@@ -164,7 +163,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 			SsoAutoRedirectEnabled: true, Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
 		Return(nil)
 	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.ErrNotFound("not found"))
+		adapter.NotFoundError("not found"))
 	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
 		Name:        "edp",
 		Description: "default edp scope required for ac and nexus",
@@ -193,7 +192,6 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	hm := helper.Mock{}
 	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
 	chain := CreateDefChain(client, s, &hm)
-	if err := chain.ServeRequest(context.Background(), &kr, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := chain.ServeRequest(context.Background(), &kr, kClient)
+	require.NoError(t, err)
 }

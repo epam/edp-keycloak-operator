@@ -320,6 +320,15 @@ func (m *Mock) GetIdentityProvider(ctx context.Context, realm, alias string) (*I
 	return called.Get(0).(*IdentityProvider), nil
 }
 
+func (m *Mock) IdentityProviderExists(ctx context.Context, realm, alias string) (bool, error) {
+	args := m.Called(ctx, realm, alias)
+	if args.Get(0) == nil {
+		return false, args.Error(1)
+	}
+
+	return args.Bool(0), args.Error(1)
+}
+
 func (m *Mock) UpdateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
 	return m.Called(realm, idp).Error(0)
 }

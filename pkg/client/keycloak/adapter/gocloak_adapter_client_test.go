@@ -123,7 +123,7 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter, mockClient, _, _ := initAdapter()
+			adapter, mockClient, _ := initAdapter()
 			mockClient.On("GetClients", realm, gocloak.GetClientsParams{ClientID: gocloak.StringP("cl")}).Return(tc.onGetClientsResp, tc.onGetClientsErr)
 			mockClient.On("GetClientsDefaultScopes", realm, clientID).Return(tc.onGetClientsDefaultScopesResp, tc.onGetClientsDefaultScopesErr)
 			mockClient.On("AddDefaultScopeToClient", realm, clientID, "scid1").Return(tc.onAddDefaultScopeToClient)

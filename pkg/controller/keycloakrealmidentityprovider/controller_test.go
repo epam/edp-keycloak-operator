@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -25,7 +26,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 	sch := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
-	//fakeCl := fake.NewClientBuilder().WithScheme(sch).Build()
+
 	nn := types.NamespacedName{
 		Name:      "foo",
 		Namespace: "bar",
@@ -37,9 +38,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 	r := NewReconcile(&fakeCl, &l, nil)
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: nn})
 
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if err.Error() != "unable to get keycloak realm idp from k8s: fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -55,16 +54,14 @@ func TestNewReconcileNotFound(t *testing.T) {
 	l := mock.Logger{}
 
 	r := NewReconcile(fakeCl, &l, nil)
-	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      "foo",
 		Namespace: "bar",
-	}}); err != nil {
-		t.Fatal(err)
-	}
+	}})
+	require.NoError(t, err)
 
-	if err := l.LastError(); err != nil {
-		t.Fatal(err)
-	}
+	err = l.LastError()
+	require.NoError(t, err)
 
 	if _, ok := l.InfoMessages["instance not found"]; !ok {
 		t.Fatal("no 404 logged")
@@ -102,11 +99,11 @@ func TestNewReconcile(t *testing.T) {
 
 	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
 
-	hlp.On("GetOrCreateRealmOwnerRef", &idp, idp.ObjectMeta).Return(&realm, nil)
+	hlp.On("GetOrCreateRealmOwnerRef", &idp, &idp.ObjectMeta).Return(&realm, nil)
 	hlp.On("CreateKeycloakClientForRealm", &realm).Return(&kcAdapter, nil)
 
-	kcAdapter.On("GetIdentityProvider", realm.Spec.RealmName, idp.Spec.Alias).
-		Return(nil, adapter.ErrNotFound("not found")).Once()
+	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+		Return(false, nil).Once()
 	kcAdapter.On("CreateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
 	kcAdapter.On("GetIDPMappers", realm.Spec.RealmName, idp.Spec.Alias).
@@ -128,28 +125,27 @@ func TestNewReconcile(t *testing.T) {
 	hlp.On("UpdateStatus", &idp).Return(nil)
 
 	r := NewReconcile(fakeCl, &l, &hlp)
-	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
-	}}); err != nil {
-		t.Fatal(err)
-	}
+	}})
+	require.NoError(t, err)
 
-	if err := l.LastError(); err != nil {
-		t.Fatal(err)
-	}
+	err = l.LastError()
+	require.NoError(t, err)
 
-	kcAdapter.On("GetIdentityProvider", realm.Spec.RealmName, idp.Spec.Alias).
-		Return(&adapter.IdentityProvider{Alias: idp.Spec.Alias}, nil)
+	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+		Return(true, nil).Once()
 	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
-	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
-	}}); err != nil {
-		t.Fatal(err)
-	}
+	}})
+	require.NoError(t, err)
 
+	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+		Return(true, nil).Once()
 	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(errors.New("update idp fatal")).Once()
 
@@ -157,17 +153,14 @@ func TestNewReconcile(t *testing.T) {
 	r.client = fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
 
 	hlp.On("SetFailureCount", &idp).Return(time.Second)
-	if _, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
-	}}); err != nil {
-		t.Fatal(err)
-	}
+	}})
+	require.NoError(t, err)
 
-	err := l.LastError()
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = l.LastError()
+	require.Error(t, err)
 
 	if err.Error() != "unable to update idp: update idp fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())

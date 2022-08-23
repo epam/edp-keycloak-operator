@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -50,19 +51,17 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	rkr := ReconcileKeycloakRealmRoleBatch{client: client, helper: helper.MakeHelper(client, scheme, nil),
 		log: &mock.Logger{}}
 
-	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
 		},
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
+	require.NoError(t, err)
 
 	var checkList keycloakApi.KeycloakRealmRoleList
-	if err := client.List(context.Background(), &checkList, &k8sCLient.ListOptions{}); err != nil {
-		t.Fatal(err)
-	}
+	err = client.List(context.Background(), &checkList, &k8sCLient.ListOptions{})
+	require.NoError(t, err)
 
 	if len(checkList.Items) > 0 {
 		t.Fatal("batch roles is not deleted")
@@ -118,25 +117,19 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 			Namespace: ns,
 		},
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err := logger.LastError(); err != nil {
-		t.Fatalf("%+v", err)
-	}
+	require.NoError(t, err)
+	require.NoError(t, logger.LastError())
 
 	if res.RequeueAfter != rkr.successReconcileTimeout {
 		t.Fatal("success reconcile timeout is not set")
 	}
 
 	var checkBatch keycloakApi.KeycloakRealmRoleBatch
-	if err := client.Get(context.Background(), types.NamespacedName{
+	err = client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "test",
-	}, &checkBatch); err != nil {
-		t.Fatal(err)
-	}
+	}, &checkBatch)
+	require.NoError(t, err)
 
 	if checkBatch.Status.Value != helper.StatusOK {
 		t.Log(checkBatch.Status.Value)
@@ -144,33 +137,29 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	}
 
 	var roles keycloakApi.KeycloakRealmRoleList
-	if err := client.List(context.Background(), &roles, &k8sCLient.ListOptions{}); err != nil {
-		t.Fatal(err)
-	}
+	err = client.List(context.Background(), &roles, &k8sCLient.ListOptions{})
+	require.NoError(t, err)
 
 	var checkRole keycloakApi.KeycloakRealmRole
-	if err := client.Get(context.Background(), types.NamespacedName{Namespace: ns,
-		Name: fmt.Sprintf("%s-sub-role2", batch.Name)}, &checkRole); err != nil {
-		t.Fatal(err)
-	}
+	err = client.Get(context.Background(), types.NamespacedName{Namespace: ns,
+		Name: fmt.Sprintf("%s-sub-role2", batch.Name)}, &checkRole)
+	require.NoError(t, err)
 
 	if !checkRole.Spec.IsDefault {
 		t.Fatal("sub-role2 is not default")
 	}
 
 	checkBatch.Spec.Roles = checkBatch.Spec.Roles[1:]
-	if err := client.Update(context.Background(), &checkBatch); err != nil {
-		t.Fatal(err)
-	}
+	err = client.Update(context.Background(), &checkBatch)
+	require.NoError(t, err)
 
-	if _, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	_, err = rkr.Reconcile(context.TODO(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
 		},
-	}); err != nil {
-		t.Fatal(err)
-	}
+	})
+	require.NoError(t, err)
 
 	if err := client.Get(context.Background(), types.NamespacedName{Namespace: ns,
 		Name: fmt.Sprintf("%s-sub-role1", batch.Name)}, &checkRole); err == nil {
@@ -222,9 +211,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		},
 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	logErr := logger.LastError()
 
@@ -237,12 +224,11 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	}
 
 	var checkBatch keycloakApi.KeycloakRealmRoleBatch
-	if err := client.Get(context.Background(), types.NamespacedName{
+	err = client.Get(context.Background(), types.NamespacedName{
 		Namespace: ns,
 		Name:      "batch1",
-	}, &checkBatch); err != nil {
-		t.Fatal(err)
-	}
+	}, &checkBatch)
+	require.NoError(t, err)
 
 	if !strings.Contains(checkBatch.Status.Value, "one of batch role already exists") {
 		t.Log(checkBatch.Status.Value)

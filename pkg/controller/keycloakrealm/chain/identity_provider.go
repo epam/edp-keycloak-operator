@@ -24,7 +24,7 @@ func (h PutIdentityProvider) ServeRequest(ctx context.Context, realm *keycloakAp
 	rLog := log.WithValues("realm name", realm.Name, "realm namespace", realm.Namespace)
 	rLog.Info("Start put identity provider for realm...")
 
-	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	rDto := dto.ConvertSpecToRealm(&realm.Spec)
 	if !rDto.SsoRealmEnabled {
 		rLog.Info("sso realm disabled, skip put identity provider step")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
