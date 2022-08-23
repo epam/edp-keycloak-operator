@@ -54,7 +54,7 @@ func (m *Mock) CreateKeycloakClient(ctx context.Context, url, user, password str
 	return called.Get(0).(keycloak.Client), nil
 }
 
-func (m *Mock) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
+func (m *Mock) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	called := m.Called(object, objectMeta)
 	if err := called.Error(1); err != nil {
 		return nil, err

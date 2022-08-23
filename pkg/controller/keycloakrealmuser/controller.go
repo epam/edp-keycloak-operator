@@ -28,7 +28,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	UpdateStatus(obj client.Object) error
 	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 }
 
@@ -99,7 +99,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, instance.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, &instance.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}

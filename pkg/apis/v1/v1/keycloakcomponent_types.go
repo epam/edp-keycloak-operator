@@ -36,7 +36,7 @@ type KeycloakRealmComponent struct {
 	Status KeycloakComponentStatus `json:"status"`
 }
 
-func (in KeycloakRealmComponent) GetFailureCount() int64 {
+func (in *KeycloakRealmComponent) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -44,7 +44,7 @@ func (in *KeycloakRealmComponent) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakRealmComponent) GetStatus() string {
+func (in *KeycloakRealmComponent) GetStatus() string {
 	return in.Status.Value
 }
 

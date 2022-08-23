@@ -30,7 +30,7 @@ type Helper interface {
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator,
 		finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 }
 
 type Reconcile struct {
@@ -102,7 +102,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakAuthFlow) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, instance.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, &instance.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}

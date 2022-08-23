@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -46,7 +47,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	)
 
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
-	hlp.On("GetOrCreateRealmOwnerRef", &comp, comp.ObjectMeta).Return(&realm, nil)
+	hlp.On("GetOrCreateRealmOwnerRef", &comp, &comp.ObjectMeta).Return(&realm, nil)
 	hlp.On("CreateKeycloakClientForRealm", &realm).Return(&kcAdapter, nil)
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
 	kcAdapter.On("UpdateComponent", realm.Spec.RealmName, &testComp).Return(nil)
@@ -59,20 +60,17 @@ func TestReconcile_Reconcile(t *testing.T) {
 		Name:      comp.Name,
 		Namespace: comp.Namespace,
 	}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	if err := logger.LastError(); err != nil {
-		t.Fatal(err)
-	}
+	err = logger.LastError()
+	require.NoError(t, err)
 
 	if res.RequeueAfter != r.successReconcileTimeout {
 		t.Fatalf("wrong RequeueAfter: %d", res.RequeueAfter)
 	}
 
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(nil,
-		adapter.ErrNotFound("not found")).Once()
+		adapter.NotFoundError("not found")).Once()
 	kcAdapter.On("CreateComponent", realm.Spec.RealmName,
 		createKeycloakComponentFromSpec(&comp.Spec)).Return(errors.New("create fatal"))
 
@@ -85,14 +83,10 @@ func TestReconcile_Reconcile(t *testing.T) {
 		Name:      comp.Name,
 		Namespace: comp.Namespace,
 	}})
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	err = logger.LastError()
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if err.Error() != "unable to create component: create fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())

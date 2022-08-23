@@ -125,11 +125,11 @@ func (a GoCloakAdapter) GetUserRealmRoleMappings(ctx context.Context, realmName 
 	var roles []UserRealmRoleMapping
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    userID,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    userID,
 	}).SetResult(&roles).Get(a.basePath + getUserRealmRoleMappings)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get realm role mappings")
 	}
 
@@ -140,11 +140,11 @@ func (a GoCloakAdapter) GetUserGroupMappings(ctx context.Context, realmName stri
 	var groups []UserGroupMapping
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    userID,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    userID,
 	}).SetResult(&groups).Get(a.basePath + getUserGroupMappings)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get group mappings")
 	}
 
@@ -153,12 +153,12 @@ func (a GoCloakAdapter) GetUserGroupMappings(ctx context.Context, realmName stri
 
 func (a GoCloakAdapter) RemoveUserFromGroup(ctx context.Context, realmName, userID, groupID string) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm":   realmName,
-		"userID":  userID,
-		"groupID": groupID,
+		keycloakApiParamRealm: realmName,
+		"userID":              userID,
+		"groupID":             groupID,
 	}).Delete(a.basePath + manageUserGroups)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to remove user from group")
 	}
 
@@ -167,16 +167,16 @@ func (a GoCloakAdapter) RemoveUserFromGroup(ctx context.Context, realmName, user
 
 func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, groupID string) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		"realm":   realmName,
-		"userID":  userID,
-		"groupID": groupID,
+		keycloakApiParamRealm: realmName,
+		"userID":              userID,
+		"groupID":             groupID,
 	}).SetBody(map[string]string{
-		"groupId": groupID,
-		"realm":   realmName,
-		"userId":  userID,
+		"groupId":             groupID,
+		keycloakApiParamRealm: realmName,
+		"userId":              userID,
 	}).Put(a.basePath + manageUserGroups)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to add user to group")
 	}
 
@@ -258,15 +258,15 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 
 func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) error {
 	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    userID,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    userID,
 	}).SetBody(map[string]interface{}{
 		"temporary": true,
 		"type":      "password",
 		"value":     password,
 	}).Put(a.basePath + setRealmUserPassword)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to set user password")
 	}
 

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v10"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
@@ -33,8 +34,7 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 	mockClient.On("GetClientServiceAccount", "realm1", "clientID1").Return(&usr1, nil)
 	mockClient.On("UpdateUser", "realm1", usr2).Return(nil)
 
-	if err := adapter.SetServiceAccountAttributes("realm1", "clientID1",
-		map[string]string{"foo": "bar"}, true); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.SetServiceAccountAttributes("realm1", "clientID1",
+		map[string]string{"foo": "bar"}, true)
+	require.NoError(t, err)
 }

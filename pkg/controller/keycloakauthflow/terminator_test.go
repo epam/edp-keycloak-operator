@@ -6,6 +6,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -36,9 +37,8 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteAuthFlow", "foo", &keycloakAuthFlow).Return(nil).Once()
-	if err := term.DeleteResource(context.Background()); err != nil {
-		t.Fatal(err)
-	}
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 
 	kClient.On("DeleteAuthFlow", "foo", &keycloakAuthFlow).Return(errors.New("fatal")).Once()
 	if err := term.DeleteResource(context.Background()); err == nil {

@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -36,7 +38,6 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
-	//now := metav1.Time{Time: time.Now()}
 	role := keycloakApi.KeycloakRealmRole{TypeMeta: metav1.TypeMeta{
 		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmRole",
 	}, ObjectMeta: metav1.ObjectMeta{ /*DeletionTimestamp: &now,*/ Name: "test-role", Namespace: ns,
@@ -56,7 +57,7 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 
 	logger := mock.Logger{}
 	h := helper.Mock{}
-	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
 	h.On("UpdateStatus", &role).Return(nil)
 	h.On("TryToDelete", &role, makeTerminator(realm.Spec.RealmName, role.Spec.Name, kClient, &logger),
@@ -106,25 +107,23 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 		client: client,
 	}
 
-	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      role.Name,
 			Namespace: role.Namespace,
-		}}); err != nil {
-		t.Fatal(err)
-	}
+		}})
+	require.NoError(t, err)
 
 	if _, ok := logger.InfoMessages["Role is duplicated, exit."]; !ok {
 		t.Fatal("duplicated message is not printed to log")
 	}
 
 	var checkRole keycloakApi.KeycloakRealmRole
-	if err := client.Get(context.Background(), types.NamespacedName{
+	err = client.Get(context.Background(), types.NamespacedName{
 		Name:      role.Name,
 		Namespace: role.Namespace,
-	}, &checkRole); err != nil {
-		t.Fatal(err)
-	}
+	}, &checkRole)
+	require.NoError(t, err)
 
 	if checkRole.Status.Value != keycloakApi.StatusDuplicated {
 		t.Fatal("wrong status in duplicated role")
@@ -162,11 +161,11 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 	prr := dto.ConvertSpecToRole(&role)
 	kClient := new(adapter.Mock)
 	kClient.On("SyncRealmRole", "test", prr).
-		Return(errors.Wrap(adapter.ErrDuplicated("dup"), "test unwrap"))
+		Return(errors.Wrap(adapter.DuplicatedError("dup"), "test unwrap"))
 
 	h := helper.Mock{}
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
 
 	h.On("UpdateStatus", &duplicatedRole).Return(nil)
 
@@ -176,13 +175,12 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 		helper: &h,
 	}
 
-	if _, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      role.Name,
 			Namespace: role.Namespace,
-		}}); err != nil {
-		t.Fatal(err)
-	}
+		}})
+	require.NoError(t, err)
 
 	if _, ok := logger.InfoMessages["Role is duplicated"]; !ok {
 		t.Fatal("duplicated message is not printed to log")
@@ -225,7 +223,7 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	h := helper.Mock{}
 	logger := mock.Logger{}
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", &role, role.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
 	h.On("SetFailureCount", &role).Return(time.Second)
 	h.On("UpdateStatus", &role).Return(nil)
 
@@ -242,17 +240,7 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 		},
 	})
 
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
-	loggerErr := logger.LastError()
-	if loggerErr == nil {
-		t.Fatal("no error on mock fatal")
-	}
-
-	if errors.Cause(loggerErr) != mockErr {
-		t.Log(err)
-		t.Fatal("wrong error returned")
-	}
+	assert.ErrorIs(t, logger.LastError(), mockErr)
 }

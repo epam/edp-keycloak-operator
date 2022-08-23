@@ -9,12 +9,13 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/require"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
-	adapter, mockClient, _, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter()
 
 	settings := RealmSettings{
 		Themes: &RealmThemes{
@@ -47,21 +48,20 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 	}
 	mockClient.On("UpdateRealm", updateRealm).Return(nil)
 
-	if err := adapter.UpdateRealmSettings(realmName, &settings); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
 }
 
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
-	adapter, mockClient, restyClient, _ := initAdapter()
+	adapter, mockClient, restyClient := initAdapter()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 
 	currentMapperID := "mp1id"
 
 	mappers := []interface{}{
 		map[string]interface{}{
-			"id":   currentMapperID,
-			"name": "mp1name",
+			keycloakApiParamId: currentMapperID,
+			"name":             "mp1name",
 		},
 	}
 
@@ -104,20 +104,17 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
-	adapter, mockClient, _, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter()
 	r := dto.Realm{}
 
 	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("id1", nil).Once()
-	if err := adapter.CreateRealmWithDefaultConfig(&r); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.CreateRealmWithDefaultConfig(&r)
+	require.NoError(t, err)
 
 	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("",
 		errors.New("create realm fatal")).Once()
-	err := adapter.CreateRealmWithDefaultConfig(&r)
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = adapter.CreateRealmWithDefaultConfig(&r)
+	require.Error(t, err)
 
 	if err.Error() != "unable to create realm: create realm fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -125,18 +122,15 @@ func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
-	adapter, mockClient, _, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter()
 
 	mockClient.On("DeleteRealm", "test-realm1").Return(nil).Once()
-	if err := adapter.DeleteRealm(context.Background(), "test-realm1"); err != nil {
-		t.Fatal(err)
-	}
+	err := adapter.DeleteRealm(context.Background(), "test-realm1")
+	require.NoError(t, err)
 
 	mockClient.On("DeleteRealm", "test-realm2").Return(errors.New("delete fatal")).Once()
-	err := adapter.DeleteRealm(context.Background(), "test-realm2")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	err = adapter.DeleteRealm(context.Background(), "test-realm2")
+	require.Error(t, err)
 
 	if err.Error() != "unable to delete realm: delete fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())

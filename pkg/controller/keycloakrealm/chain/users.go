@@ -18,7 +18,7 @@ type PutUsers struct {
 func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")
-	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	rDto := dto.ConvertSpecToRealm(&realm.Spec)
 	err := createUsers(rDto, kClient)
 	if err != nil {
 		return errors.Wrap(err, "error during createUsers")

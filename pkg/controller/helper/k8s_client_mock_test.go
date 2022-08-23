@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -41,34 +42,28 @@ func TestK8SClientMock_OneLiners(t *testing.T) {
 	ctx := context.Background()
 	k8sMock.On("Create", &kc, createOpts).Return(nil)
 
-	if err := k8sMock.Create(ctx, &kc); err != nil {
-		t.Fatal(err)
-	}
+	err := k8sMock.Create(ctx, &kc)
+	require.NoError(t, err)
 
 	k8sMock.On("List", &kList, listOpts).Return(nil)
-	if err := k8sMock.List(ctx, &kList); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.List(ctx, &kList)
+	require.NoError(t, err)
 
 	k8sMock.On("Delete", &kc, deleteOpts).Return(nil)
-	if err := k8sMock.Delete(ctx, &kc); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.Delete(ctx, &kc)
+	require.NoError(t, err)
 
 	k8sMock.On("Update", &kc, updateOpts).Return(nil)
-	if err := k8sMock.Update(ctx, &kc); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.Update(ctx, &kc)
+	require.NoError(t, err)
 
 	k8sMock.On("Patch", &kc, fPatch, patchOpts).Return(nil)
-	if err := k8sMock.Patch(ctx, &kc, fPatch); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.Patch(ctx, &kc, fPatch)
+	require.NoError(t, err)
 
 	k8sMock.On("DeleteAllOf", &kc, deleteAllOfOpts).Return(nil)
-	if err := k8sMock.DeleteAllOf(ctx, &kc); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.DeleteAllOf(ctx, &kc)
+	require.NoError(t, err)
 
 }
 
@@ -94,9 +89,8 @@ func TestK8SClientMock_Status(t *testing.T) {
 
 func TestK8SClientMock_Get(t *testing.T) {
 	k8sMock := K8SClientMock{}
-	if err := keycloakApi.AddToScheme(scheme.Scheme); err != nil {
-		t.Fatal(err)
-	}
+	err := keycloakApi.AddToScheme(scheme.Scheme)
+	require.NoError(t, err)
 
 	var (
 		kcRequest = keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc-name1", Namespace: "kc-ns"}}
@@ -107,9 +101,8 @@ func TestK8SClientMock_Get(t *testing.T) {
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kcResult).Build()
 	rq := types.NamespacedName{Name: kcRequest.Name, Namespace: kcRequest.Namespace}
 	k8sMock.On("Get", rq, &kcRequest).Return(fakeCl)
-	if err := k8sMock.Get(context.Background(), rq, &kcRequest); err != nil {
-		t.Fatal(err)
-	}
+	err = k8sMock.Get(context.Background(), rq, &kcRequest)
+	require.NoError(t, err)
 
 	if !kcRequest.Status.Connected {
 		t.Fatal("kc status is not changed")
@@ -127,12 +120,10 @@ func TestK8SStatusMock_OneLiners(t *testing.T) {
 	)
 
 	status.On("Update", &kc, updateOpts).Return(nil)
-	if err := status.Update(ctx, &kc); err != nil {
-		t.Fatal(err)
-	}
+	err := status.Update(ctx, &kc)
+	require.NoError(t, err)
 
 	status.On("Patch", &kc, fPath, patchOpts).Return(nil)
-	if err := status.Patch(ctx, &kc, fPath); err != nil {
-		t.Fatal(err)
-	}
+	err = status.Patch(ctx, &kc, fPath)
+	require.NoError(t, err)
 }

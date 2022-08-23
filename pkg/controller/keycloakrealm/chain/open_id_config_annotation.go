@@ -26,7 +26,7 @@ func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *keyc
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	con, err := kClient.GetOpenIdConfig(dto.ConvertSpecToRealm(realm.Spec))
+	con, err := kClient.GetOpenIdConfig(dto.ConvertSpecToRealm(&realm.Spec))
 	if err != nil {
 		return err
 	}

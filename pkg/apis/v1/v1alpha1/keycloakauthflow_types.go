@@ -82,7 +82,7 @@ func (in *KeycloakAuthFlow) K8SParentRealmName() (string, error) {
 	return in.Spec.Realm, nil
 }
 
-func (in KeycloakAuthFlow) GetFailureCount() int64 {
+func (in *KeycloakAuthFlow) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -90,7 +90,7 @@ func (in *KeycloakAuthFlow) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakAuthFlow) GetStatus() string {
+func (in *KeycloakAuthFlow) GetStatus() string {
 	return in.Status.Value
 }
 

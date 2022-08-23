@@ -88,7 +88,7 @@ func (e *TestControllerSuite) SetupTest() {
 }
 
 func (e *TestControllerSuite) TestNewReconcile() {
-	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
+	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, &e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
 	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
 
 	r := Reconcile{
@@ -116,7 +116,7 @@ func (e *TestControllerSuite) TestReconcileKeep() {
 	e.kcRealmUser.Spec.KeepResource = true
 	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
 
-	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
+	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, &e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
 	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
 	e.helper.On("TryToDelete", e.kcRealmUser,
 		makeTerminator(e.realmName, e.kcRealmUser.Spec.Username, e.kClient, e.logger), finalizer).

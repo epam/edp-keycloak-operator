@@ -18,7 +18,7 @@ func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(
 
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(&clientRealmFinder{parent: keycloakClient,
 		client: r.client},
-		keycloakClient.ObjectMeta)
+		&keycloakClient.ObjectMeta)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to GetOrCreateRealmOwnerRef")
 	}
@@ -59,9 +59,9 @@ func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
 	if err := c.client.List(context.Background(), &realmList, &client.ListOptions{Namespace: c.Namespace}); err != nil {
 		return "", errors.Wrap(err, "unable to get all reams")
 	}
-	for _, r := range realmList.Items {
-		if r.Spec.RealmName == c.parent.Spec.TargetRealm {
-			return r.Name, nil
+	for i := range realmList.Items {
+		if realmList.Items[i].Spec.RealmName == c.parent.Spec.TargetRealm {
+			return realmList.Items[i].Name, nil
 		}
 	}
 

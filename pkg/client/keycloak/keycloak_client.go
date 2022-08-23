@@ -36,6 +36,7 @@ type KIdentityProvider interface {
 	CreateIdentityProvider(ctx context.Context, realm string, idp *adapter.IdentityProvider) error
 	UpdateIdentityProvider(ctx context.Context, realm string, idp *adapter.IdentityProvider) error
 	GetIdentityProvider(ctx context.Context, realm, alias string) (*adapter.IdentityProvider, error)
+	IdentityProviderExists(ctx context.Context, realm, alias string) (bool, error)
 	DeleteIdentityProvider(ctx context.Context, realm, alias string) error
 
 	CreateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *adapter.IdentityProviderMapper) (string, error)

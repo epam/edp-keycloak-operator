@@ -144,7 +144,7 @@ type KeycloakClient struct {
 	Status KeycloakClientStatus `json:"status,omitempty"`
 }
 
-func (in KeycloakClient) GetFailureCount() int64 {
+func (in *KeycloakClient) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -152,7 +152,7 @@ func (in *KeycloakClient) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakClient) GetStatus() string {
+func (in *KeycloakClient) GetStatus() string {
 	return in.Status.Value
 }
 
@@ -160,7 +160,7 @@ func (in *KeycloakClient) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in KeycloakClient) GetReconciliationStrategy() string {
+func (in *KeycloakClient) GetReconciliationStrategy() string {
 	if in.Spec.ReconciliationStrategy == "" {
 		return ReconciliationStrategyFull
 	}

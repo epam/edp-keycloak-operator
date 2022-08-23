@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/require"
+
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
@@ -41,7 +43,6 @@ func TestServiceAccount_Serve(t *testing.T) {
 	kClient.On("SetServiceAccountAttributes", kc.Spec.TargetRealm, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
 
-	if err := sa.Serve(context.Background(), &kc, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := sa.Serve(context.Background(), &kc, kClient)
+	require.NoError(t, err)
 }

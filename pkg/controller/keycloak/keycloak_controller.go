@@ -25,6 +25,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
+
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -35,6 +36,7 @@ const (
 	defaultRealmName = "openshift"
 	imgFolder        = "img"
 	keycloakIcon     = "keycloak.svg"
+	keycloakCRLogKey = "keycloak cr"
 )
 
 type Helper interface {
@@ -127,7 +129,7 @@ func (r *ReconcileKeycloak) tryToReconcile(ctx context.Context, instance *keyclo
 }
 
 func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues("keycloak cr", instance)
+	log := r.log.WithValues(keycloakCRLogKey, instance)
 	log.Info("Start updating connection status to Keycloak")
 
 	connected, err := r.isInstanceConnected(ctx, instance, log)
@@ -173,7 +175,7 @@ func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *k
 }
 
 func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues("keycloak cr", instance)
+	log := r.log.WithValues(keycloakCRLogKey, instance)
 	log.Info("Start put main realm into k8s")
 	if !instance.Spec.GetInstallMainRealm() {
 		log.Info("Creation of main realm disabled")
@@ -193,7 +195,7 @@ func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloak
 }
 
 func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues("keycloak cr", instance)
+	log := r.log.WithValues(keycloakCRLogKey, instance)
 	log.Info("Start creation of main Keycloak Realm CR")
 	ssoRealm := defaultRealmName
 	if len(instance.Spec.SsoRealmName) != 0 {
@@ -233,7 +235,7 @@ func (r *ReconcileKeycloak) isStatusConnected(ctx context.Context, request recon
 	if err != nil {
 		return false, pkgErrors.Wrapf(err, "unable to get keycloak instance, request: %+v", request)
 	}
-	r.log.Info("Retrieved the actual cr for Keycloak", "keycloak cr", instance)
+	r.log.Info("Retrieved the actual cr for Keycloak", keycloakCRLogKey, instance)
 	return instance.Status.Connected, nil
 }
 

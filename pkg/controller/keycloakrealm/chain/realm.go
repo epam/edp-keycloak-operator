@@ -25,7 +25,7 @@ type PutRealm struct {
 func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
-	rDto := dto.ConvertSpecToRealm(realm.Spec)
+	rDto := dto.ConvertSpecToRealm(&realm.Spec)
 	e, err := kClient.ExistRealm(rDto.Name)
 	if err != nil {
 		return errors.Wrap(err, "unable to check realm existence")
@@ -38,7 +38,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	if err != nil {
 		return errors.Wrap(err, "unable to create realm with default config")
 	}
-	//put realm roles if sso realm is disabled
+	// put realm roles if sso realm is disabled
 	if !rDto.SsoRealmEnabled {
 		if err := h.putRealmRoles(realm, kClient); err != nil {
 			return errors.Wrap(err, "unable to create realm roles on no sso scenario")
@@ -55,7 +55,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 func (h PutRealm) putRealmRoles(realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	allRoles := make(map[string]string)
-	//check if all user roles exists
+	// check if all user roles exists
 	for _, u := range realm.Spec.Users {
 		for _, rr := range u.RealmRoles {
 			if _, ok := allRoles[rr]; !ok {
@@ -64,7 +64,7 @@ func (h PutRealm) putRealmRoles(realm *keycloakApi.KeycloakRealm, kClient keyclo
 		}
 	}
 
-	dtoRealm := dto.ConvertSpecToRealm(realm.Spec)
+	dtoRealm := dto.ConvertSpecToRealm(&realm.Spec)
 
 	for _, r := range allRoles {
 		exists, err := kClient.ExistRealmRole(dtoRealm.Name, r)

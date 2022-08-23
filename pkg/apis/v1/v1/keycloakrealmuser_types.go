@@ -22,7 +22,7 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	EmailVerified bool `json:"emailVerified,omitempty"`
 
-	//RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL
+	// RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL
 	// +nullable
 	// +optional
 	RequiredUserActions []string `json:"requiredUserActions,omitempty"`
@@ -71,7 +71,7 @@ type KeycloakRealmUser struct {
 	Status KeycloakRealmUserStatus `json:"status"`
 }
 
-func (in KeycloakRealmUser) GetReconciliationStrategy() string {
+func (in *KeycloakRealmUser) GetReconciliationStrategy() string {
 	if in.Spec.ReconciliationStrategy == "" {
 		return ReconciliationStrategyFull
 	}
@@ -83,7 +83,7 @@ func (in *KeycloakRealmUser) K8SParentRealmName() (string, error) {
 	return in.Spec.Realm, nil
 }
 
-func (in KeycloakRealmUser) GetFailureCount() int64 {
+func (in *KeycloakRealmUser) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
 
@@ -91,7 +91,7 @@ func (in *KeycloakRealmUser) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in KeycloakRealmUser) GetStatus() string {
+func (in *KeycloakRealmUser) GetStatus() string {
 	return in.Status.Value
 }
 

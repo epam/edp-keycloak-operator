@@ -7,6 +7,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -74,19 +75,17 @@ func TestPrivateClientSecret(t *testing.T) {
 		checkClient keycloakApi.KeycloakClient
 	)
 
-	if err := client.Get(context.Background(), types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace},
-		&checkClient); err != nil {
-		t.Fatal(err)
-	}
+	err := client.Get(context.Background(), types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace},
+		&checkClient)
+	require.NoError(t, err)
 
 	if kc.Spec.Secret == "" || kc.Status.ClientSecretName == "" {
 		t.Fatal("client secret not updated")
 	}
 
-	if err := client.Get(context.Background(), types.NamespacedName{Namespace: checkClient.Namespace,
-		Name: checkClient.Spec.Secret}, &checkSecret); err != nil {
-		t.Fatal(err)
-	}
+	err = client.Get(context.Background(), types.NamespacedName{Namespace: checkClient.Namespace,
+		Name: checkClient.Spec.Secret}, &checkSecret)
+	require.NoError(t, err)
 
 	if _, ok := checkSecret.Data[clientSecretKey]; !ok {
 		t.Fatal("client secret key not found in secret")
@@ -144,9 +143,8 @@ func TestMake(t *testing.T) {
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
-	if err := chain.Serve(context.Background(), &kc, kClient); err != nil {
-		t.Fatal(err)
-	}
+	err := chain.Serve(context.Background(), &kc, kClient)
+	require.NoError(t, err)
 
 	if kc.Status.ClientID != "3333" {
 		t.Fatal("keycloak client status not changed")

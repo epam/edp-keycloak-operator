@@ -69,13 +69,13 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 	}
 }
 
-type ErrOwnerNotFound string
+type OwnerNotFoundError string
 
-func (e ErrOwnerNotFound) Error() string {
+func (e OwnerNotFoundError) Error() string {
 	return string(e)
 }
 
-func (h *Helper) GetOwnerKeycloak(slave v1.ObjectMeta) (*keycloakApi.Keycloak, error) {
+func (h *Helper) GetOwnerKeycloak(slave *v1.ObjectMeta) (*keycloakApi.Keycloak, error) {
 	var kc keycloakApi.Keycloak
 	if err := h.GetOwner(slave, &kc, "Keycloak"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak owner")
@@ -84,7 +84,7 @@ func (h *Helper) GetOwnerKeycloak(slave v1.ObjectMeta) (*keycloakApi.Keycloak, e
 	return &kc, nil
 }
 
-func (h *Helper) GetOwnerKeycloakRealm(slave v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
+func (h *Helper) GetOwnerKeycloakRealm(slave *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	var realm keycloakApi.KeycloakRealm
 	if err := h.GetOwner(slave, &realm, "KeycloakRealm"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak realm owner")
@@ -103,15 +103,15 @@ func (h *Helper) IsOwner(slave client.Object, master client.Object) bool {
 	return false
 }
 
-func (h *Helper) GetOwner(slave v1.ObjectMeta, owner client.Object, ownerType string) error {
+func (h *Helper) GetOwner(slave *v1.ObjectMeta, owner client.Object, ownerType string) error {
 	ownerRefs := slave.GetOwnerReferences()
 	if len(ownerRefs) == 0 {
-		return ErrOwnerNotFound("owner not found")
+		return OwnerNotFoundError("owner not found")
 	}
 
 	ownerRef := getOwnerRef(ownerRefs, ownerType)
 	if ownerRef == nil {
-		return ErrOwnerNotFound("owner not found")
+		return OwnerNotFoundError("owner not found")
 	}
 
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
@@ -139,7 +139,7 @@ func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*keycl
 	err := client.Get(context.TODO(), nsn, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, nil //todo maybe refactor?
+			return nil, nil // todo maybe refactor?
 		}
 		return nil, errors.Wrap(err, "cannot read keycloak client CR")
 	}
@@ -151,7 +151,7 @@ func GetSecret(ctx context.Context, client client.Client, nsn types.NamespacedNa
 	err := client.Get(ctx, nsn, secret)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return nil, nil //todo maybe refactor?
+			return nil, nil // todo maybe refactor?
 		}
 		return nil, errors.Wrap(err, "cannot get secret")
 	}
@@ -195,17 +195,18 @@ func (h *Helper) getKeycloakFromSpec(realm *keycloakApi.KeycloakRealm) (*keycloa
 }
 
 func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
-	o, err := h.GetOwnerKeycloak(realm.ObjectMeta)
+	o, err := h.GetOwnerKeycloak(&realm.ObjectMeta)
 	if err != nil {
-		switch errors.Cause(err).(type) {
-		case ErrOwnerNotFound:
-			o, err = h.getKeycloakFromSpec(realm)
-			if err != nil {
+		ownerNotFoundErr := OwnerNotFoundError("")
+		if errors.As(err, &ownerNotFoundErr) {
+			if o, err = h.getKeycloakFromSpec(realm); err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}
-		default:
-			return nil, errors.Wrap(err, "unable to get owner keycloak")
+
+			return o, nil
 		}
+
+		return nil, errors.Wrap(err, "unable to get owner keycloak")
 	}
 
 	return o, nil
@@ -228,24 +229,25 @@ type RealmChild interface {
 	v1.Object
 }
 
-func (h *Helper) GetOrCreateRealmOwnerRef(
-	object RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
+func (h *Helper) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
-		switch errors.Cause(err).(type) {
-		case ErrOwnerNotFound:
-			parentRealm, err := object.K8SParentRealmName()
+		ownerNotFoundErr := OwnerNotFoundError("")
+		if errors.As(err, &ownerNotFoundErr) {
+			var parentRealm string
+			parentRealm, err = object.K8SParentRealmName()
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable get parent realm for: %+v", object)
 			}
 
-			realm, err = h.getKeycloakRealm(object, parentRealm)
-			if err != nil {
+			if realm, err = h.getKeycloakRealm(object, parentRealm); err != nil {
 				return nil, errors.Wrap(err, "unable to get keycloak from spec")
 			}
-		default:
-			return nil, errors.Wrap(err, "unable to get owner keycloak")
+
+			return realm, nil
 		}
+
+		return nil, errors.Wrap(err, "unable to get owner keycloak")
 	}
 
 	return realm, nil

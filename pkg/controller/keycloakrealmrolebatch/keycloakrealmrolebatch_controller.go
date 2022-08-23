@@ -25,7 +25,7 @@ const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.ope
 
 type Helper interface {
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	IsOwner(slave client.Object, master client.Object) bool
 	UpdateStatus(obj client.Object) error
 	SetFailureCount(fc helper.FailureCountable) time.Duration
@@ -91,9 +91,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 	return
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *keycloakApi.KeycloakRealmRoleBatch,
-	role keycloakApi.KeycloakRealmRole) bool {
-
+func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *keycloakApi.KeycloakRealmRoleBatch, role *keycloakApi.KeycloakRealmRole) bool {
 	for _, owner := range role.GetOwnerReferences() {
 		if owner.Kind == batch.Kind && owner.Name == batch.Name && owner.UID == batch.UID {
 			return true
@@ -119,9 +117,9 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context,
 		specRoles[batch.FormattedRoleName(r.Name)] = struct{}{}
 	}
 
-	for _, currentRole := range namespaceRoles.Items {
-		if _, ok := specRoles[currentRole.Name]; !ok && r.helper.IsOwner(&currentRole, batch) {
-			if err := r.client.Delete(ctx, &currentRole); err != nil {
+	for i := range namespaceRoles.Items {
+		if _, ok := specRoles[namespaceRoles.Items[i].Name]; !ok && r.helper.IsOwner(&namespaceRoles.Items[i], batch) {
+			if err := r.client.Delete(ctx, &namespaceRoles.Items[i]); err != nil {
 				return errors.Wrap(err, "unable to delete keycloak realm role")
 			}
 		}
@@ -145,7 +143,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *k
 		if err != nil && !k8sErrors.IsNotFound(err) {
 			return nil, errors.Wrap(err, "unable to check batch role")
 		} else if err == nil {
-			if r.isOwner(batch, crRole) {
+			if r.isOwner(batch, &crRole) {
 				log.Info("role already created")
 				roles = append(roles, crRole)
 				continue
@@ -184,7 +182,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *k
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(batch, batch.ObjectMeta)
+	realm, err := r.helper.GetOrCreateRealmOwnerRef(batch, &batch.ObjectMeta)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm owner ref")
 	}

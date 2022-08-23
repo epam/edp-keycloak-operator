@@ -139,32 +139,34 @@ func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *Keycloa
 		return errors.Wrap(err, "unable to get flow executions")
 	}
 
-	for _, fe := range flowExecs {
-		if fe.AuthenticationFlow && fe.Level == 0 {
-			childFlow, ok := childFlows[fe.DisplayName]
-			if !ok {
-				return errors.Errorf("unable to find child flow with name: %s", fe.DisplayName)
-			}
+	for i := range flowExecs {
+		if flowExecs[i].AuthenticationFlow && flowExecs[i].Level != 0 {
+			continue
+		}
 
-			if childFlow.Requirement != fe.Requirement {
-				fe.Requirement = childFlow.Requirement
-				if err := a.updateFlowExecution(realmName, flow.Alias, &fe); err != nil {
-					return errors.Wrap(err, "unable to update flow execution")
-				}
-			}
+		childFlow, ok := childFlows[flowExecs[i].DisplayName]
+		if !ok {
+			return errors.Errorf("unable to find child flow with name: %s", flowExecs[i].DisplayName)
+		}
 
-			if childFlow.Priority == fe.Index {
-				continue
+		if childFlow.Requirement != flowExecs[i].Requirement {
+			flowExecs[i].Requirement = childFlow.Requirement
+			if err := a.updateFlowExecution(realmName, flow.Alias, &flowExecs[i]); err != nil {
+				return errors.Wrap(err, "unable to update flow execution")
 			}
+		}
 
-			if childFlow.Priority < 0 || childFlow.Priority > len(flowExecs) {
-				return errors.Errorf("wrong flow priority, flow name: %s, priority: %d", childFlow.Alias,
-					childFlow.Priority)
-			}
+		if childFlow.Priority == flowExecs[i].Index {
+			continue
+		}
 
-			if err := a.adjustExecutionPriority(realmName, fe.ID, fe.Index-childFlow.Priority); err != nil {
-				return errors.Wrap(err, "unable to adjust flow priority")
-			}
+		if childFlow.Priority < 0 || childFlow.Priority > len(flowExecs) {
+			return errors.Errorf("wrong flow priority, flow name: %s, priority: %d", childFlow.Alias,
+				childFlow.Priority)
+		}
+
+		if err := a.adjustExecutionPriority(realmName, flowExecs[i].ID, flowExecs[i].Index-childFlow.Priority); err != nil {
+			return errors.Wrap(err, "unable to adjust flow priority")
 		}
 	}
 
@@ -187,18 +189,20 @@ func (a GoCloakAdapter) SetRealmBrowserFlow(realmName string, flowAlias string) 
 
 func (a GoCloakAdapter) syncBaseAuthFlow(realmName string, flow *KeycloakAuthFlow) (string, error) {
 	authFlowID, err := a.getAuthFlowID(realmName, flow)
-	if err != nil && !IsErrNotFound(errors.Cause(err)) {
-		return "", errors.Wrap(err, "unable to get auth flow")
-	} else if err == nil {
-		if err := a.clearFlowExecutions(realmName, flow.Alias); err != nil {
-			return "", errors.Wrap(err, "unable to clear flow executions")
+	if err != nil {
+		if !IsErrNotFound(err) {
+			return "", errors.Wrap(err, "unable to get auth flow")
 		}
-	} else {
+
 		id, err := a.createAuthFlow(realmName, flow)
 		if err != nil {
 			return "", errors.Wrap(err, "unable to create auth flow")
 		}
 		authFlowID = id
+	} else {
+		if err := a.clearFlowExecutions(realmName, flow.Alias); err != nil {
+			return "", errors.Wrap(err, "unable to clear flow executions")
+		}
 	}
 
 	if err := a.validateChildFlowsCreated(realmName, flow); err != nil {
@@ -225,8 +229,8 @@ func (a GoCloakAdapter) validateChildFlowsCreated(realmName string, flow *Keyclo
 		return errors.Wrap(err, "unable to get flow executions")
 	}
 
-	for _, exec := range childExecs {
-		if exec.AuthenticationFlow && exec.Level == 0 {
+	for i := range childExecs {
+		if childExecs[i].AuthenticationFlow && childExecs[i].Level == 0 {
 			childFlows--
 		}
 	}
@@ -244,12 +248,12 @@ func (a GoCloakAdapter) clearFlowExecutions(realmName, flowAlias string) error {
 		return errors.Wrap(err, "unable to get flow executions")
 	}
 
-	for _, exec := range execs {
-		if exec.AuthenticationFlow || exec.Level > 0 {
+	for i := range execs {
+		if execs[i].AuthenticationFlow || execs[i].Level > 0 {
 			continue
 		}
 
-		if err := a.deleteFlowExecution(realmName, exec.ID); err != nil {
+		if err := a.deleteFlowExecution(realmName, execs[i].ID); err != nil {
 			return errors.Wrap(err, "unable to delete flow execution")
 		}
 	}
@@ -259,11 +263,11 @@ func (a GoCloakAdapter) clearFlowExecutions(realmName, flowAlias string) error {
 
 func (a GoCloakAdapter) deleteFlowExecution(realmName, id string) error {
 	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"realm": realmName,
-		"id":    id,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamId:    id,
 	}).Delete(a.basePath + authFlowExecutionDelete)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete flow execution")
 	}
 
@@ -276,13 +280,13 @@ func (a GoCloakAdapter) getFlowExecutionID(realmName string, flow *KeycloakAuthF
 		return "", errors.Wrap(err, "unable to get auth flow executions")
 	}
 
-	for _, e := range execs {
-		if e.DisplayName == flow.Alias {
-			return e.ID, nil
+	for i := range execs {
+		if execs[i].DisplayName == flow.Alias {
+			return execs[i].ID, nil
 		}
 	}
 
-	return "", ErrNotFound("auth flow not found")
+	return "", NotFoundError("auth flow not found")
 }
 
 func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) (string, error) {
@@ -292,13 +296,13 @@ func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) 
 			return "", errors.Wrap(err, "unable to get auth flow executions")
 		}
 
-		for _, e := range execs {
-			if e.DisplayName == flow.Alias {
-				return e.FlowID, nil
+		for i := range execs {
+			if execs[i].DisplayName == flow.Alias {
+				return execs[i].FlowID, nil
 			}
 		}
 
-		return "", ErrNotFound("auth flow not found")
+		return "", NotFoundError("auth flow not found")
 	}
 
 	flows, err := a.getRealmAuthFlows(realmName)
@@ -306,13 +310,13 @@ func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) 
 		return "", errors.Wrap(err, "unable to get realm auth flows")
 	}
 
-	for _, fl := range flows {
-		if fl.Alias == flow.Alias {
-			return fl.ID, nil
+	for i := range flows {
+		if flows[i].Alias == flow.Alias {
+			return flows[i].ID, nil
 		}
 	}
 
-	return "", ErrNotFound("auth flow not found")
+	return "", NotFoundError("auth flow not found")
 }
 
 func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow, error) {
@@ -320,12 +324,12 @@ func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow,
 
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
+			keycloakApiParamRealm: realmName,
 		}).
 		SetResult(&flows).
 		Get(a.basePath + authFlows)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return nil, errors.Wrap(err, "unable to list auth flow by realm")
 	}
 
@@ -339,12 +343,12 @@ func (a GoCloakAdapter) createAuthFlow(realmName string, flow *KeycloakAuthFlow)
 
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
+			keycloakApiParamRealm: realmName,
 		}).
 		SetBody(flow).
 		Post(a.basePath + authFlows)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return "", errors.Wrap(err, "unable to create auth flow in realm")
 	}
 
@@ -359,7 +363,7 @@ func (a GoCloakAdapter) createAuthFlow(realmName string, flow *KeycloakAuthFlow)
 func (a GoCloakAdapter) createChildAuthFlow(realmName string, flow *KeycloakAuthFlow) (string, error) {
 	rsp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
+			keycloakApiParamRealm: realmName,
 		}).
 		SetBody(KeycloakChildAuthFlow{
 			Description: flow.Description,
@@ -369,7 +373,7 @@ func (a GoCloakAdapter) createChildAuthFlow(realmName string, flow *KeycloakAuth
 		}).
 		Post(a.basePath + path.Join(authFlows, flow.ParentName, "executions/flow"))
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return "", errors.Wrap(err, "unable to create child auth flow in realm")
 	}
 
@@ -383,11 +387,11 @@ func (a GoCloakAdapter) createChildAuthFlow(realmName string, flow *KeycloakAuth
 
 func (a GoCloakAdapter) updateFlowExecution(realmName, parentFlowAlias string, flowExec *FlowExecution) error {
 	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"realm": realmName,
-		"alias": parentFlowAlias,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamAlias: parentFlowAlias,
 	}).SetBody(flowExec).Put(a.basePath + authFlowExecutionGetUpdate)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update flow execution")
 	}
 
@@ -403,15 +407,15 @@ func (a GoCloakAdapter) adjustExecutionPriority(realmName, executionID string, d
 	for i := 0; i < int(math.Abs(float64(delta))); i++ {
 		rsp, err := a.startRestyRequest().
 			SetPathParams(map[string]string{
-				"realm": realmName,
-				"id":    executionID,
+				keycloakApiParamRealm: realmName,
+				keycloakApiParamId:    executionID,
 			}).
 			SetBody(map[string]string{
-				"realm":     realmName,
-				"execution": executionID,
+				keycloakApiParamRealm: realmName,
+				"execution":           executionID,
 			}).Post(a.basePath + route)
 
-		if err := a.checkError(err, rsp); err != nil {
+		if err = a.checkError(err, rsp); err != nil {
 			return errors.Wrap(err, "unable to adjust execution priority")
 		}
 	}
@@ -422,26 +426,26 @@ func (a GoCloakAdapter) adjustExecutionPriority(realmName, executionID string, d
 func (a GoCloakAdapter) getFlowExecutions(realmName, flowAlias string) ([]FlowExecution, error) {
 	var execs []FlowExecution
 	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		"realm": realmName,
-		"alias": flowAlias,
+		keycloakApiParamRealm: realmName,
+		keycloakApiParamAlias: flowAlias,
 	}).SetResult(&execs).Get(a.basePath + authFlowExecutionGetUpdate)
 
-	if err := a.checkError(err, rsp); err != nil {
+	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable get flow executions")
 	}
 
 	return execs, nil
 }
 
-func (a GoCloakAdapter) deleteAuthFlow(realmName, ID string) error {
+func (a GoCloakAdapter) deleteAuthFlow(realmName, id string) error {
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
-			"id":    ID,
+			keycloakApiParamRealm: realmName,
+			keycloakApiParamId:    id,
 		}).
 		Delete(a.basePath + authFlow)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to delete auth flow")
 	}
 
@@ -451,12 +455,12 @@ func (a GoCloakAdapter) deleteAuthFlow(realmName, ID string) error {
 func (a GoCloakAdapter) addAuthFlowExecution(realmName string, flowExec *AuthenticationExecution) error {
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
+			keycloakApiParamRealm: realmName,
 		}).
 		SetBody(flowExec).
 		Post(a.basePath + authFlowExecutionCreate)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to add auth flow execution")
 	}
 
@@ -477,13 +481,13 @@ func (a GoCloakAdapter) addAuthFlowExecution(realmName string, flowExec *Authent
 func (a GoCloakAdapter) createAuthFlowExecutionConfig(realmName string, flowExec *AuthenticationExecution) error {
 	resp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
-			"realm": realmName,
-			"id":    flowExec.ID,
+			keycloakApiParamRealm: realmName,
+			keycloakApiParamId:    flowExec.ID,
 		}).
 		SetBody(flowExec.AuthenticatorConfig).
 		Post(a.basePath + authFlowExecutionConfig)
 
-	if err := a.checkError(err, resp); err != nil {
+	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to add auth flow execution")
 	}
 
@@ -520,9 +524,9 @@ func (a GoCloakAdapter) unsetBrowserFlow(realmName, flowAlias string) (realm *go
 		return nil, false, errors.Wrapf(err, "unable to get auth flows for realm: %s", realmName)
 	}
 
-	for _, f := range authFlows {
-		if f.Alias != flowAlias {
-			replaceFlow = &f
+	for i := range authFlows {
+		if authFlows[i].Alias != flowAlias {
+			replaceFlow = &authFlows[i]
 			break
 		}
 	}

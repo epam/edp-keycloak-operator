@@ -11,6 +11,8 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -49,10 +51,8 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		Name:      "foo",
 	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
+	require.NoError(t, err)
 
 	kcGroup = keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -68,10 +68,8 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 		Name:      "foo13",
 	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
-	if err != nil {
-		t.Fatal(err)
-	}
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
+	require.NoError(t, err)
 }
 
 func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
@@ -101,14 +99,12 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		Name:      "foo",
 	}, &keycloakApi.KeycloakRealm{}).Return(mockErr)
 
-	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
+	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}
 
-	if errors.Cause(err) != mockErr {
-		t.Fatal("wrong error returned")
-	}
+	assert.ErrorIs(t, err, mockErr)
 
 	kcGroup = keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -122,14 +118,12 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 		Name:      "main123",
 	}, &keycloakApi.KeycloakRealm{}).Return(mockErr)
 
-	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, kcGroup.ObjectMeta)
+	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	if err == nil {
 		t.Fatal("no error on k8s client get fatal")
 	}
 
-	if errors.Cause(err) != mockErr {
-		t.Fatal("wrong error returned")
-	}
+	assert.ErrorIs(t, err, mockErr)
 }
 
 func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
@@ -158,9 +152,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	}, &keycloakApi.Keycloak{}).Return(nil)
 
 	_, err := helper.GetOrCreateKeycloakOwnerRef(&realm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 
 	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
@@ -178,9 +170,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	}, &keycloakApi.Keycloak{}).Return(nil)
 
 	_, err = helper.GetOrCreateKeycloakOwnerRef(&realm)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
@@ -251,9 +241,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 		t.Fatal("no error on k8s client get fatal")
 	}
 
-	if errors.Cause(err) != mockErr {
-		t.Fatal("wrong error returned")
-	}
+	assert.ErrorIs(t, err, mockErr)
 
 	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
@@ -280,9 +268,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 		t.Fatal("no error on k8s client get fatal")
 	}
 
-	if errors.Cause(err) != mockErr {
-		t.Fatal("wrong error returned")
-	}
+	assert.ErrorIs(t, err, mockErr)
 }
 
 func TestMakeHelper(t *testing.T) {
@@ -294,9 +280,7 @@ func TestMakeHelper(t *testing.T) {
 	h := MakeHelper(nil, nil, nil)
 	_, err := h.adapterBuilder(context.Background(), "k-url", "foo", "bar",
 		keycloakApi.KeycloakAdminTypeServiceAccount, nil, rCl)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 }
 
 func TestHelper_CreateKeycloakClient(t *testing.T) {
@@ -376,17 +360,14 @@ func TestHelper_TryToDelete(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithRuntimeObjects(&secret).Build()
 	h := Helper{client: fakeClient}
 
-	if _, err := h.TryToDelete(context.Background(), &secret, &term, "fin"); err != nil {
-		t.Fatal(err)
-	}
+	_, err := h.TryToDelete(context.Background(), &secret, &term, "fin")
+	require.NoError(t, err)
 
 	term.err = errors.New("delete resource fatal")
 	secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 
-	_, err := h.TryToDelete(context.Background(), &secret, &term, "fin")
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	_, err = h.TryToDelete(context.Background(), &secret, &term, "fin")
+	require.Error(t, err)
 
 	if err.Error() != "error during keycloak resource deletion: delete resource fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())

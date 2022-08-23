@@ -7,6 +7,7 @@ import (
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/require"
 )
 
 func TestGoCloakAdapter_SetRealmEventConfig(t *testing.T) {
@@ -22,9 +23,7 @@ func TestGoCloakAdapter_SetRealmEventConfig(t *testing.T) {
 	}
 
 	err := adapter.SetRealmEventConfig("realm1", &RealmEventConfig{})
-	if err == nil {
-		t.Fatal("no error returned")
-	}
+	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "error during set realm event config request") {
 		t.Fatalf("wrong error returned: %s", err.Error())
@@ -33,8 +32,7 @@ func TestGoCloakAdapter_SetRealmEventConfig(t *testing.T) {
 	httpmock.RegisterResponder("PUT", "/auth/admin/realms/r1/events/config",
 		httpmock.NewStringResponder(200, ""))
 
-	if err := adapter.SetRealmEventConfig("r1",
-		&RealmEventConfig{EventsListeners: []string{"foo", "bar"}}); err != nil {
-		t.Fatal(err)
-	}
+	err = adapter.SetRealmEventConfig("r1",
+		&RealmEventConfig{EventsListeners: []string{"foo", "bar"}})
+	require.NoError(t, err)
 }

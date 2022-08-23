@@ -34,7 +34,6 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 		ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,
 			OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
 		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.realm1"}}
-	//now := metav1.Time{Time: time.Now()}
 	group := keycloakApi.KeycloakRealmGroup{TypeMeta: metav1.TypeMeta{
 		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmGroup",
 	}, ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "group1" /*, DeletionTimestamp: &now*/},
@@ -53,7 +52,7 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	h := helper.Mock{}
 	kcMock := adapter.Mock{}
 
-	h.On("GetOrCreateRealmOwnerRef", &group, group.ObjectMeta).Return(&realm, nil)
+	h.On("GetOrCreateRealmOwnerRef", &group, &group.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(&kcMock, nil)
 	kcMock.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("id11", nil)
 	h.On("TryToDelete", &group, makeTerminator(&kcMock, realm.Spec.RealmName, group.Spec.Name, &logger),

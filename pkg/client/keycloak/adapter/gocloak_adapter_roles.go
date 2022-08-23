@@ -9,19 +9,16 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
-type ErrDuplicated string
+type DuplicatedError string
 
-func (e ErrDuplicated) Error() string {
+func (e DuplicatedError) Error() string {
 	return string(e)
 }
 
 func IsErrDuplicated(err error) bool {
-	switch errors.Cause(err).(type) {
-	case ErrDuplicated:
-		return true
-	}
+	errDuplicate := DuplicatedError("")
 
-	return false
+	return errors.As(err, &errDuplicate)
 }
 
 func (a GoCloakAdapter) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
@@ -59,7 +56,7 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.Prim
 	}
 
 	if role.ID == nil {
-		return ErrDuplicated("role is duplicated")
+		return DuplicatedError("role is duplicated")
 	}
 
 	if err := a.syncRoleComposites(realmName, role, currentRealmRole); err != nil {
@@ -115,7 +112,7 @@ func (a GoCloakAdapter) syncRoleComposites(
 
 	// temporary disable deletion of old composites to remove conflict with keycloak client roles
 
-	//if err := a.syncDeleteOldComposites(realmName, role, currentComposites); err != nil {
+	// if err := a.syncDeleteOldComposites(realmName, role, currentComposites); err != nil {
 	//	return errors.Wrap(err, "error during SyncDeleteOldComposites")
 	//}
 
@@ -147,32 +144,6 @@ func (a GoCloakAdapter) syncCreateNewComposites(
 		if err := a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
 			role.Name, rolesToAdd); err != nil {
 			return errors.Wrap(err, "unable to add role composite")
-		}
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) syncDeleteOldComposites(
-	realmName string, role *dto.PrimaryRealmRole, currentComposites []*gocloak.Role) error {
-
-	claimedCompositesMap := make(map[string]string)
-
-	for _, claimedComposite := range role.Composites {
-		claimedCompositesMap[claimedComposite] = claimedComposite
-	}
-
-	rolesToDelete := make([]gocloak.Role, 0, len(currentComposites))
-	for _, currentComposite := range currentComposites {
-		if _, ok := claimedCompositesMap[*currentComposite.Name]; !ok {
-			rolesToDelete = append(rolesToDelete, *currentComposite)
-		}
-	}
-
-	if len(rolesToDelete) > 0 {
-		if err := a.client.DeleteRealmRoleComposite(context.Background(), a.token.AccessToken, realmName, role.Name,
-			rolesToDelete); err != nil {
-			return errors.Wrap(err, "unable to delete realm role composites")
 		}
 	}
 

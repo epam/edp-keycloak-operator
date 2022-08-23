@@ -44,10 +44,10 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 		return errors.Wrap(err, "unable to list auth flows")
 	}
 
-	for _, af := range authFlowList.Items {
-		if af.Spec.Realm == t.realm.Name && af.Spec.ParentName == t.keycloakAuthFlow.Alias {
+	for i := range authFlowList.Items {
+		if authFlowList.Items[i].Spec.Realm == t.realm.Name && authFlowList.Items[i].Spec.ParentName == t.keycloakAuthFlow.Alias {
 			return errors.Errorf("Unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
-				af.Spec.Alias)
+				authFlowList.Items[i].Spec.Alias)
 		}
 	}
 
