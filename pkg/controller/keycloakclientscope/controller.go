@@ -53,14 +53,22 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout t
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakClientScope{}, builder.WithPredicates(pred)).
 		Complete(r)
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {
-	oo := e.ObjectOld.(*keycloakApi.KeycloakClientScope)
-	no := e.ObjectNew.(*keycloakApi.KeycloakClientScope)
+	oo, ok := e.ObjectOld.(*keycloakApi.KeycloakClientScope)
+	if !ok {
+		return false
+	}
+
+	no, ok := e.ObjectNew.(*keycloakApi.KeycloakClientScope)
+	if !ok {
+		return false
+	}
 
 	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
@@ -79,6 +87,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm user from k8s")
+
 		return
 	}
 
@@ -86,8 +95,8 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	if err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak client scope", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak client scope", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 		instance.Status.ID = scopeID
@@ -99,6 +108,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	}
 
 	log.Info("Reconciling KeycloakClientScope done.")
+
 	return
 }
 
@@ -127,9 +137,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	return scopeID, nil
 }
 
-func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realm *keycloakApi.KeycloakRealm,
-	cl keycloak.Client) (string, error) {
-
+func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realm *keycloakApi.KeycloakRealm, cl keycloak.Client) (string, error) {
 	clientScope, err := cl.GetClientScope(instance.Spec.Name, realm.Spec.RealmName)
 	if err != nil && !adapter.IsErrNotFound(err) {
 		return "", errors.Wrap(err, "unable to get client scope")
@@ -148,6 +156,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 		if instance.Status.ID == "" {
 			instance.Status.ID = clientScope.ID
 		}
+
 		if err = cl.UpdateClientScope(ctx, realm.Spec.RealmName, instance.Status.ID, &cScope); err != nil {
 			return "", errors.Wrap(err, "unable to update client scope")
 		}
@@ -161,6 +170,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 	}
 
 	instance.Status.ID = id
+
 	return instance.Status.ID, nil
 }
 

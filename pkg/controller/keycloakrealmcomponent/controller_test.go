@@ -95,6 +95,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 
 func TestIsSpecUpdated(t *testing.T) {
 	comp := keycloakApi.KeycloakRealmComponent{}
+
 	if isSpecUpdated(event.UpdateEvent{ObjectNew: &comp, ObjectOld: &comp}) {
 		t.Fatal("spec is updated")
 	}

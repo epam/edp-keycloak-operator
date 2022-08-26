@@ -43,7 +43,9 @@ func (m *Mock) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
 	if args.Get(0) == nil {
 		return false, args.Error(1)
 	}
+
 	res := args.Bool(0)
+
 	return res, args.Error(1)
 }
 
@@ -56,7 +58,9 @@ func (m *Mock) ExistClient(clientID, realm string) (bool, error) {
 	if args.Get(0) == nil {
 		return false, args.Error(1)
 	}
+
 	res := args.Bool(0)
+
 	return res, args.Error(1)
 }
 
@@ -120,7 +124,9 @@ func (m *Mock) GetClientID(clientID, realm string) (string, error) {
 	if args.Get(0) == nil {
 		return "", args.Error(1)
 	}
+
 	res := args.String(0)
+
 	return res, args.Error(1)
 }
 

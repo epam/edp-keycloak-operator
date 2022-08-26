@@ -22,6 +22,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 	}
 
 	restyClient := resty.New()
+
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
@@ -140,6 +141,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 	}, nil)
 
 	restyClient := resty.New()
+
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)

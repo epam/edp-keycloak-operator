@@ -91,11 +91,14 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	}
 
 	existFlowID := "flow-id-1"
+
 	httpmock.RegisterResponder("GET", strings.ReplaceAll(authFlows, "{realm}", e.realmName),
 		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{{Alias: flow.Alias, ID: existFlowID},
 			{Alias: "some-another-flow", ID: "321"}}))
+
 	deleteURL := strings.ReplaceAll(authFlow, "{realm}", e.realmName)
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
+
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
 
 	e.goCloakMockClient.On("GetRealm", "token", e.realmName).Return(&gocloak.RealmRepresentation{
@@ -116,7 +119,9 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 		httpmock.ResponderFromResponse(createFlowResponse))
 
 	createExecResponse := httpmock.NewStringResponse(200, "")
+
 	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
+
 	newExecID := "new-exec-id"
 	createExecResponse.Header.Set("Location", fmt.Sprintf("id/%s", newExecID))
 	httpmock.RegisterResponder("POST", strings.ReplaceAll(authFlowExecutionCreate, "{realm}", e.realmName),
@@ -128,6 +133,7 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	httpmock.RegisterResponder("POST", createConfigURL, httpmock.NewStringResponder(200, ""))
 
 	childExecutionID := "child-exec-id1"
+
 	httpmock.RegisterResponder("GET",
 		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{ID: childExecutionID}}))
@@ -141,32 +147,38 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+
 	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
 			{DisplayName: flow.Alias, ID: "id12"},
 		}))
 	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
 		httpmock.NewStringResponder(http.StatusOK, ""))
+
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.NoError(e.T(), err)
 }
 
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+
 	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusNotFound, nil))
+
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.Error(e.T(), err)
 }
 
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableDelete() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
+
 	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
 			{DisplayName: flow.Alias, ID: "id12"},
 		}))
 	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
 		httpmock.NewStringResponder(http.StatusBadRequest, ""))
+
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.Error(e.T(), err)
 }
@@ -185,6 +197,7 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlow() {
 				Alias: newBrowserFlowAlias,
 			},
 		}))
+
 	deleteURL := strings.ReplaceAll(authFlow, "{realm}", e.realmName)
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
@@ -215,11 +228,11 @@ func (e *ExecFlowTestSuite) TestGetAuthFlowID() {
 				FlowID:      flowID,
 			},
 		}))
+
 	id, err := e.adapter.getAuthFlowID(e.realmName, &flow)
 
 	assert.NoError(e.T(), err)
 	assert.Equal(e.T(), id, flowID)
-
 }
 
 func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow() {
@@ -304,6 +317,7 @@ func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
 
 	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{}))
+
 	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "auth flow not found")
@@ -315,6 +329,7 @@ func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
 				ID:          "as12",
 			},
 		}))
+
 	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
 	assert.NoError(e.T(), err)
 }

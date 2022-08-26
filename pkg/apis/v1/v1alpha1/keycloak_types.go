@@ -7,7 +7,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// KeycloakSpec defines the desired state of Keycloak
+// KeycloakSpec defines the desired state of Keycloak.
 type KeycloakSpec struct {
 	// URL of keycloak service
 	Url string `json:"url"`
@@ -61,7 +61,7 @@ type User struct {
 	RealmRoles []string `json:"realmRoles,omitempty"`
 }
 
-// KeycloakStatus defines the observed state of Keycloak
+// KeycloakStatus defines the observed state of Keycloak.
 type KeycloakStatus struct {
 	Connected bool `json:"connected"`
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
@@ -73,7 +73,7 @@ type KeycloakStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion
 
-// Keycloak is the Schema for the keycloaks API
+// Keycloak is the Schema for the keycloaks API.
 type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -84,7 +84,7 @@ type Keycloak struct {
 
 // +kubebuilder:object:root=true
 
-// KeycloakList contains a list of Keycloak
+// KeycloakList contains a list of Keycloak.
 type KeycloakList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

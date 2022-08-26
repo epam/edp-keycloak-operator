@@ -4,7 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KeycloakSpec defines the desired state of Keycloak
+// KeycloakSpec defines the desired state of Keycloak.
 type KeycloakSpec struct {
 	// URL of keycloak service
 	Url string `json:"url"`
@@ -58,7 +58,7 @@ type User struct {
 	RealmRoles []string `json:"realmRoles,omitempty"`
 }
 
-// KeycloakStatus defines the observed state of Keycloak
+// KeycloakStatus defines the observed state of Keycloak.
 type KeycloakStatus struct {
 	// Connected shows if keycloak service is up and running
 	Connected bool `json:"connected"`
@@ -68,7 +68,7 @@ type KeycloakStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// Keycloak is the Schema for the keycloaks API
+// Keycloak is the Schema for the keycloaks API.
 type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -79,7 +79,7 @@ type Keycloak struct {
 
 // +kubebuilder:object:root=true
 
-// KeycloakList contains a list of Keycloak
+// KeycloakList contains a list of Keycloak.
 type KeycloakList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

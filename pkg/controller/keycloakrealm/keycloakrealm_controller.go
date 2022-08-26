@@ -40,7 +40,7 @@ func NewReconcileKeycloakRealm(client client.Client, scheme *runtime.Scheme, log
 	}
 }
 
-// ReconcileKeycloakRealm reconciles a KeycloakRealm object
+// ReconcileKeycloakRealm reconciles a KeycloakRealm object.
 type ReconcileKeycloakRealm struct {
 	client                  client.Client
 	helper                  Helper
@@ -54,6 +54,7 @@ func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager, successRecon
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealm{}, builder.WithPredicates(pred)).
 		Complete(r)
@@ -71,7 +72,9 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 			// Return and don't requeue
 			return
 		}
+
 		resultErr = err
+
 		return
 	}
 
@@ -79,8 +82,8 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		instance.Status.Available = false
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(instance)
-		log.Error(err, "an error has occurred while handling keycloak realm", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak realm", "name", request.Name)
 	} else {
 		instance.Status.Available = true
 		instance.Status.Value = helper.StatusOK
@@ -107,6 +110,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 	if err != nil {
 		return errors.Wrap(err, "error during realm deletion")
 	}
+
 	if deleted {
 		return nil
 	}

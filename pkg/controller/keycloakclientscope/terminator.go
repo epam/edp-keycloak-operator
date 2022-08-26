@@ -32,10 +32,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	logger := t.log.WithValues("realm name", t.realmName, "scope id", t.scopeID)
 
 	logger.Info("start deleting client scope")
+
 	if err := t.kClient.DeleteClientScope(ctx, t.realmName, t.scopeID); err != nil {
 		return errors.Wrap(err, "unable to delete client scope")
 	}
 
 	logger.Info("done deleting client scope")
+
 	return nil
 }

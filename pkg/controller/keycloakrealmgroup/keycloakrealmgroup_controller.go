@@ -51,6 +51,7 @@ func (r *ReconcileKeycloakRealmGroup) SetupWithManager(mgr ctrl.Manager, success
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmGroup{}, builder.WithPredicates(pred)).
 		Complete(r)
@@ -67,14 +68,15 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
+
 		return
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak realm group", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak realm group", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 		result.RequeueAfter = r.successReconcileTimeout
@@ -85,6 +87,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 	}
 
 	log.Info("Reconciling done")
+
 	return
 }
 
@@ -103,6 +106,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	if err != nil {
 		return errors.Wrap(err, "unable to sync realm role")
 	}
+
 	keycloakRealmGroup.Status.ID = id
 
 	if _, err := r.helper.TryToDelete(ctx, keycloakRealmGroup,

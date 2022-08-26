@@ -63,13 +63,8 @@ func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *keycloak
 }
 
 func (a GoCloakAdapter) syncSubGroups(realm string, group *gocloak.Group, subGroups []string) error {
-	currentGroups, claimedGroups := make(map[string]gocloak.Group), make(map[string]struct{})
-
-	if group.SubGroups != nil {
-		for i, cg := range *group.SubGroups {
-			currentGroups[*cg.Name] = (*group.SubGroups)[i]
-		}
-	}
+	currentGroups := a.makeCurrentGroups(group)
+	claimedGroups := make(map[string]struct{})
 
 	for _, g := range subGroups {
 		claimedGroups[g] = struct{}{}
@@ -82,8 +77,7 @@ func (a GoCloakAdapter) syncSubGroups(realm string, group *gocloak.Group, subGro
 				return errors.Wrapf(err, "unable to get group, realm: %s, group: %s", realm, claimed)
 			}
 
-			if _, err := a.client.CreateChildGroup(context.Background(), a.token.AccessToken, realm, *group.ID,
-				*gr); err != nil {
+			if _, err := a.client.CreateChildGroup(context.Background(), a.token.AccessToken, realm, *group.ID, *gr); err != nil {
 				return errors.Wrapf(err, "unable to create child group, realm: %s, group: %s", realm, claimed)
 			}
 		}
@@ -109,12 +103,13 @@ func (a GoCloakAdapter) SyncRealmGroup(realmName string, spec *keycloakApi.Keycl
 			return "", errors.Wrapf(err, "unable to get group with spec %+v", spec)
 		}
 
-		group = &gocloak.Group{Name: &spec.Name, Path: &spec.Path, Attributes: &spec.Attributes,
-			Access: &spec.Access}
+		group = &gocloak.Group{Name: &spec.Name, Path: &spec.Path, Attributes: &spec.Attributes, Access: &spec.Access}
+
 		groupID, err := a.client.CreateGroup(context.Background(), a.token.AccessToken, realmName, *group)
 		if err != nil {
 			return "", errors.Wrapf(err, "unable to create group with spec %+v", spec)
 		}
+
 		group.ID = &groupID
 	} else {
 		group.Path, group.Access, group.Attributes = &spec.Path, &spec.Access, &spec.Attributes
@@ -145,4 +140,16 @@ func (a GoCloakAdapter) DeleteGroup(ctx context.Context, realm, groupName string
 	}
 
 	return nil
+}
+
+func (a GoCloakAdapter) makeCurrentGroups(group *gocloak.Group) map[string]gocloak.Group {
+	currentGroups := make(map[string]gocloak.Group)
+
+	if group.SubGroups != nil {
+		for i, cg := range *group.SubGroups {
+			currentGroups[*cg.Name] = (*group.SubGroups)[i]
+		}
+	}
+
+	return currentGroups
 }

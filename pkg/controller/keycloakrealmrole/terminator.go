@@ -24,6 +24,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	}
 
 	log.Info("realm role deletion done")
+
 	return nil
 }
 

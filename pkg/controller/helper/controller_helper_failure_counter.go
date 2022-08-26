@@ -23,6 +23,7 @@ type StatusValueFailureCountable interface {
 
 func (h *Helper) SetFailureCount(fc FailureCountable) time.Duration {
 	failures := fc.GetFailureCount()
+
 	const timeoutSeconds = 10
 	timeout := h.getTimeout(failures, timeoutSeconds*time.Second)
 	failures += 1
@@ -36,8 +37,15 @@ func (h *Helper) getTimeout(factor int64, baseDuration time.Duration) time.Durat
 }
 
 func IsFailuresUpdated(e event.UpdateEvent) bool {
-	oo := e.ObjectOld.(FailureCountable)
-	no := e.ObjectNew.(FailureCountable)
+	oo, ok := e.ObjectOld.(FailureCountable)
+	if !ok {
+		return false
+	}
+
+	no, ok := e.ObjectNew.(FailureCountable)
+	if !ok {
+		return false
+	}
 
 	return oo.GetFailureCount() == no.GetFailureCount()
 }

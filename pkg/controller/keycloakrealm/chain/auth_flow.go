@@ -28,5 +28,6 @@ func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	}
 
 	rLog.Info("End of configuring keycloak realm auth flow")
+
 	return nextServeOrNil(ctx, a.next, realm, kClient)
 }

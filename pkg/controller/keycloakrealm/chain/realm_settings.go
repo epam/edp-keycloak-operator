@@ -53,10 +53,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies))
-		for i, v := range realm.Spec.PasswordPolicies {
-			settings.PasswordPolicies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
-		}
+		settings.PasswordPolicies = h.makePasswordPolicies(realm.Spec.PasswordPolicies)
 	}
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
@@ -64,5 +61,15 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	rLog.Info("Realm settings is updating done.")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
+}
+
+func (h RealmSettings) makePasswordPolicies(policiesSpec []keycloakApi.PasswordPolicy) []adapter.PasswordPolicy {
+	policies := make([]adapter.PasswordPolicy, len(policiesSpec))
+	for i, v := range policiesSpec {
+		policies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
+	}
+
+	return policies
 }

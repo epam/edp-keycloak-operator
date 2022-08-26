@@ -34,6 +34,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	}
 
 	log.Info("realm component deletion done")
+
 	return nil
 }
 

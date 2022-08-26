@@ -4,7 +4,7 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 const StatusDuplicated = "duplicated"
 
-// KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole
+// KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
 type KeycloakRealmRoleSpec struct {
 	Name  string `json:"name"`
 	Realm string `json:"realm"`
@@ -31,7 +31,7 @@ type Composite struct {
 	Name string `json:"name"`
 }
 
-// KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole
+// KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole.
 type KeycloakRealmRoleStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -47,7 +47,7 @@ type KeycloakRealmRoleStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmRole is the Schema for the keycloak group API
+// KeycloakRealmRole is the Schema for the keycloak group API.
 type KeycloakRealmRole struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -78,7 +78,7 @@ func (in *KeycloakRealmRole) K8SParentRealmName() (string, error) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmRoleList contains a list of KeycloakRealmRole
+// KeycloakRealmRoleList contains a list of KeycloakRealmRole.
 type KeycloakRealmRoleList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

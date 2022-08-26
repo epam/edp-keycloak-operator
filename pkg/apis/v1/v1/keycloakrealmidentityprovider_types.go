@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider
+// KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider.
 type KeycloakRealmIdentityProviderSpec struct {
 	Realm      string            `json:"realm"`
 	ProviderID string            `json:"providerId"`
@@ -51,7 +51,7 @@ type IdentityProviderMapper struct {
 	Config map[string]string `json:"config,omitempty"`
 }
 
-// KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider
+// KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider.
 type KeycloakRealmIdentityProviderStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -64,7 +64,7 @@ type KeycloakRealmIdentityProviderStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity provider API
+// KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity provider API.
 type KeycloakRealmIdentityProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -95,7 +95,7 @@ func (in *KeycloakRealmIdentityProvider) K8SParentRealmName() (string, error) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmIdentityProviderList contains a list of KeycloakRealmIdentityProvider
+// KeycloakRealmIdentityProviderList contains a list of KeycloakRealmIdentityProvider.
 type KeycloakRealmIdentityProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

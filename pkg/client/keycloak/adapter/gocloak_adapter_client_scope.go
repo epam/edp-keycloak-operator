@@ -106,6 +106,7 @@ func (a GoCloakAdapter) needToUpdateDefault(ctx context.Context, realmName strin
 	}
 
 	currentScopeDefaultState := false
+
 	for _, s := range defaultScopes {
 		if s.Name == scope.Name {
 			currentScopeDefaultState = true
@@ -116,10 +117,11 @@ func (a GoCloakAdapter) needToUpdateDefault(ctx context.Context, realmName strin
 	return currentScopeDefaultState != scope.Default, nil
 }
 
-//TODO: add context
+//TODO: add context.
 func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScope, error) {
 	log := a.log.WithValues("scopeName", scopeName, logKeyRealm, realmName)
 	log.Info("Start get Client Scope...")
+
 	var result []ClientScope
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
@@ -129,17 +131,22 @@ func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScop
 		}).
 		SetResult(&result).
 		Get(a.basePath + getRealmClientScopes)
+
 	if err = a.checkError(err, resp); err != nil {
 		return nil, err
 	}
+
 	if result == nil {
 		return nil, NotFoundError(fmt.Sprintf("realm %v doesnt contain client scopes, rsp: %s", realmName, resp.String()))
 	}
+
 	scope, err := getClientScope(scopeName, result)
 	if err != nil {
 		return nil, err
 	}
+
 	log.Info("End get Client Scope", "scope", scope)
+
 	return scope, err
 }
 
@@ -149,6 +156,7 @@ func getClientScope(name string, clientScopes []ClientScope) (*ClientScope, erro
 			return &cs, nil
 		}
 	}
+
 	return nil, NotFoundError(fmt.Sprintf("scope %v was not found", name))
 }
 
@@ -233,7 +241,6 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 			if err = a.checkError(err, rsp); err != nil {
 				return errors.Wrap(err, "error during client scope protocol mapper deletion")
 			}
-
 		}
 	}
 
@@ -311,6 +318,7 @@ func (a GoCloakAdapter) GetClientScopeMappers(ctx context.Context, realmName, sc
 func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocolMapper *ProtocolMapper) error {
 	log := a.log.WithValues("scopeId", scopeID, logKeyRealm, realmName)
 	log.Info("Start put Client Scope mapper...")
+
 	resp, err := a.client.RestyClient().R().
 		SetAuthToken(a.token.AccessToken).
 		SetHeader(contentTypeHeader, contentTypeJson).
@@ -323,6 +331,8 @@ func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocol
 	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to put client scope mapper")
 	}
+
 	log.Info("Client Scope mapper was successfully configured!")
+
 	return nil
 }

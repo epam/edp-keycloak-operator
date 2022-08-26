@@ -20,9 +20,7 @@ const (
 	keycloakTokenSecretKey    = "token"
 )
 
-func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context,
-	realm *keycloakApi.KeycloakRealm) (keycloak.Client, error) {
-
+func (h *Helper) CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error) {
 	kc, err := h.GetOrCreateKeycloakOwnerRef(realm)
 	if err != nil {
 		return nil, err
@@ -104,6 +102,7 @@ func (h *Helper) InvalidateKeycloakClientTokenSecret(ctx context.Context, namesp
 
 func (h *Helper) SaveKeycloakClientTokenSecret(ctx context.Context, kc *keycloakApi.Keycloak, token []byte) error {
 	var secret coreV1.Secret
+
 	err := h.client.Get(ctx, types.NamespacedName{Namespace: kc.Namespace, Name: tokenSecretName(kc.Name)}, &secret)
 	if err == nil {
 		secret.Data = map[string][]byte{

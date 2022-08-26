@@ -22,10 +22,12 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteRealm", "realm").Return(nil).Once()
+
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 
 	kClient.On("DeleteRealm", "realm").Return(errors.New("fatal")).Once()
+
 	err = term.DeleteResource(context.Background())
 	require.Error(t, err)
 

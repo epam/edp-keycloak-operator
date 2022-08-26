@@ -27,6 +27,7 @@ func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *keycloakApi
 	for _, v := range keycloakClient.Spec.ServiceAccount.ClientRoles {
 		clientRoles[v.ClientID] = v.Roles
 	}
+
 	addOnly := keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly
 
 	if err := adapterClient.SyncServiceAccountRoles(keycloakClient.Spec.TargetRealm,

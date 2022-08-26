@@ -40,6 +40,7 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 	}
 
 	var keycloakUser gocloak.User
+
 	for _, usr := range users {
 		if *usr.Username == user.Username {
 			keycloakUser = *usr
@@ -216,21 +217,15 @@ func (a GoCloakAdapter) clearUserRealmRoles(ctx context.Context, realmName strin
 	return nil
 }
 
-func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, keycloakUser *gocloak.User,
-	userCR *KeycloakUser, addOnly bool) error {
+func (a GoCloakAdapter) setUserParams(
+	ctx context.Context,
+	realmName string,
+	keycloakUser *gocloak.User,
+	userCR *KeycloakUser,
+	addOnly bool,
+) error {
 	if userCR.Attributes != nil && len(userCR.Attributes) > 0 {
-		attrs := make(map[string][]string)
-		for k, v := range userCR.Attributes {
-			attrs[k] = []string{v}
-		}
-
-		if addOnly && keycloakUser.Attributes != nil && len(*keycloakUser.Attributes) > 0 {
-			for k, v := range *keycloakUser.Attributes {
-				attrs[k] = v
-			}
-		}
-
-		keycloakUser.Attributes = &attrs
+		keycloakUser.Attributes = a.makeUserAttributes(keycloakUser, userCR, addOnly)
 	}
 
 	if keycloakUser.ID != nil {
@@ -251,6 +246,7 @@ func (a GoCloakAdapter) setUserParams(ctx context.Context, realmName string, key
 			return errors.Wrapf(err, "unable to set user password, user id: %s", userID)
 		}
 	}
+
 	keycloakUser.ID = &userID
 
 	return nil
@@ -271,4 +267,19 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 	}
 
 	return nil
+}
+
+func (a GoCloakAdapter) makeUserAttributes(keycloakUser *gocloak.User, userCR *KeycloakUser, addOnly bool) *map[string][]string {
+	attrs := make(map[string][]string)
+	for k, v := range userCR.Attributes {
+		attrs[k] = []string{v}
+	}
+
+	if addOnly && keycloakUser.Attributes != nil && len(*keycloakUser.Attributes) > 0 {
+		for k, v := range *keycloakUser.Attributes {
+			attrs[k] = v
+		}
+	}
+
+	return &attrs
 }

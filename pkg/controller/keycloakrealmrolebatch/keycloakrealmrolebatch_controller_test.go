@@ -66,7 +66,6 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	if len(checkList.Items) > 0 {
 		t.Fatal("batch roles is not deleted")
 	}
-
 }
 
 func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {

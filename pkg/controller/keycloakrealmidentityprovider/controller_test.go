@@ -33,6 +33,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 	}
 	fakeCl := helper.K8SClientMock{}
 	fakeCl.On("Get", nn, &keycloakApi.KeycloakRealmIdentityProvider{}).Return(errors.New("fatal"))
+
 	l := mock.Logger{}
 
 	r := NewReconcile(&fakeCl, &l, nil)
@@ -138,6 +139,7 @@ func TestNewReconcile(t *testing.T) {
 		Return(true, nil).Once()
 	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
+
 	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
@@ -153,6 +155,7 @@ func TestNewReconcile(t *testing.T) {
 	r.client = fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
 
 	hlp.On("SetFailureCount", &idp).Return(time.Second)
+
 	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
@@ -169,6 +172,7 @@ func TestNewReconcile(t *testing.T) {
 
 func TestIsSpecUpdated(t *testing.T) {
 	idp := keycloakApi.KeycloakRealmIdentityProvider{}
+
 	if isSpecUpdated(event.UpdateEvent{ObjectOld: &idp, ObjectNew: &idp}) {
 		t.Fatal("spec updated")
 	}

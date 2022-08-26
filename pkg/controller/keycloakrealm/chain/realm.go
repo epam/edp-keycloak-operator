@@ -25,15 +25,20 @@ type PutRealm struct {
 func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
+
 	rDto := dto.ConvertSpecToRealm(&realm.Spec)
+
 	e, err := kClient.ExistRealm(rDto.Name)
 	if err != nil {
 		return errors.Wrap(err, "unable to check realm existence")
 	}
+
 	if e {
 		rLog.Info("Realm already exists")
+
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
+
 	err = kClient.CreateRealmWithDefaultConfig(rDto)
 	if err != nil {
 		return errors.Wrap(err, "unable to create realm with default config")
@@ -50,6 +55,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	}
 
 	rLog.Info("End putting realm!")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 

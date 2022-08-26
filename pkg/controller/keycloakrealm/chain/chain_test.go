@@ -64,7 +64,9 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
 		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
+
 	hm := helper.Mock{}
+
 	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
 	chain := CreateDefChain(client, s, &hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
@@ -179,7 +181,9 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
 		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
+
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
+
 	kClient.On("ExistRealmUser", testRealm.Name, &realmUser).
 		Return(false, nil)
 	kClient.On("CreateRealmUser", testRealm.Name, &realmUser).Return(nil)
@@ -189,7 +193,9 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
 	kClient.On("AddRealmRoleToUser", testRealm.Name, realmUser.Username, "foo").Return(nil)
+
 	hm := helper.Mock{}
+
 	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
 	chain := CreateDefChain(client, s, &hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)

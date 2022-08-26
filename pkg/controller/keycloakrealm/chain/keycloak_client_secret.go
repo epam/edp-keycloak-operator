@@ -27,12 +27,14 @@ type PutKeycloakClientSecret struct {
 func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client secret")
+
 	if !realm.Spec.SSOEnabled() {
 		rLog.Info("sso realm disabled skip creation of Keycloak client secret")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
 	sn := fmt.Sprintf(clientSecretName, realm.Spec.RealmName)
+
 	s, err := helper.GetSecret(ctx, h.client, types.NamespacedName{
 		Name:      sn,
 		Namespace: realm.Namespace,
@@ -40,10 +42,12 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 	if err != nil {
 		return err
 	}
+
 	if s != nil {
 		rLog.Info("Keycloak client secret already exist")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
+
 	s = &coreV1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sn,
@@ -54,6 +58,7 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 		},
 	}
 	cl := &keycloakApi.KeycloakClient{}
+
 	err = h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
@@ -61,14 +66,18 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 	if err != nil {
 		return err
 	}
+
 	err = controllerutil.SetControllerReference(cl, s, h.scheme)
 	if err != nil {
 		return err
 	}
+
 	err = h.client.Create(ctx, s)
 	if err != nil {
 		return err
 	}
+
 	rLog.Info("End of put Keycloak client secret")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

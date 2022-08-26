@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakClientScopeSpec defines the desired state of KeycloakClientScope
+// KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
 type KeycloakClientScopeSpec struct {
 	// Name of keycloak client scope
 	Name string `json:"name"`
@@ -28,7 +28,7 @@ type KeycloakClientScopeSpec struct {
 	ProtocolMappers []ProtocolMapper `json:"protocolMappers,omitempty"`
 }
 
-// KeycloakClientScopeStatus defines the observed state of KeycloakClientScope
+// KeycloakClientScopeStatus defines the observed state of KeycloakClientScope.
 type KeycloakClientScopeStatus struct {
 	// +optional
 	ID string `json:"id,omitempty"`
@@ -44,7 +44,7 @@ type KeycloakClientScopeStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakClientScope is the Schema for the keycloakclientscopes API
+// KeycloakClientScope is the Schema for the keycloakclientscopes API.
 type KeycloakClientScope struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -75,7 +75,7 @@ func (in *KeycloakClientScope) SetStatus(value string) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakClientScopeList contains a list of KeycloakClientScope
+// KeycloakClientScopeList contains a list of KeycloakClientScope.
 type KeycloakClientScopeList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -20,6 +20,7 @@ func TestConvertSpecToClient(t *testing.T) {
 	}
 
 	b := true
+
 	r = ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{
 		SsoRealmEnabled: &b,
 	})
@@ -31,6 +32,7 @@ func TestConvertSpecToClient(t *testing.T) {
 	r = ConvertSpecToRealm(&keycloakApi.KeycloakRealmSpec{
 		SsoRealmEnabled: &b,
 	})
+
 	if r.SsoRealmEnabled {
 		t.Fatal("sso realm enabled must be false when in spec is false")
 	}

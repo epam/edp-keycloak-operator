@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup
+// KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
 type KeycloakRealmGroupSpec struct {
 	Name  string `json:"name"`
 	Realm string `json:"realm"`
@@ -31,7 +31,7 @@ type KeycloakRealmGroupSpec struct {
 	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
 }
 
-// KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup
+// KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.
 type KeycloakRealmGroupStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -67,7 +67,7 @@ func (in *KeycloakRealmGroup) K8SParentRealmName() (string, error) {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmGroup is the Schema for the keycloak group API
+// KeycloakRealmGroup is the Schema for the keycloak group API.
 type KeycloakRealmGroup struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -78,7 +78,7 @@ type KeycloakRealmGroup struct {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmGroupList contains a list of KeycloakRealmGroup
+// KeycloakRealmGroupList contains a list of KeycloakRealmGroup.
 type KeycloakRealmGroupList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

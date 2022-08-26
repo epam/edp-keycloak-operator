@@ -45,10 +45,12 @@ func (h PutKeycloakClientCR) getClientRoles(realm *keycloakApi.KeycloakRealm) []
 func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start creation of Keycloak client CR")
+
 	if !realm.Spec.SSOEnabled() {
 		rLog.Info("sso realm disabled skip creation of Keycloak client CR")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
+
 	kc, err := helper.GetKeycloakClientCR(h.client, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
@@ -56,6 +58,7 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 	if err != nil {
 		return errors.Wrap(err, "unable to get kc client cr")
 	}
+
 	if kc != nil {
 		rLog.Info("Required Keycloak client CR already exists")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
@@ -78,10 +81,13 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 	if err != nil {
 		return errors.Wrap(err, "cannot set owner ref for keycloak client CR")
 	}
+
 	err = h.client.Create(ctx, kc)
 	if err != nil {
 		return errors.Wrap(err, "cannot create keycloak client cr")
 	}
+
 	rLog.Info("Keycloak client has been successfully created", "keycloak client", kc)
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

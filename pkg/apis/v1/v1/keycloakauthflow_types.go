@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow
+// KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
 type KeycloakAuthFlowSpec struct {
 	// Realm is name of keycloak realm
 	Realm string `json:"realm"`
@@ -32,7 +32,7 @@ type KeycloakAuthFlowSpec struct {
 	ChildType string `json:"childType,omitempty"`
 }
 
-// AuthenticationExecution defines keycloak authentication execution
+// AuthenticationExecution defines keycloak authentication execution.
 type AuthenticationExecution struct {
 	// +optional
 	Authenticator string `json:"authenticator,omitempty"`
@@ -63,7 +63,7 @@ type AuthenticatorConfig struct {
 	Config map[string]string `json:"config,omitempty"`
 }
 
-// KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow
+// KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
 type KeycloakAuthFlowStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -76,7 +76,7 @@ type KeycloakAuthFlowStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakAuthFlow is the Schema for the keycloak authentication flow API
+// KeycloakAuthFlow is the Schema for the keycloak authentication flow API.
 type KeycloakAuthFlow struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -107,7 +107,7 @@ func (in *KeycloakAuthFlow) SetStatus(value string) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakAuthFlowList contains a list of KeycloakAuthFlow
+// KeycloakAuthFlowList contains a list of KeycloakAuthFlow.
 type KeycloakAuthFlowList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

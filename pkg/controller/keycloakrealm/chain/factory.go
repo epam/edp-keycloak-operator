@@ -53,5 +53,6 @@ func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycl
 	}
 
 	log.Info("handling of realm has been finished", "realm name", realm.Spec.RealmName)
+
 	return nil
 }

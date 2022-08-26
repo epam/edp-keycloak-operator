@@ -6,7 +6,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch
+// KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
 type KeycloakRealmRoleBatchSpec struct {
 	Realm string      `json:"realm"`
 	Roles []BatchRole `json:"roles"`
@@ -33,7 +33,7 @@ type BatchRole struct {
 	IsDefault bool `json:"isDefault,omitempty"`
 }
 
-// KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch
+// KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch.
 type KeycloakRealmRoleBatchStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -46,7 +46,7 @@ type KeycloakRealmRoleBatchStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmRoleBatch is the Schema for the keycloak roles API
+// KeycloakRealmRoleBatch is the Schema for the keycloak roles API.
 type KeycloakRealmRoleBatch struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -81,7 +81,7 @@ func (in *KeycloakRealmRoleBatch) FormattedRoleName(baseRoleName string) string 
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmRoleBatchList contains a list of KeycloakRealmRoleBatch
+// KeycloakRealmRoleBatchList contains a list of KeycloakRealmRoleBatch.
 type KeycloakRealmRoleBatchList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

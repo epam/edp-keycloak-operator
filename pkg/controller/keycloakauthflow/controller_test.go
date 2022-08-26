@@ -31,6 +31,7 @@ func TestNewReconcile(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+
 	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",
@@ -94,6 +95,7 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+
 	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",
@@ -156,6 +158,7 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 	ns := "namespace1"
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+
 	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",

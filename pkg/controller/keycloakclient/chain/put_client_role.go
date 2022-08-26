@@ -46,5 +46,6 @@ func (el *PutClientRole) putKeycloakClientRole(keycloakClient *keycloakApi.Keycl
 	}
 
 	reqLog.Info("End put keycloak client role")
+
 	return nil
 }
