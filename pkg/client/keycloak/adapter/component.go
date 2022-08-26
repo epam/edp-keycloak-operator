@@ -32,6 +32,7 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 		if err != nil {
 			return errors.Wrap(err, "unable to get component id")
 		}
+
 		component.ID = _component.ID
 	}
 

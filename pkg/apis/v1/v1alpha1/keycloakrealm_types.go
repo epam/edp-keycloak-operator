@@ -7,7 +7,7 @@ import (
 // EDIT THIS FILE!  THIS IS SCAFFOLDING FOR YOU TO OWN!
 // NOTE: json tags are required.  Any new fields you add must have json tags for the fields to be serialized.
 
-// KeycloakRealmSpec defines the desired state of KeycloakRealm
+// KeycloakRealmSpec defines the desired state of KeycloakRealm.
 type KeycloakRealmSpec struct {
 	RealmName string `json:"realmName"`
 
@@ -130,7 +130,7 @@ type SSORealmMapper struct {
 	Config map[string]string `json:"config,omitempty"`
 }
 
-// KeycloakRealmStatus defines the observed state of KeycloakRealm
+// KeycloakRealmStatus defines the observed state of KeycloakRealm.
 type KeycloakRealmStatus struct {
 	// +optional
 	Available bool `json:"available,omitempty"`
@@ -154,7 +154,7 @@ func (in *KeycloakRealm) SetFailureCount(count int64) {
 // +kubebuilder:subresource:status
 // +kubebuilder:deprecatedversion
 
-// KeycloakRealm is the Schema for the keycloakrealms API
+// KeycloakRealm is the Schema for the keycloakrealms API.
 type KeycloakRealm struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -165,7 +165,7 @@ type KeycloakRealm struct {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmList contains a list of KeycloakRealm
+// KeycloakRealmList contains a list of KeycloakRealm.
 type KeycloakRealmList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

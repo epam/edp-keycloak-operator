@@ -60,8 +60,15 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout t
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {
-	oo := e.ObjectOld.(*keycloakApi.KeycloakRealmIdentityProvider)
-	no := e.ObjectNew.(*keycloakApi.KeycloakRealmIdentityProvider)
+	oo, ok := e.ObjectOld.(*keycloakApi.KeycloakRealmIdentityProvider)
+	if !ok {
+		return false
+	}
+
+	no, ok := e.ObjectNew.(*keycloakApi.KeycloakRealmIdentityProvider)
+	if !ok {
+		return false
+	}
 
 	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
@@ -75,18 +82,20 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
 			log.Info("instance not found")
+
 			return
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm idp from k8s")
+
 		return
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak realm idp", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak realm idp", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 		result.RequeueAfter = r.successReconcileTimeout

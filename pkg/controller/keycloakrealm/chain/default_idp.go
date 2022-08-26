@@ -27,6 +27,8 @@ func (h PutDefaultIdP) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	if err != nil {
 		return err
 	}
+
 	rLog.Info("Default identity provider has been successfully configured!")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }

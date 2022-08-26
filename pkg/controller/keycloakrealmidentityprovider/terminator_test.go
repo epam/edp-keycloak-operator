@@ -22,6 +22,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 
 	kClient.On("DeleteIdentityProvider", "realm", "alias1").
 		Return(errors.New("delete res fatal")).Once()
+
 	err = term.DeleteResource(context.Background())
 	require.Error(t, err)
 

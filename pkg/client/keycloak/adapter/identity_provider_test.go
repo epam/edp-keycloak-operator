@@ -10,6 +10,7 @@ import (
 
 func TestGoCloakAdapter_GetIdentityProvider(t *testing.T) {
 	kc, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/identity-provider/instances/alias1",
 		httpmock.NewStringResponder(200, ""))
 
@@ -37,13 +38,16 @@ func TestGoCloakAdapter_GetIdentityProvider(t *testing.T) {
 
 func TestGoCloakAdapter_CreateIdentityProvider(t *testing.T) {
 	kc, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm1/identity-provider/instances",
 		httpmock.NewStringResponder(200, ""))
+
 	err := kc.CreateIdentityProvider(context.Background(), "realm1", &IdentityProvider{})
 	require.NoError(t, err)
 
 	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm2/identity-provider/instances",
 		httpmock.NewStringResponder(500, "fatal"))
+
 	err = kc.CreateIdentityProvider(context.Background(), "realm2", &IdentityProvider{})
 	require.Error(t, err)
 
@@ -63,6 +67,7 @@ func TestGoCloakAdapter_UpdateIdentityProvider(t *testing.T) {
 
 	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/identity-provider/instances/alias2",
 		httpmock.NewStringResponder(500, "fatal"))
+
 	err = kc.UpdateIdentityProvider(context.Background(), "realm1", &IdentityProvider{Alias: "alias2"})
 	require.Error(t, err)
 
@@ -73,6 +78,7 @@ func TestGoCloakAdapter_UpdateIdentityProvider(t *testing.T) {
 
 func TestGoCloakAdapter_DeleteIdentityProvider(t *testing.T) {
 	kc, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("DELETE", "/auth/admin/realms/realm1/identity-provider/instances/alias1",
 		httpmock.NewStringResponder(200, ""))
 
@@ -120,6 +126,7 @@ func TestGoCloakAdapter_CreateIDPMapper(t *testing.T) {
 
 func TestGoCloakAdapter_UpdateIDPMapper(t *testing.T) {
 	kc, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("PUT",
 		"/auth/admin/realms/realm1/identity-provider/instances/alias1/mappers/id11",
 		httpmock.NewStringResponder(200, ""))
@@ -165,6 +172,7 @@ func TestGoCloakAdapter_DeleteIDPMapper(t *testing.T) {
 
 func TestGoCloakAdapter_GetIDPMappers(t *testing.T) {
 	kc, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("GET",
 		"/auth/admin/realms/realm1/identity-provider/instances/alias1/mappers",
 		httpmock.NewStringResponder(200, ""))

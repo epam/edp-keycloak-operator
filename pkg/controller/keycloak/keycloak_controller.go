@@ -54,7 +54,7 @@ func NewReconcileKeycloak(client client.Client, scheme *runtime.Scheme, log logr
 	}
 }
 
-// ReconcileKeycloak reconciles a Keycloak object
+// ReconcileKeycloak reconciles a Keycloak object.
 type ReconcileKeycloak struct {
 	client                  client.Client
 	scheme                  *runtime.Scheme
@@ -71,6 +71,7 @@ func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager, successReconcileT
 			return false
 		},
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.Keycloak{}, builder.WithPredicates(pred)).
 		Complete(r)
@@ -88,6 +89,7 @@ func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Req
 		}
 
 		log.Error(err, "unable to get keycloak cr")
+
 		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
 	}
 
@@ -113,6 +115,7 @@ func (r *ReconcileKeycloak) tryToReconcile(ctx context.Context, instance *keyclo
 	if err != nil {
 		return pkgErrors.Wrap(err, "unable to check connection status")
 	}
+
 	if !con {
 		return pkgErrors.New("Keycloak CR status is not connected")
 	}
@@ -138,22 +141,25 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 	}
 
 	instance.Status.Connected = connected
+
 	err = r.client.Status().Update(ctx, instance)
 	if err != nil {
 		log.Error(err, "unable to update keycloak cr status")
+
 		err := r.client.Update(ctx, instance)
 		if err != nil {
 			log.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
 			return err
 		}
 	}
+
 	log.Info("Status has been updated", "status", instance.Status)
+
 	return nil
 }
 
 func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *keycloakApi.Keycloak,
 	logger logr.Logger) (bool, error) {
-
 	r.helper.TokenSecretLock().Lock()
 	defer r.helper.TokenSecretLock().Unlock()
 
@@ -177,27 +183,34 @@ func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *k
 func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
 	log := r.log.WithValues(keycloakCRLogKey, instance)
 	log.Info("Start put main realm into k8s")
+
 	if !instance.Spec.GetInstallMainRealm() {
 		log.Info("Creation of main realm disabled")
 		return nil
 	}
+
 	nsn := types.NamespacedName{
 		Name:      "main",
 		Namespace: instance.Namespace,
 	}
 	realmCr := &keycloakApi.KeycloakRealm{}
 	err := r.client.Get(ctx, nsn, realmCr)
+
 	log.Info("Realm has been retrieved from k8s", "realmCr", realmCr)
+
 	if errors.IsNotFound(err) {
 		return r.createMainRealm(ctx, instance)
 	}
+
 	return err
 }
 
 func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
 	log := r.log.WithValues(keycloakCRLogKey, instance)
 	log.Info("Start creation of main Keycloak Realm CR")
+
 	ssoRealm := defaultRealmName
+
 	if len(instance.Spec.SsoRealmName) != 0 {
 		ssoRealm = instance.Spec.SsoRealmName
 	}
@@ -225,33 +238,41 @@ func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycl
 	}
 
 	log.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
+
 	return nil
 }
 
 func (r *ReconcileKeycloak) isStatusConnected(ctx context.Context, request reconcile.Request) (bool, error) {
 	r.log.Info("Check is status of CR is connected", "request", request)
+
 	instance := &keycloakApi.Keycloak{}
+
 	err := r.client.Get(ctx, request.NamespacedName, instance)
 	if err != nil {
 		return false, pkgErrors.Wrapf(err, "unable to get keycloak instance, request: %+v", request)
 	}
+
 	r.log.Info("Retrieved the actual cr for Keycloak", keycloakCRLogKey, instance)
+
 	return instance.Status.Connected, nil
 }
 
 func (r *ReconcileKeycloak) putEDPComponent(ctx context.Context, instance *keycloakApi.Keycloak) error {
 	log := r.log.WithValues("instance", instance)
 	log.Info("Start put edp component")
+
 	nsn := types.NamespacedName{
 		Name:      fmt.Sprintf("%v-keycloak", instance.Name),
 		Namespace: instance.Namespace,
 	}
 	comp := &edpCompApi.EDPComponent{}
+
 	err := r.client.Get(ctx, nsn, comp)
 	if err == nil {
 		log.V(1).Info("EDP Component has been retrieved from k8s", "edp component", comp)
 		return nil
 	}
+
 	if errors.IsNotFound(err) {
 		return r.createEDPComponent(ctx, instance)
 	}
@@ -285,11 +306,14 @@ func (r *ReconcileKeycloak) createEDPComponent(ctx context.Context, instance *ke
 	if err != nil {
 		return pkgErrors.Wrapf(err, "unable to set controller reference for component: %+v", comp)
 	}
+
 	err = r.client.Create(ctx, comp)
 	if err != nil {
 		return pkgErrors.Wrapf(err, "unable to create component: %+v", comp)
 	}
+
 	log.Info("EDP component has been created", "edp component", comp)
+
 	return nil
 }
 
@@ -298,16 +322,22 @@ func getIcon() (*string, error) {
 	if err != nil {
 		return nil, pkgErrors.Wrapf(err, "unable to create path to template dir: %s", imgFolder)
 	}
+
 	fp := fmt.Sprintf("%v/%v", p, keycloakIcon)
+
 	f, err := os.Open(fp)
 	if err != nil {
 		return nil, pkgErrors.Wrapf(err, "unable to open file: %s", fp)
 	}
+
 	reader := bufio.NewReader(f)
+
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return nil, pkgErrors.Wrapf(err, "unable to read content of file: %s", fp)
 	}
+
 	encoded := base64.StdEncoding.EncodeToString(content)
+
 	return &encoded, nil
 }

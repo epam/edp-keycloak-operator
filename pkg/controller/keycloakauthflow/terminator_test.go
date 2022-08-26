@@ -37,10 +37,12 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteAuthFlow", "foo", &keycloakAuthFlow).Return(nil).Once()
+
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 
 	kClient.On("DeleteAuthFlow", "foo", &keycloakAuthFlow).Return(errors.New("fatal")).Once()
+
 	if err := term.DeleteResource(context.Background()); err == nil {
 		t.Fatal("no error returned")
 	}
@@ -53,6 +55,7 @@ func TestTerminator(t *testing.T) {
 func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+
 	flow := keycloakApi.KeycloakAuthFlow{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "flow123",

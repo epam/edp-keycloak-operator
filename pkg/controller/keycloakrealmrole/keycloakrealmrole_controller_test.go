@@ -222,6 +222,7 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 
 	h := helper.Mock{}
 	logger := mock.Logger{}
+
 	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
 	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
 	h.On("SetFailureCount", &role).Return(time.Second)

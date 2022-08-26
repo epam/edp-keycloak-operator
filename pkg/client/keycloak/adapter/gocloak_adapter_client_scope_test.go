@@ -103,6 +103,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureCreate(t *testing.T) {
 	}
 
 	restyClient := resty.New()
+
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
@@ -125,6 +126,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureGetID(t *testing.T) {
 	}
 
 	restyClient := resty.New()
+
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
@@ -324,6 +326,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 
 func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
 	kcClient, _, _ := initAdapter()
+
 	httpmock.Reset()
 	httpmock.RegisterResponder("GET",
 		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
@@ -350,6 +353,7 @@ func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
 	httpmock.RegisterResponder("POST",
 		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
 		httpmock.NewStringResponder(200, ""))
+
 	err := kcClient.PutClientScopeMapper("realm1", "scope1", &ProtocolMapper{})
 	require.NoError(t, err)
 
@@ -415,6 +419,7 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 
 	for name, tc := range tests {
 		tc := tc
+
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 

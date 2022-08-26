@@ -60,8 +60,15 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout t
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {
-	oo := e.ObjectOld.(*keycloakApi.KeycloakRealmComponent)
-	no := e.ObjectNew.(*keycloakApi.KeycloakRealmComponent)
+	oo, ok := e.ObjectOld.(*keycloakApi.KeycloakRealmComponent)
+	if !ok {
+		return false
+	}
+
+	no, ok := e.ObjectNew.(*keycloakApi.KeycloakRealmComponent)
+	if !ok {
+		return false
+	}
 
 	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
@@ -78,14 +85,15 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm component from k8s")
+
 		return
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak realm component", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak realm component", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 		result.RequeueAfter = r.successReconcileTimeout

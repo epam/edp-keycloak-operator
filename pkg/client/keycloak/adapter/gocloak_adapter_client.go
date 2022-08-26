@@ -23,6 +23,7 @@ func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, 
 	}
 
 	existingScopesMap := make(map[string]*gocloak.ClientScope)
+
 	for _, s := range existingScopes {
 		if s != nil {
 			existingScopesMap[*s.ID] = s

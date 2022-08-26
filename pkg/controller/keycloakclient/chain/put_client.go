@@ -34,6 +34,7 @@ func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.Keyc
 	if err != nil {
 		return errors.Wrap(err, "unable to put keycloak client")
 	}
+
 	keycloakClient.Status.ClientID = id
 
 	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
@@ -64,6 +65,7 @@ func (el *PutClient) putKeycloakClient(keycloakClient *keycloakApi.KeycloakClien
 	}
 
 	reqLog.Info("End put keycloak client")
+
 	id, err := adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to get client id")
@@ -111,6 +113,7 @@ func (el *PutClient) getSecret(keycloakClient *keycloakApi.KeycloakClient) (stri
 
 func (el *PutClient) generateSecret(keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	var clientSecret coreV1.Secret
+
 	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
 	//TODO: get context from controller
 	err := el.Client.Get(context.Background(), types.NamespacedName{Namespace: keycloakClient.Namespace,

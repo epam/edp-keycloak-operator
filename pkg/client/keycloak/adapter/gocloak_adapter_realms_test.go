@@ -71,6 +71,7 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	}
 
 	idpAlias := "alias-1"
+
 	mockClient.On("GetRealm", adapter.token.AccessToken, *realm.Realm).Return(&realm, nil)
 
 	httpmock.RegisterResponder(
@@ -113,6 +114,7 @@ func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
 
 	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("",
 		errors.New("create realm fatal")).Once()
+
 	err = adapter.CreateRealmWithDefaultConfig(&r)
 	require.Error(t, err)
 
@@ -125,10 +127,12 @@ func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
 	adapter, mockClient, _ := initAdapter()
 
 	mockClient.On("DeleteRealm", "test-realm1").Return(nil).Once()
+
 	err := adapter.DeleteRealm(context.Background(), "test-realm1")
 	require.NoError(t, err)
 
 	mockClient.On("DeleteRealm", "test-realm2").Return(errors.New("delete fatal")).Once()
+
 	err = adapter.DeleteRealm(context.Background(), "test-realm2")
 	require.Error(t, err)
 

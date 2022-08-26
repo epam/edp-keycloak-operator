@@ -17,6 +17,7 @@ func initAdapter() (*GoCloakAdapter, *MockGoCloakClient, *resty.Client) {
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
+
 	logger := mock.Logger{}
 
 	return &GoCloakAdapter{
@@ -39,6 +40,7 @@ func testComponent() *Component {
 
 func TestGoCloakAdapter_CreateComponent(t *testing.T) {
 	kcAdapter, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(200, ""))
 
@@ -131,8 +133,10 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 
 func TestGoCloakAdapter_GetComponent_Failure(t *testing.T) {
 	kcAdapter, _, _ := initAdapter()
+
 	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(422, "forbidden"))
+
 	_, err := kcAdapter.GetComponent(context.Background(), "realm-name", "test-name")
 	require.Error(t, err)
 

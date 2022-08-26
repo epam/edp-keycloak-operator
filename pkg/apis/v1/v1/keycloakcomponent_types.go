@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakComponentSpec defines the desired state of KeycloakRealmComponent
+// KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
 type KeycloakComponentSpec struct {
 	Name         string `json:"name"`
 	Realm        string `json:"realm"`
@@ -14,7 +14,7 @@ type KeycloakComponentSpec struct {
 	Config map[string][]string `json:"config,omitempty"`
 }
 
-// KeycloakComponentStatus defines the observed state of KeycloakRealmComponent
+// KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
 type KeycloakComponentStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -27,7 +27,7 @@ type KeycloakComponentStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmComponent is the Schema for the keycloak component API
+// KeycloakRealmComponent is the Schema for the keycloak component API.
 type KeycloakRealmComponent struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -58,7 +58,7 @@ func (in *KeycloakRealmComponent) K8SParentRealmName() (string, error) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmComponentList contains a list of KeycloakRealmComponent
+// KeycloakRealmComponentList contains a list of KeycloakRealmComponent.
 type KeycloakRealmComponentList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -60,7 +60,6 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 	s.AddKnownTypes(v1.SchemeGroupVersion, kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
 
-	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "main",
@@ -82,22 +81,19 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		client: client}, &kc.ObjectMeta).Return(&realm, nil)
 	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
 
-	// reconcile
 	r := ReconcileKeycloakClient{
 		client: client,
 		helper: &h,
 		log:    &logger,
 		chain:  &chainMock,
 	}
-
-	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKc := &keycloakApi.KeycloakClient{}
@@ -134,6 +130,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	h := helper.Mock{}
 	chainMock := chain.Mock{}
 	chainMock.On("Serve", &kc).Return(nil)
+
 	realm := keycloakApi.KeycloakRealm{}
 	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: &kc,
 		client: client}, &kc.ObjectMeta).Return(&realm, nil)
@@ -142,6 +139,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient, &logger),
 		keyCloakClientOperatorFinalizerName).Return(true, nil)
 	h.On("UpdateStatus", &kc).Return(nil)
+
 	r := ReconcileKeycloakClient{
 		client:                  client,
 		helper:                  &h,

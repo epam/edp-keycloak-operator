@@ -117,6 +117,7 @@ func getValueOrDefault(protocol *string) string {
 	if protocol == nil {
 		return defaultClientProtocol
 	}
+
 	return *protocol
 }
 

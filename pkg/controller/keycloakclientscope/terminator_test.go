@@ -21,6 +21,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	require.NoError(t, err)
 
 	kClient.On("DeleteClientScope", "foo", "bar").Return(errors.New("fatal")).Once()
+
 	err = term.DeleteResource(context.Background())
 	require.Error(t, err)
 

@@ -123,13 +123,7 @@ func (a GoCloakAdapter) SyncAuthFlow(realmName string, flow *KeycloakAuthFlow) e
 }
 
 func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *KeycloakAuthFlow) error {
-	childFlows := make(map[string]AuthenticationExecution)
-	for i, authExec := range flow.AuthenticationExecutions {
-		if authExec.AutheticatorFlow {
-			childFlows[authExec.Alias] = flow.AuthenticationExecutions[i]
-		}
-	}
-
+	childFlows := a.makeChildFlows(flow)
 	if len(childFlows) == 0 {
 		return nil
 	}
@@ -140,33 +134,8 @@ func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *Keycloa
 	}
 
 	for i := range flowExecs {
-		if flowExecs[i].AuthenticationFlow && flowExecs[i].Level != 0 {
-			continue
-		}
-
-		childFlow, ok := childFlows[flowExecs[i].DisplayName]
-		if !ok {
-			return errors.Errorf("unable to find child flow with name: %s", flowExecs[i].DisplayName)
-		}
-
-		if childFlow.Requirement != flowExecs[i].Requirement {
-			flowExecs[i].Requirement = childFlow.Requirement
-			if err := a.updateFlowExecution(realmName, flow.Alias, &flowExecs[i]); err != nil {
-				return errors.Wrap(err, "unable to update flow execution")
-			}
-		}
-
-		if childFlow.Priority == flowExecs[i].Index {
-			continue
-		}
-
-		if childFlow.Priority < 0 || childFlow.Priority > len(flowExecs) {
-			return errors.Errorf("wrong flow priority, flow name: %s, priority: %d", childFlow.Alias,
-				childFlow.Priority)
-		}
-
-		if err := a.adjustExecutionPriority(realmName, flowExecs[i].ID, flowExecs[i].Index-childFlow.Priority); err != nil {
-			return errors.Wrap(err, "unable to adjust flow priority")
+		if err := a.adjustFlowExecutionPriority(realmName, flow.Alias, &flowExecs[i], len(flowExecs), childFlows); err != nil {
+			return err
 		}
 	}
 
@@ -198,6 +167,7 @@ func (a GoCloakAdapter) syncBaseAuthFlow(realmName string, flow *KeycloakAuthFlo
 		if err != nil {
 			return "", errors.Wrap(err, "unable to create auth flow")
 		}
+
 		authFlowID = id
 	} else {
 		if err := a.clearFlowExecutions(realmName, flow.Alias); err != nil {
@@ -214,6 +184,7 @@ func (a GoCloakAdapter) syncBaseAuthFlow(realmName string, flow *KeycloakAuthFlo
 
 func (a GoCloakAdapter) validateChildFlowsCreated(realmName string, flow *KeycloakAuthFlow) error {
 	childFlows := 0
+
 	for _, authExec := range flow.AuthenticationExecutions {
 		if authExec.AutheticatorFlow {
 			childFlows++
@@ -518,11 +489,12 @@ func (a GoCloakAdapter) unsetBrowserFlow(realmName, flowAlias string) (realm *go
 		return realm, false, nil
 	}
 
-	var replaceFlow *KeycloakAuthFlow
 	authFlows, err := a.getRealmAuthFlows(realmName)
 	if err != nil {
 		return nil, false, errors.Wrapf(err, "unable to get auth flows for realm: %s", realmName)
 	}
+
+	var replaceFlow *KeycloakAuthFlow
 
 	for i := range authFlows {
 		if authFlows[i].Alias != flowAlias {
@@ -542,4 +514,54 @@ func (a GoCloakAdapter) unsetBrowserFlow(realmName, flowAlias string) (realm *go
 	}
 
 	return realm, true, nil
+}
+
+func (a GoCloakAdapter) makeChildFlows(flow *KeycloakAuthFlow) map[string]AuthenticationExecution {
+	childFlows := make(map[string]AuthenticationExecution)
+
+	for i, authExec := range flow.AuthenticationExecutions {
+		if authExec.AutheticatorFlow {
+			childFlows[authExec.Alias] = flow.AuthenticationExecutions[i]
+		}
+	}
+
+	return childFlows
+}
+
+func (a GoCloakAdapter) adjustFlowExecutionPriority(
+	realmName,
+	flowAlias string,
+	flowExec *FlowExecution,
+	flowExecsCount int,
+	childFlows map[string]AuthenticationExecution,
+) error {
+	if flowExec.AuthenticationFlow && flowExec.Level != 0 {
+		return nil
+	}
+
+	childFlow, ok := childFlows[flowExec.DisplayName]
+	if !ok {
+		return errors.Errorf("unable to find child flow with name: %s", flowExec.DisplayName)
+	}
+
+	if childFlow.Requirement != flowExec.Requirement {
+		flowExec.Requirement = childFlow.Requirement
+		if err := a.updateFlowExecution(realmName, flowAlias, flowExec); err != nil {
+			return errors.Wrap(err, "unable to update flow execution")
+		}
+	}
+
+	if childFlow.Priority == flowExec.Index {
+		return nil
+	}
+
+	if childFlow.Priority < 0 || childFlow.Priority > flowExecsCount {
+		return errors.Errorf("wrong flow priority, flow name: %s, priority: %d", childFlow.Alias, childFlow.Priority)
+	}
+
+	if err := a.adjustExecutionPriority(realmName, flowExec.ID, flowExec.Index-childFlow.Priority); err != nil {
+		return errors.Wrap(err, "unable to adjust flow priority")
+	}
+
+	return nil
 }

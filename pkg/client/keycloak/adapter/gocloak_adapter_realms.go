@@ -55,6 +55,7 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 		for k, v := range *realmSettings.BrowserSecurityHeaders {
 			realmBrowserSecurityHeaders[k] = v
 		}
+
 		realm.BrowserSecurityHeaders = &realmBrowserSecurityHeaders
 	}
 
@@ -86,6 +87,7 @@ func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
 	}
 
 	log.Info("Check existing realm has been finished", "result", res)
+
 	return res, nil
 }
 
@@ -99,6 +101,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
 	}
 
 	log.Info("End creating realm with default config")
+
 	return nil
 }
 
@@ -111,6 +114,7 @@ func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error
 	}
 
 	log.Info("End deletion realm")
+
 	return nil
 }
 
@@ -119,6 +123,7 @@ func (a GoCloakAdapter) SyncRealmIdentityProviderMappers(realmName string, mappe
 	if err != nil {
 		return errors.Wrapf(err, "unable to get realm by name: %s", realmName)
 	}
+
 	currentMappers := make(map[string]*dto.IdentityProviderMapper)
 
 	if realm.IdentityProviderMappers != nil {

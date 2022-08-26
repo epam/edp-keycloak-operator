@@ -45,7 +45,7 @@ linters-settings:
     first-strong-isolate: true
     pop-directional-isolate: true
 
-  cyclop:
+    cyclop:
     # the maximal code complexity to report
     max-complexity: 10
     # the maximal average package complexity. If it's higher than 0.0 (float) the check is enabled (default 0.0)
@@ -776,8 +776,7 @@ linters:
     - asciicheck
     - bidichk
     - containedctx
-    #    - contextcheck
-    #    - cyclop
+    - cyclop
     - deadcode
     - decorder
     - depguard
@@ -796,16 +795,25 @@ linters:
     - goconst
     - gocritic
     - govet
+    - godot
+    - gosimple
+    - staticcheck
+    - ineffassign
+    - typecheck
     - revive
     - megacheck
-  disabled:
     - decorder
-    - exhaustruct
     - forcetypeassert
     - funlen
     - gochecknoinits
-    - wrapcheck
+#    - wrapcheck
+    - varcheck
     - wsl
+    - unused
+
+  disabled:
+    - exhaustruct
+    - contextcheck #Disabled due to issue https://github.com/golangci/golangci-lint/issues/2649.
     - bodyclose #Disabled due to issue https://github.com/timakin/bodyclose/issues/30
   fast: false
 
@@ -828,6 +836,14 @@ issues:
     - path: _types\.go
       linters:
         - gochecknoinits
+    - path: main\.go
+      linters:
+        - funlen
+        - cyclop
+    #Disable cyclop for some mappers
+    - linters:
+        - cyclop
+      text: 'decodeIdentityProviderMapper'
 
   # Independently of option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

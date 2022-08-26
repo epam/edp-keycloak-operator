@@ -61,8 +61,15 @@ func (r *ReconcileKeycloakRealmRole) SetupWithManager(mgr ctrl.Manager, successR
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {
-	oo := e.ObjectOld.(*keycloakApi.KeycloakRealmRole)
-	no := e.ObjectNew.(*keycloakApi.KeycloakRealmRole)
+	oo, ok := e.ObjectOld.(*keycloakApi.KeycloakRealmRole)
+	if !ok {
+		return false
+	}
+
+	no, ok := e.ObjectNew.(*keycloakApi.KeycloakRealmRole)
+	if !ok {
+		return false
+	}
 
 	return !reflect.DeepEqual(oo.Spec, no.Spec) ||
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
@@ -79,6 +86,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role from k8s")
+
 		return
 	}
 
@@ -97,12 +105,15 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	if err != nil {
 		if adapter.IsErrDuplicated(err) {
 			instance.Status.Value = keycloakApi.StatusDuplicated
+
 			log.Info("Role is duplicated", "name", instance.Name)
+
 			return
 		}
 
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+
 		log.Error(err, "an error has occurred while handling keycloak realm role", "name",
 			request.Name)
 
@@ -112,6 +123,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	helper.SetSuccessStatus(&instance)
 	instance.Status.ID = roleID
 	result.RequeueAfter = r.successReconcileTimeout
+
 	log.Info("Reconciling done")
 
 	return
@@ -143,9 +155,10 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 }
 
 func (r *ReconcileKeycloakRealmRole) putRole(
-	keycloakRealm *keycloakApi.KeycloakRealm, keycloakRealmRole *keycloakApi.KeycloakRealmRole,
-	kClient keycloak.Client) (string, error) {
-
+	keycloakRealm *keycloakApi.KeycloakRealm,
+	keycloakRealmRole *keycloakApi.KeycloakRealmRole,
+	kClient keycloak.Client,
+) (string, error) {
 	log := r.log.WithValues("keycloak role cr", keycloakRealmRole)
 	log.Info("Start put keycloak cr role...")
 

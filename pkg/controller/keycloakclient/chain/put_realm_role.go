@@ -37,14 +37,17 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 			Name:      role.Name,
 			Composite: role.Composite,
 		}
+
 		exist, err := adapterClient.ExistRealmRole(keycloakClient.Spec.TargetRealm, roleDto.Name)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistRealmRole")
 		}
+
 		if exist {
 			reqLog.Info("Client already exists")
 			return nil
 		}
+
 		err = adapterClient.CreateIncludedRealmRole(keycloakClient.Spec.TargetRealm, roleDto)
 		if err != nil {
 			return errors.Wrap(err, "error during CreateRealmRole")
@@ -52,5 +55,6 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 	}
 
 	reqLog.Info("End put realm roles")
+
 	return nil
 }

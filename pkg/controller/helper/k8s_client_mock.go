@@ -16,6 +16,7 @@ type K8SClientMock struct {
 
 func (m *K8SClientMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
 	called := m.Called(key, obj)
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Get(ctx, key, obj)
@@ -26,6 +27,7 @@ func (m *K8SClientMock) Get(ctx context.Context, key client.ObjectKey, obj clien
 
 func (m *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts ...client.ListOption) error {
 	called := m.Called(list, opts)
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.List(ctx, list, opts...)
@@ -36,6 +38,7 @@ func (m *K8SClientMock) List(ctx context.Context, list client.ObjectList, opts .
 
 func (m *K8SClientMock) Create(ctx context.Context, obj client.Object, options ...client.CreateOption) error {
 	called := m.Called(obj, options)
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Create(ctx, obj, options...)
@@ -46,6 +49,7 @@ func (m *K8SClientMock) Create(ctx context.Context, obj client.Object, options .
 
 func (m *K8SClientMock) Delete(ctx context.Context, obj client.Object, options ...client.DeleteOption) error {
 	called := m.Called(obj, options)
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Delete(ctx, obj, options...)
@@ -56,6 +60,7 @@ func (m *K8SClientMock) Delete(ctx context.Context, obj client.Object, options .
 
 func (m *K8SClientMock) Update(ctx context.Context, obj client.Object, options ...client.UpdateOption) error {
 	called := m.Called(obj, options)
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Update(ctx, obj, options...)
@@ -74,6 +79,7 @@ func (m *K8SClientMock) DeleteAllOf(_ context.Context, obj client.Object, opts .
 
 func (m *K8SClientMock) Scheme() *runtime.Scheme {
 	called := m.Called()
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Scheme()
@@ -84,6 +90,7 @@ func (m *K8SClientMock) Scheme() *runtime.Scheme {
 
 func (m *K8SClientMock) Status() client.StatusWriter {
 	called := m.Called()
+
 	parent, ok := called.Get(0).(client.Client)
 	if ok {
 		return parent.Status()

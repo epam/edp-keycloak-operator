@@ -18,12 +18,16 @@ type PutUsers struct {
 func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")
+
 	rDto := dto.ConvertSpecToRealm(&realm.Spec)
+
 	err := createUsers(rDto, kClient)
 	if err != nil {
 		return errors.Wrap(err, "error during createUsers")
 	}
+
 	rLog.Info("End put users to realm")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
@@ -34,6 +38,7 @@ func createUsers(realm *dto.Realm, kClient keycloak.Client) error {
 			return errors.Wrap(err, "error during createOneUser")
 		}
 	}
+
 	return nil
 }
 
@@ -47,6 +52,7 @@ func createOneUser(user *dto.User, realm *dto.Realm, kClient keycloak.Client) er
 	if err != nil {
 		return errors.Wrap(err, "error during exist ream user check")
 	}
+
 	if exist {
 		log.Info("User already exists", "user", user)
 		return nil

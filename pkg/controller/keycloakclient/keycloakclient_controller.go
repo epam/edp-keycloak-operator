@@ -44,7 +44,7 @@ func NewReconcileKeycloakClient(client client.Client, log logr.Logger, helper He
 	}
 }
 
-// ReconcileKeycloakClient reconciles a KeycloakClient object
+// ReconcileKeycloakClient reconciles a KeycloakClient object.
 type ReconcileKeycloakClient struct {
 	client                  client.Client
 	helper                  Helper
@@ -59,6 +59,7 @@ func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager, successReco
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakClient{}, builder.WithPredicates(pred)).
 		Complete(r)
@@ -76,15 +77,17 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 			// Return and don't requeue
 			return
 		}
+
 		resultErr = err
+
 		return
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		log.Error(err, "an error has occurred while handling keycloak client", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak client", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
 		result.RequeueAfter = r.successReconcileTimeout

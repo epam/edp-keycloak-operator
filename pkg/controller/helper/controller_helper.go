@@ -136,25 +136,31 @@ func getOwnerRef(references []v1.OwnerReference, typeName string) *v1.OwnerRefer
 
 func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*keycloakApi.KeycloakClient, error) {
 	instance := &keycloakApi.KeycloakClient{}
+
 	err := client.Get(context.TODO(), nsn, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return nil, nil // todo maybe refactor?
 		}
+
 		return nil, errors.Wrap(err, "cannot read keycloak client CR")
 	}
+
 	return instance, nil
 }
 
 func GetSecret(ctx context.Context, client client.Client, nsn types.NamespacedName) (*coreV1.Secret, error) {
 	secret := &coreV1.Secret{}
+
 	err := client.Get(ctx, nsn, secret)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
 			return nil, nil // todo maybe refactor?
 		}
+
 		return nil, errors.Wrap(err, "cannot get secret")
 	}
+
 	return secret, nil
 }
 
@@ -164,6 +170,7 @@ func ContainsString(slice []string, s string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -172,8 +179,10 @@ func RemoveString(slice []string, s string) (result []string) {
 		if item == s {
 			continue
 		}
+
 		result = append(result, item)
 	}
+
 	return
 }
 
@@ -235,6 +244,7 @@ func (h *Helper) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.Obje
 		ownerNotFoundErr := OwnerNotFoundError("")
 		if errors.As(err, &ownerNotFoundErr) {
 			var parentRealm string
+
 			parentRealm, err = object.K8SParentRealmName()
 			if err != nil {
 				return nil, errors.Wrapf(err, "unable get parent realm for: %+v", object)
@@ -280,6 +290,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 
 		if !ContainsString(finalizers, finalizer) {
 			logger.Info("instance has not finalizers, adding...")
+
 			finalizers = append(finalizers, finalizer)
 			obj.SetFinalizers(finalizers)
 
@@ -289,15 +300,18 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 		}
 
 		logger.Info("processing finalizers done, exit.")
+
 		return false, nil
 	}
 
 	logger.Info("terminator deleting resource")
+
 	if err := terminator.DeleteResource(ctx); err != nil {
 		return false, errors.Wrap(err, "error during keycloak resource deletion")
 	}
 
 	logger.Info("terminator removing finalizers")
+
 	finalizers = RemoveString(finalizers, finalizer)
 	obj.SetFinalizers(finalizers)
 
@@ -306,6 +320,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 	}
 
 	logger.Info("terminator deleting instance done, exit")
+
 	return true, nil
 }
 
@@ -314,6 +329,7 @@ func getExecutableFilePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return filepath.Dir(executableFilePath), nil
 }
 
@@ -323,13 +339,15 @@ func createPath(directory string, localRun bool) (string, error) {
 		if err != nil {
 			return "", errors.Wrapf(err, "Unable to get executable file path")
 		}
+
 		templatePath := fmt.Sprintf("%v/../%v/%v", executableFilePath, localConfigsRelativePath, directory)
+
 		return templatePath, nil
 	}
 
 	templatePath := fmt.Sprintf("%s/%s", defaultConfigsAbsolutePath, directory)
-	return templatePath, nil
 
+	return templatePath, nil
 }
 
 func checkIfRunningLocally() bool {

@@ -52,13 +52,6 @@ const (
 	managerPort             = 9443
 )
 
-func init() {
-	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
-	utilruntime.Must(keycloakApi.AddToScheme(scheme))
-	utilruntime.Must(keycloakApi1alpha1.AddToScheme(scheme))
-	utilruntime.Must(edpCompApi.AddToScheme(scheme))
-}
-
 func main() {
 	var (
 		metricsAddr          string
@@ -98,6 +91,11 @@ func main() {
 		"platform", v.Platform,
 	)
 
+	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	utilruntime.Must(keycloakApi1alpha1.AddToScheme(scheme))
+	utilruntime.Must(edpCompApi.AddToScheme(scheme))
+
 	ns, err := util.GetWatchNamespace()
 	if err != nil {
 		setupLog.Error(err, "unable to get watch namespace")
@@ -105,6 +103,7 @@ func main() {
 	}
 
 	cfg := ctrl.GetConfigOrDie()
+
 	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 scheme,
 		MetricsBindAddress:     metricsAddr,
@@ -208,6 +207,7 @@ func main() {
 	}
 
 	setupLog.Info("starting manager")
+
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)

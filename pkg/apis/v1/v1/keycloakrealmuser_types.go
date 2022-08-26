@@ -2,7 +2,7 @@ package v1
 
 import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-// KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser
+// KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
 type KeycloakRealmUserSpec struct {
 	Realm    string `json:"realm"`
 	Username string `json:"username"`
@@ -49,7 +49,7 @@ type KeycloakRealmUserSpec struct {
 	KeepResource bool `json:"keepResource,omitempty"`
 }
 
-// KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser
+// KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.
 type KeycloakRealmUserStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -62,7 +62,7 @@ type KeycloakRealmUserStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakRealmUser is the Schema for the keycloak user API
+// KeycloakRealmUser is the Schema for the keycloak user API.
 type KeycloakRealmUser struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -101,7 +101,7 @@ func (in *KeycloakRealmUser) SetStatus(value string) {
 
 // +kubebuilder:object:root=true
 
-// KeycloakRealmUserList contains a list of KeycloakRealmUser
+// KeycloakRealmUserList contains a list of KeycloakRealmUser.
 type KeycloakRealmUserList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

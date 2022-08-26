@@ -105,6 +105,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 
 func TestSpecIsUpdated(t *testing.T) {
 	cs := getTestClientScope("test")
+
 	if isSpecUpdated(event.UpdateEvent{
 		ObjectNew: cs,
 		ObjectOld: cs,
@@ -185,6 +186,7 @@ func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
+
 	instance := getTestClientScope("test")
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(instance).WithScheme(scheme).Build()

@@ -9,7 +9,7 @@ const (
 	ReconciliationStrategyAddOnly = "addOnly"
 )
 
-// KeycloakClientSpec defines the desired state of KeycloakClient
+// KeycloakClientSpec defines the desired state of KeycloakClient.
 type KeycloakClientSpec struct {
 	// ClientId is a unique keycloak client ID referenced in URI and tokens.
 	ClientId string `json:"clientId"`
@@ -116,7 +116,7 @@ type RealmRole struct {
 	Composite string `json:"composite"`
 }
 
-// KeycloakClientStatus defines the observed state of KeycloakClient
+// KeycloakClientStatus defines the observed state of KeycloakClient.
 type KeycloakClientStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
@@ -135,7 +135,7 @@ type KeycloakClientStatus struct {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 
-// KeycloakClient is the Schema for the keycloak clients API
+// KeycloakClient is the Schema for the keycloak clients API.
 type KeycloakClient struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
@@ -170,7 +170,7 @@ func (in *KeycloakClient) GetReconciliationStrategy() string {
 
 // +kubebuilder:object:root=true
 
-// KeycloakClientList contains a list of KeycloakClient
+// KeycloakClientList contains a list of KeycloakClient.
 type KeycloakClientList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`

@@ -106,6 +106,7 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 	if err == nil {
 		t.Fatal("no error on token export")
 	}
+
 	if !strings.Contains(err.Error(), "export token fatal") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
@@ -129,9 +130,11 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 			"password": []byte("password"),
 		},
 	}
+
 	httpmock.Activate()
 	httpmock.RegisterResponder("POST", "/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, `{}`))
+
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()
 
 	helper := MakeHelper(cl, s, nil)
@@ -147,6 +150,7 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 	s := scheme.Scheme
 	utilruntime.Must(keycloakApi.AddToScheme(s))
+
 	kc := keycloakApi.Keycloak{
 		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
@@ -171,6 +175,7 @@ func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	s := scheme.Scheme
 	utilruntime.Must(keycloakApi.AddToScheme(s))
+
 	kc := keycloakApi.Keycloak{
 		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
@@ -203,13 +208,17 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	}
 
 	kc.Name = "test2"
+
 	mc.On("Get", types.NamespacedName{Name: tokenSecretName(kc.Name)}, &corev1.Secret{}).Return(fakeCl)
+
 	secret.Data = map[string][]byte{
 		keycloakTokenSecretKey: []byte("token"),
 	}
 
 	var updateOpts []client.UpdateOption
+
 	mc.On("Update", &secret, updateOpts).Return(errors.New("secret update fatal"))
+
 	err = h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
 	require.Error(t, err)
 
@@ -221,6 +230,7 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	s := scheme.Scheme
 	utilruntime.Must(keycloakApi.AddToScheme(s))
+
 	kc := keycloakApi.Keycloak{
 		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
@@ -229,10 +239,9 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 
 	realToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
 	tok := gocloak.JWT{AccessToken: realToken}
+
 	bts, err := json.Marshal(&tok)
-	if err != nil {
-		t.Fatal("failed to marshal token")
-	}
+	require.NoError(t, err)
 
 	secret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -252,27 +261,36 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	if err == nil {
 		t.Fatal("no error on expired token")
 	}
+
 	if !strings.Contains(err.Error(), "token is expired") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 
 	tokenParts := strings.Split(realToken, ".")
 	rawTokenPayload, _ := base64.RawURLEncoding.DecodeString(tokenParts[1])
+
 	var decodedTokenPayload adapter.JWTPayload
-	_ = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
+
+	err = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
+	require.NoError(t, err)
+
 	decodedTokenPayload.Exp = time.Now().Unix() + 1000
+
 	rawTokenPayload, err = json.Marshal(decodedTokenPayload)
 	if err != nil {
 		t.Fatal("failed to marshal decoded token payload")
 	}
+
 	tokenParts[1] = base64.RawURLEncoding.EncodeToString(rawTokenPayload)
 	realToken = strings.Join(tokenParts, ".")
 
 	tok = gocloak.JWT{AccessToken: realToken}
+
 	bts, err = json.Marshal(&tok)
 	if err != nil {
 		t.Fatal("failed to marshal token")
 	}
+
 	secret = corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: tokenSecretName(kc.Name),
@@ -329,10 +347,12 @@ func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToDelete(t *testing.T
 	k8sMock := K8SClientMock{}
 	k8sMock.On("Get", types.NamespacedName{Namespace: sec.Namespace, Name: sec.Name}, &corev1.Secret{}).
 		Return(fakeCl)
-	var dOptions []client.DeleteOption
-	k8sMock.On("Delete", &sec, dOptions).Return(errors.New("deletion error"))
-	h := Helper{client: &k8sMock}
 
+	var dOptions []client.DeleteOption
+
+	k8sMock.On("Delete", &sec, dOptions).Return(errors.New("deletion error"))
+
+	h := Helper{client: &k8sMock}
 	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
 	require.Error(t, err)
 

@@ -34,6 +34,7 @@ type AdapterTestSuite struct {
 
 func (e *AdapterTestSuite) SetupTest() {
 	e.restyClient = resty.New()
+
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(e.restyClient.GetClient())
 
@@ -58,6 +59,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 
 	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
+
 	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
 		"master", nil, e.restyClient)
 	assert.NoError(t, err)
@@ -75,6 +77,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 func (e *AdapterTestSuite) TestMake() {
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
+
 	_, err := Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
 	assert.NoError(e.T(), err)
 }
@@ -87,6 +90,7 @@ func (e *AdapterTestSuite) TestMake_Failure() {
 
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
+
 	_, err = Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "400")
@@ -123,6 +127,7 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 	mockClient.On("GetRealm", "token", "realmName").
 		Return(nil, errors.New("404"))
+
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
@@ -145,6 +150,7 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 	mockClient.On("GetRealm", "token", "realmName").
 		Return(nil, errors.New("error in get realm"))
+
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
@@ -172,6 +178,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
+
 	messageBody := "not found"
 	responder := httpmock.NewStringResponder(404, messageBody)
 	httpmock.RegisterResponder(
@@ -395,8 +402,10 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	mockClient.On("GetCompositeRealmRolesByRoleID", realmName, roleID).Return([]*gocloak.Role{
 		&composite1,
 	}, nil)
+
 	compositeFoo := gocloak.Role{Name: gocloak.StringP("foo")}
 	mockClient.On("GetRealmRole", realmName, *compositeFoo.Name).Return(&compositeFoo, nil)
+
 	compositeBar := gocloak.Role{Name: gocloak.StringP("bar")}
 	mockClient.On("GetRealmRole", realmName, *compositeBar.Name).Return(&compositeBar, nil)
 	mockClient.On("AddRealmRoleComposite", realmName, roleName,
@@ -409,6 +418,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 	realm := gocloak.RealmRepresentation{}
 	updatedRealm := gocloak.RealmRepresentation{DefaultRoles: &[]string{roleName}}
+
 	mockClient.On("GetRealm", "token", realmName).Return(&realm, nil)
 	mockClient.On("UpdateRealm", updatedRealm).Return(nil)
 
@@ -574,6 +584,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	}
 
 	oldChildGroup := gocloak.Group{Name: gocloak.StringP("old-group")}
+
 	mockClient.On("GetGroups", "realm1",
 		gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
 		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1"),
@@ -670,6 +681,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 		basePath: "",
 		log:      &mock.Logger{},
 	}
+
 	mockClient.On("GetGroups", "realm1", gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
 		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1")}}, nil)
 	mockClient.On("DeleteGroup", "realm1", "1").Return(nil)
@@ -731,6 +743,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	tok := gocloak.JWT{AccessToken: realToken}
 	bts, err := json.Marshal(&tok)
 	require.NoError(t, err)
+
 	_, err = MakeFromToken("test_url", bts, nil)
 	if err == nil {
 		t.Fatal("no error on wrong token")
@@ -744,6 +757,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	tok = gocloak.JWT{AccessToken: realToken}
 	bts, err = json.Marshal(&tok)
 	require.NoError(t, err)
+
 	_, err = MakeFromToken("test_url", bts, nil)
 	if err == nil {
 		t.Fatal("no error on wrong token")
@@ -757,6 +771,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	tok = gocloak.JWT{AccessToken: realToken}
 	bts, err = json.Marshal(&tok)
 	require.NoError(t, err)
+
 	_, err = MakeFromToken("test_url", bts, nil)
 	if err == nil {
 		t.Fatal("no error on wrong token")
@@ -772,6 +787,7 @@ func TestMakeFromToken(t *testing.T) {
 	tok := gocloak.JWT{AccessToken: realToken}
 	bts, err := json.Marshal(&tok)
 	require.NoError(t, err)
+
 	_, err = MakeFromToken("test_url", bts, nil)
 	if err == nil {
 		t.Fatal("no error on expired token")
@@ -792,11 +808,13 @@ func TestMakeFromToken(t *testing.T) {
 
 	tokenParts := strings.Split(realToken, ".")
 	rawTokenPayload, _ := base64.RawURLEncoding.DecodeString(tokenParts[1])
+
 	var decodedTokenPayload JWTPayload
 	_ = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
 	decodedTokenPayload.Exp = time.Now().Unix() + 1000
 	rawTokenPayload, err = json.Marshal(decodedTokenPayload)
 	require.NoError(t, err)
+
 	tokenParts[1] = base64.RawURLEncoding.EncodeToString(rawTokenPayload)
 	realToken = strings.Join(tokenParts, ".")
 
@@ -855,6 +873,7 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 		Return([]*gocloak.User{
 			{Username: &username, ID: &username},
 		}, nil).Once()
+
 	err := e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
 	assert.NoError(e.T(), err)
 
@@ -865,6 +884,7 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	httpmock.RegisterResponder("DELETE",
 		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(404, ""))
+
 	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "unable to delete user: status: 404, body: ")

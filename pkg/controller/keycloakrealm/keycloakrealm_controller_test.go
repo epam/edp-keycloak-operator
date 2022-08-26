@@ -25,11 +25,8 @@ import (
 )
 
 func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
-	// prepare
-	// vars
 	kRealmName := "main"
 	ns := "security"
-	// dependent custom resources
 	kr := &keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kRealmName,
@@ -39,12 +36,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 		},
 	}
-	// client and scheme
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(kr).Build()
 
-	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      kRealmName,
@@ -52,21 +47,19 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 		},
 	}
 
-	// reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
-	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKr := &keycloakApi.KeycloakRealm{}
@@ -76,11 +69,8 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 }
 
 func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
-	// prepare
-	// vars
 	kRealmName := "main"
 	ns := "security"
-	// dependent custom resources
 	kr := &keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      kRealmName,
@@ -96,12 +86,11 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 			Name: "AnotherName",
 		},
 	})
-	// client and scheme
+
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(kr).Build()
 
-	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      kRealmName,
@@ -109,21 +98,19 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 		},
 	}
 
-	// reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
-	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKr := &keycloakApi.KeycloakRealm{}
@@ -133,12 +120,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 }
 
 func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
-	// prepare
-	// vars
 	kServerUrl := "http://some.security"
 	kRealmName := "main"
 	ns := "security"
-	// dependent custom resources
+
 	k := &keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-keycloak",
@@ -166,12 +151,11 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 			Name: k.Name,
 		},
 	})
-	// client and scheme
+
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(k, kr).Build()
 
-	// request
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      kRealmName,
@@ -179,21 +163,19 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 		},
 	}
 
-	// reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
-	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKr := &keycloakApi.KeycloakRealm{}
@@ -203,8 +185,6 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 }
 
 func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
-	// prepare
-	// vars
 	kServerUrl := "http://some.security"
 	kServerUsr := "user"
 	kServerPwd := "pass"
@@ -263,21 +243,19 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		},
 	}
 
-	// reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
 		helper: helper.MakeHelper(client, s, nil),
 		log:    &mock.Logger{},
 	}
 
-	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKr := &keycloakApi.KeycloakRealm{}
@@ -335,6 +313,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	}
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, k, kr, &keycloakApi.KeycloakClient{})
+
 	client := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
 	// request
@@ -354,12 +333,12 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 
 	// test
 	res, err := r.Reconcile(context.TODO(), req)
-
-	// verify
 	assert.Nil(t, err)
+
 	if res.RequeueAfter <= 0 {
 		t.Fatal("requeue duration is not changed")
 	}
+
 	assert.False(t, res.Requeue)
 
 	persKr := &keycloakApi.KeycloakRealm{}
@@ -420,11 +399,13 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 
 	h := helper.Mock{}
 	logger := mock.Logger{}
+
 	h.On("CreateKeycloakClientForRealm", &kr).Return(kClient, nil)
 	h.On("TryToDelete", &kr,
 		makeTerminator(kr.Spec.RealmName, kClient, &logger),
 		keyCloakRealmOperatorFinalizerName).Return(false, nil)
 	h.On("UpdateStatus", &kr).Return(nil)
+
 	ch := handler.MockRealmHandler{}
 	r := ReconcileKeycloakRealm{
 		client:                  client,

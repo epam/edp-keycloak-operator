@@ -13,9 +13,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain"
 )
 
-func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(
-	keycloakClient *keycloakApi.KeycloakClient) (*keycloakApi.KeycloakRealm, error) {
-
+func (r *ReconcileKeycloakClient) getOrCreateRealmOwner(keycloakClient *keycloakApi.KeycloakClient) (*keycloakApi.KeycloakRealm, error) {
 	realm, err := r.helper.GetOrCreateRealmOwnerRef(&clientRealmFinder{parent: keycloakClient,
 		client: r.client},
 		&keycloakClient.ObjectMeta)
@@ -45,7 +43,9 @@ func (c *clientRealmFinder) GetNamespace() string {
 
 func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
 	var realmList keycloakApi.KeycloakRealmList
+
 	listOpts := client.ListOptions{Namespace: c.parent.Namespace}
+
 	client.MatchingLabels(map[string]string{chain.TargetRealmLabel: c.parent.Spec.TargetRealm}).ApplyToList(&listOpts)
 
 	if err := c.client.List(context.Background(), &realmList, &listOpts); err != nil {
@@ -59,6 +59,7 @@ func (c *clientRealmFinder) K8SParentRealmName() (string, error) {
 	if err := c.client.List(context.Background(), &realmList, &client.ListOptions{Namespace: c.Namespace}); err != nil {
 		return "", errors.Wrap(err, "unable to get all reams")
 	}
+
 	for i := range realmList.Items {
 		if realmList.Items[i].Spec.RealmName == c.parent.Spec.TargetRealm {
 			return realmList.Items[i].Name, nil

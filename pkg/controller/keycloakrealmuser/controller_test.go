@@ -99,6 +99,7 @@ func (e *TestControllerSuite) TestNewReconcile() {
 
 	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
 	e.helper.On("UpdateStatus", e.kcRealmUser).Return(nil)
+
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: e.namespace,
 		Name:      e.kcRealmUser.Name,

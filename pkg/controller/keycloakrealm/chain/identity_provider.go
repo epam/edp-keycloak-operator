@@ -43,12 +43,17 @@ func (h PutIdentityProvider) ServeRequest(ctx context.Context, realm *keycloakAp
 	}
 
 	rLog.Info("End put identity provider for realm")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
-func (h PutIdentityProvider) setupIdentityProvider(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client,
-	rLog logr.Logger, rDto *dto.Realm) error {
-
+func (h PutIdentityProvider) setupIdentityProvider(
+	ctx context.Context,
+	realm *keycloakApi.KeycloakRealm,
+	kClient keycloak.Client,
+	rLog logr.Logger,
+	rDto *dto.Realm,
+) error {
 	cl := &keycloakApi.KeycloakClient{}
 	if err := h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
@@ -61,6 +66,7 @@ func (h PutIdentityProvider) setupIdentityProvider(ctx context.Context, realm *k
 	if err != nil {
 		return err
 	}
+
 	if e {
 		rLog.Info("IdP already exists")
 		return nil

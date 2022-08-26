@@ -53,6 +53,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) SetupWithManager(mgr ctrl.Manager, suc
 	pred := predicate.Funcs{
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmRoleBatch{}, builder.WithPredicates(pred)).
 		Complete(r)
@@ -70,6 +71,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role batch from k8s")
+
 		return
 	}
 
@@ -88,6 +90,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 	}
 
 	log.Info("Reconciling done")
+
 	return
 }
 
@@ -101,9 +104,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *keycloakApi.KeycloakRea
 	return false
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context,
-	batch *keycloakApi.KeycloakRealmRoleBatch) error {
-
+func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {
 	var (
 		namespaceRoles keycloakApi.KeycloakRealmRoleList
 		specRoles      = make(map[string]struct{})
@@ -173,6 +174,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *k
 		if err := r.client.Create(ctx, &newRole); err != nil {
 			return nil, errors.Wrap(err, "unable to create child role from batch")
 		}
+
 		roles = append(roles, newRole)
 	}
 

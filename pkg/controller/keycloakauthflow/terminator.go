@@ -20,9 +20,13 @@ type terminator struct {
 	keycloakAuthFlow *adapter.KeycloakAuthFlow
 }
 
-func makeTerminator(realm *keycloakApi.KeycloakRealm, authFlow *adapter.KeycloakAuthFlow, k8sClient client.Client,
-	kClient keycloak.Client, log logr.Logger) *terminator {
-
+func makeTerminator(
+	realm *keycloakApi.KeycloakRealm,
+	authFlow *adapter.KeycloakAuthFlow,
+	k8sClient client.Client,
+	kClient keycloak.Client,
+	log logr.Logger,
+) *terminator {
 	return &terminator{
 		realm:            realm,
 		keycloakAuthFlow: authFlow,
@@ -52,10 +56,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	}
 
 	logger.Info("start deleting auth flow")
+
 	if err := t.kClient.DeleteAuthFlow(t.realm.Spec.RealmName, t.keycloakAuthFlow); err != nil {
 		return errors.Wrap(err, "unable to delete auth flow")
 	}
 
 	logger.Info("deleting auth flow done")
+
 	return nil
 }

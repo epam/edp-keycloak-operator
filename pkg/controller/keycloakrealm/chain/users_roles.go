@@ -18,12 +18,16 @@ type PutUsersRoles struct {
 func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
+
 	rDto := dto.ConvertSpecToRealm(&realm.Spec)
+
 	err := putRolesToUsers(ctx, rDto, kClient)
 	if err != nil {
 		return errors.Wrap(err, "error during putRolesToUsers")
 	}
+
 	rLog.Info("End put role to users")
+
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
@@ -34,6 +38,7 @@ func putRolesToUsers(ctx context.Context, realm *dto.Realm, kClient keycloak.Cli
 			return errors.Wrap(err, "error during putRolesToOneUser")
 		}
 	}
+
 	return nil
 }
 
@@ -49,6 +54,7 @@ func putRolesToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, kC
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -57,6 +63,7 @@ func putOneRealmRoleToOneUser(ctx context.Context, realm *dto.Realm, user *dto.U
 	if err != nil {
 		return errors.Wrap(err, "error during check of client role")
 	}
+
 	if exist {
 		log.Info("Role already exists", "user", user, "role", role)
 		return nil
@@ -74,6 +81,7 @@ func putOneClientRoleToOneUser(realm *dto.Realm, user *dto.User, role string, kC
 	if err != nil {
 		return errors.Wrap(err, "error during check of client role")
 	}
+
 	if exist {
 		log.Info("Role already exists", "user", user, "role", role)
 		return nil

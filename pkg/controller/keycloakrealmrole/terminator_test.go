@@ -17,6 +17,7 @@ func TestTerminator(t *testing.T) {
 
 	term := makeTerminator("foo", "bar", kClient, &lg)
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(nil).Once()
+
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 
@@ -25,6 +26,7 @@ func TestTerminator(t *testing.T) {
 	}
 
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(errors.New("fatal")).Once()
+
 	err = term.DeleteResource(context.Background())
 	require.Error(t, err)
 
