@@ -1,22 +1,49 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Code Refactoring
+
+- Apply new lint config [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
+
+
+<a name="v1.12.0"></a>
+## [v1.12.0] - 2022-08-26
 ### Features
 
+- Switch to use V1 apis of EDP components [EPMDEDP-10080](https://jiraeu.epam.com/browse/EPMDEDP-10080)
+- Download helm-docs locally if required by make [EPMDEDP-10105](https://jiraeu.epam.com/browse/EPMDEDP-10105)
+- Download required tools for Makefile targets [EPMDEDP-10105](https://jiraeu.epam.com/browse/EPMDEDP-10105)
 - Pre-create edp clientscope as a part of kecloakclientscope CR [EPMDEDP-8323](https://jiraeu.epam.com/browse/EPMDEDP-8323)
 - Default scopes can be assigned for keycloakclient CR [EPMDEDP-8323](https://jiraeu.epam.com/browse/EPMDEDP-8323)
 - Switch CRDs to v1 version [EPMDEDP-9219](https://jiraeu.epam.com/browse/EPMDEDP-9219)
 
 ### Bug Fixes
 
+- Re-reconcile Keycloak client if the client scope is not found [EPMDEDP-10098](https://jiraeu.epam.com/browse/EPMDEDP-10098)
+- Use installed helm-docs instead of global one [EPMDEDP-10105](https://jiraeu.epam.com/browse/EPMDEDP-10105)
 - Realm password policy [EPMDEDP-9223](https://jiraeu.epam.com/browse/EPMDEDP-9223)
 - Fix artifacthub.io CRD examples [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
 - Removed duplicate CRD example from Cart.yaml [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
 
+### Code Refactoring
+
+- Use repository and tag for image reference in chart [EPMDEDP-10389](https://jiraeu.epam.com/browse/EPMDEDP-10389)
+
 ### Routine
 
+- Upgrade go version to 1.18 [EPMDEDP-10110](https://jiraeu.epam.com/browse/EPMDEDP-10110)
+- Fix Jira Ticket pattern for changelog generator [EPMDEDP-10159](https://jiraeu.epam.com/browse/EPMDEDP-10159)
+- Update alpine base image to 3.16.2 version [EPMDEDP-10274](https://jiraeu.epam.com/browse/EPMDEDP-10274)
+- Update alpine base image version [EPMDEDP-10280](https://jiraeu.epam.com/browse/EPMDEDP-10280)
+- Change 'go get' to 'go install' for git-chglog [EPMDEDP-10337](https://jiraeu.epam.com/browse/EPMDEDP-10337)
+- Remove VERSION file [EPMDEDP-10387](https://jiraeu.epam.com/browse/EPMDEDP-10387)
+- Add gcflags for go build artifact [EPMDEDP-10411](https://jiraeu.epam.com/browse/EPMDEDP-10411)
 - Update current development version [EPMDEDP-8832](https://jiraeu.epam.com/browse/EPMDEDP-8832)
 - Update chart annotation [EPMDEDP-9515](https://jiraeu.epam.com/browse/EPMDEDP-9515)
+
+### Documentation
+
+- Align README.md [EPMDEDP-10274](https://jiraeu.epam.com/browse/EPMDEDP-10274)
 
 
 <a name="v1.11.0"></a>
@@ -134,7 +161,8 @@
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...HEAD
+[v1.12.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...v1.12.0
 [v1.11.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...v1.11.0
 [v1.10.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.0...v1.10.1
 [v1.10.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.9.0...v1.10.0
