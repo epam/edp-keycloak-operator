@@ -2,6 +2,7 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/Nerzal/gocloak/v10"
@@ -54,9 +55,14 @@ func (r *ReconcileKeycloakRealmRoleBatch) SetupWithManager(mgr ctrl.Manager, suc
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmRoleBatch{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakRealmRoleBatch controller: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result,

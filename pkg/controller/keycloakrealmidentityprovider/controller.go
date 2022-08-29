@@ -2,6 +2,7 @@ package keycloakrealmidentityprovider
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -54,9 +55,14 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout t
 		UpdateFunc: isSpecUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmIdentityProvider{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakRealmIdentityProvider controller: %w", err)
+	}
+
+	return nil
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {
@@ -123,7 +129,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 
 	providerExists, err := kClient.IdentityProviderExists(ctx, realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
 	}
 
 	if providerExists {

@@ -56,7 +56,15 @@ func (el *PutClient) putKeycloakClient(keycloakClient *keycloakApi.KeycloakClien
 
 	if exist {
 		reqLog.Info("Client already exists")
-		return adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
+
+		var clientId string
+
+		clientId, err = adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
+		if err != nil {
+			return "", fmt.Errorf("failed to get client id: %w", err)
+		}
+
+		return clientId, nil
 	}
 
 	err = adapterClient.CreateClient(clientDto)

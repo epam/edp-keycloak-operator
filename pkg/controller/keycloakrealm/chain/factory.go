@@ -2,6 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -49,7 +51,12 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) ha
 
 func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
 	if next != nil {
-		return next.ServeRequest(ctx, realm, kClient)
+		err := next.ServeRequest(ctx, realm, kClient)
+		if err != nil {
+			return fmt.Errorf("chain failed %s: %w", reflect.TypeOf(next).Name(), err)
+		}
+
+		return nil
 	}
 
 	log.Info("handling of realm has been finished", "realm name", realm.Spec.RealmName)

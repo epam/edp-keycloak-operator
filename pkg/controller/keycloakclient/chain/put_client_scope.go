@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -33,5 +34,10 @@ func (el *PutClientScope) putClientScope(ctx context.Context, keycloakClient *ke
 		return errors.Wrap(err, "error during GetClientScope")
 	}
 
-	return adapterClient.AddDefaultScopeToClient(ctx, kCloakSpec.TargetRealm, kCloakSpec.ClientId, scopes)
+	err = adapterClient.AddDefaultScopeToClient(ctx, kCloakSpec.TargetRealm, kCloakSpec.ClientId, scopes)
+	if err != nil {
+		return fmt.Errorf("failed to add default scope to client %s: %w", keycloakClient.Name, err)
+	}
+
+	return nil
 }

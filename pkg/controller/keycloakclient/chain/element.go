@@ -2,6 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,7 +30,12 @@ func (b *BaseElement) NextServeOrNil(
 	adapterClient keycloak.Client,
 ) error {
 	if next != nil {
-		return next.Serve(ctx, keycloakClient, adapterClient)
+		err := next.Serve(ctx, keycloakClient, adapterClient)
+		if err != nil {
+			return fmt.Errorf("chain failed %s: %w", reflect.TypeOf(next).Name(), err)
+		}
+
+		return nil
 	}
 
 	return nil

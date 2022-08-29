@@ -2,6 +2,7 @@ package keycloakrealmuser
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -54,9 +55,14 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 		},
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmUser{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakRealmUser controller: %w", err)
+	}
+
+	return nil
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {

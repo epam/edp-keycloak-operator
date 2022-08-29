@@ -40,7 +40,7 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 		Namespace: realm.Namespace,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get seret %s: %w", sn, err)
 	}
 
 	if s != nil {
@@ -64,17 +64,17 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 		Name:      realm.Spec.RealmName,
 	}, cl)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get keycloak client: %w", err)
 	}
 
 	err = controllerutil.SetControllerReference(cl, s, h.scheme)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to set controller reference for secret: %w", err)
 	}
 
 	err = h.client.Create(ctx, s)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create secret: %w", err)
 	}
 
 	rLog.Info("End of put Keycloak client secret")
