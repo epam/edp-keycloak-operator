@@ -2,6 +2,7 @@ package keycloakauthflow
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -55,9 +56,14 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout t
 		UpdateFunc: isSpecUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakAuthFlow{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup keycloakAuthFlow controller: %w", err)
+	}
+
+	return nil
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {

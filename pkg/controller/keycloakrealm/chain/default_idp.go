@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -25,7 +26,7 @@ func (h PutDefaultIdP) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 
 	err := kClient.PutDefaultIdp(rDto)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to put default edp: %w", err)
 	}
 
 	rLog.Info("Default identity provider has been successfully configured!")

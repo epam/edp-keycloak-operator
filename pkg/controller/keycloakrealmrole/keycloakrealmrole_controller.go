@@ -2,6 +2,7 @@ package keycloakrealmrole
 
 import (
 	"context"
+	"fmt"
 	"reflect"
 	"time"
 
@@ -55,9 +56,14 @@ func (r *ReconcileKeycloakRealmRole) SetupWithManager(mgr ctrl.Manager, successR
 		UpdateFunc: isSpecUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmRole{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakRealmRole controller: %w", err)
+	}
+
+	return nil
 }
 
 func isSpecUpdated(e event.UpdateEvent) bool {

@@ -2,6 +2,7 @@ package keycloakclient
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -60,9 +61,14 @@ func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager, successReco
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakClient{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakClient controller: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {

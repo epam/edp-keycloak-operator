@@ -206,7 +206,7 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, er
 		}).
 		Get(a.basePath + getOneIdP)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("request exists central identity provider failed: %w", err)
 	}
 
 	if resp.StatusCode() == http.StatusNotFound {
@@ -313,7 +313,7 @@ func (a GoCloakAdapter) createIdPMapper(realm *dto.Realm, externalRole string, r
 		SetBody(body).
 		Post(a.basePath + idPMapperResource)
 	if err != nil {
-		return err
+		return fmt.Errorf("request create idp mapper failed: %w", err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
@@ -332,7 +332,7 @@ func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
 	})
 
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get clients for realm %s: %w", realm, err)
 	}
 
 	res := checkFullNameMatch(clientID, clns)
@@ -454,7 +454,7 @@ func (a GoCloakAdapter) CreateClient(client *dto.Client) error {
 
 	_, err := a.client.CreateClient(context.Background(), a.token.AccessToken, client.RealmName, getGclCln(client))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create keycloak client: %w", err)
 	}
 
 	log.Info("Keycloak client has been created")
@@ -564,7 +564,7 @@ func (a GoCloakAdapter) CreateRealmUser(realmName string, user *dto.User) error 
 
 	_, err := a.client.CreateUser(context.Background(), a.token.AccessToken, realmName, userDto)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create user in realm %s: %w", realmName, err)
 	}
 
 	log.Info("Keycloak realm user has been created")
@@ -654,7 +654,7 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 		Username: &user.Username,
 	})
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get user %s: %w", user.Username, err)
 	}
 
 	if len(users) == 0 {
@@ -664,7 +664,7 @@ func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, use
 	rolesMapping, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realmName,
 		*users[0].ID)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get role mapping by user id %s: %w", *users[0].ID, err)
 	}
 
 	hasClientRole := false
@@ -712,7 +712,7 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 		ClientID: &clientId,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get client %s: %w", clientId, err)
 	}
 
 	if len(client) == 0 {
@@ -732,7 +732,7 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 		Username: &user.Username,
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get user %s: %w", user.Username, err)
 	}
 
 	if len(users) == 0 {
@@ -750,9 +750,14 @@ func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, u
 }
 
 func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, roles []gocloak.Role) error {
-	if err := a.client.AddClientRoleToUser(context.Background(), a.token.AccessToken, realmName,
-		*roles[0].ContainerID, userId, roles); err != nil {
-		return err
+	if err := a.client.AddClientRoleToUser(
+		context.Background(),
+		a.token.AccessToken, realmName,
+		*roles[0].ContainerID,
+		userId,
+		roles,
+	); err != nil {
+		return fmt.Errorf("failed to add client role to user %s: %w", userId, err)
 	}
 
 	return nil
@@ -792,19 +797,17 @@ func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.Incl
 
 	_, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realmName, realmRole)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create realm role %s: %w", role.Name, err)
 	}
 
 	persRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, role.Name)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get realm role %s: %w", role.Name, err)
 	}
 
-	err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
-		role.Composite, []gocloak.Role{*persRole})
-
+	err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName, role.Composite, []gocloak.Role{*persRole})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to add realm role composite: %w", err)
 	}
 
 	log.Info("Keycloak roles has been created")
@@ -865,7 +868,7 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {
 		}).
 		Get(a.basePath + openIdConfig)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("request get open id config failed: %w", err)
 	}
 
 	res := resp.String()
@@ -964,7 +967,7 @@ func (a GoCloakAdapter) getBrowserExecutions(realm *dto.Realm) ([]api.SimpleAuth
 		SetResult(&res).
 		Get(a.basePath + authExecutions)
 	if err != nil {
-		return res, err
+		return nil, fmt.Errorf("request get browser executions failed: %w", err)
 	}
 
 	if resp.StatusCode() != http.StatusOK {

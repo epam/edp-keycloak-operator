@@ -31,7 +31,7 @@ func GetDebugMode() (bool, error) {
 
 	b, err := strconv.ParseBool(mode)
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("failed to get debug mode: %w", err)
 	}
 
 	return b, nil

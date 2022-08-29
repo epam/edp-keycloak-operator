@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -29,7 +30,7 @@ func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *keyc
 
 	con, err := kClient.GetOpenIdConfig(dto.ConvertSpecToRealm(&realm.Spec))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get openId config: %w", err)
 	}
 
 	an := realm.GetAnnotations()
@@ -42,7 +43,7 @@ func (h PutOpenIdConfigAnnotation) ServeRequest(ctx context.Context, realm *keyc
 
 	err = h.client.Update(ctx, realm)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to update realm CR: %w", err)
 	}
 
 	rLog.Info("end put openid configuration annotation")

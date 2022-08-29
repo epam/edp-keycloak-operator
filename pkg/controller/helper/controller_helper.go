@@ -58,13 +58,30 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 		client:          client,
 		scheme:          scheme,
 		logger:          logger,
-		adapterBuilder: func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
-			restyClient *resty.Client) (keycloak.Client, error) {
+		adapterBuilder: func(
+			ctx context.Context,
+			url,
+			user,
+			password,
+			adminType string,
+			log logr.Logger,
+			restyClient *resty.Client,
+		) (keycloak.Client, error) {
 			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
-				return adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
+				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
+				if err != nil {
+					return nil, fmt.Errorf("failed to make go keycloak adapter from seviceaccount: %w", err)
+				}
+
+				return goKeycloakAdapter, nil
 			}
 
-			return adapter.Make(ctx, url, user, password, log, restyClient)
+			goKeycloakAdapter, err := adapter.Make(ctx, url, user, password, log, restyClient)
+			if err != nil {
+				return nil, fmt.Errorf("failed to make go keycloak adapter: %w", err)
+			}
+
+			return goKeycloakAdapter, nil
 		},
 	}
 }
@@ -200,7 +217,11 @@ func (h *Helper) getKeycloakFromSpec(realm *keycloakApi.KeycloakRealm) (*keycloa
 		return nil, errors.Wrap(err, "unable to get spec Keycloak from k8s")
 	}
 
-	return &k, controllerutil.SetControllerReference(&k, realm, h.scheme)
+	if err := controllerutil.SetControllerReference(&k, realm, h.scheme); err != nil {
+		return nil, fmt.Errorf("failed to set controller reference for keycloak: %w", err)
+	}
+
+	return &k, nil
 }
 
 func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
@@ -230,7 +251,12 @@ func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*keycloakApi.K
 		return nil, errors.Wrap(err, "unable to get main realm from k8s")
 	}
 
-	return &realm, controllerutil.SetControllerReference(&realm, object, h.scheme)
+	err := controllerutil.SetControllerReference(&realm, object, h.scheme)
+	if err != nil {
+		return nil, fmt.Errorf("failed to set controller reference for realm %s: %w", name, err)
+	}
+
+	return &realm, nil
 }
 
 type RealmChild interface {
@@ -327,7 +353,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 func getExecutableFilePath() (string, error) {
 	executableFilePath, err := os.Executable()
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to get executble file path: %w", err)
 	}
 
 	return filepath.Dir(executableFilePath), nil

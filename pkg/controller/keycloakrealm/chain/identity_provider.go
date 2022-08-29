@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
@@ -64,7 +65,7 @@ func (h PutIdentityProvider) setupIdentityProvider(
 
 	e, err := kClient.ExistCentralIdentityProvider(rDto)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to check if a central identity provider %s exists: %w", rDto.Name, err)
 	}
 
 	if e {

@@ -2,6 +2,7 @@ package keycloakrealm
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -55,9 +56,14 @@ func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager, successRecon
 		UpdateFunc: helper.IsFailuresUpdated,
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealm{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup KeycloakRealm controller: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -101,7 +107,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keycloakApi.KeycloakRealm) error {
 	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create keycloak client for realm: %w", err)
 	}
 
 	deleted, err := r.helper.TryToDelete(ctx, realm,

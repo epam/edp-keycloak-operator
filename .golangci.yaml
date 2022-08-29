@@ -806,7 +806,7 @@ linters:
     - forcetypeassert
     - funlen
     - gochecknoinits
-#    - wrapcheck
+    - wrapcheck
     - varcheck
     - wsl
     - unused
@@ -827,12 +827,14 @@ issues:
         - revive
         - goconst
         - funlen
+        - wrapcheck
     - path: mock\.go
       linters:
         - dupl
         - revive
         - goconst
         - forcetypeassert
+        - wrapcheck
     - path: _types\.go
       linters:
         - gochecknoinits
@@ -840,6 +842,7 @@ issues:
       linters:
         - funlen
         - cyclop
+        - wrapcheck
     #Disable cyclop for some mappers
     - linters:
         - cyclop

@@ -72,9 +72,14 @@ func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager, successReconcileT
 		},
 	}
 
-	return ctrl.NewControllerManagedBy(mgr).
+	err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.Keycloak{}, builder.WithPredicates(pred)).
 		Complete(r)
+	if err != nil {
+		return fmt.Errorf("failed to setup Keycloak controller: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
@@ -149,7 +154,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 		err := r.client.Update(ctx, instance)
 		if err != nil {
 			log.Info(fmt.Sprintf("Couldn't update status for Keycloak %s", instance.Name))
-			return err
+			return fmt.Errorf("failed to update status for keycloak: %w", err)
 		}
 	}
 
@@ -169,7 +174,7 @@ func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *k
 	}
 
 	if !errors.IsNotFound(err) && !adapter.IsErrTokenExpired(err) {
-		return false, err
+		return false, fmt.Errorf("failed to create keycloak client from token: %w", err)
 	}
 
 	_, err = r.helper.CreateKeycloakClientFromLoginPassword(ctx, instance)
@@ -202,7 +207,11 @@ func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloak
 		return r.createMainRealm(ctx, instance)
 	}
 
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to get main realm: %w", err)
+	}
+
+	return nil
 }
 
 func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
