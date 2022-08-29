@@ -3,7 +3,12 @@
 
 ### Code Refactoring
 
+- Apply wsl lint [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
 - Apply new lint config [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
+
+### Routine
+
+- Update current development version [EPMDEDP-10274](https://jiraeu.epam.com/browse/EPMDEDP-10274)
 
 
 <a name="v1.12.0"></a>
