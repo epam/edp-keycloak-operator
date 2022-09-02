@@ -39,7 +39,7 @@ func TestGoCloakAdapter_CreateClientScope(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -72,7 +72,7 @@ func TestGoCloakAdapter_CreateClientScope_FailureSetDefault(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -153,7 +153,7 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	var (
@@ -242,7 +242,7 @@ func TestGoCloakAdapter_GetClientScope(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -265,7 +265,7 @@ func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -295,7 +295,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	restyClient := resty.New()

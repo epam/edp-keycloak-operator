@@ -42,7 +42,7 @@ Resource Types:
 
 
 
-KeycloakAuthFlow is the Schema for the keycloak authentication flow API
+KeycloakAuthFlow is the Schema for the keycloak authentication flow API.
 
 <table>
     <thead>
@@ -74,14 +74,14 @@ KeycloakAuthFlow is the Schema for the keycloak authentication flow API
         <td><b><a href="#keycloakauthflowspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow<br/>
+          KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakauthflowstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow<br/>
+          KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -93,7 +93,7 @@ KeycloakAuthFlow is the Schema for the keycloak authentication flow API
 
 
 
-KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow
+KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
 
 <table>
     <thead>
@@ -176,7 +176,7 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow
 
 
 
-AuthenticationExecution defines keycloak authentication execution
+AuthenticationExecution defines keycloak authentication execution.
 
 <table>
     <thead>
@@ -272,7 +272,7 @@ AuthenticationExecution defines keycloak authentication execution
 
 
 
-KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow
+KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
 
 <table>
     <thead>
@@ -310,7 +310,7 @@ KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow
 
 
 
-KeycloakClient is the Schema for the keycloak clients API
+KeycloakClient is the Schema for the keycloak clients API.
 
 <table>
     <thead>
@@ -342,14 +342,14 @@ KeycloakClient is the Schema for the keycloak clients API
         <td><b><a href="#keycloakclientspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientSpec defines the desired state of KeycloakClient<br/>
+          KeycloakClientSpec defines the desired state of KeycloakClient.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientStatus defines the observed state of KeycloakClient<br/>
+          KeycloakClientStatus defines the observed state of KeycloakClient.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -361,7 +361,7 @@ KeycloakClient is the Schema for the keycloak clients API
 
 
 
-KeycloakClientSpec defines the desired state of KeycloakClient
+KeycloakClientSpec defines the desired state of KeycloakClient.
 
 <table>
     <thead>
@@ -659,7 +659,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient
 
 
 
-KeycloakClientStatus defines the observed state of KeycloakClient
+KeycloakClientStatus defines the observed state of KeycloakClient.
 
 <table>
     <thead>
@@ -711,7 +711,7 @@ KeycloakClientStatus defines the observed state of KeycloakClient
 
 
 
-KeycloakClientScope is the Schema for the keycloakclientscopes API
+KeycloakClientScope is the Schema for the keycloakclientscopes API.
 
 <table>
     <thead>
@@ -743,14 +743,14 @@ KeycloakClientScope is the Schema for the keycloakclientscopes API
         <td><b><a href="#keycloakclientscopespec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientScopeSpec defines the desired state of KeycloakClientScope<br/>
+          KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientscopestatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientScopeStatus defines the observed state of KeycloakClientScope<br/>
+          KeycloakClientScopeStatus defines the observed state of KeycloakClientScope.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -762,7 +762,7 @@ KeycloakClientScope is the Schema for the keycloakclientscopes API
 
 
 
-KeycloakClientScopeSpec defines the desired state of KeycloakClientScope
+KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
 
 <table>
     <thead>
@@ -879,7 +879,7 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope
 
 
 
-KeycloakClientScopeStatus defines the observed state of KeycloakClientScope
+KeycloakClientScopeStatus defines the observed state of KeycloakClientScope.
 
 <table>
     <thead>
@@ -924,7 +924,7 @@ KeycloakClientScopeStatus defines the observed state of KeycloakClientScope
 
 
 
-KeycloakRealmComponent is the Schema for the keycloak component API
+KeycloakRealmComponent is the Schema for the keycloak component API.
 
 <table>
     <thead>
@@ -956,16 +956,16 @@ KeycloakRealmComponent is the Schema for the keycloak component API
         <td><b><a href="#keycloakrealmcomponentspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakComponentSpec defines the desired state of KeycloakRealmComponent<br/>
+          KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmcomponentstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakComponentStatus defines the observed state of KeycloakRealmComponent<br/>
+          KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -975,7 +975,7 @@ KeycloakRealmComponent is the Schema for the keycloak component API
 
 
 
-KeycloakComponentSpec defines the desired state of KeycloakRealmComponent
+KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
 
 <table>
     <thead>
@@ -1030,7 +1030,7 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent
 
 
 
-KeycloakComponentStatus defines the observed state of KeycloakRealmComponent
+KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
 
 <table>
     <thead>
@@ -1068,7 +1068,7 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent
 
 
 
-KeycloakRealmGroup is the Schema for the keycloak group API
+KeycloakRealmGroup is the Schema for the keycloak group API.
 
 <table>
     <thead>
@@ -1100,14 +1100,14 @@ KeycloakRealmGroup is the Schema for the keycloak group API
         <td><b><a href="#keycloakrealmgroupspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup<br/>
+          KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmgroupstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup<br/>
+          KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1119,7 +1119,7 @@ KeycloakRealmGroup is the Schema for the keycloak group API
 
 
 
-KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup
+KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
 
 <table>
     <thead>
@@ -1229,7 +1229,7 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup
 
 
 
-KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup
+KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.
 
 <table>
     <thead>
@@ -1274,7 +1274,7 @@ KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup
 
 
 
-KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity provider API
+KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity provider API.
 
 <table>
     <thead>
@@ -1306,16 +1306,16 @@ KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity prov
         <td><b><a href="#keycloakrealmidentityproviderspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider<br/>
+          KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmidentityproviderstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider<br/>
+          KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -1325,7 +1325,7 @@ KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity prov
 
 
 
-KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider
+KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider.
 
 <table>
     <thead>
@@ -1484,7 +1484,7 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
 
 
 
-KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider
+KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmIdentityProvider.
 
 <table>
     <thead>
@@ -1522,7 +1522,7 @@ KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmI
 
 
 
-KeycloakRealmRoleBatch is the Schema for the keycloak roles API
+KeycloakRealmRoleBatch is the Schema for the keycloak roles API.
 
 <table>
     <thead>
@@ -1554,14 +1554,14 @@ KeycloakRealmRoleBatch is the Schema for the keycloak roles API
         <td><b><a href="#keycloakrealmrolebatchspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch<br/>
+          KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmrolebatchstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch<br/>
+          KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1573,7 +1573,7 @@ KeycloakRealmRoleBatch is the Schema for the keycloak roles API
 
 
 
-KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch
+KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
 
 <table>
     <thead>
@@ -1696,7 +1696,7 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch
 
 
 
-KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch
+KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatch.
 
 <table>
     <thead>
@@ -1734,7 +1734,7 @@ KeycloakRealmRoleBatchStatus defines the observed state of KeycloakRealmRoleBatc
 
 
 
-KeycloakRealmRole is the Schema for the keycloak group API
+KeycloakRealmRole is the Schema for the keycloak group API.
 
 <table>
     <thead>
@@ -1766,14 +1766,14 @@ KeycloakRealmRole is the Schema for the keycloak group API
         <td><b><a href="#keycloakrealmrolespec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole<br/>
+          KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmrolestatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole<br/>
+          KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1785,7 +1785,7 @@ KeycloakRealmRole is the Schema for the keycloak group API
 
 
 
-KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole
+KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
 
 <table>
     <thead>
@@ -1881,7 +1881,7 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole
 
 
 
-KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole
+KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole.
 
 <table>
     <thead>
@@ -1926,7 +1926,7 @@ KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole
 
 
 
-KeycloakRealm is the Schema for the keycloak realms API
+KeycloakRealm is the Schema for the keycloak realms API.
 
 <table>
     <thead>
@@ -1958,14 +1958,14 @@ KeycloakRealm is the Schema for the keycloak realms API
         <td><b><a href="#keycloakrealmspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmSpec defines the desired state of KeycloakRealm<br/>
+          KeycloakRealmSpec defines the desired state of KeycloakRealm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmStatus defines the observed state of KeycloakRealm<br/>
+          KeycloakRealmStatus defines the observed state of KeycloakRealm.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1977,7 +1977,7 @@ KeycloakRealm is the Schema for the keycloak realms API
 
 
 
-KeycloakRealmSpec defines the desired state of KeycloakRealm
+KeycloakRealmSpec defines the desired state of KeycloakRealm.
 
 <table>
     <thead>
@@ -2321,7 +2321,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm
 
 
 
-KeycloakRealmStatus defines the observed state of KeycloakRealm
+KeycloakRealmStatus defines the observed state of KeycloakRealm.
 
 <table>
     <thead>
@@ -2366,7 +2366,7 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm
 
 
 
-KeycloakRealmUser is the Schema for the keycloak user API
+KeycloakRealmUser is the Schema for the keycloak user API.
 
 <table>
     <thead>
@@ -2398,16 +2398,16 @@ KeycloakRealmUser is the Schema for the keycloak user API
         <td><b><a href="#keycloakrealmuserspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser<br/>
+          KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmuserstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser<br/>
+          KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.<br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -2417,7 +2417,7 @@ KeycloakRealmUser is the Schema for the keycloak user API
 
 
 
-KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser
+KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
 
 <table>
     <thead>
@@ -2535,7 +2535,7 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser
 
 
 
-KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser
+KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.
 
 <table>
     <thead>
@@ -2573,7 +2573,7 @@ KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser
 
 
 
-Keycloak is the Schema for the keycloaks API
+Keycloak is the Schema for the keycloaks API.
 
 <table>
     <thead>
@@ -2605,14 +2605,14 @@ Keycloak is the Schema for the keycloaks API
         <td><b><a href="#keycloakspec">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakSpec defines the desired state of Keycloak<br/>
+          KeycloakSpec defines the desired state of Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakstatus">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakStatus defines the observed state of Keycloak<br/>
+          KeycloakStatus defines the observed state of Keycloak.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2624,7 +2624,7 @@ Keycloak is the Schema for the keycloaks API
 
 
 
-KeycloakSpec defines the desired state of Keycloak
+KeycloakSpec defines the desired state of Keycloak.
 
 <table>
     <thead>
@@ -2729,7 +2729,7 @@ KeycloakSpec defines the desired state of Keycloak
 
 
 
-KeycloakStatus defines the observed state of Keycloak
+KeycloakStatus defines the observed state of Keycloak.
 
 <table>
     <thead>
@@ -3055,7 +3055,7 @@ Resource Types:
 
 
 
-KeycloakClient is the Schema for the keycloakclients API
+KeycloakClient is the Schema for the keycloakclients API.
 
 <table>
     <thead>
@@ -3087,14 +3087,14 @@ KeycloakClient is the Schema for the keycloakclients API
         <td><b><a href="#keycloakclientspec-1">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientSpec defines the desired state of KeycloakClient<br/>
+          KeycloakClientSpec defines the desired state of KeycloakClient.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientstatus-1">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakClientStatus defines the observed state of KeycloakClient<br/>
+          KeycloakClientStatus defines the observed state of KeycloakClient.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3106,7 +3106,7 @@ KeycloakClient is the Schema for the keycloakclients API
 
 
 
-KeycloakClientSpec defines the desired state of KeycloakClient
+KeycloakClientSpec defines the desired state of KeycloakClient.
 
 <table>
     <thead>
@@ -3404,7 +3404,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient
 
 
 
-KeycloakClientStatus defines the observed state of KeycloakClient
+KeycloakClientStatus defines the observed state of KeycloakClient.
 
 <table>
     <thead>
@@ -3703,14 +3703,14 @@ KeycloakClientStatus defines the observed state of KeycloakClient
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmcomponentstatus-1">status</a></b></td>
         <td>object</td>
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4053,14 +4053,14 @@ KeycloakClientStatus defines the observed state of KeycloakClient
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmidentityproviderstatus-1">status</a></b></td>
         <td>object</td>
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4671,7 +4671,7 @@ KeycloakClientStatus defines the observed state of KeycloakClient
 
 
 
-KeycloakRealm is the Schema for the keycloakrealms API
+KeycloakRealm is the Schema for the keycloakrealms API.
 
 <table>
     <thead>
@@ -4703,14 +4703,14 @@ KeycloakRealm is the Schema for the keycloakrealms API
         <td><b><a href="#keycloakrealmspec-1">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmSpec defines the desired state of KeycloakRealm<br/>
+          KeycloakRealmSpec defines the desired state of KeycloakRealm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmstatus-1">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakRealmStatus defines the observed state of KeycloakRealm<br/>
+          KeycloakRealmStatus defines the observed state of KeycloakRealm.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4722,7 +4722,7 @@ KeycloakRealm is the Schema for the keycloakrealms API
 
 
 
-KeycloakRealmSpec defines the desired state of KeycloakRealm
+KeycloakRealmSpec defines the desired state of KeycloakRealm.
 
 <table>
     <thead>
@@ -5066,7 +5066,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm
 
 
 
-KeycloakRealmStatus defines the observed state of KeycloakRealm
+KeycloakRealmStatus defines the observed state of KeycloakRealm.
 
 <table>
     <thead>
@@ -5145,14 +5145,14 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmuserstatus-1">status</a></b></td>
         <td>object</td>
         <td>
           <br/>
         </td>
-        <td>true</td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -5318,7 +5318,7 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm
 
 
 
-Keycloak is the Schema for the keycloaks API
+Keycloak is the Schema for the keycloaks API.
 
 <table>
     <thead>
@@ -5350,14 +5350,14 @@ Keycloak is the Schema for the keycloaks API
         <td><b><a href="#keycloakspec-1">spec</a></b></td>
         <td>object</td>
         <td>
-          KeycloakSpec defines the desired state of Keycloak<br/>
+          KeycloakSpec defines the desired state of Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakstatus-1">status</a></b></td>
         <td>object</td>
         <td>
-          KeycloakStatus defines the observed state of Keycloak<br/>
+          KeycloakStatus defines the observed state of Keycloak.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5369,7 +5369,7 @@ Keycloak is the Schema for the keycloaks API
 
 
 
-KeycloakSpec defines the desired state of Keycloak
+KeycloakSpec defines the desired state of Keycloak.
 
 <table>
     <thead>
@@ -5474,7 +5474,7 @@ KeycloakSpec defines the desired state of Keycloak
 
 
 
-KeycloakStatus defines the observed state of Keycloak
+KeycloakStatus defines the observed state of Keycloak.
 
 <table>
     <thead>

@@ -18,13 +18,13 @@ func initAdapter() (*GoCloakAdapter, *MockGoCloakClient, *resty.Client) {
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
 
-	logger := mock.Logger{}
+	logger := mock.NewLogr()
 
 	return &GoCloakAdapter{
 		client:   mockClient,
 		basePath: "",
 		token:    &gocloak.JWT{AccessToken: "token"},
-		log:      &logger,
+		log:      logger,
 	}, mockClient, restyClient
 }
 

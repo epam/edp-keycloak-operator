@@ -1,0 +1,14 @@
+## Append samples you want in your CSV to this file as resources ##
+resources:
+- v1_v1_keycloak.yaml
+- v1_v1_keycloakauthflow.yaml
+- v1_v1_keycloakclient.yaml
+- v1_v1_keycloakclientscope.yaml
+- v1_v1_keycloakrealmcomponent.yaml
+- v1_v1_keycloakrealm.yaml
+- v1_v1_keycloakrealmgroup.yaml
+- v1_v1_keycloakrealmidentityprovider.yaml
+- v1_v1_keycloakrealmrole.yaml
+- v1_v1_keycloakrealmrolebatch.yaml
+- v1_v1_keycloakrealmuser.yaml
+#+kubebuilder:scaffold:manifestskustomizesamples

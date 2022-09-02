@@ -1,0 +1,20 @@
+# permissions for end users to view keycloakclients.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: keycloakclient-viewer-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakclients
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakclients/status
+  verbs:
+  - get

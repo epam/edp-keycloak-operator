@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -44,7 +44,7 @@ func (e *AdapterTestSuite) SetupTest() {
 	e.adapter = &GoCloakAdapter{
 		client: e.goCloakMockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    &mock.Logger{},
+		log:    mock.NewLogr(),
 	}
 
 	e.realmName = "realm123"
@@ -61,7 +61,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 		httpmock.NewStringResponder(200, "{}"))
 
 	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", nil, e.restyClient)
+		"master", mock.NewLogr(), e.restyClient)
 	assert.NoError(t, err)
 
 	httpmock.Reset()
@@ -69,7 +69,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 		httpmock.NewStringResponder(400, "{}"))
 
 	_, err = MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", nil, e.restyClient)
+		"master", mock.NewLogr(), e.restyClient)
 	assert.Error(t, err)
 	assert.EqualError(t, err, "unable to login with client creds, clientID: k-cl-id, realm: master: 400")
 }
@@ -78,20 +78,20 @@ func (e *AdapterTestSuite) TestMake() {
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
 
-	_, err := Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
+	_, err := Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
 	assert.NoError(e.T(), err)
 }
 
 func (e *AdapterTestSuite) TestMake_Failure() {
 	t := e.T()
-	_, err := Make(context.Background(), "foo", "bar", "baz", nil, nil)
+	_, err := Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), nil)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported protocol scheme")
 
 	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
 
-	_, err = Make(context.Background(), "foo", "bar", "baz", nil, e.restyClient)
+	_, err = Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "400")
 }
@@ -131,7 +131,7 @@ func TestGoCloakAdapter_ExistRealm404(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    &mock.Logger{},
+		log:    mock.NewLogr(),
 	}
 	realm := dto.Realm{
 		Name: "realmName",
@@ -154,7 +154,7 @@ func TestGoCloakAdapter_ExistRealmError(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    &mock.Logger{},
+		log:    mock.NewLogr(),
 	}
 	realm := dto.Realm{
 		Name: "realmName",
@@ -323,7 +323,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	err = adapter.SyncClientProtocolMapper(&client, crMappers, false)
@@ -352,7 +352,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	err := adapter.SyncClientProtocolMapper(&client, []gocloak.ProtocolMapperRepresentation{}, false)
@@ -372,7 +372,7 @@ func TestGoCloakAdapter_SyncRealmRole_Duplicated(t *testing.T) {
 	adapter := GoCloakAdapter{
 		client: &mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    &mock.Logger{},
+		log:    mock.NewLogr(),
 	}
 
 	role := dto.PrimaryRealmRole{Name: "role1"}
@@ -426,7 +426,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	role := dto.PrimaryRealmRole{Name: roleName, Composites: []string{"foo", "bar"}, IsComposite: true,
@@ -445,7 +445,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles_AddOnly(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	mockClient.On("GetClientServiceAccount", "realm", "client").Return(&gocloak.User{
@@ -480,7 +480,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	mockClient.On("GetClientServiceAccount", "realm", "client").Return(&gocloak.User{
@@ -580,7 +580,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	oldChildGroup := gocloak.Group{Name: gocloak.StringP("old-group")}
@@ -679,7 +679,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	mockClient.On("GetGroups", "realm1", gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
@@ -697,7 +697,7 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 		client:   &mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      &mock.Logger{},
+		log:      mock.NewLogr(),
 	}
 
 	realm := dto.Realm{Name: "realm1", SsoAutoRedirectEnabled: false}
@@ -744,7 +744,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	bts, err := json.Marshal(&tok)
 	require.NoError(t, err)
 
-	_, err = MakeFromToken("test_url", bts, nil)
+	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
 	if err == nil {
 		t.Fatal("no error on wrong token")
 	}
@@ -758,7 +758,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	bts, err = json.Marshal(&tok)
 	require.NoError(t, err)
 
-	_, err = MakeFromToken("test_url", bts, nil)
+	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
 	if err == nil {
 		t.Fatal("no error on wrong token")
 	}
@@ -772,7 +772,7 @@ func TestMakeFromToken_WrongStructure(t *testing.T) {
 	bts, err = json.Marshal(&tok)
 	require.NoError(t, err)
 
-	_, err = MakeFromToken("test_url", bts, nil)
+	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
 	if err == nil {
 		t.Fatal("no error on wrong token")
 	}
@@ -788,7 +788,7 @@ func TestMakeFromToken(t *testing.T) {
 	bts, err := json.Marshal(&tok)
 	require.NoError(t, err)
 
-	_, err = MakeFromToken("test_url", bts, nil)
+	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
 	if err == nil {
 		t.Fatal("no error on expired token")
 	}
@@ -797,7 +797,7 @@ func TestMakeFromToken(t *testing.T) {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 
-	_, err = MakeFromToken("test", []byte("qwdqwdwq"), nil)
+	_, err = MakeFromToken("test", []byte("qwdqwdwq"), mock.NewLogr())
 	if err == nil {
 		t.Fatal("no error on wrong json returned")
 	}
@@ -821,7 +821,7 @@ func TestMakeFromToken(t *testing.T) {
 	tok = gocloak.JWT{AccessToken: realToken}
 	bts, err = json.Marshal(&tok)
 	require.NoError(t, err)
-	cl, err := MakeFromToken("test_url", bts, nil)
+	cl, err := MakeFromToken("test_url", bts, mock.NewLogr())
 	require.NoError(t, err)
 
 	exportToken, _ := cl.ExportToken()
@@ -837,7 +837,7 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 	mockClient.On("RestyClient").Return(restyClient)
 
 	a := GoCloakAdapter{
-		log:    &mock.Logger{},
+		log:    mock.NewLogr(),
 		client: &mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
 	}
