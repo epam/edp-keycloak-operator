@@ -2,32 +2,42 @@ package mock
 
 import "github.com/go-logr/logr"
 
-type InfoLogger struct {
-	InfoMessages map[string][]interface{}
-}
-
-func (i *InfoLogger) Info(msg string, keysAndValues ...interface{}) {
-	if i.InfoMessages == nil {
-		i.InfoMessages = make(map[string][]interface{})
-	}
-
-	i.InfoMessages[msg] = keysAndValues
-}
-
-func (InfoLogger) Enabled() bool {
-	return true
+func NewLogr() logr.Logger {
+	return logr.New(&Logger{})
 }
 
 type Logger struct {
-	InfoLogger
-	errors []error
+	errors       []error
+	infoMessages map[string][]interface{}
+}
+
+// Init implements logr.LogSink.
+func (log *Logger) Init(logr.RuntimeInfo) {
+}
+
+// Info implements logr.InfoLogger.
+func (l *Logger) Info(level int, msg string, keysAndValues ...interface{}) {
+	if l.infoMessages == nil {
+		l.infoMessages = make(map[string][]interface{})
+	}
+
+	l.infoMessages[msg] = keysAndValues
+}
+
+func (l *Logger) InfoMessages() map[string][]interface{} {
+	return l.infoMessages
+}
+
+// Enabled implements logr.InfoLogger.
+func (Logger) Enabled(level int) bool {
+	return true
 }
 
 func (l *Logger) Error(err error, msg string, keysAndValues ...interface{}) {
 	l.errors = append(l.errors, err)
 }
 
-func (l *Logger) LastError() error {
+func (l Logger) LastError() error {
 	if len(l.errors) == 0 {
 		return nil
 	}
@@ -35,14 +45,12 @@ func (l *Logger) LastError() error {
 	return l.errors[len(l.errors)-1]
 }
 
-func (Logger) V(level int) logr.Logger {
-	return &Logger{}
+// WithName implements logr.Logger.
+func (log *Logger) WithName(_ string) logr.LogSink {
+	return log
 }
 
-func (l *Logger) WithValues(keysAndValues ...interface{}) logr.Logger {
-	return l
-}
-
-func (l *Logger) WithName(name string) logr.Logger {
-	return l
+// WithValues implements logr.Logger.
+func (log *Logger) WithValues(_ ...interface{}) logr.LogSink {
+	return log
 }

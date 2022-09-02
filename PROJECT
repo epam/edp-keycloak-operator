@@ -1,0 +1,118 @@
+domain: edp.epam.com
+layout:
+- go.kubebuilder.io/v3
+plugins:
+  manifests.sdk.operatorframework.io/v2: {}
+  scorecard.sdk.operatorframework.io/v2: {}
+projectName: edp-argocd-operator
+repo: github.com/epam/edp-keycloak-operator
+resources:
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: Keycloak
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakAuthFlow
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakClient
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakClientScope
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmComponent
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealm
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmGroup
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmIdentityProvider
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmRole
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmRoleBatch
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: KeycloakRealmUser
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: Holosko
+  path: github.com/epam/edp-keycloak-operator/api/v1
+  version: v1
+version: "3"

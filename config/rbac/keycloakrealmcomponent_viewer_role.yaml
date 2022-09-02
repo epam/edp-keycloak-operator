@@ -1,0 +1,20 @@
+# permissions for end users to view keycloakrealmcomponents.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: keycloakrealmcomponent-viewer-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmcomponents
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmcomponents/status
+  verbs:
+  - get

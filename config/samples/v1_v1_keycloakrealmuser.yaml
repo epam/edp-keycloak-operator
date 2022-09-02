@@ -1,0 +1,6 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmUser
+metadata:
+  name: keycloakrealmuser-sample
+spec:
+  # TODO(user): Add fields here

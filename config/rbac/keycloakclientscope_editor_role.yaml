@@ -1,0 +1,24 @@
+# permissions for end users to edit keycloakclientscopes.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: keycloakclientscope-editor-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakclientscopes
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakclientscopes/status
+  verbs:
+  - get

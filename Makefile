@@ -1,7 +1,7 @@
 PACKAGE=github.com/epam/edp-common/pkg/config
 CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
-BIN_NAME=go-binary
+BIN_NAME=manager
 
 HOST_OS:=$(shell go env GOOS)
 HOST_ARCH:=$(shell go env GOARCH)
@@ -32,11 +32,12 @@ help:  ## Display this help
 
 .PHONY: manifests
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
-	$(CONTROLLER_GEN) crd paths="./..." output:crd:artifacts:config=deploy-templates/crds
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=deploy-templates/crds
+	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
 
 .PHONY: generate
-generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
-	$(CONTROLLER_GEN) rbac:roleName=manager-role object paths="./..."
+generate: controller-gen api-docs ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
+	$(CONTROLLER_GEN) object:headerFile="hack/boilerplate.go.txt" paths="./..."
 
 .PHONY: validate-docs
 validate-docs: api-docs helm-docs  ## Validate helm and api docs
@@ -47,9 +48,11 @@ validate-docs: api-docs helm-docs  ## Validate helm and api docs
 test: fmt vet
 	go test ./... -coverprofile=coverage.out `go list ./...`
 
+.PHONY: fmt
 fmt:  ## Run go fmt
 	go fmt ./...
 
+.PHONY: vet
 vet:  ## Run go vet
 	go vet ./...
 
@@ -58,7 +61,7 @@ lint: golangci-lint ## Run go lint
 
 .PHONY: build
 build: clean ## build operator's binary
-	CGO_ENABLED=0 GOOS=${HOST_OS} GOARCH=${HOST_ARCH} go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME} -gcflags '${GCFLAGS}' ./cmd/manager/main.go
+	CGO_ENABLED=0 GOOS=${HOST_OS} GOARCH=${HOST_ARCH} go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME} .
 
 .PHONY: clean
 clean:  ## clean up
@@ -81,28 +84,50 @@ api-docs: crdoc	## generate CRD docs
 helm-docs: helmdocs	## generate helm docs
 	$(HELMDOCS)
 
-
 GOLANGCILINT = ${CURRENT_DIR}/bin/golangci-lint
 .PHONY: golangci-lint
 golangci-lint: ## Download golangci-lint locally if necessary.
-	$(call go-get-tool,$(GOLANGCILINT),github.com/golangci/golangci-lint/cmd/golangci-lint,v1.48.0)
+	$(call go-get-tool,$(GOLANGCILINT),github.com/golangci/golangci-lint/cmd/golangci-lint,v1.49.0)
 
-HELMDOCS = ${CURRENT_DIR}/bin/helm-docs
+.PHONY: install
+install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
+	$(KUSTOMIZE) build config/crd | kubectl apply -f -
+
+##@ Build Dependencies
+
+## Location to install dependencies to
+LOCALBIN ?= ${CURRENT_DIR}/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+
+## Tool Binaries
+KUSTOMIZE ?= $(LOCALBIN)/kustomize
+
+## Tool Versions
+KUSTOMIZE_VERSION ?= v4.5.5
+
+KUSTOMIZE_INSTALL_SCRIPT ?= "https://raw.githubusercontent.com/kubernetes-sigs/kustomize/master/hack/install_kustomize.sh"
+.PHONY: kustomize
+kustomize: $(KUSTOMIZE) ## Download kustomize locally if necessary.
+$(KUSTOMIZE): $(LOCALBIN)
+	curl -s $(KUSTOMIZE_INSTALL_SCRIPT) | bash -s -- $(subst v,,$(KUSTOMIZE_VERSION)) $(LOCALBIN)
+
+HELMDOCS = $(LOCALBIN)/helm-docs
 .PHONY: helmdocs
 helmdocs: ## Download helm-docs locally if necessary.
 	$(call go-get-tool,$(HELMDOCS),github.com/norwoodj/helm-docs/cmd/helm-docs,v1.11.0)
 
-GITCHGLOG = ${CURRENT_DIR}/bin/git-chglog
+GITCHGLOG = $(LOCALBIN)/git-chglog
 .PHONY: git-chglog
 git-chglog: ## Download git-chglog locally if necessary.
 	$(call go-get-tool,$(GITCHGLOG),github.com/git-chglog/git-chglog/cmd/git-chglog,v0.15.1)
 
-CRDOC = ${CURRENT_DIR}/bin/crdoc
+CRDOC = $(LOCALBIN)/crdoc
 .PHONY: crdoc
 crdoc: ## Download crdoc locally if necessary.
 	$(call go-get-tool,$(CRDOC),fybrik.io/crdoc,v0.6.1)
 
-CONTROLLER_GEN = ${CURRENT_DIR}/bin/controller-gen
+CONTROLLER_GEN = $(LOCALBIN)/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
 	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,v0.9.2)

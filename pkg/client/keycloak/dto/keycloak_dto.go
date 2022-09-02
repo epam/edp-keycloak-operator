@@ -1,7 +1,7 @@
 package dto
 
 import (
-	keycloakApi "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 )
 
 const defaultClientProtocol = "openid-connect"

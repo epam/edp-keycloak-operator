@@ -1,0 +1,24 @@
+# permissions for end users to edit keycloakrealmidentityproviders.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: keycloakrealmidentityprovider-editor-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmidentityproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmidentityproviders/status
+  verbs:
+  - get
