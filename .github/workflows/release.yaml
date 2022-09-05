@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-    GOLANG_VERSION: '1.18'
+  GOLANG_VERSION: '1.18'
 
 jobs:
   prepare-release:
@@ -16,12 +16,12 @@ jobs:
       SOURCE_TAG: ${{ github.ref }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: '0'
 
       - name: Set up Go
-        uses: actions/setup-go@v2
+        uses: actions/setup-go@v3
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
