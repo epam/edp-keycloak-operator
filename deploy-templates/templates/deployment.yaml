@@ -27,7 +27,10 @@ spec:
           image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: "{{ .Values.imagePullPolicy }}"
           command:
-            - {{ .Values.name }}
+            - /manager
+          #TODO: provide leader election functionality
+          #args:
+          #  - --leader-elect
           securityContext:
             allowPrivilegeEscalation: false
           env:
@@ -39,10 +42,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.name
-            - name: OPERATOR_NAME
-              value: "{{ .Values.name }}"
-            - name: PLATFORM_TYPE
-              value: "{{ .Values.global.platform }}"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 8081
+            initialDelaySeconds: 5
+            periodSeconds: 10
           resources:
 {{ toYaml .Values.resources | indent 12 }}
       {{- with .Values.nodeSelector }}

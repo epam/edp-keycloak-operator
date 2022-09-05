@@ -1,16 +1,13 @@
-{{- if eq .Values.global.platform "kubernetes" -}}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
+  name: edp-{{ .Values.name }}-rolebinding
   labels:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
-  name: edp-{{ .Values.name }}-admin
 roleRef:
-  name: admin
   apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
+  kind: Role
+  name: edp-{{ .Values.name }}-role
 subjects:
   - kind: ServiceAccount
     name: edp-{{ .Values.name }}
-    namespace: {{ .Values.global.edpName }}
-{{- end -}}

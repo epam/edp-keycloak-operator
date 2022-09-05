@@ -8,7 +8,7 @@ webhook:
   port: 9443
 leaderElection:
   leaderElect: true
-  resourceName: 815759b8.edp.epam.com
+  resourceName: edp-keycloak-operator-lock
 #   leaderElectionReleaseOnCancel defines if the leader should step down volume 
 #   when the Manager ends. This requires the binary to immediately end when the
 #   Manager is stopped, otherwise, this setting is unsafe. Setting this significantly
