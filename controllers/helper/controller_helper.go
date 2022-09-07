@@ -3,8 +3,6 @@ package helper
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -19,17 +17,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	v13 "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/util"
 )
 
 const (
-	DefaultRequeueTime         = 120 * time.Second
-	StatusOK                   = "OK"
-	defaultConfigsAbsolutePath = "/usr/local/configs"
-	localConfigsRelativePath   = "configs"
+	DefaultRequeueTime       = 120 * time.Second
+	StatusOK                 = "OK"
+	localConfigsRelativePath = "build/configs"
 )
 
 type adapterBuilder func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
@@ -67,7 +63,7 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 			log logr.Logger,
 			restyClient *resty.Client,
 		) (keycloak.Client, error) {
-			if adminType == v13.KeycloakAdminTypeServiceAccount {
+			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
 				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make go keycloak adapter from seviceaccount: %w", err)
@@ -92,8 +88,8 @@ func (e OwnerNotFoundError) Error() string {
 	return string(e)
 }
 
-func (h *Helper) GetOwnerKeycloak(slave *v1.ObjectMeta) (*v13.Keycloak, error) {
-	var kc v13.Keycloak
+func (h *Helper) GetOwnerKeycloak(slave *v1.ObjectMeta) (*keycloakApi.Keycloak, error) {
+	var kc keycloakApi.Keycloak
 	if err := h.GetOwner(slave, &kc, "Keycloak"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak owner")
 	}
@@ -101,8 +97,8 @@ func (h *Helper) GetOwnerKeycloak(slave *v1.ObjectMeta) (*v13.Keycloak, error) {
 	return &kc, nil
 }
 
-func (h *Helper) GetOwnerKeycloakRealm(slave *v1.ObjectMeta) (*v13.KeycloakRealm, error) {
-	var realm v13.KeycloakRealm
+func (h *Helper) GetOwnerKeycloakRealm(slave *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
+	var realm keycloakApi.KeycloakRealm
 	if err := h.GetOwner(slave, &realm, "KeycloakRealm"); err != nil {
 		return nil, errors.Wrap(err, "unable to get keycloak realm owner")
 	}
@@ -151,8 +147,8 @@ func getOwnerRef(references []v1.OwnerReference, typeName string) *v1.OwnerRefer
 	return nil
 }
 
-func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*v13.KeycloakClient, error) {
-	instance := &v13.KeycloakClient{}
+func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*keycloakApi.KeycloakClient, error) {
+	instance := &keycloakApi.KeycloakClient{}
 
 	err := client.Get(context.TODO(), nsn, instance)
 	if err != nil {
@@ -203,13 +199,13 @@ func RemoveString(slice []string, s string) (result []string) {
 	return
 }
 
-func (h *Helper) getKeycloakFromSpec(realm *v13.KeycloakRealm) (*v13.Keycloak, error) {
+func (h *Helper) getKeycloakFromSpec(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
 	if realm.Spec.KeycloakOwner == "" {
 		return nil, errors.Errorf(
 			"keycloak owner is not specified neither in ownerReference nor in spec for realm %s", realm.Name)
 	}
 
-	var k v13.Keycloak
+	var k keycloakApi.Keycloak
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.KeycloakOwner,
@@ -224,7 +220,7 @@ func (h *Helper) getKeycloakFromSpec(realm *v13.KeycloakRealm) (*v13.Keycloak, e
 	return &k, nil
 }
 
-func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *v13.KeycloakRealm) (*v13.Keycloak, error) {
+func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
 	o, err := h.GetOwnerKeycloak(&realm.ObjectMeta)
 	if err != nil {
 		ownerNotFoundErr := OwnerNotFoundError("")
@@ -242,8 +238,8 @@ func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *v13.KeycloakRealm) (*v13.Key
 	return o, nil
 }
 
-func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*v13.KeycloakRealm, error) {
-	var realm v13.KeycloakRealm
+func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*keycloakApi.KeycloakRealm, error) {
+	var realm keycloakApi.KeycloakRealm
 	if err := h.client.Get(context.TODO(), types.NamespacedName{
 		Name:      name,
 		Namespace: object.GetNamespace(),
@@ -264,7 +260,7 @@ type RealmChild interface {
 	v1.Object
 }
 
-func (h *Helper) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.ObjectMeta) (*v13.KeycloakRealm, error) {
+func (h *Helper) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
 	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
 	if err != nil {
 		ownerNotFoundErr := OwnerNotFoundError("")
@@ -350,37 +346,6 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 	return true, nil
 }
 
-func getExecutableFilePath() (string, error) {
-	executableFilePath, err := os.Executable()
-	if err != nil {
-		return "", fmt.Errorf("failed to get executble file path: %w", err)
-	}
-
-	return filepath.Dir(executableFilePath), nil
-}
-
-func createPath(directory string, localRun bool) (string, error) {
-	if localRun {
-		executableFilePath, err := getExecutableFilePath()
-		if err != nil {
-			return "", errors.Wrapf(err, "Unable to get executable file path")
-		}
-
-		templatePath := fmt.Sprintf("%v/../%v/%v", executableFilePath, localConfigsRelativePath, directory)
-
-		return templatePath, nil
-	}
-
-	templatePath := fmt.Sprintf("%s/%s", defaultConfigsAbsolutePath, directory)
-
-	return templatePath, nil
-}
-
-func checkIfRunningLocally() bool {
-	return !util.RunningInCluster()
-}
-
-func CreatePathToTemplateDirectory(directory string) (string, error) {
-	localRun := checkIfRunningLocally()
-	return createPath(directory, localRun)
+func CreatePathToTemplateDirectory(directory string) string {
+	return fmt.Sprintf("%s/%s", localConfigsRelativePath, directory)
 }
