@@ -7,6 +7,18 @@ metadata:
   namespace: placeholder
 rules:
 - apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
   - v1.edp.epam.com
   resources:
   - edpcomponents

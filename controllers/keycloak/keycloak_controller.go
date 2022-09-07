@@ -335,10 +335,7 @@ func (r *ReconcileKeycloak) createEDPComponent(ctx context.Context, instance *ke
 }
 
 func getIcon() (*string, error) {
-	p, err := helper.CreatePathToTemplateDirectory(imgFolder)
-	if err != nil {
-		return nil, pkgErrors.Wrapf(err, "unable to create path to template dir: %s", imgFolder)
-	}
+	p := helper.CreatePathToTemplateDirectory(imgFolder)
 
 	fp := fmt.Sprintf("%v/%v", p, keycloakIcon)
 
