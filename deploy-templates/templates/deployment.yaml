@@ -28,9 +28,6 @@ spec:
           imagePullPolicy: "{{ .Values.imagePullPolicy }}"
           command:
             - /manager
-          #TODO: provide leader election functionality
-          #args:
-          #  - --leader-elect
           securityContext:
             allowPrivilegeEscalation: false
           env:
