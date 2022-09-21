@@ -4,7 +4,7 @@ layout:
 plugins:
   manifests.sdk.operatorframework.io/v2: {}
   scorecard.sdk.operatorframework.io/v2: {}
-projectName: edp-argocd-operator
+projectName: edp-keycloak-operator
 repo: github.com/epam/edp-keycloak-operator
 resources:
 - api:
