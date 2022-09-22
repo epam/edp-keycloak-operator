@@ -3,4 +3,6 @@ kind: KeycloakRealmGroup
 metadata:
   name: keycloakrealmgroup-sample
 spec:
-  # TODO(user): Add fields here
+  clientRoles: null
+  name: ArgoCDAdmins
+  realm: main

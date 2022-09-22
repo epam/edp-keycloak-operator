@@ -33,13 +33,13 @@ annotations:
       image: epamedp/keycloak-operator:1.12.0
     - name: alpine:3.16.2
       image: alpine:3.16.2
-  artifacthub.io/operatorCapabilities: Auto Pilot
+  artifacthub.io/operatorCapabilities: Deep Insights
   artifacthub.io/crds: |
     - kind: Keycloak
       version: v1.edp.epam.com/v1
       name: keycloak
       displayName: keycloak
-      description: Keycloak instance baseline configuraion
+      description: Keycloak instance baseline configuration
     - kind: KeycloakAuthFlow
       version: v1.edp.epam.com/v1
       name: keycloakauthflows
@@ -74,7 +74,7 @@ annotations:
       version: v1.edp.epam.com/v1
       name: keycloakrealmidentityprovider
       displayName: KeycloakRealmIdentityProvider
-      description: Keycloak Realm Indentity Provider Management
+      description: Keycloak Realm Identity Provider Management
     - kind: KeycloakRealmRole
       version: v1.edp.epam.com/v1
       name: keycloakrealmrole

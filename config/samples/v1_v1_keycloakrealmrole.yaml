@@ -3,4 +3,9 @@ kind: KeycloakRealmRole
 metadata:
   name: keycloakrealmrole-sample
 spec:
-  # TODO(user): Add fields here
+  attributes: null
+  composite: true
+  composites: null
+  description: default developer role
+  name: developer
+  realm: main

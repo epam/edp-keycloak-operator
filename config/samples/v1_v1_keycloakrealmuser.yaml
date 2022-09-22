@@ -3,4 +3,17 @@ kind: KeycloakRealmUser
 metadata:
   name: keycloakrealmuser-sample
 spec:
-  # TODO(user): Add fields here
+  realm: d1-id-k8s-realm-name
+  username: "john.snow13"
+  firstName: "John"
+  lastName: "Snow"
+  email: "john.snow13@example.com"
+  enabled: true
+  emailVerified: true
+  password: "12345678"
+  keepResource: true
+  requiredUserActions:
+    - UPDATE_PASSWORD
+  attributes:
+    foo: "bar"
+    baz: "jazz"

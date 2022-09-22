@@ -3,4 +3,17 @@ kind: KeycloakRealmRoleBatch
 metadata:
   name: keycloakrealmrolebatch-sample
 spec:
-  # TODO(user): Add fields here
+  realm: main
+  roles:
+    - attributes: null
+      composite: true
+      composites: null
+      description: default developer role
+      isDefault: false
+      name: developer
+    - attributes: null
+      composite: true
+      composites: null
+      description: default administrator role
+      isDefault: false
+      name: administrator
