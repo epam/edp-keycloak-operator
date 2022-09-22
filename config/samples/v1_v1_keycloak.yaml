@@ -3,4 +3,12 @@ kind: Keycloak
 metadata:
   name: keycloak-sample
 spec:
-  # TODO(user): Add fields here
+  secret: my-keycloak-secret
+  url: https://example.com
+  users:
+  - realmRoles:
+    - administrator
+    username: test@example.com
+  - realmRoles:
+    - developer
+    username: test-dev@example.com

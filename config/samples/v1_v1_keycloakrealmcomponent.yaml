@@ -3,4 +3,21 @@ kind: KeycloakRealmComponent
 metadata:
   name: keycloakrealmcomponent-sample
 spec:
-  # TODO(user): Add fields here
+  realm: d1-id-k8s-realm-name
+  name: cr-kerb-test
+  providerId: kerberos
+  providerType: "org.keycloak.storage.UserStorageProvider"
+  config:
+    allowPasswordAuthentication: ["true"]
+    cachePolicy: ["EVICT_WEEKLY"]
+    debug: ["true"]
+    editMode: ["READ_ONLY"]
+    enabled: ["true"]
+    evictionDay: ["3"]
+    evictionHour: ["5"]
+    evictionMinute: ["7"]
+    kerberosRealm: ["test-realm"]
+    keyTab: ["test-key-tab"]
+    priority: ["0"]
+    serverPrincipal: ["srv-principal-test"]
+    updateProfileFirstLogin: ["true"]

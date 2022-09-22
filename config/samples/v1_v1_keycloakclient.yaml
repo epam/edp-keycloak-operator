@@ -3,4 +3,12 @@ kind: KeycloakClient
 metadata:
   name: keycloakclient-sample
 spec:
-  # TODO(user): Add fields here
+  advancedProtocolMappers: true
+  clientId: agocd
+  directAccess: true
+  public: false
+  secret: ''
+  targetRealm: edp-main
+  webUrl: https://argocd.example.com
+  defaultClientScopes:
+    - argocd_groups

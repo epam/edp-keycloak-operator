@@ -3,4 +3,29 @@ kind: KeycloakRealmIdentityProvider
 metadata:
   name: keycloakrealmidentityprovider-sample
 spec:
-  # TODO(user): Add fields here
+  realm: d2-id-k8s-realm-name
+  alias: instagram
+  authenticateByDefault: false
+  enabled: true
+  firstBrokerLoginFlowAlias: "first broker login"
+  providerId: "instagram"
+  config:
+    clientId: "foo"
+    clientSecret: "bar"
+    hideOnLoginPage: "true"
+    syncMode: "IMPORT"
+    useJwksUrl: "true"
+  mappers:
+    - name: "test3212"
+      identityProviderMapper: "oidc-hardcoded-role-idp-mapper"
+      identityProviderAlias: "instagram"
+      config:
+        role: "role-tr"
+        syncMode: "INHERIT"
+    - name: "test-33221"
+      identityProviderMapper: "hardcoded-attribute-idp-mapper"
+      identityProviderAlias: "instagram"
+      config:
+        attribute: "foo"
+        "attribute.value": "bar"
+        syncMode: "IMPORT"

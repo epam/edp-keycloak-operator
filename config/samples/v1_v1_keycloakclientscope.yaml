@@ -3,4 +3,17 @@ kind: KeycloakClientScope
 metadata:
   name: keycloakclientscope-sample
 spec:
-  # TODO(user): Add fields here
+  name: groups
+  realm: main
+  description: "Group Membership"
+  protocol: openid-connect
+  protocolMappers:
+    - name: groups
+      protocol: openid-connect
+      protocolMapper: "oidc-group-membership-mapper"
+      config:
+        "access.token.claim": "true"
+        "claim.name": "groups"
+        "full.path": "false"
+        "id.token.claim": "true"
+        "userinfo.token.claim": "true"

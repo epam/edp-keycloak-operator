@@ -3,4 +3,20 @@ kind: KeycloakAuthFlow
 metadata:
   name: keycloakauthflow-sample
 spec:
-  # TODO(user): Add fields here
+  realm: d2-id-k8s-realm-name
+  alias: MyBrowser
+  description: browser with idp
+  providerId: basic-flow
+  topLevel: true
+  builtIn: false
+  authenticationExecutions:
+    - authenticator: "auth-cookie"
+      priority: 0
+      requirement: "ALTERNATIVE"
+    - authenticator: "identity-provider-redirector"
+      priority: 1
+      requirement: "REQUIRED"
+      authenticatorConfig:
+        alias: my-alias
+        config:
+          "defaultProvider": "my-alias"
