@@ -2,17 +2,8 @@ apiVersion: v1.edp.epam.com/v1
 kind: Keycloak
 metadata:
   name: "main"
+  labels:
+    {{- include "keycloak-operator.labels" . | nindent 4 }}
 spec:
   url: {{ .Values.keycloak.url }}
   secret: "keycloak"
-  users:
-  {{- range .Values.global.admins }}
-  - username: {{.}}
-    realmRoles:
-      - administrator
-  {{- end}}
-  {{- range .Values.global.developers }}
-  - username: {{.}}
-    realmRoles:
-      - developer
-  {{- end}}

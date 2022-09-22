@@ -2658,68 +2658,6 @@ KeycloakSpec defines the desired state of Keycloak.
             <i>Enum</i>: serviceAccount, user<br/>
         </td>
         <td>false</td>
-      </tr><tr>
-        <td><b>installMainRealm</b></td>
-        <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>realmName</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoRealmName</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#keycloakspecusersindex">users</a></b></td>
-        <td>[]object</td>
-        <td>
-          Users is a list of keycloak users<br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### Keycloak.spec.users[index]
-<sup><sup>[↩ Parent](#keycloakspec)</sup></sup>
-
-
-
-
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>username</b></td>
-        <td>string</td>
-        <td>
-          Username of keycloak user<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
-        <td><b>realmRoles</b></td>
-        <td>[]string</td>
-        <td>
-          RealmRoles is a list of roles attached to keycloak user<br/>
-        </td>
-        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -5425,7 +5363,7 @@ KeycloakSpec defines the desired state of Keycloak.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b><a href="#keycloakspecusersindex-1">users</a></b></td>
+        <td><b><a href="#keycloakspecusersindex">users</a></b></td>
         <td>[]object</td>
         <td>
           Users is a list of keycloak users<br/>

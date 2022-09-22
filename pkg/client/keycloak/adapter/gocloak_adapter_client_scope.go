@@ -117,7 +117,7 @@ func (a GoCloakAdapter) needToUpdateDefault(ctx context.Context, realmName strin
 	return currentScopeDefaultState != scope.Default, nil
 }
 
-//TODO: add context.
+// TODO: add context.
 func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScope, error) {
 	log := a.log.WithValues("scopeName", scopeName, logKeyRealm, realmName)
 	log.Info("Start get Client Scope...")

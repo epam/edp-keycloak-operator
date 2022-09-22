@@ -260,13 +260,6 @@ annotations:
       spec:
         secret: my-keycloak-secret
         url: https://example.com
-        users:
-        - realmRoles:
-          - administrator
-          username: test@example.com
-        - realmRoles:
-          - developer
-          username: test-dev@example.com
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmRoleBatch
       metadata:

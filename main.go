@@ -21,7 +21,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	buildInfo "github.com/epam/edp-common/pkg/config"
-	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/api/v1/v1alpha1"
@@ -58,8 +57,8 @@ func main() {
 		enableLeaderElection bool
 	)
 
-	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8080", "The address the metric endpoint binds to.")
-	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
+	flag.StringVar(&metricsAddr, "metrics-bind-address", ":8090", "The address the metric endpoint binds to.")
+	flag.StringVar(&probeAddr, "health-probe-bind-address", ":8091", "The address the probe endpoint binds to.")
 	flag.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+
 			"Enabling this will ensure there is only one active controller manager.")
@@ -88,7 +87,6 @@ func main() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(keycloakApi1alpha1.AddToScheme(scheme))
-	utilruntime.Must(edpCompApi.AddToScheme(scheme))
 
 	ns, err := util.GetWatchNamespace()
 	if err != nil {

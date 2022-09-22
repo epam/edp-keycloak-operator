@@ -5,7 +5,6 @@ go 1.18
 require (
 	github.com/Nerzal/gocloak/v10 v10.0.1
 	github.com/epam/edp-common v0.0.0-20220711080345-7101f46c9b91
-	github.com/epam/edp-component-operator v0.12.0
 	github.com/go-logr/logr v1.2.0
 	github.com/go-resty/resty/v2 v2.7.0
 	github.com/google/uuid v1.1.2

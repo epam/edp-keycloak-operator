@@ -5,10 +5,4 @@ metadata:
 spec:
   secret: my-keycloak-secret
   url: https://example.com
-  users:
-  - realmRoles:
-    - administrator
-    username: test@example.com
-  - realmRoles:
-    - developer
-    username: test-dev@example.com
+
