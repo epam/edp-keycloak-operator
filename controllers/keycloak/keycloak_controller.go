@@ -1,30 +1,21 @@
 package keycloak
 
 import (
-	"bufio"
 	"context"
-	"encoding/base64"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"sync"
 	"time"
 
 	"github.com/go-logr/logr"
 	pkgErrors "github.com/pkg/errors"
 	"k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
@@ -85,9 +76,6 @@ func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager, successReconcileT
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloaks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloaks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloaks/finalizers,verbs=update
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=edpcomponents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=edpcomponents/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=edpcomponents/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling Keycloak object.
 func (r *ReconcileKeycloak) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
@@ -131,14 +119,6 @@ func (r *ReconcileKeycloak) tryToReconcile(ctx context.Context, instance *keyclo
 
 	if !con {
 		return pkgErrors.New("Keycloak CR status is not connected")
-	}
-
-	if err := r.putMainRealm(ctx, instance); err != nil {
-		return pkgErrors.Wrap(err, "unable to put main realm")
-	}
-
-	if err := r.putEDPComponent(ctx, instance); err != nil {
-		return pkgErrors.Wrap(err, "unable to put edp component")
 	}
 
 	return nil
@@ -193,72 +173,6 @@ func (r *ReconcileKeycloak) isInstanceConnected(ctx context.Context, instance *k
 	return err == nil, nil
 }
 
-func (r *ReconcileKeycloak) putMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues(keycloakCRLogKey, instance)
-	log.Info("Start put main realm into k8s")
-
-	if !instance.Spec.GetInstallMainRealm() {
-		log.Info("Creation of main realm disabled")
-		return nil
-	}
-
-	nsn := types.NamespacedName{
-		Name:      "main",
-		Namespace: instance.Namespace,
-	}
-	realmCr := &keycloakApi.KeycloakRealm{}
-	err := r.client.Get(ctx, nsn, realmCr)
-
-	log.Info("Realm has been retrieved from k8s", "realmCr", realmCr)
-
-	if errors.IsNotFound(err) {
-		return r.createMainRealm(ctx, instance)
-	}
-
-	if err != nil {
-		return fmt.Errorf("failed to get main realm: %w", err)
-	}
-
-	return nil
-}
-
-func (r *ReconcileKeycloak) createMainRealm(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues(keycloakCRLogKey, instance)
-	log.Info("Start creation of main Keycloak Realm CR")
-
-	ssoRealm := defaultRealmName
-
-	if len(instance.Spec.SsoRealmName) != 0 {
-		ssoRealm = instance.Spec.SsoRealmName
-	}
-
-	realmCr := &keycloakApi.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      "main",
-			Namespace: instance.Namespace,
-		},
-		Spec: keycloakApi.KeycloakRealmSpec{
-			KeycloakOwner: instance.Name,
-			RealmName:     fmt.Sprintf("%s-%s", instance.Namespace, "main"),
-			Users:         instance.Spec.Users,
-			SsoRealmName:  ssoRealm,
-		},
-	}
-
-	err := controllerutil.SetControllerReference(instance, realmCr, r.scheme)
-	if err != nil {
-		return pkgErrors.Wrapf(err, "unable to update ControllerReference of main realm, realm: %+v", realmCr)
-	}
-
-	if err := r.client.Create(ctx, realmCr); err != nil {
-		return pkgErrors.Wrapf(err, "unable to create main realm cr: %+v", realmCr)
-	}
-
-	log.Info("Keycloak Realm CR has been created", "keycloak realm", realmCr)
-
-	return nil
-}
-
 func (r *ReconcileKeycloak) isStatusConnected(ctx context.Context, request reconcile.Request) (bool, error) {
 	r.log.Info("Check is status of CR is connected", "request", request)
 
@@ -272,86 +186,4 @@ func (r *ReconcileKeycloak) isStatusConnected(ctx context.Context, request recon
 	r.log.Info("Retrieved the actual cr for Keycloak", keycloakCRLogKey, instance)
 
 	return instance.Status.Connected, nil
-}
-
-func (r *ReconcileKeycloak) putEDPComponent(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues("instance", instance)
-	log.Info("Start put edp component")
-
-	nsn := types.NamespacedName{
-		Name:      fmt.Sprintf("%v-keycloak", instance.Name),
-		Namespace: instance.Namespace,
-	}
-	comp := &edpCompApi.EDPComponent{}
-
-	err := r.client.Get(ctx, nsn, comp)
-	if err == nil {
-		log.V(1).Info("EDP Component has been retrieved from k8s", "edp component", comp)
-		return nil
-	}
-
-	if errors.IsNotFound(err) {
-		return r.createEDPComponent(ctx, instance)
-	}
-
-	return pkgErrors.Wrapf(err, "unable to get edp component")
-}
-
-func (r *ReconcileKeycloak) createEDPComponent(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := r.log.WithValues("instance", instance)
-	log.Info("Start creation of EDP Component for Keycloak")
-
-	icon, err := getIcon()
-	if err != nil {
-		return pkgErrors.Wrapf(err, "unable to get icon for instance: %+v", instance)
-	}
-
-	comp := &edpCompApi.EDPComponent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name:      fmt.Sprintf("%v-keycloak", instance.Name),
-			Namespace: instance.Namespace,
-		},
-		Spec: edpCompApi.EDPComponentSpec{
-			Type:    "keycloak",
-			Url:     fmt.Sprintf("%v/%v", instance.Spec.Url, "auth"),
-			Icon:    *icon,
-			Visible: true,
-		},
-	}
-
-	err = controllerutil.SetControllerReference(instance, comp, r.scheme)
-	if err != nil {
-		return pkgErrors.Wrapf(err, "unable to set controller reference for component: %+v", comp)
-	}
-
-	err = r.client.Create(ctx, comp)
-	if err != nil {
-		return pkgErrors.Wrapf(err, "unable to create component: %+v", comp)
-	}
-
-	log.Info("EDP component has been created", "edp component", comp)
-
-	return nil
-}
-
-func getIcon() (*string, error) {
-	p := helper.CreatePathToTemplateDirectory(imgFolder)
-
-	fp := fmt.Sprintf("%v/%v", p, keycloakIcon)
-
-	f, err := os.Open(fp)
-	if err != nil {
-		return nil, pkgErrors.Wrapf(err, "unable to open file: %s", fp)
-	}
-
-	reader := bufio.NewReader(f)
-
-	content, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return nil, pkgErrors.Wrapf(err, "unable to read content of file: %s", fp)
-	}
-
-	encoded := base64.StdEncoding.EncodeToString(content)
-
-	return &encoded, nil
 }

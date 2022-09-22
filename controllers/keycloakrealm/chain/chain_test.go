@@ -30,8 +30,18 @@ func TestCreateDefChain(t *testing.T) {
 	clientSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-client.test.test.secret", Namespace: ns},
 		Data: map[string][]byte{"clientSecret": []byte(kServerUsr)}}
 
-	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		Spec: keycloakApi.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName)},
+	ssoEnable := true
+
+	kr := keycloakApi.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		Spec: keycloakApi.KeycloakRealmSpec{
+			KeycloakOwner:   k.Name,
+			RealmName:       fmt.Sprintf("%v.%v", ns, kRealmName),
+			SsoRealmEnabled: &ssoEnable,
+		},
 	}
 
 	s := scheme.Scheme
@@ -81,9 +91,14 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: kSecretName, Namespace: ns}, Data: map[string][]byte{
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
+	ssoEnabled := true
+
 	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		Spec: keycloakApi.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
-			SsoRealmName: "openshift",
+		Spec: keycloakApi.KeycloakRealmSpec{
+			KeycloakOwner:   k.Name,
+			RealmName:       fmt.Sprintf("%v.%v", ns, kRealmName),
+			SsoRealmName:    "openshift",
+			SsoRealmEnabled: &ssoEnabled,
 			Users: []keycloakApi.User{
 				{RealmRoles: []string{"foo", "bar"}},
 			}},

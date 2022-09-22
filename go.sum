@@ -136,8 +136,6 @@ github.com/envoyproxy/go-control-plane v0.9.9-0.20210512163311-63b5d3c536b0/go.m
 github.com/envoyproxy/protoc-gen-validate v0.1.0/go.mod h1:iSmxcyjqTsJpI2R4NaDN7+kN2VEUnK/pcBlmesArF7c=
 github.com/epam/edp-common v0.0.0-20220711080345-7101f46c9b91 h1:3ewq6K775TIkFeoNG8fs8oJyopid38p1c0mXbchtHoo=
 github.com/epam/edp-common v0.0.0-20220711080345-7101f46c9b91/go.mod h1:UQK0LArdEkmZtBG9qUut5ODWAUBu/je2JcB4vsdKdeQ=
-github.com/epam/edp-component-operator v0.12.0 h1:0zD7nPDmrPw8ZX5D+lQnXWivxUQdt3iUyjC4A+Rire8=
-github.com/epam/edp-component-operator v0.12.0/go.mod h1:RaKWb5kdmRfuaN4hVQ+8CQSdFAa8lxi4Dx6phBs+/2Y=
 github.com/evanphx/json-patch v0.5.2/go.mod h1:ZWS5hhDbVDyob71nXKNL0+PWn6ToqBHMikGIFbs31qQ=
 github.com/evanphx/json-patch v4.12.0+incompatible h1:4onqiflcdA9EOZ4RxV643DvftH5pOlLGNtQ5lPWQu84=
 github.com/evanphx/json-patch v4.12.0+incompatible/go.mod h1:50XU6AFN0ol/bzJsmQLiYLvXMP4fmwYFNcr97nuDLSk=

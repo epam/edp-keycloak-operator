@@ -2,11 +2,8 @@ package keycloak
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
-	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,8 +16,6 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
-
-	edpCompApi "github.com/epam/edp-component-operator/pkg/apis/v1/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
@@ -64,7 +59,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		cr, secret,
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, &edpCompApi.EDPComponent{})
+	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
@@ -110,100 +105,9 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 	assert.True(t, k8sErrors.IsNotFound(err))
 }
 
-func TestReconcileKeycloak_ReconcileCreateMainRealm(t *testing.T) {
-	cr := &keycloakApi.Keycloak{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Keycloak",
-			APIVersion: "apps/v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec:       keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
-		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
-	}
-	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
-		Namespace: cr.Namespace}}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, comp)
-	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
-
-	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
-
-	kClient := adapter.Mock{}
-	logger := mock.NewLogr()
-	h := helper.Mock{}
-	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.TokenExpiredError("token expired"))
-	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
-
-	r := ReconcileKeycloak{
-		client: cl,
-		scheme: s,
-		log:    logger,
-		helper: &h,
-	}
-
-	_, err := r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-
-	err = cl.Get(context.Background(),
-		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{})
-	require.NoError(t, err)
-}
-
-func TestReconcileKeycloak_ReconcileDontCreateMainRealm(t *testing.T) {
-	cr := &keycloakApi.Keycloak{TypeMeta: metav1.TypeMeta{
-		Kind:       "Keycloak",
-		APIVersion: "apps/v1",
-	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
-			InstallMainRealm: gocloak.BoolP(false)}}
-	secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: "namespace"},
-		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")},
-	}
-	comp := &edpCompApi.EDPComponent{ObjectMeta: metav1.ObjectMeta{Name: fmt.Sprintf("%v-keycloak", cr.Name),
-		Namespace: cr.Namespace}}
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{}, comp)
-	cl := fake.NewClientBuilder().WithRuntimeObjects(cr, secret, comp).Build()
-
-	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: cr.Name, Namespace: cr.Namespace}}
-	kClient := adapter.Mock{}
-	logger := mock.NewLogr()
-	h := helper.Mock{}
-	h.On("CreateKeycloakClientFromTokenSecret", cr).
-		Return(nil, adapter.TokenExpiredError("token expired"))
-	h.On("CreateKeycloakClientFromLoginPassword", cr).Return(&kClient, nil)
-
-	r := ReconcileKeycloak{
-		client:                  cl,
-		scheme:                  s,
-		log:                     logger,
-		helper:                  &h,
-		successReconcileTimeout: time.Hour,
-	}
-
-	res, err := r.Reconcile(context.TODO(), req)
-	if err != nil {
-		t.Fatalf("%+v", err)
-	}
-
-	if res.RequeueAfter != r.successReconcileTimeout {
-		t.Fatal("result RequeueAfter is not set")
-	}
-
-	if err := cl.Get(context.Background(),
-		types.NamespacedName{Namespace: cr.Namespace, Name: "main"}, &keycloakApi.KeycloakRealm{}); err == nil {
-		t.Fatal("main realm has been created")
-	}
-}
-
 func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 	cr := &keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
-			InstallMainRealm: gocloak.BoolP(false)}}
+		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
@@ -254,8 +158,7 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 		Kind:       "Keycloak",
 		APIVersion: "apps/v1",
 	}, ObjectMeta: metav1.ObjectMeta{Name: "NewKeycloak", Namespace: "namespace"},
-		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret",
-			InstallMainRealm: gocloak.BoolP(false)}}
+		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
@@ -326,55 +229,4 @@ func TestReconcileKeycloak_Reconcile_FailureIsStatusConnected(t *testing.T) {
 	require.True(t, ok, "wrong logger type")
 	require.Error(t, loggerSink.LastError())
 	assert.Contains(t, loggerSink.LastError().Error(), "isStatusConnected fatal")
-}
-
-func TestReconcileKeycloak_Reconcile_FailurePutMainRealm(t *testing.T) {
-	cl := helper.K8SClientMock{}
-	sch := runtime.NewScheme()
-
-	err := keycloakApi.AddToScheme(sch)
-	require.NoError(t, err)
-
-	hm := helper.Mock{}
-	kClMock := adapter.Mock{}
-	logger := mock.NewLogr()
-
-	kc := keycloakApi.Keycloak{Status: keycloakApi.KeycloakStatus{Connected: true}, ObjectMeta: metav1.ObjectMeta{
-		Name:      "kc-main",
-		Namespace: "kc-ns",
-	}, Spec: keycloakApi.KeycloakSpec{Secret: "kc-secret-name"},
-		TypeMeta: metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1", Kind: "Keycloak"}}
-
-	rq := reconcile.Request{NamespacedName: types.NamespacedName{Name: kc.Name, Namespace: kc.Namespace}}
-	sec := corev1.Secret{}
-	realmCr := keycloakApi.KeycloakRealm{}
-
-	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&kc).Build()
-	cl.On("Scheme").Return(fakeCl)
-	cl.On("Status").Return(fakeCl)
-
-	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
-	cl.On("Get", types.NamespacedName{}, &sec).Return(nil)
-	hm.On("CreateKeycloakClientFromTokenSecret", &kc).
-		Return(nil, adapter.TokenExpiredError("token expired"))
-	hm.On("CreateKeycloakClientFromLoginPassword", &kc).Return(&kClMock, nil)
-
-	cl.On("Get", rq.NamespacedName, &keycloakApi.Keycloak{}).Return(fakeCl).Once()
-	cl.On("Get", types.NamespacedName{Name: "main", Namespace: kc.Namespace}, &realmCr).
-		Return(errors.New("get main realm fatal"))
-
-	r := ReconcileKeycloak{
-		client: &cl,
-		scheme: cl.Scheme(),
-		log:    logger,
-		helper: &hm,
-	}
-
-	_, err = r.Reconcile(context.Background(), rq)
-	require.NoError(t, err)
-
-	loggerSink, ok := logger.GetSink().(*mock.Logger)
-	require.True(t, ok, "wrong logger type")
-	require.Error(t, loggerSink.LastError())
-	assert.Contains(t, loggerSink.LastError().Error(), "get main realm fatal")
 }

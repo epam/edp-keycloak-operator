@@ -49,18 +49,6 @@ func (in *Keycloak) GetAdminType() string {
 	return in.Spec.AdminType
 }
 
-func (in *KeycloakSpec) GetInstallMainRealm() bool {
-	return in.InstallMainRealm == nil || *in.InstallMainRealm
-}
-
-type User struct {
-	// Username of keycloak user
-	Username string `json:"username"`
-
-	// RealmRoles is a list of roles attached to keycloak user
-	RealmRoles []string `json:"realmRoles,omitempty"`
-}
-
 // KeycloakStatus defines the observed state of Keycloak.
 type KeycloakStatus struct {
 	Connected bool `json:"connected"`

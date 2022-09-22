@@ -12,21 +12,6 @@ type KeycloakSpec struct {
 	// Secret is the name of the k8s object Secret related to keycloak
 	Secret string `json:"secret"`
 
-	// +optional
-	RealmName string `json:"realmName,omitempty"`
-
-	// +optional
-	SsoRealmName string `json:"ssoRealmName,omitempty"`
-
-	// Users is a list of keycloak users
-	// +nullable
-	// +optional
-	Users []User `json:"users,omitempty"`
-
-	// +nullable
-	// +optional
-	InstallMainRealm *bool `json:"installMainRealm,omitempty"`
-
 	// AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token
 	// +optional
 	// +kubebuilder:validation:Enum=serviceAccount;user
@@ -44,18 +29,6 @@ func (in *Keycloak) GetAdminType() string {
 	}
 
 	return in.Spec.AdminType
-}
-
-func (in *KeycloakSpec) GetInstallMainRealm() bool {
-	return in.InstallMainRealm == nil || *in.InstallMainRealm
-}
-
-type User struct {
-	// Username of keycloak user
-	Username string `json:"username"`
-
-	// RealmRoles is a list of roles attached to keycloak user
-	RealmRoles []string `json:"realmRoles,omitempty"`
 }
 
 // KeycloakStatus defines the observed state of Keycloak.

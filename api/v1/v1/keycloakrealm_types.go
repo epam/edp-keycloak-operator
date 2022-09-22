@@ -58,6 +58,14 @@ type KeycloakRealmSpec struct {
 	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
 }
 
+type User struct {
+	// Username of keycloak user
+	Username string `json:"username"`
+
+	// RealmRoles is a list of roles attached to keycloak user
+	RealmRoles []string `json:"realmRoles,omitempty"`
+}
+
 type PasswordPolicy struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
@@ -108,7 +116,7 @@ type RealmThemes struct {
 }
 
 func (in *KeycloakRealmSpec) SSOEnabled() bool {
-	return in.SsoRealmEnabled == nil || *in.SsoRealmEnabled
+	return in.SsoRealmEnabled != nil && *in.SsoRealmEnabled
 }
 
 func (in *KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {

@@ -2,6 +2,8 @@ apiVersion: v1.edp.epam.com/v1
 kind: KeycloakRealmRoleBatch
 metadata:
   name: "default-roles"
+  labels:
+    {{- include "keycloak-operator.labels" . | nindent 4 }}
 spec:
   realm: main
   roles:
