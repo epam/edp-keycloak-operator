@@ -6,7 +6,7 @@ metadata:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
 spec:
   keycloakOwner: main
-  realmName: {{ .Values.global.edpName }}
+  realmName: {{ .Values.global.edpName }}-main
   ssoRealmEnabled: true
   ssoRealmName: openshift
   users:
