@@ -6,7 +6,7 @@ BIN_NAME=manager
 HOST_OS:=$(shell go env GOOS)
 HOST_ARCH:=$(shell go env GOARCH)
 
-VERSION?=$(shell git describe --tags)
+VERSION?=1.13.0
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_TAG=$(shell if [ -z "`git status --porcelain`" ]; then git describe --exact-match --tags HEAD 2>/dev/null; fi)
@@ -25,7 +25,7 @@ endif
 override GCFLAGS +=all=-trimpath=${CURRENT_DIR}
 
 # Image URL to use all building/pushing image targets
-IMG ?= docker.io/epamedp/keycloak-operator:1.12.0
+IMG ?= docker.io/epamedp/keycloak-operator:$(VERSION)
 
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)

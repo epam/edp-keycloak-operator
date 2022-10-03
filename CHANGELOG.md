@@ -3,7 +3,7 @@
 
 
 <a name="v1.13.0"></a>
-## [v1.13.0] - 2022-09-28
+## [v1.13.0] - 2022-10-03
 ### Features
 
 - Upgrade operator-sdk [EPMDEDP-10417](https://jiraeu.epam.com/browse/EPMDEDP-10417)

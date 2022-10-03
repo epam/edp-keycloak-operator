@@ -42,38 +42,13 @@ spec:
                 - serviceAccount
                 - user
                 type: string
-              installMainRealm:
-                nullable: true
-                type: boolean
-              realmName:
-                type: string
               secret:
                 description: Secret is the name of the k8s object Secret related to
                   keycloak
                 type: string
-              ssoRealmName:
-                type: string
               url:
                 description: URL of keycloak service
                 type: string
-              users:
-                description: Users is a list of keycloak users
-                items:
-                  properties:
-                    realmRoles:
-                      description: RealmRoles is a list of roles attached to keycloak
-                        user
-                      items:
-                        type: string
-                      type: array
-                    username:
-                      description: Username of keycloak user
-                      type: string
-                  required:
-                  - username
-                  type: object
-                nullable: true
-                type: array
             required:
             - secret
             - url
