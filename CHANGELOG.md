@@ -1,14 +1,39 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.13.0"></a>
+## [v1.13.0] - 2022-09-28
+### Features
+
+- Upgrade operator-sdk [EPMDEDP-10417](https://jiraeu.epam.com/browse/EPMDEDP-10417)
+- Align deploy-templates to new operator-sdk config [EPMDEDP-10540](https://jiraeu.epam.com/browse/EPMDEDP-10540)
+- Generate OperatorHub bundle [EPMDEDP-10617](https://jiraeu.epam.com/browse/EPMDEDP-10617)
+
+### Bug Fixes
+
+- Add secret permissions, operator image path [EPMDEDP-10540](https://jiraeu.epam.com/browse/EPMDEDP-10540)
+- Revert removed service account for operator [EPMDEDP-10540](https://jiraeu.epam.com/browse/EPMDEDP-10540)
+- Align realm name to the existing approach [EPMDEDP-10648](https://jiraeu.epam.com/browse/EPMDEDP-10648)
+- Metric ports default value [EPMDEDP-10648](https://jiraeu.epam.com/browse/EPMDEDP-10648)
+
 ### Code Refactoring
 
+- Apply wrapcheck lint [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
 - Apply wsl lint [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
 - Apply new lint config [EPMDEDP-10449](https://jiraeu.epam.com/browse/EPMDEDP-10449)
+- Remove edp dependencies from controllers [EPMDEDP-10648](https://jiraeu.epam.com/browse/EPMDEDP-10648)
 
 ### Routine
 
 - Update current development version [EPMDEDP-10274](https://jiraeu.epam.com/browse/EPMDEDP-10274)
+- Update current development version [EPMDEDP-10274](https://jiraeu.epam.com/browse/EPMDEDP-10274)
+- Update bundle content [EPMDEDP-10617](https://jiraeu.epam.com/browse/EPMDEDP-10617)
+
+### BREAKING CHANGE:
+
+
+KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak cotroller
 
 
 <a name="v1.12.0"></a>
@@ -166,7 +191,8 @@
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.13.0...HEAD
+[v1.13.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...v1.13.0
 [v1.12.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...v1.12.0
 [v1.11.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...v1.11.0
 [v1.10.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.0...v1.10.1
