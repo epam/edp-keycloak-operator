@@ -25,7 +25,7 @@ endif
 override GCFLAGS +=all=-trimpath=${CURRENT_DIR}
 
 # Image URL to use all building/pushing image targets
-IMG ?= docker.io/epamedp/keycloak-operator:1.12.0
+IMG ?= docker.io/epamedp/keycloak-operator:$(VERSION)
 
 # BUNDLE_GEN_FLAGS are the flags passed to the operator-sdk generate bundle command
 BUNDLE_GEN_FLAGS ?= -q --overwrite --version $(VERSION) $(BUNDLE_METADATA_OPTS)
