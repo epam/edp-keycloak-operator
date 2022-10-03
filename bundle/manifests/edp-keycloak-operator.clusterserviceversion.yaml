@@ -12,21 +12,7 @@ metadata:
           },
           "spec": {
             "secret": "my-keycloak-secret",
-            "url": "https://example.com",
-            "users": [
-              {
-                "realmRoles": [
-                  "administrator"
-                ],
-                "username": "test@example.com"
-              },
-              {
-                "realmRoles": [
-                  "developer"
-                ],
-                "username": "test-dev@example.com"
-              }
-            ]
+            "url": "https://example.com"
           }
         },
         {
@@ -330,7 +316,7 @@ metadata:
     operators.operatorframework.io/builder: operator-sdk-v1.23.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
-  name: edp-keycloak-operator.v1.12.0
+  name: edp-keycloak-operator.v1.13.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -431,7 +417,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
-                image: docker.io/epamedp/keycloak-operator:1.12.0
+                image: docker.io/epamedp/keycloak-operator:1.13.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -503,32 +489,6 @@ spec:
           - patch
           - update
           - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - edpcomponents
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - edpcomponents/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - edpcomponents/status
-          verbs:
-          - get
-          - patch
-          - update
         - apiGroups:
           - v1.edp.epam.com
           resources:
@@ -848,4 +808,4 @@ spec:
   provider:
     name: edp
     url: https://epam.github.io/edp-install/
-  version: 1.12.0
+  version: 1.13.0
