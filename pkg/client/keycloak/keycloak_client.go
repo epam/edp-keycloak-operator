@@ -74,8 +74,9 @@ type KCloakRealms interface {
 
 type KCloakClients interface {
 	ExistClient(clientID, realm string) (bool, error)
-	CreateClient(client *dto.Client) error
+	CreateClient(ctx context.Context, client *dto.Client) error
 	DeleteClient(ctx context.Context, kcClientID, realmName string) error
+	UpdateClient(ctx context.Context, client *dto.Client) error
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
 	GetClientID(clientID, realm string) (string, error)

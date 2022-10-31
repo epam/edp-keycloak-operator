@@ -66,6 +66,7 @@ func ConvertSpecToRealm(spec *keycloakApi.KeycloakRealmSpec) *Realm {
 }
 
 type Client struct {
+	ID                      string
 	ClientId                string
 	ClientSecret            string `json:"-"`
 	RealmName               string

@@ -64,9 +64,13 @@ func (m *Mock) ExistClient(clientID, realm string) (bool, error) {
 	return res, args.Error(1)
 }
 
-func (m *Mock) CreateClient(client *dto.Client) error {
+func (m *Mock) CreateClient(ctx context.Context, client *dto.Client) error {
 	args := m.Called(client)
 	return args.Error(0)
+}
+
+func (m *Mock) UpdateClient(ctx context.Context, client *dto.Client) error {
+	return m.Called(client).Error(0)
 }
 
 func (m *Mock) ExistClientRole(role *dto.Client, clientRole string) (bool, error) {
