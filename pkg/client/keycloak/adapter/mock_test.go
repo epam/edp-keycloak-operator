@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
@@ -34,7 +36,12 @@ func TestMock_OneLiners(t *testing.T) {
 	require.NoError(t, err)
 
 	m.On("UpdateClientScope", "foo", "bar", &ClientScope{}).Return(nil)
+
 	err = m.UpdateClientScope(context.Background(), "foo", "bar", &ClientScope{})
+	require.NoError(t, err)
+
+	m.On("UpdateClient", mock.Anything).Return(nil)
+	err = m.UpdateClient(context.Background(), nil)
 	require.NoError(t, err)
 }
 

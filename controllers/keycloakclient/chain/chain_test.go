@@ -7,6 +7,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/stretchr/testify/assert"
+	testifyMock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -48,6 +49,7 @@ func TestPrivateClientSecret(t *testing.T) {
 	kClient := new(adapter.Mock)
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).Return(true, nil)
 	kClient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).Return("3333", nil)
+	kClient.On("UpdateClient", testifyMock.Anything).Return(nil)
 
 	baseElement := BaseElement{
 		scheme: h.GetScheme(),
@@ -129,6 +131,7 @@ func TestMake(t *testing.T) {
 		Return(false, nil)
 	kClient.On("CreateClient", clientDTO).Return(nil)
 	kClient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).Return("3333", nil)
+	kClient.On("UpdateClient", testifyMock.Anything).Return(nil)
 	kClient.On("ExistRealmRole", kr.Spec.RealmName, "fake-client-users").
 		Return(true, nil)
 	kClient.On("ExistRealmRole", kr.Spec.RealmName, "fake-client-administrators").

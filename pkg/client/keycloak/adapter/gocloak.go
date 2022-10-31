@@ -31,6 +31,7 @@ type GoCloakClients interface {
 		params gocloak.GetClientsParams) ([]*gocloak.Client, error)
 	DeleteClient(ctx context.Context, accessToken, realm, clientID string) error
 	CreateClient(ctx context.Context, accessToken, realm string, clientID gocloak.Client) (string, error)
+	UpdateClient(ctx context.Context, accessToken, realm string, updatedClient gocloak.Client) error
 	CreateClientProtocolMapper(ctx context.Context, token, realm, clientID string,
 		mapper gocloak.ProtocolMapperRepresentation) (string, error)
 	UpdateClientProtocolMapper(ctx context.Context, token, realm, clientID, mapperID string,
