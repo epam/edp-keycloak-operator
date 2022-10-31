@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/stretchr/testify/mock"
+
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
@@ -35,6 +37,11 @@ func TestMock_OneLiners(t *testing.T) {
 
 	m.On("UpdateClientScope", "foo", "bar", &ClientScope{}).Return(nil)
 	if err := m.UpdateClientScope(context.Background(), "foo", "bar", &ClientScope{}); err != nil {
+		t.Fatal(err)
+	}
+
+	m.On("UpdateClient", mock.Anything).Return(nil)
+	if err := m.UpdateClient(context.Background(), nil); err != nil {
 		t.Fatal(err)
 	}
 }

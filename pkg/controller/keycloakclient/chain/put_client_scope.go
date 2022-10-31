@@ -17,15 +17,15 @@ type PutClientScope struct {
 	next Element
 }
 
-func (el *PutClientScope) Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
-	if err := el.putClientScope(keycloakClient, adapterClient); err != nil {
+func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+	if err := el.putClientScope(ctx, keycloakClient, adapterClient); err != nil {
 		return errors.Wrap(err, "error during putClientScope")
 	}
 
-	return el.NextServeOrNil(el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
 }
 
-func (el *PutClientScope) putClientScope(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClientScope) putClientScope(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error {
 	if !keycloakClient.Spec.AudRequired {
 		return nil
 	}
@@ -35,7 +35,7 @@ func (el *PutClientScope) putClientScope(keycloakClient *v1v1alpha1.KeycloakClie
 		return errors.Wrap(err, "error during GetClientScope")
 	}
 
-	if err := el.putClientScopeMapper(keycloakClient, adapterClient, scope); err != nil {
+	if err := el.putClientScopeMapper(ctx, keycloakClient, adapterClient, scope); err != nil {
 		return errors.Wrap(err, "unable to put scope mapper")
 	}
 
@@ -47,10 +47,9 @@ func (el *PutClientScope) putClientScope(keycloakClient *v1v1alpha1.KeycloakClie
 	return nil
 }
 
-func (el *PutClientScope) putClientScopeMapper(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client,
+func (el *PutClientScope) putClientScopeMapper(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client,
 	scope *adapter.ClientScope) error {
-	//TODO: get context from controller
-	mappers, err := adapterClient.GetClientScopeMappers(context.Background(), keycloakClient.Spec.TargetRealm, scope.ID)
+	mappers, err := adapterClient.GetClientScopeMappers(ctx, keycloakClient.Spec.TargetRealm, scope.ID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get client scope mappers")
 	}

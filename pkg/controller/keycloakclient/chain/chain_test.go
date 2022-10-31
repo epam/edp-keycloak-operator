@@ -11,6 +11,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/helper"
+	testifyMock "github.com/stretchr/testify/mock"
 	v1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -45,6 +46,7 @@ func TestPrivateClientSecret(t *testing.T) {
 	kClient := new(adapter.Mock)
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).Return(true, nil)
 	kClient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).Return("3333", nil)
+	kClient.On("UpdateClient", testifyMock.Anything).Return(nil)
 
 	baseElement := BaseElement{
 		scheme: h.GetScheme(),
@@ -55,13 +57,13 @@ func TestPrivateClientSecret(t *testing.T) {
 		BaseElement: baseElement,
 	}
 
-	if err := putCl.Serve(&kc, kClient); err != nil {
+	if err := putCl.Serve(context.Background(), &kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	kc.Spec.Secret = ""
 
-	if err := putCl.Serve(&kc, kClient); err != nil {
+	if err := putCl.Serve(context.Background(), &kc, kClient); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -126,6 +128,7 @@ func TestMake(t *testing.T) {
 		Return(false, nil)
 	kClient.On("CreateClient", clientDTO).Return(nil)
 	kClient.On("GetClientID", clientDTO.ClientId, clientDTO.RealmName).Return("3333", nil)
+	kClient.On("UpdateClient", testifyMock.Anything).Return(nil)
 	kClient.On("ExistRealmRole", kr.Spec.RealmName, "fake-client-users").
 		Return(true, nil)
 	kClient.On("ExistRealmRole", kr.Spec.RealmName, "fake-client-administrators").
@@ -140,7 +143,7 @@ func TestMake(t *testing.T) {
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
-	if err := chain.Serve(&kc, kClient); err != nil {
+	if err := chain.Serve(context.Background(), &kc, kClient); err != nil {
 		t.Fatal(err)
 	}
 
@@ -164,7 +167,7 @@ func TestPutClientScope_Serve(t *testing.T) {
 	kClient.On("LinkClientScopeToClient", kc.Spec.ClientId, adapterScope.ID, kc.Spec.TargetRealm).
 		Return(nil)
 
-	if err := pcs.putClientScope(&kc, kClient); err != nil {
+	if err := pcs.putClientScope(context.Background(), &kc, kClient); err != nil {
 		t.Fatal(err)
 	}
 

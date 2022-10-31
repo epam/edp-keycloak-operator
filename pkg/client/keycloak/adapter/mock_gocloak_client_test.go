@@ -13,6 +13,10 @@ type MockGoCloakClient struct {
 	mock.Mock
 }
 
+func (m *MockGoCloakClient) UpdateClient(ctx context.Context, accessToken, realm string, updatedClient gocloak.Client) error {
+	return m.Called(accessToken, realm, updatedClient).Error(0)
+}
+
 func (m *MockGoCloakClient) UpdateRealm(ctx context.Context, token string, realm gocloak.RealmRepresentation) error {
 	return m.Called(realm).Error(0)
 }

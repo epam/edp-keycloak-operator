@@ -235,6 +235,32 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 	}
 }
 
+func TestGoCloakAdapter_UpdateClient(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+
+	cl := dto.Client{}
+	a := GoCloakAdapter{
+		client: mockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
+	}
+
+	mockClient.On("UpdateClient", a.token.AccessToken, cl.RealmName,
+		getGclCln(&cl)).Return(nil).Once()
+	err := a.UpdateClient(context.Background(), &cl)
+	assert.NoError(t, err)
+
+	updErr := errors.New("update-error")
+
+	mockClient.On("UpdateClient", a.token.AccessToken, cl.RealmName,
+		getGclCln(&cl)).Return(updErr).Once()
+
+	err = a.UpdateClient(context.Background(), &cl)
+	assert.True(t, errors.Is(err, updErr))
+
+	mockClient.AssertExpectations(t)
+}
+
 func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 	client := dto.Client{
 		RealmName: "test",

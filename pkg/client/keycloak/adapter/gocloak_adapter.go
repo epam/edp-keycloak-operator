@@ -410,13 +410,25 @@ func (a GoCloakAdapter) DeleteClient(ctx context.Context, kcClientID, realmName 
 	return nil
 }
 
-func (a GoCloakAdapter) CreateClient(client *dto.Client) error {
+func (a GoCloakAdapter) UpdateClient(ctx context.Context, client *dto.Client) error {
+	log := a.log.WithValues("client dto", client)
+	log.Info("Start update client in Keycloak...")
+
+	if err := a.client.UpdateClient(ctx, a.token.AccessToken, client.RealmName, getGclCln(client)); err != nil {
+		return fmt.Errorf("unable to update keycloak client: %w", err)
+	}
+
+	log.Info("Keycloak client has been updated")
+	return nil
+}
+
+func (a GoCloakAdapter) CreateClient(ctx context.Context, client *dto.Client) error {
 	log := a.log.WithValues("client dto", client)
 	log.Info("Start create client in Keycloak...")
 
-	_, err := a.client.CreateClient(context.Background(), a.token.AccessToken, client.RealmName, getGclCln(client))
+	_, err := a.client.CreateClient(ctx, a.token.AccessToken, client.RealmName, getGclCln(client))
 	if err != nil {
-		return err
+		return fmt.Errorf("unable to create keycloak client: %w", err)
 	}
 
 	log.Info("Keycloak client has been created")
@@ -428,6 +440,7 @@ func getGclCln(client *dto.Client) gocloak.Client {
 	protocolMappers := getProtocolMappers(client.AdvancedProtocolMappers)
 
 	return gocloak.Client{
+		ID:                        &client.ID,
 		ClientID:                  &client.ClientId,
 		Secret:                    &client.ClientSecret,
 		PublicClient:              &client.Public,
@@ -497,7 +510,8 @@ func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
 			return *item.ID, nil
 		}
 	}
-	return "", errors.Errorf("unable to get Client ID. Client %v doesn't exist", clientID)
+
+	return "", ErrNotFound(fmt.Sprintf("unable to get Client ID. Client %v doesn't exist", clientID))
 }
 
 func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {

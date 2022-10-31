@@ -1,6 +1,8 @@
 package chain
 
 import (
+	"context"
+
 	v1v1alpha1 "github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/go-logr/logr"
@@ -9,7 +11,7 @@ import (
 )
 
 type Element interface {
-	Serve(keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error
+	Serve(ctx context.Context, keycloakClient *v1v1alpha1.KeycloakClient, adapterClient keycloak.Client) error
 }
 
 type BaseElement struct {
@@ -18,10 +20,10 @@ type BaseElement struct {
 	scheme *runtime.Scheme
 }
 
-func (b *BaseElement) NextServeOrNil(next Element, keycloakClient *v1v1alpha1.KeycloakClient,
+func (b *BaseElement) NextServeOrNil(ctx context.Context, next Element, keycloakClient *v1v1alpha1.KeycloakClient,
 	adapterClient keycloak.Client) error {
 	if next != nil {
-		return next.Serve(keycloakClient, adapterClient)
+		return next.Serve(ctx, keycloakClient, adapterClient)
 	}
 
 	return nil

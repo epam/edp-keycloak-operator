@@ -1,6 +1,7 @@
 package chain
 
 import (
+	"context"
 	"testing"
 
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
@@ -40,7 +41,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 	kClient.On("SetServiceAccountAttributes", kc.Spec.TargetRealm, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
 
-	if err := sa.Serve(&kc, kClient); err != nil {
+	if err := sa.Serve(context.Background(), &kc, kClient); err != nil {
 		t.Fatal(err)
 	}
 }
