@@ -7,8 +7,9 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v10"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/pkg/errors"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 type RealmSettings struct {
@@ -58,7 +59,7 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 	}
 
 	if len(realmSettings.PasswordPolicies) > 0 {
-		policies := make([]string, len(realmSettings.PasswordPolicies), len(realmSettings.PasswordPolicies))
+		policies := make([]string, len(realmSettings.PasswordPolicies))
 		for i, v := range realmSettings.PasswordPolicies {
 			policies[i] = fmt.Sprintf("%s(%s)", v.Type, v.Value)
 		}

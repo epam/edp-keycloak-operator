@@ -3,11 +3,12 @@ package chain
 import (
 	"context"
 
+	"github.com/pkg/errors"
+
 	"github.com/epam/edp-keycloak-operator/pkg/apis/v1/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/controller/keycloakrealm/chain/handler"
-	"github.com/pkg/errors"
 )
 
 type RealmSettings struct {
@@ -52,7 +53,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Keycloa
 	}
 
 	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies), len(realm.Spec.PasswordPolicies))
+		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies))
 		for i, v := range realm.Spec.PasswordPolicies {
 			settings.PasswordPolicies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
 		}
