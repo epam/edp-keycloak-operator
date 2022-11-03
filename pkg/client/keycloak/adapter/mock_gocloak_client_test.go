@@ -60,7 +60,12 @@ func (m *MockGoCloakClient) AddRealmRoleToUser(ctx context.Context, token, realm
 
 func (m *MockGoCloakClient) CreateClient(ctx context.Context, accessToken, realm string,
 	clientID gocloak.Client) (string, error) {
-	panic("implement me")
+	called := m.Called(realm, clientID)
+	if err := called.Error(1); err != nil {
+		return "", err
+	}
+
+	return called.String(0), nil
 }
 
 func (m *MockGoCloakClient) CreateClientRole(ctx context.Context, accessToken, realm, clientID string,

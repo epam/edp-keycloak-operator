@@ -235,6 +235,28 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 	}
 }
 
+func TestGoCloakAdapter_CreateClient(t *testing.T) {
+	mockClient := new(MockGoCloakClient)
+
+	cl := dto.Client{}
+	a := GoCloakAdapter{
+		client: mockClient,
+		token:  &gocloak.JWT{AccessToken: "token"},
+		log:    &mock.Logger{},
+	}
+
+	mockClient.On("CreateClient", "", getGclCln(&cl)).Return("id", nil).Once()
+
+	err := a.CreateClient(context.Background(), &cl)
+	assert.NoError(t, err)
+
+	createErr := errors.New("create-err")
+	mockClient.On("CreateClient", "", getGclCln(&cl)).Return("", createErr).Once()
+	err = a.CreateClient(context.Background(), &cl)
+
+	assert.True(t, errors.Is(err, createErr))
+}
+
 func TestGoCloakAdapter_UpdateClient(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 

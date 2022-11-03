@@ -439,8 +439,7 @@ func getGclCln(client *dto.Client) gocloak.Client {
 	//TODO: check collision with protocol mappers list in spec
 	protocolMappers := getProtocolMappers(client.AdvancedProtocolMappers)
 
-	return gocloak.Client{
-		ID:                        &client.ID,
+	cl := gocloak.Client{
 		ClientID:                  &client.ClientId,
 		Secret:                    &client.ClientSecret,
 		PublicClient:              &client.Public,
@@ -459,6 +458,12 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		ServiceAccountsEnabled: &client.ServiceAccountEnabled,
 		FrontChannelLogout:     &client.FrontChannelLogout,
 	}
+
+	if client.ID != "" {
+		cl.ID = &client.ID
+	}
+
+	return cl
 }
 
 func getProtocolMappers(need bool) []gocloak.ProtocolMapperRepresentation {
