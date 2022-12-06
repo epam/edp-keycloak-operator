@@ -3,7 +3,25 @@
 
 ### Routine
 
+- Update current development version [EPMDEDP-10610](https://jiraeu.epam.com/browse/EPMDEDP-10610)
+
+
+<a name="v1.14.0"></a>
+## [v1.14.0] - 2022-12-05
+### Features
+
+- Keycloak client updating on CR changes [EPMDEDP-10930](https://jiraeu.epam.com/browse/EPMDEDP-10930)
+
+### Bug Fixes
+
+- Conversion of keycloak adapter client structure to gocloak lib structure [EPMDEDP-10930](https://jiraeu.epam.com/browse/EPMDEDP-10930)
+
+### Routine
+
+- Update metadata information [EPMDEDP-10639](https://jiraeu.epam.com/browse/EPMDEDP-10639)
 - Update current development version [EPMDEDP-10639](https://jiraeu.epam.com/browse/EPMDEDP-10639)
+- Add OpenShift specific annotation to bundle [EPMDEDP-10730](https://jiraeu.epam.com/browse/EPMDEDP-10730)
+- Update installModes for operator [EPMDEDP-10730](https://jiraeu.epam.com/browse/EPMDEDP-10730)
 
 
 <a name="v1.13.0"></a>
@@ -195,7 +213,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.13.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.14.0...HEAD
+[v1.14.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.13.0...v1.14.0
 [v1.13.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...v1.13.0
 [v1.12.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...v1.12.0
 [v1.11.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.10.1...v1.11.0
