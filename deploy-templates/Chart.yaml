@@ -3,8 +3,8 @@ description: A Helm chart for EDP Keycloak Operator
 home: https://epam.github.io/edp-install/
 name: keycloak-operator
 type: application
-version: 1.14.0-SNAPSHOT
-appVersion: 1.14.0-SNAPSHOT
+version: 1.15.0-SNAPSHOT
+appVersion: 1.15.0-SNAPSHOT
 icon: https://epam.github.io/edp-install/assets/logo.png
 keywords:
   - authentication
@@ -29,8 +29,8 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "true"
   artifacthub.io/images: |
-    - name: keycloak-operator:1.13.0
-      image: epamedp/keycloak-operator:1.13.0
+    - name: keycloak-operator:1.14.0
+      image: epamedp/keycloak-operator:1.14.0
     - name: alpine:3.16.2
       image: alpine:3.16.2
   artifacthub.io/operatorCapabilities: Deep Insights
