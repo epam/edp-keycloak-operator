@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -27,7 +27,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
 
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/user-id1/reset-password",
+	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/user-id1/reset-password",
 		httpmock.NewStringResponder(200, ""))
 
 	usr := KeycloakUser{
@@ -45,7 +45,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 	mockClient.On("GetUsers", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
 		Return([]*gocloak.User{}, nil)
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/users/user-id1/role-mappings/realm",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/role-mappings/realm",
 		httpmock.NewJsonResponderOrPanic(200, []UserRealmRoleMapping{
 			{
 				ID:   "role-id-1",
@@ -53,14 +53,14 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 			},
 		}))
 	mockClient.On("DeleteRealmRoleFromUser", realmName, "user-id1", mock.Anything).Return(nil)
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/users/user-id1/groups",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/groups",
 		httpmock.NewJsonResponderOrPanic(200, []UserGroupMapping{
 			{
 				ID:   "group-id-1",
 				Name: "group-name-1",
 			},
 		}))
-	httpmock.RegisterResponder("DELETE", "/auth/admin/realms/realm1/users/user-id1/groups/group-id-1",
+	httpmock.RegisterResponder("DELETE", "/admin/realms/realm1/users/user-id1/groups/group-id-1",
 		httpmock.NewStringResponder(200, ""))
 
 	goClUser := gocloak.User{
@@ -84,7 +84,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 			ID:   gocloak.StringP("group-id-2"),
 		},
 	}, nil)
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/user-id1/groups/group-id-2",
+	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/user-id1/groups/group-id-2",
 		httpmock.NewStringResponder(200, ""))
 
 	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, false)
@@ -145,7 +145,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 	httpmock.Reset()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm1/users/id1/groups/foo1",
+	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/id1/groups/foo1",
 		httpmock.NewStringResponder(200, ""))
 
 	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)

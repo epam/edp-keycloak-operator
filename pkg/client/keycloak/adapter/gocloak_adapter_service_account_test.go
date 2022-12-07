@@ -3,7 +3,7 @@ package adapter
 import (
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/require"
 )
 

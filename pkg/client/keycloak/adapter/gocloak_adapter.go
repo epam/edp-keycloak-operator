@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -21,44 +21,44 @@ import (
 )
 
 const (
-	idPResource                     = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idPMapperResource               = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idPResource                     = "/admin/realms/{realm}/identity-provider/instances"
+	idPMapperResource               = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP                       = idPResource + "/{alias}"
-	openIdConfig                    = "/auth/realms/{realm}/.well-known/openid-configuration"
-	authExecutions                  = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
-	authExecutionConfig             = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	postClientScopeMapper           = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
-	getRealmClientScopes            = "/auth/admin/realms/{realm}/client-scopes"
-	postClientScope                 = "/auth/admin/realms/{realm}/client-scopes"
-	putClientScope                  = "/auth/admin/realms/{realm}/client-scopes/{id}"
-	getClientProtocolMappers        = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
-	mapperToIdentityProvider        = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	updateMapperToIdentityProvider  = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
-	authFlows                       = "/auth/admin/realms/{realm}/authentication/flows"
-	authFlow                        = "/auth/admin/realms/{realm}/authentication/flows/{id}"
-	authFlowExecutionCreate         = "/auth/admin/realms/{realm}/authentication/executions"
-	authFlowExecutionGetUpdate      = "/auth/admin/realms/{realm}/authentication/flows/{alias}/executions"
-	authFlowExecutionDelete         = "/auth/admin/realms/{realm}/authentication/executions/{id}"
-	raiseExecutionPriority          = "/auth/admin/realms/{realm}/authentication/executions/{id}/raise-priority"
-	lowerExecutionPriority          = "/auth/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
-	authFlowExecutionConfig         = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	deleteClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
-	createClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
-	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
-	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
-	getDefaultClientScopes          = "/auth/admin/realms/{realm}/default-default-client-scopes"
-	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
-	realmComponent                  = "/auth/admin/realms/{realm}/components"
-	realmComponentEntity            = "/auth/admin/realms/{realm}/components/{id}"
-	identityProviderEntity          = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}"
-	identityProviderCreateList      = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idpMapperCreateList             = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	idpMapperEntity                 = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
-	deleteRealmUser                 = "/auth/admin/realms/{realm}/users/{id}"
-	setRealmUserPassword            = "/auth/admin/realms/{realm}/users/{id}/reset-password"
-	getUserRealmRoleMappings        = "/auth/admin/realms/{realm}/users/{id}/role-mappings/realm"
-	getUserGroupMappings            = "/auth/admin/realms/{realm}/users/{id}/groups"
-	manageUserGroups                = "/auth/admin/realms/{realm}/users/{userID}/groups/{groupID}"
+	openIdConfig                    = "/realms/{realm}/.well-known/openid-configuration"
+	authExecutions                  = "/admin/realms/{realm}/authentication/flows/browser/executions"
+	authExecutionConfig             = "/admin/realms/{realm}/authentication/executions/{id}/config"
+	postClientScopeMapper           = "/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
+	getRealmClientScopes            = "/admin/realms/{realm}/client-scopes"
+	postClientScope                 = "/admin/realms/{realm}/client-scopes"
+	putClientScope                  = "/admin/realms/{realm}/client-scopes/{id}"
+	getClientProtocolMappers        = "/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
+	mapperToIdentityProvider        = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	updateMapperToIdentityProvider  = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	authFlows                       = "/admin/realms/{realm}/authentication/flows"
+	authFlow                        = "/admin/realms/{realm}/authentication/flows/{id}"
+	authFlowExecutionCreate         = "/admin/realms/{realm}/authentication/executions"
+	authFlowExecutionGetUpdate      = "/admin/realms/{realm}/authentication/flows/{alias}/executions"
+	authFlowExecutionDelete         = "/admin/realms/{realm}/authentication/executions/{id}"
+	raiseExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/raise-priority"
+	lowerExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
+	authFlowExecutionConfig         = "/admin/realms/{realm}/authentication/executions/{id}/config"
+	deleteClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
+	createClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
+	putDefaultClientScope           = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	deleteDefaultClientScope        = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	getDefaultClientScopes          = "/admin/realms/{realm}/default-default-client-scopes"
+	realmEventConfigPut             = "/admin/realms/{realm}/events/config"
+	realmComponent                  = "/admin/realms/{realm}/components"
+	realmComponentEntity            = "/admin/realms/{realm}/components/{id}"
+	identityProviderEntity          = "/admin/realms/{realm}/identity-provider/instances/{alias}"
+	identityProviderCreateList      = "/admin/realms/{realm}/identity-provider/instances"
+	idpMapperCreateList             = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idpMapperEntity                 = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	deleteRealmUser                 = "/admin/realms/{realm}/users/{id}"
+	setRealmUserPassword            = "/admin/realms/{realm}/users/{id}/reset-password"
+	getUserRealmRoleMappings        = "/admin/realms/{realm}/users/{id}/role-mappings/realm"
+	getUserGroupMappings            = "/admin/realms/{realm}/users/{id}/groups"
+	manageUserGroups                = "/admin/realms/{realm}/users/{userID}/groups/{groupID}"
 	logClientDTO                    = "client dto"
 )
 
@@ -265,12 +265,12 @@ func (a GoCloakAdapter) getCentralIdP(client *dto.Client, ssoRealmName string) a
 		Enabled:     true,
 		ProviderId:  "keycloak-oidc",
 		Config: api.IdentityProviderConfig{
-			UserInfoUrl:      fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/userinfo", a.basePath, ssoRealmName),
-			TokenUrl:         fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/token", a.basePath, ssoRealmName),
-			JwksUrl:          fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/certs", a.basePath, ssoRealmName),
-			Issuer:           fmt.Sprintf("%s/auth/realms/%s", a.basePath, ssoRealmName),
-			AuthorizationUrl: fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/auth", a.basePath, ssoRealmName),
-			LogoutUrl:        fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/logout", a.basePath, ssoRealmName),
+			UserInfoUrl:      fmt.Sprintf("%s/realms/%s/protocol/openid-connect/userinfo", a.basePath, ssoRealmName),
+			TokenUrl:         fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", a.basePath, ssoRealmName),
+			JwksUrl:          fmt.Sprintf("%s/realms/%s/protocol/openid-connect/certs", a.basePath, ssoRealmName),
+			Issuer:           fmt.Sprintf("%s/realms/%s", a.basePath, ssoRealmName),
+			AuthorizationUrl: fmt.Sprintf("%s/realms/%s/protocol/openid-connect/auth", a.basePath, ssoRealmName),
+			LogoutUrl:        fmt.Sprintf("%s/realms/%s/protocol/openid-connect/logout", a.basePath, ssoRealmName),
 			ClientId:         client.ClientId,
 			ClientSecret:     client.ClientSecret,
 		},

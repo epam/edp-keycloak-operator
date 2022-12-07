@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -57,7 +57,7 @@ func TestAdapterTestSuite(t *testing.T) {
 func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 	t := e.T()
 
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/k-url/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
 
 	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
@@ -65,7 +65,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 	assert.NoError(t, err)
 
 	httpmock.Reset()
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/k-url/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
 
 	_, err = MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
@@ -75,7 +75,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 }
 
 func (e *AdapterTestSuite) TestMake() {
-	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/foo/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
 
 	_, err := Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
@@ -88,7 +88,7 @@ func (e *AdapterTestSuite) TestMake_Failure() {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unsupported protocol scheme")
 
-	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/foo/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(400, "{}"))
 
 	_, err = Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
@@ -183,7 +183,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 	responder := httpmock.NewStringResponder(404, messageBody)
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -216,7 +216,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 	responder := httpmock.NewErrorResponder(mockErr)
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -367,7 +367,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -766,15 +766,15 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
 		authExecsRsp)
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
+		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
 		httpmock.NewStringResponder(201, "ok"))
 
 	httpmock.RegisterResponder("PUT",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
 		httpmock.NewStringResponder(202, "ok"))
 
 	if err := adapter.PutDefaultIdp(&realm); err != nil {
@@ -895,18 +895,18 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 	realm := dto.Realm{Name: "name1", SsoRealmName: "sso-realm1"}
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances", realm.Name),
 		httpmock.NewStringResponder(201, ""))
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
 		httpmock.NewStringResponder(201, ""))
 
 	err := a.CreateCentralIdentityProvider(&realm, &dto.Client{})
 	assert.NoError(t, err)
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
 		httpmock.NewStringResponder(500, "fatal"))
 
 	err = a.CreateCentralIdentityProvider(&realm, &dto.Client{})
@@ -918,7 +918,7 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	username := "username"
 	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(200, ""))
 	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
 		Return([]*gocloak.User{
@@ -933,7 +933,7 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 			{Username: &username, ID: &username},
 		}, nil).Once()
 	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(404, ""))
 
 	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)

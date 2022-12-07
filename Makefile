@@ -3,10 +3,10 @@ CURRENT_DIR=$(shell pwd)
 DIST_DIR=${CURRENT_DIR}/dist
 BIN_NAME=manager
 
-HOST_OS:=$(shell go env GOOS)
-HOST_ARCH:=$(shell go env GOARCH)
+HOST_OS:="linux"
+HOST_ARCH:="amd64"
 
-VERSION?=$(shell git describe --tags)
+VERSION?="v2.0.1"
 BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_TAG=$(shell if [ -z "`git status --porcelain`" ]; then git describe --exact-match --tags HEAD 2>/dev/null; fi)

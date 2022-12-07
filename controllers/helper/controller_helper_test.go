@@ -274,7 +274,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 func TestMakeHelper(t *testing.T) {
 	rCl := resty.New()
 	httpmock.ActivateNonDefault(rCl.GetClient())
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/k-url/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, "{}"))
 
 	logger := mock.NewLogr()

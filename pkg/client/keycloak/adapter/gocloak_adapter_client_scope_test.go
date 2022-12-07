@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -194,7 +194,7 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 	putDefaultClientScope := strings.ReplaceAll(putDefaultClientScope, "{realm}", realmName)
 	putDefaultClientScope = strings.ReplaceAll(putDefaultClientScope, "{clientScopeID}", scopeID)
 	httpmock.RegisterResponder("PUT", putDefaultClientScope, httpmock.NewStringResponder(200, ""))
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/default-default-client-scopes",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm1/default-default-client-scopes",
 		httpmock.NewJsonResponderOrPanic(200, []ClientScope{}))
 
 	if err := adapter.UpdateClientScope(context.Background(), realmName, scopeID, &ClientScope{
@@ -220,7 +220,7 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 		t.Fatalf("%+v", err)
 	}
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm1/default-default-client-scopes",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm1/default-default-client-scopes",
 		httpmock.NewJsonResponderOrPanic(200, []ClientScope{{Name: "scope1"}}))
 
 	if err := adapter.UpdateClientScope(context.Background(), realmName, scopeID, &ClientScope{
@@ -329,14 +329,14 @@ func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
 
 	httpmock.Reset()
 	httpmock.RegisterResponder("GET",
-		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
+		"/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
 		httpmock.NewStringResponder(200, ""))
 
 	_, err := kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope1")
 	require.NoError(t, err)
 
 	httpmock.RegisterResponder("GET",
-		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
+		"/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
 		httpmock.NewStringResponder(422, "forbidden"))
 
 	_, err = kcClient.GetClientScopeMappers(context.Background(), "realm1", "scope2")
@@ -351,14 +351,14 @@ func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
 	kcClient, _, _ := initAdapter()
 
 	httpmock.RegisterResponder("POST",
-		"/auth/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
+		"/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
 		httpmock.NewStringResponder(200, ""))
 
 	err := kcClient.PutClientScopeMapper("realm1", "scope1", &ProtocolMapper{})
 	require.NoError(t, err)
 
 	httpmock.RegisterResponder("POST",
-		"/auth/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
+		"/admin/realms/realm1/client-scopes/scope2/protocol-mappers/models",
 		httpmock.NewStringResponder(422, "forbidden"))
 
 	err = kcClient.PutClientScopeMapper("realm1", "scope2", &ProtocolMapper{})
@@ -423,7 +423,7 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/auth/admin/realms/%s/client-scopes", tc.realm), tc.response)
+			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/admin/realms/%s/client-scopes", tc.realm), tc.response)
 
 			gotRes, err := adapter.GetClientScopesByNames(context.Background(), tc.realm, tc.scopeNames)
 			assert.Equal(t, tc.expectRes, gotRes)

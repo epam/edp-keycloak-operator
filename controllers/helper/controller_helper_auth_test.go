@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
@@ -133,7 +133,7 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 	}
 
 	httpmock.Activate()
-	httpmock.RegisterResponder("POST", "/auth/realms/master/protocol/openid-connect/token",
+	httpmock.RegisterResponder("POST", "/realms/master/protocol/openid-connect/token",
 		httpmock.NewStringResponder(200, `{}`))
 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()

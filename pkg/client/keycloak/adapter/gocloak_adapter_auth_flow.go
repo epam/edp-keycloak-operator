@@ -8,7 +8,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 )
 
