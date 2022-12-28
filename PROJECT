@@ -106,13 +106,4 @@ resources:
   kind: KeycloakRealmUser
   path: github.com/epam/edp-keycloak-operator/api/v1
   version: v1
-- api:
-    crdVersion: v1
-    namespaced: true
-  controller: true
-  domain: edp.epam.com
-  group: v1
-  kind: Holosko
-  path: github.com/epam/edp-keycloak-operator/api/v1
-  version: v1
 version: "3"
