@@ -34,8 +34,8 @@ In order to install the Keycloak Operator, follow the steps below:
      ```bash
      helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
+     epamedp/keycloak-operator      1.14.0          1.14.0          A Helm chart for EDP Keycloak Operator
      epamedp/keycloak-operator      1.13.0          1.13.0          A Helm chart for EDP Keycloak Operator
-     epamedp/keycloak-operator      1.12.0          1.12.0          A Helm chart for EDP Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest released version._
