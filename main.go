@@ -22,8 +22,8 @@ import (
 
 	buildInfo "github.com/epam/edp-common/pkg/config"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
-	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/api/v1/v1alpha1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloak"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakauthflow"

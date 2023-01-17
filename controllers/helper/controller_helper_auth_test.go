@@ -24,7 +24,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	v13 "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -33,9 +33,9 @@ import (
 func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 	mc := K8SClientMock{}
 
-	utilruntime.Must(v13.AddToScheme(scheme.Scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme.Scheme))
 	helper := MakeHelper(&mc, scheme.Scheme, mock.NewLogr())
-	realm := v13.KeycloakRealm{
+	realm := keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -47,10 +47,10 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 		},
 	}
 
-	kc := v13.Keycloak{
+	kc := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testOwnerReference"},
-		Status:     v13.KeycloakStatus{Connected: true},
-		Spec:       v13.KeycloakSpec{Secret: "ss1"},
+		Status:     keycloakApi.KeycloakStatus{Connected: true},
+		Spec:       keycloakApi.KeycloakSpec{Secret: "ss1"},
 	}
 
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
@@ -58,7 +58,7 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testOwnerReference",
-	}, &v13.Keycloak{}).Return(fakeCl)
+	}, &keycloakApi.Keycloak{}).Return(fakeCl)
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
@@ -75,10 +75,10 @@ func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
 
 func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v13.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v13.Keycloak{
-		Spec: v13.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -115,10 +115,10 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 
 func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v13.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v13.Keycloak{
-		Spec: v13.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -150,10 +150,10 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 
 func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v13.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v13.Keycloak{
-		Spec: v13.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -175,10 +175,10 @@ func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 
 func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v13.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v13.Keycloak{
-		Spec: v13.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
@@ -230,10 +230,10 @@ func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
 
 func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	s := scheme.Scheme
-	utilruntime.Must(v13.AddToScheme(s))
+	utilruntime.Must(keycloakApi.AddToScheme(s))
 
-	kc := v13.Keycloak{
-		Spec: v13.KeycloakSpec{
+	kc := keycloakApi.Keycloak{
+		Spec: keycloakApi.KeycloakSpec{
 			Secret: "test",
 		},
 	}
