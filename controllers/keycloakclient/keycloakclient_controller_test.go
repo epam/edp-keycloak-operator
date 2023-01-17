@@ -8,14 +8,14 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -57,7 +57,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		},
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, kc)
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
 
 	req := reconcile.Request{
@@ -123,7 +123,7 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &kc)
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, &kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
 	kclient := new(adapter.Mock)
 	logger := mock.NewLogr()

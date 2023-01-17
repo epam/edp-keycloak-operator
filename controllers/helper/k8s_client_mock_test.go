@@ -12,7 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 )
 
 type fakePatch string
@@ -112,8 +112,8 @@ func TestK8SClientMock_Get(t *testing.T) {
 func TestK8SStatusMock_OneLiners(t *testing.T) {
 	var (
 		status     K8SStatusMock
-		updateOpts []client.UpdateOption
-		patchOpts  []client.PatchOption
+		updateOpts []client.SubResourceUpdateOption
+		patchOpts  []client.SubResourcePatchOption
 		ctx        = context.Background()
 		kc         keycloakApi.Keycloak
 		fPath      fakePatch

@@ -7,14 +7,17 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	commonmock "github.com/epam/edp-common/pkg/mock/controller-runtime/client"
 )
 
 type K8SClientMock struct {
 	mock.Mock
+	commonmock.Client
 	restMapper meta.RESTMapper
 }
 
-func (m *K8SClientMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object) error {
+func (m *K8SClientMock) Get(ctx context.Context, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
 	called := m.Called(key, obj)
 
 	parent, ok := called.Get(0).(client.Client)
@@ -107,10 +110,14 @@ type K8SStatusMock struct {
 	mock.Mock
 }
 
-func (m *K8SStatusMock) Update(_ context.Context, obj client.Object, opts ...client.UpdateOption) error {
+func (m *K8SStatusMock) Create(_ context.Context, obj client.Object, subResource client.Object, opts ...client.SubResourceCreateOption) error {
+	return m.Called(obj, subResource, opts).Error(0)
+}
+
+func (m *K8SStatusMock) Update(_ context.Context, obj client.Object, opts ...client.SubResourceUpdateOption) error {
 	return m.Called(obj, opts).Error(0)
 }
 
-func (m *K8SStatusMock) Patch(_ context.Context, obj client.Object, patch client.Patch, opts ...client.PatchOption) error {
+func (m *K8SStatusMock) Patch(_ context.Context, obj client.Object, patch client.Patch, opts ...client.SubResourcePatchOption) error {
 	return m.Called(obj, patch, opts).Error(0)
 }

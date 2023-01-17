@@ -10,7 +10,6 @@ import (
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -19,7 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 )
 
@@ -27,7 +26,7 @@ const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.ope
 
 type Helper interface {
 	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
+	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *metav1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
 	IsOwner(slave client.Object, master client.Object) bool
 	UpdateStatus(obj client.Object) error
 	SetFailureCount(fc helper.FailureCountable) time.Duration

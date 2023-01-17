@@ -7,13 +7,13 @@ import (
 
 	"github.com/Nerzal/gocloak/v10"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -45,7 +45,7 @@ func TestCreateDefChain(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
@@ -105,7 +105,7 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
@@ -167,7 +167,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: false, Users: []dto.User{{}}}

@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -17,7 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -59,7 +59,7 @@ func TestReconcileKeycloak_ReconcileInvalidSpec(t *testing.T) {
 		cr, secret,
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(objs...).Build()
 
@@ -110,7 +110,7 @@ func TestReconcileKeycloak_Reconcile_FailureGetInstance(t *testing.T) {
 		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
 
 	logger := mock.NewLogr()
@@ -161,7 +161,7 @@ func TestReconcileKeycloak_Reconcile_FailureUpdateConnectionStatusToKeycloak(t *
 		Spec: keycloakApi.KeycloakSpec{Url: "https://some", Secret: "keycloak-secret"}}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
+	s.AddKnownTypes(appsv1.SchemeGroupVersion, cr, &keycloakApi.KeycloakRealm{})
 	cl := fake.NewClientBuilder().WithRuntimeObjects(cr).Build()
 
 	logger := mock.NewLogr()

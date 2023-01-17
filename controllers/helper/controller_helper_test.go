@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	v1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -22,7 +22,7 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
-	v13 "github.com/epam/edp-keycloak-operator/api/v1/v1"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
@@ -30,11 +30,11 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	mc := K8SClientMock{}
 
 	sch := runtime.NewScheme()
-	utilruntime.Must(v13.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
 	helper := MakeHelper(&mc, sch, mock.NewLogr())
 
-	kcGroup := v13.KeycloakRealmGroup{
+	kcGroup := keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -49,16 +49,16 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "foo",
-	}, &v13.KeycloakRealm{}).Return(nil)
+	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 
 	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	require.NoError(t, err)
 
-	kcGroup = v13.KeycloakRealmGroup{
+	kcGroup = keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
-		Spec: v13.KeycloakRealmGroupSpec{
+		Spec: keycloakApi.KeycloakRealmGroupSpec{
 			Realm: "foo13",
 		},
 	}
@@ -66,7 +66,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "foo13",
-	}, &v13.KeycloakRealm{}).Return(nil)
+	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 
 	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	require.NoError(t, err)
@@ -76,11 +76,11 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 	mc := K8SClientMock{}
 
 	sch := runtime.NewScheme()
-	utilruntime.Must(v13.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
 	helper := MakeHelper(&mc, sch, mock.NewLogr())
 
-	kcGroup := v13.KeycloakRealmGroup{
+	kcGroup := keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -97,7 +97,7 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "foo",
-	}, &v13.KeycloakRealm{}).Return(mockErr)
+	}, &keycloakApi.KeycloakRealm{}).Return(mockErr)
 
 	_, err := helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	if err == nil {
@@ -106,17 +106,17 @@ func TestHelper_GetOrCreateRealmOwnerRef_Failure(t *testing.T) {
 
 	assert.ErrorIs(t, err, mockErr)
 
-	kcGroup = v13.KeycloakRealmGroup{
+	kcGroup = keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
-		Spec: v13.KeycloakRealmGroupSpec{Realm: "main123"},
+		Spec: keycloakApi.KeycloakRealmGroupSpec{Realm: "main123"},
 	}
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "main123",
-	}, &v13.KeycloakRealm{}).Return(mockErr)
+	}, &keycloakApi.KeycloakRealm{}).Return(mockErr)
 
 	_, err = helper.GetOrCreateRealmOwnerRef(&kcGroup, &kcGroup.ObjectMeta)
 	if err == nil {
@@ -130,11 +130,11 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	mc := K8SClientMock{}
 
 	sch := runtime.NewScheme()
-	utilruntime.Must(v13.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
 	helper := MakeHelper(&mc, sch, mock.NewLogr())
 
-	realm := v13.KeycloakRealm{
+	realm := keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -149,17 +149,17 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "foo",
-	}, &v13.Keycloak{}).Return(nil)
+	}, &keycloakApi.Keycloak{}).Return(nil)
 
 	_, err := helper.GetOrCreateKeycloakOwnerRef(&realm)
 	require.NoError(t, err)
 
-	realm = v13.KeycloakRealm{
+	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 		},
 
-		Spec: v13.KeycloakRealmSpec{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			KeycloakOwner: "test321",
 		},
 	}
@@ -167,7 +167,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "test321",
-	}, &v13.Keycloak{}).Return(nil)
+	}, &keycloakApi.Keycloak{}).Return(nil)
 
 	_, err = helper.GetOrCreateKeycloakOwnerRef(&realm)
 	require.NoError(t, err)
@@ -177,11 +177,11 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 	mc := K8SClientMock{}
 
 	sch := runtime.NewScheme()
-	utilruntime.Must(v13.AddToScheme(sch))
+	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
 	helper := MakeHelper(&mc, sch, mock.NewLogr())
 
-	realm := v13.KeycloakRealm{}
+	realm := keycloakApi.KeycloakRealm{}
 
 	_, err := helper.GetOrCreateKeycloakOwnerRef(&realm)
 	if err == nil {
@@ -193,7 +193,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 		t.Fatal("wrong error message returned")
 	}
 
-	realm = v13.KeycloakRealm{
+	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -215,7 +215,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 		t.Fatal("wrong error message returned")
 	}
 
-	realm = v13.KeycloakRealm{
+	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -225,7 +225,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 				},
 			},
 		},
-		Spec: v13.KeycloakRealmSpec{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			KeycloakOwner: "testSpec",
 		},
 	}
@@ -234,7 +234,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testSpec",
-	}, &v13.Keycloak{}).Return(mockErr)
+	}, &keycloakApi.Keycloak{}).Return(mockErr)
 
 	_, err = helper.GetOrCreateKeycloakOwnerRef(&realm)
 	if err == nil {
@@ -243,7 +243,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 
 	assert.ErrorIs(t, err, mockErr)
 
-	realm = v13.KeycloakRealm{
+	realm = keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -253,7 +253,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 				},
 			},
 		},
-		Spec: v13.KeycloakRealmSpec{
+		Spec: keycloakApi.KeycloakRealmSpec{
 			KeycloakOwner: "testSpec",
 		},
 	}
@@ -261,7 +261,7 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testOwnerReference",
-	}, &v13.Keycloak{}).Return(mockErr)
+	}, &keycloakApi.Keycloak{}).Return(mockErr)
 
 	_, err = helper.GetOrCreateKeycloakOwnerRef(&realm)
 	if err == nil {
@@ -280,16 +280,16 @@ func TestMakeHelper(t *testing.T) {
 	logger := mock.NewLogr()
 	h := MakeHelper(nil, nil, logger)
 	_, err := h.adapterBuilder(context.Background(), "k-url", "foo", "bar",
-		v13.KeycloakAdminTypeServiceAccount, logger, rCl)
+		keycloakApi.KeycloakAdminTypeServiceAccount, logger, rCl)
 	require.NoError(t, err)
 }
 
 func TestHelper_CreateKeycloakClient(t *testing.T) {
 	mc := K8SClientMock{}
 
-	utilruntime.Must(v13.AddToScheme(scheme.Scheme))
+	utilruntime.Must(keycloakApi.AddToScheme(scheme.Scheme))
 	helper := MakeHelper(&mc, scheme.Scheme, mock.NewLogr())
-	realm := v13.KeycloakRealm{
+	realm := keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: "test",
 			OwnerReferences: []metav1.OwnerReference{
@@ -301,10 +301,10 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 		},
 	}
 
-	kc := v13.Keycloak{
+	kc := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testOwnerReference"},
-		Status:     v13.KeycloakStatus{Connected: true},
-		Spec:       v13.KeycloakSpec{Secret: "ss1"},
+		Status:     keycloakApi.KeycloakStatus{Connected: true},
+		Spec:       keycloakApi.KeycloakSpec{Secret: "ss1"},
 	}
 
 	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
@@ -312,17 +312,17 @@ func TestHelper_CreateKeycloakClient(t *testing.T) {
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "testOwnerReference",
-	}, &v13.Keycloak{}).Return(fakeCl)
+	}, &keycloakApi.Keycloak{}).Return(fakeCl)
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      kc.Spec.Secret,
-	}, &v1.Secret{}).Return(nil)
+	}, &corev1.Secret{}).Return(nil)
 
 	mc.On("Get", types.NamespacedName{
 		Namespace: "test",
 		Name:      "kc-token-testOwnerReference",
-	}, &v1.Secret{}).Return(&k8sErrors.StatusError{ErrStatus: metav1.Status{
+	}, &corev1.Secret{}).Return(&k8sErrors.StatusError{ErrStatus: metav1.Status{
 		Status:  metav1.StatusFailure,
 		Code:    http.StatusNotFound,
 		Reason:  metav1.StatusReasonNotFound,
@@ -357,7 +357,7 @@ func TestHelper_TryToDelete(t *testing.T) {
 	term := testTerminator{
 		log: logger,
 	}
-	secret := v1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret1"}}
+	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "test-secret1"}}
 	fakeClient := fake.NewClientBuilder().WithRuntimeObjects(&secret).Build()
 	h := Helper{client: fakeClient}
 
