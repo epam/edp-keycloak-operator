@@ -1,9 +1,4 @@
-# Global section is used for EPAM Delivery Platform (EDP). If you are not running EDP, skip `global` section
 global:
-  # -- It creates EDP specific objects. Enable only if you use operator in scope of EPAM Delivery Platform
-  edpEnable: false
-  # -- URL to Keycloak
-  keycloakUrl: "https://keycloak.example.com"
   # -- namespace or a project name (in case of OpenShift)
   edpName: ""
   # -- platform type that can be "kubernetes" or "openshift"
