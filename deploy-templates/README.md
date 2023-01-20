@@ -25,12 +25,13 @@ A Helm chart for EDP Keycloak Operator
 | annotations | object | `{}` |  |
 | global.admins | list | `["stub_user_one@example.com"]` | Administrators of your tenant |
 | global.developers | list | `["stub_user_one@example.com"]` | Developers of your tenant |
+| global.edpEnable | bool | `false` | It creates EDP specific objects. Enable only if you use operator in scope of EPAM Delivery Platform |
 | global.edpName | string | `""` | namespace or a project name (in case of OpenShift) |
+| global.keycloakUrl | string | `"https://keycloak.example.com"` | URL to Keycloak |
 | global.platform | string | `"openshift"` | platform type that can be "kubernetes" or "openshift" |
 | image.repository | string | `"epamedp/keycloak-operator"` | EDP keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator) |
 | image.tag | string | `nil` | EDP keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags) |
 | imagePullPolicy | string | `"IfNotPresent"` |  |
-| keycloak.url | string | `"https://keycloak.example.com"` | URL to Keycloak |
 | name | string | `"keycloak-operator"` | component name |
 | nodeSelector | object | `{}` |  |
 | resources.limits.memory | string | `"192Mi"` |  |

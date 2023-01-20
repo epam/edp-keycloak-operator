@@ -1,0 +1,29 @@
+@startuml keycloak-operator
+
+skinparam BackgroundColor transparent
+skinparam componentStyle rectangle
+
+component namespace {
+    package "Keycloak operator" {
+        [kind: KeycloakRealm] --> [kind: Keycloak] : spec.keycloakOwner
+        [kind: KeycloakRealmRole] -left-> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakRealmRoleBatch] --> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakRealmIdentityProvider] --> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakRealmGroup] --> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakRealmComponent]--> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakClientScope] --> [kind: KeycloakRealm]: spec.realm
+        [kind: KeycloakClient] --> [kind: KeycloakRealm]: spec.targetRealm
+        [kind: KeycloakAuthFlow] --> [kind: KeycloakRealm]: spec.realm
+        [kind: Keycloak]
+        [kind: KeycloakRealmUser] -right-> [kind: KeycloakRealm]: spec.realm
+    }
+    [kind: Keycloak] ---> [kind: Secret]: spec.secret
+}
+
+[kind: Secret] <-- [Keycloak]: username, password
+[kind: Keycloak] ---> [Keycloak]: spec.url
+
+component [Keycloak] #Yellow
+component [kind: Secret] #SeaGreen
+
+@enduml
