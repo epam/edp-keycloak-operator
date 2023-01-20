@@ -1,3 +1,4 @@
+{{- if .Values.global.edpEnable  -}}
 apiVersion: v1.edp.epam.com/v1
 kind: Keycloak
 metadata:
@@ -5,5 +6,6 @@ metadata:
   labels:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
 spec:
-  url: {{ .Values.keycloak.url }}
+  url: {{ .Values.global.keycloakUrl }}
   secret: "keycloak"
+{{ end }}

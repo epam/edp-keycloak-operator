@@ -1,3 +1,4 @@
+{{- if .Values.global.edpEnable  -}}
 apiVersion: v1.edp.epam.com/v1
 kind: KeycloakClientScope
 metadata:
@@ -22,3 +23,4 @@ spec:
       config:
         "access.token.claim": "true"
         "included.client.audience": "admin-console-client"
+{{ end }}
