@@ -1,15 +1,3 @@
-global:
-  # -- namespace or a project name (in case of OpenShift)
-  edpName: ""
-  # -- platform type that can be "kubernetes" or "openshift"
-  platform: "openshift"
-  # -- Administrators of your tenant
-  admins:
-    - "stub_user_one@example.com"
-  # -- Developers of your tenant
-  developers:
-    - "stub_user_one@example.com"
-
 # -- component name
 name: keycloak-operator
 annotations: {}
