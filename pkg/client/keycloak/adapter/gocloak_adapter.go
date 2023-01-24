@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
@@ -21,44 +21,44 @@ import (
 )
 
 const (
-	idPResource                     = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idPMapperResource               = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idPResource                     = "/admin/realms/{realm}/identity-provider/instances"
+	idPMapperResource               = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP                       = idPResource + "/{alias}"
-	openIdConfig                    = "/auth/realms/{realm}/.well-known/openid-configuration"
-	authExecutions                  = "/auth/admin/realms/{realm}/authentication/flows/browser/executions"
-	authExecutionConfig             = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	postClientScopeMapper           = "/auth/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
-	getRealmClientScopes            = "/auth/admin/realms/{realm}/client-scopes"
-	postClientScope                 = "/auth/admin/realms/{realm}/client-scopes"
-	putClientScope                  = "/auth/admin/realms/{realm}/client-scopes/{id}"
-	getClientProtocolMappers        = "/auth/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
-	mapperToIdentityProvider        = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	updateMapperToIdentityProvider  = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
-	authFlows                       = "/auth/admin/realms/{realm}/authentication/flows"
-	authFlow                        = "/auth/admin/realms/{realm}/authentication/flows/{id}"
-	authFlowExecutionCreate         = "/auth/admin/realms/{realm}/authentication/executions"
-	authFlowExecutionGetUpdate      = "/auth/admin/realms/{realm}/authentication/flows/{alias}/executions"
-	authFlowExecutionDelete         = "/auth/admin/realms/{realm}/authentication/executions/{id}"
-	raiseExecutionPriority          = "/auth/admin/realms/{realm}/authentication/executions/{id}/raise-priority"
-	lowerExecutionPriority          = "/auth/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
-	authFlowExecutionConfig         = "/auth/admin/realms/{realm}/authentication/executions/{id}/config"
-	deleteClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
-	createClientScopeProtocolMapper = "/auth/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
-	putDefaultClientScope           = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
-	deleteDefaultClientScope        = "/auth/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
-	getDefaultClientScopes          = "/auth/admin/realms/{realm}/default-default-client-scopes"
-	realmEventConfigPut             = "/auth/admin/realms/{realm}/events/config"
-	realmComponent                  = "/auth/admin/realms/{realm}/components"
-	realmComponentEntity            = "/auth/admin/realms/{realm}/components/{id}"
-	identityProviderEntity          = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}"
-	identityProviderCreateList      = "/auth/admin/realms/{realm}/identity-provider/instances"
-	idpMapperCreateList             = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
-	idpMapperEntity                 = "/auth/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
-	deleteRealmUser                 = "/auth/admin/realms/{realm}/users/{id}"
-	setRealmUserPassword            = "/auth/admin/realms/{realm}/users/{id}/reset-password"
-	getUserRealmRoleMappings        = "/auth/admin/realms/{realm}/users/{id}/role-mappings/realm"
-	getUserGroupMappings            = "/auth/admin/realms/{realm}/users/{id}/groups"
-	manageUserGroups                = "/auth/admin/realms/{realm}/users/{userID}/groups/{groupID}"
+	openIdConfig                    = "/realms/{realm}/.well-known/openid-configuration"
+	authExecutions                  = "/admin/realms/{realm}/authentication/flows/browser/executions"
+	authExecutionConfig             = "/admin/realms/{realm}/authentication/executions/{id}/config"
+	postClientScopeMapper           = "/admin/realms/{realm}/client-scopes/{scopeId}/protocol-mappers/models"
+	getRealmClientScopes            = "/admin/realms/{realm}/client-scopes"
+	postClientScope                 = "/admin/realms/{realm}/client-scopes"
+	putClientScope                  = "/admin/realms/{realm}/client-scopes/{id}"
+	getClientProtocolMappers        = "/admin/realms/{realm}/clients/{id}/protocol-mappers/models"
+	mapperToIdentityProvider        = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	updateMapperToIdentityProvider  = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	authFlows                       = "/admin/realms/{realm}/authentication/flows"
+	authFlow                        = "/admin/realms/{realm}/authentication/flows/{id}"
+	authFlowExecutionCreate         = "/admin/realms/{realm}/authentication/executions"
+	authFlowExecutionGetUpdate      = "/admin/realms/{realm}/authentication/flows/{alias}/executions"
+	authFlowExecutionDelete         = "/admin/realms/{realm}/authentication/executions/{id}"
+	raiseExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/raise-priority"
+	lowerExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
+	authFlowExecutionConfig         = "/admin/realms/{realm}/authentication/executions/{id}/config"
+	deleteClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
+	createClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
+	putDefaultClientScope           = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	deleteDefaultClientScope        = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
+	getDefaultClientScopes          = "/admin/realms/{realm}/default-default-client-scopes"
+	realmEventConfigPut             = "/admin/realms/{realm}/events/config"
+	realmComponent                  = "/admin/realms/{realm}/components"
+	realmComponentEntity            = "/admin/realms/{realm}/components/{id}"
+	identityProviderEntity          = "/admin/realms/{realm}/identity-provider/instances/{alias}"
+	identityProviderCreateList      = "/admin/realms/{realm}/identity-provider/instances"
+	idpMapperCreateList             = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
+	idpMapperEntity                 = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers/{id}"
+	deleteRealmUser                 = "/admin/realms/{realm}/users/{id}"
+	setRealmUserPassword            = "/admin/realms/{realm}/users/{id}/reset-password"
+	getUserRealmRoleMappings        = "/admin/realms/{realm}/users/{id}/role-mappings/realm"
+	getUserGroupMappings            = "/admin/realms/{realm}/users/{id}/groups"
+	manageUserGroups                = "/admin/realms/{realm}/users/{userID}/groups/{groupID}"
 	logClientDTO                    = "client dto"
 )
 
@@ -88,23 +88,22 @@ func IsErrTokenExpired(err error) bool {
 }
 
 type GoCloakAdapter struct {
-	client   GoCloak
-	token    *gocloak.JWT
-	log      logr.Logger
-	basePath string
+	client     GoCloak
+	token      *gocloak.JWT
+	log        logr.Logger
+	basePath   string
+	legacyMode bool
 }
 
 type JWTPayload struct {
 	Exp int64 `json:"exp"`
 }
 
-func (a *GoCloakAdapter) GetGoCloak() GoCloak {
+func (a GoCloakAdapter) GetGoCloak() GoCloak {
 	return a.client
 }
 
 func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
-	kcCl := gocloak.NewClient(url)
-
 	var token gocloak.JWT
 	if err := json.Unmarshal(tokenData, &token); err != nil {
 		return nil, errors.Wrapf(err, "unable decode json data")
@@ -124,7 +123,7 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 	}
 
 	var tokenPayloadDecoded JWTPayload
-	if err := json.Unmarshal(tokenPayload, &tokenPayloadDecoded); err != nil {
+	if err = json.Unmarshal(tokenPayload, &tokenPayloadDecoded); err != nil {
 		return nil, errors.Wrap(err, "unable to decode JWT payload json")
 	}
 
@@ -132,56 +131,127 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 		return nil, TokenExpiredError("token is expired")
 	}
 
+	kcCl, legacyMode, err := makeClientFromToken(url, token.AccessToken)
+	if err != nil {
+		return nil, fmt.Errorf("failed to make new keycloak client: %w", err)
+	}
+
 	return &GoCloakAdapter{
-		client:   kcCl,
-		token:    &token,
-		log:      log,
-		basePath: url,
+		client:     kcCl,
+		token:      &token,
+		log:        log,
+		basePath:   url,
+		legacyMode: legacyMode,
 	}, nil
 }
 
-func MakeFromServiceAccount(ctx context.Context, url, clientID, clientSecret, realm string, log logr.Logger, restyClient *resty.Client) (*GoCloakAdapter, error) {
-	kcCl := gocloak.NewClient(url)
+// makeClientFromToken returns Keycloak client, a bool flag indicating whether it was created in legacy mode and an error.
+func makeClientFromToken(url, token string) (*gocloak.GoCloak, bool, error) {
+	restyClient := resty.New()
 
+	kcCl := gocloak.NewClient(url)
+	kcCl.SetRestyClient(restyClient)
+
+	_, err := kcCl.GetRealms(context.Background(), token)
+	if err == nil {
+		return kcCl, false, nil
+	}
+
+	if !strings.Contains(err.Error(), "404 Not Found") {
+		return nil, false, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
+	}
+
+	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl.SetRestyClient(restyClient)
+
+	if _, err := kcCl.GetRealms(context.Background(), token); err != nil {
+		return nil, false, fmt.Errorf("failed to create both current and legacy clients: %w", err)
+	}
+
+	return kcCl, true, nil
+}
+
+func MakeFromServiceAccount(ctx context.Context,
+	url, clientID, clientSecret, realm string,
+	log logr.Logger, restyClient *resty.Client,
+) (*GoCloakAdapter, error) {
 	if restyClient == nil {
 		restyClient = resty.New()
 	}
 
+	kcCl := gocloak.NewClient(url)
 	kcCl.SetRestyClient(restyClient)
 
-	tok, err := kcCl.LoginClient(ctx, clientID, clientSecret, realm)
+	token, err := kcCl.LoginClient(ctx, clientID, clientSecret, realm)
+	if err == nil {
+		return &GoCloakAdapter{
+			client:     kcCl,
+			token:      token,
+			log:        log,
+			basePath:   url,
+			legacyMode: false,
+		}, nil
+	}
+
+	if !strings.Contains(err.Error(), "404 Not Found") {
+		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
+	}
+
+	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl.SetRestyClient(restyClient)
+
+	token, err = kcCl.LoginClient(ctx, clientID, clientSecret, realm)
 	if err != nil {
-		return nil, errors.Wrapf(err, "unable to login with client creds, clientID: %s, realm: %s", clientID,
-			realm)
+		return nil, fmt.Errorf("failed to login with client creds on both current and legacy clients - "+
+			"clientID: %s, realm: %s: %w", clientID, realm, err)
 	}
 
 	return &GoCloakAdapter{
-		client:   kcCl,
-		token:    tok,
-		log:      log,
-		basePath: url,
+		client:     kcCl,
+		token:      token,
+		log:        log,
+		basePath:   url,
+		legacyMode: true,
 	}, nil
 }
 
 func Make(ctx context.Context, url, user, password string, log logr.Logger, restyClient *resty.Client) (*GoCloakAdapter, error) {
-	kcCl := gocloak.NewClient(url)
-
 	if restyClient == nil {
 		restyClient = resty.New()
 	}
 
+	kcCl := gocloak.NewClient(url)
 	kcCl.SetRestyClient(restyClient)
 
 	token, err := kcCl.LoginAdmin(ctx, user, password, "master")
+	if err == nil {
+		return &GoCloakAdapter{
+			client:     kcCl,
+			token:      token,
+			log:        log,
+			basePath:   url,
+			legacyMode: false,
+		}, nil
+	}
+
+	if !strings.Contains(err.Error(), "404 Not Found") {
+		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
+	}
+
+	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl.SetRestyClient(restyClient)
+
+	token, err = kcCl.LoginAdmin(ctx, user, password, "master")
 	if err != nil {
 		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", user)
 	}
 
 	return &GoCloakAdapter{
-		client:   kcCl,
-		token:    token,
-		log:      log,
-		basePath: url,
+		client:     kcCl,
+		token:      token,
+		log:        log,
+		basePath:   url,
+		legacyMode: true,
 	}, nil
 }
 
@@ -192,6 +262,15 @@ func (a GoCloakAdapter) ExportToken() ([]byte, error) {
 	}
 
 	return tokenData, nil
+}
+
+// buildPath returns request path corresponding with the mode the client is operating in.
+func (a GoCloakAdapter) buildPath(endpoint string) string {
+	if a.legacyMode {
+		return a.basePath + "/auth" + endpoint
+	}
+
+	return a.basePath + endpoint
 }
 
 func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
@@ -205,7 +284,7 @@ func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, er
 			keycloakApiParamRealm: realm.Name,
 			keycloakApiParamAlias: realm.SsoRealmName,
 		}).
-		Get(a.basePath + getOneIdP)
+		Get(a.buildPath(getOneIdP))
 	if err != nil {
 		return false, fmt.Errorf("request exists central identity provider failed: %w", err)
 	}
@@ -236,7 +315,7 @@ func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *
 			keycloakApiParamRealm: realm.Name,
 		}).
 		SetBody(idP).
-		Post(a.basePath + idPResource)
+		Post(a.buildPath(idPResource))
 
 	if err != nil {
 		return errors.Wrap(err, "unable to create central idp")
@@ -265,12 +344,12 @@ func (a GoCloakAdapter) getCentralIdP(client *dto.Client, ssoRealmName string) a
 		Enabled:     true,
 		ProviderId:  "keycloak-oidc",
 		Config: api.IdentityProviderConfig{
-			UserInfoUrl:      fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/userinfo", a.basePath, ssoRealmName),
-			TokenUrl:         fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/token", a.basePath, ssoRealmName),
-			JwksUrl:          fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/certs", a.basePath, ssoRealmName),
-			Issuer:           fmt.Sprintf("%s/auth/realms/%s", a.basePath, ssoRealmName),
-			AuthorizationUrl: fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/auth", a.basePath, ssoRealmName),
-			LogoutUrl:        fmt.Sprintf("%s/auth/realms/%s/protocol/openid-connect/logout", a.basePath, ssoRealmName),
+			UserInfoUrl:      a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/userinfo", ssoRealmName)),
+			TokenUrl:         a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/token", ssoRealmName)),
+			JwksUrl:          a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/certs", ssoRealmName)),
+			Issuer:           a.buildPath(fmt.Sprintf("/realms/%s", ssoRealmName)),
+			AuthorizationUrl: a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/auth", ssoRealmName)),
+			LogoutUrl:        a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/logout", ssoRealmName)),
 			ClientId:         client.ClientId,
 			ClientSecret:     client.ClientSecret,
 		},
@@ -312,7 +391,7 @@ func (a GoCloakAdapter) createIdPMapper(realm *dto.Realm, externalRole string, r
 			keycloakApiParamAlias: realm.SsoRealmName,
 		}).
 		SetBody(body).
-		Post(a.basePath + idPMapperResource)
+		Post(a.buildPath(idPMapperResource))
 	if err != nil {
 		return fmt.Errorf("request create idp mapper failed: %w", err)
 	}
@@ -626,10 +705,12 @@ func (a GoCloakAdapter) DeleteRealmUser(ctx context.Context, realmName, username
 		return NotFoundError("user not found")
 	}
 
-	rsp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		keycloakApiParamRealm: realmName,
-		keycloakApiParamId:    *usr.ID,
-	}).Delete(a.basePath + deleteRealmUser)
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+			keycloakApiParamId:    *usr.ID,
+		}).
+		Delete(a.buildPath(deleteRealmUser))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete user")
@@ -886,7 +967,7 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {
 		SetPathParams(map[string]string{
 			keycloakApiParamRealm: realm.Name,
 		}).
-		Get(a.basePath + openIdConfig)
+		Get(a.buildPath(openIdConfig))
 	if err != nil {
 		return "", fmt.Errorf("request get open id config failed: %w", err)
 	}
@@ -942,15 +1023,18 @@ func getIdPRedirector(executions []api.SimpleAuthExecution) (*api.SimpleAuthExec
 }
 
 func (a GoCloakAdapter) createRedirectConfig(realm *dto.Realm, eId string) error {
-	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm.Name,
-		keycloakApiParamId:    eId,
-	}).SetBody(map[string]interface{}{
-		keycloakApiParamAlias: "edp-sso",
-		"config": map[string]string{
-			"defaultProvider": realm.SsoRealmName,
-		},
-	}).Post(a.basePath + authExecutionConfig)
+	resp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm.Name,
+			keycloakApiParamId:    eId,
+		}).
+		SetBody(map[string]interface{}{
+			keycloakApiParamAlias: "edp-sso",
+			"config": map[string]string{
+				"defaultProvider": realm.SsoRealmName,
+			},
+		}).
+		Post(a.buildPath(authExecutionConfig))
 	if err != nil {
 		return errors.Wrap(err, "error during resty request")
 	}
@@ -960,11 +1044,13 @@ func (a GoCloakAdapter) createRedirectConfig(realm *dto.Realm, eId string) error
 	}
 
 	if !realm.SsoAutoRedirectEnabled {
-		resp, err := a.startRestyRequest().SetPathParams(map[string]string{keycloakApiParamRealm: realm.Name}).
+		resp, err := a.startRestyRequest().
+			SetPathParams(map[string]string{keycloakApiParamRealm: realm.Name}).
 			SetBody(map[string]string{
 				keycloakApiParamId: eId,
 				"requirement":      "DISABLED",
-			}).Put(a.basePath + authExecutions)
+			}).
+			Put(a.buildPath(authExecutions))
 		if err != nil {
 			return errors.Wrap(err, "error during resty request")
 		}
@@ -985,7 +1071,7 @@ func (a GoCloakAdapter) getBrowserExecutions(realm *dto.Realm) ([]api.SimpleAuth
 			keycloakApiParamRealm: realm.Name,
 		}).
 		SetResult(&res).
-		Get(a.basePath + authExecutions)
+		Get(a.buildPath(authExecutions))
 	if err != nil {
 		return nil, fmt.Errorf("request get browser executions failed: %w", err)
 	}
@@ -1118,9 +1204,9 @@ func (a GoCloakAdapter) GetClientProtocolMappers(client *dto.Client,
 			keycloakApiParamRealm: client.RealmName,
 			keycloakApiParamId:    clientID,
 		}).
-		SetResult(&mappers).Get(a.basePath + getClientProtocolMappers)
+		SetResult(&mappers).Get(a.buildPath(getClientProtocolMappers))
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to get client protocol mappers")
+		return nil, errors.Wrap(err, "failed to get client protocol mappers")
 	}
 
 	if resp.IsError() {

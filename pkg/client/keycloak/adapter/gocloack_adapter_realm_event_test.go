@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
@@ -25,11 +25,11 @@ func TestGoCloakAdapter_SetRealmEventConfig(t *testing.T) {
 	err := adapter.SetRealmEventConfig("realm1", &RealmEventConfig{})
 	require.Error(t, err)
 
-	if !strings.Contains(err.Error(), "error during set realm event config request") {
+	if !strings.Contains(err.Error(), "failed to set realm event config request") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/r1/events/config",
+	httpmock.RegisterResponder("PUT", "/admin/realms/r1/events/config",
 		httpmock.NewStringResponder(200, ""))
 
 	err = adapter.SetRealmEventConfig("r1",

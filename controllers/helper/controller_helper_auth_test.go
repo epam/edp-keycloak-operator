@@ -8,10 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -28,6 +27,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
@@ -117,11 +117,19 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 	s := scheme.Scheme
 	utilruntime.Must(keycloakApi.AddToScheme(s))
 
+	mockServer := fakehttp.NewServerBuilder().
+		AddStringResponder("/auth/admin/realms/", "{}").
+		AddStringResponder("/auth/realms/master/protocol/openid-connect/token", "{}").
+		BuildAndStart()
+	defer mockServer.Close()
+
 	kc := keycloakApi.Keycloak{
 		Spec: keycloakApi.KeycloakSpec{
+			Url:    mockServer.GetURL(),
 			Secret: "test",
 		},
 	}
+
 	lpSecret := corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: kc.Spec.Secret,
@@ -132,15 +140,10 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 		},
 	}
 
-	httpmock.Activate()
-	httpmock.RegisterResponder("POST", "/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(200, `{}`))
-
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()
 
 	helper := MakeHelper(cl, s, mock.NewLogr())
 	helper.restyClient = resty.New()
-	httpmock.ActivateNonDefault(helper.restyClient.GetClient())
 
 	_, err := helper.CreateKeycloakClientFromLoginPassword(context.Background(), &kc)
 	if err != nil {
@@ -232,8 +235,14 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 	s := scheme.Scheme
 	utilruntime.Must(keycloakApi.AddToScheme(s))
 
+	mockServer := fakehttp.NewServerBuilder().
+		AddStringResponder("/auth/admin/realms/", "{}").
+		BuildAndStart()
+	defer mockServer.Close()
+
 	kc := keycloakApi.Keycloak{
 		Spec: keycloakApi.KeycloakSpec{
+			Url:    mockServer.GetURL(),
 			Secret: "test",
 		},
 	}

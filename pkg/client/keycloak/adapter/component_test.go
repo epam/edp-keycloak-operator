@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
@@ -41,13 +41,13 @@ func testComponent() *Component {
 func TestGoCloakAdapter_CreateComponent(t *testing.T) {
 	kcAdapter, _, _ := initAdapter()
 
-	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm-name/components",
+	httpmock.RegisterResponder("POST", "/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(200, ""))
 
 	err := kcAdapter.CreateComponent(context.Background(), "realm-name", testComponent())
 	require.NoError(t, err)
 
-	httpmock.RegisterResponder("POST", "/auth/admin/realms/realm-name-error/components",
+	httpmock.RegisterResponder("POST", "/admin/realms/realm-name-error/components",
 		httpmock.NewStringResponder(500, "fatal"))
 
 	err = kcAdapter.CreateComponent(context.Background(), "realm-name-error",
@@ -64,15 +64,15 @@ func TestMock_UpdateComponent(t *testing.T) {
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{*testCmp}))
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm-name/components/test-id",
+	httpmock.RegisterResponder("PUT", "/admin/realms/realm-name/components/test-id",
 		httpmock.NewStringResponder(200, ""))
 
 	err := kcAdapter.UpdateComponent(context.Background(), "realm-name", testComponent())
 	require.NoError(t, err)
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name-no-components/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name-no-components/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{}))
 
 	err = kcAdapter.UpdateComponent(context.Background(), "realm-name-no-components", testComponent())
@@ -82,9 +82,9 @@ func TestMock_UpdateComponent(t *testing.T) {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name-update-failure/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name-update-failure/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{*testCmp}))
-	httpmock.RegisterResponder("PUT", "/auth/admin/realms/realm-name-update-failure/components/test-id",
+	httpmock.RegisterResponder("PUT", "/admin/realms/realm-name-update-failure/components/test-id",
 		httpmock.NewStringResponder(404, "not found"))
 
 	err = kcAdapter.UpdateComponent(context.Background(), "realm-name-update-failure", testComponent())
@@ -100,15 +100,15 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{*testCmp}))
-	httpmock.RegisterResponder("DELETE", "/auth/admin/realms/realm-name/components/test-id",
+	httpmock.RegisterResponder("DELETE", "/admin/realms/realm-name/components/test-id",
 		httpmock.NewStringResponder(200, ""))
 
 	err := kcAdapter.DeleteComponent(context.Background(), "realm-name", testCmp.Name)
 	require.NoError(t, err)
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name-no-components/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name-no-components/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{}))
 
 	err = kcAdapter.DeleteComponent(context.Background(), "realm-name-no-components", testCmp.Name)
@@ -118,9 +118,9 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name-delete-failure/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name-delete-failure/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{*testCmp}))
-	httpmock.RegisterResponder("DELETE", "/auth/admin/realms/realm-name-delete-failure/components/test-id",
+	httpmock.RegisterResponder("DELETE", "/admin/realms/realm-name-delete-failure/components/test-id",
 		httpmock.NewStringResponder(404, "delete not found"))
 
 	err = kcAdapter.DeleteComponent(context.Background(), "realm-name-delete-failure", testCmp.Name)
@@ -134,7 +134,7 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 func TestGoCloakAdapter_GetComponent_Failure(t *testing.T) {
 	kcAdapter, _, _ := initAdapter()
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm-name/components",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(422, "forbidden"))
 
 	_, err := kcAdapter.GetComponent(context.Background(), "realm-name", "test-name")

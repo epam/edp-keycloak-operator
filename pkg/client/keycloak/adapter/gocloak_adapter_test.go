@@ -1,16 +1,16 @@
 package adapter
 
 import (
-	"bytes"
 	"context"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -22,6 +22,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 type AdapterTestSuite struct {
@@ -57,43 +58,119 @@ func TestAdapterTestSuite(t *testing.T) {
 func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 	t := e.T()
 
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(200, "{}"))
+	t.Parallel()
 
-	_, err := MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", mock.NewLogr(), e.restyClient)
-	assert.NoError(t, err)
+	realmsEndpoint := "/realms/master/protocol/openid-connect/token"
 
-	httpmock.Reset()
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(400, "{}"))
+	tests := []struct {
+		name       string
+		mockServer fakehttp.Server
+		wantErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "should succeed",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder(realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name: "should succeed with legacy endpoint",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder("/auth"+realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name: "should fail on status bad request",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponderWithCode(http.StatusBadRequest, "/auth"+realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+				require.Error(t, err)
+				require.EqualError(t, err, "failed to login with client creds on both current and legacy clients - clientID: k-cl-id, realm: master: 400 Bad Request")
+			},
+		},
+	}
 
-	_, err = MakeFromServiceAccount(context.Background(), "k-url", "k-cl-id", "k-secret",
-		"master", mock.NewLogr(), e.restyClient)
-	assert.Error(t, err)
-	assert.EqualError(t, err, "unable to login with client creds, clientID: k-cl-id, realm: master: 400")
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			defer tt.mockServer.Close()
+
+			_, err := MakeFromServiceAccount(context.Background(), tt.mockServer.GetURL(),
+				"k-cl-id", "k-secret", "master", mock.NewLogr(), resty.New())
+			tt.wantErr(t, err)
+		})
+	}
 }
 
 func (e *AdapterTestSuite) TestMake() {
-	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(200, "{}"))
-
-	_, err := Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
-	assert.NoError(e.T(), err)
-}
-
-func (e *AdapterTestSuite) TestMake_Failure() {
 	t := e.T()
-	_, err := Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), nil)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "unsupported protocol scheme")
 
-	httpmock.RegisterResponder("POST", "/foo/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(400, "{}"))
+	t.Parallel()
 
-	_, err = Make(context.Background(), "foo", "bar", "baz", mock.NewLogr(), e.restyClient)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "400")
+	realmsEndpoint := "/realms/master/protocol/openid-connect/token"
+
+	tests := []struct {
+		name       string
+		mockServer fakehttp.Server
+		wantErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "should succeed",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder(realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name: "should succeed with legacy endpoint",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder("/auth"+realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name:       "should fail on unsupported protocol scheme",
+			mockServer: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unsupported protocol scheme")
+			},
+		},
+		{
+			name: "should fail with status 400",
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponderWithCode(http.StatusBadRequest, "/auth"+realmsEndpoint, "{}").
+				BuildAndStart(),
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "400")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			url := "test_url"
+			if tt.mockServer != nil {
+				url = tt.mockServer.GetURL()
+
+				defer tt.mockServer.Close()
+			}
+
+			_, err := Make(context.Background(), url, "bar", "baz", mock.NewLogr(), resty.New())
+			tt.wantErr(t, err)
+		})
+	}
 }
 
 func (e *AdapterTestSuite) TestGoCloakAdapter_ExistRealmPositive() {
@@ -183,7 +260,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 	responder := httpmock.NewStringResponder(404, messageBody)
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -195,9 +272,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 	_, err := adapter.GetClientProtocolMappers(&client, clientID)
 	require.Error(t, err)
 
-	if err.Error() != messageBody {
-		t.Fatal("wrong error returned")
-	}
+	assert.Equal(t, messageBody, err.Error())
 }
 
 func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
@@ -216,7 +291,7 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 	responder := httpmock.NewErrorResponder(mockErr)
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -367,7 +442,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
+		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
 		responder)
 
 	adapter := GoCloakAdapter{
@@ -766,15 +841,15 @@ func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
 
 	httpmock.RegisterResponder(
 		"GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
 		authExecsRsp)
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
+		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
 		httpmock.NewStringResponder(201, "ok"))
 
 	httpmock.RegisterResponder("PUT",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
 		httpmock.NewStringResponder(202, "ok"))
 
 	if err := adapter.PutDefaultIdp(&realm); err != nil {
@@ -789,96 +864,138 @@ func TestGoCloakAdapter_GetGoCloak(t *testing.T) {
 	}
 }
 
-func TestMakeFromToken_WrongStructure(t *testing.T) {
-	realToken := "foo.bar"
-	tok := gocloak.JWT{AccessToken: realToken}
-	bts, err := json.Marshal(&tok)
-	require.NoError(t, err)
-
-	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
-	if err == nil {
-		t.Fatal("no error on wrong token")
-	}
-
-	if !strings.Contains(err.Error(), "wrong JWT token structure") {
-		t.Fatalf("wrong err returned: %s", err.Error())
-	}
-
-	realToken = "foo.bar .baz"
-	tok = gocloak.JWT{AccessToken: realToken}
-	bts, err = json.Marshal(&tok)
-	require.NoError(t, err)
-
-	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
-	if err == nil {
-		t.Fatal("no error on wrong token")
-	}
-
-	if !strings.Contains(err.Error(), "wrong JWT token base64 encoding") {
-		t.Fatalf("wrong err returned: %s", err.Error())
-	}
-
-	realToken = "foo.bar.baz"
-	tok = gocloak.JWT{AccessToken: realToken}
-	bts, err = json.Marshal(&tok)
-	require.NoError(t, err)
-
-	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
-	if err == nil {
-		t.Fatal("no error on wrong token")
-	}
-
-	if !strings.Contains(err.Error(), "unable to decode JWT payload json") {
-		t.Fatalf("wrong err returned: %s", err.Error())
-	}
-}
-
 func TestMakeFromToken(t *testing.T) {
-	realToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
-	tok := gocloak.JWT{AccessToken: realToken}
-	bts, err := json.Marshal(&tok)
-	require.NoError(t, err)
+	t.Parallel()
 
-	_, err = MakeFromToken("test_url", bts, mock.NewLogr())
-	if err == nil {
-		t.Fatal("no error on expired token")
-	}
+	expiredToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
 
-	if !IsErrTokenExpired(err) || err.Error() != "token is expired" {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
-
-	_, err = MakeFromToken("test", []byte("qwdqwdwq"), mock.NewLogr())
-	if err == nil {
-		t.Fatal("no error on wrong json returned")
-	}
-
-	if !strings.Contains(err.Error(), "invalid character") {
-		t.Fatalf("wrong err returned: %s", err.Error())
-	}
-
-	tokenParts := strings.Split(realToken, ".")
+	tokenParts := strings.Split(expiredToken, ".")
 	rawTokenPayload, _ := base64.RawURLEncoding.DecodeString(tokenParts[1])
 
 	var decodedTokenPayload JWTPayload
 	_ = json.Unmarshal(rawTokenPayload, &decodedTokenPayload)
 	decodedTokenPayload.Exp = time.Now().Unix() + 1000
-	rawTokenPayload, err = json.Marshal(decodedTokenPayload)
+	rawTokenPayload, err := json.Marshal(decodedTokenPayload)
 	require.NoError(t, err)
 
 	tokenParts[1] = base64.RawURLEncoding.EncodeToString(rawTokenPayload)
-	realToken = strings.Join(tokenParts, ".")
+	workingToken := strings.Join(tokenParts, ".")
 
-	tok = gocloak.JWT{AccessToken: realToken}
-	bts, err = json.Marshal(&tok)
-	require.NoError(t, err)
-	cl, err := MakeFromToken("test_url", bts, mock.NewLogr())
-	require.NoError(t, err)
+	tests := []struct {
+		name       string
+		token      string
+		mockServer fakehttp.Server
+		wantErr    func(require.TestingT, error, ...interface{})
+	}{
+		{
+			name:  "should succeed",
+			token: workingToken,
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder("/admin/realms/", "{}").
+				BuildAndStart(),
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.NoError(t, err)
 
-	exportToken, _ := cl.ExportToken()
-	if !bytes.Equal(exportToken, bts) {
-		t.Fatalf("wrong token exported: %s", string(exportToken))
+				cl, ok := i[0].(*GoCloakAdapter)
+				require.True(t, ok)
+
+				clientToken, _ := cl.ExportToken()
+
+				jwtToken := gocloak.JWT{AccessToken: workingToken}
+				token, err := json.Marshal(jwtToken)
+				require.NoError(t, err)
+
+				require.Equal(t, token, clientToken)
+			},
+		},
+		{
+			name:  "should succeed with legacy endpoint",
+			token: workingToken,
+			mockServer: fakehttp.NewServerBuilder().
+				AddStringResponder("/auth/admin/realms/", "{}").
+				BuildAndStart(),
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.NoError(t, err)
+
+				cl, ok := i[0].(*GoCloakAdapter)
+				require.True(t, ok)
+
+				clientToken, _ := cl.ExportToken()
+
+				jwtToken := gocloak.JWT{AccessToken: workingToken}
+				token, err := json.Marshal(jwtToken)
+				require.NoError(t, err)
+
+				require.Equal(t, token, clientToken)
+			},
+		},
+		{
+			name:       "should fail on expired token",
+			token:      expiredToken,
+			mockServer: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.True(t, IsErrTokenExpired(err) || err.Error() == "token is expired")
+			},
+		},
+		{
+			name:       "should fail on wrong token structure",
+			token:      "foo.bar",
+			mockServer: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "wrong JWT token structure")
+			},
+		},
+		{
+			name:       "should fail on wrong token encoding",
+			token:      "foo.bar .baz",
+			mockServer: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "wrong JWT token base64 encoding")
+			},
+		},
+		{
+			name:       "should fail on decoding json payload",
+			token:      "foo.bar.baz",
+			mockServer: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to decode JWT payload json")
+			},
+		},
 	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			jwtToken := gocloak.JWT{AccessToken: tt.token}
+			token, err := json.Marshal(jwtToken)
+			require.NoError(t, err)
+
+			url := "test_url"
+			if tt.mockServer != nil {
+				url = tt.mockServer.GetURL()
+
+				defer tt.mockServer.Close()
+			}
+
+			cl, err := MakeFromToken(url, token, mock.NewLogr())
+			tt.wantErr(t, err, cl)
+		})
+	}
+}
+
+func TestMakeFromToken_invalidJSON(t *testing.T) {
+	t.Parallel()
+
+	_, err := MakeFromToken("test_url", []byte("qwdqwdwq"), mock.NewLogr())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "invalid character")
 }
 
 func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
@@ -895,18 +1012,18 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 	realm := dto.Realm{Name: "name1", SsoRealmName: "sso-realm1"}
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances", realm.Name),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances", realm.Name),
 		httpmock.NewStringResponder(201, ""))
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
 		httpmock.NewStringResponder(201, ""))
 
 	err := a.CreateCentralIdentityProvider(&realm, &dto.Client{})
 	assert.NoError(t, err)
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", realm.Name, realm.SsoRealmName),
 		httpmock.NewStringResponder(500, "fatal"))
 
 	err = a.CreateCentralIdentityProvider(&realm, &dto.Client{})
@@ -918,7 +1035,7 @@ func TestGoCloakAdapter_CreateCentralIdentityProvider(t *testing.T) {
 func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	username := "username"
 	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(200, ""))
 	e.goCloakMockClient.On("GetUsers", e.realmName, gocloak.GetUsersParams{Username: &username}).
 		Return([]*gocloak.User{
@@ -933,7 +1050,7 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 			{Username: &username, ID: &username},
 		}, nil).Once()
 	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/auth/admin/realms/%s/users/%s", e.realmName, username),
+		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(404, ""))
 
 	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)

@@ -3,7 +3,7 @@ package chain
 import (
 	"context"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"

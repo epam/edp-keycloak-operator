@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -135,10 +135,10 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	childExecutionID := "child-exec-id1"
 
 	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{ID: childExecutionID}}))
 	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/executions/%s", e.realmName, childExecutionID),
+		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s", e.realmName, childExecutionID),
 		httpmock.NewStringResponder(200, ""))
 
 	err := e.adapter.SyncAuthFlow(e.realmName, &flow)
@@ -148,11 +148,11 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
 			{DisplayName: flow.Alias, ID: "id12"},
 		}))
-	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
+	httpmock.RegisterResponder(http.MethodDelete, "/admin/realms/realm123/authentication/executions/id12",
 		httpmock.NewStringResponder(http.StatusOK, ""))
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
@@ -162,7 +162,7 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusNotFound, nil))
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
@@ -172,11 +172,11 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableDelete() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/auth/admin/realms/realm123/authentication/flows/par/executions",
+	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
 		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
 			{DisplayName: flow.Alias, ID: "id12"},
 		}))
-	httpmock.RegisterResponder(http.MethodDelete, "/auth/admin/realms/realm123/authentication/executions/id12",
+	httpmock.RegisterResponder(http.MethodDelete, "/admin/realms/realm123/authentication/executions/id12",
 		httpmock.NewStringResponder(http.StatusBadRequest, ""))
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
@@ -221,7 +221,7 @@ func (e *ExecFlowTestSuite) TestGetAuthFlowID() {
 	)
 
 	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
 			{
 				DisplayName: flow.Alias,
@@ -286,7 +286,7 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 	)
 
 	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows", e.realmName),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows", e.realmName),
 		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{}))
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
@@ -294,11 +294,11 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 	createFlowResponse.Header.Set("Location", fmt.Sprintf("id/%s", flowID))
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows", e.realmName),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows", e.realmName),
 		httpmock.ResponderFromResponse(createFlowResponse))
 
 	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName,
 			flow.Alias),
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{}}))
 
@@ -315,14 +315,14 @@ func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
 	assert.Error(e.T(), err)
 	assert.Contains(e.T(), err.Error(), "no responder found")
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm123/authentication/flows/parent/executions",
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{}))
 
 	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "auth flow not found")
 
-	httpmock.RegisterResponder("GET", "/auth/admin/realms/realm123/authentication/flows/parent/executions",
+	httpmock.RegisterResponder("GET", "/admin/realms/realm123/authentication/flows/parent/executions",
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
 			{
 				DisplayName: flow.Alias,
@@ -354,7 +354,7 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 	)
 
 	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
 		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
 			{
 				AuthenticationFlow: true,
@@ -366,11 +366,11 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 		}))
 
 	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/executions/%s/lower-priority", e.realmName, flowExecutionID),
+		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/lower-priority", e.realmName, flowExecutionID),
 		httpmock.NewStringResponder(200, ""))
 
 	httpmock.RegisterResponder("PUT",
-		fmt.Sprintf("/auth/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
 		httpmock.NewStringResponder(200, ""))
 
 	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)

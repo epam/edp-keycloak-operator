@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -203,14 +203,14 @@ func (a GoCloakAdapter) createIdentityProviderMapper(realmName string, mapper dt
 	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
 		keycloakApiParamAlias: mapper.IdentityProviderAlias,
 		keycloakApiParamRealm: realmName,
-	}).SetBody(mapper).Post(a.basePath + mapperToIdentityProvider)
+	}).SetBody(mapper).Post(a.buildPath(mapperToIdentityProvider))
 
 	if err != nil {
-		return errors.Wrapf(err, "unable to create identity provider mapper: %+v", mapper)
+		return fmt.Errorf("failed to create identity provider mapper - %+v: %w", mapper, err)
 	}
 
 	if resp.StatusCode() != http.StatusCreated {
-		return errors.Errorf("unable to create identity provider mapper: %+v, response: %s", mapper,
+		return fmt.Errorf("failed to create identity provider mapper - %+v, response: %s", mapper,
 			resp.String())
 	}
 
@@ -218,14 +218,17 @@ func (a GoCloakAdapter) createIdentityProviderMapper(realmName string, mapper dt
 }
 
 func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dto.IdentityProviderMapper) error {
-	resp, err := a.startRestyRequest().SetPathParams(map[string]string{
-		keycloakApiParamAlias: mapper.IdentityProviderAlias,
-		keycloakApiParamRealm: realmName,
-		keycloakApiParamId:    mapper.ID,
-	}).SetBody(mapper).Put(a.basePath + updateMapperToIdentityProvider)
+	resp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamAlias: mapper.IdentityProviderAlias,
+			keycloakApiParamRealm: realmName,
+			keycloakApiParamId:    mapper.ID,
+		}).
+		SetBody(mapper).
+		Put(a.buildPath(updateMapperToIdentityProvider))
 
 	if err = a.checkError(err, resp); err != nil {
-		return errors.Wrapf(err, "unable to update identity provider mapper: %+v", mapper)
+		return fmt.Errorf("failed to update identity provider mapper - %+v: %w", mapper, err)
 	}
 
 	return nil

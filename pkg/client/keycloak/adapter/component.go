@@ -18,7 +18,7 @@ type Component struct {
 func (a GoCloakAdapter) CreateComponent(ctx context.Context, realmName string, component *Component) error {
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
 		keycloakApiParamRealm: realmName,
-	}).SetBody(component).Post(a.basePath + realmComponent)
+	}).SetBody(component).Post(a.buildPath(realmComponent))
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "error during request")
 	}
@@ -39,7 +39,7 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
 		keycloakApiParamRealm: realmName,
 		keycloakApiParamId:    component.ID,
-	}).SetBody(component).Put(a.basePath + realmComponentEntity)
+	}).SetBody(component).Put(a.buildPath(realmComponentEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "error during update component request")
@@ -57,7 +57,7 @@ func (a GoCloakAdapter) DeleteComponent(ctx context.Context, realmName, componen
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
 		keycloakApiParamRealm: realmName,
 		keycloakApiParamId:    component.ID,
-	}).Delete(a.basePath + realmComponentEntity)
+	}).Delete(a.buildPath(realmComponentEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "error during delete component request")
@@ -71,7 +71,7 @@ func (a GoCloakAdapter) GetComponent(ctx context.Context, realmName, componentNa
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
 		keycloakApiParamRealm: realmName,
-	}).SetResult(&components).Get(a.basePath + realmComponent)
+	}).SetResult(&components).Get(a.buildPath(realmComponent))
 	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "error during get component request")
 	}

@@ -37,7 +37,7 @@ func (a GoCloakAdapter) CreateClientScope(ctx context.Context, realmName string,
 			keycloakApiParamRealm: realmName,
 		}).
 		SetBody(scope).
-		Post(a.basePath + postClientScope)
+		Post(a.buildPath(postClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return "", errors.Wrap(err, "unable to create client scope")
@@ -69,7 +69,7 @@ func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeI
 			keycloakApiParamId:    scopeID,
 		}).
 		SetBody(scope).
-		Put(a.basePath + putClientScope)
+		Put(a.buildPath(putClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update client scope")
@@ -130,7 +130,7 @@ func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScop
 			keycloakApiParamRealm: realmName,
 		}).
 		SetResult(&result).
-		Get(a.basePath + getRealmClientScopes)
+		Get(a.buildPath(getRealmClientScopes))
 
 	if err = a.checkError(err, resp); err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func (a GoCloakAdapter) GetClientScopesByNames(ctx context.Context, realmName st
 			keycloakApiParamRealm: realmName,
 		}).
 		SetResult(&result).
-		Get(a.basePath + getRealmClientScopes)
+		Get(a.buildPath(getRealmClientScopes))
 
 	if err = a.checkError(err, resp); err != nil {
 		return nil, err
@@ -205,7 +205,7 @@ func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []C
 	}
 
 	if len(missingScopes) > 0 {
-		return nil, errors.Errorf("failed to get '%s' keycloak client scopes", strings.Join(missingScopes, ","))
+		return nil, fmt.Errorf("failed to get '%s' keycloak client scopes", strings.Join(missingScopes, ","))
 	}
 
 	return result, nil
@@ -232,11 +232,14 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 
 	if scope.ProtocolMappers != nil {
 		for _, pm := range *scope.ProtocolMappers {
-			rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-				keycloakApiParamRealm:         realm,
-				keycloakApiParamClientScopeId: scopeID,
-				"protocolMapperID":            *pm.ID,
-			}).Delete(a.basePath + deleteClientScopeProtocolMapper)
+			rsp, err := a.startRestyRequest().
+				SetContext(ctx).
+				SetPathParams(map[string]string{
+					keycloakApiParamRealm:         realm,
+					keycloakApiParamClientScopeId: scopeID,
+					"protocolMapperID":            *pm.ID,
+				}).
+				Delete(a.buildPath(deleteClientScopeProtocolMapper))
 
 			if err = a.checkError(err, rsp); err != nil {
 				return errors.Wrap(err, "error during client scope protocol mapper deletion")
@@ -245,10 +248,14 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 	}
 
 	for _, pm := range instanceProtocolMappers {
-		rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-			keycloakApiParamRealm:         realm,
-			keycloakApiParamClientScopeId: scopeID,
-		}).SetBody(&pm).Post(a.basePath + createClientScopeProtocolMapper)
+		rsp, err := a.startRestyRequest().
+			SetContext(ctx).
+			SetPathParams(map[string]string{
+				keycloakApiParamRealm:         realm,
+				keycloakApiParamClientScopeId: scopeID,
+			}).
+			SetBody(&pm).
+			Post(a.buildPath(createClientScopeProtocolMapper))
 
 		if err = a.checkError(err, rsp); err != nil {
 			return errors.Wrap(err, "error during client scope protocol mapper creation")
@@ -261,9 +268,13 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 func (a GoCloakAdapter) GetDefaultClientScopesForRealm(ctx context.Context, realmName string) ([]ClientScope, error) {
 	var scopes []ClientScope
 
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realmName,
-	}).SetResult(&scopes).Get(a.basePath + getDefaultClientScopes)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+		}).
+		SetResult(&scopes).
+		Get(a.buildPath(getDefaultClientScopes))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get default client scopes for realm")
@@ -273,13 +284,17 @@ func (a GoCloakAdapter) GetDefaultClientScopesForRealm(ctx context.Context, real
 }
 
 func (a GoCloakAdapter) setDefaultClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm:         realm,
-		keycloakApiParamClientScopeId: scopeID,
-	}).SetBody(map[string]string{
-		keycloakApiParamRealm:         realm,
-		keycloakApiParamClientScopeId: scopeID,
-	}).Put(a.basePath + putDefaultClientScope)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		SetBody(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		Put(a.buildPath(putDefaultClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to set default client scope for realm")
@@ -289,10 +304,13 @@ func (a GoCloakAdapter) setDefaultClientScopeForRealm(ctx context.Context, realm
 }
 
 func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm:         realm,
-		keycloakApiParamClientScopeId: scopeID,
-	}).Delete(a.basePath + deleteDefaultClientScope)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		Delete(a.buildPath(deleteDefaultClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to unset default client scope for realm")
@@ -303,10 +321,14 @@ func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, rea
 
 func (a GoCloakAdapter) GetClientScopeMappers(ctx context.Context, realmName, scopeID string) ([]ProtocolMapper, error) {
 	var mappers []ProtocolMapper
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realmName,
-		"scopeId":             scopeID,
-	}).SetResult(&mappers).Get(a.basePath + postClientScopeMapper)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+			"scopeId":             scopeID,
+		}).
+		SetResult(&mappers).
+		Get(a.buildPath(postClientScopeMapper))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get client scope mappers")
@@ -327,7 +349,7 @@ func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocol
 			"scopeId":             scopeID,
 		}).
 		SetBody(protocolMapper).
-		Post(a.basePath + postClientScopeMapper)
+		Post(a.buildPath(postClientScopeMapper))
 	if err = a.checkError(err, resp); err != nil {
 		return errors.Wrap(err, "unable to put client scope mapper")
 	}

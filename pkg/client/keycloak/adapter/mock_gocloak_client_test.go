@@ -4,7 +4,7 @@ import (
 	"context"
 	"sort"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/mock"
 )
