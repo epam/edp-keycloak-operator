@@ -9,7 +9,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,6 +23,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
@@ -273,13 +273,15 @@ func TestHelper_GetOrCreateKeycloakOwnerRef_Failure(t *testing.T) {
 
 func TestMakeHelper(t *testing.T) {
 	rCl := resty.New()
-	httpmock.ActivateNonDefault(rCl.GetClient())
-	httpmock.RegisterResponder("POST", "/k-url/auth/realms/master/protocol/openid-connect/token",
-		httpmock.NewStringResponder(200, "{}"))
+
+	mockServer := fakehttp.NewServerBuilder().
+		AddStringResponder("/auth/realms/master/protocol/openid-connect/token/", "{}").
+		BuildAndStart()
+	defer mockServer.Close()
 
 	logger := mock.NewLogr()
 	h := MakeHelper(nil, nil, logger)
-	_, err := h.adapterBuilder(context.Background(), "k-url", "foo", "bar",
+	_, err := h.adapterBuilder(context.Background(), mockServer.GetURL(), "foo", "bar",
 		keycloakApi.KeycloakAdminTypeServiceAccount, logger, rCl)
 	require.NoError(t, err)
 }

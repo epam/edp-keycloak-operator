@@ -30,9 +30,13 @@ type IdentityProviderMapper struct {
 }
 
 func (a GoCloakAdapter) CreateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-	}).SetBody(idp).Post(a.basePath + identityProviderCreateList)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+		}).
+		SetBody(idp).
+		Post(a.buildPath(identityProviderCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to create idp")
@@ -42,10 +46,14 @@ func (a GoCloakAdapter) CreateIdentityProvider(ctx context.Context, realm string
 }
 
 func (a GoCloakAdapter) UpdateIdentityProvider(ctx context.Context, realm string, idp *IdentityProvider) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: idp.Alias,
-	}).SetBody(idp).Put(a.basePath + identityProviderEntity)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idp.Alias,
+		}).
+		SetBody(idp).
+		Put(a.buildPath(identityProviderEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update idp")
@@ -56,10 +64,14 @@ func (a GoCloakAdapter) UpdateIdentityProvider(ctx context.Context, realm string
 
 func (a GoCloakAdapter) GetIdentityProvider(ctx context.Context, realm, alias string) (*IdentityProvider, error) {
 	var idp IdentityProvider
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: alias,
-	}).SetResult(&idp).Get(a.basePath + identityProviderEntity)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: alias,
+		}).
+		SetResult(&idp).
+		Get(a.buildPath(identityProviderEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		if rsp.StatusCode() == http.StatusNotFound {
@@ -86,10 +98,13 @@ func (a GoCloakAdapter) IdentityProviderExists(ctx context.Context, realm, alias
 }
 
 func (a GoCloakAdapter) DeleteIdentityProvider(ctx context.Context, realm, alias string) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: alias,
-	}).Delete(a.basePath + identityProviderEntity)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: alias,
+		}).
+		Delete(a.buildPath(identityProviderEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete idp")
@@ -100,10 +115,14 @@ func (a GoCloakAdapter) DeleteIdentityProvider(ctx context.Context, realm, alias
 
 func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias string,
 	mapper *IdentityProviderMapper) (string, error) {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: idpAlias,
-	}).SetBody(mapper).Post(a.basePath + idpMapperCreateList)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+		}).
+		SetBody(mapper).
+		Post(a.buildPath(idpMapperCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return "", errors.Wrap(err, "unable to create idp mapper")
@@ -118,11 +137,15 @@ func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias str
 }
 
 func (a GoCloakAdapter) UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *IdentityProviderMapper) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: idpAlias,
-		keycloakApiParamId:    mapper.ID,
-	}).SetBody(mapper).Put(a.basePath + idpMapperEntity)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+			keycloakApiParamId:    mapper.ID,
+		}).
+		SetBody(mapper).
+		Put(a.buildPath(idpMapperEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to update idp mapper")
@@ -132,11 +155,14 @@ func (a GoCloakAdapter) UpdateIDPMapper(ctx context.Context, realm, idpAlias str
 }
 
 func (a GoCloakAdapter) DeleteIDPMapper(ctx context.Context, realm, idpAlias, mapperID string) error {
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: idpAlias,
-		keycloakApiParamId:    mapperID,
-	}).Delete(a.basePath + idpMapperEntity)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+			keycloakApiParamId:    mapperID,
+		}).
+		Delete(a.buildPath(idpMapperEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to delete idp mapper")
@@ -147,10 +173,14 @@ func (a GoCloakAdapter) DeleteIDPMapper(ctx context.Context, realm, idpAlias, ma
 
 func (a GoCloakAdapter) GetIDPMappers(ctx context.Context, realm, idpAlias string) ([]IdentityProviderMapper, error) {
 	var res []IdentityProviderMapper
-	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
-		keycloakApiParamRealm: realm,
-		keycloakApiParamAlias: idpAlias,
-	}).SetResult(&res).Get(a.basePath + idpMapperCreateList)
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+		}).
+		SetResult(&res).
+		Get(a.buildPath(idpMapperCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
 		return nil, errors.Wrap(err, "unable to get idp mappers")

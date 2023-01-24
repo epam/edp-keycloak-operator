@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
 
@@ -76,12 +76,12 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 
 	httpmock.RegisterResponder(
 		"POST",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers", *realm.Realm, idpAlias),
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", *realm.Realm, idpAlias),
 		httpmock.NewStringResponder(http.StatusCreated, "ok"))
 
 	httpmock.RegisterResponder(
 		"PUT",
-		fmt.Sprintf("/auth/admin/realms/%s/identity-provider/instances/%s/mappers/%s", *realm.Realm, idpAlias,
+		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers/%s", *realm.Realm, idpAlias,
 			currentMapperID),
 		httpmock.NewStringResponder(http.StatusOK, "ok"))
 

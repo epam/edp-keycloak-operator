@@ -3,7 +3,7 @@ package adapter
 import (
 	"context"
 
-	"github.com/Nerzal/gocloak/v10"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/mock"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
