@@ -1,0 +1,7 @@
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak
+spec:
+  secret: keycloak-secret
+  url: http://keycloak:8081

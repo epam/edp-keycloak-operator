@@ -11,6 +11,12 @@ BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_TAG=$(shell if [ -z "`git status --porcelain`" ]; then git describe --exact-match --tags HEAD 2>/dev/null; fi)
 KUBECTL_VERSION=$(shell go list -m all | grep k8s.io/client-go| cut -d' ' -f2)
+## Location to install dependencies to
+LOCALBIN ?= ${CURRENT_DIR}/bin
+$(LOCALBIN):
+	mkdir -p $(LOCALBIN)
+ENVTEST ?= $(LOCALBIN)/setup-envtest
+ENVTEST_K8S_VERSION = 1.23.0
 
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \
@@ -69,9 +75,17 @@ validate-docs: api-docs helm-docs  ## Validate helm and api docs
 	@git diff -s --exit-code deploy-templates/README.md || (echo "Run 'make helm-docs' to address the issue." && git diff && exit 1)
 	@git diff -s --exit-code docs/api.md || (echo " Run 'make api-docs' to address the issue." && git diff && exit 1)
 
-# Run tests
-test: fmt vet
+# Run tests //TODO: set TEST_KEYCLOAK_URL to run integration tests
+test: fmt vet envtest
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+	TEST_KEYCLOAK_URL="" \
 	go test ./... -coverprofile=coverage.out `go list ./...`
+
+## Run e2e tests. Requires kind with running cluster and kuttl tool.
+e2e: build
+	docker build --no-cache -t keycloak-image .
+	kind load docker-image keycloak-image
+	kubectl kuttl test
 
 .PHONY: fmt
 fmt:  ## Run go fmt
@@ -119,11 +133,6 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
 
 ##@ Build Dependencies
-
-## Location to install dependencies to
-LOCALBIN ?= ${CURRENT_DIR}/bin
-$(LOCALBIN):
-	mkdir -p $(LOCALBIN)
 
 ## Tool Binaries
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
@@ -177,3 +186,9 @@ bundle: manifests kustomize ## Generate bundle manifests and metadata, then vali
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | operator-sdk generate bundle $(BUNDLE_GEN_FLAGS)
 	operator-sdk bundle validate ./bundle
+
+ENVTEST=$(LOCALBIN)/setup-envtest
+.PHONY: envtest
+envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+$(ENVTEST): $(LOCALBIN)
+	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,latest)
