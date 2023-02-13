@@ -16,7 +16,7 @@ LOCALBIN ?= ${CURRENT_DIR}/bin
 $(LOCALBIN):
 	mkdir -p $(LOCALBIN)
 ENVTEST ?= $(LOCALBIN)/setup-envtest
-ENVTEST_K8S_VERSION = 1.23.0
+ENVTEST_K8S_VERSION = 1.23.5
 
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \
