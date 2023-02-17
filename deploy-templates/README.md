@@ -21,15 +21,15 @@ A Helm chart for EDP Keycloak Operator
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| affinity | object | `{}` |  |
-| annotations | object | `{}` |  |
+| affinity | object | `{}` | Affinity for pod assignment |
+| annotations | object | `{}` | Annotations to be added to the Deployment |
+| extraVolumeMounts | list | `[]` | Additional volumeMounts to be added to the container |
+| extraVolumes | list | `[]` | Additional volumes to be added to the pod |
 | image.repository | string | `"epamedp/keycloak-operator"` | EDP keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator) |
 | image.tag | string | `nil` | EDP keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags) |
-| imagePullPolicy | string | `"IfNotPresent"` |  |
-| name | string | `"keycloak-operator"` | component name |
-| nodeSelector | object | `{}` |  |
-| resources.limits.memory | string | `"192Mi"` |  |
-| resources.requests.cpu | string | `"50m"` |  |
-| resources.requests.memory | string | `"64Mi"` |  |
-| tolerations | list | `[]` |  |
+| imagePullPolicy | string | `"IfNotPresent"` | If defined, a imagePullPolicy applied to the deployment |
+| name | string | `"keycloak-operator"` | Application name string |
+| nodeSelector | object | `{}` | Node labels for pod assignment |
+| resources | object | `{"limits":{"memory":"192Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource limits and requests for the pod |
+| tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints |
 
