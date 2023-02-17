@@ -1,9 +1,31 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Features
+
+- Added support for both legacy and modern Gocloak clients [EPMDEDP-11396](https://jiraeu.epam.com/browse/EPMDEDP-11396)
+- Integration/e2e tests for operator [EPMDEDP-11398](https://jiraeu.epam.com/browse/EPMDEDP-11398)
+
+### Bug Fixes
+
+- Set proper Kubernetes version for envtest [EPMDEDP-11398](https://jiraeu.epam.com/browse/EPMDEDP-11398)
+
+### Code Refactoring
+
+- Remove global section [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
+- Remove EDP resources out of keycloak chart [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
+- Remove EDP dependencies from chart installation [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
+
 ### Routine
 
 - Update current development version [EPMDEDP-10610](https://jiraeu.epam.com/browse/EPMDEDP-10610)
+- Update version on OperatorHub [EPMDEDP-10944](https://jiraeu.epam.com/browse/EPMDEDP-10944)
+- Updated dependencies [EPMDEDP-11206](https://jiraeu.epam.com/browse/EPMDEDP-11206)
+- Add community cooperation templates [EPMDEDP-11401](https://jiraeu.epam.com/browse/EPMDEDP-11401)
+
+### Documentation
+
+- Update chart and application version in Readme file [EPMDEDP-11221](https://jiraeu.epam.com/browse/EPMDEDP-11221)
 
 
 <a name="v1.14.0"></a>
@@ -103,8 +125,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 ### Features
 
 - Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
-- implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
 - add priority and requirement params to child auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
+- implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
 - Generate CRDs and helm docs automatically [EPMDEDP-8385](https://jiraeu.epam.com/browse/EPMDEDP-8385)
 - Password policy for realm [EPMDEDP-8395](https://jiraeu.epam.com/browse/EPMDEDP-8395)
 - Add ability to disable central idp mappers creation [EPMDEDP-8397](https://jiraeu.epam.com/browse/EPMDEDP-8397)
