@@ -18,6 +18,9 @@ $(LOCALBIN):
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ENVTEST_K8S_VERSION = 1.23.5
 
+E2E_IMAGE_REPOSITORY?="keycloak-image"
+E2E_IMAGE_TAG?="latest"
+
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \
   -X ${PACKAGE}.buildDate=${BUILD_DATE} \
@@ -83,9 +86,9 @@ test: fmt vet envtest
 
 ## Run e2e tests. Requires kind with running cluster and kuttl tool.
 e2e: build
-	docker build --no-cache -t keycloak-image .
-	kind load docker-image keycloak-image
-	kubectl kuttl test
+	docker build --no-cache -t ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
+	kind load docker-image ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
+	E2E_IMAGE_REPOSITORY=${E2E_IMAGE_REPOSITORY} E2E_IMAGE_TAG=${E2E_IMAGE_TAG} kubectl kuttl test
 
 .PHONY: fmt
 fmt:  ## Run go fmt

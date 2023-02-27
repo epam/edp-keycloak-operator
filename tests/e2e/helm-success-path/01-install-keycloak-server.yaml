@@ -8,10 +8,24 @@ spec:
   ports:
     - name: http
       port: 8081
-      targetPort: 8080
+      targetPort: 8081
   selector:
     app: keycloak
   type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config
+data:
+  default.conf: |
+    server {
+      listen                  8081;
+      server_name             _;
+      location / {
+        proxy_pass http://localhost:8080;
+      }
+    }
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,7 +43,19 @@ spec:
       labels:
         app: keycloak
     spec:
+      volumes:
+        - name: configs
+          configMap:
+            name: config
       containers:
+        - image: nginxinc/nginx-unprivileged:1.23
+          imagePullPolicy: Always
+          name: nginx
+          ports:
+          - containerPort: 8081
+          volumeMounts:
+          - name: configs
+            mountPath: /etc/nginx/conf.d
         - name: keycloak
           image: quay.io/keycloak/keycloak:20.0.3
           args: ["start-dev"]

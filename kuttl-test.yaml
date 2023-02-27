@@ -4,4 +4,4 @@ testDirs:
   - tests/e2e/
 skipClusterDelete: false
 skipDelete: false
-timeout: 60
+timeout: 100
