@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"net/http"
 	"path"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 type KeycloakAuthFlow struct {
@@ -43,16 +46,17 @@ type AuthenticationExecution struct {
 }
 
 type FlowExecution struct {
-	AuthenticationFlow bool     `json:"authenticationFlow"`
-	Configurable       bool     `json:"configurable"`
-	Description        string   `json:"description"`
-	DisplayName        string   `json:"displayName"`
-	FlowID             string   `json:"flowId"`
-	ID                 string   `json:"id"`
-	Index              int      `json:"index"`
-	Level              int      `json:"level"`
-	Requirement        string   `json:"requirement"`
-	RequirementChoices []string `json:"requirementChoices"`
+	AuthenticationFlow   bool     `json:"authenticationFlow"`
+	Configurable         bool     `json:"configurable"`
+	Description          string   `json:"description"`
+	DisplayName          string   `json:"displayName"`
+	FlowID               string   `json:"flowId"`
+	ID                   string   `json:"id"`
+	Index                int      `json:"index"`
+	Level                int      `json:"level"`
+	Requirement          string   `json:"requirement"`
+	RequirementChoices   []string `json:"requirementChoices"`
+	AuthenticationConfig string   `json:"authenticationConfig"`
 }
 
 type AuthenticatorConfig struct {
@@ -226,6 +230,14 @@ func (a GoCloakAdapter) clearFlowExecutions(realmName, flowAlias string) error {
 
 		if err := a.deleteFlowExecution(realmName, execs[i].ID); err != nil {
 			return errors.Wrap(err, "unable to delete flow execution")
+		}
+
+		// after deleting flow execution, we need to delete its config as well
+		// as it is not deleted automatically
+		if execs[i].AuthenticationConfig != "" {
+			if err := a.deleteAuthFlowConfig(realmName, execs[i].AuthenticationConfig); err != nil {
+				return fmt.Errorf("unable to delete flow execution config: %w", err)
+			}
 		}
 	}
 
@@ -570,6 +582,45 @@ func (a GoCloakAdapter) adjustFlowExecutionPriority(
 
 	if err := a.adjustExecutionPriority(realmName, flowExec.ID, flowExec.Index-childFlow.Priority); err != nil {
 		return errors.Wrap(err, "unable to adjust flow priority")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) deleteAuthFlowConfig(realmName, configID string) error {
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+			keycloakApiParamId:    configID,
+		}).
+		Delete(a.buildPath(authFlowConfig))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to delete auth flow config: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) updateRedirectConfig(realm *dto.Realm, configID string) error {
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm.Name,
+			keycloakApiParamId:    configID,
+		}).
+		SetBody(map[string]interface{}{
+			keycloakApiParamAlias: "edp-sso",
+			"config": map[string]string{
+				"defaultProvider": realm.SsoRealmName,
+			},
+		}).
+		Put(a.buildPath(authFlowConfig))
+	if err != nil {
+		return fmt.Errorf("unable to update auth flow config: %w", err)
+	}
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to update auth flow config: %w", err)
 	}
 
 	return nil

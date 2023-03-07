@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
+	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
@@ -817,46 +818,6 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 	}
 }
 
-func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
-	mockClient := MockGoCloakClient{}
-	adapter := GoCloakAdapter{
-		client:   &mockClient,
-		token:    &gocloak.JWT{AccessToken: "token"},
-		basePath: "",
-		log:      mock.NewLogr(),
-	}
-
-	realm := dto.Realm{Name: "realm1", SsoAutoRedirectEnabled: false}
-
-	restyClient := resty.New()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
-
-	authExecs := []api.SimpleAuthExecution{{
-		ProviderId: "identity-provider-redirector",
-		Id:         "id1",
-	}, {}}
-	authExecsRsp, err := httpmock.NewJsonResponder(200, authExecs)
-	require.NoError(t, err)
-
-	httpmock.RegisterResponder(
-		"GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
-		authExecsRsp)
-
-	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
-		httpmock.NewStringResponder(201, "ok"))
-
-	httpmock.RegisterResponder("PUT",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
-		httpmock.NewStringResponder(202, "ok"))
-
-	if err := adapter.PutDefaultIdp(&realm); err != nil {
-		t.Fatalf("%+v", err)
-	}
-}
-
 func TestGoCloakAdapter_GetGoCloak(t *testing.T) {
 	gcl := GoCloakAdapter{}
 	if gcl.GetGoCloak() != nil {
@@ -1072,4 +1033,163 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "unable to get users: fatal get users")
+}
+
+func TestGoCloakAdapter_PutDefaultIdp(t *testing.T) {
+	mockClient := MockGoCloakClient{}
+	adapter := GoCloakAdapter{
+		client:   &mockClient,
+		token:    &gocloak.JWT{AccessToken: "token"},
+		basePath: "",
+		log:      mock.NewLogr(),
+	}
+
+	realm := dto.Realm{Name: "realm1", SsoAutoRedirectEnabled: false}
+
+	restyClient := resty.New()
+	httpmock.ActivateNonDefault(restyClient.GetClient())
+	mockClient.On("RestyClient").Return(restyClient)
+
+	authExecs := []api.SimpleAuthExecution{{
+		ProviderId: "identity-provider-redirector",
+		Id:         "id1",
+	}, {}}
+	authExecsRsp, err := httpmock.NewJsonResponder(200, authExecs)
+	require.NoError(t, err)
+
+	httpmock.RegisterResponder(
+		"GET",
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		authExecsRsp)
+
+	httpmock.RegisterResponder("POST",
+		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/config", realm.Name, authExecs[0].Id),
+		httpmock.NewStringResponder(201, "ok"))
+
+	httpmock.RegisterResponder("PUT",
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/browser/executions", realm.Name),
+		httpmock.NewStringResponder(202, "ok"))
+
+	if err := adapter.PutDefaultIdp(&realm); err != nil {
+		t.Fatalf("%+v", err)
+	}
+}
+
+func TestGoCloakAdapter_PutDefaultIdp1(t *testing.T) {
+	t.Parallel()
+
+	const (
+		realm       = "realm1"
+		executionID = "executionID"
+		configID    = "configID1"
+	)
+
+	authExecutionsEndpoint := strings.ReplaceAll(authExecutions, "{realm}", realm)
+	authExecutionsConfigEndpoint := strings.ReplaceAll(
+		strings.ReplaceAll(authExecutionConfig, "{realm}", realm),
+		"{id}",
+		executionID,
+	)
+	authFlowConfigEndpoint := strings.ReplaceAll(
+		strings.ReplaceAll(authFlowConfig, "{realm}", "realm1"),
+		"{id}",
+		configID,
+	)
+
+	tests := []struct {
+		name       string
+		realm      *dto.Realm
+		mockServer fakehttp.Server
+		wantErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "update default identity provider config",
+			realm: &dto.Realm{
+				Name: realm,
+			},
+			mockServer: fakehttp.NewServerBuilder().
+				AddJsonResponderWithCode(
+					http.StatusOK,
+					authExecutionsEndpoint,
+					[]api.SimpleAuthExecution{
+						{
+							Id:                   executionID,
+							ProviderId:           "identity-provider-redirector",
+							AuthenticationConfig: configID,
+						},
+					},
+				).
+				AddStringResponder(authFlowConfigEndpoint, "").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name: "create default identity provider config",
+			realm: &dto.Realm{
+				Name:                   realm,
+				SsoAutoRedirectEnabled: true,
+			},
+			mockServer: fakehttp.NewServerBuilder().
+				AddJsonResponderWithCode(
+					http.StatusOK,
+					authExecutionsEndpoint,
+					[]api.SimpleAuthExecution{
+						{
+							Id:         executionID,
+							ProviderId: "identity-provider-redirector",
+						},
+					},
+				).
+				AddStringResponderWithCode(http.StatusCreated, authExecutionsConfigEndpoint, "").
+				BuildAndStart(),
+			wantErr: require.NoError,
+		},
+		{
+			name: "failed to update default identity provider config",
+			realm: &dto.Realm{
+				Name: realm,
+			},
+			mockServer: fakehttp.NewServerBuilder().
+				AddJsonResponderWithCode(
+					http.StatusOK,
+					authExecutionsEndpoint,
+					[]api.SimpleAuthExecution{
+						{
+							Id:                   executionID,
+							ProviderId:           "identity-provider-redirector",
+							AuthenticationConfig: configID,
+						},
+					},
+				).
+				AddStringResponderWithCode(http.StatusBadRequest, authFlowConfigEndpoint, "").
+				BuildAndStart(),
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "failed to update redirect config")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			defer tt.mockServer.Close()
+
+			a := GoCloakAdapter{
+				client: gocloak.NewClient(tt.mockServer.GetURL()),
+				log:    logr.Discard(),
+				token: &gocloak.JWT{
+					AccessToken: "token",
+				},
+				basePath: tt.mockServer.GetURL(),
+			}
+
+			err := a.PutDefaultIdp(tt.realm)
+
+			tt.wantErr(t, err)
+		})
+	}
 }

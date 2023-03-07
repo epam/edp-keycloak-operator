@@ -1,6 +1,7 @@
 package fakehttp
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"testing"
@@ -103,6 +104,60 @@ func TestMockServerBuilder_AddStringResponderWithCode(t *testing.T) {
 			require.NoError(t, err)
 
 			require.Equal(t, tt.args.response, string(body))
+		})
+	}
+}
+
+func TestMockServerBuilder_AddJsonResponderWithCode(t *testing.T) {
+	t.Parallel()
+
+	type args struct {
+		code     int
+		endpoint string
+		response any
+	}
+
+	tests := []struct {
+		name string
+		args args
+	}{
+		{
+			name: "should return valid JSON",
+			args: args{
+				code:     http.StatusOK,
+				endpoint: "/test/address",
+				response: map[string]string{"test": "data"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			fb := NewServerBuilder()
+
+			fakeServer := fb.AddJsonResponderWithCode(tt.args.code, tt.args.endpoint, tt.args.response).
+				BuildAndStart()
+			defer fakeServer.Close()
+
+			resp, err := http.Get(fakeServer.GetURL() + tt.args.endpoint)
+			require.NoError(t, err)
+
+			require.Equal(t, tt.args.code, resp.StatusCode)
+
+			body, err := io.ReadAll(resp.Body)
+			require.NoError(t, err)
+			err = resp.Body.Close()
+			require.NoError(t, err)
+
+			jsonResp, err := json.Marshal(tt.args.response)
+			require.NoError(t, err)
+
+			require.JSONEq(t, string(jsonResp), string(body))
+
 		})
 	}
 }
