@@ -42,6 +42,7 @@ const (
 	raiseExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/raise-priority"
 	lowerExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
 	authFlowExecutionConfig         = "/admin/realms/{realm}/authentication/executions/{id}/config"
+	authFlowConfig                  = "/admin/realms/{realm}/authentication/config/{id}"
 	deleteClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models/{protocolMapperID}"
 	createClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
 	putDefaultClientScope           = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
@@ -983,33 +984,38 @@ func (a GoCloakAdapter) PutDefaultIdp(realm *dto.Realm) error {
 	log := a.log.WithValues("realm dto", realm)
 	log.Info("Start put default IdP...")
 
-	eId, err := a.getIdPRedirectExecutionId(realm)
+	execution, err := a.getIdPRedirectExecution(realm)
 	if err != nil {
 		return err
 	}
 
-	err = a.createRedirectConfig(realm, *eId)
+	if execution.AuthenticationConfig != "" {
+		if err = a.updateRedirectConfig(realm, execution.AuthenticationConfig); err != nil {
+			return fmt.Errorf("failed to update redirect config: %w", err)
+		}
+
+		log.Info("Default Identity Provider Redirector was successfully updated")
+
+		return nil
+	}
+
+	err = a.createRedirectConfig(realm, execution.Id)
 	if err != nil {
 		return err
 	}
 
-	log.Info("Default IdP was successfully configured!")
+	log.Info("Default Identity Provider Redirector was successfully configured")
 
 	return nil
 }
 
-func (a GoCloakAdapter) getIdPRedirectExecutionId(realm *dto.Realm) (*string, error) {
+func (a GoCloakAdapter) getIdPRedirectExecution(realm *dto.Realm) (*api.SimpleAuthExecution, error) {
 	exs, err := a.getBrowserExecutions(realm)
 	if err != nil {
 		return nil, err
 	}
 
-	ex, err := getIdPRedirector(exs)
-	if err != nil {
-		return nil, err
-	}
-
-	return &ex.Id, nil
+	return getIdPRedirector(exs)
 }
 
 func getIdPRedirector(executions []api.SimpleAuthExecution) (*api.SimpleAuthExecution, error) {

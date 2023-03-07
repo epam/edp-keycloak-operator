@@ -1,6 +1,7 @@
 package fakehttp
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 )
@@ -33,6 +34,13 @@ func (b *ServerBuilder) AddStringResponderWithCode(code int, endpoint, response 
 	return b
 }
 
+// AddJsonResponderWithCode registers new handler at a given endpoint that returns a given response object as json and status code header.
+func (b *ServerBuilder) AddJsonResponderWithCode(code int, endpoint string, response any) *ServerBuilder {
+	b.fakeServer.addJsonResponder(code, endpoint, response)
+
+	return b
+}
+
 // BuildAndStart returns a running Server. Don't forget to close it when done using Server.Close.
 func (b *ServerBuilder) BuildAndStart() Server {
 	b.fakeServer.Start()
@@ -54,6 +62,22 @@ func (s *DefaultServer) addStringResponder(status int, endpoint, response string
 		writer.WriteHeader(status)
 
 		if _, err := writer.Write([]byte(response)); err != nil {
+			panic(err)
+		}
+	})
+}
+
+func (s *DefaultServer) addJsonResponder(status int, endpoint string, response any) {
+	s.mux.HandleFunc(endpoint, func(writer http.ResponseWriter, request *http.Request) {
+		writer.Header().Set("Content-Type", "application/json")
+		writer.WriteHeader(status)
+
+		jsonResp, err := json.Marshal(response)
+		if err != nil {
+			panic(err)
+		}
+
+		if _, err := writer.Write(jsonResp); err != nil {
 			panic(err)
 		}
 	})

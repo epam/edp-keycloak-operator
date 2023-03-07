@@ -136,10 +136,17 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 
 	httpmock.RegisterResponder("GET",
 		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{ID: childExecutionID}}))
+		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{ID: childExecutionID, AuthenticationConfig: "authConf1"}}))
 	httpmock.RegisterResponder("DELETE",
 		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s", e.realmName, childExecutionID),
 		httpmock.NewStringResponder(200, ""))
+	httpmock.RegisterResponder("DELETE",
+		strings.ReplaceAll(
+			strings.ReplaceAll(authFlowConfig, "{realm}", e.realmName),
+			"{id}",
+			"authConf1"),
+		httpmock.NewStringResponder(200, ""),
+	)
 
 	err := e.adapter.SyncAuthFlow(e.realmName, &flow)
 	assert.NoError(e.T(), err)
