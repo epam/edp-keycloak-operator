@@ -21,6 +21,8 @@ ENVTEST_K8S_VERSION = 1.23.5
 E2E_IMAGE_REPOSITORY?="keycloak-image"
 E2E_IMAGE_TAG?="latest"
 
+TEST_KEYCLOAK_URL?=""
+
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \
   -X ${PACKAGE}.buildDate=${BUILD_DATE} \
@@ -81,7 +83,7 @@ validate-docs: api-docs helm-docs  ## Validate helm and api docs
 # Run tests //TODO: set TEST_KEYCLOAK_URL to run integration tests
 test: fmt vet envtest
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
-	TEST_KEYCLOAK_URL="" \
+	TEST_KEYCLOAK_URL=${TEST_KEYCLOAK_URL} \
 	go test ./... -coverprofile=coverage.out `go list ./...`
 
 ## Run e2e tests. Requires kind with running cluster and kuttl tool.
