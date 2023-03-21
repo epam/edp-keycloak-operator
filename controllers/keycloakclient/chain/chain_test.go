@@ -89,7 +89,7 @@ func TestPrivateClientSecret(t *testing.T) {
 		Name: checkClient.Spec.Secret}, &checkSecret)
 	require.NoError(t, err)
 
-	if _, ok := checkSecret.Data[clientSecretKey]; !ok {
+	if _, ok := checkSecret.Data[keycloakApi.ClientSecretKey]; !ok {
 		t.Fatal("client secret key not found in secret")
 	}
 }

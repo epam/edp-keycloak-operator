@@ -54,7 +54,7 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 			Namespace: realm.Namespace,
 		},
 		Data: map[string][]byte{
-			"clientSecret": []byte(uuid.New().String()),
+			keycloakApi.ClientSecretKey: []byte(uuid.New().String()),
 		},
 	}
 	cl := &keycloakApi.KeycloakClient{}

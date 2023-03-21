@@ -7,6 +7,8 @@ import (
 const (
 	ReconciliationStrategyFull    = "full"
 	ReconciliationStrategyAddOnly = "addOnly"
+	// ClientSecretKey is a key for client secret in secret data.
+	ClientSecretKey = "clientSecret"
 )
 
 // KeycloakClientSpec defines the desired state of KeycloakClient.
