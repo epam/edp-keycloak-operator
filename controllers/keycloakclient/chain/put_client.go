@@ -18,7 +18,6 @@ import (
 )
 
 const (
-	clientSecretKey = "clientSecret"
 	passwordLength  = 36
 	passwordDigits  = 9
 	passwordSymbols = 0
@@ -115,7 +114,7 @@ func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.
 			keycloakClient.Spec.Secret, err)
 	}
 
-	return string(clientSecret.Data["clientSecret"]), nil
+	return string(clientSecret.Data[keycloakApi.ClientSecretKey]), nil
 }
 
 func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
@@ -134,7 +133,7 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
 				Name: secretName},
 			Data: map[string][]byte{
-				clientSecretKey: []byte(
+				keycloakApi.ClientSecretKey: []byte(
 					password.MustGenerate(passwordLength, passwordDigits, passwordSymbols, true, true),
 				),
 			},
@@ -156,5 +155,5 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 		return "", fmt.Errorf("unable to update client with new secret: %s, err: %w", clientSecret.Name, err)
 	}
 
-	return string(clientSecret.Data["clientSecret"]), nil
+	return string(clientSecret.Data[keycloakApi.ClientSecretKey]), nil
 }

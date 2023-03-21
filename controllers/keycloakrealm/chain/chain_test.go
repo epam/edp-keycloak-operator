@@ -28,7 +28,7 @@ func TestCreateDefChain(t *testing.T) {
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
 	clientSecret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-client.test.test.secret", Namespace: ns},
-		Data: map[string][]byte{"clientSecret": []byte(kServerUsr)}}
+		Data: map[string][]byte{keycloakApi.ClientSecretKey: []byte(kServerUsr)}}
 
 	ssoEnable := true
 

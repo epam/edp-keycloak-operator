@@ -83,7 +83,7 @@ func (h PutIdentityProvider) setupIdentityProvider(
 
 	if err := kClient.CreateCentralIdentityProvider(rDto, &dto.Client{
 		ClientId:     realm.Spec.RealmName,
-		ClientSecret: string(s.Data["clientSecret"]),
+		ClientSecret: string(s.Data[keycloakApi.ClientSecretKey]),
 	}); err != nil {
 		return errors.Wrap(err, "unable to create central identity provider")
 	}
