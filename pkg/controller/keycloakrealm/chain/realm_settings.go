@@ -37,7 +37,10 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	settings := adapter.RealmSettings{}
+	settings := adapter.RealmSettings{
+		FrontendURL: realm.Spec.FrontendURL,
+	}
+
 	if realm.Spec.Themes != nil {
 		settings.Themes = &adapter.RealmThemes{
 			InternationalizationEnabled: realm.Spec.Themes.InternationalizationEnabled,
@@ -53,7 +56,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies), len(realm.Spec.PasswordPolicies))
+		settings.PasswordPolicies = make([]adapter.PasswordPolicy, len(realm.Spec.PasswordPolicies))
 		for i, v := range realm.Spec.PasswordPolicies {
 			settings.PasswordPolicies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
 		}

@@ -27,6 +27,7 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			{Type: "foo", Value: "bar"},
 			{Type: "bar", Value: "baz"},
 		},
+		FrontendURL: "https://google.com",
 	}
 	realmName := "ream11"
 
@@ -44,6 +45,9 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"foo":  "bar",
 		},
 		PasswordPolicy: gocloak.StringP("foo(bar) and bar(baz)"),
+		Attributes: &map[string]string{
+			"frontendUrl": settings.FrontendURL,
+		},
 	}
 	mockClient.On("UpdateRealm", updateRealm).Return(nil)
 

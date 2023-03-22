@@ -87,6 +87,9 @@ spec:
                 type: object
               realmName:
                 type: string
+              frontendUrl:
+                description: Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
+                type: string
               ssoAutoRedirectEnabled:
                 nullable: true
                 type: boolean

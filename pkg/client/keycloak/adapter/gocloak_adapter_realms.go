@@ -16,6 +16,7 @@ type RealmSettings struct {
 	Themes                 *RealmThemes
 	BrowserSecurityHeaders *map[string]string
 	PasswordPolicies       []PasswordPolicy
+	FrontendURL            string
 }
 
 type PasswordPolicy struct {
@@ -59,12 +60,20 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 	}
 
 	if len(realmSettings.PasswordPolicies) > 0 {
-		policies := make([]string, len(realmSettings.PasswordPolicies), len(realmSettings.PasswordPolicies))
+		policies := make([]string, len(realmSettings.PasswordPolicies))
 		for i, v := range realmSettings.PasswordPolicies {
 			policies[i] = fmt.Sprintf("%s(%s)", v.Type, v.Value)
 		}
 
 		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " and "))
+	}
+
+	if realmSettings.FrontendURL != "" {
+		if realm.Attributes == nil {
+			realm.Attributes = &map[string]string{}
+		}
+
+		(*realm.Attributes)["frontendUrl"] = realmSettings.FrontendURL
 	}
 
 	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
