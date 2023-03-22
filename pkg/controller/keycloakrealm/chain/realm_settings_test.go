@@ -36,6 +36,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			PasswordPolicies: []keycloakApi.PasswordPolicy{
 				{Type: "foo", Value: "bar"},
 			},
+			FrontendURL: "http://example.com",
 		},
 	}
 
@@ -49,6 +50,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		PasswordPolicies: []adapter.PasswordPolicy{
 			{Type: "foo", Value: "bar"},
 		},
+		FrontendURL: realm.Spec.FrontendURL,
 	}).Return(nil)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{

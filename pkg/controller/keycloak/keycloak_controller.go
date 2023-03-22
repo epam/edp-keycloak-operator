@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"sync"
 	"time"
@@ -302,7 +302,7 @@ func getIcon() (*string, error) {
 		return nil, pkgErrors.Wrapf(err, "unable to open file: %s", fp)
 	}
 	reader := bufio.NewReader(f)
-	content, err := ioutil.ReadAll(reader)
+	content, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, pkgErrors.Wrapf(err, "unable to read content of file: %s", fp)
 	}

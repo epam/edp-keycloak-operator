@@ -27,6 +27,8 @@ type KeycloakRealmSpec struct {
 	RealmEventConfig         *RealmEventConfig  `json:"realmEventConfig"`
 	DisableCentralIDPMappers bool               `json:"disableCentralIDPMappers"`
 	PasswordPolicies         []PasswordPolicy   `json:"passwordPolicy"`
+	// FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
+	FrontendURL string `json:"frontendUrl,omitempty"`
 }
 
 type PasswordPolicy struct {
