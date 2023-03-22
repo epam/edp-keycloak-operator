@@ -16,6 +16,7 @@ type RealmSettings struct {
 	Themes                 *RealmThemes
 	BrowserSecurityHeaders *map[string]string
 	PasswordPolicies       []PasswordPolicy
+	FrontendURL            string
 }
 
 type PasswordPolicy struct {
@@ -37,6 +38,16 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 		return errors.Wrapf(err, "unable to realm: %s", realmName)
 	}
 
+	setRealmSettings(realm, realmSettings)
+
+	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
+		return errors.Wrap(err, "unable to update realm")
+	}
+
+	return nil
+}
+
+func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSettings) {
 	if realmSettings.Themes != nil {
 		realm.LoginTheme = realmSettings.Themes.LoginTheme
 		realm.AccountTheme = realmSettings.Themes.AccountTheme
@@ -68,11 +79,13 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " and "))
 	}
 
-	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
-		return errors.Wrap(err, "unable to update realm")
-	}
+	if realmSettings.FrontendURL != "" {
+		if realm.Attributes == nil {
+			realm.Attributes = &map[string]string{}
+		}
 
-	return nil
+		(*realm.Attributes)["frontendUrl"] = realmSettings.FrontendURL
+	}
 }
 
 func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {

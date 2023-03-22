@@ -71,6 +71,10 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
+
+	// FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
+	// +optional
+	FrontendURL string `json:"frontendUrl,omitempty"`
 }
 
 type User struct {

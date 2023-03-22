@@ -111,6 +111,9 @@ spec:
               realmName:
                 description: RealmName specifies the name of the realm.
                 type: string
+              frontendUrl:
+                description: Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
+                type: string
               ssoAutoRedirectEnabled:
                 description: SsoAutoRedirectEnabled indicates whether to enable automatic
                   redirection to the SSO realm.
