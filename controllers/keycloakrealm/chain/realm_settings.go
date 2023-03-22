@@ -37,7 +37,10 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	settings := adapter.RealmSettings{}
+	settings := adapter.RealmSettings{
+		FrontendURL: realm.Spec.FrontendURL,
+	}
+
 	if realm.Spec.Themes != nil {
 		settings.Themes = &adapter.RealmThemes{
 			InternationalizationEnabled: realm.Spec.Themes.InternationalizationEnabled,
