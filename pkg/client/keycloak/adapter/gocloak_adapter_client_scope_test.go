@@ -11,7 +11,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -372,14 +371,16 @@ func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
 func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 	t.Parallel()
 
-	tests := map[string]struct {
+	tests := []struct {
+		name       string
 		realm      string
 		response   httpmock.Responder
 		scopeNames []string
-		expectRes  []ClientScope
-		expectErr  bool
+		want       []ClientScope
+		wantErr    require.ErrorAssertionFunc
 	}{
-		"success": {
+		{
+			name:  "should get client scope",
 			realm: "realm1",
 			response: httpmock.NewJsonResponderOrPanic(http.StatusOK, []ClientScope{
 				{
@@ -388,14 +389,16 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 				},
 			}),
 			scopeNames: []string{"scope1"},
-			expectRes: []ClientScope{
+			want: []ClientScope{
 				{
 					ID:   "testScope",
 					Name: "scope1",
 				},
 			},
+			wantErr: require.NoError,
 		},
-		"scope names not fond": {
+		{
+			name:  "should not find the client scope",
 			realm: "realm2",
 			response: httpmock.NewJsonResponderOrPanic(http.StatusOK, []ClientScope{
 				{
@@ -404,34 +407,33 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 				},
 			}),
 			scopeNames: []string{"scope1, scope"},
-			expectErr:  true,
+			want:       nil,
+			wantErr:    require.Error,
 		},
-		"failed to get scopes": {
+		{
+			name:       "should fail to get scopes",
 			realm:      "realm3",
 			response:   httpmock.NewStringResponder(http.StatusBadRequest, ""),
 			scopeNames: []string{"scope1"},
-			expectRes:  nil,
-			expectErr:  true,
+			want:       nil,
+			wantErr:    require.Error,
 		},
 	}
 
-	adapter, _, _ := initAdapter()
+	for _, tt := range tests {
+		tt := tt
 
-	for name, tc := range tests {
-		tc := tc
-
-		t.Run(name, func(t *testing.T) {
+		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/admin/realms/%s/client-scopes", tc.realm), tc.response)
+			adapter, _, _ := initAdapter()
 
-			gotRes, err := adapter.GetClientScopesByNames(context.Background(), tc.realm, tc.scopeNames)
-			assert.Equal(t, tc.expectRes, gotRes)
-			if tc.expectErr {
-				assert.Error(t, err)
-				return
-			}
-			assert.NoError(t, err)
+			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/admin/realms/%s/client-scopes", tt.realm), tt.response)
+
+			got, err := adapter.GetClientScopesByNames(context.Background(), tt.realm, tt.scopeNames)
+			tt.wantErr(t, err)
+
+			require.Equal(t, tt.want, got)
 		})
 	}
 }
