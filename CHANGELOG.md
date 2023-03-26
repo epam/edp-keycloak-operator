@@ -1,20 +1,27 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.15.0"></a>
+## [v1.15.0] - 2023-03-24
 ### Features
 
 - Added support for both legacy and modern Gocloak clients [EPMDEDP-11396](https://jiraeu.epam.com/browse/EPMDEDP-11396)
 - Integration/e2e tests for operator [EPMDEDP-11398](https://jiraeu.epam.com/browse/EPMDEDP-11398)
+- Add the ability to use additional volumes in helm chart [EPMDEDP-11529](https://jiraeu.epam.com/browse/EPMDEDP-11529)
 
 ### Bug Fixes
 
 - Set proper Kubernetes version for envtest [EPMDEDP-11398](https://jiraeu.epam.com/browse/EPMDEDP-11398)
+- KeycloakAuthFlow reconciliation creates new auth configs every time [EPMDEDP-11550](https://jiraeu.epam.com/browse/EPMDEDP-11550)
+- Remove parallel map access in GetClientscopesByNames test [EPMDEDP-11757](https://jiraeu.epam.com/browse/EPMDEDP-11757)
 
 ### Code Refactoring
 
 - Remove global section [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
 - Remove EDP resources out of keycloak chart [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
 - Remove EDP dependencies from chart installation [EPMDEDP-11369](https://jiraeu.epam.com/browse/EPMDEDP-11369)
+- Add constant for keycloak client secret field [EPMDEDP-11656](https://jiraeu.epam.com/browse/EPMDEDP-11656)
 
 ### Routine
 
@@ -22,6 +29,10 @@
 - Update version on OperatorHub [EPMDEDP-10944](https://jiraeu.epam.com/browse/EPMDEDP-10944)
 - Updated dependencies [EPMDEDP-11206](https://jiraeu.epam.com/browse/EPMDEDP-11206)
 - Add community cooperation templates [EPMDEDP-11401](https://jiraeu.epam.com/browse/EPMDEDP-11401)
+- Update e2e tests [EPMDEDP-11483](https://jiraeu.epam.com/browse/EPMDEDP-11483)
+- Add getting a Keycloak URL for tests [EPMDEDP-11483](https://jiraeu.epam.com/browse/EPMDEDP-11483)
+- Update git-chglog for keycloak-operator [EPMDEDP-11518](https://jiraeu.epam.com/browse/EPMDEDP-11518)
+- Bump golang.org/x/net from 0.5.0 to 0.8.0 [EPMDEDP-11578](https://jiraeu.epam.com/browse/EPMDEDP-11578)
 
 ### Documentation
 
@@ -125,8 +136,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 ### Features
 
 - Update Makefile changelog target [EPMDEDP-8049](https://jiraeu.epam.com/browse/EPMDEDP-8049)
-- add priority and requirement params to child auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
 - implement hierarchical auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
+- add priority and requirement params to child auth flow [EPMDEDP-8326](https://jiraeu.epam.com/browse/EPMDEDP-8326)
 - Generate CRDs and helm docs automatically [EPMDEDP-8385](https://jiraeu.epam.com/browse/EPMDEDP-8385)
 - Password policy for realm [EPMDEDP-8395](https://jiraeu.epam.com/browse/EPMDEDP-8395)
 - Add ability to disable central idp mappers creation [EPMDEDP-8397](https://jiraeu.epam.com/browse/EPMDEDP-8397)
@@ -235,7 +246,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.15.0...HEAD
+[v1.15.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.14.0...v1.15.0
 [v1.14.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.13.0...v1.14.0
 [v1.13.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...v1.13.0
 [v1.12.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.11.0...v1.12.0
