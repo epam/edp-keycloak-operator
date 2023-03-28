@@ -6,28 +6,37 @@ const StatusDuplicated = "duplicated"
 
 // KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
 type KeycloakRealmRoleSpec struct {
-	Name  string `json:"name"`
+	// Name of keycloak role.
+	Name string `json:"name"`
+
+	// Realm is name of KeycloakRealm custom resource.
 	Realm string `json:"realm"`
 
+	// Description is a role description.
 	// +optional
 	Description string `json:"description,omitempty"`
 
+	// Attributes is a map of role attributes.
 	// +nullable
 	// +optional
 	Attributes map[string][]string `json:"attributes,omitempty"`
 
+	// Composite is a flag if role is composite.
 	// +optional
 	Composite bool `json:"composite,omitempty"`
 
+	// Composites is a list of composites roles assigned to role.
 	// +nullable
 	// +optional
 	Composites []Composite `json:"composites,omitempty"`
 
+	// IsDefault is a flag if role is default.
 	// +optional
 	IsDefault bool `json:"isDefault,omitempty"`
 }
 
 type Composite struct {
+	// Name is a name of composite role.
 	Name string `json:"name"`
 }
 
@@ -36,6 +45,7 @@ type KeycloakRealmRoleStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
 
+	// ID is a role ID.
 	// +optional
 	ID string `json:"id,omitempty"`
 

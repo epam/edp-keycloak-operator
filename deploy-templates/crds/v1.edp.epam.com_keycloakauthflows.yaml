@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakauthflows.v1.edp.epam.com
 spec:
@@ -37,55 +37,70 @@ spec:
             description: KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
             properties:
               alias:
-                description: Alias is display name for authentication flow
+                description: Alias is display name for authentication flow.
                 type: string
               authenticationExecutions:
+                description: AuthenticationExecutions is list of authentication executions
+                  for this auth flow.
                 items:
                   description: AuthenticationExecution defines keycloak authentication
                     execution.
                   properties:
                     alias:
+                      description: Alias is display name for this execution.
                       type: string
                     authenticator:
+                      description: Authenticator is name of authenticator.
                       type: string
                     authenticatorConfig:
+                      description: AuthenticatorConfig is configuration for authenticator.
                       nullable: true
                       properties:
                         alias:
+                          description: Alias is display name for authenticator config.
                           type: string
                         config:
                           additionalProperties:
                             type: string
-                          nullable: true
+                          description: Config is configuration for authenticator.
                           type: object
                       type: object
                     authenticatorFlow:
+                      description: AuthenticatorFlow is true if this is auth flow.
                       type: boolean
                     priority:
+                      description: Priority is priority for this execution. Lower
+                        values have higher priority.
                       type: integer
                     requirement:
+                      description: 'Requirement is requirement for this execution.
+                        Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.'
                       type: string
                   type: object
                 nullable: true
                 type: array
               builtIn:
+                description: BuiltIn is true if this is built-in auth flow.
                 type: boolean
               childType:
                 description: 'ChildType is type for auth flow if it has a parent,
                   available options: basic-flow, form-flow'
                 type: string
               description:
+                description: Description is description for authentication flow.
                 type: string
               parentName:
+                description: ParentName is name of parent auth flow.
                 type: string
               providerId:
                 description: ProviderID for root auth flow and provider for child
-                  auth flows
+                  auth flows.
                 type: string
               realm:
-                description: Realm is name of keycloak realm
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
               topLevel:
+                description: TopLevel is true if this is root auth flow.
                 type: boolean
             required:
             - alias

@@ -4,11 +4,19 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
 type KeycloakComponentSpec struct {
-	Name         string `json:"name"`
-	Realm        string `json:"realm"`
-	ProviderID   string `json:"providerId"`
+	// Name of keycloak component.
+	Name string `json:"name"`
+
+	// Realm is name of KeycloakRealm custom resource.
+	Realm string `json:"realm"`
+
+	// ProviderID is a provider ID of component.
+	ProviderID string `json:"providerId"`
+
+	// ProviderType is a provider type of component.
 	ProviderType string `json:"providerType"`
 
+	// Config is a map of component configuration.
 	// +nullable
 	// +optional
 	Config map[string][]string `json:"config,omitempty"`

@@ -4,47 +4,63 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
 type KeycloakRealmUserSpec struct {
-	Realm    string `json:"realm"`
+	// Realm is name of KeycloakRealm custom resource.
+	Realm string `json:"realm"`
+
+	// Username is a username in keycloak.
 	Username string `json:"username"`
 
+	// Email is a user email.
 	// +optional
 	Email string `json:"email,omitempty"`
 
+	// FirstName is a user first name.
 	// +optional
 	FirstName string `json:"firstName,omitempty"`
 
+	// LastName is a user last name.
 	// +optional
 	LastName string `json:"lastName,omitempty"`
 
+	// Enabled is a user enabled flag.
 	// +optional
 	Enabled bool `json:"enabled,omitempty"`
 
+	// EmailVerified is a user email verified flag.
 	// +optional
 	EmailVerified bool `json:"emailVerified,omitempty"`
 
-	// RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL
+	// RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL.
 	// +nullable
 	// +optional
 	RequiredUserActions []string `json:"requiredUserActions,omitempty"`
 
+	// Roles is a list of roles assigned to user.
 	// +nullable
 	// +optional
 	Roles []string `json:"roles,omitempty"`
 
+	// Groups is a list of groups assigned to user.
 	// +nullable
 	// +optional
 	Groups []string `json:"groups,omitempty"`
 
+	// Attributes is a map of user attributes.
 	// +nullable
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 
+	// ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
+	// Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
+	// If set to full, user will be created if it does not exist, or updated if it exists.
 	// +optional
 	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
 
+	// Password is a user password.
 	// +optional
 	Password string `json:"password,omitempty"`
 
+	// KeepResource is a flag if resource should be kept after deletion. If set to true, user will not be deleted from keycloak.
 	// +optional
 	KeepResource bool `json:"keepResource,omitempty"`
 }

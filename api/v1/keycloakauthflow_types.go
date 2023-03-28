@@ -4,26 +4,31 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
 type KeycloakAuthFlowSpec struct {
-	// Realm is name of keycloak realm
+	// Realm is name of KeycloakRealm custom resource.
 	Realm string `json:"realm"`
 
-	// Alias is display name for authentication flow
+	// Alias is display name for authentication flow.
 	Alias string `json:"alias"`
 
+	// Description is description for authentication flow.
 	// +optional
 	Description string `json:"description,omitempty"`
 
-	// ProviderID for root auth flow and provider for child auth flows
+	// ProviderID for root auth flow and provider for child auth flows.
 	ProviderID string `json:"providerId"`
 
+	// TopLevel is true if this is root auth flow.
 	TopLevel bool `json:"topLevel"`
 
+	// BuiltIn is true if this is built-in auth flow.
 	BuiltIn bool `json:"builtIn"`
 
+	// AuthenticationExecutions is list of authentication executions for this auth flow.
 	// +nullable
 	// +optional
 	AuthenticationExecutions []AuthenticationExecution `json:"authenticationExecutions,omitempty"`
 
+	// ParentName is name of parent auth flow.
 	// +optional
 	ParentName string `json:"parentName,omitempty"`
 
@@ -34,32 +39,40 @@ type KeycloakAuthFlowSpec struct {
 
 // AuthenticationExecution defines keycloak authentication execution.
 type AuthenticationExecution struct {
+	// Authenticator is name of authenticator.
 	// +optional
 	Authenticator string `json:"authenticator,omitempty"`
 
+	// AuthenticatorConfig is configuration for authenticator.
 	// +nullable
 	// +optional
 	AuthenticatorConfig *AuthenticatorConfig `json:"authenticatorConfig,omitempty"`
 
+	// AuthenticatorFlow is true if this is auth flow.
 	// +optional
 	AuthenticatorFlow bool `json:"authenticatorFlow,omitempty"`
 
+	// Priority is priority for this execution. Lower values have higher priority.
 	// +optional
 	Priority int `json:"priority,omitempty"`
 
+	// Requirement is requirement for this execution. Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.
 	// +optional
 	Requirement string `json:"requirement,omitempty"`
 
+	// Alias is display name for this execution.
 	// +optional
 	Alias string `json:"alias,omitempty"`
 }
 
 type AuthenticatorConfig struct {
+	// Alias is display name for authenticator config.
 	// +optional
 	Alias string `json:"alias,omitempty"`
 
+	// Config is configuration for authenticator.
 	// +optional
-	// +nullable
+	// +nullable.
 	Config map[string]string `json:"config,omitempty"`
 }
 

@@ -6,13 +6,13 @@ import (
 
 // KeycloakSpec defines the desired state of Keycloak.
 type KeycloakSpec struct {
-	// URL of keycloak service
+	// URL of keycloak service.
 	Url string `json:"url"`
 
-	// Secret is the name of the k8s object Secret related to keycloak
+	// Secret is a secret name which contains admin credentials.
 	Secret string `json:"secret"`
 
-	// AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token
+	// AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.
 	// +optional
 	// +kubebuilder:validation:Enum=serviceAccount;user
 	AdminType string `json:"adminType,omitempty"`
@@ -33,7 +33,7 @@ func (in *Keycloak) GetAdminType() string {
 
 // KeycloakStatus defines the observed state of Keycloak.
 type KeycloakStatus struct {
-	// Connected shows if keycloak service is up and running
+	// Connected shows if keycloak service is up and running.
 	Connected bool `json:"connected"`
 }
 

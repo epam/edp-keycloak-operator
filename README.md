@@ -51,7 +51,7 @@ To install the Keycloak Operator, follow the steps below:
 
 ## Quick Start
 
-1. Create a User in the Keycloak `Master` realm, and assign a `create-realm` role, check [official documentation](https://github.com/keycloak/keycloak-documentation/blob/main/server_admin/topics/admin-console-permissions/master-realm.adoc#global-roles)
+1. Create a User in the Keycloak `Master` realm, and assign a `create-realm` role.
 
 2. Insert newly created user credentials into Kubernetes secret:
 
@@ -60,11 +60,10 @@ To install the Keycloak Operator, follow the steps below:
     kind: Secret
     metadata:
       name:  keycloak-access
-      namespace: default
     type: Opaque
     data:
-      username: "user"
-      password: "pass"
+      username: dXNlcg==   # base64-encoded value of "user"
+      password: cGFzcw==   # base64-encoded value of "pass"
     ```
 
 3. Create Custom Resource `kind: Keycloak` with Keycloak instance URL and secret created on the previous step:
@@ -73,8 +72,7 @@ To install the Keycloak Operator, follow the steps below:
     apiVersion: v1.edp.epam.com/v1
     kind: Keycloak
     metadata:
-      name: main
-      namespace: default
+      name: keycloak-sample
     spec:
       secret: keycloak-access             # Secret name
       url: https://keycloak.example.com   # Keycloak URL
@@ -84,27 +82,24 @@ To install the Keycloak Operator, follow the steps below:
 
 4. Create Keycloak realm and group using Custom Resources:
 
-    ```yaml
-    apiVersion: v1.edp.epam.com/v1
-    kind: KeycloakRealm
-    metadata:
-      name: demo
-      namespace: default
-    spec:
-      keycloakOwner: main         # the name of `kind: Keycloak`
-      realmName: product-dev      # realm name in keycloak instance
-      ssoRealmEnabled: false
+   ```yaml
+   apiVersion: v1.edp.epam.com/v1
+   kind: KeycloakRealm
+   metadata:
+    name: keycloakrealm-sample
+   spec:
+    realmName: realm-sample
+    keycloakOwner: keycloak-sample   # the name of `kind: Keycloak`
     ```
-
+   
     ```yaml
     apiVersion: v1.edp.epam.com/v1
     kind: KeycloakRealmGroup
     metadata:
       name: argocd-admins
-      namespace: default
     spec:
       name: ArgoCDAdmins
-      realm: demo              # the name of `kind: KeycloakRealm`
+      realm: keycloakrealm-sample   # the name of `kind: KeycloakRealm`
     ```
 
     Inspect [available custom resource](./docs/arch.md) and [CR templates folder](./deploy-templates/_crd_examples/) for more examples

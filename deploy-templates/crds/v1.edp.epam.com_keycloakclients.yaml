@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakclients.v1.edp.epam.com
 spec:
@@ -36,10 +36,13 @@ spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
               advancedProtocolMappers:
+                description: AdvancedProtocolMappers is a flag to enable advanced
+                  protocol mappers.
                 type: boolean
               attributes:
                 additionalProperties:
                   type: string
+                description: Attributes is a map of client attributes.
                 nullable: true
                 type: object
               clientId:
@@ -47,48 +50,65 @@ spec:
                   URI and tokens.
                 type: string
               clientRoles:
+                description: ClientRoles is a list of client roles names assigned
+                  to client.
                 items:
                   type: string
                 nullable: true
                 type: array
               defaultClientScopes:
-                description: A list of default client scopes for a keycloak client.
+                description: DefaultClientScopes is a list of default client scopes
+                  assigned to client.
                 items:
                   type: string
                 nullable: true
                 type: array
               directAccess:
+                description: DirectAccess is a flag to set client as direct access.
                 type: boolean
               frontChannelLogout:
+                description: FrontChannelLogout is a flag to enable front channel
+                  logout.
                 type: boolean
               protocol:
+                description: Protocol is a client protocol.
                 nullable: true
                 type: string
               protocolMappers:
+                description: ProtocolMappers is a list of protocol mappers assigned
+                  to client.
                 items:
                   properties:
                     config:
                       additionalProperties:
                         type: string
+                      description: Config is a map of protocol mapper configuration.
                       nullable: true
                       type: object
                     name:
+                      description: Name is a protocol mapper name.
                       type: string
                     protocol:
+                      description: Protocol is a protocol name.
                       type: string
                     protocolMapper:
+                      description: ProtocolMapper is a protocol mapper name.
                       type: string
                   type: object
                 nullable: true
                 type: array
               public:
+                description: Public is a flag to set client as public.
                 type: boolean
               realmRoles:
+                description: RealmRoles is a list of realm roles assigned to client.
                 items:
                   properties:
                     composite:
+                      description: Composite is a realm composite role name.
                       type: string
                     name:
+                      description: Name is a realm role name.
                       type: string
                   required:
                   - composite
@@ -96,26 +116,36 @@ spec:
                 nullable: true
                 type: array
               reconciliationStrategy:
+                description: ReconciliationStrategy is a strategy to reconcile client.
                 enum:
                 - full
                 - addOnly
                 type: string
               secret:
+                description: Secret is a client secret used for authentication. If
+                  not provided, it will be generated.
                 type: string
               serviceAccount:
+                description: ServiceAccount is a service account configuration.
                 nullable: true
                 properties:
                   attributes:
                     additionalProperties:
                       type: string
+                    description: Attributes is a map of service account attributes.
                     nullable: true
                     type: object
                   clientRoles:
+                    description: ClientRoles is a list of client roles assigned to
+                      service account.
                     items:
                       properties:
                         clientId:
+                          description: ClientID is a client ID.
                           type: string
                         roles:
+                          description: Roles is a list of client roles names assigned
+                            to service account.
                           items:
                             type: string
                           nullable: true
@@ -126,16 +156,21 @@ spec:
                     nullable: true
                     type: array
                   enabled:
+                    description: Enabled is a flag to enable service account.
                     type: boolean
                   realmRoles:
+                    description: RealmRoles is a list of realm roles assigned to service
+                      account.
                     items:
                       type: string
                     nullable: true
                     type: array
                 type: object
               targetRealm:
+                description: TargetRealm is a realm name where client will be created.
                 type: string
               webUrl:
+                description: WebUrl is a client web url.
                 type: string
             required:
             - clientId

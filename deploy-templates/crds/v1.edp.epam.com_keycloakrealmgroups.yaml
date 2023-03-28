@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakrealmgroups.v1.edp.epam.com
 spec:
@@ -38,6 +38,7 @@ spec:
               access:
                 additionalProperties:
                   type: boolean
+                description: Access is a map of group access.
                 nullable: true
                 type: object
               attributes:
@@ -45,14 +46,19 @@ spec:
                   items:
                     type: string
                   type: array
+                description: Attributes is a map of group attributes.
                 nullable: true
                 type: object
               clientRoles:
+                description: ClientRoles is a list of client roles assigned to group.
                 items:
                   properties:
                     clientId:
+                      description: ClientID is a client ID.
                       type: string
                     roles:
+                      description: Roles is a list of client roles names assigned
+                        to service account.
                       items:
                         type: string
                       nullable: true
@@ -63,17 +69,22 @@ spec:
                 nullable: true
                 type: array
               name:
+                description: Name of keycloak group.
                 type: string
               path:
+                description: Path is a group path.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
               realmRoles:
+                description: RealmRoles is a list of realm roles assigned to group.
                 items:
                   type: string
                 nullable: true
                 type: array
               subGroups:
+                description: SubGroups is a list of subgroups assigned to group.
                 items:
                   type: string
                 nullable: true
@@ -89,6 +100,7 @@ spec:
                 format: int64
                 type: integer
               id:
+                description: ID is a group ID.
                 type: string
               value:
                 type: string

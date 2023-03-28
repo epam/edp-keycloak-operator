@@ -4,25 +4,29 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
 type KeycloakClientScopeSpec struct {
-	// Name of keycloak client scope
+	// Name of keycloak client scope.
 	Name string `json:"name"`
 
-	// Realm is name of keycloak realm
+	// Realm is name of KeycloakRealm custom resource.
 	Realm string `json:"realm"`
 
-	// Protocol is SSO protocol configuration which is being supplied by this client scope
+	// Protocol is SSO protocol configuration which is being supplied by this client scope.
 	Protocol string `json:"protocol"`
 
+	// Description is a description of client scope.
 	// +optional
 	Description string `json:"description,omitempty"`
 
+	// Attributes is a map of client scope attributes.
 	// +nullable
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 
+	// Default is a flag to set client scope as default.
 	// +optional
 	Default bool `json:"default,omitempty"`
 
+	// ProtocolMappers is a list of protocol mappers assigned to client scope.
 	// +nullable
 	// +optional
 	ProtocolMappers []ProtocolMapper `json:"protocolMappers,omitempty"`

@@ -1,0 +1,10 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmRoleBatch
+metadata:
+  name: keycloakrealmrolebatch-sample
+spec:
+  realm: keycloakrealm-sample
+  roles:
+    - description: default qa role
+      isDefault: false
+      name: qa

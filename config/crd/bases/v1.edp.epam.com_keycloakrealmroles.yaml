@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakrealmroles.v1.edp.epam.com
 spec:
@@ -40,14 +40,19 @@ spec:
                   items:
                     type: string
                   type: array
+                description: Attributes is a map of role attributes.
                 nullable: true
                 type: object
               composite:
+                description: Composite is a flag if role is composite.
                 type: boolean
               composites:
+                description: Composites is a list of composites roles assigned to
+                  role.
                 items:
                   properties:
                     name:
+                      description: Name is a name of composite role.
                       type: string
                   required:
                   - name
@@ -55,12 +60,16 @@ spec:
                 nullable: true
                 type: array
               description:
+                description: Description is a role description.
                 type: string
               isDefault:
+                description: IsDefault is a flag if role is default.
                 type: boolean
               name:
+                description: Name of keycloak role.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
             required:
             - name
@@ -73,6 +82,7 @@ spec:
                 format: int64
                 type: integer
               id:
+                description: ID is a role ID.
                 type: string
               value:
                 type: string
