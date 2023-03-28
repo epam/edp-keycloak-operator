@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakrealmusers.v1.edp.epam.com
 spec:
@@ -38,44 +38,62 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
+                description: Attributes is a map of user attributes.
                 nullable: true
                 type: object
               email:
+                description: Email is a user email.
                 type: string
               emailVerified:
+                description: EmailVerified is a user email verified flag.
                 type: boolean
               enabled:
+                description: Enabled is a user enabled flag.
                 type: boolean
               firstName:
+                description: FirstName is a user first name.
                 type: string
               groups:
+                description: Groups is a list of groups assigned to user.
                 items:
                   type: string
                 nullable: true
                 type: array
               keepResource:
+                description: KeepResource is a flag if resource should be kept after
+                  deletion. If set to true, user will not be deleted from keycloak.
                 type: boolean
               lastName:
+                description: LastName is a user last name.
                 type: string
               password:
+                description: Password is a user password.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
               reconciliationStrategy:
+                description: 'ReconciliationStrategy is a strategy for reconciliation.
+                  Possible values: full, create-only. Default value: full. If set
+                  to create-only, user will be created only if it does not exist.
+                  If user exists, it will not be updated. If set to full, user will
+                  be created if it does not exist, or updated if it exists.'
                 type: string
               requiredUserActions:
                 description: 'RequiredUserActions is required action when user log
-                  in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL'
+                  in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL.'
                 items:
                   type: string
                 nullable: true
                 type: array
               roles:
+                description: Roles is a list of roles assigned to user.
                 items:
                   type: string
                 nullable: true
                 type: array
               username:
+                description: Username is a username in keycloak.
                 type: string
             required:
             - realm

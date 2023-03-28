@@ -4,28 +4,37 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
 type KeycloakRealmGroupSpec struct {
-	Name  string `json:"name"`
+	// Name of keycloak group.
+	Name string `json:"name"`
+
+	// Realm is name of KeycloakRealm custom resource.
 	Realm string `json:"realm"`
 
+	// Path is a group path.
 	// +optional
 	Path string `json:"path,omitempty"`
 
+	// Attributes is a map of group attributes.
 	// +nullable
 	// +optional
 	Attributes map[string][]string `json:"attributes,omitempty"`
 
+	// Access is a map of group access.
 	// +nullable
 	// +optional
 	Access map[string]bool `json:"access,omitempty"`
 
+	// RealmRoles is a list of realm roles assigned to group.
 	// +nullable
 	// +optional
 	RealmRoles []string `json:"realmRoles,omitempty"`
 
+	// SubGroups is a list of subgroups assigned to group.
 	// +nullable
 	// +optional
 	SubGroups []string `json:"subGroups,omitempty"`
 
+	// ClientRoles is a list of client roles assigned to group.
 	// +nullable
 	// +optional
 	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
@@ -36,6 +45,7 @@ type KeycloakRealmGroupStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
 
+	// ID is a group ID.
 	// +optional
 	ID string `json:"id,omitempty"`
 

@@ -3,7 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.9.2
+    controller-gen.kubebuilder.io/version: v0.11.3
   creationTimestamp: null
   name: keycloakrealmcomponents.v1.edp.epam.com
 spec:
@@ -41,15 +41,20 @@ spec:
                   items:
                     type: string
                   type: array
+                description: Config is a map of component configuration.
                 nullable: true
                 type: object
               name:
+                description: Name of keycloak component.
                 type: string
               providerId:
+                description: ProviderID is a provider ID of component.
                 type: string
               providerType:
+                description: ProviderType is a provider type of component.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
             required:
             - name

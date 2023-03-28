@@ -1,0 +1,9 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmComponent
+metadata:
+  name: keycloakrealmcomponent-sample
+spec:
+  realm: keycloakrealm-sample
+  name: component-sample
+  providerId: scope
+  providerType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"

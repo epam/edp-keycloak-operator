@@ -1,9 +1,9 @@
 apiVersion: v1.edp.epam.com/v1
 kind: KeycloakRealmIdentityProvider
 metadata:
-  name: instagram-test
+  name: keycloakrealmidentityprovider-sample
 spec:
-  realm: d2-id-k8s-realm-name
+  realm: keycloakrealm-sample
   alias: instagram
   authenticateByDefault: false
   enabled: true
@@ -16,12 +16,6 @@ spec:
     syncMode: "IMPORT"
     useJwksUrl: "true"
   mappers:
-    - name: "test3212"
-      identityProviderMapper: "oidc-hardcoded-role-idp-mapper"
-      identityProviderAlias: "instagram"
-      config:
-        role: "role-tr"
-        syncMode: "INHERIT"
     - name: "test-33221"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
       identityProviderAlias: "instagram"

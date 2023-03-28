@@ -1,11 +1,11 @@
 apiVersion: v1.edp.epam.com/v1
 kind: KeycloakAuthFlow
 metadata:
-  name: d1-auth-flow
+  name: keycloakauthflow-sample
 spec:
-  realm: d2-id-k8s-realm-name
+  realm: keycloakrealm-sample
   alias: MyBrowser
-  description: browser with idp
+  description: browser flow
   providerId: basic-flow
   topLevel: true
   builtIn: false

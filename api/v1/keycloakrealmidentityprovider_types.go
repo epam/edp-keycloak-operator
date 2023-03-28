@@ -4,48 +4,69 @@ import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 // KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider.
 type KeycloakRealmIdentityProviderSpec struct {
-	Realm      string            `json:"realm"`
-	ProviderID string            `json:"providerId"`
-	Alias      string            `json:"alias"`
-	Config     map[string]string `json:"config"`
-	Enabled    bool              `json:"enabled"`
+	// Realm is name of KeycloakRealm custom resource.
+	Realm string `json:"realm"`
 
+	// ProviderID is a provider ID of identity provider.
+	ProviderID string `json:"providerId"`
+
+	// Alias is a alias of identity provider.
+	Alias string `json:"alias"`
+
+	// Config is a map of identity provider configuration.
+	Config map[string]string `json:"config"`
+
+	// Enabled is a flag to enable/disable identity provider.
+	Enabled bool `json:"enabled"`
+
+	// AddReadTokenRoleOnCreate is a flag to add read token role on create.
 	// +optional
 	AddReadTokenRoleOnCreate bool `json:"addReadTokenRoleOnCreate,omitempty"`
 
+	// AuthenticateByDefault is a flag to authenticate by default.
 	// +optional
 	AuthenticateByDefault bool `json:"authenticateByDefault,omitempty"`
 
+	// DisplayName is a display name of identity provider.
 	// +optional
 	DisplayName string `json:"displayName,omitempty"`
 
+	// FirstBrokerLoginFlowAlias is a first broker login flow alias.
 	// +optional
 	FirstBrokerLoginFlowAlias string `json:"firstBrokerLoginFlowAlias,omitempty"`
 
+	// LinkOnly is a flag to link only.
 	// +optional
 	LinkOnly bool `json:"linkOnly,omitempty"`
 
+	// StoreToken is a flag to store token.
 	// +optional
 	StoreToken bool `json:"storeToken,omitempty"`
 
+	// TrustEmail is a flag to trust email.
 	// +optional
 	TrustEmail bool `json:"trustEmail,omitempty"`
 
+	// Mappers is a list of identity provider mappers.
 	// +nullable
 	// +optional
 	Mappers []IdentityProviderMapper `json:"mappers,omitempty"`
 }
 
 type IdentityProviderMapper struct {
+	// IdentityProviderAlias is a identity provider alias.
 	// +optional
 	IdentityProviderAlias string `json:"identityProviderAlias,omitempty"`
 
+	// IdentityProviderMapper is a identity provider mapper.
 	// +optional
 	IdentityProviderMapper string `json:"identityProviderMapper,omitempty"`
 
+	// Name is a name of identity provider mapper.
 	// +optional
 	Name string `json:"name,omitempty"`
 
+	// Config is a map of identity provider mapper configuration.
 	// +nullable
 	// +optional
 	Config map[string]string `json:"config,omitempty"`

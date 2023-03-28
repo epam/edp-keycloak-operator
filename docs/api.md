@@ -108,42 +108,42 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         <td><b>alias</b></td>
         <td>string</td>
         <td>
-          Alias is display name for authentication flow<br/>
+          Alias is display name for authentication flow.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>builtIn</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          BuiltIn is true if this is built-in auth flow.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>providerId</b></td>
         <td>string</td>
         <td>
-          ProviderID for root auth flow and provider for child auth flows<br/>
+          ProviderID for root auth flow and provider for child auth flows.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Realm is name of keycloak realm<br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>topLevel</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          TopLevel is true if this is root auth flow.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#keycloakauthflowspecauthenticationexecutionsindex">authenticationExecutions</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          AuthenticationExecutions is list of authentication executions for this auth flow.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -157,14 +157,14 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         <td><b>description</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Description is description for authentication flow.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>parentName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ParentName is name of parent auth flow.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -191,42 +191,42 @@ AuthenticationExecution defines keycloak authentication execution.
         <td><b>alias</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Alias is display name for this execution.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>authenticator</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Authenticator is name of authenticator.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakauthflowspecauthenticationexecutionsindexauthenticatorconfig">authenticatorConfig</a></b></td>
         <td>object</td>
         <td>
-          <br/>
+          AuthenticatorConfig is configuration for authenticator.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>authenticatorFlow</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AuthenticatorFlow is true if this is auth flow.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>priority</b></td>
         <td>integer</td>
         <td>
-          <br/>
+          Priority is priority for this execution. Lower values have higher priority.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>requirement</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Requirement is requirement for this execution. Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -238,7 +238,7 @@ AuthenticationExecution defines keycloak authentication execution.
 
 
 
-
+AuthenticatorConfig is configuration for authenticator.
 
 <table>
     <thead>
@@ -253,14 +253,14 @@ AuthenticationExecution defines keycloak authentication execution.
         <td><b>alias</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Alias is display name for authenticator config.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is configuration for authenticator.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -383,77 +383,77 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>advancedProtocolMappers</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AdvancedProtocolMappers is a flag to enable advanced protocol mappers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Attributes is a map of client attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>clientRoles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          ClientRoles is a list of client roles names assigned to client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>defaultClientScopes</b></td>
         <td>[]string</td>
         <td>
-          A list of default client scopes for a keycloak client.<br/>
+          DefaultClientScopes is a list of default client scopes assigned to client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>directAccess</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          DirectAccess is a flag to set client as direct access.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>frontChannelLogout</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          FrontChannelLogout is a flag to enable front channel logout.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Protocol is a client protocol.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientspecprotocolmappersindex">protocolMappers</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          ProtocolMappers is a list of protocol mappers assigned to client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>public</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Public is a flag to set client as public.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientspecrealmrolesindex">realmRoles</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          RealmRoles is a list of realm roles assigned to client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>reconciliationStrategy</b></td>
         <td>enum</td>
         <td>
-          <br/>
+          ReconciliationStrategy is a strategy to reconcile client.<br/>
           <br/>
             <i>Enum</i>: full, addOnly<br/>
         </td>
@@ -462,28 +462,28 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>secret</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Secret is a client secret used for authentication. If not provided, it will be generated.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientspecserviceaccount">serviceAccount</a></b></td>
         <td>object</td>
         <td>
-          <br/>
+          ServiceAccount is a service account configuration.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>targetRealm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          TargetRealm is a realm name where client will be created.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>webUrl</b></td>
         <td>string</td>
         <td>
-          <br/>
+          WebUrl is a client web url.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -510,28 +510,28 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is a map of protocol mapper configuration.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a protocol mapper name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Protocol is a protocol name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocolMapper</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ProtocolMapper is a protocol mapper name.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -558,14 +558,14 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>composite</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Composite is a realm composite role name.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a realm role name.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -577,7 +577,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
 
 
 
-
+ServiceAccount is a service account configuration.
 
 <table>
     <thead>
@@ -592,28 +592,28 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Attributes is a map of service account attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientspecserviceaccountclientrolesindex">clientRoles</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          ClientRoles is a list of client roles assigned to service account.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Enabled is a flag to enable service account.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          RealmRoles is a list of realm roles assigned to service account.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -640,14 +640,14 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>clientId</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ClientID is a client ID.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          Roles is a list of client roles names assigned to service account.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -777,49 +777,49 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of keycloak client scope<br/>
+          Name of keycloak client scope.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          Protocol is SSO protocol configuration which is being supplied by this client scope<br/>
+          Protocol is SSO protocol configuration which is being supplied by this client scope.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Realm is name of keycloak realm<br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Attributes is a map of client scope attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>default</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Default is a flag to set client scope as default.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>description</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Description is a description of client scope.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakclientscopespecprotocolmappersindex">protocolMappers</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          ProtocolMappers is a list of protocol mappers assigned to client scope.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -846,28 +846,28 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is a map of protocol mapper configuration.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a protocol mapper name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Protocol is a protocol name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>protocolMapper</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ProtocolMapper is a protocol mapper name.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -990,35 +990,35 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of keycloak component.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>providerId</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ProviderID is a provider ID of component.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>providerType</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ProviderType is a provider type of component.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>config</b></td>
         <td>map[string][]string</td>
         <td>
-          <br/>
+          Config is a map of component configuration.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1134,56 +1134,56 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of keycloak group.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>access</b></td>
         <td>map[string]boolean</td>
         <td>
-          <br/>
+          Access is a map of group access.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string][]string</td>
         <td>
-          <br/>
+          Attributes is a map of group attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmgroupspecclientrolesindex">clientRoles</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          ClientRoles is a list of client roles assigned to group.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Path is a group path.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          RealmRoles is a list of realm roles assigned to group.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>subGroups</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          SubGroups is a list of subgroups assigned to group.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1210,14 +1210,14 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b>clientId</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ClientID is a client ID.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          Roles is a list of client roles names assigned to service account.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1253,7 +1253,7 @@ KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.
         <td><b>id</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ID is a group ID.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1340,91 +1340,91 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td><b>alias</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Alias is a alias of identity provider.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is a map of identity provider configuration.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Enabled is a flag to enable/disable identity provider.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>providerId</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ProviderID is a provider ID of identity provider.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>addReadTokenRoleOnCreate</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AddReadTokenRoleOnCreate is a flag to add read token role on create.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>authenticateByDefault</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AuthenticateByDefault is a flag to authenticate by default.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>displayName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          DisplayName is a display name of identity provider.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>firstBrokerLoginFlowAlias</b></td>
         <td>string</td>
         <td>
-          <br/>
+          FirstBrokerLoginFlowAlias is a first broker login flow alias.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>linkOnly</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          LinkOnly is a flag to link only.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmidentityproviderspecmappersindex">mappers</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Mappers is a list of identity provider mappers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>storeToken</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          StoreToken is a flag to store token.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>trustEmail</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          TrustEmail is a flag to trust email.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1451,28 +1451,28 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is a map of identity provider mapper configuration.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>identityProviderAlias</b></td>
         <td>string</td>
         <td>
-          <br/>
+          IdentityProviderAlias is a identity provider alias.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>identityProviderMapper</b></td>
         <td>string</td>
         <td>
-          <br/>
+          IdentityProviderMapper is a identity provider mapper.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a name of identity provider mapper.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1588,14 +1588,14 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmrolebatchspecrolesindex">roles</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Roles is a list of roles to be created.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -1622,42 +1622,42 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of keycloak role.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string][]string</td>
         <td>
-          <br/>
+          Attributes is a map of role attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>composite</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Composite is a flag if role is composite.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmrolebatchspecrolesindexcompositesindex">composites</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Composites is a list of composites roles assigned to role.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>description</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Description is a role description.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>isDefault</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          IsDefault is a flag if role is default.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1684,7 +1684,7 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a name of composite role.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -1800,49 +1800,49 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name of keycloak role.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string][]string</td>
         <td>
-          <br/>
+          Attributes is a map of role attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>composite</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Composite is a flag if role is composite.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmrolespeccompositesindex">composites</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Composites is a list of composites roles assigned to role.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>description</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Description is a role description.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>isDefault</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          IsDefault is a flag if role is default.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -1869,7 +1869,7 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name is a name of composite role.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -1905,7 +1905,7 @@ KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole.
         <td><b>id</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ID is a role ID.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1992,98 +1992,98 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>realmName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          RealmName specifies the name of the realm.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>browserFlow</b></td>
         <td>string</td>
         <td>
-          <br/>
+          BrowserFlow specifies the authentication flow to use for the realm's browser clients.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>browserSecurityHeaders</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          BrowserSecurityHeaders is a map of security headers to apply to HTTP responses from the realm's browser clients.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>disableCentralIDPMappers</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          DisableCentralIDPMappers indicates whether to disable the default identity provider (IDP) mappers.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>id</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ID is the ID of the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>keycloakOwner</b></td>
         <td>string</td>
         <td>
-          <br/>
+          KeycloakOwner specifies the name of the Keycloak instance that owns the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmspecpasswordpolicyindex">passwordPolicy</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          PasswordPolicies is a list of password policies to apply to the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmspecrealmeventconfig">realmEventConfig</a></b></td>
         <td>object</td>
         <td>
-          <br/>
+          RealmEventConfig is the configuration for events in the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>ssoAutoRedirectEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          SsoAutoRedirectEnabled indicates whether to enable automatic redirection to the SSO realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>ssoRealmEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          SsoRealmEnabled indicates whether to enable the SSO realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmspecssorealmmappersindex">ssoRealmMappers</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          SSORealmMappers is a list of SSO realm mappers to create in the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>ssoRealmName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          SsoRealmName specifies the name of the SSO realm used by the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmspecthemes">themes</a></b></td>
         <td>object</td>
         <td>
-          <br/>
+          Themes is a map of themes to apply to the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmspecusersindex">users</a></b></td>
         <td>[]object</td>
         <td>
-          <br/>
+          Users is a list of users to create in the realm.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2110,14 +2110,14 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Type of password policy.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Value of password policy.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -2129,7 +2129,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
 
 
 
-
+RealmEventConfig is the configuration for events in the realm.
 
 <table>
     <thead>
@@ -2144,42 +2144,42 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>adminEventsDetailsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AdminEventsDetailsEnabled indicates whether to enable detailed admin events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>adminEventsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AdminEventsEnabled indicates whether to enable admin events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>enabledEventTypes</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          EnabledEventTypes is a list of event types to enable.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          EventsEnabled indicates whether to enable events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsExpiration</b></td>
         <td>integer</td>
         <td>
-          <br/>
+          EventsExpiration is the number of seconds after which events expire.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsListeners</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          EventsListeners is a list of event listeners to enable.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2206,21 +2206,21 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Config is a map of configuration options for the SSO realm mapper.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>identityProviderMapper</b></td>
         <td>string</td>
         <td>
-          <br/>
+          IdentityProviderMapper specifies the identity provider mapper to use.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Name specifies the name of the SSO realm mapper.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2232,7 +2232,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
 
 
 
-
+Themes is a map of themes to apply to the realm.
 
 <table>
     <thead>
@@ -2247,35 +2247,35 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>accountTheme</b></td>
         <td>string</td>
         <td>
-          <br/>
+          AccountTheme specifies the account theme to use for the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>adminConsoleTheme</b></td>
         <td>string</td>
         <td>
-          <br/>
+          AdminConsoleTheme specifies the admin console theme to use for the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>emailTheme</b></td>
         <td>string</td>
         <td>
-          <br/>
+          EmailTheme specifies the email theme to use for the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>internationalizationEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          InternationalizationEnabled indicates whether to enable internationalization.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>loginTheme</b></td>
         <td>string</td>
         <td>
-          <br/>
+          LoginTheme specifies the login theme to use for the realm.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2302,14 +2302,14 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>username</b></td>
         <td>string</td>
         <td>
-          Username of keycloak user<br/>
+          Username of keycloak user.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>
-          RealmRoles is a list of roles attached to keycloak user<br/>
+          RealmRoles is a list of roles attached to keycloak user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2432,98 +2432,98 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>username</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Username is a username in keycloak.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          <br/>
+          Attributes is a map of user attributes.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>email</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Email is a user email.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>emailVerified</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          EmailVerified is a user email verified flag.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          Enabled is a user enabled flag.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>firstName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          FirstName is a user first name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>groups</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          Groups is a list of groups assigned to user.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>keepResource</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          KeepResource is a flag if resource should be kept after deletion. If set to true, user will not be deleted from keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>lastName</b></td>
         <td>string</td>
         <td>
-          <br/>
+          LastName is a user last name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>password</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Password is a user password.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>reconciliationStrategy</b></td>
         <td>string</td>
         <td>
-          <br/>
+          ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only. Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated. If set to full, user will be created if it does not exist, or updated if it exists.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>requiredUserActions</b></td>
         <td>[]string</td>
         <td>
-          RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL<br/>
+          RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          Roles is a list of roles assigned to user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2639,21 +2639,21 @@ KeycloakSpec defines the desired state of Keycloak.
         <td><b>secret</b></td>
         <td>string</td>
         <td>
-          Secret is the name of the k8s object Secret related to keycloak<br/>
+          Secret is a secret name which contains admin credentials.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
-          URL of keycloak service<br/>
+          URL of keycloak service.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>adminType</b></td>
         <td>enum</td>
         <td>
-          AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token<br/>
+          AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
         </td>
@@ -2682,7 +2682,7 @@ KeycloakStatus defines the observed state of Keycloak.
         <td><b>connected</b></td>
         <td>boolean</td>
         <td>
-          Connected shows if keycloak service is up and running<br/>
+          Connected shows if keycloak service is up and running.<br/>
         </td>
         <td>true</td>
       </tr></tbody>

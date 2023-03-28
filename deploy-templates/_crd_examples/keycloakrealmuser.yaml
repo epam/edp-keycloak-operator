@@ -1,13 +1,13 @@
 apiVersion: v1.edp.epam.com/v1
 kind: KeycloakRealmUser
 metadata:
-  name: d1-user-test1
+  name: keycloakrealmuser-sample
 spec:
-  realm: d1-id-k8s-realm-name
+  realm: keycloakrealm-sample
   username: "john.snow13"
   firstName: "John"
   lastName: "Snow"
-  email: "john.snow13@gmail.com"
+  email: "john.snow13@example.com"
   enabled: true
   emailVerified: true
   password: "12345678"
