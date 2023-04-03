@@ -29,8 +29,8 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "true"
   artifacthub.io/images: |
-    - name: keycloak-operator:1.14.0
-      image: epamedp/keycloak-operator:1.14.0
+    - name: keycloak-operator:1.15.0
+      image: epamedp/keycloak-operator:1.15.0
     - name: alpine:3.16.2
       image: alpine:3.16.2
   artifacthub.io/operatorCapabilities: Deep Insights
