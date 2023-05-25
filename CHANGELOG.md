@@ -1,6 +1,15 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Routine
+
+- Update current development version [EPMDEDP-11472](https://jiraeu.epam.com/browse/EPMDEDP-11472)
+- Publish 1.15.0 version on OperatorHub [EPMDEDP-11825](https://jiraeu.epam.com/browse/EPMDEDP-11825)
+
+### Documentation
+
+- Add a description to the Custom Resources fields [EPMDEDP-11551](https://jiraeu.epam.com/browse/EPMDEDP-11551)
+
 
 <a name="v1.15.0"></a>
 ## [v1.15.0] - 2023-03-24
