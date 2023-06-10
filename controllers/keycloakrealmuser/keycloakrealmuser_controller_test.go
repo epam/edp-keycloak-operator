@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/suite"
+	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -146,4 +147,50 @@ func (e *TestControllerSuite) TestReconcileKeep() {
 
 func TestAdapterTestSuite(t *testing.T) {
 	suite.Run(t, new(TestControllerSuite))
+}
+
+func (e *TestControllerSuite) TestGetPassword() {
+	e.kcRealmUser.Spec.PasswordSecret.Name = "my-secret"
+	e.kcRealmUser.Spec.PasswordSecret.Key = "my-key"
+
+	secret := &coreV1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "my-secret",
+			Namespace: e.namespace,
+		},
+		Data: map[string][]byte{
+			"my-key": []byte("my-secret-password"),
+		},
+	}
+
+	e.scheme.AddKnownTypes(coreV1.SchemeGroupVersion, secret)
+
+	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser, secret).Build()
+
+	logger := mock.NewLogr()
+
+	r := &Reconcile{
+		client: e.k8sClient,
+		log:    logger,
+	}
+
+	password, err := r.getPassword(context.Background(), e.kcRealmUser)
+	assert.NoError(e.T(), err)
+	assert.Equal(e.T(), "my-secret-password", password)
+
+	e.kcRealmUser.Spec.PasswordSecret.Key = "non-existent-key"
+	password, err = r.getPassword(context.Background(), e.kcRealmUser)
+	assert.Error(e.T(), err)
+	assert.Equal(e.T(), "", password)
+
+	e.kcRealmUser.Spec.PasswordSecret.Name = "non-existent-secret"
+	password, err = r.getPassword(context.Background(), e.kcRealmUser)
+	assert.Error(e.T(), err)
+	assert.Equal(e.T(), "", password)
+
+	e.kcRealmUser.Spec.PasswordSecret.Name = ""
+	e.kcRealmUser.Spec.Password = "spec-password"
+	password, err = r.getPassword(context.Background(), e.kcRealmUser)
+	assert.NoError(e.T(), err)
+	assert.Equal(e.T(), "spec-password", password)
 }

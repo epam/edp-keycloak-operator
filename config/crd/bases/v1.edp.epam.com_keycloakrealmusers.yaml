@@ -67,8 +67,25 @@ spec:
                 description: LastName is a user last name.
                 type: string
               password:
-                description: Password is a user password.
+                description: Password is a user password. Allows to keep user password
+                  within Custom Resource. For security concerns, it is recommended
+                  to use PasswordSecret instead.
                 type: string
+              passwordSecret:
+                description: PasswordSecret defines Kubernetes secret Name and Key,
+                  which holds User secret.
+                nullable: true
+                properties:
+                  key:
+                    description: Key is the key in the secret.
+                    type: string
+                  name:
+                    description: Name is the name of the secret.
+                    type: string
+                required:
+                - key
+                - name
+                type: object
               realm:
                 description: Realm is name of KeycloakRealm custom resource.
                 type: string

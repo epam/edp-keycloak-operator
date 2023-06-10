@@ -1,0 +1,50 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: existing-k8s-secret
+type: Opaque
+data:
+  key-which-contains-password: "YWRtaW4="
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealm
+metadata:
+  name: keycloakrealm-sample
+spec:
+  id: bfebeff6-ac63-4b46-a1f3-37df5099a9c4
+  realmName: test-realm
+  keycloakOwner: keycloak
+  ssoRealmName: demo
+  ssoRealmEnabled: false
+  ssoAutoRedirectEnabled: false
+  realmEventConfig:
+    adminEventsDetailsEnabled: false
+    adminEventsEnabled: true
+    enabledEventTypes:
+      - UPDATE_CONSENT_ERROR
+      - CLIENT_LOGIN
+    eventsEnabled: true
+    eventsExpiration: 15000
+    eventsListeners:
+      - jboss-logging
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmUser
+metadata:
+  name: keycloakrealmuser-sample
+spec:
+  realm: keycloakrealm-sample
+  username: "john.snow13"
+  firstName: "John"
+  lastName: "Snow"
+  email: "john.snow13@example.com"
+  enabled: true
+  emailVerified: true
+  keepResource: true
+  attributes:
+    foo: "bar"
+    baz: "jazz"
+  passwordSecret:
+    name: existing-k8s-secret
+    key: key-which-contains-password
