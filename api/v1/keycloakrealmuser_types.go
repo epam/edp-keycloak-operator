@@ -56,13 +56,27 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
 
-	// Password is a user password.
+	// Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.
 	// +optional
 	Password string `json:"password,omitempty"`
 
 	// KeepResource is a flag if resource should be kept after deletion. If set to true, user will not be deleted from keycloak.
 	// +optional
 	KeepResource bool `json:"keepResource,omitempty"`
+
+	// PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
+	// +nullable
+	// +optional
+	PasswordSecret PasswordSecret `json:"passwordSecret,omitempty"`
+}
+
+// PasswordSecret defines struct which contains reference to secret name and key.
+type PasswordSecret struct {
+	// Name is the name of the secret.
+	Name string `json:"name"`
+
+	// Key is the key in the secret.
+	Key string `json:"key"`
 }
 
 // KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.

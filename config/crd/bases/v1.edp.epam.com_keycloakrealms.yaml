@@ -51,6 +51,11 @@ spec:
                 description: DisableCentralIDPMappers indicates whether to disable
                   the default identity provider (IDP) mappers.
                 type: boolean
+              frontendUrl:
+                description: FrontendURL Set the frontend URL for the realm. Use in
+                  combination with the default hostname provider to override the base
+                  URL for frontend requests for a specific realm.
+                type: string
               id:
                 description: ID is the ID of the realm.
                 nullable: true
@@ -244,6 +249,11 @@ spec:
                 type: object
               disableCentralIDPMappers:
                 type: boolean
+              frontendUrl:
+                description: FrontendURL Set the frontend URL for the realm. Use in
+                  combination with the default hostname provider to override the base
+                  URL for frontend requests for a specific realm.
+                type: string
               id:
                 nullable: true
                 type: string

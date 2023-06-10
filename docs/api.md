@@ -2020,7 +2020,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
-          Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
+          FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2509,7 +2509,14 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>password</b></td>
         <td>string</td>
         <td>
-          Password is a user password.<br/>
+          Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmuserspecpasswordsecret">passwordSecret</a></b></td>
+        <td>object</td>
+        <td>
+          PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2533,6 +2540,40 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
           Roles is a list of roles assigned to user.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmUser.spec.passwordSecret
+<sup><sup>[↩ Parent](#keycloakrealmuserspec)</sup></sup>
+
+
+
+PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          Key is the key in the secret.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the name of the secret.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4704,6 +4745,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>boolean</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>frontendUrl</b></td>
+        <td>string</td>
+        <td>
+          FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>

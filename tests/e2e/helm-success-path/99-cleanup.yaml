@@ -1,0 +1,8 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl delete keycloakrealmuser keycloakrealmuser-sample
+    namespaced: true
+  - command: kubectl delete keycloakrealm keycloakrealm-sample
+    namespaced: true
+

@@ -8,8 +8,10 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -130,6 +132,11 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return errors.Wrap(err, "unable to create keycloak client")
 	}
 
+	password, getPasswordErr := r.getPassword(ctx, instance)
+	if getPasswordErr != nil {
+		return fmt.Errorf("unable to get password: %w", getPasswordErr)
+	}
+
 	if err := kClient.SyncRealmUser(ctx, realm.Spec.RealmName, &adapter.KeycloakUser{
 		Username:            instance.Spec.Username,
 		Groups:              instance.Spec.Groups,
@@ -141,7 +148,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		Enabled:             instance.Spec.Enabled,
 		Email:               instance.Spec.Email,
 		Attributes:          instance.Spec.Attributes,
-		Password:            instance.Spec.Password,
+		Password:            password,
 	}, instance.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync realm user")
 	}
@@ -158,4 +165,30 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	}
 
 	return nil
+}
+
+func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (string, error) {
+	if instance.Spec.PasswordSecret.Name != "" && instance.Spec.PasswordSecret.Key != "" {
+		secret := &coreV1.Secret{}
+		if err := r.client.Get(ctx, types.NamespacedName{Name: instance.Spec.PasswordSecret.Name, Namespace: instance.Namespace}, secret); err != nil {
+			if k8sErrors.IsNotFound(err) {
+				return "", errors.Wrapf(err, "secret %s not found", instance.Spec.PasswordSecret.Name)
+			}
+
+			return "", errors.Wrapf(err, "unable to get secret %s", instance.Spec.PasswordSecret.Name)
+		}
+
+		passwordBytes, ok := secret.Data[instance.Spec.PasswordSecret.Key]
+		if !ok {
+			return "", errors.Errorf("key %s not found in secret %s", instance.Spec.PasswordSecret.Key, instance.Spec.PasswordSecret.Name)
+		}
+
+		r.log.Info("Using password from secret", "secret", instance.Spec.PasswordSecret.Name)
+
+		return string(passwordBytes), nil
+	}
+
+	r.log.Info("Using password from instance Spec.password")
+
+	return instance.Spec.Password, nil
 }
