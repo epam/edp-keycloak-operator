@@ -312,8 +312,10 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.15.0
-    createdAt: "2023-06-15T15:06:09Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.16.0
+    createdAt: "2023-06-15T16:43:11Z"
+    description: An Operator for managing Keycloak entities (realms, roles, groups,
+      users, etc) according to the created CRs.
     operators.operatorframework.io/builder: operator-sdk-v1.29.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator

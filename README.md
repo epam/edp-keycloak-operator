@@ -33,8 +33,8 @@ To install the Keycloak Operator, follow the steps below:
      ```bash
      helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
+     epamedp/keycloak-operator      1.16.0          1.16.0          A Helm chart for EDP Keycloak Operator
      epamedp/keycloak-operator      1.15.0          1.15.0          A Helm chart for EDP Keycloak Operator
-     epamedp/keycloak-operator      1.14.0          1.14.0          A Helm chart for EDP Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest stable version._
@@ -91,7 +91,7 @@ To install the Keycloak Operator, follow the steps below:
     realmName: realm-sample
     keycloakOwner: keycloak-sample   # the name of `kind: Keycloak`
     ```
-   
+
     ```yaml
     apiVersion: v1.edp.epam.com/v1
     kind: KeycloakRealmGroup
