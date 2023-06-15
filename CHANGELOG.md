@@ -1,10 +1,19 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.16.0"></a>
+## [v1.16.0] - 2023-06-15
+### Features
+
+- Add frontend url property for realm [EPMDEDP-11747](https://jiraeu.epam.com/browse/EPMDEDP-11747)
+- Allow define KeycloakRealmUser password in Kubernetes secret [EPMDEDP-12148](https://jiraeu.epam.com/browse/EPMDEDP-12148)
+
 ### Routine
 
 - Update current development version [EPMDEDP-11472](https://jiraeu.epam.com/browse/EPMDEDP-11472)
 - Publish 1.15.0 version on OperatorHub [EPMDEDP-11825](https://jiraeu.epam.com/browse/EPMDEDP-11825)
+- Update current development version [EPMDEDP-11826](https://jiraeu.epam.com/browse/EPMDEDP-11826)
 
 ### Documentation
 
@@ -255,7 +264,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.15.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.16.0...HEAD
+[v1.16.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.15.0...v1.16.0
 [v1.15.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.14.0...v1.15.0
 [v1.14.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.13.0...v1.14.0
 [v1.13.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.12.0...v1.13.0
