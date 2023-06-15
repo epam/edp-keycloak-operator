@@ -293,3 +293,10 @@ annotations:
       url: https://epam.github.io/edp-install/
     - name: EPAM SolutionHub
       url: https://solutionshub.epam.com/solution/epam-delivery-platform
+  artifacthub.io/changes: |
+    - Add frontend url property for realm
+    - Allow define KeycloakRealmUser password in Kubernetes secret
+    - Update current development version
+    - Publish 1.15.0 version on OperatorHub
+    - Update current development version
+    - Add a description to the Custom Resources fields
