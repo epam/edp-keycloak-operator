@@ -37,47 +37,66 @@ spec:
               of KeycloakRealmIdentityProvider.
             properties:
               addReadTokenRoleOnCreate:
+                description: AddReadTokenRoleOnCreate is a flag to add read token
+                  role on create.
                 type: boolean
               alias:
+                description: Alias is a alias of identity provider.
                 type: string
               authenticateByDefault:
+                description: AuthenticateByDefault is a flag to authenticate by default.
                 type: boolean
               config:
                 additionalProperties:
                   type: string
+                description: Config is a map of identity provider configuration.
                 type: object
               displayName:
+                description: DisplayName is a display name of identity provider.
                 type: string
               enabled:
+                description: Enabled is a flag to enable/disable identity provider.
                 type: boolean
               firstBrokerLoginFlowAlias:
+                description: FirstBrokerLoginFlowAlias is a first broker login flow
+                  alias.
                 type: string
               linkOnly:
+                description: LinkOnly is a flag to link only.
                 type: boolean
               mappers:
+                description: Mappers is a list of identity provider mappers.
                 items:
                   properties:
                     config:
                       additionalProperties:
                         type: string
+                      description: Config is a map of identity provider mapper configuration.
                       nullable: true
                       type: object
                     identityProviderAlias:
+                      description: IdentityProviderAlias is a identity provider alias.
                       type: string
                     identityProviderMapper:
+                      description: IdentityProviderMapper is a identity provider mapper.
                       type: string
                     name:
+                      description: Name is a name of identity provider mapper.
                       type: string
                   type: object
                 nullable: true
                 type: array
               providerId:
+                description: ProviderID is a provider ID of identity provider.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
               storeToken:
+                description: StoreToken is a flag to store token.
                 type: boolean
               trustEmail:
+                description: TrustEmail is a flag to trust email.
                 type: boolean
             required:
             - alias

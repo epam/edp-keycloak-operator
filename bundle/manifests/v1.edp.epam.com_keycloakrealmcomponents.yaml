@@ -40,15 +40,20 @@ spec:
                   items:
                     type: string
                   type: array
+                description: Config is a map of component configuration.
                 nullable: true
                 type: object
               name:
+                description: Name of keycloak component.
                 type: string
               providerId:
+                description: ProviderID is a provider ID of component.
                 type: string
               providerType:
+                description: ProviderType is a provider type of component.
                 type: string
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
             required:
             - name

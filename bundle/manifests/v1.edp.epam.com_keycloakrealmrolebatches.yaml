@@ -35,8 +35,10 @@ spec:
             description: KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
             properties:
               realm:
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
               roles:
+                description: Roles is a list of roles to be created.
                 items:
                   properties:
                     attributes:
@@ -44,14 +46,19 @@ spec:
                         items:
                           type: string
                         type: array
+                      description: Attributes is a map of role attributes.
                       nullable: true
                       type: object
                     composite:
+                      description: Composite is a flag if role is composite.
                       type: boolean
                     composites:
+                      description: Composites is a list of composites roles assigned
+                        to role.
                       items:
                         properties:
                           name:
+                            description: Name is a name of composite role.
                             type: string
                         required:
                         - name
@@ -59,10 +66,13 @@ spec:
                       nullable: true
                       type: array
                     description:
+                      description: Description is a role description.
                       type: string
                     isDefault:
+                      description: IsDefault is a flag if role is default.
                       type: boolean
                     name:
+                      description: Name of keycloak role.
                       type: string
                   required:
                   - name

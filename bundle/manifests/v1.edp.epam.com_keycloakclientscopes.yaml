@@ -38,38 +38,47 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
+                description: Attributes is a map of client scope attributes.
                 nullable: true
                 type: object
               default:
+                description: Default is a flag to set client scope as default.
                 type: boolean
               description:
+                description: Description is a description of client scope.
                 type: string
               name:
-                description: Name of keycloak client scope
+                description: Name of keycloak client scope.
                 type: string
               protocol:
                 description: Protocol is SSO protocol configuration which is being
-                  supplied by this client scope
+                  supplied by this client scope.
                 type: string
               protocolMappers:
+                description: ProtocolMappers is a list of protocol mappers assigned
+                  to client scope.
                 items:
                   properties:
                     config:
                       additionalProperties:
                         type: string
+                      description: Config is a map of protocol mapper configuration.
                       nullable: true
                       type: object
                     name:
+                      description: Name is a protocol mapper name.
                       type: string
                     protocol:
+                      description: Protocol is a protocol name.
                       type: string
                     protocolMapper:
+                      description: ProtocolMapper is a protocol mapper name.
                       type: string
                   type: object
                 nullable: true
                 type: array
               realm:
-                description: Realm is name of keycloak realm
+                description: Realm is name of KeycloakRealm custom resource.
                 type: string
             required:
             - name

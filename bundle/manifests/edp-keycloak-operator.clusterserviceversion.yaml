@@ -313,11 +313,11 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.15.0
-    createdAt: "2023-04-02T13:27:57Z"
-    operators.operatorframework.io/builder: operator-sdk-v1.28.0
+    createdAt: "2023-06-15T15:06:09Z"
+    operators.operatorframework.io/builder: operator-sdk-v1.29.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
-  name: edp-keycloak-operator.v1.15.0
+  name: edp-keycloak-operator.v1.16.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -418,7 +418,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.annotations['olm.targetNamespaces']
-                image: docker.io/epamedp/keycloak-operator:1.15.0
+                image: docker.io/epamedp/keycloak-operator:1.16.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -809,4 +809,4 @@ spec:
   provider:
     name: EPAM Delivery Platform
     url: https://epam.github.io/edp-install/
-  version: 1.15.0
+  version: 1.16.0
