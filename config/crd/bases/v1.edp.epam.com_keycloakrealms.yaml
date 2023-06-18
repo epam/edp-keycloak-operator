@@ -15,7 +15,12 @@ spec:
     singular: keycloakrealm
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: Is the resource available
+      jsonPath: .status.available
+      name: Available
+      type: boolean
+    name: v1
     schema:
       openAPIV3Schema:
         description: KeycloakRealm is the Schema for the keycloak realms API.

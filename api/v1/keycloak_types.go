@@ -40,6 +40,7 @@ type KeycloakStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Connected",type="boolean",JSONPath=".status.connected",description="Is connected to keycloak"
 
 // Keycloak is the Schema for the keycloaks API.
 type Keycloak struct {
