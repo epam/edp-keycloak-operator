@@ -1,0 +1,27 @@
+# permissions for end users to view clusterkeycloaks.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterrole
+    app.kubernetes.io/instance: clusterkeycloak-viewer-role
+    app.kubernetes.io/component: rbac
+    app.kubernetes.io/created-by: edp-keycloak-operator
+    app.kubernetes.io/part-of: edp-keycloak-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: clusterkeycloak-viewer-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - clusterkeycloaks
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - clusterkeycloaks/status
+  verbs:
+  - get

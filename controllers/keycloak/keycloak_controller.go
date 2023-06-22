@@ -24,9 +24,6 @@ import (
 )
 
 const (
-	defaultRealmName = "openshift"
-	imgFolder        = "img"
-	keycloakIcon     = "keycloak.svg"
 	keycloakCRLogKey = "keycloak cr"
 )
 

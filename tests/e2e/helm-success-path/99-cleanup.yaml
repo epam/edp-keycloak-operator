@@ -5,4 +5,6 @@ commands:
     namespaced: true
   - command: kubectl delete keycloakrealm keycloakrealm-sample
     namespaced: true
-
+    # we have to uninstall helm since clusterwide resources, like ClusterRole are preserved
+  - command: helm uninstall keycloak-operator-e2e
+    namespaced: true
