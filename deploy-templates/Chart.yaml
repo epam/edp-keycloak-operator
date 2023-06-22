@@ -38,6 +38,11 @@ annotations:
       name: keycloak
       displayName: keycloak
       description: Keycloak instance baseline configuration
+    - kind: ClusterKeycloak
+      version: v1.edp.epam.com/v1alpha1
+      name: clusterkeycloak
+      displayName: clusterkeycloak
+      description: Keycloak instance baseline configuration
     - kind: KeycloakAuthFlow
       version: v1.edp.epam.com/v1
       name: keycloakauthflows
@@ -288,6 +293,13 @@ annotations:
         description: default developer role
         name: developer
         realm: main
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: ClusterKeycloak
+      metadata:
+        name: keycloak-sample
+      spec:
+        secret: secret-name-in-operator-ns
+        url: https://keycloak.example.com
   artifacthub.io/links: |
     - name: EDP Documentation
       url: https://epam.github.io/edp-install/

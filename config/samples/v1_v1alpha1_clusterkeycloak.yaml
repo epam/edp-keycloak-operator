@@ -1,0 +1,13 @@
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  labels:
+    app.kubernetes.io/name: clusterkeycloak
+    app.kubernetes.io/instance: clusterkeycloak-sample
+    app.kubernetes.io/part-of: edp-keycloak-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: edp-keycloak-operator
+  name: clusterkeycloak-sample
+spec:
+  secret: keycloak-access
+  url: https://keycloak.example.com

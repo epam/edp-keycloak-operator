@@ -24,6 +24,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakApi1alpha1 "github.com/epam/edp-keycloak-operator/api/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/controllers/clusterkeycloak"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloak"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakauthflow"
@@ -187,6 +188,13 @@ func main() {
 		setupLog.Error(err, "unable to create keycloak-realm-identity-provider controller")
 		os.Exit(1)
 	}
+
+	if err := clusterkeycloak.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h).
+		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
+		setupLog.Error(err, "unable to create clusterkeycloak controller")
+		os.Exit(1)
+	}
+
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {
