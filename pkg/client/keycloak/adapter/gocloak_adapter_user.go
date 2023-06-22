@@ -274,7 +274,7 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 			keycloakApiParamId:    userID,
 		}).
 		SetBody(map[string]interface{}{
-			"temporary": true,
+			"temporary": false,
 			"type":      "password",
 			"value":     password,
 		}).
