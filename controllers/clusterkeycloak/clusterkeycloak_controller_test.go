@@ -76,7 +76,6 @@ func TestReconcileClusterKeycloak_ReconcilePass(t *testing.T) {
 }
 
 func TestReconcileClusterKeycloak_ReconcilePassWithNoFound(t *testing.T) {
-
 	objs := []runtime.Object{}
 	s := scheme.Scheme
 	s.AddKnownTypes(appsv1.SchemeGroupVersion)
