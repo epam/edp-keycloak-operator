@@ -95,7 +95,7 @@ test: fmt vet envtest
 ## Run e2e tests. Requires kind with running cluster and kuttl tool.
 e2e: build
 	docker build --no-cache -t ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
-	kind load docker-image ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
+	kind load --name $(KIND_CLUSTER_NAME) docker-image ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
 	E2E_IMAGE_REPOSITORY=${E2E_IMAGE_REPOSITORY} E2E_IMAGE_TAG=${E2E_IMAGE_TAG} kubectl kuttl test
 
 .PHONY: fmt
