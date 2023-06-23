@@ -42,7 +42,7 @@ jobs:
       run: make lint
 
   docs:
-    name: Code standards (linting)
+    name: Docs verification
     runs-on: ubuntu-20.04
     steps:
     - name: Set up Go
