@@ -18,6 +18,12 @@ $(LOCALBIN):
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 ENVTEST_K8S_VERSION = 1.23.5
 
+# Use kind cluster for testing
+START_KIND_CLUSTER?=true
+KIND_CLUSTER_NAME?="keycloak-operator"
+KUBE_VERSION?=1.26
+KIND_CONFIG?=./hack/kind-$(KUBE_VERSION).yaml
+
 E2E_IMAGE_REPOSITORY?="keycloak-image"
 E2E_IMAGE_TAG?="latest"
 
@@ -197,3 +203,9 @@ ENVTEST=$(LOCALBIN)/setup-envtest
 envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	$(call go-get-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,latest)
+
+.PHONY: start-kind
+start-kind:	## Start kind cluster
+ifeq (true,$(START_KIND_CLUSTER))
+	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG)
+endif
