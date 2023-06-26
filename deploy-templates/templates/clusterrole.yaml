@@ -3,7 +3,7 @@ kind: ClusterRole
 metadata:
   labels:
     {{- include "keycloak-operator.labels" . | nindent 4 }}
-  name: edp-{{ .Values.name }}-clusterrole
+  name: edp-{{ .Release.Namespace }}-clusterrole
 rules:
 - apiGroups:
   - v1.edp.epam.com
