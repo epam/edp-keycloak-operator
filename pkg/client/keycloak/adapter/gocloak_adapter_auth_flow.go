@@ -556,7 +556,7 @@ func (a GoCloakAdapter) adjustFlowExecutionPriority(
 	flowExecsCount int,
 	childFlows map[string]AuthenticationExecution,
 ) error {
-	if flowExec.AuthenticationFlow && flowExec.Level != 0 {
+	if !flowExec.AuthenticationFlow || flowExec.Level != 0 {
 		return nil
 	}
 
