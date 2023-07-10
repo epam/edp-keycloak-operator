@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -247,9 +248,11 @@ func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*keycloakApi.K
 		return nil, errors.Wrap(err, "unable to get main realm from k8s")
 	}
 
-	err := controllerutil.SetControllerReference(&realm, object, h.scheme)
-	if err != nil {
-		return nil, fmt.Errorf("failed to set controller reference for realm %s: %w", name, err)
+	if metav1.GetControllerOf(object) == nil {
+		err := controllerutil.SetControllerReference(&realm, object, h.scheme)
+		if err != nil {
+			return nil, fmt.Errorf("failed to set controller reference for realm %s: %w", name, err)
+		}
 	}
 
 	return &realm, nil

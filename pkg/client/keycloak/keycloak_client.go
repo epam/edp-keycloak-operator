@@ -64,6 +64,7 @@ type KCloakUsers interface {
 }
 
 type KCloakRealms interface {
+	GetRealm(ctx context.Context, realm string) (*gocloak.RealmRepresentation, error)
 	ExistRealm(realm string) (bool, error)
 	CreateRealmWithDefaultConfig(realm *dto.Realm) error
 	DeleteRealm(ctx context.Context, realmName string) error

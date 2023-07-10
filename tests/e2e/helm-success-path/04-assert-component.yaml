@@ -7,6 +7,8 @@ spec:
   name: component-sample
   providerId: scope
   providerType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
+status:
+  value: "OK"
 
 ---
 
@@ -22,3 +24,5 @@ spec:
   parentRef:
     name: component-sample
     kind: KeycloakRealmComponent
+status:
+  value: "OK"

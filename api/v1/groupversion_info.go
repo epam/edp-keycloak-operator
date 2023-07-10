@@ -17,3 +17,10 @@ var (
 
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+const (
+	// KeycloakRealmKind is a string value of the kind of KeycloakClient CR.
+	KeycloakRealmKind = "KeycloakRealm"
+	// KeycloakRealmComponentKind is a string value of the kind of KeycloakClient CR.
+	KeycloakRealmComponentKind = "KeycloakRealmComponent"
+)

@@ -177,7 +177,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := keycloakrealmcomponent.NewReconcile(mgr.GetClient(), ctrlLog, h).
+	if err := keycloakrealmcomponent.NewReconcile(mgr.GetClient(), mgr.GetScheme(), ctrlLog, h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-component controller")
 		os.Exit(1)

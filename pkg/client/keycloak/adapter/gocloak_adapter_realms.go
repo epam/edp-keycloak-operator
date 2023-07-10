@@ -8,6 +8,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -102,6 +103,19 @@ func (a GoCloakAdapter) ExistRealm(realmName string) (bool, error) {
 	log.Info("Check existing realm has been finished", "result", res)
 
 	return res, nil
+}
+
+// GetRealm returns realm by name.
+func (a GoCloakAdapter) GetRealm(ctx context.Context, realmName string) (*gocloak.RealmRepresentation, error) {
+	log := ctrl.LoggerFrom(ctx).WithValues(logKeyRealm, realmName)
+	log.Info("Start getting realm")
+
+	r, err := a.client.GetRealm(ctx, a.token.AccessToken, realmName)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get realm: %w", err)
+	}
+
+	return r, nil
 }
 
 func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {

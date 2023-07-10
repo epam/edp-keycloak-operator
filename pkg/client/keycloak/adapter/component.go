@@ -2,6 +2,8 @@ package adapter
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"github.com/pkg/errors"
 )
@@ -51,13 +53,21 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 func (a GoCloakAdapter) DeleteComponent(ctx context.Context, realmName, componentName string) error {
 	component, err := a.GetComponent(ctx, realmName, componentName)
 	if err != nil {
-		return errors.Wrap(err, "unable to get component id")
+		if IsErrNotFound(err) {
+			return nil
+		}
+
+		return fmt.Errorf("unable to get component id: %w", err)
 	}
 
 	rsp, err := a.startRestyRequest().SetContext(ctx).SetPathParams(map[string]string{
 		keycloakApiParamRealm: realmName,
 		keycloakApiParamId:    component.ID,
 	}).Delete(a.buildPath(realmComponentEntity))
+
+	if rsp.StatusCode() == http.StatusNotFound {
+		return nil
+	}
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "error during delete component request")

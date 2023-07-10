@@ -16,6 +16,12 @@ type KeycloakComponentSpec struct {
 	// ProviderType is a provider type of component.
 	ProviderType string `json:"providerType"`
 
+	// ParentRef specifies a parent resource.
+	// If not specified, then parent is realm specified in realm field.
+	// +nullable
+	// +optional
+	ParentRef *ParentComponent `json:"parentRef,omitempty"`
+
 	// Config is a map of component configuration.
 	// +nullable
 	// +optional
@@ -29,6 +35,19 @@ type KeycloakComponentStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
+}
+
+// ParentComponent defines the parent component of KeycloakRealmComponent.
+type ParentComponent struct {
+	// Kind is a kind of parent component. By default, it is KeycloakRealm.
+	// +optional
+	// +kubebuilder:default=KeycloakRealm
+	// +kubebuilder:validation:Enum=KeycloakRealm;KeycloakRealmComponent
+	Kind string `json:"kind,omitempty"`
+
+	// Name is a name of parent component custom resource.
+	// For example, if Kind is KeycloakRealm, then Name is name of KeycloakRealm custom resource.
+	Name string `json:"name"`
 }
 
 // +kubebuilder:object:root=true

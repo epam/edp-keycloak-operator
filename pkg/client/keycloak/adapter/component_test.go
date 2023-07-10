@@ -112,11 +112,7 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 		httpmock.NewJsonResponderOrPanic(200, []Component{}))
 
 	err = kcAdapter.DeleteComponent(context.Background(), "realm-name-no-components", testCmp.Name)
-	require.Error(t, err)
-
-	if err.Error() != "unable to get component id: component not found" {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
+	require.NoError(t, err)
 
 	httpmock.RegisterResponder("GET", "/admin/realms/realm-name-delete-failure/components",
 		httpmock.NewJsonResponderOrPanic(200, []Component{*testCmp}))
@@ -124,11 +120,7 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 		httpmock.NewStringResponder(404, "delete not found"))
 
 	err = kcAdapter.DeleteComponent(context.Background(), "realm-name-delete-failure", testCmp.Name)
-	require.Error(t, err)
-
-	if err.Error() != "error during delete component request: status: 404, body: delete not found" {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
+	require.NoError(t, err)
 }
 
 func TestGoCloakAdapter_GetComponent_Failure(t *testing.T) {
