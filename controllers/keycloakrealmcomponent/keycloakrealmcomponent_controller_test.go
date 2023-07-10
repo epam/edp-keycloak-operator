@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
+	testifyMock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -48,14 +48,15 @@ func TestReconcile_Reconcile(t *testing.T) {
 	)
 
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
-	hlp.On("GetOrCreateRealmOwnerRef", &comp, &comp.ObjectMeta).Return(&realm, nil)
+
+	hlp.On("GetOrCreateRealmOwnerRef", testifyMock.Anything, testifyMock.Anything).Return(&realm, nil)
 	hlp.On("CreateKeycloakClientForRealm", &realm).Return(&kcAdapter, nil)
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
 	kcAdapter.On("UpdateComponent", realm.Spec.RealmName, &testComp).Return(nil)
-	hlp.On("TryToDelete", &comp, makeTerminator(realm.Spec.RealmName, comp.Spec.Name, &kcAdapter, logger),
+	hlp.On("TryToDelete", testifyMock.Anything, testifyMock.Anything,
 		finalizerName).Return(false, nil)
 	hlp.On("UpdateStatus", &comp).Return(nil)
-	r := NewReconcile(client, logger, &hlp)
+	r := NewReconcile(client, sch, logger, &hlp)
 
 	res, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      comp.Name,
@@ -74,7 +75,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(nil,
 		adapter.NotFoundError("not found")).Once()
 	kcAdapter.On("CreateComponent", realm.Spec.RealmName,
-		createKeycloakComponentFromSpec(&comp.Spec)).Return(errors.New("create fatal"))
+		testifyMock.Anything).Return(errors.New("create fatal"))
 
 	failureComp := comp.DeepCopy()
 	failureComp.Status.Value = "unable to create component: create fatal"
@@ -85,9 +86,8 @@ func TestReconcile_Reconcile(t *testing.T) {
 		Name:      comp.Name,
 		Namespace: comp.Namespace,
 	}})
-	require.NoError(t, err)
-	require.Error(t, loggerSink.LastError())
-	assert.Equal(t, "unable to create component: create fatal", loggerSink.LastError().Error())
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "create fatal")
 }
 
 func TestIsSpecUpdated(t *testing.T) {

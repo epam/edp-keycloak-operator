@@ -356,3 +356,13 @@ func (m *Mock) GetClientScopesByNames(ctx context.Context, realmName string, sco
 
 	return called.Get(0).([]ClientScope), nil
 }
+
+func (m *Mock) GetRealm(ctx context.Context, realmName string) (*gocloak.RealmRepresentation, error) {
+	called := m.Called(ctx, realmName)
+
+	if err := called.Error(1); err != nil {
+		return nil, err
+	}
+
+	return called.Get(0).(*gocloak.RealmRepresentation), nil
+}

@@ -3898,6 +3898,50 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
           Config is a map of component configuration.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmcomponentspecparentref">parentRef</a></b></td>
+        <td>object</td>
+        <td>
+          ParentRef specifies a parent resource. If not specified, then parent is realm specified in realm field.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmComponent.spec.parentRef
+<sup><sup>[↩ Parent](#keycloakrealmcomponentspec)</sup></sup>
+
+
+
+ParentRef specifies a parent resource. If not specified, then parent is realm specified in realm field.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a name of parent component custom resource. For example, if Kind is KeycloakRealm, then Name is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind is a kind of parent component. By default, it is KeycloakRealm.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, KeycloakRealmComponent<br/>
+            <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

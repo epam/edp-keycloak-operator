@@ -47,6 +47,27 @@ spec:
               name:
                 description: Name of keycloak component.
                 type: string
+              parentRef:
+                description: ParentRef specifies a parent resource. If not specified,
+                  then parent is realm specified in realm field.
+                nullable: true
+                properties:
+                  kind:
+                    default: KeycloakRealm
+                    description: Kind is a kind of parent component. By default, it
+                      is KeycloakRealm.
+                    enum:
+                    - KeycloakRealm
+                    - KeycloakRealmComponent
+                    type: string
+                  name:
+                    description: Name is a name of parent component custom resource.
+                      For example, if Kind is KeycloakRealm, then Name is name of
+                      KeycloakRealm custom resource.
+                    type: string
+                required:
+                - name
+                type: object
               providerId:
                 description: ProviderID is a provider ID of component.
                 type: string
