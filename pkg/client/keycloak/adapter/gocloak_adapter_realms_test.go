@@ -8,8 +8,12 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
+	"github.com/go-logr/logr"
 	"github.com/jarcoal/httpmock"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -142,5 +146,64 @@ func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
 
 	if err.Error() != "unable to delete realm: delete fatal" {
 		t.Fatalf("wrong error returned: %s", err.Error())
+	}
+}
+
+func TestGoCloakAdapter_GetRealm(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		client  func(t *testing.T) GoCloak
+		want    *gocloak.RealmRepresentation
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name: "realm exists",
+			client: func(t *testing.T) GoCloak {
+				m := new(MockGoCloakClient)
+				m.On("GetRealm", mock.Anything, mock.Anything).
+					Return(&gocloak.RealmRepresentation{
+						ID: gocloak.StringP("realmId"),
+					}, nil)
+
+				return m
+			},
+			want: &gocloak.RealmRepresentation{
+				ID: gocloak.StringP("realmId"),
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "realm does not exist",
+			client: func(t *testing.T) GoCloak {
+				m := new(MockGoCloakClient)
+				m.On("GetRealm", mock.Anything, mock.Anything).
+					Return(nil, errors.New("realm not found"))
+
+				return m
+			},
+			want: nil,
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "realm not found")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			a := GoCloakAdapter{
+				client: tt.client(t),
+				token:  &gocloak.JWT{AccessToken: "token"},
+				log:    logr.Discard(),
+			}
+			got, err := a.GetRealm(ctrl.LoggerInto(context.Background(), logr.Discard()), "realmName")
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }
