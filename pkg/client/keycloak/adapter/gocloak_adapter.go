@@ -158,7 +158,7 @@ func makeClientFromToken(url, token string) (*gocloak.GoCloak, bool, error) {
 		return kcCl, false, nil
 	}
 
-	if !strings.Contains(err.Error(), "404 Not Found") {
+	if isNotLegacyResponseCode(err) {
 		return nil, false, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
@@ -194,7 +194,7 @@ func MakeFromServiceAccount(ctx context.Context,
 		}, nil
 	}
 
-	if !strings.Contains(err.Error(), "404 Not Found") {
+	if isNotLegacyResponseCode(err) {
 		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
@@ -216,6 +216,13 @@ func MakeFromServiceAccount(ctx context.Context,
 	}, nil
 }
 
+func isNotLegacyResponseCode(err error) bool {
+	apiErr := new(gocloak.APIError)
+	ok := errors.As(err, &apiErr)
+
+	return !ok || (apiErr.Code != http.StatusNotFound && apiErr.Code != http.StatusServiceUnavailable)
+}
+
 func Make(ctx context.Context, url, user, password string, log logr.Logger, restyClient *resty.Client) (*GoCloakAdapter, error) {
 	if restyClient == nil {
 		restyClient = resty.New()
@@ -235,7 +242,7 @@ func Make(ctx context.Context, url, user, password string, log logr.Logger, rest
 		}, nil
 	}
 
-	if !strings.Contains(err.Error(), "404 Not Found") {
+	if isNotLegacyResponseCode(err) {
 		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
