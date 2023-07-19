@@ -45,6 +45,7 @@ type KeycloakClientSpec struct {
 	// Attributes is a map of client attributes.
 	// +nullable
 	// +optional
+	// +kubebuilder:default={"post.logout.redirect.uris": "+"}
 	Attributes map[string]string `json:"attributes,omitempty"`
 
 	// DirectAccess is a flag to set client as direct access.

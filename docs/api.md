@@ -3268,6 +3268,8 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td>map[string]string</td>
         <td>
           Attributes is a map of client attributes.<br/>
+          <br/>
+            <i>Default</i>: map[post.logout.redirect.uris:+]<br/>
         </td>
         <td>false</td>
       </tr><tr>

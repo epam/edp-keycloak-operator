@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -51,6 +52,9 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 			DirectAccess:            false,
 			AdvancedProtocolMappers: true,
 			ClientRoles:             nil,
+			Attributes: map[string]string{
+				clientAttributeLogoutRedirectUris: clientAttributeLogoutRedirectUrisDefValue,
+			},
 		},
 		Status: keycloakApi.KeycloakClientStatus{
 			Value: "error during kc chain: fatal",
@@ -116,6 +120,9 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 				{Name: "bar", Config: map[string]string{"bar": "1"}},
 				{Name: "foo", Config: map[string]string{"foo": "2"}},
 			},
+			Attributes: map[string]string{
+				clientAttributeLogoutRedirectUris: clientAttributeLogoutRedirectUrisDefValue,
+			},
 		},
 		Status: keycloakApi.KeycloakClientStatus{
 			Value: helper.StatusOK,
@@ -154,5 +161,78 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 
 	if res.RequeueAfter != r.successReconcileTimeout {
 		t.Fatal("success reconcile timeout is not set")
+	}
+}
+
+func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name               string
+		keycloakClient     *keycloakApi.KeycloakClient
+		want               bool
+		wantKeycloakClient *keycloakApi.KeycloakClient
+		wantErr            require.ErrorAssertionFunc
+	}{
+		{
+			name: "should set default values",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "client",
+				},
+			},
+			wantKeycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "client",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					Attributes: map[string]string{
+						clientAttributeLogoutRedirectUris: clientAttributeLogoutRedirectUrisDefValue,
+					},
+				},
+			},
+			want:    true,
+			wantErr: require.NoError,
+		},
+		{
+			name: "should not override existing value",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					Attributes: map[string]string{
+						clientAttributeLogoutRedirectUris: "-",
+						"foo":                             "bar",
+					},
+				},
+			},
+			wantKeycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					Attributes: map[string]string{
+						clientAttributeLogoutRedirectUris: "-",
+						"foo":                             "bar",
+					},
+				},
+			},
+			want:    false,
+			wantErr: require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			sc := runtime.NewScheme()
+			require.NoError(t, keycloakApi.AddToScheme(sc))
+
+			r := &ReconcileKeycloakClient{
+				client: fake.NewClientBuilder().WithScheme(sc).WithObjects(tt.keycloakClient).Build(),
+			}
+
+			got, err := r.applyDefaults(context.Background(), tt.keycloakClient)
+
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
 	}
 }

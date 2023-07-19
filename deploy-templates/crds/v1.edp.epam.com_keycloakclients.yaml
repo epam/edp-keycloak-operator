@@ -42,6 +42,8 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
+                default:
+                  post.logout.redirect.uris: +
                 description: Attributes is a map of client attributes.
                 nullable: true
                 type: object
