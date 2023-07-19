@@ -32,8 +32,10 @@ type Helper interface {
 }
 
 const (
-	Fail                                = "FAIL"
-	keyCloakClientOperatorFinalizerName = "keycloak.client.operator.finalizer.name"
+	Fail                                      = "FAIL"
+	keyCloakClientOperatorFinalizerName       = "keycloak.client.operator.finalizer.name"
+	clientAttributeLogoutRedirectUris         = "post.logout.redirect.uris"
+	clientAttributeLogoutRedirectUrisDefValue = "+"
 )
 
 func NewReconcileKeycloakClient(client client.Client, log logr.Logger, helper Helper) *ReconcileKeycloakClient {
@@ -94,6 +96,12 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 		return
 	}
 
+	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		return reconcile.Result{}, err
+	} else if updated {
+		return reconcile.Result{}, nil
+	}
+
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
@@ -133,4 +141,24 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 	}
 
 	return nil
+}
+
+// applyDefaults applies default values to KeycloakClient.
+func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (bool, error) {
+	if keycloakClient.Spec.Attributes == nil {
+		keycloakClient.Spec.Attributes = make(map[string]string)
+	}
+
+	if _, ok := keycloakClient.Spec.Attributes[clientAttributeLogoutRedirectUris]; !ok {
+		// set default value for logout redirect uris to "+" is required for correct logout from keycloak
+		keycloakClient.Spec.Attributes[clientAttributeLogoutRedirectUris] = clientAttributeLogoutRedirectUrisDefValue
+
+		if err := r.client.Update(ctx, keycloakClient); err != nil {
+			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
