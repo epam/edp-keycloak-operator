@@ -2,6 +2,8 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 // KeycloakRealmSpec defines the desired state of KeycloakRealm.
@@ -9,10 +11,15 @@ type KeycloakRealmSpec struct {
 	// RealmName specifies the name of the realm.
 	RealmName string `json:"realmName"`
 
+	// Deprecated: use KeycloakRef instead.
 	// KeycloakOwner specifies the name of the Keycloak instance that owns the realm.
 	// +nullable
 	// +optional
 	KeycloakOwner string `json:"keycloakOwner,omitempty"`
+
+	// KeycloakRef is reference to Keycloak custom resource.
+	// +optional
+	KeycloakRef common.KeycloakRef `json:"keycloakRef,omitempty"`
 
 	// SsoRealmName specifies the name of the SSO realm used by the realm.
 	// +optional
@@ -153,6 +160,10 @@ func (in *KeycloakRealmSpec) SSOEnabled() bool {
 
 func (in *KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
 	return in.SsoAutoRedirectEnabled == nil || *in.SsoAutoRedirectEnabled
+}
+
+func (in *KeycloakRealm) GetKeycloakRef() common.KeycloakRef {
+	return in.Spec.KeycloakRef
 }
 
 type SSORealmMapper struct {

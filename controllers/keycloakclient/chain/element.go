@@ -14,7 +14,7 @@ import (
 )
 
 type Element interface {
-	Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error
+	Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error
 }
 
 type BaseElement struct {
@@ -28,9 +28,10 @@ func (b *BaseElement) NextServeOrNil(
 	next Element,
 	keycloakClient *keycloakApi.KeycloakClient,
 	adapterClient keycloak.Client,
+	realmName string,
 ) error {
 	if next != nil {
-		err := next.Serve(ctx, keycloakClient, adapterClient)
+		err := next.Serve(ctx, keycloakClient, adapterClient, realmName)
 		if err != nil {
 			return fmt.Errorf("chain failed %s: %w", reflect.TypeOf(next).Name(), err)
 		}

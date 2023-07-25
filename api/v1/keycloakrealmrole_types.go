@@ -1,6 +1,10 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 const StatusDuplicated = "duplicated"
 
@@ -9,8 +13,14 @@ type KeycloakRealmRoleSpec struct {
 	// Name of keycloak role.
 	Name string `json:"name"`
 
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Description is a role description.
 	// +optional
@@ -82,8 +92,8 @@ func (in *KeycloakRealmRole) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in *KeycloakRealmRole) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
+func (in *KeycloakRealmRole) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

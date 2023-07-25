@@ -4,12 +4,20 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 // KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
 type KeycloakRealmRoleBatchSpec struct {
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Roles is a list of roles to be created.
 	Roles []BatchRole `json:"roles"`
@@ -80,12 +88,12 @@ func (in *KeycloakRealmRoleBatch) SetFailureCount(count int64) {
 	in.Status.FailureCount = count
 }
 
-func (in *KeycloakRealmRoleBatch) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
-}
-
 func (in *KeycloakRealmRoleBatch) FormattedRoleName(baseRoleName string) string {
 	return fmt.Sprintf("%s-%s", in.Name, baseRoleName)
+}
+
+func (in *KeycloakRealmRoleBatch) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

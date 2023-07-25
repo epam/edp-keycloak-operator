@@ -50,7 +50,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 		}
 	}
 
-	if err := h.hlp.InvalidateKeycloakClientTokenSecret(ctx, realm.Namespace, realm.Spec.KeycloakOwner); err != nil {
+	if err := h.hlp.InvalidateKeycloakClientTokenSecret(ctx, realm.Namespace, realm.Spec.KeycloakRef.Name); err != nil {
 		return errors.Wrap(err, "unable invalidate keycloak client token")
 	}
 

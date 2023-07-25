@@ -6,10 +6,9 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-logr/logr"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -17,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -27,24 +27,22 @@ const finalizerName = "keycloak.realmidp.operator.finalizer.name"
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
-	UpdateStatus(obj client.Object) error
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
-	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
+	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
 type Reconcile struct {
 	client                  client.Client
-	log                     logr.Logger
 	helper                  Helper
 	successReconcileTimeout time.Duration
 }
 
-func NewReconcile(client client.Client, log logr.Logger, helper Helper) *Reconcile {
+func NewReconcile(client client.Client, helper Helper) *Reconcile {
 	return &Reconcile{
 		client: client,
 		helper: helper,
-		log:    log.WithName("keycloak-realm-identity-provider"),
 	}
 }
 
@@ -86,7 +84,7 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 
 // Reconcile is a loop for reconciling KeycloakRealmIdentityProvider object.
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
-	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakRealmIdentityProvider")
 
 	var instance keycloakApi.KeycloakRealmIdentityProvider
@@ -102,7 +100,20 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
+	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		resultErr = fmt.Errorf("unable to apply default values: %w", err)
+		return
+	} else if updated {
+		return
+	}
+
 	if err := r.tryReconcile(ctx, &instance); err != nil {
+		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+			return ctrl.Result{
+				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
+			}, nil
+		}
+
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 
@@ -112,7 +123,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 
-	if err := r.helper.UpdateStatus(&instance); err != nil {
+	if err := r.client.Status().Update(ctx, &instance); err != nil {
 		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
@@ -120,43 +131,65 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmIDP, &keycloakRealmIDP.ObjectMeta)
+	err := r.helper.SetRealmOwnerRef(ctx, keycloakRealmIDP)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm owner ref")
+		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmIDP)
 	if err != nil {
-		return errors.Wrap(err, "unable to create keycloak client")
+		return fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
+	}
+
+	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakRealmIDP, kClient)
+	if err != nil {
+		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
 	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
 
-	providerExists, err := kClient.IdentityProviderExists(ctx, realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias)
+	providerExists, err := kClient.IdentityProviderExists(ctx, gocloak.PString(realm.Realm), keycloakRealmIDP.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
 	}
 
 	if providerExists {
-		if err = kClient.UpdateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
+		if err = kClient.UpdateIdentityProvider(ctx, gocloak.PString(realm.Realm), keycloakIDP); err != nil {
 			return errors.Wrap(err, "unable to update idp")
 		}
 	} else {
-		if err = kClient.CreateIdentityProvider(ctx, realm.Spec.RealmName, keycloakIDP); err != nil {
+		if err = kClient.CreateIdentityProvider(ctx, gocloak.PString(realm.Realm), keycloakIDP); err != nil {
 			return errors.Wrap(err, "unable to create idp")
 		}
 	}
 
-	if err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, kClient, realm.Spec.RealmName); err != nil {
+	if err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, kClient, gocloak.PString(realm.Realm)); err != nil {
 		return errors.Wrap(err, "unable to sync idp mappers")
 	}
 
-	term := makeTerminator(realm.Spec.RealmName, keycloakRealmIDP.Spec.Alias, kClient, r.log.WithName("realm-idp-term"))
+	term := makeTerminator(gocloak.PString(realm.Realm), keycloakRealmIDP.Spec.Alias, kClient)
 	if _, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName); err != nil {
 		return errors.Wrap(err, "unable to delete realm idp")
 	}
 
 	return nil
+}
+
+func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider) (bool, error) {
+	if instance.Spec.RealmRef.Name == "" {
+		instance.Spec.RealmRef = common.RealmRef{
+			Kind: keycloakApi.KeycloakRealmKind,
+			Name: instance.Spec.Realm,
+		}
+
+		if err := r.client.Update(ctx, instance); err != nil {
+			return false, fmt.Errorf("failed to update default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }
 
 func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdentityProviderSpec,

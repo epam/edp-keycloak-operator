@@ -28,8 +28,8 @@ type PutClient struct {
 	next Element
 }
 
-func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
-	id, err := el.putKeycloakClient(ctx, keycloakClient, adapterClient)
+func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
+	id, err := el.putKeycloakClient(ctx, keycloakClient, adapterClient, realmName)
 
 	if err != nil {
 		return fmt.Errorf("unable to put keycloak client: %w", err)
@@ -37,14 +37,14 @@ func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.Keyc
 
 	keycloakClient.Status.ClientID = id
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
 }
 
-func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) (string, error) {
+func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) (string, error) {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client...")
 
-	clientDto, err := el.convertCrToDto(ctx, keycloakClient)
+	clientDto, err := el.convertCrToDto(ctx, keycloakClient, realmName)
 	if err != nil {
 		return "", fmt.Errorf("error during convertCrToDto: %w", err)
 	}
@@ -80,9 +80,9 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 	return id, nil
 }
 
-func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (*dto.Client, error) {
+func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (*dto.Client, error) {
 	if keycloakClient.Spec.Public {
-		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "")
+		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName)
 		return res, nil
 	}
 
@@ -92,7 +92,7 @@ func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloa
 			return nil, fmt.Errorf("unable to get secret, err: %w", err)
 		}
 
-		return dto.ConvertSpecToClient(&keycloakClient.Spec, secret), nil
+		return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName), nil
 	}
 
 	secret, err := el.generateSecret(ctx, keycloakClient)
@@ -100,7 +100,7 @@ func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloa
 		return nil, fmt.Errorf("unable to generate secret: %w", err)
 	}
 
-	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret), nil
+	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName), nil
 }
 
 func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {

@@ -85,17 +85,17 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("helper"))
+	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
 
-	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("controller.keycloak"), h).
+	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = keycloakrealm.NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("controller.realm"), h).
+	err = keycloakrealm.NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("controller.component"), h).
+	err = NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 

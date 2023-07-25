@@ -1,11 +1,21 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 // KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
 type KeycloakRealmUserSpec struct {
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Username is a username in keycloak.
 	Username string `json:"username"`
@@ -109,10 +119,6 @@ func (in *KeycloakRealmUser) GetReconciliationStrategy() string {
 	return in.Spec.ReconciliationStrategy
 }
 
-func (in *KeycloakRealmUser) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
-}
-
 func (in *KeycloakRealmUser) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
@@ -127,6 +133,10 @@ func (in *KeycloakRealmUser) GetStatus() string {
 
 func (in *KeycloakRealmUser) SetStatus(value string) {
 	in.Status.Value = value
+}
+
+func (in *KeycloakRealmUser) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

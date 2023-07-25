@@ -5,20 +5,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -35,9 +40,7 @@ func TestNewReconcileUnexpectedError(t *testing.T) {
 	fakeCl := helper.K8SClientMock{}
 	fakeCl.On("Get", nn, &keycloakApi.KeycloakRealmIdentityProvider{}).Return(errors.New("fatal"))
 
-	l := mock.NewLogr()
-
-	r := NewReconcile(&fakeCl, l, nil)
+	r := NewReconcile(&fakeCl, nil)
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: nn})
 
 	require.Error(t, err)
@@ -55,8 +58,8 @@ func TestNewReconcileNotFound(t *testing.T) {
 
 	l := mock.NewLogr()
 
-	r := NewReconcile(fakeCl, l, nil)
-	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	r := NewReconcile(fakeCl, nil)
+	_, err := r.Reconcile(ctrl.LoggerInto(context.Background(), l), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      "foo",
 		Namespace: "bar",
 	}})
@@ -72,13 +75,17 @@ func TestNewReconcileNotFound(t *testing.T) {
 }
 
 func TestNewReconcile(t *testing.T) {
-	hlp := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 	l := mock.NewLogr()
 	kcAdapter := adapter.Mock{}
 	idp := keycloakApi.KeycloakRealmIdentityProvider{
 		ObjectMeta: metav1.ObjectMeta{Name: "idp1", Namespace: "ns"},
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmIdentityProvider"},
 		Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm1",
+			},
 			Alias: "alias1",
 			Mappers: []keycloakApi.IdentityProviderMapper{
 				{
@@ -102,10 +109,13 @@ func TestNewReconcile(t *testing.T) {
 
 	fakeCl := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
 
-	hlp.On("GetOrCreateRealmOwnerRef", &idp, &idp.ObjectMeta).Return(&realm, nil)
-	hlp.On("CreateKeycloakClientForRealm", &realm).Return(&kcAdapter, nil)
-
-	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kcAdapter, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
+	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(false, nil).Once()
 	kcAdapter.On("CreateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
@@ -122,13 +132,11 @@ func TestNewReconcile(t *testing.T) {
 		&adapter.IdentityProviderMapper{Name: "mapper1", IdentityProviderAlias: idp.Spec.Alias}).
 		Return("mp1", nil)
 
-	hlp.On("TryToDelete", &idp,
-		makeTerminator(realm.Spec.RealmName, idp.Spec.Alias, &kcAdapter, l), finalizerName).
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(false, nil)
-	hlp.On("UpdateStatus", &idp).Return(nil)
 
-	r := NewReconcile(fakeCl, l, &hlp)
-	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	r := NewReconcile(fakeCl, h)
+	_, err := r.Reconcile(ctrl.LoggerInto(context.Background(), l), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
 	}})
@@ -138,18 +146,18 @@ func TestNewReconcile(t *testing.T) {
 	require.True(t, ok, "wrong logger type")
 	require.NoError(t, loggerSink.LastError())
 
-	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(true, nil).Once()
 	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
 
-	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err = r.Reconcile(ctrl.LoggerInto(context.Background(), l), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
 	}})
 	require.NoError(t, err)
 
-	kcAdapter.On("IdentityProviderExists", context.Background(), realm.Spec.RealmName, idp.Spec.Alias).
+	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(true, nil).Once()
 	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
 		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(errors.New("update idp fatal")).Once()
@@ -157,9 +165,9 @@ func TestNewReconcile(t *testing.T) {
 	idp.Status.Value = "unable to update idp: update idp fatal"
 	r.client = fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
 
-	hlp.On("SetFailureCount", &idp).Return(time.Second)
+	h.On("SetFailureCount", &idp).Return(time.Second)
 
-	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	_, err = r.Reconcile(ctrl.LoggerInto(context.Background(), l), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
 		Namespace: idp.Namespace,
 	}})

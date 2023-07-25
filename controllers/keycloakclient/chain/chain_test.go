@@ -16,8 +16,8 @@ import (
 	"k8s.io/client-go/kubernetes/scheme"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -42,9 +42,7 @@ func TestPrivateClientSecret(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &kc)
 	client := fake.NewClientBuilder().WithRuntimeObjects(&kc, &secret).Build()
-	h := helper.MakeHelper(client, s, mock.NewLogr())
-
-	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
+	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "", "")
 
 	kClient := new(adapter.Mock)
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).Return(true, nil)
@@ -52,7 +50,7 @@ func TestPrivateClientSecret(t *testing.T) {
 	kClient.On("UpdateClient", testifyMock.Anything).Return(nil)
 
 	baseElement := BaseElement{
-		scheme: h.GetScheme(),
+		scheme: s,
 		Client: client,
 		Logger: mock.NewLogr(),
 	}
@@ -62,13 +60,13 @@ func TestPrivateClientSecret(t *testing.T) {
 
 	ctx := context.Background()
 
-	if err := putCl.Serve(ctx, &kc, kClient); err != nil {
+	if err := putCl.Serve(ctx, &kc, kClient, ""); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
 	kc.Spec.Secret = ""
 
-	if err := putCl.Serve(ctx, &kc, kClient); err != nil {
+	if err := putCl.Serve(ctx, &kc, kClient, ""); err != nil {
 		t.Fatalf("%+v", err)
 	}
 
@@ -107,7 +105,12 @@ func TestMake(t *testing.T) {
 	delTime := metav1.Time{Time: time.Now()}
 	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace",
 		DeletionTimestamp: &delTime},
-		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main", Secret: "keycloak-secret",
+		Spec: keycloakApi.KeycloakClientSpec{
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: kr.Name,
+			},
+			Secret: "keycloak-secret",
 			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
 				{Name: "fake-client-users", Composite: "developer"},
 			}, Public: true, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
@@ -121,12 +124,11 @@ func TestMake(t *testing.T) {
 	s := scheme.Scheme
 	s.AddKnownTypes(v1.SchemeGroupVersion, &k, &kr, &kc, &keycloakApi.KeycloakRealm{}, &keycloakApi.KeycloakRealmList{})
 	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &kc).Build()
-	h := helper.MakeHelper(client, s, mock.NewLogr())
 
 	kClient := new(adapter.Mock)
-	chain := Make(h.GetScheme(), client, mock.NewLogr())
+	chain := Make(s, client, mock.NewLogr())
 
-	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "")
+	clientDTO := dto.ConvertSpecToClient(&kc.Spec, "", kr.Spec.RealmName)
 	kClient.On("ExistClient", clientDTO.ClientId, clientDTO.RealmName).
 		Return(false, nil)
 	kClient.On("CreateClient", clientDTO).Return(nil)
@@ -146,7 +148,7 @@ func TestMake(t *testing.T) {
 	role1DTO := dto.IncludedRealmRole{Name: "fake-client-administrators", Composite: "administrator"}
 	kClient.On("CreateIncludedRealmRole", kr.Spec.RealmName, &role1DTO).Return(nil)
 
-	err := chain.Serve(context.Background(), &kc, kClient)
+	err := chain.Serve(context.Background(), &kc, kClient, kr.Spec.RealmName)
 	require.NoError(t, err)
 
 	if kc.Status.ClientID != "3333" {
@@ -156,16 +158,22 @@ func TestMake(t *testing.T) {
 
 func TestPutClientScope_Serve(t *testing.T) {
 	pcs := PutClientScope{}
-	kc := keycloakApi.KeycloakClient{Spec: keycloakApi.KeycloakClientSpec{ClientId: "clid1", TargetRealm: "realm1"}}
+	kc := keycloakApi.KeycloakClient{
+		Spec: keycloakApi.KeycloakClientSpec{
+			ClientId: "clid1",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			}}}
 	kClient := new(adapter.Mock)
 	adapterScope := adapter.ClientScope{ID: "scope-id1"}
 
 	ctx := context.Background()
 
-	kClient.On("GetClientScopesByNames", ctx, adapterScope.ID, kc.Spec.TargetRealm).Return([]adapter.ClientScope{adapterScope}, nil)
-	kClient.On("AddDefaultScopeToClient", ctx, kc.Spec.TargetRealm, adapterScope.ID).
+	kClient.On("GetClientScopesByNames", ctx, adapterScope.ID, "realm").Return([]adapter.ClientScope{adapterScope}, nil)
+	kClient.On("AddDefaultScopeToClient", ctx, "realm", adapterScope.ID).
 		Return(nil)
 
-	err := pcs.putClientScope(ctx, &kc, kClient)
+	err := pcs.putClientScope(ctx, &kc, kClient, "realm")
 	assert.NoError(t, err)
 }

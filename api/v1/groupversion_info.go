@@ -23,4 +23,5 @@ const (
 	KeycloakRealmKind = "KeycloakRealm"
 	// KeycloakRealmComponentKind is a string value of the kind of KeycloakClient CR.
 	KeycloakRealmComponentKind = "KeycloakRealmComponent"
+	KeycloakKind               = "Keycloak"
 )

@@ -5,10 +5,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	appsv1 "k8s.io/api/apps/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -16,11 +17,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
@@ -34,8 +36,11 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 			APIVersion: "apps/v1",
 		},
 		Spec: keycloakApi.KeycloakClientSpec{
-			TargetRealm: "main",
-			Secret:      "keycloak-secret",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
+			Secret: "keycloak-secret",
 			RealmRoles: &[]keycloakApi.RealmRole{
 				{
 					Name:      "fake-client-administrators",
@@ -61,34 +66,32 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 		},
 	}
 	s := scheme.Scheme
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, kc)
-	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
+	require.NoError(t, keycloakApi.AddToScheme(s))
 
+	client := fake.NewClientBuilder().WithRuntimeObjects(kc).Build()
 	req := reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "main",
 			Namespace: "namespace",
 		},
 	}
-
-	logger := mock.NewLogr()
-	h := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 	chainMock := chain.Mock{}
-	realm := keycloakApi.KeycloakRealm{}
 	kClient := adapter.Mock{}
 
-	chainMock.On("Serve", kc).Return(errors.New("fatal"))
+	chainMock.On("Serve", testifymock.Anything).Return(errors.New("fatal"))
 
-	h.On("SetFailureCount", kc).Return(time.Second)
-	h.On("UpdateStatus", kc).Return(nil)
-	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: kc,
-		client: client}, &kc.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
+	h.On("SetFailureCount", testifymock.Anything).Return(time.Second)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm"),
+		}, nil)
 
 	r := ReconcileKeycloakClient{
 		client: client,
-		helper: &h,
-		log:    logger,
+		helper: h,
 		chain:  &chainMock,
 	}
 	res, err := r.Reconcile(context.TODO(), req)
@@ -102,7 +105,7 @@ func TestReconcileKeycloakClient_WithoutOwnerReference(t *testing.T) {
 
 	persKc := &keycloakApi.KeycloakClient{}
 	assert.Nil(t, client.Get(context.TODO(), req.NamespacedName, persKc))
-	assert.Equal(t, "error during kc chain: fatal", persKc.Status.Value)
+	assert.Contains(t, persKc.Status.Value, "fatal")
 	assert.Empty(t, persKc.Status.ClientID)
 }
 
@@ -123,6 +126,10 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 			Attributes: map[string]string{
 				clientAttributeLogoutRedirectUris: clientAttributeLogoutRedirectUrisDefValue,
 			},
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
 		},
 		Status: keycloakApi.KeycloakClientStatus{
 			Value: helper.StatusOK,
@@ -130,27 +137,26 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 	}
 
 	s := scheme.Scheme
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, &kc)
+	require.NoError(t, keycloakApi.AddToScheme(s))
+
 	client := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
 	kclient := new(adapter.Mock)
-	logger := mock.NewLogr()
-	h := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 	chainMock := chain.Mock{}
-	chainMock.On("Serve", &kc).Return(nil)
+	chainMock.On("Serve", testifymock.Anything, testifymock.Anything, testifymock.Anything).Return(nil)
 
-	realm := keycloakApi.KeycloakRealm{}
-	h.On("GetOrCreateRealmOwnerRef", &clientRealmFinder{parent: &kc,
-		client: client}, &kc.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(kclient, nil)
-	h.On("TryToDelete", &kc,
-		makeTerminator(kc.Status.ClientID, kc.Spec.TargetRealm, kclient, logger),
-		keyCloakClientOperatorFinalizerName).Return(true, nil)
-	h.On("UpdateStatus", &kc).Return(nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kclient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm"),
+		}, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	r := ReconcileKeycloakClient{
 		client:                  client,
-		helper:                  &h,
-		log:                     logger,
+		helper:                  h,
 		chain:                   &chainMock,
 		successReconcileTimeout: time.Hour,
 	}
@@ -170,20 +176,37 @@ func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
 	tests := []struct {
 		name               string
 		keycloakClient     *keycloakApi.KeycloakClient
+		objects            []runtime.Object
 		want               bool
 		wantKeycloakClient *keycloakApi.KeycloakClient
 		wantErr            require.ErrorAssertionFunc
 	}{
 		{
-			name: "should set default values",
+			name: "should set all default values",
+			objects: []runtime.Object{
+				&keycloakApi.KeycloakRealm{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "realm",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "realm",
+					},
+				},
+			},
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "client",
+					Name:      "client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					TargetRealm: "realm",
 				},
 			},
 			wantKeycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "client",
+					Name:      "client",
+					Namespace: "default",
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
 					Attributes: map[string]string{
@@ -195,12 +218,27 @@ func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
-			name: "should not override existing value",
+			name: "all default values are already set",
+			objects: []runtime.Object{
+				&keycloakApi.KeycloakRealm{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "realm",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "realm",
+					},
+				},
+			},
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
 					Attributes: map[string]string{
 						clientAttributeLogoutRedirectUris: "-",
 						"foo":                             "bar",
+					},
+					RealmRef: common.RealmRef{
+						Kind: keycloakApi.KeycloakRealmKind,
+						Name: "realm",
 					},
 				},
 			},
@@ -209,6 +247,10 @@ func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
 					Attributes: map[string]string{
 						clientAttributeLogoutRedirectUris: "-",
 						"foo":                             "bar",
+					},
+					RealmRef: common.RealmRef{
+						Kind: keycloakApi.KeycloakRealmKind,
+						Name: "realm",
 					},
 				},
 			},
@@ -226,7 +268,10 @@ func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
 			require.NoError(t, keycloakApi.AddToScheme(sc))
 
 			r := &ReconcileKeycloakClient{
-				client: fake.NewClientBuilder().WithScheme(sc).WithObjects(tt.keycloakClient).Build(),
+				client: fake.NewClientBuilder().
+					WithScheme(sc).
+					WithRuntimeObjects(append(tt.objects, tt.keycloakClient)...).
+					Build(),
 			}
 
 			got, err := r.applyDefaults(context.Background(), tt.keycloakClient)

@@ -118,4 +118,12 @@ resources:
   kind: ClusterKeycloak
   path: github.com/epam/edp-keycloak-operator/api/v1alpha1
   version: v1alpha1
+- api:
+    crdVersion: v1
+  controller: true
+  domain: edp.epam.com
+  group: v1
+  kind: ClusterKeycloakRealm
+  path: github.com/epam/edp-keycloak-operator/api/v1alpha1
+  version: v1alpha1
 version: "3"

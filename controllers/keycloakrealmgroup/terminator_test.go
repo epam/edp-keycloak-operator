@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -16,7 +17,7 @@ func TestTerminator(t *testing.T) {
 	lg := mock.NewLogr()
 	kClient := new(adapter.Mock)
 
-	term := makeTerminator(kClient, "foo", "bar", lg)
+	term := makeTerminator(kClient, "foo", "bar")
 
 	kClient.On("DeleteGroup", "foo", "bar").Return(nil).Once()
 
@@ -25,7 +26,7 @@ func TestTerminator(t *testing.T) {
 
 	kClient.On("DeleteGroup", "foo", "bar").Return(errors.New("fatal")).Once()
 
-	if err := term.DeleteResource(context.Background()); err == nil {
+	if err := term.DeleteResource(ctrl.LoggerInto(context.Background(), lg)); err == nil {
 		t.Fatal("no error returned")
 	}
 

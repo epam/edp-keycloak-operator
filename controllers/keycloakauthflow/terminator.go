@@ -2,9 +2,10 @@ package keycloakauthflow
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -13,55 +14,51 @@ import (
 )
 
 type terminator struct {
-	realm            *keycloakApi.KeycloakRealm
+	realmName        string
+	realmCRName      string
 	kClient          keycloak.Client
-	log              logr.Logger
 	k8sClient        client.Client
 	keycloakAuthFlow *adapter.KeycloakAuthFlow
 }
 
 func makeTerminator(
-	realm *keycloakApi.KeycloakRealm,
+	realmName string,
+	realmCRName string,
 	authFlow *adapter.KeycloakAuthFlow,
 	k8sClient client.Client,
 	kClient keycloak.Client,
-	log logr.Logger,
 ) *terminator {
 	return &terminator{
-		realm:            realm,
+		realmName:        realmName,
+		realmCRName:      realmCRName,
 		keycloakAuthFlow: authFlow,
 		kClient:          kClient,
-		log:              log,
 		k8sClient:        k8sClient,
 	}
 }
 
-func (t *terminator) GetLogger() logr.Logger {
-	return t.log
-}
-
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	logger := t.log.WithValues("realm name", t.realm.Spec.RealmName, "flow alias", t.keycloakAuthFlow.Alias)
+	log := ctrl.LoggerFrom(ctx).WithValues("realm name", t.realmName, "flow alias", t.keycloakAuthFlow.Alias)
 
 	var authFlowList keycloakApi.KeycloakAuthFlowList
 	if err := t.k8sClient.List(ctx, &authFlowList); err != nil {
-		return errors.Wrap(err, "unable to list auth flows")
+		return fmt.Errorf("unable to get auth flow list: %w", err)
 	}
 
 	for i := range authFlowList.Items {
-		if authFlowList.Items[i].Spec.Realm == t.realm.Name && authFlowList.Items[i].Spec.ParentName == t.keycloakAuthFlow.Alias {
-			return errors.Errorf("Unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
+		if authFlowList.Items[i].Spec.RealmRef.Name == t.realmCRName && authFlowList.Items[i].Spec.ParentName == t.keycloakAuthFlow.Alias {
+			return errors.Errorf("unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
 				authFlowList.Items[i].Spec.Alias)
 		}
 	}
 
-	logger.Info("start deleting auth flow")
+	log.Info("Start deleting auth flow")
 
-	if err := t.kClient.DeleteAuthFlow(t.realm.Spec.RealmName, t.keycloakAuthFlow); err != nil {
-		return errors.Wrap(err, "unable to delete auth flow")
+	if err := t.kClient.DeleteAuthFlow(t.realmName, t.keycloakAuthFlow); err != nil {
+		return fmt.Errorf("unable to delete auth flow: %w", err)
 	}
 
-	logger.Info("deleting auth flow done")
+	log.Info("Deleting auth flow done")
 
 	return nil
 }

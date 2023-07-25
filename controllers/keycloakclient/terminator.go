@@ -2,9 +2,9 @@ package keycloakclient
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/go-logr/logr"
-	pkgErrors "github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
@@ -12,31 +12,25 @@ import (
 type terminator struct {
 	clientID, realmName string
 	kClient             keycloak.Client
-	log                 logr.Logger
 }
 
-func makeTerminator(clientID, realmName string, kClient keycloak.Client, log logr.Logger) *terminator {
+func makeTerminator(clientID, realmName string, kClient keycloak.Client) *terminator {
 	return &terminator{
 		clientID:  clientID,
 		realmName: realmName,
 		kClient:   kClient,
-		log:       log,
 	}
-}
-
-func (t *terminator) GetLogger() logr.Logger {
-	return t.log
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	log := t.log.WithValues("keycloak client id", t.clientID)
-	log.Info("Start deleting keycloak client...")
+	log := ctrl.LoggerFrom(ctx).WithValues("client_id", t.clientID)
+	log.Info("Start deleting keycloak client")
 
 	if err := t.kClient.DeleteClient(ctx, t.clientID, t.realmName); err != nil {
-		return pkgErrors.Wrap(err, "unable to delete kk client")
+		return fmt.Errorf("failed to delete keycloak client: %w", err)
 	}
 
-	log.Info("client deletion done")
+	log.Info("Keycloak client has been deleted")
 
 	return nil
 }

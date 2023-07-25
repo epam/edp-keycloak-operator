@@ -7,7 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestTerminator_DeleteResource(t *testing.T) {
@@ -16,7 +15,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	)
 
 	kcAdapter.On("DeleteComponent", "foo", "bar").Return(nil)
-	term := makeTerminator("foo", "bar", &kcAdapter, mock.NewLogr())
+	term := makeTerminator("foo", "bar", &kcAdapter)
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 }

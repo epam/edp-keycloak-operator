@@ -6,55 +6,82 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	coreV1 "k8s.io/api/core/v1"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 const (
-	DefaultRequeueTime       = 120 * time.Second
-	StatusOK                 = "OK"
-	localConfigsRelativePath = "build/configs"
+	StatusOK                            = "OK"
+	RequeueOnKeycloakNotAvailablePeriod = time.Minute
 )
 
-type adapterBuilder func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
-	restyClient *resty.Client) (keycloak.Client, error)
+type Terminator interface {
+	DeleteResource(ctx context.Context) error
+}
+
+type ObjectWithRealmRef interface {
+	common.HasRealmRef
+	client.Object
+}
+
+type ObjectWithKeycloakRef interface {
+	common.HasKeycloakRef
+	client.Object
+}
+
+type adapterBuilder func(
+	ctx context.Context,
+	url, user, password, adminType string,
+	log logr.Logger,
+	restyClient *resty.Client,
+) (keycloak.Client, error)
+
+// ControllerHelper interface defines methods for working with keycloak client and owner references.
+//
+//go:generate mockery --name ControllerHelper --filename helper_mock.go
+type ControllerHelper interface {
+	SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error
+	SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error
+	SetFailureCount(fc FailureCountable) time.Duration
+	TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error)
+	GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (keycloak.Client, error)
+	CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
+	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error)
+	CreateKeycloakClient(ctx context.Context, url, user, password, adminType string) (keycloak.Client, error)
+	CreateKeycloakClientFomAuthData(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error)
+	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
+}
 
 type Helper struct {
-	client          client.Client
-	scheme          *runtime.Scheme
-	restyClient     *resty.Client
-	logger          logr.Logger
-	adapterBuilder  adapterBuilder
-	tokenSecretLock *sync.Mutex
+	client            client.Client
+	scheme            *runtime.Scheme
+	restyClient       *resty.Client
+	adapterBuilder    adapterBuilder
+	tokenSecretLock   *sync.Mutex
+	operatorNamespace string
 }
 
-func (h *Helper) TokenSecretLock() *sync.Mutex {
-	return h.tokenSecretLock
-}
-
-func (h *Helper) GetScheme() *runtime.Scheme {
-	return h.scheme
-}
-
-func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger) *Helper {
+func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace string) *Helper {
 	return &Helper{
-		tokenSecretLock: new(sync.Mutex),
-		client:          client,
-		scheme:          scheme,
-		logger:          logger,
+		tokenSecretLock:   new(sync.Mutex),
+		client:            client,
+		scheme:            scheme,
+		operatorNamespace: operatorNamespace,
 		adapterBuilder: func(
 			ctx context.Context,
 			url,
@@ -83,241 +110,122 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, logger logr.Logger
 	}
 }
 
-type OwnerNotFoundError string
-
-func (e OwnerNotFoundError) Error() string {
-	return string(e)
-}
-
-func (h *Helper) GetOwnerKeycloak(slave *v1.ObjectMeta) (*keycloakApi.Keycloak, error) {
-	var kc keycloakApi.Keycloak
-	if err := h.GetOwner(slave, &kc, "Keycloak"); err != nil {
-		return nil, errors.Wrap(err, "unable to get keycloak owner")
+// SetKeycloakOwnerRef sets owner reference for object.
+//
+//nolint:dupl,cyclop
+func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error {
+	if metav1.GetControllerOf(object) != nil {
+		return nil
 	}
 
-	return &kc, nil
-}
+	kind := object.GetKeycloakRef().Kind
+	name := object.GetKeycloakRef().Name
 
-func (h *Helper) GetOwnerKeycloakRealm(slave *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
-	var realm keycloakApi.KeycloakRealm
-	if err := h.GetOwner(slave, &realm, "KeycloakRealm"); err != nil {
-		return nil, errors.Wrap(err, "unable to get keycloak realm owner")
-	}
-
-	return &realm, nil
-}
-
-func (h *Helper) IsOwner(slave client.Object, master client.Object) bool {
-	for _, ref := range slave.GetOwnerReferences() {
-		if ref.UID == master.GetUID() {
-			return true
-		}
-	}
-
-	return false
-}
-
-func (h *Helper) GetOwner(slave *v1.ObjectMeta, owner client.Object, ownerType string) error {
-	ownerRefs := slave.GetOwnerReferences()
-	if len(ownerRefs) == 0 {
-		return OwnerNotFoundError("owner not found")
-	}
-
-	ownerRef := getOwnerRef(ownerRefs, ownerType)
-	if ownerRef == nil {
-		return OwnerNotFoundError("owner not found")
-	}
-
-	if err := h.client.Get(context.TODO(), types.NamespacedName{
-		Namespace: slave.Namespace,
-		Name:      ownerRef.Name,
-	}, owner); err != nil {
-		return errors.Wrap(err, "unable to get owner reference")
-	}
-
-	return nil
-}
-
-func getOwnerRef(references []v1.OwnerReference, typeName string) *v1.OwnerReference {
-	for _, el := range references {
-		if el.Kind == typeName {
-			return &el
-		}
-	}
-
-	return nil
-}
-
-func GetKeycloakClientCR(client client.Client, nsn types.NamespacedName) (*keycloakApi.KeycloakClient, error) {
-	instance := &keycloakApi.KeycloakClient{}
-
-	err := client.Get(context.TODO(), nsn, instance)
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, nil // todo maybe refactor?
+	switch kind {
+	case keycloakApi.KeycloakKind:
+		kc := &keycloakApi.Keycloak{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Namespace: object.GetNamespace(),
+			Name:      name,
+		}, kc); err != nil {
+			return fmt.Errorf("failed to get Keycloak: %w", err)
 		}
 
-		return nil, errors.Wrap(err, "cannot read keycloak client CR")
-	}
-
-	return instance, nil
-}
-
-func GetSecret(ctx context.Context, client client.Client, nsn types.NamespacedName) (*coreV1.Secret, error) {
-	secret := &coreV1.Secret{}
-
-	err := client.Get(ctx, nsn, secret)
-	if err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, nil // todo maybe refactor?
+		if err := controllerutil.SetControllerReference(kc, object, h.scheme); err != nil {
+			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		return nil, errors.Wrap(err, "cannot get secret")
-	}
-
-	return secret, nil
-}
-
-func ContainsString(slice []string, s string) bool {
-	for _, item := range slice {
-		if item == s {
-			return true
-		}
-	}
-
-	return false
-}
-
-func RemoveString(slice []string, s string) (result []string) {
-	for _, item := range slice {
-		if item == s {
-			continue
+		if err := h.client.Update(ctx, object); err != nil {
+			return fmt.Errorf("failed to update keycloak owner reference %s: %w", kc.GetName(), err)
 		}
 
-		result = append(result, item)
-	}
+		return nil
 
-	return
-}
-
-func (h *Helper) getKeycloakFromSpec(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
-	if realm.Spec.KeycloakOwner == "" {
-		return nil, errors.Errorf(
-			"keycloak owner is not specified neither in ownerReference nor in spec for realm %s", realm.Name)
-	}
-
-	var k keycloakApi.Keycloak
-	if err := h.client.Get(context.TODO(), types.NamespacedName{
-		Namespace: realm.Namespace,
-		Name:      realm.Spec.KeycloakOwner,
-	}, &k); err != nil {
-		return nil, errors.Wrap(err, "unable to get spec Keycloak from k8s")
-	}
-
-	if err := controllerutil.SetControllerReference(&k, realm, h.scheme); err != nil {
-		return nil, fmt.Errorf("failed to set controller reference for keycloak: %w", err)
-	}
-
-	return &k, nil
-}
-
-func (h *Helper) GetOrCreateKeycloakOwnerRef(realm *keycloakApi.KeycloakRealm) (*keycloakApi.Keycloak, error) {
-	o, err := h.GetOwnerKeycloak(&realm.ObjectMeta)
-	if err != nil {
-		ownerNotFoundErr := OwnerNotFoundError("")
-		if errors.As(err, &ownerNotFoundErr) {
-			if o, err = h.getKeycloakFromSpec(realm); err != nil {
-				return nil, errors.Wrap(err, "unable to get keycloak from spec")
-			}
-
-			return o, nil
+	case keycloakAlpha.ClusterKeycloakKind:
+		clusterKc := &keycloakAlpha.ClusterKeycloak{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Name: name,
+		}, clusterKc); err != nil {
+			return fmt.Errorf("failed to get ClusterKeycloak: %w", err)
 		}
 
-		return nil, errors.Wrap(err, "unable to get owner keycloak")
-	}
-
-	return o, nil
-}
-
-func (h *Helper) getKeycloakRealm(object v1.Object, name string) (*keycloakApi.KeycloakRealm, error) {
-	var realm keycloakApi.KeycloakRealm
-	if err := h.client.Get(context.TODO(), types.NamespacedName{
-		Name:      name,
-		Namespace: object.GetNamespace(),
-	}, &realm); err != nil {
-		return nil, errors.Wrap(err, "unable to get main realm from k8s")
-	}
-
-	if metav1.GetControllerOf(object) == nil {
-		err := controllerutil.SetControllerReference(&realm, object, h.scheme)
-		if err != nil {
-			return nil, fmt.Errorf("failed to set controller reference for realm %s: %w", name, err)
-		}
-	}
-
-	return &realm, nil
-}
-
-type RealmChild interface {
-	K8SParentRealmName() (string, error)
-	v1.Object
-}
-
-func (h *Helper) GetOrCreateRealmOwnerRef(object RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error) {
-	realm, err := h.GetOwnerKeycloakRealm(objectMeta)
-	if err != nil {
-		ownerNotFoundErr := OwnerNotFoundError("")
-		if errors.As(err, &ownerNotFoundErr) {
-			var parentRealm string
-
-			parentRealm, err = object.K8SParentRealmName()
-			if err != nil {
-				return nil, errors.Wrapf(err, "unable get parent realm for: %+v", object)
-			}
-
-			if realm, err = h.getKeycloakRealm(object, parentRealm); err != nil {
-				return nil, errors.Wrap(err, "unable to get keycloak from spec")
-			}
-
-			return realm, nil
+		if err := controllerutil.SetControllerReference(clusterKc, object, h.scheme); err != nil {
+			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		return nil, errors.Wrap(err, "unable to get owner keycloak")
+		if err := h.client.Update(ctx, object); err != nil {
+			return fmt.Errorf("failed to update keycloak owner reference %s: %w", clusterKc.GetName(), err)
+		}
+
+		return nil
+
+	default:
+		return fmt.Errorf("unknown keycloak kind: %s", kind)
+	}
+}
+
+// SetRealmOwnerRef sets owner reference for object.
+//
+//nolint:dupl,cyclop
+func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error {
+	if metav1.GetControllerOf(object) != nil {
+		return nil
 	}
 
-	return realm, nil
-}
+	kind := object.GetRealmRef().Kind
+	name := object.GetRealmRef().Name
 
-func (h *Helper) UpdateStatus(obj client.Object) error {
-	if err := h.client.Status().Update(context.TODO(), obj); err != nil {
-		return errors.Wrap(err, "unable to update object status")
+	switch kind {
+	case keycloakApi.KeycloakRealmKind:
+		realm := &keycloakApi.KeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Namespace: object.GetNamespace(),
+			Name:      name,
+		}, realm); err != nil {
+			return fmt.Errorf("failed to get KeycloakRealm: %w", err)
+		}
+
+		if err := controllerutil.SetControllerReference(realm, object, h.scheme); err != nil {
+			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
+		}
+
+		if err := h.client.Update(ctx, object); err != nil {
+			return fmt.Errorf("failed to update realm owner reference %s: %w", realm.GetName(), err)
+		}
+
+		return nil
+
+	case keycloakAlpha.ClusterKeycloakRealmKind:
+		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Name: name,
+		}, clusterRealm); err != nil {
+			return fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
+		}
+
+		if err := controllerutil.SetControllerReference(clusterRealm, object, h.scheme); err != nil {
+			return fmt.Errorf("unable to set controller reference for %s: %w", object.GetName(), err)
+		}
+
+		if err := h.client.Update(ctx, object); err != nil {
+			return fmt.Errorf("failed to update realm owner reference %s: %w", clusterRealm.GetName(), err)
+		}
+
+		return nil
+
+	default:
+		return fmt.Errorf("unknown realm kind: %s", kind)
 	}
-
-	return nil
 }
 
-type Deletable interface {
-	v1.Object
-	runtime.Object
-}
-
-type Terminator interface {
-	DeleteResource(ctx context.Context) error
-	GetLogger() logr.Logger
-}
-
-func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
-	finalizers := obj.GetFinalizers()
-	logger := terminator.GetLogger()
+func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
+	logger := ctrl.LoggerFrom(ctx)
 
 	if obj.GetDeletionTimestamp().IsZero() {
 		logger.Info("instance timestamp is zero")
 
-		if !ContainsString(finalizers, finalizer) {
-			logger.Info("instance has not finalizers, adding...")
-
-			finalizers = append(finalizers, finalizer)
-			obj.SetFinalizers(finalizers)
+		if controllerutil.AddFinalizer(obj, finalizer) {
+			logger.Info("Adding finalizer to instance")
 
 			if err := h.client.Update(ctx, obj); err != nil {
 				return false, errors.Wrap(err, "unable to update deletable object")
@@ -337,11 +245,10 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 
 	logger.Info("terminator removing finalizers")
 
-	finalizers = RemoveString(finalizers, finalizer)
-	obj.SetFinalizers(finalizers)
-
-	if err := h.client.Update(ctx, obj); err != nil {
-		return false, errors.Wrap(err, "unable to update instance")
+	if controllerutil.RemoveFinalizer(obj, finalizer) {
+		if err := h.client.Update(ctx, obj); err != nil {
+			return false, errors.Wrap(err, "unable to update instance")
+		}
 	}
 
 	logger.Info("terminator deleting instance done, exit")
@@ -349,6 +256,43 @@ func (h *Helper) TryToDelete(ctx context.Context, obj Deletable, terminator Term
 	return true, nil
 }
 
-func CreatePathToTemplateDirectory(directory string) string {
-	return fmt.Sprintf("%s/%s", localConfigsRelativePath, directory)
+func (h *Helper) GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error) {
+	kind := object.GetRealmRef().Kind
+	name := object.GetRealmRef().Name
+
+	switch kind {
+	case keycloakApi.KeycloakRealmKind:
+		realm := &keycloakApi.KeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Namespace: object.GetNamespace(),
+			Name:      name,
+		}, realm); err != nil {
+			return nil, fmt.Errorf("failed to get KeycloakRealm: %w", err)
+		}
+
+		kcRealm, err := kcClient.GetRealm(ctx, realm.Spec.RealmName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get realm: %w", err)
+		}
+
+		return kcRealm, nil
+
+	case keycloakAlpha.ClusterKeycloakRealmKind:
+		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Name: name,
+		}, clusterRealm); err != nil {
+			return nil, fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
+		}
+
+		kcRealm, err := kcClient.GetRealm(ctx, clusterRealm.Spec.RealmName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get realm: %w", err)
+		}
+
+		return kcRealm, nil
+
+	default:
+		return nil, fmt.Errorf("unknown realm kind: %s", kind)
+	}
 }

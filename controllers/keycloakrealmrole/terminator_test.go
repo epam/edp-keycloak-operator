@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -16,7 +17,7 @@ func TestTerminator(t *testing.T) {
 	lg := mock.NewLogr()
 	kClient := new(adapter.Mock)
 
-	term := makeTerminator("foo", "bar", kClient, lg)
+	term := makeTerminator("foo", "bar", kClient)
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(nil).Once()
 
 	err := term.DeleteResource(context.Background())
@@ -24,7 +25,7 @@ func TestTerminator(t *testing.T) {
 
 	kClient.On("DeleteRealmRole", "foo", "bar").Return(errors.New("fatal")).Once()
 
-	err = term.DeleteResource(context.Background())
+	err = term.DeleteResource(ctrl.LoggerInto(context.Background(), lg))
 	require.Error(t, err)
 
 	loggerSink, ok := lg.GetSink().(*mock.Logger)

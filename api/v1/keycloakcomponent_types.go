@@ -1,14 +1,24 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 // KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
 type KeycloakComponentSpec struct {
 	// Name of keycloak component.
 	Name string `json:"name"`
 
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// ProviderID is a provider ID of component.
 	ProviderID string `json:"providerId"`
@@ -79,8 +89,8 @@ func (in *KeycloakRealmComponent) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in *KeycloakRealmComponent) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
+func (in *KeycloakRealmComponent) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

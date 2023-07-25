@@ -12,9 +12,11 @@ type ClusterKeycloakSpec struct {
 	// Secret is a secret name which contains admin credentials.
 	Secret string `json:"secret"`
 
-	// AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.
+	// AdminType can be user or serviceAccount, if serviceAccount was specified,
+	// then client_credentials grant type should be used for getting admin realm token.
 	// +optional
 	// +kubebuilder:validation:Enum=serviceAccount;user
+	// +kubebuilder:default=user
 	AdminType string `json:"adminType,omitempty"`
 }
 

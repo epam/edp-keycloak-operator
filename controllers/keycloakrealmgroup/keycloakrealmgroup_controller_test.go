@@ -5,17 +5,22 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -38,7 +43,12 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	group := keycloakApi.KeycloakRealmGroup{TypeMeta: metav1.TypeMeta{
 		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmGroup",
 	}, ObjectMeta: metav1.ObjectMeta{Namespace: ns, Name: "group1" /*, DeletionTimestamp: &now*/},
-		Spec:   keycloakApi.KeycloakRealmGroupSpec{Realm: "realm1", RealmRoles: []string{"role1", "role2"}, Name: "group1"},
+		Spec: keycloakApi.KeycloakRealmGroupSpec{
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: realm.Name,
+			},
+			RealmRoles: []string{"role1", "role2"}, Name: "group1"},
 		Status: keycloakApi.KeycloakRealmGroupStatus{ID: "id11", Value: helper.StatusOK}}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
@@ -50,24 +60,26 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	kClient.On("DeleteGroup", "ns.realm1", group.Spec.Name).Return(nil)
 
 	logger := mock.NewLogr()
-	h := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 	kcMock := adapter.Mock{}
 
-	h.On("GetOrCreateRealmOwnerRef", &group, &group.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kcMock, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kcMock, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 	kcMock.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("id11", nil)
-	h.On("TryToDelete", &group, makeTerminator(&kcMock, realm.Spec.RealmName, group.Spec.Name, logger),
-		keyCloakRealmGroupOperatorFinalizerName).Return(true, nil)
-	h.On("UpdateStatus", &group).Return(nil)
 
 	r := ReconcileKeycloakRealmGroup{
 		client:                  client,
-		helper:                  &h,
-		log:                     logger,
+		helper:                  h,
 		successReconcileTimeout: time.Hour,
 	}
 
-	res, err := r.Reconcile(context.TODO(), reconcile.Request{NamespacedName: types.NamespacedName{
+	res, err := r.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: ns,
 		Name:      "group1",
 	}})

@@ -6,11 +6,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/go-logr/logr"
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -19,6 +18,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -29,23 +29,21 @@ const finalizer = "keycloak.realmuser.operator.finalizer.name"
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
-	UpdateStatus(obj client.Object) error
-	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
-	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
+	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
 type Reconcile struct {
 	client client.Client
 	helper Helper
-	log    logr.Logger
 }
 
-func NewReconcile(client client.Client, log logr.Logger, helper Helper) *Reconcile {
+func NewReconcile(client client.Client, helper Helper) *Reconcile {
 	return &Reconcile{
 		client: client,
 		helper: helper,
-		log:    log.WithName("keycloak-realm-user"),
 	}
 }
 
@@ -87,9 +85,8 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmUser object.
-func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result,
-	resultErr error) {
-	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakRealmUser")
 
 	var instance keycloakApi.KeycloakRealmUser
@@ -103,7 +100,20 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
+	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		resultErr = fmt.Errorf("unable to apply default values: %w", err)
+		return
+	} else if updated {
+		return
+	}
+
 	if err := r.tryReconcile(ctx, &instance); err != nil {
+		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+			return ctrl.Result{
+				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
+			}, nil
+		}
+
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 
@@ -112,24 +122,31 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		helper.SetSuccessStatus(&instance)
 	}
 
-	if err := r.helper.UpdateStatus(&instance); err != nil {
-		resultErr = err
+	if instance.Spec.KeepResource {
+		if err := r.client.Status().Update(ctx, &instance); err != nil {
+			resultErr = err
+		}
 	}
 
-	log.Info("Reconciling KeycloakRealmUser done.")
+	log.Info("Reconciling KeycloakRealmUser done")
 
 	return
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(instance, &instance.ObjectMeta)
+	err := r.helper.SetRealmOwnerRef(ctx, instance)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm owner ref")
+		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
 	if err != nil {
-		return errors.Wrap(err, "unable to create keycloak client")
+		return fmt.Errorf("unable to create keycloak client from ref: %w", err)
+	}
+
+	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, instance, kClient)
+	if err != nil {
+		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
 	password, getPasswordErr := r.getPassword(ctx, instance)
@@ -137,7 +154,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return fmt.Errorf("unable to get password: %w", getPasswordErr)
 	}
 
-	if err := kClient.SyncRealmUser(ctx, realm.Spec.RealmName, &adapter.KeycloakUser{
+	if err := kClient.SyncRealmUser(ctx, gocloak.PString(realm.Realm), &adapter.KeycloakUser{
 		Username:            instance.Spec.Username,
 		Groups:              instance.Spec.Groups,
 		Roles:               instance.Spec.Roles,
@@ -155,7 +172,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 
 	if instance.Spec.KeepResource {
 		if _, err := r.helper.TryToDelete(ctx, instance,
-			makeTerminator(realm.Spec.RealmName, instance.Spec.Username, kClient, r.log), finalizer); err != nil {
+			makeTerminator(gocloak.PString(realm.Realm), instance.Spec.Username, kClient), finalizer); err != nil {
 			return errors.Wrap(err, "unable to set finalizers")
 		}
 	} else {
@@ -168,6 +185,8 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 }
 
 func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (string, error) {
+	log := ctrl.LoggerFrom(ctx)
+
 	if instance.Spec.PasswordSecret.Name != "" && instance.Spec.PasswordSecret.Key != "" {
 		secret := &coreV1.Secret{}
 		if err := r.client.Get(ctx, types.NamespacedName{Name: instance.Spec.PasswordSecret.Name, Namespace: instance.Namespace}, secret); err != nil {
@@ -183,12 +202,29 @@ func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.Keycl
 			return "", errors.Errorf("key %s not found in secret %s", instance.Spec.PasswordSecret.Key, instance.Spec.PasswordSecret.Name)
 		}
 
-		r.log.Info("Using password from secret", "secret", instance.Spec.PasswordSecret.Name)
+		log.Info("Using password from secret", "secret", instance.Spec.PasswordSecret.Name)
 
 		return string(passwordBytes), nil
 	}
 
-	r.log.Info("Using password from instance Spec.password")
+	log.Info("Using password from instance Spec.password")
 
 	return instance.Spec.Password, nil
+}
+
+func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (bool, error) {
+	if instance.Spec.RealmRef.Name == "" {
+		instance.Spec.RealmRef = common.RealmRef{
+			Kind: keycloakApi.KeycloakRealmKind,
+			Name: instance.Spec.Realm,
+		}
+
+		if err := r.client.Update(ctx, instance); err != nil {
+			return false, fmt.Errorf("failed to update default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }

@@ -32,6 +32,14 @@ spec:
             allowPrivilegeEscalation: false
           env:
             - name: WATCH_NAMESPACE
+              {{- if .Values.clusterReconciliationEnabled }}
+              value: ""
+              {{- else }}
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+              {{- end }}
+            - name: OPERATOR_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace

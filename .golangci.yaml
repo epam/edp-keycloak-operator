@@ -841,10 +841,18 @@ issues:
         - funlen
         - cyclop
         - wrapcheck
+    - path: controller\.go
+      linters:
+        - staticcheck
+      text: SA1019
     #Disable cyclop for some mappers
     - linters:
         - cyclop
       text: 'decodeIdentityProviderMapper'
+    - linters:
+        - cyclop
+        - funlen
+      text: 'Reconcile'
 
   # Independently of option `exclude` we use default exclude patterns,
   # it can be disabled by this option. To list all

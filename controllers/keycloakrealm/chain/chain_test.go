@@ -6,15 +6,16 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -38,15 +39,19 @@ func TestCreateDefChain(t *testing.T) {
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
-			KeycloakOwner:   k.Name,
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: k.Name,
+			},
 			RealmName:       fmt.Sprintf("%v.%v", ns, kRealmName),
 			SsoRealmEnabled: &ssoEnable,
 		},
 	}
 
-	s := scheme.Scheme
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
-	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
+	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
 	kClient := new(adapter.Mock)
@@ -75,10 +80,10 @@ func TestCreateDefChain(t *testing.T) {
 		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
 		Return(nil)
 
-	hm := helper.Mock{}
+	hm := helpermock.NewControllerHelper(t)
 
-	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
-	chain := CreateDefChain(client, s, &hm)
+	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)
 }
@@ -95,7 +100,10 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 
 	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
 		Spec: keycloakApi.KeycloakRealmSpec{
-			KeycloakOwner:   k.Name,
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: k.Name,
+			},
 			RealmName:       fmt.Sprintf("%v.%v", ns, kRealmName),
 			SsoRealmName:    "openshift",
 			SsoRealmEnabled: &ssoEnabled,
@@ -104,9 +112,10 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 			}},
 	}
 
-	s := scheme.Scheme
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
-	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
+	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift", SsoAutoRedirectEnabled: true,
@@ -144,9 +153,9 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 		Return(false, nil)
 	kClient.On("AddClientRoleToUser", "openshift", "test.test", &realmUser, "bar").Return(nil)
 
-	hm := helper.Mock{}
-	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
-	chain := CreateDefChain(client, s, &hm)
+	hm := helpermock.NewControllerHelper(t)
+	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)
 }
@@ -160,15 +169,19 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 		"username": []byte(kServerUsr), "password": []byte(kServerPwd)}}
 
 	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		Spec: keycloakApi.KeycloakRealmSpec{KeycloakOwner: k.Name, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+		Spec: keycloakApi.KeycloakRealmSpec{KeycloakRef: common.KeycloakRef{
+			Kind: keycloakApi.KeycloakKind,
+			Name: k.Name,
+		}, RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 			SsoRealmEnabled: gocloak.BoolP(false), Users: []keycloakApi.User{
 				{RealmRoles: []string{"foo", "bar"}},
 			}},
 	}
 
-	s := scheme.Scheme
-	s.AddKnownTypes(appsv1.SchemeGroupVersion, &k, &kr, &keycloakApi.KeycloakClient{})
-	client := fake.NewClientBuilder().WithRuntimeObjects(&secret, &k, &kr).Build()
+	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: false, Users: []dto.User{{}}}
 	kClient := new(adapter.Mock)
@@ -209,10 +222,10 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
 	kClient.On("AddRealmRoleToUser", testRealm.Name, realmUser.Username, "foo").Return(nil)
 
-	hm := helper.Mock{}
+	hm := helpermock.NewControllerHelper(t)
 
-	hm.On("InvalidateKeycloakClientTokenSecret", k.Namespace, k.Name).Return(nil)
-	chain := CreateDefChain(client, s, &hm)
+	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, k.Namespace, k.Name).Return(nil)
+	chain := CreateDefChain(client, s, hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)
 }

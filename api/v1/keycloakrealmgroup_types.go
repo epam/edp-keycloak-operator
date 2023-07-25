@@ -1,14 +1,24 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 // KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
 type KeycloakRealmGroupSpec struct {
 	// Name of keycloak group.
 	Name string `json:"name"`
 
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Path is a group path.
 	// +optional
@@ -69,8 +79,8 @@ func (in *KeycloakRealmGroup) SetStatus(value string) {
 	in.Status.Value = value
 }
 
-func (in *KeycloakRealmGroup) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
+func (in *KeycloakRealmGroup) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true
