@@ -2,11 +2,12 @@ package keycloakrealmcomponent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
-	"github.com/go-logr/logr"
+	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,6 +22,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -31,26 +33,24 @@ const finalizerName = "keycloak.realmcomponent.operator.finalizer.name"
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
-	UpdateStatus(obj client.Object) error
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *v1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
-	CreateKeycloakClientForRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
+	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
 type Reconcile struct {
 	client                  client.Client
-	log                     logr.Logger
 	helper                  Helper
 	successReconcileTimeout time.Duration
 	scheme                  *runtime.Scheme
 }
 
-func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper Helper) *Reconcile {
+func NewReconcile(client client.Client, scheme *runtime.Scheme, helper Helper) *Reconcile {
 	return &Reconcile{
 		client: client,
 		scheme: scheme,
 		helper: helper,
-		log:    log.WithName("keycloak-realm-component"),
 	}
 }
 
@@ -92,6 +92,7 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 
 // Reconcile is a loop for reconciling KeycloakRealmComponent object.
 // nolint:cyclop
+// nolint:funlen
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakRealmComponent")
@@ -105,7 +106,13 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return ctrl.Result{}, fmt.Errorf("unable to get KeycloakRealmComponent: %w", err)
 	}
 
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(keycloakRealmComponent, &keycloakRealmComponent.ObjectMeta)
+	if updated, err := r.applyDefaults(ctx, keycloakRealmComponent); err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to apply defaults: %w", err)
+	} else if updated {
+		return ctrl.Result{}, nil
+	}
+
+	err := r.helper.SetRealmOwnerRef(ctx, keycloakRealmComponent)
 	if err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to get realm owner ref: %w", err)
 	}
@@ -114,12 +121,23 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return reconcile.Result{}, err
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientForRealm(ctx, realm)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmComponent)
 	if err != nil {
+		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+			return ctrl.Result{
+				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
+			}, nil
+		}
+
 		return ctrl.Result{}, fmt.Errorf("unable to create keycloak client: %w", err)
 	}
 
-	term := makeTerminator(realm.Spec.RealmName, keycloakRealmComponent.Spec.Name, kClient, ctrl.LoggerFrom(ctx))
+	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakRealmComponent, kClient)
+	if err != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to get realm: %w", err)
+	}
+
+	term := makeTerminator(gocloak.PString(realm.Realm), keycloakRealmComponent.Spec.Name, kClient)
 
 	if deleted, err := r.helper.TryToDelete(ctx, keycloakRealmComponent, term, finalizerName); err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to tryToDelete realm component %w", err)
@@ -127,13 +145,17 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return reconcile.Result{}, nil
 	}
 
-	if err := r.tryReconcile(ctx, keycloakRealmComponent, realm, kClient); err != nil {
+	if err := r.tryReconcile(ctx, keycloakRealmComponent, gocloak.PString(realm.Realm), kClient); err != nil {
 		keycloakRealmComponent.Status.Value = err.Error()
+		requeueAfter := r.helper.SetFailureCount(keycloakRealmComponent)
+
 		if statusErr := r.client.Status().Update(ctx, keycloakRealmComponent); statusErr != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to update KeycloakRealmComponent status: %w", statusErr)
 		}
 
-		return ctrl.Result{}, fmt.Errorf("unable to reconcile KeycloakRealmComponent: %w", err)
+		return ctrl.Result{
+			RequeueAfter: requeueAfter,
+		}, fmt.Errorf("unable to reconcile KeycloakRealmComponent: %w", err)
 	}
 
 	helper.SetSuccessStatus(keycloakRealmComponent)
@@ -145,23 +167,24 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 	return reconcile.Result{}, nil
 }
 
-func (r *Reconcile) tryReconcile(ctx context.Context,
+func (r *Reconcile) tryReconcile(
+	ctx context.Context,
 	keycloakRealmComponent *keycloakApi.KeycloakRealmComponent,
-	realm *keycloakApi.KeycloakRealm,
+	realmName string,
 	kClient keycloak.Client,
 ) error {
-	keycloakComponent, err := r.createKeycloakComponent(ctx, keycloakRealmComponent, realm.Spec.RealmName, kClient)
+	keycloakComponent, err := r.createKeycloakComponent(ctx, keycloakRealmComponent, realmName, kClient)
 	if err != nil {
 		return fmt.Errorf("unable to create keycloak component: %w", err)
 	}
 
-	cmp, err := kClient.GetComponent(ctx, realm.Spec.RealmName, keycloakRealmComponent.Spec.Name)
+	cmp, err := kClient.GetComponent(ctx, realmName, keycloakRealmComponent.Spec.Name)
 	if err != nil {
 		if !adapter.IsErrNotFound(err) {
 			return fmt.Errorf("unable to get component, unexpected error: %w", err)
 		}
 
-		if err := kClient.CreateComponent(ctx, realm.Spec.RealmName, keycloakComponent); err != nil {
+		if err := kClient.CreateComponent(ctx, realmName, keycloakComponent); err != nil {
 			return fmt.Errorf("unable to create component %w", err)
 		}
 
@@ -170,7 +193,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context,
 
 	keycloakComponent.ID = cmp.ID
 
-	if err := kClient.UpdateComponent(ctx, realm.Spec.RealmName, keycloakComponent); err != nil {
+	if err := kClient.UpdateComponent(ctx, realmName, keycloakComponent); err != nil {
 		return fmt.Errorf("unable to update component: %w", err)
 	}
 
@@ -291,4 +314,21 @@ func (r *Reconcile) setComponentOwnerReference(
 	}
 
 	return nil
+}
+
+func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmComponent) (bool, error) {
+	if instance.Spec.RealmRef.Name == "" {
+		instance.Spec.RealmRef = common.RealmRef{
+			Kind: keycloakApi.KeycloakRealmKind,
+			Name: instance.Spec.Realm,
+		}
+
+		if err := r.client.Update(ctx, instance); err != nil {
+			return false, fmt.Errorf("failed to update default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }

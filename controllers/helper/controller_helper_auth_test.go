@@ -14,7 +14,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -26,52 +25,8 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
-
-func TestHelper_CreateKeycloakClientForRealm(t *testing.T) {
-	mc := K8SClientMock{}
-
-	utilruntime.Must(keycloakApi.AddToScheme(scheme.Scheme))
-	helper := MakeHelper(&mc, scheme.Scheme, mock.NewLogr())
-	realm := keycloakApi.KeycloakRealm{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
-			OwnerReferences: []metav1.OwnerReference{
-				{
-					Name: "testOwnerReference",
-					Kind: "Keycloak",
-				},
-			},
-		},
-	}
-
-	kc := keycloakApi.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Namespace: "test", Name: "testOwnerReference"},
-		Status:     keycloakApi.KeycloakStatus{Connected: true},
-		Spec:       keycloakApi.KeycloakSpec{Secret: "ss1"},
-	}
-
-	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc).Build()
-
-	mc.On("Get", types.NamespacedName{
-		Namespace: "test",
-		Name:      "testOwnerReference",
-	}, &keycloakApi.Keycloak{}).Return(fakeCl)
-
-	mc.On("Get", types.NamespacedName{
-		Namespace: "test",
-		Name:      "kc-token-testOwnerReference",
-	}, &v1.Secret{}).Return(errors.New("FATAL"))
-
-	_, err := helper.CreateKeycloakClientForRealm(context.Background(), &realm)
-	require.Error(t, err)
-
-	if !strings.Contains(err.Error(), "FATAL") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
-}
 
 func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) {
 	s := scheme.Scheme
@@ -94,7 +49,7 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()
 
-	helper := MakeHelper(cl, s, mock.NewLogr())
+	helper := MakeHelper(cl, s, "default")
 	adapterMock := adapter.Mock{
 		ExportTokenErr: errors.New("export token fatal"),
 	}
@@ -103,7 +58,7 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 		return &adapterMock, nil
 	}
 
-	_, err := helper.CreateKeycloakClientFromLoginPassword(context.Background(), &kc)
+	_, err := helper.createKeycloakClientFromLoginPassword(context.Background(), MakeKeycloakAuthDataFromKeycloak(&kc))
 	if err == nil {
 		t.Fatal("no error on token export")
 	}
@@ -142,10 +97,10 @@ func TestCreateKeycloakClientFromLoginPassword(t *testing.T) {
 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()
 
-	helper := MakeHelper(cl, s, mock.NewLogr())
+	helper := MakeHelper(cl, s, "default")
 	helper.restyClient = resty.New()
 
-	_, err := helper.CreateKeycloakClientFromLoginPassword(context.Background(), &kc)
+	_, err := helper.createKeycloakClientFromLoginPassword(context.Background(), MakeKeycloakAuthDataFromKeycloak(&kc))
 	if err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -172,63 +127,8 @@ func TestHelper_SaveKeycloakClientTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	err := h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
+	err := h.saveKeycloakClientTokenSecret(context.Background(), "secret", "default", []byte("token"))
 	require.NoError(t, err)
-}
-
-func TestHelper_SaveKeycloakClientTokenSecret_Failures(t *testing.T) {
-	s := scheme.Scheme
-	utilruntime.Must(keycloakApi.AddToScheme(s))
-
-	kc := keycloakApi.Keycloak{
-		Spec: keycloakApi.KeycloakSpec{
-			Secret: "test",
-		},
-	}
-
-	secret := corev1.Secret{
-		TypeMeta: metav1.TypeMeta{
-			Kind:       "Secret",
-			APIVersion: "v1",
-		},
-		ObjectMeta: metav1.ObjectMeta{
-			Name: tokenSecretName("test2"),
-		},
-	}
-	fakeCl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &secret).Build()
-	mc := K8SClientMock{}
-	mc.On("Get", types.NamespacedName{Name: tokenSecretName(kc.Name)}, &corev1.Secret{}).
-		Return(errors.New("fatal secret"))
-
-	h := Helper{
-		client: &mc,
-	}
-
-	err := h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
-	require.Error(t, err)
-
-	if !strings.Contains(err.Error(), "fatal secret") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
-
-	kc.Name = "test2"
-
-	mc.On("Get", types.NamespacedName{Name: tokenSecretName(kc.Name)}, &corev1.Secret{}).Return(fakeCl)
-
-	secret.Data = map[string][]byte{
-		keycloakTokenSecretKey: []byte("token"),
-	}
-
-	var updateOpts []client.UpdateOption
-
-	mc.On("Update", &secret, updateOpts).Return(errors.New("secret update fatal"))
-
-	err = h.SaveKeycloakClientTokenSecret(context.Background(), &kc, []byte("token"))
-	require.Error(t, err)
-
-	if !strings.Contains(err.Error(), "secret update fatal") {
-		t.Fatalf("wrong error returned: %s", err.Error())
-	}
 }
 
 func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
@@ -267,7 +167,7 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	_, err = h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc)
+	_, err = h.createKeycloakClientFromTokenSecret(context.Background(), MakeKeycloakAuthDataFromKeycloak(&kc))
 	if err == nil {
 		t.Fatal("no error on expired token")
 	}
@@ -315,7 +215,7 @@ func TestHelper_CreateKeycloakClientFromTokenSecret(t *testing.T) {
 		client: cl,
 	}
 
-	_, err = h.CreateKeycloakClientFromTokenSecret(context.Background(), &kc)
+	_, err = h.createKeycloakClientFromTokenSecret(context.Background(), MakeKeycloakAuthDataFromKeycloak(&kc))
 	require.NoError(t, err)
 }
 

@@ -4,7 +4,9 @@ import (
 	"context"
 	"testing"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -16,14 +18,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestNewReconcile_Init(t *testing.T) {
-	c := NewReconcile(nil, mock.NewLogr(), &helper.Mock{})
+	c := NewReconcile(nil, nil)
 	if c.client != nil {
 		t.Fatal("something went wrong")
 	}
@@ -36,7 +39,7 @@ type TestControllerSuite struct {
 	realmName   string
 	kcRealmUser *keycloakApi.KeycloakRealmUser
 	k8sClient   client.Client
-	helper      *helper.Mock
+	helper      *helpermock.ControllerHelper
 	kcRealm     *keycloakApi.KeycloakRealm
 	kClient     *adapter.Mock
 	adapterUser *adapter.KeycloakUser
@@ -59,14 +62,17 @@ func (e *TestControllerSuite) SetupTest() {
 		Spec: keycloakApi.KeycloakRealmUserSpec{
 			Email:    "usr@gmail.com",
 			Username: "user.g1",
-			Realm:    e.realmName,
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: e.realmName,
+			},
 		},
 		Status: keycloakApi.KeycloakRealmUserStatus{
 			Value: helper.StatusOK,
 		},
 	}
 	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
-	e.helper = &helper.Mock{}
+	e.helper = helpermock.NewControllerHelper(e.T())
 	e.kcRealm = &keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: e.realmName,
@@ -87,17 +93,19 @@ func (e *TestControllerSuite) SetupTest() {
 }
 
 func (e *TestControllerSuite) TestNewReconcile() {
-	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, &e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
-	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
+	e.helper.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	e.helper.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(e.kClient, nil)
+	e.helper.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(e.realmName),
+		}, nil)
 
 	r := Reconcile{
 		helper: e.helper,
-		log:    mock.NewLogr(),
 		client: e.k8sClient,
 	}
 
 	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
-	e.helper.On("UpdateStatus", e.kcRealmUser).Return(nil)
 
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: e.namespace,
@@ -116,18 +124,17 @@ func (e *TestControllerSuite) TestReconcileKeep() {
 	e.kcRealmUser.Spec.KeepResource = true
 	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser).Build()
 
-	logger := mock.NewLogr()
-
-	e.helper.On("GetOrCreateRealmOwnerRef", e.kcRealmUser, &e.kcRealmUser.ObjectMeta).Return(e.kcRealm, nil)
-	e.helper.On("CreateKeycloakClientForRealm", e.kcRealm).Return(e.kClient, nil)
-	e.helper.On("TryToDelete", e.kcRealmUser,
-		makeTerminator(e.realmName, e.kcRealmUser.Spec.Username, e.kClient, logger), finalizer).
+	e.helper.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	e.helper.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(e.kClient, nil)
+	e.helper.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(e.realmName),
+		}, nil)
+	e.helper.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(false, nil)
-	e.helper.On("UpdateStatus", e.kcRealmUser).Return(nil)
 
 	r := Reconcile{
 		helper: e.helper,
-		log:    logger,
 		client: e.k8sClient,
 	}
 
@@ -167,11 +174,8 @@ func (e *TestControllerSuite) TestGetPassword() {
 
 	e.k8sClient = fake.NewClientBuilder().WithScheme(e.scheme).WithRuntimeObjects(e.kcRealmUser, secret).Build()
 
-	logger := mock.NewLogr()
-
 	r := &Reconcile{
 		client: e.k8sClient,
-		log:    logger,
 	}
 
 	password, err := r.getPassword(context.Background(), e.kcRealmUser)

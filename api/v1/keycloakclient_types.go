@@ -2,6 +2,8 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 const (
@@ -16,9 +18,14 @@ type KeycloakClientSpec struct {
 	// ClientId is a unique keycloak client ID referenced in URI and tokens.
 	ClientId string `json:"clientId"`
 
+	// Deprecated: use RealmRef instead.
 	// TargetRealm is a realm name where client will be created.
 	// +optional
 	TargetRealm string `json:"targetRealm,omitempty"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Secret is a client secret used for authentication. If not provided, it will be generated.
 	// +optional
@@ -195,6 +202,10 @@ func (in *KeycloakClient) GetReconciliationStrategy() string {
 	}
 
 	return in.Spec.ReconciliationStrategy
+}
+
+func (in *KeycloakClient) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

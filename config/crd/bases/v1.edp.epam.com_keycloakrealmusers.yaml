@@ -87,8 +87,22 @@ spec:
                 - name
                 type: object
               realm:
-                description: Realm is name of KeycloakRealm custom resource.
+                description: 'Deprecated: use RealmRef instead. Realm is name of KeycloakRealm
+                  custom resource.'
                 type: string
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
               reconciliationStrategy:
                 description: 'ReconciliationStrategy is a strategy for reconciliation.
                   Possible values: full, create-only. Default value: full. If set
@@ -113,7 +127,6 @@ spec:
                 description: Username is a username in keycloak.
                 type: string
             required:
-            - realm
             - username
             type: object
           status:

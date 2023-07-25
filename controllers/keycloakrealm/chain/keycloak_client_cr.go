@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"github.com/pkg/errors"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metaV1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
@@ -51,17 +52,19 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 		return nextServeOrNil(ctx, h.next, realm, kClient)
 	}
 
-	kc, err := helper.GetKeycloakClientCR(h.client, types.NamespacedName{
+	kc := &keycloakApi.KeycloakClient{}
+	err := h.client.Get(ctx, types.NamespacedName{
 		Namespace: realm.Namespace,
 		Name:      realm.Spec.RealmName,
-	})
-	if err != nil {
-		return errors.Wrap(err, "unable to get kc client cr")
-	}
+	}, kc)
 
-	if kc != nil {
+	if err == nil {
 		rLog.Info("Required Keycloak client CR already exists")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
+	}
+
+	if !k8sErrors.IsNotFound(err) {
+		return errors.Wrap(err, "unable to get kc client cr")
 	}
 
 	kc = &keycloakApi.KeycloakClient{
@@ -72,6 +75,10 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 		Spec: keycloakApi.KeycloakClientSpec{
 			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
 			TargetRealm: realm.Spec.SsoRealmName,
+			RealmRef: common.RealmRef{
+				Kind: realm.Kind,
+				Name: realm.Spec.SsoRealmName,
+			},
 			ClientId:    realm.Spec.RealmName,
 			ClientRoles: h.getClientRoles(realm),
 		},

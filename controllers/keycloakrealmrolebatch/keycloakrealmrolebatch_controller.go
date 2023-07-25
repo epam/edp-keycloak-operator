@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,6 +17,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 )
@@ -25,26 +25,21 @@ import (
 const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.operator.finalizer.name"
 
 type Helper interface {
-	TryToDelete(ctx context.Context, obj helper.Deletable, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	GetOrCreateRealmOwnerRef(object helper.RealmChild, objectMeta *metav1.ObjectMeta) (*keycloakApi.KeycloakRealm, error)
-	IsOwner(slave client.Object, master client.Object) bool
-	UpdateStatus(obj client.Object) error
+	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
+	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 }
 
-func NewReconcileKeycloakRealmRoleBatch(client client.Client, log logr.Logger,
-	helper Helper) *ReconcileKeycloakRealmRoleBatch {
+func NewReconcileKeycloakRealmRoleBatch(client client.Client, helper Helper) *ReconcileKeycloakRealmRoleBatch {
 	return &ReconcileKeycloakRealmRoleBatch{
 		client: client,
 		helper: helper,
-		log:    log.WithName("keycloak-realm-role-batch"),
 	}
 }
 
 type ReconcileKeycloakRealmRoleBatch struct {
 	client                  client.Client
 	helper                  Helper
-	log                     logr.Logger
 	successReconcileTimeout time.Duration
 }
 
@@ -71,7 +66,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) SetupWithManager(mgr ctrl.Manager, suc
 
 // Reconcile is a loop for reconciling KeycloakRealmRoleBatch object.
 func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
-	log := r.log.WithValues("Request.Namespace", request.Namespace, "Request.Name", request.Name)
+	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakRealmRoleBatch")
 
 	var instance keycloakApi.KeycloakRealmRoleBatch
@@ -85,11 +80,18 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 		return
 	}
 
+	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		resultErr = fmt.Errorf("unable to apply default values: %w", err)
+		return
+	} else if updated {
+		return
+	}
+
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
-		r.log.Error(err, "an error has occurred while handling keycloak realm role batch", "name",
-			request.Name)
+
+		log.Error(err, "an error has occurred while handling keycloak realm role batch")
 	} else {
 		helper.SetSuccessStatus(&instance)
 		result.RequeueAfter = r.successReconcileTimeout
@@ -99,7 +101,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 		instance.GetDeletionTimestamp() != nil
 
 	if !instanceDeleted {
-		if err := r.helper.UpdateStatus(&instance); err != nil {
+		if err := r.client.Status().Update(ctx, &instance); err != nil {
 			resultErr = err
 		}
 	}
@@ -134,7 +136,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context, batch
 	}
 
 	for i := range namespaceRoles.Items {
-		if _, ok := specRoles[namespaceRoles.Items[i].Name]; !ok && r.helper.IsOwner(&namespaceRoles.Items[i], batch) {
+		if _, ok := specRoles[namespaceRoles.Items[i].Name]; !ok && r.isOwner(batch, &namespaceRoles.Items[i]) {
 			if err := r.client.Delete(ctx, &namespaceRoles.Items[i]); err != nil {
 				return errors.Wrap(err, "unable to delete keycloak realm role")
 			}
@@ -144,23 +146,24 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context, batch
 	return nil
 }
 
-func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch,
-	realm *keycloakApi.KeycloakRealm) (roles []keycloakApi.KeycloakRealmRole, resultErr error) {
-	log := r.log.WithValues("keycloak role batch cr", batch)
-	log.Info("Start putting keycloak cr role batch...")
+func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
+	ctx context.Context,
+	batch *keycloakApi.KeycloakRealmRoleBatch,
+) (roles []keycloakApi.KeycloakRealmRole, resultErr error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Start putting keycloak cr role batch")
 
 	for _, role := range batch.Spec.Roles {
 		roleName := batch.FormattedRoleName(role.Name)
 
 		var crRole keycloakApi.KeycloakRealmRole
-		err := r.client.Get(ctx, types.NamespacedName{Namespace: batch.Namespace, Name: roleName},
-			&crRole)
 
+		err := r.client.Get(ctx, types.NamespacedName{Namespace: batch.Namespace, Name: roleName}, &crRole)
 		if err != nil && !k8sErrors.IsNotFound(err) {
 			return nil, errors.Wrap(err, "unable to check batch role")
 		} else if err == nil {
 			if r.isOwner(batch, &crRole) {
-				log.Info("role already created")
+				log.Info("Role already created")
 				roles = append(roles, crRole)
 				continue
 			}
@@ -172,14 +175,12 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *k
 			ObjectMeta: metav1.ObjectMeta{Name: roleName,
 				Namespace: batch.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
-					{Name: realm.Name, Kind: realm.Kind, BlockOwnerDeletion: gocloak.BoolP(true), UID: realm.UID,
-						APIVersion: realm.APIVersion},
 					{Name: batch.Name, Kind: batch.Kind, BlockOwnerDeletion: gocloak.BoolP(true), UID: batch.UID,
 						APIVersion: batch.APIVersion},
 				}},
 			Spec: keycloakApi.KeycloakRealmRoleSpec{
 				Name:        role.Name,
-				Realm:       realm.Name,
+				RealmRef:    batch.GetRealmRef(),
 				Composite:   role.Composite,
 				Composites:  role.Composites,
 				Description: role.Description,
@@ -193,18 +194,18 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(ctx context.Context, batch *k
 		roles = append(roles, newRole)
 	}
 
-	log.Info("Done putting keycloak cr role batch...")
+	log.Info("Realm role batch put successfully")
 
 	return
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {
-	realm, err := r.helper.GetOrCreateRealmOwnerRef(batch, &batch.ObjectMeta)
+	err := r.helper.SetRealmOwnerRef(ctx, batch)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm owner ref")
+		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	createdRoles, err := r.putRoles(ctx, batch, realm)
+	createdRoles, err := r.putRoles(ctx, batch)
 	if err != nil {
 		return errors.Wrap(err, "unable to put roles batch")
 	}
@@ -213,11 +214,31 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 		return errors.Wrap(err, "unable to delete roles")
 	}
 
-	if _, err := r.helper.TryToDelete(ctx, batch,
-		makeTerminator(r.client, createdRoles, r.log.WithName("realm-role-batch-term")),
-		keyCloakRealmRoleBatchOperatorFinalizerName); err != nil {
-		return errors.Wrap(err, "unable to remove child entity")
+	if _, err := r.helper.TryToDelete(
+		ctx,
+		batch,
+		makeTerminator(r.client, createdRoles),
+		keyCloakRealmRoleBatchOperatorFinalizerName,
+	); err != nil {
+		return fmt.Errorf("unable to delete keycloak realm role batch: %w", err)
 	}
 
 	return nil
+}
+
+func (r *ReconcileKeycloakRealmRoleBatch) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmRoleBatch) (bool, error) {
+	if instance.Spec.RealmRef.Name == "" {
+		instance.Spec.RealmRef = common.RealmRef{
+			Kind: keycloakApi.KeycloakRealmKind,
+			Name: instance.Spec.Realm,
+		}
+
+		if err := r.client.Update(ctx, instance); err != nil {
+			return false, fmt.Errorf("failed to update default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return false, nil
 }

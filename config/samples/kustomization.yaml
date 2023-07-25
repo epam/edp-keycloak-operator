@@ -12,4 +12,5 @@ resources:
 - v1_v1_keycloakrealmrolebatch.yaml
 - v1_v1_keycloakrealmuser.yaml
 - v1_v1alpha1_clusterkeycloak.yaml
+- v1_v1alpha1_clusterkeycloakrealm.yaml
 #+kubebuilder:scaffold:manifestskustomizesamples

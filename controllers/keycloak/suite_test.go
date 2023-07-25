@@ -70,9 +70,9 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("helper"))
+	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
 
-	err = NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), logf.Log.WithName("controller.keycloak"), h).
+	err = NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 

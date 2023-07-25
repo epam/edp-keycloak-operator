@@ -74,29 +74,38 @@ type User struct {
 }
 
 type PasswordPolicy struct {
-	Type  string `json:"type"`
+	// Type of password policy.
+	Type string `json:"type"`
+
+	// Value of password policy.
 	Value string `json:"value"`
 }
 
 type RealmEventConfig struct {
+	// AdminEventsDetailsEnabled indicates whether to enable detailed admin events.
 	// +optional
 	AdminEventsDetailsEnabled bool `json:"adminEventsDetailsEnabled,omitempty"`
 
+	// AdminEventsEnabled indicates whether to enable admin events.
 	// +optional
 	AdminEventsEnabled bool `json:"adminEventsEnabled,omitempty"`
 
+	// EnabledEventTypes is a list of event types to enable.
 	// +optional
-	// +nullable
+	// +nullable.
 	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
 
+	// EventsEnabled indicates whether to enable events.
 	// +optional
 	EventsEnabled bool `json:"eventsEnabled,omitempty"`
 
+	// EventsExpiration is the number of seconds after which events expire.
 	// +optional
 	EventsExpiration int `json:"eventsExpiration,omitempty"`
 
+	// EventsListeners is a list of event listeners to enable.
 	// +optional
-	// +nullable
+	// +nullable.
 	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 

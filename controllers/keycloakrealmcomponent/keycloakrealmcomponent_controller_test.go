@@ -5,20 +5,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	testifyMock "github.com/stretchr/testify/mock"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -30,35 +35,45 @@ func TestReconcile_Reconcile(t *testing.T) {
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	var (
-		hlp       helper.Mock
 		kcAdapter adapter.Mock
 		comp      = keycloakApi.KeycloakRealmComponent{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-comp-name", Namespace: "ns"},
 			TypeMeta:   metav1.TypeMeta{Kind: "KeycloakRealmComponent", APIVersion: "v1.edp.epam.com/v1"},
-			Spec:       keycloakApi.KeycloakComponentSpec{Name: "test-comp"},
-			Status:     keycloakApi.KeycloakComponentStatus{Value: helper.StatusOK},
+			Spec: keycloakApi.KeycloakComponentSpec{
+				Name: "test-comp",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: "realm",
+				},
+			},
+			Status: keycloakApi.KeycloakComponentStatus{Value: helper.StatusOK},
 		}
 		realm = keycloakApi.KeycloakRealm{TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealm",
 		},
 			ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: "ns",
 				OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
-			Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.realm1"}}
+			Spec: keycloakApi.KeycloakRealmSpec{RealmName: "realm11"}}
 		testComp = adapter.Component{ID: "component-id1", Name: comp.Spec.Name}
 	)
 
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
+	h := helpermock.NewControllerHelper(t)
 
-	hlp.On("GetOrCreateRealmOwnerRef", testifyMock.Anything, testifyMock.Anything).Return(&realm, nil)
-	hlp.On("CreateKeycloakClientForRealm", &realm).Return(&kcAdapter, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kcAdapter, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
 	kcAdapter.On("UpdateComponent", realm.Spec.RealmName, &testComp).Return(nil)
-	hlp.On("TryToDelete", testifyMock.Anything, testifyMock.Anything,
-		finalizerName).Return(false, nil)
-	hlp.On("UpdateStatus", &comp).Return(nil)
-	r := NewReconcile(client, sch, logger, &hlp)
 
-	res, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
+	r := NewReconcile(client, sch, h)
+
+	res, err := r.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      comp.Name,
 		Namespace: comp.Namespace,
 	}})
@@ -79,8 +94,8 @@ func TestReconcile_Reconcile(t *testing.T) {
 
 	failureComp := comp.DeepCopy()
 	failureComp.Status.Value = "unable to create component: create fatal"
-	hlp.On("SetFailureCount", failureComp).Return(time.Minute)
-	hlp.On("UpdateStatus", failureComp).Return(nil)
+
+	h.On("SetFailureCount", testifyMock.Anything).Return(time.Minute)
 
 	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      comp.Name,

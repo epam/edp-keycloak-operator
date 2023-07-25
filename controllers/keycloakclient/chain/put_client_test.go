@@ -53,7 +53,7 @@ func TestPutClient_Serve(t *testing.T) {
 	kClient.On("UpdateClient", testifyMock.Anything).Return(nil).Once()
 	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("id1", nil).Once()
 
-	err := pc.Serve(context.Background(), &kc, kClient)
+	err := pc.Serve(context.Background(), &kc, kClient, realmName)
 
 	assert.NoError(t, err)
 
@@ -61,7 +61,7 @@ func TestPutClient_Serve(t *testing.T) {
 	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("1", nil).Once()
 	kClient.On("CreateClient", testifyMock.Anything).Return(nil)
 
-	err = pc.Serve(context.Background(), &kc, kClient)
+	err = pc.Serve(context.Background(), &kc, kClient, realmName)
 	assert.NoError(t, err)
 
 	kClient.AssertExpectations(t)
@@ -104,7 +104,7 @@ func TestPutClient_Serve_FailureToUpdateClient(t *testing.T) {
 	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("id1", nil).Once()
 	kClient.On("UpdateClient", testifyMock.Anything).Return(updateErr).Once()
 
-	err := pc.Serve(context.Background(), &kc, kClient)
+	err := pc.Serve(context.Background(), &kc, kClient, realmName)
 	assert.ErrorIs(t, err, updateErr)
 
 	kClient.AssertExpectations(t)
@@ -113,7 +113,7 @@ func TestPutClient_Serve_FailureToUpdateClient(t *testing.T) {
 	kc.Spec.Public = false
 
 	pc.BaseElement.Client = fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&kc).Build()
-	err = pc.Serve(context.Background(), &kc, kClient)
+	err = pc.Serve(context.Background(), &kc, kClient, realmName)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "secrets \"sec\" not found")
 }

@@ -5,7 +5,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -14,14 +16,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestNewReconcile_Init(t *testing.T) {
-	c := NewReconcile(nil, mock.NewLogr(), &helper.Mock{})
+	c := NewReconcile(nil, helpermock.NewControllerHelper(t))
 	if c.client != nil {
 		t.Fatal("something went wrong")
 	}
@@ -43,6 +46,10 @@ func TestNewReconcile(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias: "flow123",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
 		},
 		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: helper.StatusOK,
@@ -50,32 +57,31 @@ func TestNewReconcile(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
-	h := helper.Mock{}
-	log := mock.NewLogr()
-	realm := keycloakApi.KeycloakRealm{
+	h := helpermock.NewControllerHelper(t)
+	realm := &keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm11",
 		},
 	}
 	kClient := adapter.Mock{}
 
-	h.On("GetOrCreateRealmOwnerRef", &flow, &flow.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm11"),
+		}, nil)
 
 	kClient.On("SyncAuthFlow", realm.Spec.RealmName, &adapter.KeycloakAuthFlow{
 		Alias:                    flow.Spec.Alias,
 		AuthenticationExecutions: []adapter.AuthenticationExecution{},
 	}).Return(nil)
 
-	keycloakAuthFlow := authFlowSpecToAdapterAuthFlow(&flow.Spec)
-
-	h.On("TryToDelete", &flow,
-		makeTerminator(&realm, keycloakAuthFlow, client, &kClient, log), finalizerName).Return(false, nil)
-	h.On("UpdateStatus", &flow).Return(nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	r := Reconcile{
-		helper:                  &h,
-		log:                     log,
+		helper:                  h,
 		client:                  client,
 		successReconcileTimeout: time.Hour,
 	}
@@ -107,6 +113,10 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias: "flow123",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
 		},
 		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: "unable to sync auth flow: fatal",
@@ -114,8 +124,7 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
-	h := helper.Mock{}
-	log := mock.NewLogr()
+	h := helpermock.NewControllerHelper(t)
 	realm := keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm11",
@@ -123,13 +132,15 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	}
 	kClient := adapter.Mock{}
 
-	h.On("GetOrCreateRealmOwnerRef", &flow, &flow.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm11"),
+		}, nil)
 	h.On("SetFailureCount", &flow).Return(time.Second)
-	h.On("UpdateStatus", &flow).Return(nil)
-	h.On("TryToDelete", &flow,
-		makeTerminator(&realm, authFlowSpecToAdapterAuthFlow(&flow.Spec), client, &kClient, log),
-		finalizerName).Return(false, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	mockErr := errors.New("fatal")
 	kClient.On("SyncAuthFlow", realm.Spec.RealmName, &adapter.KeycloakAuthFlow{
@@ -138,8 +149,7 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 	}).Return(mockErr)
 
 	r := Reconcile{
-		helper: &h,
-		log:    log,
+		helper: h,
 		client: client,
 	}
 
@@ -170,6 +180,10 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakAuthFlowSpec{
 			Alias: "flow123",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
 		},
 		Status: keycloakApi.KeycloakAuthFlowStatus{
 			Value: "unable to sync auth flow: fatal",
@@ -177,8 +191,7 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
-	h := helper.Mock{}
-	log := mock.NewLogr()
+	h := helpermock.NewControllerHelper(t)
 	realm := keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: "realm11",
@@ -186,13 +199,15 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 	}
 	kClient := adapter.Mock{}
 
-	h.On("GetOrCreateRealmOwnerRef", &flow, &flow.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(&kClient, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm11"),
+		}, nil)
 	h.On("SetFailureCount", &flow).Return(time.Second)
-	h.On("UpdateStatus", &flow).Return(nil)
-	h.On("TryToDelete", &flow,
-		makeTerminator(&realm, authFlowSpecToAdapterAuthFlow(&flow.Spec), client, &kClient, log),
-		finalizerName).Return(false, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	mockErr := errors.New("fatal")
 	kClient.On("SyncAuthFlow", realm.Spec.RealmName, &adapter.KeycloakAuthFlow{
@@ -201,8 +216,7 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 	}).Return(mockErr)
 
 	r := Reconcile{
-		helper: &h,
-		log:    log,
+		helper: h,
 		client: client,
 	}
 

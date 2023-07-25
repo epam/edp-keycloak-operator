@@ -15,15 +15,15 @@ type PutRealmRole struct {
 	next Element
 }
 
-func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
-	if err := el.putRealmRoles(keycloakClient, adapterClient); err != nil {
+func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
+	if err := el.putRealmRoles(keycloakClient, adapterClient, realmName); err != nil {
 		return errors.Wrap(err, "unable to put realm roles")
 	}
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
 }
 
-func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put realm roles...")
 
@@ -38,7 +38,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 			Composite: role.Composite,
 		}
 
-		exist, err := adapterClient.ExistRealmRole(keycloakClient.Spec.TargetRealm, roleDto.Name)
+		exist, err := adapterClient.ExistRealmRole(realmName, roleDto.Name)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistRealmRole")
 		}
@@ -48,7 +48,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 			return nil
 		}
 
-		err = adapterClient.CreateIncludedRealmRole(keycloakClient.Spec.TargetRealm, roleDto)
+		err = adapterClient.CreateIncludedRealmRole(realmName, roleDto)
 		if err != nil {
 			return errors.Wrap(err, "error during CreateRealmRole")
 		}

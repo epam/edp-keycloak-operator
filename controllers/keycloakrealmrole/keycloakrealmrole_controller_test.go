@@ -5,19 +5,24 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -42,7 +47,13 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 		APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealmRole",
 	}, ObjectMeta: metav1.ObjectMeta{ /*DeletionTimestamp: &now,*/ Name: "test-role", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "role-test"},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{
+			Name: "role-test",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
+		},
 		Status: keycloakApi.KeycloakRealmRoleStatus{Value: helper.StatusOK},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
@@ -56,20 +67,22 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 	kClient.On("DeleteRealmRole", "ns.test", "role-test").Return(nil)
 
 	logger := mock.NewLogr()
-	h := helper.Mock{}
-	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("UpdateStatus", &role).Return(nil)
-	h.On("TryToDelete", &role, makeTerminator(realm.Spec.RealmName, role.Spec.Name, kClient, logger),
-		keyCloakRealmRoleOperatorFinalizerName).Return(true, nil)
+	h := helpermock.NewControllerHelper(t)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	rkr := ReconcileKeycloakRealmRole{
 		client: client,
-		helper: &h,
-		log:    logger,
+		helper: h,
 	}
 
-	res, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	res, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test-role",
 			Namespace: ns,
@@ -93,8 +106,14 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
 		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
-		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: keycloakApi.StatusDuplicated},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{
+			Name: "test",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
+		},
+		Status: keycloakApi.KeycloakRealmRoleStatus{Value: keycloakApi.StatusDuplicated},
 	}
 
 	scheme := runtime.NewScheme()
@@ -103,11 +122,10 @@ func TestReconcileDuplicatedRoleIgnore(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&role).Build()
 	logger := mock.NewLogr()
 	rkr := ReconcileKeycloakRealmRole{
-		log:    logger,
 		client: client,
 	}
 
-	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      role.Name,
 			Namespace: role.Namespace,
@@ -135,16 +153,14 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
 		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
-		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   keycloakApi.KeycloakRealmRoleStatus{},
-	}
-
-	duplicatedRole := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
-		ResourceVersion: "999",
-		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
-		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: keycloakApi.StatusDuplicated},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{
+			Name: "test",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
+		},
+		Status: keycloakApi.KeycloakRealmRoleStatus{},
 	}
 
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
@@ -163,19 +179,20 @@ func TestReconcileRoleMarkDuplicated(t *testing.T) {
 	kClient.On("SyncRealmRole", "test", prr).
 		Return(errors.Wrap(adapter.DuplicatedError("dup"), "test unwrap"))
 
-	h := helper.Mock{}
-	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
-
-	h.On("UpdateStatus", &duplicatedRole).Return(nil)
+	h := helpermock.NewControllerHelper(t)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
 
 	rkr := ReconcileKeycloakRealmRole{
-		log:    logger,
 		client: client,
-		helper: &h,
+		helper: h,
 	}
 
-	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      role.Name,
 			Namespace: role.Namespace,
@@ -206,8 +223,14 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
 		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealmRole", APIVersion: "v1.edp.epam.com/v1"},
-		Spec:     keycloakApi.KeycloakRealmRoleSpec{Name: "test"},
-		Status:   keycloakApi.KeycloakRealmRoleStatus{Value: "unable to put role: unable to sync realm role CR: test mock fatal"},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{
+			Name: "test",
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: "realm",
+			},
+		},
+		Status: keycloakApi.KeycloakRealmRoleStatus{Value: "unable to put role: unable to sync realm role CR: test mock fatal"},
 	}
 	secret := corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "keycloak-secret", Namespace: ns},
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
@@ -220,21 +243,23 @@ func TestReconcileKeycloakRealmRole_ReconcileFailure(t *testing.T) {
 	kClient.On("SyncRealmRole", "test",
 		&dto.PrimaryRealmRole{Name: "test", Composites: []string{}}).Return(mockErr)
 
-	h := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 	logger := mock.NewLogr()
 
-	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", &role, &role.ObjectMeta).Return(&realm, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
 	h.On("SetFailureCount", &role).Return(time.Second)
-	h.On("UpdateStatus", &role).Return(nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP(realm.Spec.RealmName),
+		}, nil)
 
 	rkr := ReconcileKeycloakRealmRole{
 		client: client,
-		helper: &h,
-		log:    logger,
+		helper: h,
 	}
 
-	_, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	_, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,

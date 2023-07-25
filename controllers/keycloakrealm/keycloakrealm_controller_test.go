@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -17,11 +18,12 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
 func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
@@ -34,6 +36,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: "kc",
+			},
 		},
 	}
 	s := scheme.Scheme
@@ -49,8 +55,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutOwners(t *testing.T) {
 
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	res, err := r.Reconcile(context.TODO(), req)
@@ -78,6 +83,10 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: "kc",
+			},
 		},
 	}
 	kr.SetOwnerReferences([]metav1.OwnerReference{
@@ -100,8 +109,7 @@ func TestReconcileKeycloakRealm_ReconcileWithoutKeycloakOwner(t *testing.T) {
 
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	res, err := r.Reconcile(context.TODO(), req)
@@ -143,6 +151,10 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: k.Name,
+			},
 		},
 	}
 	kr.SetOwnerReferences([]metav1.OwnerReference{
@@ -165,8 +177,7 @@ func TestReconcileKeycloakRealm_ReconcileNotConnectedOwner(t *testing.T) {
 
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	res, err := r.Reconcile(context.TODO(), req)
@@ -222,6 +233,10 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: k.Name,
+			},
 		},
 	}
 	kr.SetOwnerReferences([]metav1.OwnerReference{
@@ -245,8 +260,7 @@ func TestReconcileKeycloakRealm_ReconcileInvalidOwnerCredentials(t *testing.T) {
 
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	res, err := r.Reconcile(context.TODO(), req)
@@ -303,8 +317,11 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
-			KeycloakOwner: k.Name,
-			RealmName:     fmt.Sprintf("%v.%v", ns, kRealmName),
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: k.Name,
+			},
+			RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
 		},
 	}
 	// client and scheme
@@ -327,8 +344,7 @@ func TestReconcileKeycloakRealm_ReconcileWithKeycloakOwnerAndInvalidCreds(t *tes
 	// reconcile
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	// test
@@ -370,8 +386,7 @@ func TestReconcileKeycloakRealm_ReconcileDelete(t *testing.T) {
 	req := reconcile.Request{NamespacedName: types.NamespacedName{Name: kRealmName, Namespace: ns}}
 	r := ReconcileKeycloakRealm{
 		client: client,
-		helper: helper.MakeHelper(client, s, mock.NewLogr()),
-		log:    mock.NewLogr(),
+		helper: helper.MakeHelper(client, s, "default"),
 	}
 
 	_, err := r.Reconcile(context.TODO(), req)
@@ -382,10 +397,23 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	ns, kRealmName := "namespace", "realm-11"
 	ssoRealmMappers := []keycloakApi.SSORealmMapper{{}}
 
-	kr := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: kRealmName, Namespace: ns},
-		TypeMeta: metav1.TypeMeta{Kind: "KeycloakRealm", APIVersion: "apps/v1"},
-		Spec: keycloakApi.KeycloakRealmSpec{KeycloakOwner: "keycloak-main", RealmName: fmt.Sprintf("%v.%v", ns, kRealmName),
-			SSORealmMappers: &ssoRealmMappers},
+	kr := keycloakApi.KeycloakRealm{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      kRealmName,
+			Namespace: ns,
+		},
+		TypeMeta: metav1.TypeMeta{
+			Kind:       "KeycloakRealm",
+			APIVersion: "apps/v1",
+		},
+		Spec: keycloakApi.KeycloakRealmSpec{
+			KeycloakRef: common.KeycloakRef{
+				Kind: keycloakApi.KeycloakKind,
+				Name: "realm",
+			},
+			RealmName:       fmt.Sprintf("%v.%v", ns, kRealmName),
+			SSORealmMappers: &ssoRealmMappers,
+		},
 		Status: keycloakApi.KeycloakRealmStatus{Available: true, Value: helper.StatusOK},
 	}
 
@@ -397,20 +425,17 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 	nsName := types.NamespacedName{Name: kRealmName, Namespace: ns}
 	req := reconcile.Request{NamespacedName: nsName}
 
-	h := helper.Mock{}
-	logger := mock.NewLogr()
+	h := helpermock.NewControllerHelper(t)
 
-	h.On("CreateKeycloakClientForRealm", &kr).Return(kClient, nil)
-	h.On("TryToDelete", &kr,
-		makeTerminator(kr.Spec.RealmName, kClient, logger),
-		keyCloakRealmOperatorFinalizerName).Return(false, nil)
-	h.On("UpdateStatus", &kr).Return(nil)
+	h.On("SetKeycloakOwnerRef", testifymock.Anything, &kr).Return(nil)
+	h.On("CreateKeycloakClientFromRealm", testifymock.Anything, &kr).Return(kClient, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	ch := handler.MockRealmHandler{}
 	r := ReconcileKeycloakRealm{
 		client:                  client,
-		helper:                  &h,
-		log:                     logger,
+		helper:                  h,
 		chain:                   &ch,
 		successReconcileTimeout: time.Hour,
 	}

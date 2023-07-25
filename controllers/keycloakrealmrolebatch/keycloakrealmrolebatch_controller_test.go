@@ -14,10 +14,12 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -55,8 +57,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	log := mock.NewLogr()
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
-		helper: helper.MakeHelper(client, scheme, log),
-		log:    log,
+		helper: helper.MakeHelper(client, scheme, "default"),
 	}
 
 	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
@@ -68,7 +69,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	require.NoError(t, err)
 
 	var checkList keycloakApi.KeycloakRealmRoleList
-	err = client.List(context.Background(), &checkList, &k8sCLient.ListOptions{})
+	err = client.List(ctrl.LoggerInto(context.Background(), log), &checkList, &k8sCLient.ListOptions{})
 	require.NoError(t, err)
 
 	assert.Empty(t, checkList.Items, "batch roles is not deleted")
@@ -92,7 +93,11 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []keycloakApi.BatchRole{
 			{Name: "sub-role1"},
 			{Name: "sub-role2", IsDefault: true},
-		}},
+		},
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: realm.Name,
+			}},
 		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test2", Namespace: ns,
@@ -111,12 +116,11 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client:                  client,
-		helper:                  helper.MakeHelper(client, sch, logger),
-		log:                     logger,
+		helper:                  helper.MakeHelper(client, sch, "default"),
 		successReconcileTimeout: time.Hour,
 	}
 
-	res, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	res, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
@@ -196,7 +200,12 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "realm1", Roles: []keycloakApi.BatchRole{
 			{Name: "role1"},
 			{Name: "role2"},
-		}},
+		},
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: realm.Name,
+			},
+		},
 		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "batch1-role2", Namespace: ns},
@@ -210,11 +219,10 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	logger := mock.NewLogr()
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
-		helper: helper.MakeHelper(client, scheme, logger),
-		log:    logger,
+		helper: helper.MakeHelper(client, scheme, "default"),
 	}
 
-	_, err := rkr.Reconcile(context.TODO(), reconcile.Request{
+	_, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "batch1",
 			Namespace: ns,

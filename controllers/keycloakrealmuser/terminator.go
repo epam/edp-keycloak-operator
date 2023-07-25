@@ -2,35 +2,27 @@ package keycloakrealmuser
 
 import (
 	"context"
-
-	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	"fmt"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
 type terminator struct {
 	kClient             keycloak.Client
-	log                 logr.Logger
 	realmName, userName string
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	if err := t.kClient.DeleteRealmUser(ctx, t.realmName, t.userName); err != nil {
-		return errors.Wrap(err, "unable to delete realm user")
+		return fmt.Errorf("unable to delete realm user %w", err)
 	}
 
 	return nil
 }
 
-func (t *terminator) GetLogger() logr.Logger {
-	return t.log
-}
-
-func makeTerminator(realmName, userName string, kClient keycloak.Client, log logr.Logger) *terminator {
+func makeTerminator(realmName, userName string, kClient keycloak.Client) *terminator {
 	return &terminator{
 		kClient:   kClient,
-		log:       log,
 		realmName: realmName,
 		userName:  userName,
 	}

@@ -1,14 +1,24 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 // KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
 type KeycloakClientScopeSpec struct {
 	// Name of keycloak client scope.
 	Name string `json:"name"`
 
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
+	// +optional
 	Realm string `json:"realm"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Protocol is SSO protocol configuration which is being supplied by this client scope.
 	Protocol string `json:"protocol"`
@@ -57,10 +67,6 @@ type KeycloakClientScope struct {
 	Status KeycloakClientScopeStatus `json:"status,omitempty"`
 }
 
-func (in *KeycloakClientScope) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
-}
-
 func (in *KeycloakClientScope) GetFailureCount() int64 {
 	return in.Status.FailureCount
 }
@@ -75,6 +81,10 @@ func (in *KeycloakClientScope) GetStatus() string {
 
 func (in *KeycloakClientScope) SetStatus(value string) {
 	in.Status.Value = value
+}
+
+func (in *KeycloakClientScope) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 // +kubebuilder:object:root=true

@@ -3,13 +3,10 @@ package util
 import (
 	"fmt"
 	"os"
-	"strconv"
 )
 
 const (
-	watchNamespaceEnvVar   = "WATCH_NAMESPACE"
-	debugModeEnvVar        = "DEBUG_MODE"
-	inClusterNamespacePath = "/var/run/secrets/kubernetes.io/serviceaccount/namespace"
+	watchNamespaceEnvVar = "WATCH_NAMESPACE"
 )
 
 // GetWatchNamespace returns the namespace the operator should be watching for changes.
@@ -20,25 +17,4 @@ func GetWatchNamespace() (string, error) {
 	}
 
 	return ns, nil
-}
-
-// GetDebugMode returns the debug mode value.
-func GetDebugMode() (bool, error) {
-	mode, found := os.LookupEnv(debugModeEnvVar)
-	if !found {
-		return false, nil
-	}
-
-	b, err := strconv.ParseBool(mode)
-	if err != nil {
-		return false, fmt.Errorf("failed to get debug mode: %w", err)
-	}
-
-	return b, nil
-}
-
-// Check whether the operator is running in cluster or locally.
-func RunningInCluster() bool {
-	_, err := os.Stat(inClusterNamespacePath)
-	return !os.IsNotExist(err)
 }

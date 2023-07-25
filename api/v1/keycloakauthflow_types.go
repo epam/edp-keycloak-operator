@@ -1,11 +1,21 @@
 package v1
 
-import metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+import (
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
+)
 
 // KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
 type KeycloakAuthFlowSpec struct {
+	// Deprecated: use RealmRef instead.
 	// Realm is name of KeycloakRealm custom resource.
-	Realm string `json:"realm"`
+	// +optional
+	Realm string `json:"realm,omitempty"`
+
+	// RealmRef is reference to Realm custom resource.
+	// +optional
+	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Alias is display name for authentication flow.
 	Alias string `json:"alias"`
@@ -98,8 +108,8 @@ type KeycloakAuthFlow struct {
 	Status KeycloakAuthFlowStatus `json:"status,omitempty"`
 }
 
-func (in *KeycloakAuthFlow) K8SParentRealmName() (string, error) {
-	return in.Spec.Realm, nil
+func (in *KeycloakAuthFlow) GetRealmRef() common.RealmRef {
+	return in.Spec.RealmRef
 }
 
 func (in *KeycloakAuthFlow) GetFailureCount() int64 {

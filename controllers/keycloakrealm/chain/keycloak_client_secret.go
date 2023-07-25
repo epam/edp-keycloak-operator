@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	coreV1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -13,7 +14,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
@@ -34,18 +34,19 @@ func (h PutKeycloakClientSecret) ServeRequest(ctx context.Context, realm *keyclo
 	}
 
 	sn := fmt.Sprintf(clientSecretName, realm.Spec.RealmName)
+	s := &coreV1.Secret{}
 
-	s, err := helper.GetSecret(ctx, h.client, types.NamespacedName{
+	err := h.client.Get(ctx, types.NamespacedName{
 		Name:      sn,
 		Namespace: realm.Namespace,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get seret %s: %w", sn, err)
-	}
-
-	if s != nil {
+	}, s)
+	if err == nil {
 		rLog.Info("Keycloak client secret already exist")
 		return nextServeOrNil(ctx, h.next, realm, kClient)
+	}
+
+	if !k8sErrors.IsNotFound(err) {
+		return fmt.Errorf("failed to get seret %s: %w", sn, err)
 	}
 
 	s = &coreV1.Secret{

@@ -15,19 +15,19 @@ type PutClientRole struct {
 	next Element
 }
 
-func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
-	if err := el.putKeycloakClientRole(keycloakClient, adapterClient); err != nil {
+func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
+	if err := el.putKeycloakClientRole(keycloakClient, adapterClient, realmName); err != nil {
 		return errors.Wrap(err, "unable to put keycloak client role")
 	}
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient)
+	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
 }
 
-func (el *PutClientRole) putKeycloakClientRole(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
+func (el *PutClientRole) putKeycloakClientRole(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
 	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
 	reqLog.Info("Start put keycloak client role...")
 
-	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "")
+	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName)
 
 	for _, role := range clientDto.Roles {
 		exist, err := adapterClient.ExistClientRole(clientDto, role)

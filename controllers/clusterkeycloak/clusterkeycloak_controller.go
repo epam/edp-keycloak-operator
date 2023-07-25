@@ -3,81 +3,138 @@ package clusterkeycloak
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
-type Helper interface {
-	TokenSecretLock() *sync.Mutex
+type keycloakClientProvider interface {
+	CreateKeycloakClientFomAuthData(ctx context.Context, authData *helper.KeycloakAuthData) (keycloak.Client, error)
 }
 
-func NewReconcile(client client.Client, scheme *runtime.Scheme, log logr.Logger, helper Helper) *ClusterKeycloakReconciler {
-	return &ClusterKeycloakReconciler{
-		client: client,
-		scheme: scheme,
-		log:    log.WithName("clusterkeycloak"),
-		helper: helper,
+func NewReconcile(
+	client client.Client,
+	scheme *runtime.Scheme,
+	helper keycloakClientProvider,
+	operatorNamespace string,
+) *Reconciler {
+	return &Reconciler{
+		client:            client,
+		scheme:            scheme,
+		helper:            helper,
+		operatorNamespace: operatorNamespace,
 	}
 }
 
-// ReconcileKeycloak reconciles a Keycloak object.
-type ClusterKeycloakReconciler struct {
-	client                  client.Client
-	scheme                  *runtime.Scheme
-	log                     logr.Logger
-	helper                  Helper
-	successReconcileTimeout time.Duration
+// Reconciler reconciles a Keycloak object.
+type Reconciler struct {
+	client            client.Client
+	scheme            *runtime.Scheme
+	helper            keycloakClientProvider
+	operatorNamespace string
 }
+
+const (
+	failedConnectionRetryPeriod  = time.Second * 10
+	successConnectionRetryPeriod = time.Minute * 30
+)
 
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling ClusterKeycloak object.
-func (r *ClusterKeycloakReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-	log := r.log.WithValues("Request.Namespace", req.Namespace, "Request.Name", req.Name)
-	log.Info("Reconciling Keycloak")
+func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Reconciling ClusterKeycloak")
 
-	instance := &keycloakApi.ClusterKeycloak{}
-	if err := r.client.Get(ctx, req.NamespacedName, instance); err != nil {
+	clusterKeycloak := &keycloakApi.ClusterKeycloak{}
+	if err := r.client.Get(ctx, req.NamespacedName, clusterKeycloak); err != nil {
 		if errors.IsNotFound(err) {
-			log.Info("instance not found")
+			log.Info("Instance not found")
+
 			return reconcile.Result{}, nil
 		}
 
-		log.Error(err, "unable to get clusterkeycloak cr")
+		return ctrl.Result{}, fmt.Errorf("unable to get cluster keycloak: %w", err)
+	}
 
-		return reconcile.Result{RequeueAfter: helper.DefaultRequeueTime}, nil
+	if err := r.updateConnectionStatusToKeycloak(ctx, clusterKeycloak); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if !clusterKeycloak.Status.Connected {
+		log.Info("ClusterKeycloak is not connected, will retry")
+		return reconcile.Result{RequeueAfter: failedConnectionRetryPeriod}, nil
 	}
 
 	log.Info("Reconciling ClusterKeycloak has been finished")
 
 	return reconcile.Result{
-		RequeueAfter: r.successReconcileTimeout,
+		RequeueAfter: successConnectionRetryPeriod,
 	}, nil
 }
 
 // SetupWithManager sets up the controller with the Manager.
-func (r *ClusterKeycloakReconciler) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
-	r.successReconcileTimeout = successReconcileTimeout
+func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		DeleteFunc: func(e event.DeleteEvent) bool {
+			return false
+		},
+	}
 
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&keycloakApi.ClusterKeycloak{}).
+		For(&keycloakApi.ClusterKeycloak{}, builder.WithPredicates(pred)).
 		Complete(r)
 
 	if err != nil {
-		return fmt.Errorf("failed to setup Keycloak controller: %w", err)
+		return fmt.Errorf("failed to setup ClusterKeycloak controller: %w", err)
 	}
+
+	return nil
+}
+
+func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.ClusterKeycloak) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Start updating connection status to ClusterKeycloak")
+
+	_, err := r.helper.CreateKeycloakClientFomAuthData(
+		ctx,
+		helper.MakeKeycloakAuthDataFromClusterKeycloak(instance, r.operatorNamespace),
+	)
+	if err != nil {
+		log.Error(err, "Unable to connect to Keycloak")
+	}
+
+	connected := err == nil
+
+	if instance.Status.Connected == connected {
+		log.Info("Connection status hasn't been changed", "status", instance.Status.Connected)
+
+		return nil
+	}
+
+	log.Info("Connection status has been changed", "from", instance.Status.Connected, "to", connected)
+
+	instance.Status.Connected = connected
+
+	err = r.client.Status().Update(ctx, instance)
+	if err != nil {
+		return fmt.Errorf("failed to update status: %w", err)
+	}
+
+	log.Info("Status has been updated", "status", instance.Status)
 
 	return nil
 }

@@ -41,6 +41,7 @@ spec:
             description: ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
             properties:
               adminType:
+                default: user
                 description: AdminType can be user or serviceAccount, if serviceAccount
                   was specified, then client_credentials grant type should be used
                   for getting admin realm token.

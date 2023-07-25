@@ -102,6 +102,19 @@ spec:
               public:
                 description: Public is a flag to set client as public.
                 type: boolean
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
               realmRoles:
                 description: RealmRoles is a list of realm roles assigned to client.
                 items:
@@ -169,7 +182,8 @@ spec:
                     type: array
                 type: object
               targetRealm:
-                description: TargetRealm is a realm name where client will be created.
+                description: 'Deprecated: use RealmRef instead. TargetRealm is a realm
+                  name where client will be created.'
                 type: string
               webUrl:
                 description: WebUrl is a client web url.

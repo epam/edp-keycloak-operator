@@ -9,6 +9,8 @@ Packages:
 
 Resource Types:
 
+- [ClusterKeycloakRealm](#clusterkeycloakrealm)
+
 - [ClusterKeycloak](#clusterkeycloak)
 
 - [KeycloakAuthFlow](#keycloakauthflow)
@@ -35,6 +37,349 @@ Resource Types:
 
 
 
+
+## ClusterKeycloakRealm
+<sup><sup>[↩ Parent](#v1edpepamcomv1alpha1 )</sup></sup>
+
+
+
+
+
+
+ClusterKeycloakRealm is the Schema for the clusterkeycloakrealms API.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+      <td><b>apiVersion</b></td>
+      <td>string</td>
+      <td>v1.edp.epam.com/v1alpha1</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b>kind</b></td>
+      <td>string</td>
+      <td>ClusterKeycloakRealm</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.20/#objectmeta-v1-meta">metadata</a></b></td>
+      <td>object</td>
+      <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
+      <td>true</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspec">spec</a></b></td>
+        <td>object</td>
+        <td>
+          ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmstatus">status</a></b></td>
+        <td>object</td>
+        <td>
+          ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec
+<sup><sup>[↩ Parent](#clusterkeycloakrealm)</sup></sup>
+
+
+
+ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>clusterKeycloakRef</b></td>
+        <td>string</td>
+        <td>
+          ClusterKeycloakRef is a name of the ClusterKeycloak instance that owns the realm.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>realmName</b></td>
+        <td>string</td>
+        <td>
+          RealmName specifies the name of the realm.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>browserSecurityHeaders</b></td>
+        <td>map[string]string</td>
+        <td>
+          BrowserSecurityHeaders is a map of security headers to apply to HTTP responses from the realm's browser clients.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>frontendUrl</b></td>
+        <td>string</td>
+        <td>
+          FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspeclocalization">localization</a></b></td>
+        <td>object</td>
+        <td>
+          Localization is the configuration for localization in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecpasswordpolicyindex">passwordPolicy</a></b></td>
+        <td>[]object</td>
+        <td>
+          PasswordPolicies is a list of password policies to apply to the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecrealmeventconfig">realmEventConfig</a></b></td>
+        <td>object</td>
+        <td>
+          RealmEventConfig is the configuration for events in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecthemes">themes</a></b></td>
+        <td>object</td>
+        <td>
+          Themes is a map of themes to apply to the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.localization
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+Localization is the configuration for localization in the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>internationalizationEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          InternationalizationEnabled indicates whether to enable internationalization.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.passwordPolicy[index]
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of password policy.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value of password policy.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.realmEventConfig
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+RealmEventConfig is the configuration for events in the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>adminEventsDetailsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminEventsDetailsEnabled indicates whether to enable detailed admin events.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>adminEventsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminEventsEnabled indicates whether to enable admin events.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>enabledEventTypes</b></td>
+        <td>[]string</td>
+        <td>
+          EnabledEventTypes is a list of event types to enable.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>eventsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          EventsEnabled indicates whether to enable events.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>eventsExpiration</b></td>
+        <td>integer</td>
+        <td>
+          EventsExpiration is the number of seconds after which events expire.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>eventsListeners</b></td>
+        <td>[]string</td>
+        <td>
+          EventsListeners is a list of event listeners to enable.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.themes
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+Themes is a map of themes to apply to the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accountTheme</b></td>
+        <td>string</td>
+        <td>
+          AccountTheme specifies the account theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>adminConsoleTheme</b></td>
+        <td>string</td>
+        <td>
+          AdminConsoleTheme specifies the admin console theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>emailTheme</b></td>
+        <td>string</td>
+        <td>
+          EmailTheme specifies the email theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loginTheme</b></td>
+        <td>string</td>
+        <td>
+          LoginTheme specifies the login theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.status
+<sup><sup>[↩ Parent](#clusterkeycloakrealm)</sup></sup>
+
+
+
+ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>available</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>failureCount</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
 
 ## ClusterKeycloak
 <sup><sup>[↩ Parent](#v1edpepamcomv1alpha1 )</sup></sup>
@@ -127,6 +472,7 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
           AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
+            <i>Default</i>: user<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -2242,14 +2588,14 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>type</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Type of password policy.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>value</b></td>
         <td>string</td>
         <td>
-          <br/>
+          Value of password policy.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -2276,42 +2622,42 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>adminEventsDetailsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AdminEventsDetailsEnabled indicates whether to enable detailed admin events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>adminEventsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          AdminEventsEnabled indicates whether to enable admin events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>enabledEventTypes</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          EnabledEventTypes is a list of event types to enable.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsEnabled</b></td>
         <td>boolean</td>
         <td>
-          <br/>
+          EventsEnabled indicates whether to enable events.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsExpiration</b></td>
         <td>integer</td>
         <td>
-          <br/>
+          EventsExpiration is the number of seconds after which events expire.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>eventsListeners</b></td>
         <td>[]string</td>
         <td>
-          <br/>
+          EventsListeners is a list of event listeners to enable.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3003,13 +3349,6 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>topLevel</b></td>
         <td>boolean</td>
         <td>
@@ -3042,6 +3381,20 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         <td>string</td>
         <td>
           ParentName is name of parent auth flow.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakauthflowspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3138,6 +3491,42 @@ AuthenticatorConfig is configuration for authenticator.
         <td>map[string]string</td>
         <td>
           Config is configuration for authenticator.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakAuthFlow.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakauthflowspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3322,6 +3711,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakclientspecrealmrolesindex">realmRoles</a></b></td>
         <td>[]object</td>
         <td>
@@ -3355,7 +3751,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>targetRealm</b></td>
         <td>string</td>
         <td>
-          TargetRealm is a realm name where client will be created.<br/>
+          Deprecated: use RealmRef instead. TargetRealm is a realm name where client will be created.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3411,6 +3807,42 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td>string</td>
         <td>
           ProtocolMapper is a protocol mapper name.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3667,13 +4099,6 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
@@ -3699,6 +4124,20 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td>[]object</td>
         <td>
           ProtocolMappers is a list of protocol mappers assigned to client scope.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientscopespecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3747,6 +4186,42 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td>string</td>
         <td>
           ProtocolMapper is a protocol mapper name.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClientScope.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakclientscopespec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3887,13 +4362,6 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>config</b></td>
         <td>map[string][]string</td>
         <td>
@@ -3905,6 +4373,20 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
         <td>object</td>
         <td>
           ParentRef specifies a parent resource. If not specified, then parent is realm specified in realm field.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmcomponentspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3942,6 +4424,42 @@ ParentRef specifies a parent resource. If not specified, then parent is realm sp
           <br/>
             <i>Enum</i>: KeycloakRealm, KeycloakRealmComponent<br/>
             <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmComponent.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmcomponentspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4061,13 +4579,6 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>access</b></td>
         <td>map[string]boolean</td>
         <td>
@@ -4093,6 +4604,20 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td>string</td>
         <td>
           Path is a group path.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4141,6 +4666,42 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td>[]string</td>
         <td>
           Roles is a list of client roles names assigned to service account.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroup.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmgroupspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4288,13 +4849,6 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>addReadTokenRoleOnCreate</b></td>
         <td>boolean</td>
         <td>
@@ -4334,6 +4888,20 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td>[]object</td>
         <td>
           Mappers is a list of identity provider mappers.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmidentityproviderspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4396,6 +4964,42 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td>string</td>
         <td>
           Name is a name of identity provider mapper.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmIdentityProvider.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmidentityproviderspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4508,19 +5112,26 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b><a href="#keycloakrealmrolebatchspecrolesindex">roles</a></b></td>
         <td>[]object</td>
         <td>
           Roles is a list of roles to be created.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmrolebatchspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4610,6 +5221,42 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
           Name is a name of composite role.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmRoleBatch.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmrolebatchspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4727,13 +5374,6 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string][]string</td>
         <td>
@@ -4768,6 +5408,20 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
           IsDefault is a flag if role is default.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmrolespecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4795,6 +5449,42 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
           Name is a name of composite role.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmRole.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmrolespec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4957,7 +5647,14 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>keycloakOwner</b></td>
         <td>string</td>
         <td>
-          KeycloakOwner specifies the name of the Keycloak instance that owns the realm.<br/>
+          Deprecated: use KeycloakRef instead. KeycloakOwner specifies the name of the Keycloak instance that owns the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmspeckeycloakref">keycloakRef</a></b></td>
+        <td>object</td>
+        <td>
+          KeycloakRef is reference to Keycloak custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5014,6 +5711,42 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>[]object</td>
         <td>
           Users is a list of users to create in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.keycloakRef
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+KeycloakRef is reference to Keycloak custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: Keycloak, ClusterKeycloak<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5359,13 +6092,6 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>realm</b></td>
-        <td>string</td>
-        <td>
-          Realm is name of KeycloakRealm custom resource.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>username</b></td>
         <td>string</td>
         <td>
@@ -5443,6 +6169,20 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>realm</b></td>
+        <td>string</td>
+        <td>
+          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmuserspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>reconciliationStrategy</b></td>
         <td>string</td>
         <td>
@@ -5497,6 +6237,42 @@ PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
           Name is the name of the secret.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmUser.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmuserspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

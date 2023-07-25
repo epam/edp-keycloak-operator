@@ -66,10 +66,23 @@ spec:
                 nullable: true
                 type: string
               keycloakOwner:
-                description: KeycloakOwner specifies the name of the Keycloak instance
-                  that owns the realm.
+                description: 'Deprecated: use KeycloakRef instead. KeycloakOwner specifies
+                  the name of the Keycloak instance that owns the realm.'
                 nullable: true
                 type: string
+              keycloakRef:
+                description: KeycloakRef is reference to Keycloak custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - Keycloak
+                    - ClusterKeycloak
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
               passwordPolicy:
                 description: PasswordPolicies is a list of password policies to apply
                   to the realm.
@@ -268,8 +281,10 @@ spec:
                 items:
                   properties:
                     type:
+                      description: Type of password policy.
                       type: string
                     value:
+                      description: Value of password policy.
                       type: string
                   required:
                   - type
@@ -281,22 +296,29 @@ spec:
                 nullable: true
                 properties:
                   adminEventsDetailsEnabled:
+                    description: AdminEventsDetailsEnabled indicates whether to enable
+                      detailed admin events.
                     type: boolean
                   adminEventsEnabled:
+                    description: AdminEventsEnabled indicates whether to enable admin
+                      events.
                     type: boolean
                   enabledEventTypes:
+                    description: EnabledEventTypes is a list of event types to enable.
                     items:
                       type: string
-                    nullable: true
                     type: array
                   eventsEnabled:
+                    description: EventsEnabled indicates whether to enable events.
                     type: boolean
                   eventsExpiration:
+                    description: EventsExpiration is the number of seconds after which
+                      events expire.
                     type: integer
                   eventsListeners:
+                    description: EventsListeners is a list of event listeners to enable.
                     items:
                       type: string
-                    nullable: true
                     type: array
                 type: object
               realmName:

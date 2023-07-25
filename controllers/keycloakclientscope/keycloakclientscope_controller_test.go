@@ -5,20 +5,25 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -32,6 +37,10 @@ func getTestClientScope(realmName string) *keycloakApi.KeycloakClientScope {
 		Spec: keycloakApi.KeycloakClientScopeSpec{
 			Name:  "scope1name",
 			Realm: realmName,
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: realmName,
+			},
 		},
 	}
 }
@@ -50,7 +59,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 		Status: keycloakApi.KeycloakStatus{Connected: true}}
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "realm11"}}
 
 	clientScope := getTestClientScope(realm.Name)
 
@@ -64,10 +73,13 @@ func TestReconcile_Reconcile(t *testing.T) {
 	}).
 		Return("scope12", nil)
 
-	logger := mock.NewLogr()
-	h := helper.Mock{}
-	h.On("CreateKeycloakClientForRealm", &realm).Return(kClient, nil)
-	h.On("GetOrCreateRealmOwnerRef", clientScope, &clientScope.ObjectMeta).Return(&realm, nil)
+	h := helpermock.NewControllerHelper(t)
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
+	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(&gocloak.RealmRepresentation{
+			Realm: gocloak.StringP("realm11"),
+		}, nil)
 
 	updatedClientScopeWithID := getTestClientScope(realm.Name)
 	updatedClientScopeWithID.Status.ID = "scope12"
@@ -78,16 +90,12 @@ func TestReconcile_Reconcile(t *testing.T) {
 	updatedClientScopeWithStatus.ResourceVersion = "999"
 	updatedClientScopeWithStatus.Status.Value = helper.StatusOK
 
-	h.On("UpdateStatus", updatedClientScopeWithStatus).Return(nil)
-
-	h.On("TryToDelete", updatedClientScopeWithID,
-		makeTerminator(kClient, realm.Spec.RealmName, "scope12", logger), finalizerName).
-		Return(true, nil)
+	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
+		Return(false, nil)
 
 	rkr := Reconcile{
-		log:                     logger,
 		client:                  client,
-		helper:                  &h,
+		helper:                  h,
 		successReconcileTimeout: time.Hour,
 	}
 
@@ -114,28 +122,15 @@ func TestSpecIsUpdated(t *testing.T) {
 	}
 }
 
-func TestNewReconcile(t *testing.T) {
-	var (
-		scheme = runtime.NewScheme()
-		client = fake.NewClientBuilder().WithScheme(scheme).Build()
-		hlp    helper.Mock
-	)
-
-	rec := NewReconcile(client, mock.NewLogr(), &hlp)
-	if rec == nil {
-		t.Fatal("reconciler is not inited")
-	}
-}
-
 func TestReconcile_Reconcile_NotFound(t *testing.T) {
 	scheme := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 	client := fake.NewClientBuilder().WithScheme(scheme).Build()
 	logger := mock.NewLogr()
-	rec := NewReconcile(client, logger, &helper.Mock{})
+	rec := NewReconcile(client, helpermock.NewControllerHelper(t))
 
-	_, err := rec.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "bar"}})
+	_, err := rec.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{NamespacedName: types.NamespacedName{Name: "foo", Namespace: "bar"}})
 	require.NoError(t, err)
 
 	if _, ok := logger.GetSink().(*mock.Logger).InfoMessages()["instance not found"]; !ok {
@@ -161,7 +156,7 @@ func TestSyncClientScope(t *testing.T) {
 	kClient := new(adapter.Mock)
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
-		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "ns.test"}}
+		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "realm11"}}
 	instance := getTestClientScope(realm.Name)
 	scopeID := "scopeID1"
 
@@ -173,7 +168,7 @@ func TestSyncClientScope(t *testing.T) {
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).Return(nil)
 
-	_, err := syncClientScope(context.Background(), instance, &realm, kClient)
+	_, err := syncClientScope(context.Background(), instance, realm.Spec.RealmName, kClient)
 	require.NoError(t, err)
 }
 
@@ -186,9 +181,9 @@ func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(instance).WithScheme(scheme).Build()
 	logger := mock.NewLogr()
-	rec := NewReconcile(client, logger, helper.MakeHelper(client, scheme, logger))
+	rec := NewReconcile(client, helper.MakeHelper(client, scheme, "default"))
 
-	if _, err := rec.Reconcile(context.Background(),
+	if _, err := rec.Reconcile(ctrl.LoggerInto(context.Background(), logger),
 		reconcile.Request{NamespacedName: types.NamespacedName{Name: instance.Name, Namespace: instance.Namespace}}); err != nil {
 		t.Fatalf("%+v", err)
 	}
@@ -196,7 +191,7 @@ func TestReconcile_Reconcile_FailureNoRealm(t *testing.T) {
 	loggerSink, ok := logger.GetSink().(*mock.Logger)
 	require.True(t, ok, "wrong logger type")
 	require.Error(t, loggerSink.LastError())
-	assert.Contains(t, loggerSink.LastError().Error(), "unable to get realm owner ref")
+	assert.Contains(t, loggerSink.LastError().Error(), "failed to get KeycloakRealm")
 }
 func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -210,24 +205,23 @@ func TestReconcile_Reconcile_FailureNoClientForRealm(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithRuntimeObjects(clientScope, &realm).WithScheme(scheme).Build()
 	logger := mock.NewLogr()
-	h := helper.Mock{}
+	h := helpermock.NewControllerHelper(t)
 
-	rec := NewReconcile(client, logger, &h)
+	rec := NewReconcile(client, h)
 
-	h.On("GetOrCreateRealmOwnerRef", clientScope, &clientScope.ObjectMeta).Return(&realm, nil)
-	h.On("CreateKeycloakClientForRealm", &realm).
+	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).
 		Return(nil, errors.New("fatal"))
 
 	updatedClientScope := getTestClientScope(realm.Name)
 	updatedClientScope.Status.Value = "unable to create keycloak client: fatal"
 	updatedClientScope.ResourceVersion = "999"
 
-	h.On("SetFailureCount", updatedClientScope).Return(time.Minute)
-	h.On("UpdateStatus", updatedClientScope).Return(nil)
+	h.On("SetFailureCount", testifymock.Anything).Return(time.Minute)
 
-	rec.helper = &h
+	rec.helper = h
 
-	if _, err := rec.Reconcile(context.Background(),
+	if _, err := rec.Reconcile(ctrl.LoggerInto(context.Background(), logger),
 		reconcile.Request{NamespacedName: types.NamespacedName{Name: clientScope.Name, Namespace: clientScope.Namespace}}); err != nil {
 		t.Fatalf("%+v", err)
 	}

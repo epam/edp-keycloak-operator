@@ -2,9 +2,9 @@ package keycloakclientscope
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/go-logr/logr"
-	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
@@ -12,32 +12,26 @@ import (
 type terminator struct {
 	realmName, scopeID string
 	kClient            keycloak.Client
-	log                logr.Logger
 }
 
-func makeTerminator(kClient keycloak.Client, realmName, scopeID string, log logr.Logger) *terminator {
+func makeTerminator(kClient keycloak.Client, realmName, scopeID string) *terminator {
 	return &terminator{
 		kClient:   kClient,
 		realmName: realmName,
 		scopeID:   scopeID,
-		log:       log,
 	}
-}
-
-func (t *terminator) GetLogger() logr.Logger {
-	return t.log
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	logger := t.log.WithValues("realm name", t.realmName, "scope id", t.scopeID)
+	logger := ctrl.LoggerFrom(ctx).WithValues("realm name", t.realmName, "scope id", t.scopeID)
 
-	logger.Info("start deleting client scope")
+	logger.Info("Start deleting client scope")
 
 	if err := t.kClient.DeleteClientScope(ctx, t.realmName, t.scopeID); err != nil {
-		return errors.Wrap(err, "unable to delete client scope")
+		return fmt.Errorf("failed to delete client scope: %w", err)
 	}
 
-	logger.Info("done deleting client scope")
+	logger.Info("Client scope has been deleted")
 
 	return nil
 }

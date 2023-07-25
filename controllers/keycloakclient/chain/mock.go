@@ -13,6 +13,6 @@ type Mock struct {
 	mock.Mock
 }
 
-func (m *Mock) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client) error {
+func (m *Mock) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
 	return m.Called(keycloakClient).Error(0)
 }

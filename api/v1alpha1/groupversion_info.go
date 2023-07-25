@@ -19,3 +19,8 @@ var (
 
 	AddToScheme = SchemeBuilder.AddToScheme
 )
+
+const (
+	ClusterKeycloakKind      = "ClusterKeycloak"
+	ClusterKeycloakRealmKind = "ClusterKeycloakRealm"
+)

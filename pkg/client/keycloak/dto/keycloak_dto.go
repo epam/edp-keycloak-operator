@@ -97,9 +97,9 @@ type IncludedRealmRole struct {
 	Composite string
 }
 
-func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret string) *Client {
+func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret, realmName string) *Client {
 	return &Client{
-		RealmName:               spec.TargetRealm,
+		RealmName:               realmName,
 		ClientId:                spec.ClientId,
 		ClientSecret:            clientSecret,
 		Roles:                   spec.ClientRoles,
