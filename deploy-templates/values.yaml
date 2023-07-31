@@ -41,4 +41,4 @@ extraVolumeMounts: []
 
 # -- If clusterReconciliationEnabled is true, the operator reconciles all Keycloak instances in the cluster;
 #  otherwise, it only reconciles instances in the same namespace by default, and cluster-scoped resources are ignored.
-clusterReconciliationEnabled: "false"
+clusterReconciliationEnabled: false
