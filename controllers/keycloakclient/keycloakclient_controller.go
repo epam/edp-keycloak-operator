@@ -133,19 +133,19 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		return fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
 	}
 
-	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakClient, kClient)
+	realm, err := r.getKeycloakRealm(ctx, keycloakClient, kClient)
 	if err != nil {
-		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
+		return fmt.Errorf("unable to get keycloak realm: %w", err)
 	}
 
-	if err := r.chain.Serve(ctx, keycloakClient, kClient, gocloak.PString(realm.Realm)); err != nil {
+	if err := r.chain.Serve(ctx, keycloakClient, kClient, realm); err != nil {
 		return fmt.Errorf("unable to serve keycloak client: %w", err)
 	}
 
 	if _, err := r.helper.TryToDelete(
 		ctx,
 		keycloakClient,
-		makeTerminator(keycloakClient.Status.ClientID, gocloak.PString(realm.Realm), kClient),
+		makeTerminator(keycloakClient.Status.ClientID, realm, kClient),
 		keyCloakClientOperatorFinalizerName,
 	); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")
@@ -205,5 +205,31 @@ func (r *ReconcileKeycloakClient) getKeycloakCRName(ctx context.Context, targetR
 		}
 	}
 
+	// Add this for backward compatibility because in old versions KeycloakRealm CR name was hardcoded to "main".
+	// We can remove this in the future release as RealmRef will be set for all KeycloakClient CRs.
+	for i := 0; i < len(realmList.Items); i++ {
+		if realmList.Items[i].Name == "main" {
+			return realmList.Items[i].Name, nil
+		}
+	}
+
 	return "", fmt.Errorf("realm %s not found", targetRealm)
+}
+
+func (r *ReconcileKeycloakClient) getKeycloakRealm(
+	ctx context.Context,
+	keycloakClient *keycloakApi.KeycloakClient,
+	adapterClient keycloak.Client,
+) (string, error) {
+	if keycloakClient.Spec.TargetRealm == "" {
+		realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakClient, adapterClient)
+		if err != nil {
+			return "", fmt.Errorf("unable to get keycloak realm from ref: %w", err)
+		}
+
+		return gocloak.PString(realm.Realm), nil
+	}
+
+	// If TargetRealm is set, use it instead of RealmRef. This is for backward compatibility.
+	return keycloakClient.Spec.TargetRealm, nil
 }

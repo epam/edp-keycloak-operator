@@ -3751,7 +3751,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>targetRealm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. TargetRealm is a realm name where client will be created.<br/>
+          Deprecated: use RealmRef instead. TargetRealm is a realm name where client will be created. It has higher priority than RealmRef for backward compatibility. If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.<br/>
         </td>
         <td>false</td>
       </tr><tr>
