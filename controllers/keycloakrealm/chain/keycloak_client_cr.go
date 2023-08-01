@@ -73,8 +73,7 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 			Namespace: realm.Namespace,
 		},
 		Spec: keycloakApi.KeycloakClientSpec{
-			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
-			TargetRealm: realm.Spec.SsoRealmName,
+			Secret: fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
 			RealmRef: common.RealmRef{
 				Kind: realm.Kind,
 				Name: realm.Spec.SsoRealmName,

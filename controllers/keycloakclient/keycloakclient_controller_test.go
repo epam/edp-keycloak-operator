@@ -147,10 +147,6 @@ func TestReconcileKeycloakClient_ReconcileWithMappers(t *testing.T) {
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
 	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kclient, nil)
-	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
-		Return(&gocloak.RealmRepresentation{
-			Realm: gocloak.StringP("realm"),
-		}, nil)
 	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(false, nil)
 
@@ -256,6 +252,58 @@ func TestReconcileKeycloakClient_applyDefaults(t *testing.T) {
 			},
 			want:    false,
 			wantErr: require.NoError,
+		},
+		{
+			name: "should set main realm",
+			objects: []runtime.Object{
+				&keycloakApi.KeycloakRealm{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "main",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "realm",
+					},
+				},
+			},
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					TargetRealm: "some-realm",
+				},
+			},
+			wantKeycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					Attributes: map[string]string{
+						clientAttributeLogoutRedirectUris: clientAttributeLogoutRedirectUrisDefValue,
+					},
+				},
+			},
+			want:    true,
+			wantErr: require.NoError,
+		},
+		{
+			name: "realm not found",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					TargetRealm: "some-realm",
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "realm some-realm not found")
+			},
 		},
 	}
 

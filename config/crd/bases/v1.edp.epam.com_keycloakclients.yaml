@@ -183,7 +183,9 @@ spec:
                 type: object
               targetRealm:
                 description: 'Deprecated: use RealmRef instead. TargetRealm is a realm
-                  name where client will be created.'
+                  name where client will be created. It has higher priority than RealmRef
+                  for backward compatibility. If both TargetRealm and RealmRef are
+                  specified, TargetRealm will be used for client creation.'
                 type: string
               webUrl:
                 description: WebUrl is a client web url.
