@@ -12,7 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -73,11 +72,8 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 			Namespace: realm.Namespace,
 		},
 		Spec: keycloakApi.KeycloakClientSpec{
-			Secret: fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
-			RealmRef: common.RealmRef{
-				Kind: realm.Kind,
-				Name: realm.Spec.SsoRealmName,
-			},
+			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
+			TargetRealm: realm.Spec.SsoRealmName,
 			ClientId:    realm.Spec.RealmName,
 			ClientRoles: h.getClientRoles(realm),
 		},
