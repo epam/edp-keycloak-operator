@@ -40,9 +40,8 @@ options:
       test: Testing
 
   header:
-    pattern: "^\\[(EPMDEDP-\\d+)\\]:\\s(feat|fix|docs|style|refactor|test|chore)+!?:\\s(.*)$"
+    pattern: "^(feat|fix|docs|style|refactor|test|chore)+!?:\\s(.*)$"
     pattern_maps:
-      - Scope
       - Type
       - Subject
 
