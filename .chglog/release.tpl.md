@@ -5,7 +5,7 @@
 ### {{ .Title }}
 
 {{ range .Commits -}}
-- {{ .Subject }} [{{ .Scope }}](https://jiraeu.epam.com/browse/{{ .Scope }})
+- {{ if .Scope }}**{{ .Scope }}:** {{ end }}{{ .Subject }}
 {{ end }}
 {{ end -}}
 
