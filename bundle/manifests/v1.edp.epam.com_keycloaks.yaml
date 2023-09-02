@@ -14,7 +14,12 @@ spec:
     singular: keycloak
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: Is connected to keycloak
+      jsonPath: .status.connected
+      name: Connected
+      type: boolean
+    name: v1
     schema:
       openAPIV3Schema:
         description: Keycloak is the Schema for the keycloaks API.
