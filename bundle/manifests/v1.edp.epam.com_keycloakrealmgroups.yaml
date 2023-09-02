@@ -74,8 +74,22 @@ spec:
                 description: Path is a group path.
                 type: string
               realm:
-                description: Realm is name of KeycloakRealm custom resource.
+                description: 'Deprecated: use RealmRef instead. Realm is name of KeycloakRealm
+                  custom resource.'
                 type: string
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
               realmRoles:
                 description: RealmRoles is a list of realm roles assigned to group.
                 items:
@@ -90,7 +104,6 @@ spec:
                 type: array
             required:
             - name
-            - realm
             type: object
           status:
             description: KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.
