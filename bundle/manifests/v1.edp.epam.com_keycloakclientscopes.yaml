@@ -78,12 +78,25 @@ spec:
                 nullable: true
                 type: array
               realm:
-                description: Realm is name of KeycloakRealm custom resource.
+                description: 'Deprecated: use RealmRef instead. Realm is name of KeycloakRealm
+                  custom resource.'
                 type: string
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
             required:
             - name
             - protocol
-            - realm
             type: object
           status:
             description: KeycloakClientScopeStatus defines the observed state of KeycloakClientScope.

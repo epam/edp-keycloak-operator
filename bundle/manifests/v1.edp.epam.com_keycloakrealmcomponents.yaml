@@ -46,6 +46,27 @@ spec:
               name:
                 description: Name of keycloak component.
                 type: string
+              parentRef:
+                description: ParentRef specifies a parent resource. If not specified,
+                  then parent is realm specified in realm field.
+                nullable: true
+                properties:
+                  kind:
+                    default: KeycloakRealm
+                    description: Kind is a kind of parent component. By default, it
+                      is KeycloakRealm.
+                    enum:
+                    - KeycloakRealm
+                    - KeycloakRealmComponent
+                    type: string
+                  name:
+                    description: Name is a name of parent component custom resource.
+                      For example, if Kind is KeycloakRealm, then Name is name of
+                      KeycloakRealm custom resource.
+                    type: string
+                required:
+                - name
+                type: object
               providerId:
                 description: ProviderID is a provider ID of component.
                 type: string
@@ -53,13 +74,26 @@ spec:
                 description: ProviderType is a provider type of component.
                 type: string
               realm:
-                description: Realm is name of KeycloakRealm custom resource.
+                description: 'Deprecated: use RealmRef instead. Realm is name of KeycloakRealm
+                  custom resource.'
                 type: string
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                type: object
             required:
             - name
             - providerId
             - providerType
-            - realm
             type: object
           status:
             description: KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
