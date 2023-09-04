@@ -2,8 +2,11 @@
 ## [Unreleased]
 
 
+<a name="v1.17.1"></a>
+## [v1.17.1] - 2023-09-02
+
 <a name="v1.17.0"></a>
-## [v1.17.0] - 2023-08-10
+## [v1.17.0] - 2023-08-17
 ### Features
 
 - Add cluster wide CR ClusterKeycloak [EPMDEDP-121186](https://jiraeu.epam.com/browse/EPMDEDP-121186)
@@ -307,7 +310,8 @@ KeycloakRealm with name `main` is now managed by helm chart and NOT by keycloak 
 <a name="v1.7.0"></a>
 ## [v1.7.0] - 2021-12-03
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.17.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.17.1...HEAD
+[v1.17.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.17.0...v1.17.1
 [v1.17.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.16.0...v1.17.0
 [v1.16.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.15.0...v1.16.0
 [v1.15.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.14.0...v1.15.0
