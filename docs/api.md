@@ -3734,6 +3734,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>redirectUris</b></td>
+        <td>[]string</td>
+        <td>
+          RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login. Simple wildcards are allowed such as 'https://example.com/*'. Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL. If not specified, spec.webUrl + "/*" will be used.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>secret</b></td>
         <td>string</td>
         <td>

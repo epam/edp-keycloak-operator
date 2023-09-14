@@ -311,7 +311,9 @@ func TestGoCloakAdapter_CreateClient(t *testing.T) {
 	mockClient := new(MockGoCloakClient)
 	logger := mock.NewLogr()
 
-	cl := dto.Client{}
+	cl := dto.Client{
+		RedirectUris: []string{"https://test.com"},
+	}
 	a := GoCloakAdapter{
 		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
