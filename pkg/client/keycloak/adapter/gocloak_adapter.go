@@ -587,6 +587,10 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		FrontChannelLogout:     &client.FrontChannelLogout,
 	}
 
+	if client.RedirectUris != nil && len(client.RedirectUris) > 0 {
+		cl.RedirectURIs = &client.RedirectUris
+	}
+
 	if client.ID != "" {
 		cl.ID = &client.ID
 	}

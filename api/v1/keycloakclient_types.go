@@ -93,6 +93,15 @@ type KeycloakClientSpec struct {
 	// +nullable
 	// +optional
 	DefaultClientScopes []string `json:"defaultClientScopes,omitempty"`
+
+	// RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login.
+	// Simple wildcards are allowed such as 'https://example.com/*'.
+	// Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL.
+	// If not specified, spec.webUrl + "/*" will be used.
+	// +nullable
+	// +optional
+	// +kubebuilder:example={"https://example.com/*", "/my/relative/path/*"}
+	RedirectUris []string `json:"redirectUris,omitempty"`
 }
 
 type ServiceAccount struct {

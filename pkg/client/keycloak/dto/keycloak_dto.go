@@ -80,6 +80,7 @@ type Client struct {
 	AdvancedProtocolMappers bool
 	ServiceAccountEnabled   bool
 	FrontChannelLogout      bool
+	RedirectUris            []string
 }
 
 type PrimaryRealmRole struct {
@@ -111,6 +112,7 @@ func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret, rea
 		AdvancedProtocolMappers: spec.AdvancedProtocolMappers,
 		ServiceAccountEnabled:   spec.ServiceAccount != nil && spec.ServiceAccount.Enabled,
 		FrontChannelLogout:      spec.FrontChannelLogout,
+		RedirectUris:            spec.RedirectUris,
 	}
 }
 

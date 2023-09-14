@@ -3,7 +3,9 @@ kind: KeycloakClient
 metadata:
   name: keycloakclient-sample
 spec:
-  targetRealm: realm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   advancedProtocolMappers: true
   clientId: agocd
   directAccess: true
@@ -12,3 +14,6 @@ spec:
   webUrl: https://argocd.example.com
   defaultClientScopes:
     - groups
+  redirectUris:
+    - /url1/*
+    - /url2/*
