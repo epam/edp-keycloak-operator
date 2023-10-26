@@ -92,6 +92,10 @@ While the prerequisites above must be satisfied prior to having your pull reques
 
 ## Styleguides
 
+### Pull Request
+
+* Merge request can't contain more than one commit. Please squash your commits.
+
 ### Git Commit Messages
 
 * Use the present tense ("Add feature" not "Added feature")
