@@ -3,7 +3,7 @@
 
 
 <a name="v1.18.2"></a>
-## v1.18.2 - 2023-10-17
+## v1.18.2 - 2023-10-31
 ### Features
 - Allow multiple redirect URIs ([#12](https://github.com/epam/edp-keycloak-operator/issues/12))
 
