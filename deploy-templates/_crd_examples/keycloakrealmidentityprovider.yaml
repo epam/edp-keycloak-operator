@@ -3,7 +3,9 @@ kind: KeycloakRealmIdentityProvider
 metadata:
   name: keycloakrealmidentityprovider-sample
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    kind: KeycloakRealm
+    name: realm
   alias: instagram
   authenticateByDefault: false
   enabled: true
@@ -11,7 +13,7 @@ spec:
   providerId: "instagram"
   config:
     clientId: "foo"
-    clientSecret: "bar"
+    clientSecret: "$secretName:secretKey"
     hideOnLoginPage: "true"
     syncMode: "IMPORT"
     useJwksUrl: "true"

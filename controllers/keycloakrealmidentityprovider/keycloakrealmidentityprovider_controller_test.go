@@ -16,6 +16,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -182,5 +183,110 @@ func TestIsSpecUpdated(t *testing.T) {
 
 	if isSpecUpdated(event.UpdateEvent{ObjectOld: &idp, ObjectNew: &idp}) {
 		t.Fatal("spec updated")
+	}
+}
+
+func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		config  map[string]string
+		client  func(t *testing.T) client.Client
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name: "config with secret ref",
+			config: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$client-secret:data",
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "client-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"data": []byte("secretValue"),
+						},
+					},
+				).Build()
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "secret key not found",
+			config: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$client-secret:data",
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "client-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{},
+					},
+				).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "does not contain key")
+			},
+		},
+		{
+			name: "secret not found",
+			config: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$client-secret:data",
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to get secret")
+			},
+		},
+		{
+			name: "invalid secret ref format",
+			config: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$invalid-secret-ref",
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid config secret  reference")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Reconcile{
+				client: tt.client(t),
+			}
+
+			tt.wantErr(t, r.mapConfigSecretsRefs(context.Background(), tt.config, "default"))
+		})
 	}
 }

@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -148,6 +150,10 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 
 	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
 
+	if err = r.mapConfigSecretsRefs(ctx, keycloakIDP.Config, keycloakRealmIDP.Namespace); err != nil {
+		return fmt.Errorf("unable to map config secrets: %w", err)
+	}
+
 	providerExists, err := kClient.IdentityProviderExists(ctx, gocloak.PString(realm.Realm), keycloakRealmIDP.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
@@ -190,6 +196,36 @@ func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.Key
 	}
 
 	return false, nil
+}
+
+func (r *Reconcile) mapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error {
+	for k, v := range config {
+		if !strings.HasPrefix(v, "$") {
+			continue
+		}
+
+		ref := strings.Split(v[1:], ":")
+		if len(ref) != 2 {
+			return fmt.Errorf("invalid config secret  reference %s is not in format '$secretName:secretKey'", v)
+		}
+
+		secret := &corev1.Secret{}
+		if err := r.client.Get(ctx, client.ObjectKey{
+			Namespace: namespace,
+			Name:      ref[0],
+		}, secret); err != nil {
+			return fmt.Errorf("failed to get secret %s: %w", ref[0], err)
+		}
+
+		secretVal, ok := secret.Data[ref[1]]
+		if !ok {
+			return fmt.Errorf("secret %s does not contain key %s", ref[0], ref[1])
+		}
+
+		config[k] = string(secretVal)
+	}
+
+	return nil
 }
 
 func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdentityProviderSpec,

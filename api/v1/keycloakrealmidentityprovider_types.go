@@ -24,6 +24,9 @@ type KeycloakRealmIdentityProviderSpec struct {
 	Alias string `json:"alias"`
 
 	// Config is a map of identity provider configuration.
+	// Map key is a name of configuration property, map value is a value of configuration property.
+	// Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.
+	// +kubebuilder:example={"clientId": "provider-client", "clientSecret": "$clientSecret:secretKey"}
 	Config map[string]string `json:"config"`
 
 	// Enabled is a flag to enable/disable identity provider.
