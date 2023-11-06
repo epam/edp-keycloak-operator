@@ -11,7 +11,7 @@ spec:
   providerId: "instagram"
   config:
     clientId: "foo"
-    clientSecret: "bar"
+    clientSecret: "$secretName:secretKey"
     hideOnLoginPage: "true"
     syncMode: "IMPORT"
     useJwksUrl: "true"

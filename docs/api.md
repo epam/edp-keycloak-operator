@@ -4838,7 +4838,7 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          Config is a map of identity provider configuration.<br/>
+          Config is a map of identity provider configuration. Map key is a name of configuration property, map value is a value of configuration property. Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.<br/>
         </td>
         <td>true</td>
       </tr><tr>
