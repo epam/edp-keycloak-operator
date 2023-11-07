@@ -118,8 +118,8 @@ func TestNewReconcile(t *testing.T) {
 		}, nil)
 	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(false, nil).Once()
-	kcAdapter.On("CreateIdentityProvider", realm.Spec.RealmName,
-		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
+	kcAdapter.On("CreateIdentityProvider", realm.Spec.RealmName, testifymock.Anything).
+		Return(nil).Once()
 	kcAdapter.On("GetIDPMappers", realm.Spec.RealmName, idp.Spec.Alias).
 		Return([]adapter.IdentityProviderMapper{
 			{
@@ -129,8 +129,7 @@ func TestNewReconcile(t *testing.T) {
 		}, nil)
 	kcAdapter.On("DeleteIDPMapper", realm.Spec.RealmName, idp.Spec.Alias, "mapper-id1").
 		Return(nil)
-	kcAdapter.On("CreateIDPMapper", realm.Spec.RealmName, idp.Spec.Alias,
-		&adapter.IdentityProviderMapper{Name: "mapper1", IdentityProviderAlias: idp.Spec.Alias}).
+	kcAdapter.On("CreateIDPMapper", realm.Spec.RealmName, idp.Spec.Alias, testifymock.Anything).
 		Return("mp1", nil)
 
 	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
@@ -149,8 +148,8 @@ func TestNewReconcile(t *testing.T) {
 
 	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(true, nil).Once()
-	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
-		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(nil).Once()
+	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName, testifymock.Anything).
+		Return(nil).Once()
 
 	_, err = r.Reconcile(ctrl.LoggerInto(context.Background(), l), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      idp.Name,
@@ -160,8 +159,8 @@ func TestNewReconcile(t *testing.T) {
 
 	kcAdapter.On("IdentityProviderExists", testifymock.Anything, realm.Spec.RealmName, idp.Spec.Alias).
 		Return(true, nil).Once()
-	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName,
-		&adapter.IdentityProvider{Alias: idp.Spec.Alias}).Return(errors.New("update idp fatal")).Once()
+	kcAdapter.On("UpdateIdentityProvider", realm.Spec.RealmName, testifymock.Anything).
+		Return(errors.New("update idp fatal")).Once()
 
 	idp.Status.Value = "unable to update idp: update idp fatal"
 	r.client = fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&idp).Build()
@@ -190,10 +189,11 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name    string
-		config  map[string]string
-		client  func(t *testing.T) client.Client
-		wantErr require.ErrorAssertionFunc
+		name       string
+		config     map[string]string
+		client     func(t *testing.T) client.Client
+		wantErr    require.ErrorAssertionFunc
+		wantConfig map[string]string
 	}{
 		{
 			name: "config with secret ref",
@@ -218,6 +218,28 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 				).Build()
 			},
 			wantErr: require.NoError,
+			wantConfig: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "secretValue",
+			},
+		},
+		{
+			name: "skip keycloak ref",
+			config: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "${client-secret.Data}",
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects().Build()
+			},
+			wantErr: require.NoError,
+			wantConfig: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "${client-secret.Data}",
+			},
 		},
 		{
 			name: "secret key not found",
@@ -243,6 +265,10 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "does not contain key")
 			},
+			wantConfig: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$client-secret:data",
+			},
 		},
 		{
 			name: "secret not found",
@@ -259,6 +285,10 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 			wantErr: func(t require.TestingT, err error, i ...interface{}) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get secret")
+			},
+			wantConfig: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$client-secret:data",
 			},
 		},
 		{
@@ -277,6 +307,10 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid config secret  reference")
 			},
+			wantConfig: map[string]string{
+				"clientId":     "provider-client",
+				"clientSecret": "$invalid-secret-ref",
+			},
 		},
 	}
 
@@ -287,6 +321,7 @@ func TestReconcile_mapConfigSecretsRefs(t *testing.T) {
 			}
 
 			tt.wantErr(t, r.mapConfigSecretsRefs(context.Background(), tt.config, "default"))
+			require.Equal(t, tt.wantConfig, tt.config)
 		})
 	}
 }
