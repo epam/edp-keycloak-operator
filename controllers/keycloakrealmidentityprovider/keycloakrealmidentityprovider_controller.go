@@ -9,6 +9,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -204,6 +205,11 @@ func (r *Reconcile) mapConfigSecretsRefs(ctx context.Context, config map[string]
 			continue
 		}
 
+		// Skip keycloak references format. This mapping is managed by the Keycloak service.
+		if strings.HasPrefix(v, "${") {
+			continue
+		}
+
 		ref := strings.Split(v[1:], ":")
 		if len(ref) != 2 {
 			return fmt.Errorf("invalid config secret  reference %s is not in format '$secretName:secretKey'", v)
@@ -260,17 +266,21 @@ func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdent
 }
 
 func createKeycloakIDPMapperFromSpec(spec *keycloakApi.IdentityProviderMapper) *adapter.IdentityProviderMapper {
-	return &adapter.IdentityProviderMapper{
+	m := &adapter.IdentityProviderMapper{
 		IdentityProviderMapper: spec.IdentityProviderMapper,
 		Name:                   spec.Name,
-		Config:                 spec.Config,
+		Config:                 make(map[string]string, len(spec.Config)),
 		IdentityProviderAlias:  spec.IdentityProviderAlias,
 	}
+
+	maps.Copy(m.Config, spec.Config)
+
+	return m
 }
 
 func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSpec) *adapter.IdentityProvider {
-	return &adapter.IdentityProvider{
-		Config:                    spec.Config,
+	p := &adapter.IdentityProvider{
+		Config:                    make(map[string]string, len(spec.Config)),
 		ProviderID:                spec.ProviderID,
 		Alias:                     spec.Alias,
 		Enabled:                   spec.Enabled,
@@ -282,4 +292,8 @@ func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSp
 		StoreToken:                spec.StoreToken,
 		TrustEmail:                spec.TrustEmail,
 	}
+
+	maps.Copy(p.Config, spec.Config)
+
+	return p
 }
