@@ -1,0 +1,28 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmIdentityProvider
+metadata:
+  name: keycloakrealmidentityprovider-sample
+spec:
+  enabled: true
+  providerId: instagram
+  alias: instagram
+  config:
+    clientId: foo
+    clientSecret: $secret-name:secretKey
+status:
+  value: "OK"
+
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmIdentityProvider
+metadata:
+  name: keycloakrealmidentityprovider-sample-with-pass
+spec:
+  enabled: true
+  providerId: facebook
+  alias: facebook
+  config:
+    clientId: bar
+    clientSecret: password-in-clear-form
+status:
+  value: "OK"
