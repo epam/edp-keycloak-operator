@@ -14,11 +14,12 @@ import (
 )
 
 type terminator struct {
-	realmName        string
-	realmCRName      string
-	kClient          keycloak.Client
-	k8sClient        client.Client
-	keycloakAuthFlow *adapter.KeycloakAuthFlow
+	realmName                   string
+	realmCRName                 string
+	kClient                     keycloak.Client
+	k8sClient                   client.Client
+	keycloakAuthFlow            *adapter.KeycloakAuthFlow
+	preserveResourcesOnDeletion bool
 }
 
 func makeTerminator(
@@ -27,18 +28,24 @@ func makeTerminator(
 	authFlow *adapter.KeycloakAuthFlow,
 	k8sClient client.Client,
 	kClient keycloak.Client,
+	preserveResourcesOnDeletion bool,
 ) *terminator {
 	return &terminator{
-		realmName:        realmName,
-		realmCRName:      realmCRName,
-		keycloakAuthFlow: authFlow,
-		kClient:          kClient,
-		k8sClient:        k8sClient,
+		realmName:                   realmName,
+		realmCRName:                 realmCRName,
+		keycloakAuthFlow:            authFlow,
+		kClient:                     kClient,
+		k8sClient:                   k8sClient,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("realm name", t.realmName, "flow alias", t.keycloakAuthFlow.Alias)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
 
 	var authFlowList keycloakApi.KeycloakAuthFlowList
 	if err := t.k8sClient.List(ctx, &authFlowList); err != nil {

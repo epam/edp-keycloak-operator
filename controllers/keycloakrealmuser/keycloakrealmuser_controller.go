@@ -23,6 +23,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const finalizer = "keycloak.realmuser.operator.finalizer.name"
@@ -172,7 +173,14 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 
 	if instance.Spec.KeepResource {
 		if _, err := r.helper.TryToDelete(ctx, instance,
-			makeTerminator(gocloak.PString(realm.Realm), instance.Spec.Username, kClient), finalizer); err != nil {
+			makeTerminator(
+				gocloak.PString(realm.Realm),
+				instance.Spec.Username,
+				kClient,
+				objectmeta.PreserveResourcesOnDeletion(instance),
+			),
+			finalizer,
+		); err != nil {
 			return errors.Wrap(err, "unable to set finalizers")
 		}
 	} else {

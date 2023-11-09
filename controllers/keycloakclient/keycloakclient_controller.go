@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 type Helper interface {
@@ -145,7 +146,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 	if _, err := r.helper.TryToDelete(
 		ctx,
 		keycloakClient,
-		makeTerminator(keycloakClient.Status.ClientID, realm, kClient),
+		makeTerminator(keycloakClient.Status.ClientID, realm, kClient, objectmeta.PreserveResourcesOnDeletion(keycloakClient)),
 		keyCloakClientOperatorFinalizerName,
 	); err != nil {
 		return pkgErrors.Wrap(err, "unable to delete kc client")

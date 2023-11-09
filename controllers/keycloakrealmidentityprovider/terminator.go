@@ -10,21 +10,28 @@ import (
 )
 
 type terminator struct {
-	realmName string
-	idpAlias  string
-	kClient   keycloak.Client
+	realmName                   string
+	idpAlias                    string
+	kClient                     keycloak.Client
+	preserveResourcesOnDeletion bool
 }
 
-func makeTerminator(realmName, idpAlias string, kClient keycloak.Client) *terminator {
+func makeTerminator(realmName, idpAlias string, kClient keycloak.Client, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		realmName: realmName,
-		idpAlias:  idpAlias,
-		kClient:   kClient,
+		realmName:                   realmName,
+		idpAlias:                    idpAlias,
+		kClient:                     kClient,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("keycloak_realm_idp_alias", t.idpAlias)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
 	log.Info("Start deleting keycloak realm idp")
 
 	if err := t.kClient.DeleteIdentityProvider(ctx, t.realmName, t.idpAlias); err != nil {

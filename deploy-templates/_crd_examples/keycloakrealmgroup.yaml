@@ -3,5 +3,7 @@ kind: KeycloakRealmGroup
 metadata:
   name: keycloakrealmgroup-sample
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   name: ArgoCDAdmins

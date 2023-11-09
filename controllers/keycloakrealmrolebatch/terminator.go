@@ -11,12 +11,18 @@ import (
 )
 
 type terminator struct {
-	client     client.Client
-	childRoles []keycloakApi.KeycloakRealmRole
+	client                      client.Client
+	childRoles                  []keycloakApi.KeycloakRealmRole
+	preserveResourcesOnDeletion bool
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
 	log.Info("Start deleting keycloak realm role batch")
 
 	for i := range t.childRoles {
@@ -30,9 +36,10 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	return nil
 }
 
-func makeTerminator(client client.Client, childRoles []keycloakApi.KeycloakRealmRole) *terminator {
+func makeTerminator(client client.Client, childRoles []keycloakApi.KeycloakRealmRole, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		client:     client,
-		childRoles: childRoles,
+		client:                      client,
+		childRoles:                  childRoles,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }

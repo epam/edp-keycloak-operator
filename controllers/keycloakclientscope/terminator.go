@@ -10,28 +10,34 @@ import (
 )
 
 type terminator struct {
-	realmName, scopeID string
-	kClient            keycloak.Client
+	realmName, scopeID          string
+	kClient                     keycloak.Client
+	preserveResourcesOnDeletion bool
 }
 
-func makeTerminator(kClient keycloak.Client, realmName, scopeID string) *terminator {
+func makeTerminator(kClient keycloak.Client, realmName, scopeID string, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		kClient:   kClient,
-		realmName: realmName,
-		scopeID:   scopeID,
+		kClient:                     kClient,
+		realmName:                   realmName,
+		scopeID:                     scopeID,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	logger := ctrl.LoggerFrom(ctx).WithValues("realm name", t.realmName, "scope id", t.scopeID)
+	log := ctrl.LoggerFrom(ctx).WithValues("realm name", t.realmName, "scope id", t.scopeID)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
 
-	logger.Info("Start deleting client scope")
+	log.Info("Start deleting client scope")
 
 	if err := t.kClient.DeleteClientScope(ctx, t.realmName, t.scopeID); err != nil {
 		return fmt.Errorf("failed to delete client scope: %w", err)
 	}
 
-	logger.Info("Client scope has been deleted")
+	log.Info("Client scope has been deleted")
 
 	return nil
 }

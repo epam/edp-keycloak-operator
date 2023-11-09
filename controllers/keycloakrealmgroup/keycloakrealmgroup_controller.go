@@ -18,6 +18,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const keyCloakRealmGroupOperatorFinalizerName = "keycloak.realmgroup.operator.finalizer.name"
@@ -139,7 +140,12 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	if _, err := r.helper.TryToDelete(
 		ctx,
 		keycloakRealmGroup,
-		makeTerminator(kClient, gocloak.PString(realm.Realm), keycloakRealmGroup.Spec.Name),
+		makeTerminator(
+			kClient,
+			gocloak.PString(realm.Realm),
+			keycloakRealmGroup.Spec.Name,
+			objectmeta.PreserveResourcesOnDeletion(keycloakRealmGroup),
+		),
 		keyCloakRealmGroupOperatorFinalizerName,
 	); err != nil {
 		return fmt.Errorf("failed to delete keycloak realm group: %w", err)

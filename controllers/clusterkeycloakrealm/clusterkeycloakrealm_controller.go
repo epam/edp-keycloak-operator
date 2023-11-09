@@ -16,6 +16,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/clusterkeycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 type Helper interface {
@@ -78,7 +79,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	if deleted, err := r.helper.TryToDelete(
 		ctx,
 		clusterRealm,
-		makeTerminator(clusterRealm.Spec.RealmName, kClient),
+		makeTerminator(clusterRealm.Spec.RealmName, kClient, objectmeta.PreserveResourcesOnDeletion(clusterRealm)),
 		keyCloakRealmOperatorFinalizerName,
 	); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to delete realm %w", err)

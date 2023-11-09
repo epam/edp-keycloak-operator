@@ -10,12 +10,18 @@ import (
 )
 
 type terminator struct {
-	realmName string
-	kClient   keycloak.Client
+	realmName                   string
+	kClient                     keycloak.Client
+	preserveResourcesOnDeletion bool
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
 	log.Info("Start deleting keycloak realm")
 
 	if err := t.kClient.DeleteRealm(ctx, t.realmName); err != nil {
@@ -27,9 +33,10 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	return nil
 }
 
-func makeTerminator(realmName string, kClient keycloak.Client) *terminator {
+func makeTerminator(realmName string, kClient keycloak.Client, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		realmName: realmName,
-		kClient:   kClient,
+		realmName:                   realmName,
+		kClient:                     kClient,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }

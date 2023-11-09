@@ -24,6 +24,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const finalizerName = "keycloak.realmidp.operator.finalizer.name"
@@ -174,7 +175,12 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 		return errors.Wrap(err, "unable to sync idp mappers")
 	}
 
-	term := makeTerminator(gocloak.PString(realm.Realm), keycloakRealmIDP.Spec.Alias, kClient)
+	term := makeTerminator(
+		gocloak.PString(realm.Realm),
+		keycloakRealmIDP.Spec.Alias,
+		kClient,
+		objectmeta.PreserveResourcesOnDeletion(keycloakRealmIDP),
+	)
 	if _, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName); err != nil {
 		return errors.Wrap(err, "unable to delete realm idp")
 	}

@@ -10,8 +10,10 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 var _ = Describe("KeycloakRealmComponent controller", func() {
@@ -27,8 +29,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component",
-				Realm:        KeycloakRealmCR,
+				Name: "test-keycloak-realm-component",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 			},
@@ -50,8 +55,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component-child",
-				Realm:        KeycloakRealmCR,
+				Name: "test-keycloak-realm-component-child",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 				ParentRef: &keycloakApi.ParentComponent{
@@ -77,8 +85,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component-with-parent-realm",
-				Realm:        KeycloakRealmCR,
+				Name: "test-keycloak-realm-component-with-parent-realm",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 				ParentRef: &keycloakApi.ParentComponent{
@@ -163,8 +174,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component-invalid-parent-component",
-				Realm:        KeycloakRealmCR,
+				Name: "test-keycloak-realm-component-invalid-parent-component",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 				ParentRef: &keycloakApi.ParentComponent{
@@ -196,8 +210,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component-invalid-parent-realm",
-				Realm:        KeycloakRealmCR,
+				Name: "test-keycloak-realm-component-invalid-parent-realm",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 				ParentRef: &keycloakApi.ParentComponent{
@@ -215,6 +232,45 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 			}
 
 			return createdComponent.Status.Value != helper.StatusOK
-		}, timeout, interval).Should(BeTrue(), "KeycloakRealmComponent with invalid parent realm should be in failed state")
+		}, time.Second*3, interval).Should(BeTrue(), "KeycloakRealmComponent with invalid parent realm should be in failed state")
+	})
+	It("Should skip keycloak resource removing if preserveResourcesOnDeletion is set", func() {
+		By("By creating a KeycloakRealmComponent")
+		component := &keycloakApi.KeycloakRealmComponent{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "component-with-preserve-resources-on-deletion",
+				Namespace: ns,
+				Annotations: map[string]string{
+					objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
+				},
+			},
+			Spec: keycloakApi.KeycloakComponentSpec{
+				Name: "component-with-preserve-resources-on-deletion",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				ProviderID:   "scope",
+				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
+			},
+		}
+		Expect(k8sClient.Create(ctx, component)).Should(Succeed())
+		Eventually(func() bool {
+			createdComponent := &keycloakApi.KeycloakRealmComponent{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: component.Name, Namespace: ns}, createdComponent)
+			if err != nil {
+				return false
+			}
+
+			return createdComponent.Status.Value == helper.StatusOK
+		}, timeout, interval).Should(BeTrue())
+		By("By deleting KeycloakRealmComponent")
+		Expect(k8sClient.Delete(ctx, component)).Should(Succeed())
+		Eventually(func() bool {
+			deletedComponent := &keycloakApi.KeycloakRealmComponent{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: component.Name, Namespace: ns}, deletedComponent)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "KeycloakRealmComponent with preserveResourcesOnDeletion annotation should be deleted")
 	})
 })

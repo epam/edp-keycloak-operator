@@ -2,6 +2,7 @@ package keycloakrealmidentityprovider
 
 import (
 	"fmt"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -14,6 +15,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
@@ -77,5 +79,51 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmIdentityProvider should be deleted")
+	})
+	It("Should skip keycloak resource removing if preserveResourcesOnDeletion is set", func() {
+		By("By creating a KeycloakRealmIdentityProvider")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "identity-provider-with-preserve-resources-on-deletion",
+				Namespace: ns,
+				Annotations: map[string]string{
+					objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
+				},
+			},
+			Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				ProviderID:                "instagram",
+				Alias:                     "identity-provider-with-preserve-resources-on-deletion",
+				Enabled:                   true,
+				DisplayName:               "New provider",
+				FirstBrokerLoginFlowAlias: "first broker login",
+				Config: map[string]string{
+					"clientId": "identity-provider-with-preserve-resources-on-deletion",
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, provider)).Should(Succeed())
+		Eventually(func() bool {
+			createdProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, createdProvider)
+			if err != nil {
+				return false
+			}
+
+			return createdProvider.Status.Value == helper.StatusOK
+		}, timeout, interval).Should(BeTrue())
+		By("By deleting KeycloakRealmIdentityProvider")
+		Expect(k8sClient.Delete(ctx, provider)).Should(Succeed())
+		By("Waiting for KeycloakRealmIdentityProvider to be deleted")
+		time.Sleep(time.Second * 2)
+		Eventually(func() bool {
+			deletedProvider := &keycloakApi.KeycloakRealmComponent{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, deletedProvider)
+
+			return k8sErrors.IsNotFound(err)
+		}).Should(BeTrue(), "KeycloakRealmIdentityProvider with preserveResourcesOnDeletion annotation should be deleted")
 	})
 })

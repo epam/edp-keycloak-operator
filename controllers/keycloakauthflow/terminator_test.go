@@ -28,7 +28,7 @@ func TestTerminator(t *testing.T) {
 
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
 
-	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient)
+	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient, false)
 
 	kClient.On("DeleteAuthFlow", "realm", &keycloakAuthFlow).Return(nil).Once()
 
@@ -39,6 +39,20 @@ func TestTerminator(t *testing.T) {
 
 	err = term.DeleteResource(context.Background())
 	require.Error(t, err)
+}
+
+func TestTerminatorSkipDeletion(t *testing.T) {
+	term := makeTerminator(
+		"realm",
+		"realmCR",
+		&adapter.KeycloakAuthFlow{},
+		nil,
+		nil,
+		true,
+	)
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 }
 
 func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
@@ -70,7 +84,7 @@ func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 	kClient := new(adapter.Mock)
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
 
-	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient)
+	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient, false)
 
 	kClient.On("DeleteAuthFlow", testifymock.Anything, testifymock.Anything).Return(nil).Once()
 

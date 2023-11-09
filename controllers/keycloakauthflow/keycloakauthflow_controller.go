@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const finalizerName = "keycloak.authflow.operator.finalizer.name"
@@ -150,7 +151,14 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	deleted, err := r.helper.TryToDelete(
 		ctx,
 		instance,
-		makeTerminator(gocloak.PString(realm.Realm), instance.GetRealmRef().Name, keycloakAuthFlow, r.client, kClient),
+		makeTerminator(
+			gocloak.PString(realm.Realm),
+			instance.GetRealmRef().Name,
+			keycloakAuthFlow,
+			r.client,
+			kClient,
+			objectmeta.PreserveResourcesOnDeletion(instance),
+		),
 		finalizerName,
 	)
 	if err != nil {

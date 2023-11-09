@@ -3,9 +3,9 @@ kind: KeycloakRealmRole
 metadata:
   name: keycloakrealmrole-sample
 spec:
-  attributes: null
   composite: true
-  composites: null
   description: default developer role
   name: developer
-  realm: main
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm

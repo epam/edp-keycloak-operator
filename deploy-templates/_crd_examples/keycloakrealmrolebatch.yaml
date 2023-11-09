@@ -3,7 +3,9 @@ kind: KeycloakRealmRoleBatch
 metadata:
   name: keycloakrealmrolebatch-sample
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   roles:
     - description: default qa role
       isDefault: false

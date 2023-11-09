@@ -17,7 +17,7 @@ func TestTerminator(t *testing.T) {
 	lg := mock.NewLogr()
 	kClient := new(adapter.Mock)
 
-	term := makeTerminator(kClient, "foo", "bar")
+	term := makeTerminator(kClient, "foo", "bar", false)
 
 	kClient.On("DeleteGroup", "foo", "bar").Return(nil).Once()
 
@@ -33,4 +33,16 @@ func TestTerminator(t *testing.T) {
 	loggerSink, ok := lg.GetSink().(*mock.Logger)
 	require.True(t, ok, "wrong logger type")
 	assert.NotEmpty(t, loggerSink.InfoMessages(), "no info messages logged")
+}
+
+func TestTerminatorSkipDeletion(t *testing.T) {
+	term := makeTerminator(
+		nil,
+		"realm",
+		"realmCR",
+		true,
+	)
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 }

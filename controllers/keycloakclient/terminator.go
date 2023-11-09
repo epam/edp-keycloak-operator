@@ -10,20 +10,27 @@ import (
 )
 
 type terminator struct {
-	clientID, realmName string
-	kClient             keycloak.Client
+	clientID, realmName         string
+	kClient                     keycloak.Client
+	preserveResourcesOnDeletion bool
 }
 
-func makeTerminator(clientID, realmName string, kClient keycloak.Client) *terminator {
+func makeTerminator(clientID, realmName string, kClient keycloak.Client, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		clientID:  clientID,
-		realmName: realmName,
-		kClient:   kClient,
+		clientID:                    clientID,
+		realmName:                   realmName,
+		kClient:                     kClient,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("client_id", t.clientID)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
 	log.Info("Start deleting keycloak client")
 
 	if err := t.kClient.DeleteClient(ctx, t.clientID, t.realmName); err != nil {
