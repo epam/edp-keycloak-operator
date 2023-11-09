@@ -22,6 +22,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.finalizer.name"
@@ -175,7 +176,12 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 	if _, err := r.helper.TryToDelete(
 		ctx,
 		keycloakRealmRole,
-		makeTerminator(gocloak.PString(realm.Realm), keycloakRealmRole.Spec.Name, kClient),
+		makeTerminator(
+			gocloak.PString(realm.Realm),
+			keycloakRealmRole.Spec.Name,
+			kClient,
+			objectmeta.PreserveResourcesOnDeletion(keycloakRealmRole),
+		),
 		keyCloakRealmRoleOperatorFinalizerName,
 	); err != nil {
 		return "", errors.Wrap(err, "unable to tryToDelete realm role")

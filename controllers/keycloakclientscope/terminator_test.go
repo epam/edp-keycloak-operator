@@ -17,7 +17,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	logger := mock.NewLogr()
 	kClient := new(adapter.Mock)
 	kClient.On("DeleteClientScope", "foo", "bar").Return(nil).Once()
-	term := makeTerminator(kClient, "foo", "bar")
+	term := makeTerminator(kClient, "foo", "bar", false)
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 
@@ -29,4 +29,16 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	if !strings.Contains(err.Error(), "failed to delete client scope") {
 		t.Fatalf("wrong error logged: %s", err.Error())
 	}
+}
+
+func TestTerminatorSkipDeletion(t *testing.T) {
+	term := makeTerminator(
+		nil,
+		"realm",
+		"scope",
+		true,
+	)
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 }

@@ -3,7 +3,9 @@ kind: KeycloakAuthFlow
 metadata:
   name: keycloakauthflow-sample
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   alias: MyBrowser
   description: browser flow
   providerId: basic-flow

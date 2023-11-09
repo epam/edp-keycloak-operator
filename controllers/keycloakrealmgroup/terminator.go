@@ -13,25 +13,32 @@ type terminator struct {
 	kClient keycloak.Client
 	realmName,
 	groupName string
+	preserveResourcesOnDeletion bool
 }
 
 func (t *terminator) DeleteResource(ctx context.Context) error {
-	logger := ctrl.LoggerFrom(ctx).WithValues("realm_name", t.realmName, "group_name", t.groupName)
-	logger.Info("Start deleting group")
+	log := ctrl.LoggerFrom(ctx).WithValues("realm_name", t.realmName, "group_name", t.groupName)
+	if t.preserveResourcesOnDeletion {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
+	log.Info("Start deleting group")
 
 	if err := t.kClient.DeleteGroup(ctx, t.realmName, t.groupName); err != nil {
 		return fmt.Errorf("unable to delete group %w", err)
 	}
 
-	logger.Info("Group has been deleted")
+	log.Info("Group has been deleted")
 
 	return nil
 }
 
-func makeTerminator(kClient keycloak.Client, realmName, groupName string) *terminator {
+func makeTerminator(kClient keycloak.Client, realmName, groupName string, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		kClient:   kClient,
-		realmName: realmName,
-		groupName: groupName,
+		kClient:                     kClient,
+		realmName:                   realmName,
+		groupName:                   groupName,
+		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
 }

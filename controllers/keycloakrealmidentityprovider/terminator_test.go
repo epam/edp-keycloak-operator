@@ -15,7 +15,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	kClient := adapter.Mock{}
 
 	kClient.On("DeleteIdentityProvider", "realm", "alias1").Return(nil).Once()
-	term := makeTerminator("realm", "alias1", &kClient)
+	term := makeTerminator("realm", "alias1", &kClient, false)
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 

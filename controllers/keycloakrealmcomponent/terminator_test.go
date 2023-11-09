@@ -15,7 +15,7 @@ func TestTerminator_DeleteResource(t *testing.T) {
 	)
 
 	kcAdapter.On("DeleteComponent", "foo", "bar").Return(nil)
-	term := makeTerminator("foo", "bar", &kcAdapter)
+	term := makeTerminator("foo", "bar", &kcAdapter, false)
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)
 }

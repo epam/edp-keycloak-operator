@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const finalizerName = "keycloak.clientscope.operator.finalizer.name"
@@ -155,7 +156,12 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	}
 
 	if _, err := r.helper.TryToDelete(ctx, instance,
-		makeTerminator(cl, gocloak.PString(realm.Realm), instance.Status.ID),
+		makeTerminator(
+			cl,
+			gocloak.PString(realm.Realm),
+			instance.Status.ID,
+			objectmeta.PreserveResourcesOnDeletion(instance),
+		),
 		finalizerName,
 	); err != nil {
 		return "", fmt.Errorf("unable to delete client scope: %w", err)

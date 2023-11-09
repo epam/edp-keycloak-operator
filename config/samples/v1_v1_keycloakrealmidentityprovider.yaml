@@ -3,7 +3,9 @@ kind: KeycloakRealmIdentityProvider
 metadata:
   name: keycloakrealmidentityprovider-sample
 spec:
-  realm: d2-id-k8s-realm-name
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   alias: instagram
   authenticateByDefault: false
   enabled: true

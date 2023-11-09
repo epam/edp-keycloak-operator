@@ -20,6 +20,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.operator.finalizer.name"
@@ -217,7 +218,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 	if _, err := r.helper.TryToDelete(
 		ctx,
 		batch,
-		makeTerminator(r.client, createdRoles),
+		makeTerminator(r.client, createdRoles, objectmeta.PreserveResourcesOnDeletion(batch)),
 		keyCloakRealmRoleBatchOperatorFinalizerName,
 	); err != nil {
 		return fmt.Errorf("unable to delete keycloak realm role batch: %w", err)

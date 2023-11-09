@@ -8,7 +8,9 @@ spec:
   directAccess: true
   public: false
   secret: ''
-  targetRealm: edp-main
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   webUrl: https://argocd.example.com
   defaultClientScopes:
     - argocd_groups

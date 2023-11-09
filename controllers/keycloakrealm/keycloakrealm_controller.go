@@ -20,6 +20,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const keyCloakRealmOperatorFinalizerName = "keycloak.realm.operator.finalizer.name"
@@ -134,7 +135,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 	deleted, err := r.helper.TryToDelete(
 		ctx,
 		realm,
-		makeTerminator(realm.Spec.RealmName, kClient),
+		makeTerminator(realm.Spec.RealmName, kClient, objectmeta.PreserveResourcesOnDeletion(realm)),
 		keyCloakRealmOperatorFinalizerName,
 	)
 	if err != nil {

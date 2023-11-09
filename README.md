@@ -89,7 +89,9 @@ To install the Keycloak Operator, follow the steps below:
     name: keycloakrealm-sample
    spec:
     realmName: realm-sample
-    keycloakOwner: keycloak-sample   # the name of `kind: Keycloak`
+    keycloakRef:
+      name: keycloak-sample
+      kind: Keycloak
     ```
 
     ```yaml
@@ -99,10 +101,29 @@ To install the Keycloak Operator, follow the steps below:
       name: argocd-admins
     spec:
       name: ArgoCDAdmins
-      realm: keycloakrealm-sample   # the name of `kind: KeycloakRealm`
+      realmRef:
+        name: keycloakrealm-sample
+        kind: KeycloakRealm
     ```
 
-    Inspect [available custom resource](./docs/arch.md) and [CR templates folder](./deploy-templates/_crd_examples/) for more examples
+    Inspect [available custom resource](./docs/arch.md) and [CR templates folder](./deploy-templates/_crd_examples/) for more examples.
+
+#### Preventing the operator from deleting resources
+To prevent the operator from deleting resources from keycloak, add the `edp.epam.com/preserve-resources-on-deletion: "true"` annotation to the resource.
+
+   ```yaml
+   apiVersion: v1.edp.epam.com/v1
+   kind: KeycloakRealm
+   metadata:
+    name: keycloakrealm-sample
+    annotations:
+      edp.epam.com/preserve-resources-on-deletion: "true"
+   spec:
+    realmName: realm-sample
+    keycloakRef:
+       name: keycloak-sample
+       kind: Keycloak
+   ```
 
 ## Local Development
 

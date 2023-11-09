@@ -9,7 +9,5 @@ metadata:
     app.kubernetes.io/created-by: edp-keycloak-operator
   name: clusterkeycloakrealm-sample
 spec:
-  keycloakRef:
-    kind: ClusterKeycloak
-    name: clusterkeycloak-sample
+  clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample

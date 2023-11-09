@@ -5,4 +5,6 @@ metadata:
 spec:
   description: developer role
   name: developer
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm

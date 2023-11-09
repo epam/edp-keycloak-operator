@@ -5,7 +5,9 @@ metadata:
 spec:
   id: d1-id-kc-realm-name
   realmName: d2-id-kc-realm-name
-  keycloakOwner: main
+  keycloakRef:
+    name: keycloak-sample
+    kind: Keycloak
   ssoRealmName: openshift
   ssoRealmEnabled: false # new one
   ssoAutoRedirectEnabled: false # new one

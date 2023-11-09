@@ -13,7 +13,7 @@ import (
 func TestTerminator(t *testing.T) {
 	kClient := new(adapter.Mock)
 
-	term := makeTerminator("realm", "client", kClient)
+	term := makeTerminator("realm", "client", kClient, false)
 
 	kClient.On("DeleteClient", "realm", "client").Return(nil).Once()
 
@@ -25,4 +25,16 @@ func TestTerminator(t *testing.T) {
 	if err := term.DeleteResource(context.Background()); err == nil {
 		t.Fatal("no error returned")
 	}
+}
+
+func TestTerminatorSkipDeletion(t *testing.T) {
+	term := makeTerminator(
+		"realm",
+		"client",
+		nil,
+		true,
+	)
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
 }

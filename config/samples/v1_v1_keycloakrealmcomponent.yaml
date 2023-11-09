@@ -3,7 +3,9 @@ kind: KeycloakRealmComponent
 metadata:
   name: keycloakrealmcomponent-sample
 spec:
-  realm: d1-id-k8s-realm-name
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   name: cr-kerb-test
   providerId: kerberos
   providerType: "org.keycloak.storage.UserStorageProvider"

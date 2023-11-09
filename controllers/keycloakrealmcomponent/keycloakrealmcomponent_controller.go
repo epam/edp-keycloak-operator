@@ -27,6 +27,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 const finalizerName = "keycloak.realmcomponent.operator.finalizer.name"
@@ -137,7 +138,12 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return ctrl.Result{}, fmt.Errorf("unable to get realm: %w", err)
 	}
 
-	term := makeTerminator(gocloak.PString(realm.Realm), keycloakRealmComponent.Spec.Name, kClient)
+	term := makeTerminator(
+		gocloak.PString(realm.Realm),
+		keycloakRealmComponent.Spec.Name,
+		kClient,
+		objectmeta.PreserveResourcesOnDeletion(keycloakRealmComponent),
+	)
 
 	if deleted, err := r.helper.TryToDelete(ctx, keycloakRealmComponent, term, finalizerName); err != nil {
 		return ctrl.Result{}, fmt.Errorf("unable to tryToDelete realm component %w", err)
