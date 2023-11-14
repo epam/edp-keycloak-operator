@@ -15,6 +15,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 var clientSecretName = "keycloak-client.%s.secret"
@@ -72,7 +73,7 @@ func (h PutKeycloakClientCR) ServeRequest(ctx context.Context, realm *keycloakAp
 			Namespace: realm.Namespace,
 		},
 		Spec: keycloakApi.KeycloakClientSpec{
-			Secret:      fmt.Sprintf(clientSecretName, realm.Spec.RealmName),
+			Secret:      secretref.GenerateSecretRef(fmt.Sprintf(clientSecretName, realm.Spec.RealmName), keycloakApi.ClientSecretKey),
 			TargetRealm: realm.Spec.SsoRealmName,
 			ClientId:    realm.Spec.RealmName,
 			ClientRoles: h.getClientRoles(realm),

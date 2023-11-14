@@ -2,118 +2,341 @@ package chain
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	testifyMock "github.com/stretchr/testify/mock"
-	v1 "k8s.io/api/apps/v1"
+	"github.com/go-logr/logr"
+	testifymock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes/scheme"
+	"k8s.io/apimachinery/pkg/runtime"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
 
 func TestPutClient_Serve(t *testing.T) {
-	logger := mock.NewLogr()
+	t.Parallel()
 
-	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
-		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main",
-			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
-				{Name: "fake-client-users", Composite: "developer"},
-			}, Public: false, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
-			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]keycloakApi.ProtocolMapper{
-				{Name: "bar", Config: map[string]string{"bar": "1"}},
-				{Name: "foo", Config: map[string]string{"foo": "2"}},
+	type fields struct {
+		client    func(t *testing.T) client.Client
+		secretRef func(t *testing.T) secretRef
+	}
+
+	type args struct {
+		keycloakClient client.ObjectKey
+		adapterClient  func(t *testing.T) keycloak.Client
+	}
+
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name: "create client with secret ref",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Secret:   secretref.GenerateSecretRef("client-secret", "secret"),
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					m := mocks.NewRefClient(t)
+
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+						Return("client-secret", nil)
+
+					return m
+				},
 			},
-		},
-	}
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := new(adapter.Mock)
 
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion,
-		&kc)
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("", adapter.NotFoundError("not found")).
+						Once()
 
-	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&kc).Build()
+					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
 
-	pc := PutClient{
-		BaseElement: BaseElement{
-			Logger: logger,
-			Client: client,
-			scheme: s,
-		},
-	}
-	kClient := new(adapter.Mock)
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
 
-	realmName := fmt.Sprintf("%s.%s", kc.Namespace, kc.Name)
-
-	kClient.On("UpdateClient", testifyMock.Anything).Return(nil).Once()
-	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("id1", nil).Once()
-
-	err := pc.Serve(context.Background(), &kc, kClient, realmName)
-
-	assert.NoError(t, err)
-
-	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("", adapter.NotFoundError("1")).Once()
-	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("1", nil).Once()
-	kClient.On("CreateClient", testifyMock.Anything).Return(nil)
-
-	err = pc.Serve(context.Background(), &kc, kClient, realmName)
-	assert.NoError(t, err)
-
-	kClient.AssertExpectations(t)
-}
-
-func TestPutClient_Serve_FailureToUpdateClient(t *testing.T) {
-	logger := mock.NewLogr()
-
-	kc := keycloakApi.KeycloakClient{ObjectMeta: metav1.ObjectMeta{Name: "main", Namespace: "namespace"},
-		Spec: keycloakApi.KeycloakClientSpec{TargetRealm: "namespace.main",
-			RealmRoles: &[]keycloakApi.RealmRole{{Name: "fake-client-administrators", Composite: "administrator"},
-				{Name: "fake-client-users", Composite: "developer"},
-			}, Public: false, ClientId: "fake-client", WebUrl: "fake-url", DirectAccess: false,
-			AdvancedProtocolMappers: true, ClientRoles: nil, ProtocolMappers: &[]keycloakApi.ProtocolMapper{
-				{Name: "bar", Config: map[string]string{"bar": "1"}},
-				{Name: "foo", Config: map[string]string{"foo": "2"}},
+					return m
+				},
 			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "create client with old secret format",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Secret:   "client-secret",
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					m := mocks.NewRefClient(t)
+
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+						Return("client-secret", nil)
+
+					return m
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := new(adapter.Mock)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("", adapter.NotFoundError("not found")).
+						Once()
+
+					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
+
+					return m
+				},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "create client with empty secret ref",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := new(adapter.Mock)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("", adapter.NotFoundError("not found")).
+						Once()
+
+					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
+
+					return m
+				},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "update client with secret ref",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Secret:   secretref.GenerateSecretRef("client-secret", "secret"),
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					m := mocks.NewRefClient(t)
+
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+						Return("client-secret", nil)
+
+					return m
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := new(adapter.Mock)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil).
+						Once()
+
+					m.On("UpdateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
+
+					return m
+				},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "create public client",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := new(adapter.Mock)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("", adapter.NotFoundError("not found")).
+						Once()
+
+					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
+
+					return m
+				},
+			},
+			wantErr: require.NoError,
 		},
 	}
 
-	s := scheme.Scheme
-	s.AddKnownTypes(v1.SchemeGroupVersion,
-		&kc)
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&kc).Build()
+			s := runtime.NewScheme()
+			require.NoError(t, keycloakApi.AddToScheme(s))
+			require.NoError(t, corev1.AddToScheme(s))
 
-	pc := PutClient{
-		BaseElement: BaseElement{
-			Logger: logger,
-			Client: client,
-			scheme: s,
-		},
+			cl := &keycloakApi.KeycloakClient{}
+			require.NoError(t, tt.fields.client(t).Get(context.Background(), tt.args.keycloakClient, cl))
+
+			el := &PutClient{
+				BaseElement: BaseElement{
+					Client: tt.fields.client(t),
+					scheme: s,
+				},
+				SecretRef: tt.fields.secretRef(t),
+			}
+			err := el.Serve(
+				ctrl.LoggerInto(context.Background(), logr.Discard()),
+				cl,
+				tt.args.adapterClient(t),
+				"realm",
+			)
+			tt.wantErr(t, err)
+		})
 	}
-	kClient := new(adapter.Mock)
-
-	realmName := fmt.Sprintf("%s.%s", kc.Namespace, kc.Name)
-
-	updateErr := errors.New("update-err")
-
-	kClient.On("GetClientID", kc.Spec.ClientId, realmName).Return("id1", nil).Once()
-	kClient.On("UpdateClient", testifyMock.Anything).Return(updateErr).Once()
-
-	err := pc.Serve(context.Background(), &kc, kClient, realmName)
-	assert.ErrorIs(t, err, updateErr)
-
-	kClient.AssertExpectations(t)
-
-	kc.Spec.Secret = "sec"
-	kc.Spec.Public = false
-
-	pc.BaseElement.Client = fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&kc).Build()
-	err = pc.Serve(context.Background(), &kc, kClient, realmName)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "secrets \"sec\" not found")
 }

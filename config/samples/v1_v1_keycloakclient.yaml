@@ -7,7 +7,7 @@ spec:
   clientId: agocd
   directAccess: true
   public: false
-  secret: ''
+  secret: $client-secret-name:client-secret-key
   realmRef:
     name: keycloakrealm-sample
     kind: KeycloakRealm

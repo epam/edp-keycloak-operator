@@ -3744,7 +3744,7 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>secret</b></td>
         <td>string</td>
         <td>
-          Secret is a client secret used for authentication. If not provided, it will be generated.<br/>
+          Secret is kubernetes secret name where the client's secret will be stored. Secret should have the following format: $secretName:secretKey. If not specified, a client secret will be generated and stored in a secret with the name keycloak-client-{metadata.name}-secret. If keycloak client is public, secret property will be ignored.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3990,13 +3990,6 @@ KeycloakClientStatus defines the observed state of KeycloakClient.
     </thead>
     <tbody><tr>
         <td><b>clientId</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>clientSecretName</b></td>
         <td>string</td>
         <td>
           <br/>

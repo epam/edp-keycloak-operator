@@ -29,8 +29,12 @@ type KeycloakClientSpec struct {
 	// +optional
 	RealmRef common.RealmRef `json:"realmRef"`
 
-	// Secret is a client secret used for authentication. If not provided, it will be generated.
+	// Secret is kubernetes secret name where the client's secret will be stored.
+	// Secret should have the following format: $secretName:secretKey.
+	// If not specified, a client secret will be generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
+	// If keycloak client is public, secret property will be ignored.
 	// +optional
+	// +kubebuilder:example="$keycloak-secret:client_secret"
 	Secret string `json:"secret,omitempty"`
 
 	// RealmRoles is a list of realm roles assigned to client.
@@ -173,9 +177,6 @@ type KeycloakClientStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
-
-	// +optional
-	ClientSecretName string `json:"clientSecretName,omitempty"`
 }
 
 // +kubebuilder:object:root=true

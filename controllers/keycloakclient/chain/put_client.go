@@ -5,16 +5,18 @@ import (
 	"fmt"
 
 	"github.com/sethvargo/go-password/password"
-	coreV1 "k8s.io/api/core/v1"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const (
@@ -23,9 +25,15 @@ const (
 	passwordSymbols = 0
 )
 
+// secretRef is an interface for getting secret from ref.
+type secretRef interface {
+	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error)
+}
+
 type PutClient struct {
 	BaseElement
-	next Element
+	SecretRef secretRef
+	next      Element
 }
 
 func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
@@ -41,8 +49,8 @@ func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.Keyc
 }
 
 func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) (string, error) {
-	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
-	reqLog.Info("Start put keycloak client...")
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Start creation of Keycloak client")
 
 	clientDto, err := el.convertCrToDto(ctx, keycloakClient, realmName)
 	if err != nil {
@@ -55,7 +63,7 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 	}
 
 	if clientID != "" {
-		reqLog.Info("Client already exists")
+		log.Info("Client already exists")
 
 		clientDto.ID = clientID
 		if updErr := adapterClient.UpdateClient(ctx, clientDto); updErr != nil {
@@ -70,7 +78,7 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 		return "", fmt.Errorf("unable to create client: %w", err)
 	}
 
-	reqLog.Info("End put keycloak client")
+	log.Info("End put keycloak client")
 
 	id, err := adapterClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
 	if err != nil {
@@ -86,56 +94,57 @@ func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloa
 		return res, nil
 	}
 
-	if keycloakClient.Spec.Secret != "" {
-		secret, err := el.getSecret(ctx, keycloakClient)
-		if err != nil {
-			return nil, fmt.Errorf("unable to get secret, err: %w", err)
-		}
-
-		return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName), nil
-	}
-
-	secret, err := el.generateSecret(ctx, keycloakClient)
+	secret, err := el.getSecret(ctx, keycloakClient)
 	if err != nil {
-		return nil, fmt.Errorf("unable to generate secret: %w", err)
+		return nil, fmt.Errorf("unable to get secret, err: %w", err)
 	}
 
 	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName), nil
 }
 
 func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
-	var clientSecret coreV1.Secret
+	if keycloakClient.Spec.Secret != "" {
+		// We need to set secret in a new format for old clients for backward compatibility.
+		// TODO: This code can be removed in the future.
+		if !secretref.HasSecretRef(keycloakClient.Spec.Secret) {
+			if err := el.setSecretRef(ctx, keycloakClient); err != nil {
+				return "", err
+			}
+		}
 
-	if err := el.Client.Get(ctx, types.NamespacedName{
-		Name:      keycloakClient.Spec.Secret,
-		Namespace: keycloakClient.Namespace,
-	}, &clientSecret); err != nil {
-		return "", fmt.Errorf("unable to get client secret, secret name: %s, err: %w",
-			keycloakClient.Spec.Secret, err)
+		secretVal, err := el.SecretRef.GetSecretFromRef(ctx, keycloakClient.Spec.Secret, keycloakClient.Namespace)
+		if err != nil {
+			return "", fmt.Errorf("unable to get secret from ref: %w", err)
+		}
+
+		return secretVal, nil
 	}
 
-	return string(clientSecret.Data[keycloakApi.ClientSecretKey]), nil
+	return el.generateSecret(ctx, keycloakClient)
 }
 
 func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
-	var clientSecret coreV1.Secret
+	var clientSecret corev1.Secret
 
 	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
 
-	err := el.Client.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace,
+	secretErr := el.Client.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace,
 		Name: secretName}, &clientSecret)
-	if err != nil && !k8sErrors.IsNotFound(err) {
-		return "", fmt.Errorf("unable to check client secret existance: %w", err)
+	if secretErr != nil && !k8sErrors.IsNotFound(secretErr) {
+		return "", fmt.Errorf("unable to check client secret existance: %w", secretErr)
 	}
 
-	if k8sErrors.IsNotFound(err) {
-		clientSecret = coreV1.Secret{
+	pass, err := password.Generate(passwordLength, passwordDigits, passwordSymbols, true, true)
+	if err != nil {
+		return "", fmt.Errorf("unable to generate password: %w", err)
+	}
+
+	if k8sErrors.IsNotFound(secretErr) {
+		clientSecret = corev1.Secret{
 			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
 				Name: secretName},
 			Data: map[string][]byte{
-				keycloakApi.ClientSecretKey: []byte(
-					password.MustGenerate(passwordLength, passwordDigits, passwordSymbols, true, true),
-				),
+				keycloakApi.ClientSecretKey: []byte(pass),
 			},
 		}
 
@@ -148,12 +157,22 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 		}
 	}
 
-	keycloakClient.Status.ClientSecretName = clientSecret.Name
-	keycloakClient.Spec.Secret = clientSecret.Name
+	keycloakClient.Spec.Secret = secretref.GenerateSecretRef(clientSecret.Name, keycloakApi.ClientSecretKey)
 
 	if err := el.Client.Update(ctx, keycloakClient); err != nil {
 		return "", fmt.Errorf("unable to update client with new secret: %s, err: %w", clientSecret.Name, err)
 	}
 
 	return string(clientSecret.Data[keycloakApi.ClientSecretKey]), nil
+}
+
+func (el *PutClient) setSecretRef(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) error {
+	ref := secretref.GenerateSecretRef(keycloakClient.Spec.Secret, keycloakApi.ClientSecretKey)
+	keycloakClient.Spec.Secret = ref
+
+	if err := el.Client.Update(ctx, keycloakClient); err != nil {
+		return fmt.Errorf("unable to update client with secret ref %s: %w", ref, err)
+	}
+
+	return nil
 }
