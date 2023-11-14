@@ -151,8 +151,12 @@ spec:
                 nullable: true
                 type: array
               secret:
-                description: Secret is a client secret used for authentication. If
-                  not provided, it will be generated.
+                description: 'Secret is kubernetes secret name where the client''s
+                  secret will be stored. Secret should have the following format:
+                  $secretName:secretKey. If not specified, a client secret will be
+                  generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
+                  If keycloak client is public, secret property will be ignored.'
+                example: $keycloak-secret:client_secret
                 type: string
               serviceAccount:
                 description: ServiceAccount is a service account configuration.
@@ -211,8 +215,6 @@ spec:
             description: KeycloakClientStatus defines the observed state of KeycloakClient.
             properties:
               clientId:
-                type: string
-              clientSecretName:
                 type: string
               failureCount:
                 format: int64

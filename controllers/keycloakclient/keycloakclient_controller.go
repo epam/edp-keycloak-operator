@@ -83,9 +83,6 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	var instance keycloakApi.KeycloakClient
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			// Request object not found, could have been deleted after reconcile request.
-			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
-			// Return and don't requeue
 			return
 		}
 

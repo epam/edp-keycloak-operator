@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -16,9 +15,14 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
+type secretRef interface {
+	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error)
+}
+
 type PutIdentityProvider struct {
-	next   handler.RealmHandler
-	client client.Client
+	next      handler.RealmHandler
+	client    client.Client
+	SecretRef secretRef
 }
 
 func (h PutIdentityProvider) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
@@ -73,17 +77,14 @@ func (h PutIdentityProvider) setupIdentityProvider(
 		return nil
 	}
 
-	s := &coreV1.Secret{}
-	if err := h.client.Get(ctx, types.NamespacedName{
-		Name:      cl.Spec.Secret,
-		Namespace: cl.Namespace,
-	}, s); err != nil {
-		return errors.Wrapf(err, "unable to get secret: %s", cl.Spec.Secret)
+	secret, err := h.SecretRef.GetSecretFromRef(ctx, cl.Spec.Secret, cl.Namespace)
+	if err != nil {
+		return fmt.Errorf("unable to get secret from ref: %w", err)
 	}
 
 	if err := kClient.CreateCentralIdentityProvider(rDto, &dto.Client{
 		ClientId:     realm.Spec.RealmName,
-		ClientSecret: string(s.Data[keycloakApi.ClientSecretKey]),
+		ClientSecret: secret,
 	}); err != nil {
 		return errors.Wrap(err, "unable to create central identity provider")
 	}

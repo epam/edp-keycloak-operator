@@ -1,4 +1,4 @@
-package keycloakrealmidentityprovider
+package keycloakclient
 
 import (
 	"context"
@@ -26,7 +26,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloak"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm"
-	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 var (
@@ -40,20 +39,20 @@ var (
 const (
 	KeycloakCR      = "test-keycloak"
 	KeycloakRealmCR = "test-keycloak-realm"
-	ns              = "test-identity-provider"
+	ns              = "test-client"
 
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 )
 
-func TestKeycloakIdentityProvider(t *testing.T) {
+func TestKeycloakClient(t *testing.T) {
 	RegisterFailHandler(Fail)
 
 	if os.Getenv("TEST_KEYCLOAK_URL") == "" {
 		t.Skip("TEST_KEYCLOAK_URL is not set")
 	}
 
-	RunSpecs(t, "KeycloakRealmIdentityProvider Controller Suite")
+	RunSpecs(t, "KeycloakClient Controller Suite")
 }
 
 var _ = BeforeSuite(func() {
@@ -97,7 +96,7 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcile(k8sManager.GetClient(), h, secretref.NewSecretRef(k8sManager.GetClient())).
+	err = NewReconcileKeycloakClient(k8sManager.GetClient(), h, scheme).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 

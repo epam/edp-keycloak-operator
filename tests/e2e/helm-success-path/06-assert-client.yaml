@@ -1,0 +1,21 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakClient
+metadata:
+  name: keycloakclient-sample
+spec:
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample
+  clientId: keycloakclient-sample
+  secret: $client-secret-name:clientSecretKey
+  webUrl: https://keycloakclient-sample.com
+  attributes:
+    post.logout.redirect.uris: "+"
+  clientRoles:
+    - administrator
+    - developer
+  redirectUris:
+    - https://keycloakclient-sample.com
+    - https://keycloakclient-sample.com/*
+status:
+  value: "OK"
