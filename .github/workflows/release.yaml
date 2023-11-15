@@ -28,15 +28,54 @@ jobs:
       - name: Check if the published tag is well formed and setup vars
         run: |
           set -xue
-            # refs/tags/v2.10.7 -> v2.10.7
-            RELEASE_TAG="${SOURCE_TAG##*/}"
 
-            # install git-chglog
-            go install github.com/git-chglog/git-chglog/cmd/git-chglog@latest
+          # refs/tags/v2.10.7 -> v2.10.7
+          RELEASE_TAG="${SOURCE_TAG##*/}"
+          # install git-chglog
+          go install github.com/git-chglog/git-chglog/cmd/git-chglog@latest
+          # install crane
+          go install github.com/google/go-containerregistry/cmd/crane@v0.16.1
+          # install rekor-cli
+          go install github.com/sigstore/rekor/cmd/rekor-cli@v1.3.3
 
-            git-chglog --template .chglog/release.tpl.md -o release.md ${RELEASE_TAG}
+          git-chglog --template .chglog/release.tpl.md -o release.md ${RELEASE_TAG}
 
-            echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
+          # Extract image name and tag from RELEASE_TAG
+          IMAGE_NAME="epamedp/keycloak-operator"
+          IMAGE_TAG=${RELEASE_TAG#v}
+
+          # Get the digest of the image
+          DIGEST=$(crane digest ${IMAGE_NAME}:${IMAGE_TAG} | tr ':' '-')
+
+          # Get the digest of the attestation layer
+          ATTESTATION_DIGEST=$(crane manifest ${IMAGE_NAME}:${DIGEST}.att | jq -r '.layers[].digest')
+
+          # Get the digest of the signature layer
+          SIGNATURE_DIGEST=$(crane manifest ${IMAGE_NAME}:${DIGEST}.sig | jq -r '.layers[].digest')
+
+          # Search for the UUID of the attestation in JSON format
+          ATTESTATION_UUID_JSON=$(rekor-cli search --sha ${ATTESTATION_DIGEST} --format json)
+
+          # Search for the UUID of the signature in JSON format
+          SIGNATURE_UUID_JSON=$(rekor-cli search --sha ${SIGNATURE_DIGEST} --format json)
+
+          # Parse the JSON output to get the UUIDs
+          ATTESTATION_UUID=$(echo ${ATTESTATION_UUID_JSON} | jq -r '.UUIDs[0]')
+          SIGNATURE_UUID=$(echo ${SIGNATURE_UUID_JSON} | jq -r '.UUIDs[0]')
+
+          # Create a new file with the desired text and the UUIDs
+          echo "### Deployment Certifications and Source Traceability" > new_release.md
+          echo "EDP container images bear [cosign](https://github.com/sigstore/cosign) signatures. Refer to the [documentation](https://epam.github.io/edp-install/operator-guide/artifacts-verification/) for instructions on verification." >> new_release.md
+          echo "The Rekor UUID's for this release is \`${ATTESTATION_UUID}\` - attestation and" >> new_release.md
+          echo "\`${SIGNATURE_UUID}\` - signature" >> new_release.md
+
+          # Append the contents of release.md to new_release.md
+          cat release.md >> new_release.md
+
+          # Move new_release.md to release.md
+          mv new_release.md release.md
+
+          echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
       - name: Create GitHub release
         uses: actions/create-release@v1
