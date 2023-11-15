@@ -5,7 +5,7 @@ metadata:
     alm-examples: '[]'
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.17.1
+    containerImage: docker.io/epamedp/keycloak-operator:1.18.2
     description: An Operator for managing Keycloak
     repository: https://github.com/epam/edp-keycloak-operator
   name: edp-keycloak-operator.v0.0.0
@@ -180,4 +180,4 @@ spec:
   provider:
     name: EPAM Delivery Platform
     url: https://epam.github.io/edp-install/
-  version: 1.17.1
+  version: 1.18.2
