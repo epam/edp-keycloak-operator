@@ -19,3 +19,33 @@ spec:
     - https://keycloakclient-sample.com/*
 status:
   value: "OK"
+
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakClient
+metadata:
+  name: keycloakclient-nosecret
+spec:
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample
+  clientId: keycloakclient-nosecret
+  secret: $keycloak-client-keycloakclient-nosecret-secret:clientSecret
+  webUrl: https://keycloakclient-sample.com
+  attributes:
+    post.logout.redirect.uris: "+"
+  clientRoles:
+    - administrator
+    - developer
+  redirectUris:
+    - https://keycloakclient-sample.com
+    - https://keycloakclient-sample.com/*
+status:
+  value: "OK"
+---
+#keycloak-client-keycloakclient-nosecret-secret:clientSecret
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-client-keycloakclient-nosecret-secret
+type: Opaque
