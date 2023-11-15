@@ -135,9 +135,27 @@ spec:
                 - full
                 - addOnly
                 type: string
+              redirectUris:
+                description: RedirectUris is a list of valid URI pattern a browser
+                  can redirect to after a successful login. Simple wildcards are allowed
+                  such as 'https://example.com/*'. Relative path can be specified
+                  too, such as /my/relative/path/*. Relative paths are relative to
+                  the client root URL. If not specified, spec.webUrl + "/*" will be
+                  used.
+                example:
+                - https://example.com/*
+                - /my/relative/path/*
+                items:
+                  type: string
+                nullable: true
+                type: array
               secret:
-                description: Secret is a client secret used for authentication. If
-                  not provided, it will be generated.
+                description: 'Secret is kubernetes secret name where the client''s
+                  secret will be stored. Secret should have the following format:
+                  $secretName:secretKey. If not specified, a client secret will be
+                  generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
+                  If keycloak client is public, secret property will be ignored.'
+                example: $keycloak-secret:client_secret
                 type: string
               serviceAccount:
                 description: ServiceAccount is a service account configuration.
@@ -196,8 +214,6 @@ spec:
             description: KeycloakClientStatus defines the observed state of KeycloakClient.
             properties:
               clientId:
-                type: string
-              clientSecretName:
                 type: string
               failureCount:
                 format: int64

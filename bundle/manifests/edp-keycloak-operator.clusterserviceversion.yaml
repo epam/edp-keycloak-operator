@@ -44,7 +44,10 @@ metadata:
             "builtIn": false,
             "description": "browser with idp",
             "providerId": "basic-flow",
-            "realm": "d2-id-k8s-realm-name",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            },
             "topLevel": true
           }
         },
@@ -62,8 +65,11 @@ metadata:
             ],
             "directAccess": true,
             "public": false,
-            "secret": "",
-            "targetRealm": "edp-main",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            },
+            "secret": "$client-secret-name:client-secret-key",
             "webUrl": "https://argocd.example.com"
           }
         },
@@ -91,7 +97,10 @@ metadata:
                 "protocolMapper": "oidc-group-membership-mapper"
               }
             ],
-            "realm": "main"
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
           }
         },
         {
@@ -102,7 +111,10 @@ metadata:
           },
           "spec": {
             "id": "d1-id-kc-realm-name",
-            "keycloakOwner": "main",
+            "keycloakRef": {
+              "kind": "Keycloak",
+              "name": "keycloak-sample"
+            },
             "passwordPolicy": [
               {
                 "type": "forceExpiredPasswordChange",
@@ -183,7 +195,10 @@ metadata:
             "name": "cr-kerb-test",
             "providerId": "kerberos",
             "providerType": "org.keycloak.storage.UserStorageProvider",
-            "realm": "d1-id-k8s-realm-name"
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
           }
         },
         {
@@ -193,9 +208,11 @@ metadata:
             "name": "keycloakrealmgroup-sample"
           },
           "spec": {
-            "clientRoles": null,
             "name": "ArgoCDAdmins",
-            "realm": "main"
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
           }
         },
         {
@@ -209,7 +226,7 @@ metadata:
             "authenticateByDefault": false,
             "config": {
               "clientId": "foo",
-              "clientSecret": "bar",
+              "clientSecret": "$secretName:secretKey",
               "hideOnLoginPage": "true",
               "syncMode": "IMPORT",
               "useJwksUrl": "true"
@@ -238,7 +255,10 @@ metadata:
               }
             ],
             "providerId": "instagram",
-            "realm": "d2-id-k8s-realm-name"
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
           }
         },
         {
@@ -248,12 +268,13 @@ metadata:
             "name": "keycloakrealmrole-sample"
           },
           "spec": {
-            "attributes": null,
             "composite": true,
-            "composites": null,
             "description": "default developer role",
             "name": "developer",
-            "realm": "main"
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
           }
         },
         {
@@ -263,20 +284,19 @@ metadata:
             "name": "keycloakrealmrolebatch-sample"
           },
           "spec": {
-            "realm": "main",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            },
             "roles": [
               {
-                "attributes": null,
                 "composite": true,
-                "composites": null,
                 "description": "default developer role",
                 "isDefault": false,
                 "name": "developer"
               },
               {
-                "attributes": null,
                 "composite": true,
-                "composites": null,
                 "description": "default administrator role",
                 "isDefault": false,
                 "name": "administrator"
@@ -302,7 +322,10 @@ metadata:
             "keepResource": true,
             "lastName": "Snow",
             "password": "12345678",
-            "realm": "d1-id-k8s-realm-name",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            },
             "requiredUserActions": [
               "UPDATE_PASSWORD"
             ],
@@ -341,23 +364,20 @@ metadata:
             "name": "clusterkeycloakrealm-sample"
           },
           "spec": {
-            "keycloakRef": {
-              "kind": "ClusterKeycloak",
-              "name": "clusterkeycloak-sample"
-            },
+            "clusterKeycloakRef": "clusterkeycloak-sample",
             "realmName": "realm-sample"
           }
         }
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.17.1
-    createdAt: "2023-09-04T10:22:58Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.19.0
+    createdAt: "2023-11-15T16:04:45Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.31.0
+    operators.operatorframework.io/builder: operator-sdk-v1.32.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
-  name: edp-keycloak-operator.v1.17.1
+  name: edp-keycloak-operator.v1.19.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -527,7 +547,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.17.1
+                image: docker.io/epamedp/keycloak-operator:1.19.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -894,7 +914,7 @@ spec:
     type: SingleNamespace
   - supported: false
     type: MultiNamespace
-  - supported: false
+  - supported: true
     type: AllNamespaces
   keywords:
   - authentication
@@ -918,4 +938,4 @@ spec:
   provider:
     name: EPAM Delivery Platform
     url: https://epam.github.io/edp-install/
-  version: 1.17.1
+  version: 1.19.0

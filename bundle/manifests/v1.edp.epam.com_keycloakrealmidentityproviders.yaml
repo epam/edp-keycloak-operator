@@ -49,7 +49,13 @@ spec:
               config:
                 additionalProperties:
                   type: string
-                description: Config is a map of identity provider configuration.
+                description: Config is a map of identity provider configuration. Map
+                  key is a name of configuration property, map value is a value of
+                  configuration property. Any value can be a reference to k8s secret,
+                  in this case value should be in format $secretName:secretKey.
+                example:
+                  clientId: provider-client
+                  clientSecret: $clientSecret:secretKey
                 type: object
               displayName:
                 description: DisplayName is a display name of identity provider.
