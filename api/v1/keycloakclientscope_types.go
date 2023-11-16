@@ -57,6 +57,7 @@ type KeycloakClientScopeStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
 
 // KeycloakClientScope is the Schema for the keycloakclientscopes API.
 type KeycloakClientScope struct {

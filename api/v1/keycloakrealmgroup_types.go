@@ -86,6 +86,7 @@ func (in *KeycloakRealmGroup) GetRealmRef() common.RealmRef {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
 
 // KeycloakRealmGroup is the Schema for the keycloak group API.
 type KeycloakRealmGroup struct {
