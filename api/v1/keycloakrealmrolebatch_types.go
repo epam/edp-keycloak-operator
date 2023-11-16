@@ -62,6 +62,7 @@ type KeycloakRealmRoleBatchStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
 
 // KeycloakRealmRoleBatch is the Schema for the keycloak roles API.
 type KeycloakRealmRoleBatch struct {

@@ -205,6 +205,7 @@ func (in *KeycloakRealm) SetFailureCount(count int64) {
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Available",type="boolean",JSONPath=".status.available",description="Is the resource available"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
 
 // KeycloakRealm is the Schema for the keycloak realms API.
 type KeycloakRealm struct {
