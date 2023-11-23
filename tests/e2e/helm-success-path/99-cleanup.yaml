@@ -1,6 +1,8 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
+  - command: kubectl delete keycloakrealmrole keycloakrealmrole-sample
+    namespaced: true
   - command: kubectl delete keycloakclient keycloakclient-sample keycloakclient-nosecret
     namespaced: true
   - command: kubectl delete keycloakrealmidentityprovider keycloakrealmidentityprovider-sample keycloakrealmidentityprovider-sample-with-pass
