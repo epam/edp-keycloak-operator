@@ -1,0 +1,11 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmRole
+metadata:
+  name: keycloakrealmrole-sample
+spec:
+  description: developer role
+  name: developer
+  isDefault: true
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample

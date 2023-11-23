@@ -16,6 +16,7 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 
@@ -506,7 +507,7 @@ func TestGoCloakAdapter_SyncRealmRole_Duplicated(t *testing.T) {
 
 	role := dto.PrimaryRealmRole{Name: "role1"}
 
-	err := adapter.SyncRealmRole("realm1", &role)
+	err := adapter.SyncRealmRole(context.Background(), "realm1", &role)
 	if err == nil {
 		t.Fatal("no error returned on duplicated role")
 	}
@@ -539,17 +540,13 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	mockClient.On("GetRealmRole", realmName, *compositeBar.Name).Return(&compositeBar, nil)
 	mockClient.On("AddRealmRoleComposite", realmName, roleName,
 		[]gocloak.Role{compositeFoo, compositeBar}).
-		Return(nil)
+		Return(nil).Once()
 	mockClient.On("DeleteRealmRoleComposite", realmName, roleName, []gocloak.Role{
 		composite1,
 	}).Return(nil)
 	mockClient.On("UpdateRealmRole", realmName, roleName, currentRole).Return(nil)
-
-	realm := gocloak.RealmRepresentation{}
-	updatedRealm := gocloak.RealmRepresentation{DefaultRoles: &[]string{roleName}}
-
-	mockClient.On("GetRealm", "token", realmName).Return(&realm, nil)
-	mockClient.On("UpdateRealm", updatedRealm).Return(nil)
+	mockClient.On("AddRealmRoleComposite", realmName, GetDefaultCompositeRoleName(realmName), testifymock.Anything).
+		Return(nil).Once()
 
 	adapter := GoCloakAdapter{
 		client:   &mockClient,
@@ -563,7 +560,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 			"foo": []string{"foo", "bar"},
 		}, IsDefault: true, ID: gocloak.StringP("id321")}
 
-	if err := adapter.SyncRealmRole(realmName, &role); err != nil {
+	if err := adapter.SyncRealmRole(context.Background(), realmName, &role); err != nil {
 		require.NoError(t, err)
 	}
 }

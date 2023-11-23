@@ -185,8 +185,8 @@ func (m *Mock) SyncClientProtocolMapper(
 	return m.Called(client, crMappers, addOnly).Error(0)
 }
 
-func (m *Mock) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
-	return m.Called(realmName, role).Error(0)
+func (m *Mock) SyncRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
+	return m.Called(ctx, realmName, role).Error(0)
 }
 
 func (m *Mock) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,

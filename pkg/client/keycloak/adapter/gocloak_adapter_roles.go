@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
@@ -21,12 +22,12 @@ func IsErrDuplicated(err error) bool {
 	return errors.As(err, &errDuplicate)
 }
 
-func (a GoCloakAdapter) SyncRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
+func (a GoCloakAdapter) SyncRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
 	if err := a.createOrUpdateRealmRole(realmName, role); err != nil {
 		return errors.Wrap(err, "error during createOrUpdateRealmRole")
 	}
 
-	if err := a.makeRoleDefault(realmName, role); err != nil {
+	if err := a.makeRoleDefault(ctx, realmName, role); err != nil {
 		return errors.Wrap(err, "error during makeRoleDefault")
 	}
 
@@ -151,34 +152,31 @@ func (a GoCloakAdapter) syncCreateNewComposites(realmName string, role *dto.Prim
 	return nil
 }
 
-func (a GoCloakAdapter) makeRoleDefault(realmName string, role *dto.PrimaryRealmRole) error {
+func (a GoCloakAdapter) makeRoleDefault(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
 	if !role.IsDefault {
 		return nil
 	}
 
-	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
-	if err != nil {
-		return errors.Wrapf(err, "unable to get realm: %s", realmName)
-	}
-
-	if realm.DefaultRoles == nil {
-		realm.DefaultRoles = &[]string{}
-	}
-
-	defaultRoles := *realm.DefaultRoles
-
-	for _, dRole := range defaultRoles {
-		if dRole == role.Name {
-			return nil
-		}
-	}
-
-	defaultRoles = append(defaultRoles, role.Name)
-	realm.DefaultRoles = &defaultRoles
-
-	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
-		return errors.Wrap(err, "unable to update realm")
+	if err := a.client.AddRealmRoleComposite(
+		ctx,
+		a.token.AccessToken,
+		realmName,
+		GetDefaultCompositeRoleName(realmName),
+		[]gocloak.Role{
+			{
+				ID:   role.ID,
+				Name: &role.Name,
+			},
+		},
+	); err != nil {
+		return fmt.Errorf("failed to make the role default: %w", err)
 	}
 
 	return nil
+}
+
+// GetDefaultCompositeRoleName returns the name of the composite role, which stores all default roles for the given realm.
+// The name is generated according to the Keycloak documentation: https://www.keycloak.org/docs/22.0.5/release_notes/#default-roles-processing-improvement
+func GetDefaultCompositeRoleName(realmName string) string {
+	return "default-roles-" + realmName
 }
