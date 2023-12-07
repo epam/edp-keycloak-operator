@@ -77,6 +77,10 @@ spec:
                 description: FrontChannelLogout is a flag to enable front channel
                   logout.
                 type: boolean
+              implicitFlowEnabled:
+                description: ImplicitFlowEnabled is a flag to enable support for OpenID
+                  Connect redirect based authentication without authorization code.
+                type: boolean
               protocol:
                 description: Protocol is a client protocol.
                 nullable: true

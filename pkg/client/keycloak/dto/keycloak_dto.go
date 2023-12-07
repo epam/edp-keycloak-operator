@@ -80,6 +80,7 @@ type Client struct {
 	AdvancedProtocolMappers bool
 	ServiceAccountEnabled   bool
 	FrontChannelLogout      bool
+	ImplicitFlowEnabled     bool
 	RedirectUris            []string
 	WebOrigins              []string
 }

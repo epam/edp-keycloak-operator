@@ -88,6 +88,10 @@ type KeycloakClientSpec struct {
 	// +optional
 	FrontChannelLogout bool `json:"frontChannelLogout,omitempty"`
 
+	// ImplicitFlowEnabled is a flag to enable support for OpenID Connect redirect based authentication without authorization code.
+	// +optional
+	ImplicitFlowEnabled bool `json:"implicitFlowEnabled,omitempty"`
+
 	// ReconciliationStrategy is a strategy to reconcile client.
 	// +kubebuilder:validation:Enum=full;addOnly
 	// +optional
