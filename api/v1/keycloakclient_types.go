@@ -106,6 +106,15 @@ type KeycloakClientSpec struct {
 	// +optional
 	// +kubebuilder:example={"https://example.com/*", "/my/relative/path/*"}
 	RedirectUris []string `json:"redirectUris,omitempty"`
+
+	// WebOrigins is a list of allowed CORS origins.
+	// To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though.
+	// To permit all origins, explicitly add '*'.
+	// If not specified, the value from `WebUrl` is used
+	// +nullable
+	// +optional
+	// +kubebuilder:example={"https://example.com/*", "/my/relative/path/*"}
+	WebOrigins []string `json:"webOrigins,omitempty"`
 }
 
 type ServiceAccount struct {

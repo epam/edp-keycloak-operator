@@ -81,6 +81,7 @@ type Client struct {
 	ServiceAccountEnabled   bool
 	FrontChannelLogout      bool
 	RedirectUris            []string
+	WebOrigins              []string
 }
 
 type PrimaryRealmRole struct {

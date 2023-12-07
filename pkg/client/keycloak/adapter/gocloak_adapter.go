@@ -578,9 +578,7 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		RedirectURIs: &[]string{
 			client.WebUrl + "/*",
 		},
-		WebOrigins: &[]string{
-			client.WebUrl,
-		},
+		WebOrigins:             &client.WebOrigins,
 		AdminURL:               &client.WebUrl,
 		ProtocolMappers:        &protocolMappers,
 		ServiceAccountsEnabled: &client.ServiceAccountEnabled,
