@@ -106,6 +106,62 @@ type KeycloakClientSpec struct {
 	// +optional
 	// +kubebuilder:example={"https://example.com/*", "/my/relative/path/*"}
 	RedirectUris []string `json:"redirectUris,omitempty"`
+
+	// WebOrigins is a list of allowed CORS origins.
+	// To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though.
+	// To permit all origins, explicitly add '*'.
+	// If not specified, the value from `WebUrl` is used
+	// +nullable
+	// +optional
+	// +kubebuilder:example={"https://example.com/*"}
+	WebOrigins []string `json:"webOrigins,omitempty"`
+
+	// ImplicitFlowEnabled is a flag to enable support for OpenID Connect redirect based authentication without authorization code.
+	// +optional
+	ImplicitFlowEnabled bool `json:"implicitFlowEnabled,omitempty"`
+
+	// ServiceAccountsEnabled enable/disable fine-grained authorization support for a client.
+	// +optional
+	AuthorizationServicesEnabled bool `json:"authorizationServicesEnabled,omitempty"`
+
+	// BearerOnly is a flag to enable bearer-only.
+	// +optional
+	BearerOnly bool `json:"bearerOnly,omitempty"`
+
+	// ClientAuthenticatorType is a client authenticator type.
+	// +optional
+	// +kubebuilder:default="client-secret"
+	ClientAuthenticatorType string `json:"clientAuthenticatorType,omitempty"`
+
+	// ConsentRequired is a flag to enable consent.
+	// +optional
+	ConsentRequired bool `json:"consentRequired,omitempty"`
+
+	// Description is a client description.
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// Enabled is a flag to enable client.
+	// +optional
+	// +kubebuilder:default=true
+	Enabled bool `json:"enabled,omitempty"`
+
+	// FullScopeAllowed is a flag to enable full scope.
+	// +optional
+	// +kubebuilder:default=true
+	FullScopeAllowed bool `json:"fullScopeAllowed,omitempty"`
+
+	// Name is a client name.
+	// +optional
+	Name string `json:"name,omitempty"`
+
+	// StandardFlowEnabled is a flag to enable standard flow.
+	// +optional
+	// +kubebuilder:default=true
+	StandardFlowEnabled bool `json:"standardFlowEnabled,omitempty"`
+
+	// SurrogateAuthRequired is a flag to enable surrogate auth.
+	SurrogateAuthRequired bool `json:"surrogateAuthRequired,omitempty"`
 }
 
 type ServiceAccount struct {
