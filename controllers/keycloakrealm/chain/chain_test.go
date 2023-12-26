@@ -77,7 +77,7 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(false, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
+		ClientSecret: "test"}).
 		Return(nil)
 
 	hm := helpermock.NewControllerHelper(t)
@@ -144,7 +144,7 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
+		ClientSecret: "test"}).
 		Return(nil)
 	kClient.On("ExistRealmUser", "openshift", &realmUser).Return(true, nil)
 	kClient.On("HasUserClientRole", "openshift", "test.test", &realmUser, "foo").
@@ -207,7 +207,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
 	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test", RealmRole: dto.IncludedRealmRole{}}).
+		ClientSecret: "test"}).
 		Return(nil)
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}

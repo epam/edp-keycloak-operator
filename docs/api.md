@@ -3662,10 +3662,40 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>authorizationServicesEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          ServiceAccountsEnabled enable/disable fine-grained authorization support for a client.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>bearerOnly</b></td>
+        <td>boolean</td>
+        <td>
+          BearerOnly is a flag to enable bearer-only.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>clientAuthenticatorType</b></td>
+        <td>string</td>
+        <td>
+          ClientAuthenticatorType is a client authenticator type.<br/>
+          <br/>
+            <i>Default</i>: client-secret<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>clientRoles</b></td>
         <td>[]string</td>
         <td>
           ClientRoles is a list of client roles names assigned to client.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>consentRequired</b></td>
+        <td>boolean</td>
+        <td>
+          ConsentRequired is a flag to enable consent.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3676,6 +3706,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is a client description.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>directAccess</b></td>
         <td>boolean</td>
         <td>
@@ -3683,10 +3720,42 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          Enabled is a flag to enable client.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>frontChannelLogout</b></td>
         <td>boolean</td>
         <td>
           FrontChannelLogout is a flag to enable front channel logout.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>fullScopeAllowed</b></td>
+        <td>boolean</td>
+        <td>
+          FullScopeAllowed is a flag to enable full scope.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>implicitFlowEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          ImplicitFlowEnabled is a flag to enable support for OpenID Connect redirect based authentication without authorization code.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a client name.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3755,10 +3824,33 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>standardFlowEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          StandardFlowEnabled is a flag to enable standard flow.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>surrogateAuthRequired</b></td>
+        <td>boolean</td>
+        <td>
+          SurrogateAuthRequired is a flag to enable surrogate auth.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>targetRealm</b></td>
         <td>string</td>
         <td>
           Deprecated: use RealmRef instead. TargetRealm is a realm name where client will be created. It has higher priority than RealmRef for backward compatibility. If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>webOrigins</b></td>
+        <td>[]string</td>
+        <td>
+          WebOrigins is a list of allowed CORS origins. To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though. To permit all origins, explicitly add '*'. If not specified, the value from `WebUrl` is used<br/>
         </td>
         <td>false</td>
       </tr><tr>

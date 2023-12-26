@@ -179,6 +179,14 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 		updated = true
 	}
 
+	if keycloakClient.Spec.WebOrigins == nil {
+		keycloakClient.Spec.WebOrigins = []string{
+			keycloakClient.Spec.WebUrl,
+		}
+
+		updated = true
+	}
+
 	if updated {
 		if err := r.client.Update(ctx, keycloakClient); err != nil {
 			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
