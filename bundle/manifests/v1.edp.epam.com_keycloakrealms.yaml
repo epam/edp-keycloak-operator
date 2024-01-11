@@ -19,6 +19,10 @@ spec:
       jsonPath: .status.available
       name: Available
       type: boolean
+    - description: Reconcilation status
+      jsonPath: .status.value
+      name: Status
+      type: string
     name: v1
     schema:
       openAPIV3Schema:
