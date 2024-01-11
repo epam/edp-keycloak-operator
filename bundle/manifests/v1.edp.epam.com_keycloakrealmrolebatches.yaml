@@ -14,7 +14,12 @@ spec:
     singular: keycloakrealmrolebatch
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: Reconcilation status
+      jsonPath: .status.value
+      name: Status
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: KeycloakRealmRoleBatch is the Schema for the keycloak roles API.

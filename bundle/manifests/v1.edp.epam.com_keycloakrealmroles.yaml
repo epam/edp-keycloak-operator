@@ -14,7 +14,12 @@ spec:
     singular: keycloakrealmrole
   scope: Namespaced
   versions:
-  - name: v1
+  - additionalPrinterColumns:
+    - description: Reconcilation status
+      jsonPath: .status.value
+      name: Status
+      type: string
+    name: v1
     schema:
       openAPIV3Schema:
         description: KeycloakRealmRole is the Schema for the keycloak group API.
