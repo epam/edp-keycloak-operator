@@ -1,7 +1,18 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.20.0"></a>
+## [v1.20.0] - 2024-01-11
+### Features
+- Add missing fields to KeycloakClient ([#24](https://github.com/epam/edp-keycloak-operator/issues/24))
+
+### Bug Fixes
+- The default realm role is no longer works ([#22](https://github.com/epam/edp-keycloak-operator/issues/22))
+
 ### Routine
+- Add printcolumn status for all custom resources ([#23](https://github.com/epam/edp-keycloak-operator/issues/23))
+- Update current development version ([#23](https://github.com/epam/edp-keycloak-operator/issues/23))
 - Generate bundle for OperatorHub v1.19.0 ([#23](https://github.com/epam/edp-keycloak-operator/issues/23))
 
 
@@ -61,7 +72,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.19.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.20.0...HEAD
+[v1.20.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.19.0...v1.20.0
 [v1.19.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.18.2...v1.19.0
 [v1.18.2]: https://github.com/epam/edp-keycloak-operator/compare/v1.18.1...v1.18.2
 [v1.18.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.18.0...v1.18.1
