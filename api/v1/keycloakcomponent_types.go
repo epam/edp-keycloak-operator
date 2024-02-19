@@ -33,6 +33,9 @@ type KeycloakComponentSpec struct {
 	ParentRef *ParentComponent `json:"parentRef,omitempty"`
 
 	// Config is a map of component configuration.
+	// Map key is a name of configuration property, map value is an array value of configuration properties.
+	// Any configuration property can be a reference to k8s secret, in this case the property should be in format $secretName:secretKey.
+	// +kubebuilder:example={"bindDn": ["provider-client"], "bindCredential": ["$clientSecret:secretKey"]}
 	// +nullable
 	// +optional
 	Config map[string][]string `json:"config,omitempty"`

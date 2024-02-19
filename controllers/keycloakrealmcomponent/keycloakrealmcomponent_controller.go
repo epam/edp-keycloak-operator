@@ -40,18 +40,24 @@ type Helper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
+type RefClient interface {
+	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error
+}
+
 type Reconcile struct {
 	client                  client.Client
 	helper                  Helper
+	secretRefClient         RefClient
 	successReconcileTimeout time.Duration
 	scheme                  *runtime.Scheme
 }
 
-func NewReconcile(client client.Client, scheme *runtime.Scheme, helper Helper) *Reconcile {
+func NewReconcile(client client.Client, scheme *runtime.Scheme, helper Helper, secretRefClient RefClient) *Reconcile {
 	return &Reconcile{
-		client: client,
-		scheme: scheme,
-		helper: helper,
+		client:          client,
+		scheme:          scheme,
+		helper:          helper,
+		secretRefClient: secretRefClient,
 	}
 }
 
@@ -184,6 +190,10 @@ func (r *Reconcile) tryReconcile(
 		return fmt.Errorf("unable to create keycloak component: %w", err)
 	}
 
+	if err = r.secretRefClient.MapComponentConfigSecretsRefs(ctx, keycloakComponent.Config, keycloakRealmComponent.Namespace); err != nil {
+		return fmt.Errorf("unable to map config secrets: %w", err)
+	}
+
 	cmp, err := kClient.GetComponent(ctx, realmName, keycloakRealmComponent.Spec.Name)
 	if err != nil {
 		if !adapter.IsErrNotFound(err) {
@@ -214,9 +224,14 @@ func (r *Reconcile) createKeycloakComponent(
 ) (*adapter.Component, error) {
 	ksComponent := &adapter.Component{
 		Name:         component.Spec.Name,
-		Config:       component.Spec.Config,
+		Config:       make(map[string][]string),
 		ProviderID:   component.Spec.ProviderID,
 		ProviderType: component.Spec.ProviderType,
+	}
+
+	for k, v := range component.Spec.Config {
+		ksComponent.Config[k] = make([]string, len(v))
+		copy(ksComponent.Config[k], v)
 	}
 
 	parenID, err := r.getParentID(ctx, component, kcRealmName, kClient)

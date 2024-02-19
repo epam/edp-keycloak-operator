@@ -17,6 +17,7 @@ const (
 //go:generate mockery --name RefClient --filename ref_mock.go
 type RefClient interface {
 	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error
+	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error
 	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error)
 }
 
@@ -43,6 +44,26 @@ func (s *SecretRef) MapConfigSecretsRefs(ctx context.Context, config map[string]
 		}
 
 		config[k] = secretVal
+	}
+
+	return nil
+}
+
+// MapConfigSecretsRefs maps secret references in config map to actual values.
+func (s *SecretRef) MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error {
+	for k, values := range config {
+		for i, v := range values {
+			if !HasSecretRef(v) {
+				continue
+			}
+
+			secretVal, err := s.GetSecretFromRef(ctx, v, namespace)
+			if err != nil {
+				return err
+			}
+
+			config[k][i] = secretVal
+		}
 	}
 
 	return nil
