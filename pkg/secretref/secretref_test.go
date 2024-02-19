@@ -13,6 +13,145 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 )
 
+func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name       string
+		config     map[string][]string
+		client     func(t *testing.T) client.Client
+		wantErr    require.ErrorAssertionFunc
+		wantConfig map[string][]string
+	}{
+		{
+			name: "config with secret ref",
+			config: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$bind-credential:data"},
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bind-credential",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"data": []byte("secretValue"),
+						},
+					},
+				).Build()
+			},
+			wantErr: require.NoError,
+			wantConfig: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"secretValue"},
+			},
+		},
+		{
+			name: "skip keycloak ref",
+			config: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"${bind-credential.Data}"},
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects().Build()
+			},
+			wantErr: require.NoError,
+			wantConfig: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"${bind-credential.Data}"},
+			},
+		},
+		{
+			name: "secret key not found",
+			config: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$bind-credential:data"},
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "bind-credential",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{},
+					},
+				).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "does not contain key")
+			},
+			wantConfig: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$bind-credential:data"},
+			},
+		},
+		{
+			name: "secret not found",
+			config: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$bind-credential:data"},
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to get secret")
+			},
+			wantConfig: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$bind-credential:data"},
+			},
+		},
+		{
+			name: "invalid secret ref format",
+			config: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$invalid-secret-ref"},
+			},
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).Build()
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "invalid config secret  reference")
+			},
+			wantConfig: map[string][]string{
+				"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+				"bindCredential": {"$invalid-secret-ref"},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := NewSecretRef(tt.client(t))
+
+			tt.wantErr(t, s.MapComponentConfigSecretsRefs(context.Background(), tt.config, "default"))
+			require.Equal(t, tt.wantConfig, tt.config)
+		})
+	}
+}
+
 func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 	t.Parallel()
 

@@ -4457,7 +4457,7 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
         <td><b>config</b></td>
         <td>map[string][]string</td>
         <td>
-          Config is a map of component configuration.<br/>
+          Config is a map of component configuration. Map key is a name of configuration property, map value is an array value of configuration properties. Any configuration property can be a reference to k8s secret, in this case the property should be in format $secretName:secretKey.<br/>
         </td>
         <td>false</td>
       </tr><tr>
