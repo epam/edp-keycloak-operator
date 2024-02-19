@@ -25,6 +25,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloak"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 var (
@@ -95,7 +96,7 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h).
+	err = NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h, secretref.NewSecretRef(k8sManager.GetClient())).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 

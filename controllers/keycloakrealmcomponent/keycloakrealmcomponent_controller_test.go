@@ -26,6 +26,7 @@ import (
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 func TestReconcile_Reconcile(t *testing.T) {
@@ -54,7 +55,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: "ns",
 				OwnerReferences: []metav1.OwnerReference{{Name: "keycloak1", Kind: "Keycloak"}}},
 			Spec: keycloakApi.KeycloakRealmSpec{RealmName: "realm11"}}
-		testComp = adapter.Component{ID: "component-id1", Name: comp.Spec.Name}
+		testComp = adapter.Component{ID: "component-id1", Name: comp.Spec.Name, Config: make(map[string][]string)}
 	)
 
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
@@ -71,7 +72,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
 	kcAdapter.On("UpdateComponent", realm.Spec.RealmName, &testComp).Return(nil)
 
-	r := NewReconcile(client, sch, h)
+	r := NewReconcile(client, sch, h, secretref.NewSecretRef(client))
 
 	res, err := r.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      comp.Name,
