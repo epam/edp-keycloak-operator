@@ -6,20 +6,20 @@ require (
 	github.com/Nerzal/gocloak/v12 v12.0.0
 	github.com/epam/edp-common v0.0.0-20230104131608-33d095012fe8
 	github.com/go-logr/logr v1.2.3
-	github.com/go-resty/resty/v2 v2.7.0
-	github.com/google/uuid v1.1.2
-	github.com/jarcoal/httpmock v1.2.0
+	github.com/go-resty/resty/v2 v2.11.0
+	github.com/google/uuid v1.6.0
+	github.com/jarcoal/httpmock v1.3.1
 	github.com/onsi/ginkgo/v2 v2.6.0
 	github.com/onsi/gomega v1.24.1
 	github.com/pkg/errors v0.9.1
 	github.com/sethvargo/go-password v0.2.0
-	github.com/stretchr/testify v1.8.1
-	golang.org/x/exp v0.0.0-20231006140011-7918f672742d
-	k8s.io/api v0.26.1
-	k8s.io/apimachinery v0.26.1
-	k8s.io/client-go v0.26.1
+	github.com/stretchr/testify v1.8.4
+	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
+	k8s.io/api v0.26.10
+	k8s.io/apimachinery v0.26.10
+	k8s.io/client-go v0.26.10
 	k8s.io/utils v0.0.0-20221128185143-99ec85e7a448
-	sigs.k8s.io/controller-runtime v0.14.6
+	sigs.k8s.io/controller-runtime v0.14.7
 )
 
 require (
@@ -73,8 +73,8 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
-	k8s.io/apiextensions-apiserver v0.26.1 // indirect
-	k8s.io/component-base v0.26.1 // indirect
+	k8s.io/apiextensions-apiserver v0.26.10 // indirect
+	k8s.io/component-base v0.26.10 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20221207184640-f3cff1453715 // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
