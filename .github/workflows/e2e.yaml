@@ -3,8 +3,6 @@ name: "Run End-to-end tests"
 on:
   push:
     branches: [ master ]
-  pull_request:
-    branches: [ master ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
@@ -25,23 +23,40 @@ jobs:
        - "1.27"
 
     steps:
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: "1.20"
 
-    - name: Set up Go
-      uses: actions/setup-go@v4
-      with:
-        go-version: "1.20"
+      - name: Check out code into the Go module directory
+        uses: actions/checkout@v4
 
-    - name: Check out code into the Go module directory
-      uses: actions/checkout@v4
+      - name: Get cache
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
-    - name: "install kuttl"
-      run: ./hack/install-kuttl.sh
+      - name: "install kuttl"
+        run: ./hack/install-kuttl.sh
 
-    - name: "run tests"
-      env:
-        KUBE_VERSION: ${{ matrix.kube-version }}
-      run: make start-kind KUBE_VERSION=$KUBE_VERSION && make e2e
+      - name: "run tests"
+        env:
+          KUBE_VERSION: ${{ matrix.kube-version }}
+        run: make start-kind KUBE_VERSION=$KUBE_VERSION && make e2e
 
+      - name: Save cache
+        id: cache-save
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
   e2e-tests-check:
     runs-on: ubuntu-20.04
     if: always()
