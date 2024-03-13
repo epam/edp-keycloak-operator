@@ -372,9 +372,9 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.20.0
-    createdAt: "2024-01-11T17:09:13Z"
+    createdAt: "2024-03-13T09:59:01Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.33.0
+    operators.operatorframework.io/builder: operator-sdk-v1.34.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
   name: edp-keycloak-operator.v1.20.0
@@ -516,6 +516,61 @@ spec:
     mediatype: image/png
   install:
     spec:
+      clusterPermissions:
+      - rules:
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloakrealms
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloakrealms/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloakrealms/status
+          verbs:
+          - get
+          - patch
+          - update
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloaks
+          verbs:
+          - create
+          - delete
+          - get
+          - list
+          - patch
+          - update
+          - watch
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloaks/finalizers
+          verbs:
+          - update
+        - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - clusterkeycloaks/status
+          verbs:
+          - get
+          - patch
+          - update
+        serviceAccountName: edp-keycloak-operator-controller-manager
       deployments:
       - label:
           control-plane: controller-manager
