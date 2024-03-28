@@ -15,11 +15,12 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
-	adapter, mockClient, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter(t)
 
 	settings := RealmSettings{
 		Themes: &RealmThemes{
@@ -41,7 +42,7 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"test": "dets",
 		},
 	}
-	mockClient.On("GetRealm", adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.On("GetRealm", mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
 
 	updateRealm := gocloak.RealmRepresentation{
 		LoginTheme: settings.Themes.LoginTheme,
@@ -54,14 +55,14 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			"frontendUrl": settings.FrontendURL,
 		},
 	}
-	mockClient.On("UpdateRealm", updateRealm).Return(nil)
+	mockClient.On("UpdateRealm", mock.Anything, "token", updateRealm).Return(nil)
 
 	err := adapter.UpdateRealmSettings(realmName, &settings)
 	require.NoError(t, err)
 }
 
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
-	adapter, mockClient, restyClient := initAdapter()
+	adapter, mockClient, restyClient := initAdapter(t)
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 
 	currentMapperID := "mp1id"
@@ -80,7 +81,7 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 
 	idpAlias := "alias-1"
 
-	mockClient.On("GetRealm", adapter.token.AccessToken, *realm.Realm).Return(&realm, nil)
+	mockClient.On("GetRealm", mock.Anything, adapter.token.AccessToken, *realm.Realm).Return(&realm, nil)
 
 	httpmock.RegisterResponder(
 		"POST",
@@ -113,14 +114,14 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
-	adapter, mockClient, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter(t)
 	r := dto.Realm{}
 
-	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("id1", nil).Once()
+	mockClient.On("CreateRealm", mock.Anything, "token", getDefaultRealm(&r)).Return("id1", nil).Once()
 	err := adapter.CreateRealmWithDefaultConfig(&r)
 	require.NoError(t, err)
 
-	mockClient.On("CreateRealm", getDefaultRealm(&r)).Return("",
+	mockClient.On("CreateRealm", mock.Anything, "token", getDefaultRealm(&r)).Return("",
 		errors.New("create realm fatal")).Once()
 
 	err = adapter.CreateRealmWithDefaultConfig(&r)
@@ -132,14 +133,14 @@ func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
-	adapter, mockClient, _ := initAdapter()
+	adapter, mockClient, _ := initAdapter(t)
 
-	mockClient.On("DeleteRealm", "test-realm1").Return(nil).Once()
+	mockClient.On("DeleteRealm", mock.Anything, "token", "test-realm1").Return(nil).Once()
 
 	err := adapter.DeleteRealm(context.Background(), "test-realm1")
 	require.NoError(t, err)
 
-	mockClient.On("DeleteRealm", "test-realm2").Return(errors.New("delete fatal")).Once()
+	mockClient.On("DeleteRealm", mock.Anything, "token", "test-realm2").Return(errors.New("delete fatal")).Once()
 
 	err = adapter.DeleteRealm(context.Background(), "test-realm2")
 	require.Error(t, err)
@@ -161,8 +162,8 @@ func TestGoCloakAdapter_GetRealm(t *testing.T) {
 		{
 			name: "realm exists",
 			client: func(t *testing.T) GoCloak {
-				m := new(MockGoCloakClient)
-				m.On("GetRealm", mock.Anything, mock.Anything).
+				m := mocks.NewMockGoCloak(t)
+				m.On("GetRealm", mock.Anything, "token", mock.Anything, mock.Anything).
 					Return(&gocloak.RealmRepresentation{
 						ID: gocloak.StringP("realmId"),
 					}, nil)
@@ -177,8 +178,8 @@ func TestGoCloakAdapter_GetRealm(t *testing.T) {
 		{
 			name: "realm does not exist",
 			client: func(t *testing.T) GoCloak {
-				m := new(MockGoCloakClient)
-				m.On("GetRealm", mock.Anything, mock.Anything).
+				m := mocks.NewMockGoCloak(t)
+				m.On("GetRealm", mock.Anything, "token", mock.Anything, mock.Anything).
 					Return(nil, errors.New("realm not found"))
 
 				return m

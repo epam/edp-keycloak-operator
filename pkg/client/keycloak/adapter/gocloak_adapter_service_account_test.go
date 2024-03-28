@@ -4,11 +4,14 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 )
 
 func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
+	mockClient := mocks.NewMockGoCloak(t)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -31,8 +34,8 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 		},
 	}
 
-	mockClient.On("GetClientServiceAccount", "realm1", "clientID1").Return(&usr1, nil)
-	mockClient.On("UpdateUser", "realm1", usr2).Return(nil)
+	mockClient.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
+	mockClient.On("UpdateUser", mock.Anything, "token", "realm1", usr2).Return(nil)
 
 	err := adapter.SetServiceAccountAttributes("realm1", "clientID1",
 		map[string]string{"foo": "bar"}, true)

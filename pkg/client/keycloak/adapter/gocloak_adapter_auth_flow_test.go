@@ -13,14 +13,17 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 )
 
 type ExecFlowTestSuite struct {
 	suite.Suite
 	restyClient       *resty.Client
-	goCloakMockClient *MockGoCloakClient
+	goCloakMockClient *mocks.MockGoCloak
 	adapter           *GoCloakAdapter
 	realmName         string
 }
@@ -29,8 +32,8 @@ func (e *ExecFlowTestSuite) SetupTest() {
 	e.restyClient = resty.New()
 	httpmock.ActivateNonDefault(e.restyClient.GetClient())
 
-	e.goCloakMockClient = new(MockGoCloakClient)
-	e.goCloakMockClient.On("RestyClient").Return(e.restyClient)
+	e.goCloakMockClient = mocks.NewMockGoCloak(e.T())
+	e.goCloakMockClient.On("RestyClient").Return(e.restyClient).Maybe()
 
 	e.adapter = &GoCloakAdapter{
 		client: e.goCloakMockClient,
@@ -100,16 +103,6 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
 
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
-
-	e.goCloakMockClient.On("GetRealm", "token", e.realmName).Return(&gocloak.RealmRepresentation{
-		BrowserFlow: gocloak.StringP("alias1"),
-	}, nil)
-	e.goCloakMockClient.On("UpdateRealm",
-		gocloak.RealmRepresentation{BrowserFlow: gocloak.StringP("some-another-flow")}).
-		Return(nil).Once()
-	e.goCloakMockClient.On("UpdateRealm",
-		gocloak.RealmRepresentation{BrowserFlow: gocloak.StringP("alias1")}).
-		Return(nil).Once()
 
 	createFlowResponse := httpmock.NewStringResponse(200, "")
 	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
@@ -209,11 +202,11 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlow() {
 	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
 	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
 
-	e.goCloakMockClient.On("GetRealm", "token", e.realmName).
+	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", e.realmName).
 		Return(&gocloak.RealmRepresentation{
 			BrowserFlow: gocloak.StringP(flowAlias),
 		}, nil)
-	e.goCloakMockClient.On("UpdateRealm", gocloak.RealmRepresentation{
+	e.goCloakMockClient.On("UpdateRealm", mock.Anything, "token", gocloak.RealmRepresentation{
 		BrowserFlow: gocloak.StringP(newBrowserFlowAlias),
 	}).Return(nil)
 
@@ -247,8 +240,8 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow() {
 		BrowserFlow: gocloak.StringP("flow1"),
 	}
 
-	e.goCloakMockClient.On("GetRealm", "token", "realm1").Return(&realm, nil)
-	e.goCloakMockClient.On("UpdateRealm", realm).Return(nil)
+	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(&realm, nil)
+	e.goCloakMockClient.On("UpdateRealm", mock.Anything, "token", realm).Return(nil)
 
 	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
 	assert.NoError(e.T(), err)
@@ -256,7 +249,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow() {
 
 func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureGetRealm() {
 	mockErr := errors.New("mock err")
-	e.goCloakMockClient.On("GetRealm", "token", "realm1").Return(nil, mockErr)
+	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(nil, mockErr)
 
 	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
 	assert.Error(e.T(), err)
@@ -270,8 +263,8 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureUpdateRealm() {
 		BrowserFlow: gocloak.StringP("flow1"),
 	}
 
-	e.goCloakMockClient.On("GetRealm", "token", "realm1").Return(&realm, nil)
-	e.goCloakMockClient.On("UpdateRealm", realm).Return(mockErr)
+	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(&realm, nil)
+	e.goCloakMockClient.On("UpdateRealm", mock.Anything, "token", realm).Return(mockErr)
 
 	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
 	assert.Error(e.T(), err)

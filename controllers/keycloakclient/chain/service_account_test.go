@@ -8,12 +8,10 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestServiceAccount_Serve(t *testing.T) {
-	sa := ServiceAccount{}
-
 	kc := keycloakApi.KeycloakClient{
 		Spec: keycloakApi.KeycloakClientSpec{
 			RealmRef: common.RealmRef{
@@ -40,15 +38,17 @@ func TestServiceAccount_Serve(t *testing.T) {
 	}
 
 	realmName := "realm"
-	kClient := new(adapter.Mock)
+	apiClient := mocks.NewMockClient(t)
 
-	kClient.On("SyncServiceAccountRoles", realmName, kc.Status.ClientID,
+	apiClient.On("SyncServiceAccountRoles", realmName, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.RealmRoles,
 		map[string][]string{
 			kc.Spec.ServiceAccount.ClientRoles[0].ClientID: kc.Spec.ServiceAccount.ClientRoles[0].Roles}, false).Return(nil)
-	kClient.On("SetServiceAccountAttributes", realmName, kc.Status.ClientID,
+	apiClient.On("SetServiceAccountAttributes", realmName, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
 
-	err := sa.Serve(context.Background(), &kc, kClient, realmName)
+	sa := NewServiceAccount(apiClient)
+
+	err := sa.Serve(context.Background(), &kc, realmName)
 	require.NoError(t, err)
 }

@@ -39,7 +39,7 @@ var (
 
 const (
 	KeycloakCR      = "test-keycloak"
-	KeycloakRealmCR = "test-keycloak-realm"
+	KeycloakRealmCR = "test-keycloak-identity-provider-realm"
 	ns              = "test-identity-provider"
 
 	timeout  = time.Second * 10

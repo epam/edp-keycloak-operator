@@ -17,6 +17,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
@@ -79,7 +80,7 @@ func TestPutClient_Serve(t *testing.T) {
 					Namespace: "default",
 				},
 				adapterClient: func(t *testing.T) keycloak.Client {
-					m := new(adapter.Mock)
+					m := keycloakmocks.NewMockClient(t)
 
 					m.On("GetClientID", "test-client-id", "realm").
 						Return("", adapter.NotFoundError("not found")).
@@ -135,7 +136,7 @@ func TestPutClient_Serve(t *testing.T) {
 					Namespace: "default",
 				},
 				adapterClient: func(t *testing.T) keycloak.Client {
-					m := new(adapter.Mock)
+					m := keycloakmocks.NewMockClient(t)
 
 					m.On("GetClientID", "test-client-id", "realm").
 						Return("", adapter.NotFoundError("not found")).
@@ -185,7 +186,7 @@ func TestPutClient_Serve(t *testing.T) {
 					Namespace: "default",
 				},
 				adapterClient: func(t *testing.T) keycloak.Client {
-					m := new(adapter.Mock)
+					m := keycloakmocks.NewMockClient(t)
 
 					m.On("GetClientID", "test-client-id", "realm").
 						Return("", adapter.NotFoundError("not found")).
@@ -241,7 +242,7 @@ func TestPutClient_Serve(t *testing.T) {
 					Namespace: "default",
 				},
 				adapterClient: func(t *testing.T) keycloak.Client {
-					m := new(adapter.Mock)
+					m := keycloakmocks.NewMockClient(t)
 
 					m.On("GetClientID", "test-client-id", "realm").
 						Return("123", nil).
@@ -292,7 +293,7 @@ func TestPutClient_Serve(t *testing.T) {
 					Namespace: "default",
 				},
 				adapterClient: func(t *testing.T) keycloak.Client {
-					m := new(adapter.Mock)
+					m := keycloakmocks.NewMockClient(t)
 
 					m.On("GetClientID", "test-client-id", "realm").
 						Return("", adapter.NotFoundError("not found")).
@@ -323,17 +324,10 @@ func TestPutClient_Serve(t *testing.T) {
 			cl := &keycloakApi.KeycloakClient{}
 			require.NoError(t, tt.fields.client(t).Get(context.Background(), tt.args.keycloakClient, cl))
 
-			el := &PutClient{
-				BaseElement: BaseElement{
-					Client: tt.fields.client(t),
-					scheme: s,
-				},
-				SecretRef: tt.fields.secretRef(t),
-			}
+			el := NewPutClient(tt.args.adapterClient(t), tt.fields.client(t), tt.fields.secretRef(t))
 			err := el.Serve(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				cl,
-				tt.args.adapterClient(t),
 				"realm",
 			)
 			tt.wantErr(t, err)

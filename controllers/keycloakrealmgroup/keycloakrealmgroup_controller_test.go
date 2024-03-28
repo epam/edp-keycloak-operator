@@ -21,8 +21,8 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
@@ -54,17 +54,12 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&group, &realm, &keycloak, &secret).Build()
-	kClient := new(adapter.Mock)
-
-	kClient.On("SyncRealmGroup", "ns.realm1", &group.Spec).Return("gid1", nil)
-	kClient.On("DeleteGroup", "ns.realm1", group.Spec.Name).Return(nil)
-
 	logger := mock.NewLogr()
 	h := helpermock.NewControllerHelper(t)
-	kcMock := adapter.Mock{}
+	kcMock := mocks.NewMockClient(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
-	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kcMock, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kcMock, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
 			Realm: gocloak.StringP(realm.Spec.RealmName),

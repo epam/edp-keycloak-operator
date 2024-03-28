@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestNewReconcile_Init(t *testing.T) {
@@ -63,10 +64,10 @@ func TestNewReconcile(t *testing.T) {
 			RealmName: "realm11",
 		},
 	}
-	kClient := adapter.Mock{}
+	kClient := mocks.NewMockClient(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
-	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
 			Realm: gocloak.StringP("realm11"),
@@ -130,10 +131,10 @@ func TestReconcile_Reconcile_Failure(t *testing.T) {
 			RealmName: "realm11",
 		},
 	}
-	kClient := adapter.Mock{}
+	kClient := mocks.NewMockClient(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
-	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
 			Realm: gocloak.StringP("realm11"),
@@ -197,10 +198,10 @@ func TestReconcile_Reconcile_FailureToGetParentRealm(t *testing.T) {
 			RealmName: "realm11",
 		},
 	}
-	kClient := adapter.Mock{}
+	kClient := mocks.NewMockClient(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
-	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kClient, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kClient, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
 			Realm: gocloak.StringP("realm11"),

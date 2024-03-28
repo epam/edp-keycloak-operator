@@ -162,6 +162,11 @@ type KeycloakClientSpec struct {
 
 	// SurrogateAuthRequired is a flag to enable surrogate auth.
 	SurrogateAuthRequired bool `json:"surrogateAuthRequired,omitempty"`
+
+	// Authorization is a client authorization configuration.
+	// +nullable
+	// +optional
+	Authorization *Authorization `json:"authorization,omitempty"`
 }
 
 type ServiceAccount struct {
@@ -221,6 +226,10 @@ type RealmRole struct {
 
 	// Composite is a realm composite role name.
 	Composite string `json:"composite"`
+}
+
+type Authorization struct {
+	Policies []Policy `json:"policies,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

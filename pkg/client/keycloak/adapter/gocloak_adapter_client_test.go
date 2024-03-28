@@ -7,6 +7,7 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
@@ -124,10 +125,10 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter, mockClient, _ := initAdapter()
-			mockClient.On("GetClients", realm, gocloak.GetClientsParams{ClientID: gocloak.StringP("cl")}).Return(tc.onGetClientsResp, tc.onGetClientsErr)
-			mockClient.On("GetClientsDefaultScopes", realm, clientID).Return(tc.onGetClientsDefaultScopesResp, tc.onGetClientsDefaultScopesErr)
-			mockClient.On("AddDefaultScopeToClient", realm, clientID, "scid1").Return(tc.onAddDefaultScopeToClient)
+			adapter, mockClient, _ := initAdapter(t)
+			mockClient.On("GetClients", mock.Anything, "token", realm, gocloak.GetClientsParams{ClientID: gocloak.StringP("cl")}).Return(tc.onGetClientsResp, tc.onGetClientsErr)
+			mockClient.On("GetClientsDefaultScopes", mock.Anything, "token", realm, clientID).Return(tc.onGetClientsDefaultScopesResp, tc.onGetClientsDefaultScopesErr).Maybe()
+			mockClient.On("AddDefaultScopeToClient", mock.Anything, "token", realm, clientID, "scid1").Return(tc.onAddDefaultScopeToClient).Maybe()
 
 			err := adapter.AddDefaultScopeToClient(context.Background(), realm, clientName, tc.scopes)
 			if tc.expectErr {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 )
 
@@ -335,6 +336,23 @@ func (a GoCloakAdapter) GetClientScopeMappers(ctx context.Context, realmName, sc
 	}
 
 	return mappers, nil
+}
+
+func (a GoCloakAdapter) GetClientScopes(ctx context.Context, realm string) (map[string]gocloak.ClientScope, error) {
+	scopes, err := a.client.GetClientScopes(ctx, a.token.AccessToken, realm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client scopes: %w", err)
+	}
+
+	sc := make(map[string]gocloak.ClientScope, len(scopes))
+
+	for _, s := range scopes {
+		if s != nil && s.Name != nil {
+			sc[*s.Name] = *s
+		}
+	}
+
+	return sc, nil
 }
 
 func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocolMapper *ProtocolMapper) error {

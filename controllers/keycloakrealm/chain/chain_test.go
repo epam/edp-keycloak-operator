@@ -16,8 +16,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestCreateDefChain(t *testing.T) {
@@ -54,24 +54,13 @@ func TestCreateDefChain(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
 
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoAutoRedirectEnabled: true}
-	kClient := new(adapter.Mock)
-	kClient.On("DeleteRealm", "test.test").Return(nil)
+	kClient := mocks.NewMockClient(t)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true,
 			SsoAutoRedirectEnabled: true}).
 		Return(nil)
-	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.NotFoundError("not found"))
-	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
-		Name:        "edp",
-		Description: "default edp scope required for ac and nexus",
-		Protocol:    "openid-connect",
-		Attributes: map[string]string{
-			"include.in.token.scope": "true",
-		},
-	}).Return("", nil)
 	kClient.On("GetOpenIdConfig", &testRealm).
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(false, nil)
@@ -120,8 +109,7 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
 	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift", SsoAutoRedirectEnabled: true,
 		Users: []dto.User{realmUser}}
-	kClient := new(adapter.Mock)
-	kClient.On("DeleteRealm", "test.test").Return(nil)
+	kClient := mocks.NewMockClient(t)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 
@@ -129,23 +117,10 @@ func TestCreateDefChain_SSORealm(t *testing.T) {
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: true, SsoRealmName: "openshift",
 			SsoAutoRedirectEnabled: true, Users: []dto.User{realmUser}}).
 		Return(nil)
-	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.NotFoundError("not found"))
-	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
-		Name:        "edp",
-		Description: "default edp scope required for ac and nexus",
-		Protocol:    "openid-connect",
-		Attributes: map[string]string{
-			"include.in.token.scope": "true",
-		},
-	}).Return("", nil)
 	kClient.On("GetOpenIdConfig", &testRealm).
 		Return("fooClient", nil)
 	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
 	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
-	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test"}).
-		Return(nil)
 	kClient.On("ExistRealmUser", "openshift", &realmUser).Return(true, nil)
 	kClient.On("HasUserClientRole", "openshift", "test.test", &realmUser, "foo").
 		Return(true, nil)
@@ -183,31 +158,13 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr).Build()
 
-	testRealm := dto.Realm{Name: realmName, SsoRealmEnabled: false, Users: []dto.User{{}}}
-	kClient := new(adapter.Mock)
-	kClient.On("DeleteRealm", "test.test").Return(nil)
+	testRealm := dto.Realm{Name: realmName}
+	kClient := mocks.NewMockClient(t)
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, SsoRealmEnabled: false,
 			SsoAutoRedirectEnabled: true, Users: []dto.User{{RealmRoles: []string{"foo", "bar"}}}}).
-		Return(nil)
-	kClient.On("GetClientScope", "edp", "test.test").Return(nil,
-		adapter.NotFoundError("not found"))
-	kClient.On("CreateClientScope", realmName, &adapter.ClientScope{
-		Name:        "edp",
-		Description: "default edp scope required for ac and nexus",
-		Protocol:    "openid-connect",
-		Attributes: map[string]string{
-			"include.in.token.scope": "true",
-		},
-	}).Return("", nil)
-	kClient.On("GetOpenIdConfig", &testRealm).
-		Return("fooClient", nil)
-	kClient.On("ExistCentralIdentityProvider", &testRealm).Return(true, nil)
-	kClient.On("PutDefaultIdp", &testRealm).Return(nil)
-	kClient.On("CreateCentralIdentityProvider", &testRealm, &dto.Client{ClientId: "test.test",
-		ClientSecret: "test"}).
 		Return(nil)
 
 	realmUser := dto.User{RealmRoles: []string{"foo", "bar"}}
@@ -220,7 +177,7 @@ func TestCreateDefChainNoSSO(t *testing.T) {
 	kClient.On("CreateIncludedRealmRole", testRealm.Name, &dto.IncludedRealmRole{Name: "foo"}).Return(nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "foo").Return(false, nil)
 	kClient.On("HasUserRealmRole", testRealm.Name, &realmUser, "bar").Return(true, nil)
-	kClient.On("AddRealmRoleToUser", testRealm.Name, realmUser.Username, "foo").Return(nil)
+	kClient.On("AddRealmRoleToUser", testifymock.Anything, testRealm.Name, realmUser.Username, "foo").Return(nil)
 
 	hm := helpermock.NewControllerHelper(t)
 

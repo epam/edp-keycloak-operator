@@ -1,9 +1,12 @@
 package keycloakclient
 
 import (
+	"strings"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -46,23 +49,15 @@ var _ = Describe("KeycloakClient controller", func() {
 				Attributes: map[string]string{
 					"post.logout.redirect.uris": "+",
 				},
-				DirectAccess:                 false,
-				AdvancedProtocolMappers:      false,
-				ClientRoles:                  []string{"administrator", "developer"},
-				FrontChannelLogout:           false,
-				RedirectUris:                 []string{"https://test-keycloak-client-with-secret-ref"},
-				WebOrigins:                   []string{"https://test-keycloak-client-with-secret-ref"},
-				ImplicitFlowEnabled:          false,
-				AuthorizationServicesEnabled: false,
-				BearerOnly:                   false,
-				ConsentRequired:              false,
-				Description:                  "test description",
-				Enabled:                      true,
-				FullScopeAllowed:             true,
-				Name:                         "test name",
-				StandardFlowEnabled:          true,
-				SurrogateAuthRequired:        false,
-				ClientAuthenticatorType:      "client-secret",
+				ClientRoles:             []string{"administrator", "developer"},
+				RedirectUris:            []string{"https://test-keycloak-client-with-secret-ref"},
+				WebOrigins:              []string{"https://test-keycloak-client-with-secret-ref"},
+				Description:             "test description",
+				Enabled:                 true,
+				FullScopeAllowed:        true,
+				Name:                    "test name",
+				StandardFlowEnabled:     true,
+				ClientAuthenticatorType: "client-secret",
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
@@ -156,4 +151,147 @@ var _ = Describe("KeycloakClient controller", func() {
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
+	It("Should create KeycloakClient with authorization settings", func() {
+		By("By creating a client secret")
+		clientSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-secret3",
+				Namespace: ns,
+			},
+			Data: map[string][]byte{
+				keycloakApi.ClientSecretKey: []byte("secretValue"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
+		By("Crating keycloak api client")
+		client := gocloak.NewClient(keycloakURL)
+		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("By creating group for policy")
+		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
+			Name: gocloak.StringP("test-policy-group"),
+		})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("By creating role for policy")
+		_, err = client.CreateRealmRole(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Role{
+			Name: gocloak.StringP("test-policy-role"),
+		})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("By creating user for policy")
+		_, err = client.CreateUser(ctx, token.AccessToken, KeycloakRealmCR, gocloak.User{
+			Username: gocloak.StringP("test-policy-user"),
+			Enabled:  gocloak.BoolP(true),
+		})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("By creating a KeycloakClient")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-with-authorization",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-with-authorization",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Secret:                       clientSecret.Name,
+				DirectAccess:                 true,
+				AuthorizationServicesEnabled: true,
+				ServiceAccount: &keycloakApi.ServiceAccount{
+					Enabled: true,
+				},
+				Authorization: &keycloakApi.Authorization{
+					Policies: []keycloakApi.Policy{
+						{
+							Name:             "client-policy",
+							Type:             keycloakApi.PolicyTypeClient,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							ClientPolicy: &keycloakApi.ClientPolicyData{
+								Clients: []string{"account"},
+							},
+						},
+						{
+							Name:             "group-policy",
+							Description:      "Group policy",
+							Type:             keycloakApi.PolicyTypeGroup,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							GroupPolicy: &keycloakApi.GroupPolicyData{
+								Groups: []keycloakApi.GroupDefinition{
+									{
+										Name: "test-policy-group",
+									},
+								},
+							},
+						},
+						{
+							Name:             "role-policy",
+							Description:      "Role policy",
+							Type:             keycloakApi.PolicyTypeRole,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							RolePolicy: &keycloakApi.RolePolicyData{
+								Roles: []keycloakApi.RoleDefinition{
+									{
+										Name:     "test-policy-role",
+										Required: true,
+									},
+								},
+							},
+						},
+						{
+							Name:             "time-policy",
+							Description:      "Time policy",
+							Type:             keycloakApi.PolicyTypeTime,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							TimePolicy: &keycloakApi.TimePolicyData{
+								NotBefore:    "2024-03-03 00:00:00",
+								NotOnOrAfter: "2024-06-19 00:00:00",
+							},
+						},
+						{
+							Name:             "user-policy",
+							Description:      "User policy",
+							Type:             keycloakApi.PolicyTypeUser,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							UserPolicy: &keycloakApi.UserPolicyData{
+								Users: []string{"test-policy-user"},
+							},
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func() bool {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			if err != nil {
+				return false
+			}
+
+			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+				createdKeycloakClient.Status.ClientID != ""
+		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+	})
 })
+
+func skipAlreadyExistsErr(err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if strings.Contains(err.Error(), "409 Conflict") {
+		return nil
+	}
+
+	return err
+}

@@ -9,7 +9,7 @@ import (
 )
 
 func TestGoCloakAdapter_GetIdentityProvider(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("GET", "/admin/realms/realm1/identity-provider/instances/alias1",
 		httpmock.NewStringResponder(200, ""))
@@ -37,7 +37,7 @@ func TestGoCloakAdapter_GetIdentityProvider(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateIdentityProvider(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("POST", "/admin/realms/realm1/identity-provider/instances",
 		httpmock.NewStringResponder(200, ""))
@@ -57,7 +57,7 @@ func TestGoCloakAdapter_CreateIdentityProvider(t *testing.T) {
 }
 
 func TestGoCloakAdapter_UpdateIdentityProvider(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/identity-provider/instances/alias1",
 		httpmock.NewStringResponder(200, ""))
@@ -77,7 +77,7 @@ func TestGoCloakAdapter_UpdateIdentityProvider(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteIdentityProvider(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("DELETE", "/admin/realms/realm1/identity-provider/instances/alias1",
 		httpmock.NewStringResponder(200, ""))
@@ -97,7 +97,7 @@ func TestGoCloakAdapter_DeleteIdentityProvider(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateIDPMapper(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	rsp := httpmock.NewStringResponse(200, "")
 	defer closeWithFailOnError(t, rsp.Body)
@@ -125,7 +125,7 @@ func TestGoCloakAdapter_CreateIDPMapper(t *testing.T) {
 }
 
 func TestGoCloakAdapter_UpdateIDPMapper(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("PUT",
 		"/admin/realms/realm1/identity-provider/instances/alias1/mappers/id11",
@@ -149,7 +149,7 @@ func TestGoCloakAdapter_UpdateIDPMapper(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteIDPMapper(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("DELETE",
 		"/admin/realms/realm1/identity-provider/instances/alias1/mappers/mapper1",
@@ -171,7 +171,7 @@ func TestGoCloakAdapter_DeleteIDPMapper(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetIDPMappers(t *testing.T) {
-	kc, _, _ := initAdapter()
+	kc, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("GET",
 		"/admin/realms/realm1/identity-provider/instances/alias1/mappers",

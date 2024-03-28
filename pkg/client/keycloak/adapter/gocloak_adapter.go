@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -481,6 +482,30 @@ func (a GoCloakAdapter) CreateClientRole(client *dto.Client, clientRole string) 
 	return nil
 }
 
+func (a GoCloakAdapter) GetRealmRoles(ctx context.Context, realm string) (map[string]gocloak.Role, error) {
+	roles, err := a.client.GetRealmRoles(
+		ctx,
+		a.token.AccessToken,
+		realm,
+		gocloak.GetRoleParams{
+			Max: gocloak.IntP(100),
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get realm roles: %w", err)
+	}
+
+	rolesMap := make(map[string]gocloak.Role, len(roles))
+
+	for _, r := range roles {
+		if r != nil && r.Name != nil {
+			rolesMap[*r.Name] = *r
+		}
+	}
+
+	return rolesMap, nil
+}
+
 func checkFullRoleNameMatch(role string, roles *[]gocloak.Role) bool {
 	if roles == nil {
 		return false
@@ -663,6 +688,25 @@ func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
 	return "", NotFoundError(fmt.Sprintf("unable to get Client ID. Client %v doesn't exist", clientID))
 }
 
+func (a GoCloakAdapter) GetClients(ctx context.Context, realm string) (map[string]*gocloak.Client, error) {
+	clients, err := a.client.GetClients(ctx, a.token.AccessToken, realm, gocloak.GetClientsParams{
+		Max: gocloak.IntP(100),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clients for realm %s: %w", realm, err)
+	}
+
+	cl := make(map[string]*gocloak.Client, len(clients))
+
+	for _, c := range clients {
+		if c.ClientID != nil {
+			cl[*c.ClientID] = c
+		}
+	}
+
+	return cl, nil
+}
+
 func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {
 	return api.IdentityProviderMapperRepresentation{
 		Config: map[string]string{
@@ -713,6 +757,71 @@ func (a GoCloakAdapter) ExistRealmUser(realmName string, user *dto.User) (bool, 
 	log.Info("End check user in Keycloak", "userExists", userExists)
 
 	return userExists, nil
+}
+
+// GetUsersByNames returns a map of users by their names.
+// The function use goroutines to get users in parallel because the Keycloak API doesn't support getting users by names.
+func (a GoCloakAdapter) GetUsersByNames(ctx context.Context, realm string, names []string) (map[string]gocloak.User, error) {
+	namesChan := make(chan string)
+	go func() {
+		defer close(namesChan)
+
+		for _, name := range names {
+			namesChan <- name
+		}
+	}()
+
+	const workersCount = 10
+
+	var wg sync.WaitGroup
+
+	wg.Add(workersCount)
+
+	results := make(chan *gocloak.User)
+	errc := make(chan error, workersCount)
+
+	for i := 0; i < workersCount; i++ {
+		go func(ctx context.Context, realm string, names <-chan string, results chan<- *gocloak.User, errc chan<- error) {
+			defer wg.Done()
+
+			for userName := range names {
+				users, err := a.client.GetUsers(ctx, a.token.AccessToken, realm, gocloak.GetUsersParams{
+					Max:                 gocloak.IntP(100),
+					BriefRepresentation: gocloak.BoolP(true),
+					Username:            gocloak.StringP(userName),
+				})
+
+				if err != nil {
+					errc <- fmt.Errorf("failed to get user %s from realm %s: %w", userName, realm, err)
+					return
+				}
+
+				user, _ := checkFullUsernameMatch(userName, users)
+
+				results <- user
+			}
+		}(ctx, realm, namesChan, results, errc)
+	}
+
+	go func() {
+		wg.Wait()
+		close(results)
+		close(errc)
+	}()
+
+	users := make(map[string]gocloak.User, len(names))
+
+	for user := range results {
+		if user != nil && user.Username != nil {
+			users[*user.Username] = *user
+		}
+	}
+
+	if err := <-errc; err != nil {
+		return nil, err
+	}
+
+	return users, nil
 }
 
 func (a GoCloakAdapter) DeleteRealmUser(ctx context.Context, realmName, username string) error {

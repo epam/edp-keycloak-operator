@@ -9,7 +9,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	pkgErrors "github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -38,11 +37,10 @@ const (
 	clientAttributeLogoutRedirectUrisDefValue = "+"
 )
 
-func NewReconcileKeycloakClient(client client.Client, helper Helper, scheme *runtime.Scheme) *ReconcileKeycloakClient {
+func NewReconcileKeycloakClient(client client.Client, helper Helper) *ReconcileKeycloakClient {
 	return &ReconcileKeycloakClient{
 		client: client,
 		helper: helper,
-		chain:  chain.Make(scheme, client, ctrl.Log.WithName("chain").WithName("keycloak-client")),
 	}
 }
 
@@ -50,7 +48,6 @@ func NewReconcileKeycloakClient(client client.Client, helper Helper, scheme *run
 type ReconcileKeycloakClient struct {
 	client                  client.Client
 	helper                  Helper
-	chain                   chain.Element
 	successReconcileTimeout time.Duration
 }
 
@@ -136,7 +133,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		return fmt.Errorf("unable to get keycloak realm: %w", err)
 	}
 
-	if err := r.chain.Serve(ctx, keycloakClient, kClient, realm); err != nil {
+	if err := chain.MakeChain(kClient, r.client).Serve(ctx, keycloakClient, realm); err != nil {
 		return fmt.Errorf("unable to serve keycloak client: %w", err)
 	}
 
