@@ -1,0 +1,13 @@
+with-expecter: True
+inpackage: False
+dir: "{{.InterfaceDir}}/mocks"
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "mocks"
+filename: "{{.InterfaceName | lower}}_mock.go"
+packages:
+  github.com/epam/edp-keycloak-operator/pkg/client/keycloak:
+    interfaces:
+      Client:
+  github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter:
+    interfaces:
+      GoCloak:

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -11,21 +12,24 @@ import (
 )
 
 type PutRealmRole struct {
-	BaseElement
-	next Element
+	keycloakApiClient keycloak.Client
 }
 
-func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
-	if err := el.putRealmRoles(keycloakClient, adapterClient, realmName); err != nil {
+func NewPutRealmRole(keycloakApiClient keycloak.Client) *PutRealmRole {
+	return &PutRealmRole{keycloakApiClient: keycloakApiClient}
+}
+
+func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	if err := el.putRealmRoles(ctx, keycloakClient, realmName); err != nil {
 		return errors.Wrap(err, "unable to put realm roles")
 	}
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
+	return nil
 }
 
-func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
-	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
-	reqLog.Info("Start put realm roles...")
+func (el *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	reqLog := ctrl.LoggerFrom(ctx)
+	reqLog.Info("Start put realm roles")
 
 	if keycloakClient.Spec.RealmRoles == nil || len(*keycloakClient.Spec.RealmRoles) == 0 {
 		reqLog.Info("Keycloak client does not have realm roles")
@@ -38,7 +42,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 			Composite: role.Composite,
 		}
 
-		exist, err := adapterClient.ExistRealmRole(realmName, roleDto.Name)
+		exist, err := el.keycloakApiClient.ExistRealmRole(realmName, roleDto.Name)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistRealmRole")
 		}
@@ -48,7 +52,7 @@ func (el *PutRealmRole) putRealmRoles(keycloakClient *keycloakApi.KeycloakClient
 			return nil
 		}
 
-		err = adapterClient.CreateIncludedRealmRole(realmName, roleDto)
+		err = el.keycloakApiClient.CreateIncludedRealmRole(realmName, roleDto)
 		if err != nil {
 			return errors.Wrap(err, "error during CreateRealmRole")
 		}

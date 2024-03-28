@@ -10,13 +10,16 @@ import (
 )
 
 type ServiceAccount struct {
-	BaseElement
-	next Element
+	keycloakApiClient keycloak.Client
 }
 
-func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
+func NewServiceAccount(keycloakApiClient keycloak.Client) *ServiceAccount {
+	return &ServiceAccount{keycloakApiClient: keycloakApiClient}
+}
+
+func (el *ServiceAccount) Serve(_ context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if keycloakClient.Spec.ServiceAccount == nil || !keycloakClient.Spec.ServiceAccount.Enabled {
-		return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
+		return nil
 	}
 
 	if keycloakClient.Spec.ServiceAccount != nil && keycloakClient.Spec.Public {
@@ -30,17 +33,17 @@ func (el *ServiceAccount) Serve(ctx context.Context, keycloakClient *keycloakApi
 
 	addOnly := keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly
 
-	if err := adapterClient.SyncServiceAccountRoles(realmName,
+	if err := el.keycloakApiClient.SyncServiceAccountRoles(realmName,
 		keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.RealmRoles, clientRoles, addOnly); err != nil {
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 
 	if keycloakClient.Spec.ServiceAccount.Attributes != nil {
-		if err := adapterClient.SetServiceAccountAttributes(realmName, keycloakClient.Status.ClientID,
+		if err := el.keycloakApiClient.SetServiceAccountAttributes(realmName, keycloakClient.Status.ClientID,
 			keycloakClient.Spec.ServiceAccount.Attributes, addOnly); err != nil {
 			return errors.Wrap(err, "unable to set service account attributes")
 		}
 	}
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
+	return nil
 }

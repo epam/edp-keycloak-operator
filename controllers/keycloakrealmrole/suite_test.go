@@ -37,7 +37,7 @@ var (
 
 const (
 	KeycloakCR      = "test-keycloak"
-	KeycloakRealmCR = "test-keycloak-realm"
+	KeycloakRealmCR = "test-keycloak-role-realm"
 	ns              = "test-role"
 
 	timeout  = time.Second * 10

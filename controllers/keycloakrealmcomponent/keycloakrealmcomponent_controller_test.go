@@ -26,6 +26,7 @@ import (
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -36,8 +37,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 	utilruntime.Must(corev1.AddToScheme(sch))
 
 	var (
-		kcAdapter adapter.Mock
-		comp      = keycloakApi.KeycloakRealmComponent{
+		comp = keycloakApi.KeycloakRealmComponent{
 			ObjectMeta: metav1.ObjectMeta{Name: "test-comp-name", Namespace: "ns"},
 			TypeMeta:   metav1.TypeMeta{Kind: "KeycloakRealmComponent", APIVersion: "v1.edp.epam.com/v1"},
 			Spec: keycloakApi.KeycloakComponentSpec{
@@ -58,19 +58,20 @@ func TestReconcile_Reconcile(t *testing.T) {
 		testComp = adapter.Component{ID: "component-id1", Name: comp.Spec.Name, Config: make(map[string][]string)}
 	)
 
+	kcAdapter := mocks.NewMockClient(t)
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
 	h := helpermock.NewControllerHelper(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
-	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(&kcAdapter, nil)
+	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kcAdapter, nil)
 	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(false, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
 			Realm: gocloak.StringP(realm.Spec.RealmName),
 		}, nil)
-	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
-	kcAdapter.On("UpdateComponent", realm.Spec.RealmName, &testComp).Return(nil)
+	kcAdapter.On("GetComponent", testifymock.Anything, realm.Spec.RealmName, comp.Spec.Name).Return(&testComp, nil).Once()
+	kcAdapter.On("UpdateComponent", testifymock.Anything, realm.Spec.RealmName, &testComp).Return(nil)
 
 	r := NewReconcile(client, sch, h, secretref.NewSecretRef(client))
 
@@ -88,9 +89,9 @@ func TestReconcile_Reconcile(t *testing.T) {
 		t.Fatalf("wrong RequeueAfter: %d", res.RequeueAfter)
 	}
 
-	kcAdapter.On("GetComponent", realm.Spec.RealmName, comp.Spec.Name).Return(nil,
+	kcAdapter.On("GetComponent", testifymock.Anything, realm.Spec.RealmName, comp.Spec.Name).Return(nil,
 		adapter.NotFoundError("not found")).Once()
-	kcAdapter.On("CreateComponent", realm.Spec.RealmName,
+	kcAdapter.On("CreateComponent", testifymock.Anything, realm.Spec.RealmName,
 		testifyMock.Anything).Return(errors.New("create fatal"))
 
 	failureComp := comp.DeepCopy()

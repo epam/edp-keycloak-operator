@@ -11,34 +11,20 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
+	logmock "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
-func TestIsErrNotFound(t *testing.T) {
-	err := errors.Wrap(NotFoundError("not found"), "err")
-
-	if errors.Cause(err).Error() != "not found" {
-		t.Fatalf("wrong error message: %s", err.Error())
-	}
-
-	if !IsErrNotFound(err) {
-		t.Fatal("error must be NotFoundError")
-	}
-
-	if IsErrNotFound(errors.New("fake")) {
-		t.Fatal("error is not NotFoundError")
-	}
-}
-
 func TestGoCloakAdapter_CreateClientScope(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -66,12 +52,12 @@ func TestGoCloakAdapter_CreateClientScope(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateClientScope_FailureSetDefault(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -95,9 +81,9 @@ func TestGoCloakAdapter_CreateClientScope_FailureSetDefault(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateClientScope_FailureCreate(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client: &mockClient,
+		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
 	}
 
@@ -118,9 +104,9 @@ func TestGoCloakAdapter_CreateClientScope_FailureCreate(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateClientScope_FailureGetID(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client: &mockClient,
+		client: mockClient,
 		token:  &gocloak.JWT{AccessToken: "token"},
 	}
 
@@ -147,12 +133,12 @@ func TestGoCloakAdapter_CreateClientScope_FailureGetID(t *testing.T) {
 }
 
 func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	var (
@@ -163,7 +149,7 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)
-	mockClient.On("GetClientScope", realmName, scopeID).Return(&gocloak.ClientScope{
+	mockClient.On("GetClientScope", mock.Anything, "token", realmName, scopeID).Return(&gocloak.ClientScope{
 		ID: gocloak.StringP("scope1"),
 		ProtocolMappers: &[]gocloak.ProtocolMappers{
 			{
@@ -236,12 +222,12 @@ func TestGoCloakAdapter_UpdateClientScope(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetClientScope(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -259,12 +245,12 @@ func TestGoCloakAdapter_GetClientScope(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -275,7 +261,7 @@ func TestGoCloakAdapter_DeleteClientScope(t *testing.T) {
 	deleteDefaultClientScope = strings.ReplaceAll(deleteDefaultClientScope, "{clientScopeID}", "scope1")
 
 	httpmock.RegisterResponder("DELETE", deleteDefaultClientScope, httpmock.NewStringResponder(200, ""))
-	mockClient.On("DeleteClientScope", "realm1", "scope1").Return(nil)
+	mockClient.On("DeleteClientScope", mock.Anything, "token", "realm1", "scope1").Return(nil)
 
 	err := adapter.DeleteClientScope(context.Background(), "realm1", "scope1")
 	require.NoError(t, err)
@@ -289,12 +275,12 @@ func TestGetClientScope(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
-	mockClient := MockGoCloakClient{}
+	mockClient := mocks.NewMockGoCloak(t)
 	adapter := GoCloakAdapter{
-		client:   &mockClient,
+		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
 		basePath: "",
-		log:      mock.NewLogr(),
+		log:      logmock.NewLogr(),
 	}
 
 	restyClient := resty.New()
@@ -313,7 +299,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 	deleteDefaultClientScope = strings.ReplaceAll(deleteDefaultClientScope, "{clientScopeID}", "scope1")
 
 	httpmock.RegisterResponder("DELETE", deleteDefaultClientScope, httpmock.NewStringResponder(200, ""))
-	mockClient.On("DeleteClientScope", "realm1", "scope1").Return(errors.New("mock fatal"))
+	mockClient.On("DeleteClientScope", mock.Anything, "token", "realm1", "scope1").Return(errors.New("logmock fatal"))
 
 	err = adapter.DeleteClientScope(context.Background(), "realm1", "scope1")
 	require.Error(t, err)
@@ -324,7 +310,7 @@ func TestGoCloakAdapter_DeleteClientScope_Failure(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
-	kcClient, _, _ := initAdapter()
+	kcClient, _, _ := initAdapter(t)
 
 	httpmock.Reset()
 	httpmock.RegisterResponder("GET",
@@ -347,7 +333,7 @@ func TestGoCloakAdapter_GetClientScopeMappers(t *testing.T) {
 }
 
 func TestGoCloakAdapter_PutClientScopeMapper(t *testing.T) {
-	kcClient, _, _ := initAdapter()
+	kcClient, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("POST",
 		"/admin/realms/realm1/client-scopes/scope1/protocol-mappers/models",
@@ -426,7 +412,7 @@ func TestGoCloakAdapter_GetClientScopesByNames(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter, _, _ := initAdapter()
+			adapter, _, _ := initAdapter(t)
 
 			httpmock.RegisterResponder(http.MethodGet, fmt.Sprintf("/admin/realms/%s/client-scopes", tt.realm), tt.response)
 

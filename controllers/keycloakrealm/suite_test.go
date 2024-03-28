@@ -95,7 +95,7 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, time.Second)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = keycloakclient.NewReconcileKeycloakClient(k8sManager.GetClient(), h, k8sManager.GetScheme()).
+	err = keycloakclient.NewReconcileKeycloakClient(k8sManager.GetClient(), h).
 		SetupWithManager(k8sManager, time.Second)
 
 	keycloakURL = os.Getenv("TEST_KEYCLOAK_URL")

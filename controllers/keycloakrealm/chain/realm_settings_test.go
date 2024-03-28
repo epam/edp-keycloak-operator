@@ -10,11 +10,12 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestRealmSettings_ServeRequest(t *testing.T) {
 	rs := RealmSettings{}
-	kClient := new(adapter.Mock)
+	kClient := mocks.NewMockClient(t)
 	realm := keycloakApi.KeycloakRealm{}
 	ctx := context.Background()
 

@@ -10,11 +10,11 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestAuthFlow_ServeRequest(t *testing.T) {
-	kc := adapter.Mock{}
+	kc := mocks.NewMockClient(t)
 	af := AuthFlow{}
 
 	realm := keycloakApi.KeycloakRealm{
@@ -25,19 +25,19 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := af.ServeRequest(ctx, &realm, &kc)
+	err := af.ServeRequest(ctx, &realm, kc)
 	require.NoError(t, err)
 
 	kc.On("SetRealmBrowserFlow", "realm1", "flow-alias-1").Return(nil)
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 
-	err = af.ServeRequest(ctx, &realm, &kc)
+	err = af.ServeRequest(ctx, &realm, kc)
 	require.NoError(t, err)
 }
 
 func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
-	kc := adapter.Mock{}
+	kc := mocks.NewMockClient(t)
 	af := AuthFlow{}
 
 	realm := keycloakApi.KeycloakRealm{
@@ -52,7 +52,7 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 
-	err := af.ServeRequest(context.Background(), &realm, &kc)
+	err := af.ServeRequest(context.Background(), &realm, kc)
 	if err == nil {
 		t.Fatal("no error on mock fatal")
 	}

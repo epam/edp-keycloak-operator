@@ -26,6 +26,7 @@ import (
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func getTestClientScope(realmName string) *keycloakApi.KeycloakClientScope {
@@ -64,10 +65,10 @@ func TestReconcile_Reconcile(t *testing.T) {
 	clientScope := getTestClientScope(realm.Name)
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(clientScope, &realm, &keycloak).Build()
-	kClient := new(adapter.Mock)
+	kClient := mocks.NewMockClient(t)
 	kClient.On("GetClientScope", clientScope.Spec.Name, realm.Spec.RealmName).
 		Return(nil, adapter.NotFoundError("not found"))
-	kClient.On("CreateClientScope", realm.Spec.RealmName, &adapter.ClientScope{
+	kClient.On("CreateClientScope", testifymock.Anything, realm.Spec.RealmName, &adapter.ClientScope{
 		Name:            clientScope.Spec.Name,
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).
@@ -153,7 +154,7 @@ func TestConvertProtocolMappers(t *testing.T) {
 }
 
 func TestSyncClientScope(t *testing.T) {
-	kClient := new(adapter.Mock)
+	kClient := mocks.NewMockClient(t)
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: "ns",
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "Keycloak"}}},
 		Spec: keycloakApi.KeycloakRealmSpec{RealmName: "realm11"}}
@@ -163,7 +164,7 @@ func TestSyncClientScope(t *testing.T) {
 	kClient.On("GetClientScope", instance.Spec.Name, realm.Spec.RealmName).Return(&adapter.ClientScope{
 		ID: scopeID,
 	}, nil)
-	kClient.On("UpdateClientScope", realm.Spec.RealmName, scopeID, &adapter.ClientScope{
+	kClient.On("UpdateClientScope", testifymock.Anything, realm.Spec.RealmName, scopeID, &adapter.ClientScope{
 		Name:            instance.Spec.Name,
 		ProtocolMappers: []adapter.ProtocolMapper{},
 	}).Return(nil)

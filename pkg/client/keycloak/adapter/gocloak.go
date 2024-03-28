@@ -42,6 +42,12 @@ type GoCloakClients interface {
 	GetClientScope(ctx context.Context, token, realm, scopeID string) (*gocloak.ClientScope, error)
 	GetClientsDefaultScopes(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error)
 	AddDefaultScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
+	GetClientScopes(ctx context.Context, token, realm string) ([]*gocloak.ClientScope, error)
+
+	GetPolicies(ctx context.Context, token, realm, idOfClient string, params gocloak.GetPolicyParams) ([]*gocloak.PolicyRepresentation, error)
+	CreatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
+	UpdatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
+	DeletePolicy(ctx context.Context, token, realm, idOfClient, policyID string) error
 }
 
 type GoCloakUsers interface {
@@ -65,6 +71,7 @@ type GoCloakClientRoles interface {
 type GoCloakRealmRoles interface {
 	CreateRealmRole(ctx context.Context, token, realm string, role gocloak.Role) (string, error)
 	GetRealmRole(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error)
+	GetRealmRoles(ctx context.Context, token, realm string, params gocloak.GetRoleParams) ([]*gocloak.Role, error)
 	AddRealmRoleToUser(ctx context.Context, token, realm, userID string, roles []gocloak.Role) error
 	UpdateRealmRole(ctx context.Context, token, realm, roleName string, role gocloak.Role) error
 	DeleteRealmRole(ctx context.Context, token, realm, roleName string) error

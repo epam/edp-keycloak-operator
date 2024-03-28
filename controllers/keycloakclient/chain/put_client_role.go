@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/pkg/errors"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -11,26 +12,29 @@ import (
 )
 
 type PutClientRole struct {
-	BaseElement
-	next Element
+	keycloakApiClient keycloak.Client
 }
 
-func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
-	if err := el.putKeycloakClientRole(keycloakClient, adapterClient, realmName); err != nil {
+func NewPutClientRole(keycloakApiClient keycloak.Client) *PutClientRole {
+	return &PutClientRole{keycloakApiClient: keycloakApiClient}
+}
+
+func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	if err := el.putKeycloakClientRole(ctx, keycloakClient, realmName); err != nil {
 		return errors.Wrap(err, "unable to put keycloak client role")
 	}
 
-	return el.NextServeOrNil(ctx, el.next, keycloakClient, adapterClient, realmName)
+	return nil
 }
 
-func (el *PutClientRole) putKeycloakClientRole(keycloakClient *keycloakApi.KeycloakClient, adapterClient keycloak.Client, realmName string) error {
-	reqLog := el.Logger.WithValues("keycloak client cr", keycloakClient)
-	reqLog.Info("Start put keycloak client role...")
+func (el *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	reqLog := ctrl.LoggerFrom(ctx)
+	reqLog.Info("Start put keycloak client role")
 
 	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName)
 
 	for _, role := range clientDto.Roles {
-		exist, err := adapterClient.ExistClientRole(clientDto, role)
+		exist, err := el.keycloakApiClient.ExistClientRole(clientDto, role)
 		if err != nil {
 			return errors.Wrap(err, "error during ExistClientRole")
 		}
@@ -40,7 +44,7 @@ func (el *PutClientRole) putKeycloakClientRole(keycloakClient *keycloakApi.Keycl
 			continue
 		}
 
-		if err := adapterClient.CreateClientRole(clientDto, role); err != nil {
+		if err := el.keycloakApiClient.CreateClientRole(clientDto, role); err != nil {
 			return errors.Wrap(err, "unable to create client role")
 		}
 	}

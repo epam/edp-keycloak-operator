@@ -9,14 +9,17 @@ import (
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
 
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
 
-func initAdapter() (*GoCloakAdapter, *MockGoCloakClient, *resty.Client) {
-	mockClient := new(MockGoCloakClient)
+func initAdapter(t *testing.T) (*GoCloakAdapter, *mocks.MockGoCloak, *resty.Client) {
+	t.Helper()
+
+	mockClient := mocks.NewMockGoCloak(t)
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
+	mockClient.On("RestyClient").Return(restyClient).Maybe()
 
 	logger := mock.NewLogr()
 
@@ -39,7 +42,7 @@ func testComponent() *Component {
 }
 
 func TestGoCloakAdapter_CreateComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("POST", "/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(200, ""))
@@ -60,7 +63,7 @@ func TestGoCloakAdapter_CreateComponent(t *testing.T) {
 }
 
 func TestMock_UpdateComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _ := initAdapter(t)
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
@@ -96,7 +99,7 @@ func TestMock_UpdateComponent(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _ := initAdapter(t)
 	testCmp := testComponent()
 	testCmp.ID = "test-id"
 
@@ -124,7 +127,7 @@ func TestGoCloakAdapter_DeleteComponent(t *testing.T) {
 }
 
 func TestGoCloakAdapter_GetComponent_Failure(t *testing.T) {
-	kcAdapter, _, _ := initAdapter()
+	kcAdapter, _, _ := initAdapter(t)
 
 	httpmock.RegisterResponder("GET", "/admin/realms/realm-name/components",
 		httpmock.NewStringResponder(422, "forbidden"))

@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
-	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -17,6 +16,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestTerminator(t *testing.T) {
@@ -24,7 +24,7 @@ func TestTerminator(t *testing.T) {
 	assert.NoError(t, keycloakApi.AddToScheme(sch))
 
 	fakeClient := fake.NewClientBuilder().WithScheme(sch).Build()
-	kClient := new(adapter.Mock)
+	kClient := mocks.NewMockClient(t)
 
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
 
@@ -81,12 +81,10 @@ func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()
-	kClient := new(adapter.Mock)
+	kClient := mocks.NewMockClient(t)
 	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
 
 	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient, false)
-
-	kClient.On("DeleteAuthFlow", testifymock.Anything, testifymock.Anything).Return(nil).Once()
 
 	err := term.DeleteResource(context.Background())
 	assert.Error(t, err)

@@ -45,3 +45,55 @@ func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, 
 
 	return nil
 }
+
+func (a GoCloakAdapter) GetPolicies(ctx context.Context, realm, idOfClient string) (map[string]*gocloak.PolicyRepresentation, error) {
+	params := gocloak.GetPolicyParams{
+		Permission: gocloak.BoolP(false),
+	}
+
+	p, err := a.client.GetPolicies(ctx, a.token.AccessToken, realm, idOfClient, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get policies: %w", err)
+	}
+
+	policies := make(map[string]*gocloak.PolicyRepresentation, len(p))
+
+	for _, policy := range p {
+		if policy.Name == nil {
+			continue
+		}
+
+		policies[*policy.Name] = policy
+	}
+
+	return policies, nil
+}
+
+// CreatePolicy creates a client authorization policy.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) CreatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error) {
+	pl, err := a.client.CreatePolicy(ctx, a.token.AccessToken, realm, idOfClient, policy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create policy: %w", err)
+	}
+
+	return pl, nil
+}
+
+// UpdatePolicy updates a client authorization policy.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) UpdatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) error {
+	if err := a.client.UpdatePolicy(ctx, a.token.AccessToken, realm, idOfClient, policy); err != nil {
+		return fmt.Errorf("failed to update policy: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) DeletePolicy(ctx context.Context, realm, idOfClient, policyID string) error {
+	if err := a.client.DeletePolicy(ctx, a.token.AccessToken, realm, idOfClient, policyID); err != nil {
+		return fmt.Errorf("failed to delete policy: %w", err)
+	}
+
+	return nil
+}

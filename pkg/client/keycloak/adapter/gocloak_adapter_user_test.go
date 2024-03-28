@@ -10,10 +10,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 )
 
 func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
+	mockClient := mocks.NewMockGoCloak(t)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -42,7 +44,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 
 	realmName := "realm1"
 
-	mockClient.On("GetUsers", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
+	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
 		Return([]*gocloak.User{}, nil)
 
 	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/role-mappings/realm",
@@ -52,7 +54,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				Name: "role-name-1",
 			},
 		}))
-	mockClient.On("DeleteRealmRoleFromUser", realmName, "user-id1", mock.Anything).Return(nil)
+	mockClient.On("DeleteRealmRoleFromUser", mock.Anything, "token", realmName, "user-id1", mock.Anything).Return(nil)
 	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/groups",
 		httpmock.NewJsonResponderOrPanic(200, []UserGroupMapping{
 			{
@@ -77,8 +79,8 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 		},
 	}
 
-	mockClient.On("CreateUser", realmName, goClUser).Return("user-id1", nil)
-	mockClient.On("GetGroups", realmName, mock.Anything).Return([]*gocloak.Group{
+	mockClient.On("CreateUser", mock.Anything, "token", realmName, goClUser).Return("user-id1", nil)
+	mockClient.On("GetGroups", mock.Anything, "token", realmName, mock.Anything).Return([]*gocloak.Group{
 		{
 			Name: gocloak.StringP("group1"),
 			ID:   gocloak.StringP("group-id-2"),
@@ -94,7 +96,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 }
 
 func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
+	mockClient := mocks.NewMockGoCloak(t)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -111,7 +113,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 
 	realmName := "realm1"
 
-	mockClient.On("GetUsers", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
+	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
 		Return([]*gocloak.User{
 			{
 				Username:   &usr.Username,
@@ -122,7 +124,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 			},
 		}, nil)
 
-	mockClient.On("UpdateUser", realmName, gocloak.User{
+	mockClient.On("UpdateUser", mock.Anything, "token", realmName, gocloak.User{
 		ID:         gocloak.StringP("id1"),
 		Username:   gocloak.StringP("vasia"),
 		Attributes: &map[string][]string{"bar": {"baz"}, "foo": {"baz", "zaz"}},
@@ -130,10 +132,10 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 		Groups:     &[]string{"g1", "g2"},
 	}).Return(nil)
 
-	mockClient.On("GetRealmRole", realmName, "r3").Return(&gocloak.Role{}, nil)
-	mockClient.On("GetRealmRole", realmName, "r4").Return(&gocloak.Role{}, nil)
-	mockClient.On("AddRealmRoleToUser", realmName, "id1", []gocloak.Role{{}}).Return(nil)
-	mockClient.On("GetGroups", realmName, mock.Anything).Return([]*gocloak.Group{
+	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r3").Return(&gocloak.Role{}, nil)
+	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r4").Return(&gocloak.Role{}, nil)
+	mockClient.On("AddRealmRoleToUser", mock.Anything, "token", realmName, "id1", []gocloak.Role{{}}).Return(nil)
+	mockClient.On("GetGroups", mock.Anything, "token", realmName, mock.Anything).Return([]*gocloak.Group{
 		{
 			ID:   gocloak.StringP("foo1"),
 			Name: gocloak.StringP("foo"),
@@ -155,7 +157,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
 }
 
 func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
+	mockClient := mocks.NewMockGoCloak(t)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -172,7 +174,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
 
 	realmName := "realm1"
 
-	mockClient.On("GetUsers", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
+	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
 		Return([]*gocloak.User{
 			{
 				Username:   &usr.Username,
@@ -183,7 +185,7 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
 			},
 		}, nil)
 
-	mockClient.On("UpdateUser", realmName, gocloak.User{
+	mockClient.On("UpdateUser", mock.Anything, "token", realmName, gocloak.User{
 		ID:         gocloak.StringP("id1"),
 		Username:   gocloak.StringP("vasia"),
 		Attributes: &map[string][]string{"bar": {"baz"}, "foo": {"baz", "zaz"}},
@@ -191,9 +193,8 @@ func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
 		Groups:     &[]string{"g1", "g2"},
 	}).Return(nil)
 
-	mockClient.On("GetRealmRole", realmName, "r3").Return(&gocloak.Role{}, nil)
-	mockClient.On("GetRealmRole", realmName, "r4").Return(&gocloak.Role{}, nil)
-	mockClient.On("AddRealmRoleToUser", realmName, "id1", []gocloak.Role{{}}).
+	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r3").Return(&gocloak.Role{}, nil).Once()
+	mockClient.On("AddRealmRoleToUser", mock.Anything, "token", realmName, "id1", []gocloak.Role{{}}).
 		Return(errors.New("add realm role fatal"))
 
 	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)

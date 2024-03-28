@@ -140,7 +140,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h, mgr.GetScheme())
+	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h)
 	if err = keycloakClientCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-client controller")
 		os.Exit(1)

@@ -2,6 +2,8 @@ package adapter
 
 import (
 	"context"
+	"fmt"
+	"net/http"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
@@ -18,7 +20,40 @@ func (e NotFoundError) Error() string {
 func IsErrNotFound(err error) bool {
 	errNotFound := NotFoundError("")
 
-	return errors.As(err, &errNotFound)
+	if errors.As(err, &errNotFound) {
+		return true
+	}
+
+	apiErr := gocloak.APIError{}
+	if errors.As(err, &apiErr) {
+		return apiErr.Code == http.StatusNotFound
+	}
+
+	return false
+}
+
+func (a GoCloakAdapter) GetGroups(ctx context.Context, realm string) (map[string]*gocloak.Group, error) {
+	groups, err := a.client.GetGroups(
+		ctx,
+		a.token.AccessToken,
+		realm,
+		gocloak.GetGroupsParams{
+			Max: gocloak.IntP(100),
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get groups: %w", err)
+	}
+
+	groupMap := make(map[string]*gocloak.Group, len(groups))
+
+	for _, g := range groups {
+		if g != nil && g.Name != nil {
+			groupMap[*g.Name] = g
+		}
+	}
+
+	return groupMap, nil
 }
 
 func (a GoCloakAdapter) getGroup(realm, groupName string) (*gocloak.Group, error) {

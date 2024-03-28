@@ -3662,6 +3662,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorization">authorization</a></b></td>
+        <td>object</td>
+        <td>
+          Authorization is a client authorization configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>authorizationServicesEnabled</b></td>
         <td>boolean</td>
         <td>
@@ -3860,6 +3867,438 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
           WebUrl is a client web url.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+Authorization is a client authorization configuration.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindex">policies</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorization)</sup></sup>
+
+
+
+Policy represents a client authorization policy.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a policy name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type is a policy type.<br/>
+          <br/>
+            <i>Enum</i>: aggregate, client, group, role, time, user<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexaggregatedpolicy">aggregatedPolicy</a></b></td>
+        <td>object</td>
+        <td>
+          AggregatedPolicy is an aggregated policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexclientpolicy">clientPolicy</a></b></td>
+        <td>object</td>
+        <td>
+          ClientPolicy is a client policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>decisionStrategy</b></td>
+        <td>enum</td>
+        <td>
+          DecisionStrategy is a policy decision strategy.<br/>
+          <br/>
+            <i>Enum</i>: UNANIMOUS, AFFIRMATIVE, CONSENSUS<br/>
+            <i>Default</i>: UNANIMOUS<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is a policy description.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexgrouppolicy">groupPolicy</a></b></td>
+        <td>object</td>
+        <td>
+          GroupPolicy is a group policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>logic</b></td>
+        <td>enum</td>
+        <td>
+          Logic is a policy logic.<br/>
+          <br/>
+            <i>Enum</i>: POSITIVE, NEGATIVE<br/>
+            <i>Default</i>: POSITIVE<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexrolepolicy">rolePolicy</a></b></td>
+        <td>object</td>
+        <td>
+          RolePolicy is a role policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindextimepolicy">timePolicy</a></b></td>
+        <td>object</td>
+        <td>
+          ScopePolicy is a scope policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexuserpolicy">userPolicy</a></b></td>
+        <td>object</td>
+        <td>
+          UserPolicy is a user policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].aggregatedPolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+AggregatedPolicy is an aggregated policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>policies</b></td>
+        <td>[]string</td>
+        <td>
+          Policies is a list of aggregated policies names. Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].clientPolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+ClientPolicy is a client policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>clients</b></td>
+        <td>[]string</td>
+        <td>
+          Clients is a list of client names. Specifies which client(s) are allowed by this policy.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].groupPolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+GroupPolicy is a group policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexgrouppolicygroupsindex">groups</a></b></td>
+        <td>[]object</td>
+        <td>
+          Groups is a list of group names. Specifies which group(s) are allowed by this policy.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>groupsClaim</b></td>
+        <td>string</td>
+        <td>
+          GroupsClaim is a group claim. If defined, the policy will fetch user's groups from the given claim within an access token or ID token representing the identity asking permissions. If not defined, user's groups are obtained from your realm configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].groupPolicy.groups[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindexgrouppolicy)</sup></sup>
+
+
+
+GroupDefinition represents a group in a GroupPolicyData.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a group name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>extendChildren</b></td>
+        <td>boolean</td>
+        <td>
+          ExtendChildren is a flag that specifies whether to extend children.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].rolePolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+RolePolicy is a role policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexrolepolicyrolesindex">roles</a></b></td>
+        <td>[]object</td>
+        <td>
+          Roles is a list of role.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].rolePolicy.roles[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindexrolepolicy)</sup></sup>
+
+
+
+RoleDefinition represents a role in a RolePolicyData.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a role name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>required</b></td>
+        <td>boolean</td>
+        <td>
+          Required is a flag that specifies whether the role is required.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].timePolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+ScopePolicy is a scope policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>notBefore</b></td>
+        <td>string</td>
+        <td>
+          NotBefore defines the time before which the policy MUST NOT be granted. Only granted if current date/time is after or equal to this value.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>notOnOrAfter</b></td>
+        <td>string</td>
+        <td>
+          NotOnOrAfter defines the time after which the policy MUST NOT be granted. Only granted if current date/time is before or equal to this value.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>dayMonth</b></td>
+        <td>string</td>
+        <td>
+          Day defines the month which the policy MUST be granted. You can also provide a range by filling the dayMonthEnd field. In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>dayMonthEnd</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hour</b></td>
+        <td>string</td>
+        <td>
+          Hour defines the hour when the policy MUST be granted. You can also provide a range by filling the hourEnd. In this case, permission is granted only if current hour is between or equal to the two values you provided.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hourEnd</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minute</b></td>
+        <td>string</td>
+        <td>
+          Minute defines the minute when the policy MUST be granted. You can also provide a range by filling the minuteEnd field. In this case, permission is granted only if current minute is between or equal to the two values you provided.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minuteEnd</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>month</b></td>
+        <td>string</td>
+        <td>
+          Month defines the month which the policy MUST be granted. You can also provide a range by filling the monthEnd. In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>monthEnd</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].userPolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+UserPolicy is a user policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>users</b></td>
+        <td>[]string</td>
+        <td>
+          Users is a list of usernames. Specifies which user(s) are allowed by this policy.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 

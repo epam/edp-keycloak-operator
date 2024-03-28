@@ -8,10 +8,12 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
 	"github.com/stretchr/testify/require"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 )
 
 func TestGoCloakAdapter_SetRealmEventConfig(t *testing.T) {
-	mockClient := new(MockGoCloakClient)
+	mockClient := mocks.NewMockGoCloak(t)
 	restyClient := resty.New()
 	httpmock.ActivateNonDefault(restyClient.GetClient())
 	mockClient.On("RestyClient").Return(restyClient)

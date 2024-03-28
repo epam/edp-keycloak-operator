@@ -25,6 +25,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
@@ -50,12 +51,12 @@ func TestCreateKeycloakClientFromLoginPassword_FailureExportToken(t *testing.T) 
 	cl := fake.NewClientBuilder().WithRuntimeObjects(&kc, &lpSecret).Build()
 
 	helper := MakeHelper(cl, s, "default")
-	adapterMock := adapter.Mock{
-		ExportTokenErr: errors.New("export token fatal"),
-	}
+	adapterMock := mocks.NewMockClient(t)
+	adapterMock.On("ExportToken").Return(nil, errors.New("export token fatal"))
+
 	helper.adapterBuilder = func(ctx context.Context, url, user, password, adminType string, log logr.Logger,
 		restyClient *resty.Client) (keycloak.Client, error) {
-		return &adapterMock, nil
+		return adapterMock, nil
 	}
 
 	_, err := helper.createKeycloakClientFromLoginPassword(context.Background(), MakeKeycloakAuthDataFromKeycloak(&kc))

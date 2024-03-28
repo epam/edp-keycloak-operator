@@ -23,6 +23,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/controllers/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestNewReconcile_Init(t *testing.T) {
@@ -41,7 +42,7 @@ type TestControllerSuite struct {
 	k8sClient   client.Client
 	helper      *helpermock.ControllerHelper
 	kcRealm     *keycloakApi.KeycloakRealm
-	kClient     *adapter.Mock
+	kClient     *mocks.MockClient
 	adapterUser *adapter.KeycloakUser
 }
 
@@ -78,7 +79,7 @@ func (e *TestControllerSuite) SetupTest() {
 			RealmName: e.realmName,
 		},
 	}
-	e.kClient = &adapter.Mock{}
+	e.kClient = mocks.NewMockClient(e.T())
 	e.adapterUser = &adapter.KeycloakUser{
 		Username:            e.kcRealmUser.Spec.Username,
 		Groups:              e.kcRealmUser.Spec.Groups,
@@ -105,7 +106,7 @@ func (e *TestControllerSuite) TestNewReconcile() {
 		client: e.k8sClient,
 	}
 
-	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
+	e.kClient.On("SyncRealmUser", testifymock.Anything, e.realmName, e.adapterUser, false).Return(nil)
 
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: e.namespace,
@@ -138,7 +139,7 @@ func (e *TestControllerSuite) TestReconcileKeep() {
 		client: e.k8sClient,
 	}
 
-	e.kClient.On("SyncRealmUser", e.realmName, e.adapterUser, false).Return(nil)
+	e.kClient.On("SyncRealmUser", testifymock.Anything, e.realmName, e.adapterUser, false).Return(nil)
 
 	_, err := r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Namespace: e.namespace,
