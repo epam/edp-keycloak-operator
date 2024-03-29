@@ -22,6 +22,7 @@ import (
 )
 
 const (
+	authPath                        = "/auth"
 	idPResource                     = "/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource               = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP                       = idPResource + "/{alias}"
@@ -276,7 +277,7 @@ func (a GoCloakAdapter) ExportToken() ([]byte, error) {
 // buildPath returns request path corresponding with the mode the client is operating in.
 func (a GoCloakAdapter) buildPath(endpoint string) string {
 	if a.legacyMode {
-		return a.basePath + "/auth" + endpoint
+		return a.basePath + authPath + endpoint
 	}
 
 	return a.basePath + endpoint

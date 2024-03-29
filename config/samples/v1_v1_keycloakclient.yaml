@@ -84,6 +84,25 @@ spec:
           users:
             - user1
             - user2
+    permissions:
+      - name: resource-permission
+        type: resource
+        logic: POSITIVE
+        description: "Resource permission"
+        decisionStrategy: AFFIRMATIVE
+        policies:
+          - role-policy
+        resources:
+          - resource1
+      - name: scope-permission
+        type: scope
+        logic: POSITIVE
+        description: "Scope permission"
+        decisionStrategy: CONSENSUS
+        policies:
+          - role-policy
+        scopes:
+          - scope1
 
 ---
 

@@ -624,6 +624,68 @@ func (_c *MockGoCloak_CreateGroup_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
+// CreatePermission provides a mock function with given fields: ctx, token, realm, idOfClient, permission
+func (_m *MockGoCloak) CreatePermission(ctx context.Context, token string, realm string, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, permission)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreatePermission")
+	}
+
+	var r0 *gocloak.PermissionRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, permission)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.PermissionRepresentation) *gocloak.PermissionRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, permission)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.PermissionRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.PermissionRepresentation) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, permission)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_CreatePermission_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreatePermission'
+type MockGoCloak_CreatePermission_Call struct {
+	*mock.Call
+}
+
+// CreatePermission is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - permission gocloak.PermissionRepresentation
+func (_e *MockGoCloak_Expecter) CreatePermission(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, permission interface{}) *MockGoCloak_CreatePermission_Call {
+	return &MockGoCloak_CreatePermission_Call{Call: _e.mock.On("CreatePermission", ctx, token, realm, idOfClient, permission)}
+}
+
+func (_c *MockGoCloak_CreatePermission_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, permission gocloak.PermissionRepresentation)) *MockGoCloak_CreatePermission_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.PermissionRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_CreatePermission_Call) Return(_a0 *gocloak.PermissionRepresentation, _a1 error) *MockGoCloak_CreatePermission_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_CreatePermission_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)) *MockGoCloak_CreatePermission_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreatePolicy provides a mock function with given fields: ctx, token, realm, idOfClient, policy
 func (_m *MockGoCloak) CreatePolicy(ctx context.Context, token string, realm string, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error) {
 	ret := _m.Called(ctx, token, realm, idOfClient, policy)
@@ -1157,6 +1219,56 @@ func (_c *MockGoCloak_DeleteGroup_Call) Return(_a0 error) *MockGoCloak_DeleteGro
 }
 
 func (_c *MockGoCloak_DeleteGroup_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MockGoCloak_DeleteGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeletePermission provides a mock function with given fields: ctx, token, realm, idOfClient, permissionID
+func (_m *MockGoCloak) DeletePermission(ctx context.Context, token string, realm string, idOfClient string, permissionID string) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, permissionID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeletePermission")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, permissionID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeletePermission_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeletePermission'
+type MockGoCloak_DeletePermission_Call struct {
+	*mock.Call
+}
+
+// DeletePermission is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - permissionID string
+func (_e *MockGoCloak_Expecter) DeletePermission(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, permissionID interface{}) *MockGoCloak_DeletePermission_Call {
+	return &MockGoCloak_DeletePermission_Call{Call: _e.mock.On("DeletePermission", ctx, token, realm, idOfClient, permissionID)}
+}
+
+func (_c *MockGoCloak_DeletePermission_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, permissionID string)) *MockGoCloak_DeletePermission_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeletePermission_Call) Return(_a0 error) *MockGoCloak_DeletePermission_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeletePermission_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeletePermission_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2008,6 +2120,68 @@ func (_c *MockGoCloak_GetGroups_Call) RunAndReturn(run func(context.Context, str
 	return _c
 }
 
+// GetPermissions provides a mock function with given fields: ctx, token, realm, idOfClient, params
+func (_m *MockGoCloak) GetPermissions(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetPermissionParams) ([]*gocloak.PermissionRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetPermissions")
+	}
+
+	var r0 []*gocloak.PermissionRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetPermissionParams) ([]*gocloak.PermissionRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetPermissionParams) []*gocloak.PermissionRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.PermissionRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.GetPermissionParams) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_GetPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetPermissions'
+type MockGoCloak_GetPermissions_Call struct {
+	*mock.Call
+}
+
+// GetPermissions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - params gocloak.GetPermissionParams
+func (_e *MockGoCloak_Expecter) GetPermissions(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, params interface{}) *MockGoCloak_GetPermissions_Call {
+	return &MockGoCloak_GetPermissions_Call{Call: _e.mock.On("GetPermissions", ctx, token, realm, idOfClient, params)}
+}
+
+func (_c *MockGoCloak_GetPermissions_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetPermissionParams)) *MockGoCloak_GetPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.GetPermissionParams))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_GetPermissions_Call) Return(_a0 []*gocloak.PermissionRepresentation, _a1 error) *MockGoCloak_GetPermissions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_GetPermissions_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.GetPermissionParams) ([]*gocloak.PermissionRepresentation, error)) *MockGoCloak_GetPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPolicies provides a mock function with given fields: ctx, token, realm, idOfClient, params
 func (_m *MockGoCloak) GetPolicies(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetPolicyParams) ([]*gocloak.PolicyRepresentation, error) {
 	ret := _m.Called(ctx, token, realm, idOfClient, params)
@@ -2252,6 +2426,68 @@ func (_c *MockGoCloak_GetRealmRoles_Call) RunAndReturn(run func(context.Context,
 	return _c
 }
 
+// GetResources provides a mock function with given fields: ctx, token, realm, idOfClient, params
+func (_m *MockGoCloak) GetResources(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetResources")
+	}
+
+	var r0 []*gocloak.ResourceRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetResourceParams) []*gocloak.ResourceRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.ResourceRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.GetResourceParams) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_GetResources_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResources'
+type MockGoCloak_GetResources_Call struct {
+	*mock.Call
+}
+
+// GetResources is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - params gocloak.GetResourceParams
+func (_e *MockGoCloak_Expecter) GetResources(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, params interface{}) *MockGoCloak_GetResources_Call {
+	return &MockGoCloak_GetResources_Call{Call: _e.mock.On("GetResources", ctx, token, realm, idOfClient, params)}
+}
+
+func (_c *MockGoCloak_GetResources_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetResourceParams)) *MockGoCloak_GetResources_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.GetResourceParams))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_GetResources_Call) Return(_a0 []*gocloak.ResourceRepresentation, _a1 error) *MockGoCloak_GetResources_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_GetResources_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error)) *MockGoCloak_GetResources_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRoleMappingByGroupID provides a mock function with given fields: ctx, accessToken, realm, groupID
 func (_m *MockGoCloak) GetRoleMappingByGroupID(ctx context.Context, accessToken string, realm string, groupID string) (*gocloak.MappingsRepresentation, error) {
 	ret := _m.Called(ctx, accessToken, realm, groupID)
@@ -2370,6 +2606,68 @@ func (_c *MockGoCloak_GetRoleMappingByUserID_Call) Return(_a0 *gocloak.MappingsR
 }
 
 func (_c *MockGoCloak_GetRoleMappingByUserID_Call) RunAndReturn(run func(context.Context, string, string, string) (*gocloak.MappingsRepresentation, error)) *MockGoCloak_GetRoleMappingByUserID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetScopes provides a mock function with given fields: ctx, token, realm, idOfClient, params
+func (_m *MockGoCloak) GetScopes(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetScopes")
+	}
+
+	var r0 []*gocloak.ScopeRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.GetScopeParams) []*gocloak.ScopeRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.ScopeRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.GetScopeParams) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_GetScopes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetScopes'
+type MockGoCloak_GetScopes_Call struct {
+	*mock.Call
+}
+
+// GetScopes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - params gocloak.GetScopeParams
+func (_e *MockGoCloak_Expecter) GetScopes(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, params interface{}) *MockGoCloak_GetScopes_Call {
+	return &MockGoCloak_GetScopes_Call{Call: _e.mock.On("GetScopes", ctx, token, realm, idOfClient, params)}
+}
+
+func (_c *MockGoCloak_GetScopes_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, params gocloak.GetScopeParams)) *MockGoCloak_GetScopes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.GetScopeParams))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_GetScopes_Call) Return(_a0 []*gocloak.ScopeRepresentation, _a1 error) *MockGoCloak_GetScopes_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_GetScopes_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)) *MockGoCloak_GetScopes_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2688,6 +2986,56 @@ func (_c *MockGoCloak_UpdateGroup_Call) Return(_a0 error) *MockGoCloak_UpdateGro
 }
 
 func (_c *MockGoCloak_UpdateGroup_Call) RunAndReturn(run func(context.Context, string, string, gocloak.Group) error) *MockGoCloak_UpdateGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdatePermission provides a mock function with given fields: ctx, token, realm, idOfClient, permission
+func (_m *MockGoCloak) UpdatePermission(ctx context.Context, token string, realm string, idOfClient string, permission gocloak.PermissionRepresentation) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, permission)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdatePermission")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.PermissionRepresentation) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, permission)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_UpdatePermission_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdatePermission'
+type MockGoCloak_UpdatePermission_Call struct {
+	*mock.Call
+}
+
+// UpdatePermission is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - permission gocloak.PermissionRepresentation
+func (_e *MockGoCloak_Expecter) UpdatePermission(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, permission interface{}) *MockGoCloak_UpdatePermission_Call {
+	return &MockGoCloak_UpdatePermission_Call{Call: _e.mock.On("UpdatePermission", ctx, token, realm, idOfClient, permission)}
+}
+
+func (_c *MockGoCloak_UpdatePermission_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, permission gocloak.PermissionRepresentation)) *MockGoCloak_UpdatePermission_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.PermissionRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_UpdatePermission_Call) Return(_a0 error) *MockGoCloak_UpdatePermission_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_UpdatePermission_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.PermissionRepresentation) error) *MockGoCloak_UpdatePermission_Call {
 	_c.Call.Return(run)
 	return _c
 }

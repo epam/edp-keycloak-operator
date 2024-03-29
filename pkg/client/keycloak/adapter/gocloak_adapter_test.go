@@ -80,14 +80,14 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 		{
 			name: "should succeed with legacy endpoint",
 			mockServer: fakehttp.NewServerBuilder().
-				AddStringResponder("/auth"+realmsEndpoint, "{}").
+				AddStringResponder(authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
 			wantErr: require.NoError,
 		},
 		{
 			name: "should fail on status bad request",
 			mockServer: fakehttp.NewServerBuilder().
-				AddStringResponderWithCode(http.StatusBadRequest, "/auth"+realmsEndpoint, "{}").
+				AddStringResponderWithCode(http.StatusBadRequest, authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
 			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
 				require.Error(t, err)
@@ -133,7 +133,7 @@ func (e *AdapterTestSuite) TestMake() {
 		{
 			name: "should succeed with legacy endpoint",
 			mockServer: fakehttp.NewServerBuilder().
-				AddStringResponder("/auth"+realmsEndpoint, "{}").
+				AddStringResponder(authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
 			wantErr: require.NoError,
 		},
@@ -148,7 +148,7 @@ func (e *AdapterTestSuite) TestMake() {
 		{
 			name: "should fail with status 400",
 			mockServer: fakehttp.NewServerBuilder().
-				AddStringResponderWithCode(http.StatusBadRequest, "/auth"+realmsEndpoint, "{}").
+				AddStringResponderWithCode(http.StatusBadRequest, authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
 			wantErr: func(t require.TestingT, err error, i ...interface{}) {
 				require.Error(t, err)

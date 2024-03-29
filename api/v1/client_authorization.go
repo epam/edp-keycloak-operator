@@ -14,6 +14,9 @@ const (
 
 	PolicyLogicPositive = "POSITIVE"
 	PolicyLogicNegative = "NEGATIVE"
+
+	PermissionTypeResource = "resource"
+	PermissionTypeScope    = "scope"
 )
 
 // Policy represents a client authorization policy.
@@ -190,4 +193,52 @@ type GroupDefinition struct {
 	// ExtendChildren is a flag that specifies whether to extend children.
 	// +optional
 	ExtendChildren bool `json:"extendChildren,omitempty"`
+}
+
+type Permission struct {
+	// Name is a permission name.
+	// +required
+	Name string `json:"name"`
+
+	// Type is a permission type.
+	// +required
+	// +kubebuilder:validation:Enum=resource;scope
+	Type string `json:"type"`
+
+	// DecisionStrategy is a permission decision strategy.
+	// +optional
+	// +kubebuilder:validation:Enum=UNANIMOUS;AFFIRMATIVE;CONSENSUS
+	// +kubebuilder:default=UNANIMOUS
+	DecisionStrategy string `json:"decisionStrategy,omitempty"`
+
+	// Description is a permission description.
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// Logic is a permission logic.
+	// +optional
+	// +kubebuilder:validation:Enum=POSITIVE;NEGATIVE
+	// +kubebuilder:default=POSITIVE
+	Logic string `json:"logic,omitempty"`
+
+	// Policies is a list of policies names.
+	// Specifies all the policies that must be applied to the scopes defined by this policy or permission.
+	// +optional
+	// +nullable
+	// +kubebuilder:example={policy1,policy2}
+	Policies []string `json:"policies,omitempty"`
+
+	// Resources is a list of resources names.
+	// Specifies that this permission must be applied to all resource instances of a given type.
+	// +optional
+	// +nullable
+	// +kubebuilder:example={resource1,resource2}
+	Resources []string `json:"resources,omitempty"`
+
+	// Scopes is a list of authorization scopes names.
+	// Specifies that this permission must be applied to one or more scopes.
+	// +optional
+	// +nullable
+	// +kubebuilder:example={scope1,scope2}
+	Scopes []string `json:"scopes,omitempty"`
 }
