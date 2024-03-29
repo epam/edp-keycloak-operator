@@ -90,6 +90,14 @@ type KCloakClients interface {
 	CreatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
 	UpdatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
 	DeletePolicy(ctx context.Context, realm, idOfClient, policyID string) error
+
+	GetPermissions(ctx context.Context, realm, idOfClient string) (map[string]gocloak.PermissionRepresentation, error)
+	CreatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)
+	UpdatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) error
+	DeletePermission(ctx context.Context, realm, idOfClient, permissionID string) error
+
+	GetResources(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ResourceRepresentation, error)
+	GetScopes(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ScopeRepresentation, error)
 }
 
 type KCloakClientScope interface {

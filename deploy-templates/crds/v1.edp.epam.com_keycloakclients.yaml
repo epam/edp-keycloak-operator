@@ -56,6 +56,74 @@ spec:
                 description: Authorization is a client authorization configuration.
                 nullable: true
                 properties:
+                  permissions:
+                    items:
+                      properties:
+                        decisionStrategy:
+                          default: UNANIMOUS
+                          description: DecisionStrategy is a permission decision strategy.
+                          enum:
+                          - UNANIMOUS
+                          - AFFIRMATIVE
+                          - CONSENSUS
+                          type: string
+                        description:
+                          description: Description is a permission description.
+                          type: string
+                        logic:
+                          default: POSITIVE
+                          description: Logic is a permission logic.
+                          enum:
+                          - POSITIVE
+                          - NEGATIVE
+                          type: string
+                        name:
+                          description: Name is a permission name.
+                          type: string
+                        policies:
+                          description: Policies is a list of policies names. Specifies
+                            all the policies that must be applied to the scopes defined
+                            by this policy or permission.
+                          example:
+                          - policy1
+                          - policy2
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                        resources:
+                          description: Resources is a list of resources names. Specifies
+                            that this permission must be applied to all resource instances
+                            of a given type.
+                          example:
+                          - resource1
+                          - resource2
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                        scopes:
+                          description: Scopes is a list of authorization scopes names.
+                            Specifies that this permission must be applied to one
+                            or more scopes.
+                          example:
+                          - scope1
+                          - scope2
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                        type:
+                          description: Type is a permission type.
+                          enum:
+                          - resource
+                          - scope
+                          type: string
+                      required:
+                      - name
+                      - type
+                      type: object
+                    type: array
                   policies:
                     items:
                       description: Policy represents a client authorization policy.

@@ -230,6 +230,8 @@ type RealmRole struct {
 
 type Authorization struct {
 	Policies []Policy `json:"policies,omitempty"`
+
+	Permissions []Permission `json:"permissions,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

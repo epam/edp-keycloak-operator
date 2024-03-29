@@ -67,6 +67,7 @@ func MakeChain(
 		NewPutProtocolMappers(keycloakApiClient),
 		NewServiceAccount(keycloakApiClient),
 		NewProcessPolicy(keycloakApiClient),
+		NewProcessPermissions(keycloakApiClient),
 	)
 
 	return c

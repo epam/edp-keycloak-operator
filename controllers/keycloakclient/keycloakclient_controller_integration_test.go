@@ -2,6 +2,7 @@ package keycloakclient
 
 import (
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -18,9 +19,9 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
-var _ = Describe("KeycloakClient controller", func() {
+var _ = Describe("KeycloakClient controller", Ordered, func() {
 	It("Should create KeycloakClient with secret reference", func() {
-		By("By creating a client secret")
+		By("Creating a client secret")
 		clientSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-secret",
@@ -31,7 +32,7 @@ var _ = Describe("KeycloakClient controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
-		By("By creating a KeycloakClient")
+		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-with-secret-ref",
@@ -73,10 +74,10 @@ var _ = Describe("KeycloakClient controller", func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
 	It("Should delete KeycloakClient", func() {
-		By("By getting KeycloakClient")
+		By("Getting KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "test-keycloak-client-with-secret-ref"}, keycloakClient)).Should(Succeed())
-		By("By deleting KeycloakClient")
+		By("Deleting KeycloakClient")
 		Expect(k8sClient.Delete(ctx, keycloakClient)).Should(Succeed())
 		Eventually(func() bool {
 			deletedKeycloakClient := &keycloakApi.KeycloakClient{}
@@ -86,7 +87,7 @@ var _ = Describe("KeycloakClient controller", func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be deleted")
 	})
 	It("Should create KeycloakClient with empty secret", func() {
-		By("By creating a KeycloakClient")
+		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-with-empty-secret",
@@ -113,7 +114,7 @@ var _ = Describe("KeycloakClient controller", func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
 	It("Should create KeycloakClient with direct secret name", func() {
-		By("By creating a client secret")
+		By("Creating a client secret")
 		clientSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-secret2",
@@ -124,7 +125,7 @@ var _ = Describe("KeycloakClient controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
-		By("By creating a KeycloakClient")
+		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-with-direct-secret-name",
@@ -152,7 +153,7 @@ var _ = Describe("KeycloakClient controller", func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
 	It("Should create KeycloakClient with authorization settings", func() {
-		By("By creating a client secret")
+		By("Creating a client secret")
 		clientSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-secret3",
@@ -168,26 +169,26 @@ var _ = Describe("KeycloakClient controller", func() {
 		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		By("By creating group for policy")
+		By("Creating group for policy")
 		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
 			Name: gocloak.StringP("test-policy-group"),
 		})
 		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
-		By("By creating role for policy")
+		By("Creating role for policy")
 		_, err = client.CreateRealmRole(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Role{
 			Name: gocloak.StringP("test-policy-role"),
 		})
 		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
-		By("By creating user for policy")
+		By("Creating user for policy")
 		_, err = client.CreateUser(ctx, token.AccessToken, KeycloakRealmCR, gocloak.User{
 			Username: gocloak.StringP("test-policy-user"),
 			Enabled:  gocloak.BoolP(true),
 		})
 		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
-		By("By creating a KeycloakClient")
+		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-keycloak-client-with-authorization",
@@ -267,10 +268,74 @@ var _ = Describe("KeycloakClient controller", func() {
 							},
 						},
 					},
+					Permissions: []keycloakApi.Permission{},
 				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func() bool {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			if err = k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient); err != nil {
+				return false
+			}
+
+			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+				createdKeycloakClient.Status.ClientID != ""
+		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+
+		By("Adding client permissions")
+
+		By("Getting Client")
+		clients, err := client.GetClients(ctx, token.AccessToken, KeycloakRealmCR, gocloak.GetClientsParams{
+			ClientID: gocloak.StringP(keycloakClient.Spec.ClientId),
+		})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(len(clients)).Should(Equal(1))
+
+		cl := clients[0]
+
+		By("Creating scope for permission")
+		_, err = client.CreateScope(ctx, token.AccessToken, KeycloakRealmCR, *cl.ID,
+			gocloak.ScopeRepresentation{
+				Name: gocloak.StringP("test-scope"),
+			})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("Creating resource for permission")
+		_, err = client.CreateResource(ctx, token.AccessToken, KeycloakRealmCR, *cl.ID,
+			gocloak.ResourceRepresentation{
+				Name:               gocloak.StringP("test-resource"),
+				OwnerManagedAccess: gocloak.BoolP(false),
+			})
+		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("Getting KeycloakClient for update")
+		clientToUpdate := &keycloakApi.KeycloakClient{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: keycloakClient.Name}, clientToUpdate)).Should(Succeed())
+
+		clientToUpdate.Spec.Authorization.Permissions = []keycloakApi.Permission{
+			{
+				Name:             "scope-permission",
+				Type:             keycloakApi.PermissionTypeScope,
+				DecisionStrategy: keycloakApi.PolicyDecisionStrategyConsensus,
+				Description:      "Scope permission",
+				Logic:            keycloakApi.PolicyLogicNegative,
+				Policies:         []string{"client-policy"},
+				Scopes:           []string{"test-scope"},
+			},
+			{
+				Name:             "resource-permission",
+				Type:             keycloakApi.PermissionTypeResource,
+				DecisionStrategy: keycloakApi.PolicyDecisionStrategyAffirmative,
+				Description:      "Resource permission",
+				Logic:            keycloakApi.PolicyLogicPositive,
+				Policies:         []string{"client-policy"},
+				Resources:        []string{"test-resource"},
+			},
+		}
+
+		By("Waiting for the KeycloakClient will be processed at least once")
+		time.Sleep(5 * time.Second)
 		Eventually(func() bool {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
@@ -280,7 +345,7 @@ var _ = Describe("KeycloakClient controller", func() {
 
 			return createdKeycloakClient.Status.Value == helper.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be updated successfully")
 	})
 })
 

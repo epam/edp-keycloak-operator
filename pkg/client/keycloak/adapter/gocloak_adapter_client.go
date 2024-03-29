@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+const defaultMax = 100
+
 func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
 	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
 	log.Info("Start add Client Scopes to client...")
@@ -46,9 +48,110 @@ func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, 
 	return nil
 }
 
+func (a GoCloakAdapter) GetPermissions(ctx context.Context, realm, idOfClient string) (map[string]gocloak.PermissionRepresentation, error) {
+	params := gocloak.GetPermissionParams{
+		Max: gocloak.IntP(defaultMax),
+	}
+
+	p, err := a.client.GetPermissions(ctx, a.token.AccessToken, realm, idOfClient, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get permissions: %w", err)
+	}
+
+	permissions := make(map[string]gocloak.PermissionRepresentation, len(p))
+
+	for _, permission := range p {
+		if permission == nil || permission.Name == nil {
+			continue
+		}
+
+		permissions[*permission.Name] = *permission
+	}
+
+	return permissions, nil
+}
+
+func (a GoCloakAdapter) GetScopes(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ScopeRepresentation, error) {
+	params := gocloak.GetScopeParams{
+		Max:  gocloak.IntP(defaultMax),
+		Deep: gocloak.BoolP(false),
+	}
+
+	s, err := a.client.GetScopes(ctx, a.token.AccessToken, realm, idOfClient, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get scopes: %w", err)
+	}
+
+	scopes := make(map[string]gocloak.ScopeRepresentation, len(s))
+
+	for _, scope := range s {
+		if scope == nil || scope.Name == nil {
+			continue
+		}
+
+		scopes[*scope.Name] = *scope
+	}
+
+	return scopes, nil
+}
+
+func (a GoCloakAdapter) GetResources(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ResourceRepresentation, error) {
+	params := gocloak.GetResourceParams{
+		Max:  gocloak.IntP(defaultMax),
+		Deep: gocloak.BoolP(false),
+	}
+
+	r, err := a.client.GetResources(ctx, a.token.AccessToken, realm, idOfClient, params)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get resources: %w", err)
+	}
+
+	resources := make(map[string]gocloak.ResourceRepresentation, len(r))
+
+	for _, resource := range r {
+		if resource == nil || resource.Name == nil {
+			continue
+		}
+
+		resources[*resource.Name] = *resource
+	}
+
+	return resources, nil
+}
+
+// CreatePermission creates a client authorization permission.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) CreatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error) {
+	p, err := a.client.CreatePermission(ctx, a.token.AccessToken, realm, idOfClient, permission)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create permission: %w", err)
+	}
+
+	return p, nil
+}
+
+// UpdatePermission updates a client authorization permission.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) UpdatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) error {
+	if err := a.client.UpdatePermission(ctx, a.token.AccessToken, realm, idOfClient, permission); err != nil {
+		return fmt.Errorf("failed to update permission: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) DeletePermission(ctx context.Context, realm, idOfClient, permissionID string) error {
+	if err := a.client.DeletePermission(ctx, a.token.AccessToken, realm, idOfClient, permissionID); err != nil {
+		return fmt.Errorf("failed to delete permission: %w", err)
+	}
+
+	return nil
+}
+
 func (a GoCloakAdapter) GetPolicies(ctx context.Context, realm, idOfClient string) (map[string]*gocloak.PolicyRepresentation, error) {
 	params := gocloak.GetPolicyParams{
 		Permission: gocloak.BoolP(false),
+		Max:        gocloak.IntP(defaultMax),
 	}
 
 	p, err := a.client.GetPolicies(ctx, a.token.AccessToken, realm, idOfClient, params)

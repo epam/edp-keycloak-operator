@@ -3888,10 +3888,101 @@ Authorization is a client authorization configuration.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpermissionsindex">permissions</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakclientspecauthorizationpoliciesindex">policies</a></b></td>
         <td>[]object</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.permissions[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorization)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a permission name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type is a permission type.<br/>
+          <br/>
+            <i>Enum</i>: resource, scope<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>decisionStrategy</b></td>
+        <td>enum</td>
+        <td>
+          DecisionStrategy is a permission decision strategy.<br/>
+          <br/>
+            <i>Enum</i>: UNANIMOUS, AFFIRMATIVE, CONSENSUS<br/>
+            <i>Default</i>: UNANIMOUS<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is a permission description.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>logic</b></td>
+        <td>enum</td>
+        <td>
+          Logic is a permission logic.<br/>
+          <br/>
+            <i>Enum</i>: POSITIVE, NEGATIVE<br/>
+            <i>Default</i>: POSITIVE<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>policies</b></td>
+        <td>[]string</td>
+        <td>
+          Policies is a list of policies names. Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>resources</b></td>
+        <td>[]string</td>
+        <td>
+          Resources is a list of resources names. Specifies that this permission must be applied to all resource instances of a given type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>scopes</b></td>
+        <td>[]string</td>
+        <td>
+          Scopes is a list of authorization scopes names. Specifies that this permission must be applied to one or more scopes.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
