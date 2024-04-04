@@ -1,0 +1,118 @@
+#apiVersion: v1
+#kind: Namespace
+#metadata:
+#  name: keycloak-with-self-signed-certificates
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-keycloak
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - protocol: TCP
+      port: 8443
+      targetPort: 8443
+      name: https
+  type: ClusterIP
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-keycloak
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: keycloak
+  template:
+    metadata:
+      labels:
+        app: keycloak
+    spec:
+      containers:
+        - name: keycloak
+          image: quay.io/keycloak/keycloak:24.0.2
+          args:
+            - "start-dev"
+            - "--https-port=8443"
+            - "--https-certificate-file=/etc/certs/tls.crt"
+            - "--https-certificate-key-file=/etc/certs/tls.key"
+          ports:
+            - containerPort: 8080
+            - containerPort: 8443
+          env:
+            - name: KEYCLOAK_ADMIN
+              value: "admin"
+            - name: KEYCLOAK_ADMIN_PASSWORD
+              value: "admin"
+          volumeMounts:
+            - name: certs
+              mountPath: "/etc/certs"
+              readOnly: true
+      volumes:
+        - name: certs
+          secret:
+            secretName: test-keycloak-certs
+
+---
+# Certificates are generated for service with name test-keycloak
+
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-keycloak-certs
+type: Opaque
+data:
+  ca.crt: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNURENDQWZLZ0F3SUJBZ0lRTU4zUlJWbGtOeXRuZWxRT0laTlJmVEFLQmdncWhrak9QUVFEQWpBNk1SUXcKRWdZRFZRUUtFd3RyYm1GMGFYWmxMbVJsZGpFaU1DQUdBMVVFQXhNWmRHVnpkQzFyWlhsamJHOWhheTVrWldaaApkV3gwTG5OMll6QWdGdzB5TkRBME1ETXhNVFUzTlRGYUdBOHlNVEkwTURNeE1ERXhOVGMxTVZvd09qRVVNQklHCkExVUVDaE1MYTI1aGRHbDJaUzVrWlhZeElqQWdCZ05WQkFNVEdYUmxjM1F0YTJWNVkyeHZZV3N1WkdWbVlYVnMKZEM1emRtTXdXVEFUQmdjcWhrak9QUUlCQmdncWhrak9QUU1CQndOQ0FBUVFWc2Z1SXBzbENGL0VUT1EwYzZoUQpWanhpRXVtczBSckt2M2R0RW1ka0F1dm9OcUxXK000SHlvVDFIQklBSkI5emZWWVpNQWp6WmNLUkRQcnI4S0QxCm80SFhNSUhVTUE0R0ExVWREd0VCL3dRRUF3SUNoREFkQmdOVkhTVUVGakFVQmdnckJnRUZCUWNEQVFZSUt3WUIKQlFVSEF3SXdEd1lEVlIwVEFRSC9CQVV3QXdFQi96QWRCZ05WSFE0RUZnUVVjSDk1WEdvNGxWVTR4b2NHUmtXZAp2Vm5GSkxzd2N3WURWUjBSQkd3d2FvSU5kR1Z6ZEMxclpYbGpiRzloYTRJVmRHVnpkQzFyWlhsamJHOWhheTVrClpXWmhkV3gwZ2hsMFpYTjBMV3RsZVdOc2IyRnJMbVJsWm1GMWJIUXVjM1pqZ2lkMFpYTjBMV3RsZVdOc2IyRnIKTG1SbFptRjFiSFF1YzNaakxtTnNkWE4wWlhJdWJHOWpZV3d3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnWVl2ZApHUm04QytDWVJlYkpMZFVFbCs2T3RWL3pranFXdC8vREdpQ3E2NDBDSVFDMVF3QVRyYXY1ZDZUaUJrZXQyVmpyCktmU05qb1lIRkNBT08zMjE5YmloUEE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+  tls.crt: "LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUNJakNDQWNlZ0F3SUJBZ0lSQU9jT2oxUHRaSkpFL05Ubko2SXRjaE13Q2dZSUtvWkl6ajBFQXdJd09qRVUKTUJJR0ExVUVDaE1MYTI1aGRHbDJaUzVrWlhZeElqQWdCZ05WQkFNVEdYUmxjM1F0YTJWNVkyeHZZV3N1WkdWbQpZWFZzZEM1emRtTXdJQmNOTWpRd05EQXpNVEUxTnpVeFdoZ1BNakV5TkRBek1UQXhNVFUzTlRGYU1Eb3hGREFTCkJnTlZCQW9UQzJ0dVlYUnBkbVV1WkdWMk1TSXdJQVlEVlFRREV4bDBaWE4wTFd0bGVXTnNiMkZyTG1SbFptRjEKYkhRdWMzWmpNRmt3RXdZSEtvWkl6ajBDQVFZSUtvWkl6ajBEQVFjRFFnQUVQWWNqRjlSUk5mdUgwWk1XU1A1dgo3djlKWXpYNkhoNkxVWWFpWHF5TGNuSGkvK0tpZjhMbkpsMHhENFBoSzNOM2pXenIrcy9DdGhFVFYwdXBudTNpCjlxT0JxekNCcURBT0JnTlZIUThCQWY4RUJBTUNCNEF3RXdZRFZSMGxCQXd3Q2dZSUt3WUJCUVVIQXdFd0RBWUQKVlIwVEFRSC9CQUl3QURCekJnTlZIUkVFYkRCcWdnMTBaWE4wTFd0bGVXTnNiMkZyZ2hWMFpYTjBMV3RsZVdOcwpiMkZyTG1SbFptRjFiSFNDR1hSbGMzUXRhMlY1WTJ4dllXc3VaR1ZtWVhWc2RDNXpkbU9DSjNSbGMzUXRhMlY1ClkyeHZZV3N1WkdWbVlYVnNkQzV6ZG1NdVkyeDFjM1JsY2k1c2IyTmhiREFLQmdncWhrak9QUVFEQWdOSkFEQkcKQWlFQTUxRlZLMlJXd0NaVXpQUFJNeDlSUHJ2dlhIcnlQQjJBUFNtTUN5RFBlSEFDSVFEWHBwM1NHaXB3ajFkTgphSWhEYlBkUWljOUxTdFJRakU4V2FqTTJtaGZiVVE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg=="
+  tls.key: "LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JR0hBZ0VBTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEJHMHdhd0lCQVFRZzlKZmJ4bVI3R25kZHJZYTAKMUF5OSt1MkVPVmlRUEtMeXFUaUJiTW1TVVZTaFJBTkNBQVE5aHlNWDFGRTErNGZSa3haSS9tL3UvMGxqTmZvZQpIb3RSaHFKZXJJdHljZUwvNHFKL3d1Y21YVEVQZytFcmMzZU5iT3Y2ejhLMkVSTlhTNm1lN2VMMgotLS0tLUVORCBQUklWQVRFIEtFWS0tLS0tCg=="
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: test-keycloak-certs
+data:
+  ca.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIICTDCCAfKgAwIBAgIQMN3RRVlkNytnelQOIZNRfTAKBggqhkjOPQQDAjA6MRQw
+    EgYDVQQKEwtrbmF0aXZlLmRldjEiMCAGA1UEAxMZdGVzdC1rZXljbG9hay5kZWZh
+    dWx0LnN2YzAgFw0yNDA0MDMxMTU3NTFaGA8yMTI0MDMxMDExNTc1MVowOjEUMBIG
+    A1UEChMLa25hdGl2ZS5kZXYxIjAgBgNVBAMTGXRlc3Qta2V5Y2xvYWsuZGVmYXVs
+    dC5zdmMwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAQQVsfuIpslCF/ETOQ0c6hQ
+    VjxiEums0RrKv3dtEmdkAuvoNqLW+M4HyoT1HBIAJB9zfVYZMAjzZcKRDPrr8KD1
+    o4HXMIHUMA4GA1UdDwEB/wQEAwIChDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYB
+    BQUHAwIwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUcH95XGo4lVU4xocGRkWd
+    vVnFJLswcwYDVR0RBGwwaoINdGVzdC1rZXljbG9ha4IVdGVzdC1rZXljbG9hay5k
+    ZWZhdWx0ghl0ZXN0LWtleWNsb2FrLmRlZmF1bHQuc3Zjgid0ZXN0LWtleWNsb2Fr
+    LmRlZmF1bHQuc3ZjLmNsdXN0ZXIubG9jYWwwCgYIKoZIzj0EAwIDSAAwRQIgYYvd
+    GRm8C+CYRebJLdUEl+6OtV/zkjqWt//DGiCq640CIQC1QwATrav5d6TiBket2Vjr
+    KfSNjoYHFCAOO3219bihPA==
+    -----END CERTIFICATE-----
+
+
+  tls.crt: |
+    -----BEGIN CERTIFICATE-----
+    MIICIjCCAcegAwIBAgIRAOcOj1PtZJJE/NTnJ6ItchMwCgYIKoZIzj0EAwIwOjEU
+    MBIGA1UEChMLa25hdGl2ZS5kZXYxIjAgBgNVBAMTGXRlc3Qta2V5Y2xvYWsuZGVm
+    YXVsdC5zdmMwIBcNMjQwNDAzMTE1NzUxWhgPMjEyNDAzMTAxMTU3NTFaMDoxFDAS
+    BgNVBAoTC2tuYXRpdmUuZGV2MSIwIAYDVQQDExl0ZXN0LWtleWNsb2FrLmRlZmF1
+    bHQuc3ZjMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEPYcjF9RRNfuH0ZMWSP5v
+    7v9JYzX6Hh6LUYaiXqyLcnHi/+Kif8LnJl0xD4PhK3N3jWzr+s/CthETV0upnu3i
+    9qOBqzCBqDAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwEwDAYD
+    VR0TAQH/BAIwADBzBgNVHREEbDBqgg10ZXN0LWtleWNsb2FrghV0ZXN0LWtleWNs
+    b2FrLmRlZmF1bHSCGXRlc3Qta2V5Y2xvYWsuZGVmYXVsdC5zdmOCJ3Rlc3Qta2V5
+    Y2xvYWsuZGVmYXVsdC5zdmMuY2x1c3Rlci5sb2NhbDAKBggqhkjOPQQDAgNJADBG
+    AiEA51FVK2RWwCZUzPPRMx9RPrvvXHryPB2APSmMCyDPeHACIQDXpp3SGipwj1dN
+    aIhDbPdQic9LStRQjE8WajM2mhfbUQ==
+    -----END CERTIFICATE-----
+
+  tls.key: |
+    -----BEGIN PRIVATE KEY-----
+    MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQg9JfbxmR7GnddrYa0
+    1Ay9+u2EOViQPKLyqTiBbMmSUVShRANCAAQ9hyMX1FE1+4fRkxZI/m/u/0ljNfoe
+    HotRhqJerItyceL/4qJ/wucmXTEPg+Erc3eNbOv6z8K2ERNXS6me7eL2
+    -----END PRIVATE KEY-----
+

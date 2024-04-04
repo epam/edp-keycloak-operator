@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -102,11 +103,19 @@ type JWTPayload struct {
 	Exp int64 `json:"exp"`
 }
 
+type GoCloakConfig struct {
+	Url                string
+	User               string
+	Password           string
+	RootCertificate    string
+	InsecureSkipVerify bool
+}
+
 func (a GoCloakAdapter) GetGoCloak() GoCloak {
 	return a.client
 }
 
-func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
+func MakeFromToken(conf GoCloakConfig, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
 	var token gocloak.JWT
 	if err := json.Unmarshal(tokenData, &token); err != nil {
 		return nil, errors.Wrapf(err, "unable decode json data")
@@ -134,7 +143,7 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 		return nil, TokenExpiredError("token is expired")
 	}
 
-	kcCl, legacyMode, err := makeClientFromToken(url, token.AccessToken)
+	kcCl, legacyMode, err := makeClientFromToken(conf, token.AccessToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to make new keycloak client: %w", err)
 	}
@@ -143,16 +152,24 @@ func MakeFromToken(url string, tokenData []byte, log logr.Logger) (*GoCloakAdapt
 		client:     kcCl,
 		token:      &token,
 		log:        log,
-		basePath:   url,
+		basePath:   conf.Url,
 		legacyMode: legacyMode,
 	}, nil
 }
 
 // makeClientFromToken returns Keycloak client, a bool flag indicating whether it was created in legacy mode and an error.
-func makeClientFromToken(url, token string) (*gocloak.GoCloak, bool, error) {
+func makeClientFromToken(conf GoCloakConfig, token string) (*gocloak.GoCloak, bool, error) {
 	restyClient := resty.New()
 
-	kcCl := gocloak.NewClient(url)
+	if conf.InsecureSkipVerify {
+		restyClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	if conf.RootCertificate != "" {
+		restyClient.SetRootCertificateFromString(conf.RootCertificate)
+	}
+
+	kcCl := gocloak.NewClient(conf.Url)
 	kcCl.SetRestyClient(restyClient)
 
 	_, err := kcCl.GetRealms(context.Background(), token)
@@ -164,7 +181,7 @@ func makeClientFromToken(url, token string) (*gocloak.GoCloak, bool, error) {
 		return nil, false, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
-	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl = gocloak.NewClient(conf.Url, gocloak.SetLegacyWildFlySupport())
 	kcCl.SetRestyClient(restyClient)
 
 	if _, err := kcCl.GetRealms(context.Background(), token); err != nil {
@@ -175,23 +192,33 @@ func makeClientFromToken(url, token string) (*gocloak.GoCloak, bool, error) {
 }
 
 func MakeFromServiceAccount(ctx context.Context,
-	url, clientID, clientSecret, realm string,
-	log logr.Logger, restyClient *resty.Client,
+	conf GoCloakConfig,
+	realm string,
+	log logr.Logger,
+	restyClient *resty.Client,
 ) (*GoCloakAdapter, error) {
 	if restyClient == nil {
 		restyClient = resty.New()
 	}
 
-	kcCl := gocloak.NewClient(url)
+	if conf.InsecureSkipVerify {
+		restyClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	if conf.RootCertificate != "" {
+		restyClient.SetRootCertificateFromString(conf.RootCertificate)
+	}
+
+	kcCl := gocloak.NewClient(conf.Url)
 	kcCl.SetRestyClient(restyClient)
 
-	token, err := kcCl.LoginClient(ctx, clientID, clientSecret, realm)
+	token, err := kcCl.LoginClient(ctx, conf.User, conf.Password, realm)
 	if err == nil {
 		return &GoCloakAdapter{
 			client:     kcCl,
 			token:      token,
 			log:        log,
-			basePath:   url,
+			basePath:   conf.Url,
 			legacyMode: false,
 		}, nil
 	}
@@ -200,20 +227,20 @@ func MakeFromServiceAccount(ctx context.Context,
 		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
-	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl = gocloak.NewClient(conf.Url, gocloak.SetLegacyWildFlySupport())
 	kcCl.SetRestyClient(restyClient)
 
-	token, err = kcCl.LoginClient(ctx, clientID, clientSecret, realm)
+	token, err = kcCl.LoginClient(ctx, conf.User, conf.Password, realm)
 	if err != nil {
 		return nil, fmt.Errorf("failed to login with client creds on both current and legacy clients - "+
-			"clientID: %s, realm: %s: %w", clientID, realm, err)
+			"clientID: %s, realm: %s: %w", conf.User, realm, err)
 	}
 
 	return &GoCloakAdapter{
 		client:     kcCl,
 		token:      token,
 		log:        log,
-		basePath:   url,
+		basePath:   conf.Url,
 		legacyMode: true,
 	}, nil
 }
@@ -225,21 +252,29 @@ func isNotLegacyResponseCode(err error) bool {
 	return !ok || (apiErr.Code != http.StatusNotFound && apiErr.Code != http.StatusServiceUnavailable)
 }
 
-func Make(ctx context.Context, url, user, password string, log logr.Logger, restyClient *resty.Client) (*GoCloakAdapter, error) {
+func Make(ctx context.Context, conf GoCloakConfig, log logr.Logger, restyClient *resty.Client) (*GoCloakAdapter, error) {
 	if restyClient == nil {
 		restyClient = resty.New()
 	}
 
-	kcCl := gocloak.NewClient(url)
+	if conf.InsecureSkipVerify {
+		restyClient.SetTLSClientConfig(&tls.Config{InsecureSkipVerify: true})
+	}
+
+	if conf.RootCertificate != "" {
+		restyClient.SetRootCertificateFromString(conf.RootCertificate)
+	}
+
+	kcCl := gocloak.NewClient(conf.Url)
 	kcCl.SetRestyClient(restyClient)
 
-	token, err := kcCl.LoginAdmin(ctx, user, password, "master")
+	token, err := kcCl.LoginAdmin(ctx, conf.User, conf.Password, "master")
 	if err == nil {
 		return &GoCloakAdapter{
 			client:     kcCl,
 			token:      token,
 			log:        log,
-			basePath:   url,
+			basePath:   conf.Url,
 			legacyMode: false,
 		}, nil
 	}
@@ -248,19 +283,19 @@ func Make(ctx context.Context, url, user, password string, log logr.Logger, rest
 		return nil, fmt.Errorf("unexpected error received while trying to get realms using the modern client: %w", err)
 	}
 
-	kcCl = gocloak.NewClient(url, gocloak.SetLegacyWildFlySupport())
+	kcCl = gocloak.NewClient(conf.Url, gocloak.SetLegacyWildFlySupport())
 	kcCl.SetRestyClient(restyClient)
 
-	token, err = kcCl.LoginAdmin(ctx, user, password, "master")
+	token, err = kcCl.LoginAdmin(ctx, conf.User, conf.Password, "master")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", user)
+		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", conf.User)
 	}
 
 	return &GoCloakAdapter{
 		client:     kcCl,
 		token:      token,
 		log:        log,
-		basePath:   url,
+		basePath:   conf.Url,
 		legacyMode: true,
 	}, nil
 }

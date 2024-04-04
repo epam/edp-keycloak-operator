@@ -20,6 +20,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
@@ -150,8 +151,17 @@ func TestMakeHelper(t *testing.T) {
 
 	logger := mock.NewLogr()
 	h := MakeHelper(nil, nil, "default")
-	_, err := h.adapterBuilder(context.Background(), mockServer.GetURL(), "foo", "bar",
-		keycloakApi.KeycloakAdminTypeServiceAccount, logger, rCl)
+	_, err := h.adapterBuilder(
+		context.Background(),
+		adapter.GoCloakConfig{
+			Url:      mockServer.GetURL(),
+			User:     "foo",
+			Password: "bar",
+		},
+		keycloakApi.KeycloakAdminTypeServiceAccount,
+		logger,
+		rCl,
+	)
 	require.NoError(t, err)
 }
 

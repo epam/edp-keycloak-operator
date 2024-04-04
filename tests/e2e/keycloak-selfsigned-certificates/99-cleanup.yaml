@@ -1,0 +1,9 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - command: kubectl delete keycloak keycloak-with-no-cert-check keycloak-with-insecure-skip-verify keycloak-with-ca-cert-secret keycloak-with-ca-cert-configmap
+    namespaced: true
+  - command: kubectl delete clusterkeycloak keycloak-with-ca-cert-secret keycloak-with-ca-cert-configmap
+    namespaced: false
+  - command: helm uninstall keycloak-operator-e2e
+    namespaced: true

@@ -1,0 +1,96 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: keycloak-secret
+type: Opaque
+data:
+  username: "YWRtaW4="
+  password: "YWRtaW4="
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-no-cert-check
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-insecure-skip-verify
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  insecureSkipVerify: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-ca-cert-secret
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  caCert:
+    secretKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-ca-cert-configmap
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  caCert:
+    configMapKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-insecure-flag
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  insecureSkipVerify: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: keycloak-with-ca-cert-secret
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  caCert:
+    secretKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: keycloak-with-ca-cert-configmap
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak:8443
+  caCert:
+    configMapKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt

@@ -18,6 +18,14 @@ rules:
       - update
       - watch
   - apiGroups:
+      - ""
+    resources:
+      - configmaps
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
       - v1.edp.epam.com
     resources:
       - keycloakauthflows

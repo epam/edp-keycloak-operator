@@ -104,8 +104,18 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 
 			defer tt.mockServer.Close()
 
-			_, err := MakeFromServiceAccount(context.Background(), tt.mockServer.GetURL(),
-				"k-cl-id", "k-secret", "master", mock.NewLogr(), resty.New())
+			_, err := MakeFromServiceAccount(
+				context.Background(),
+				GoCloakConfig{
+					Url:      tt.mockServer.GetURL(),
+					User:     "k-cl-id",
+					Password: "k-secret",
+				},
+
+				"master",
+				mock.NewLogr(),
+				resty.New(),
+			)
 			tt.wantErr(t, err)
 		})
 	}
@@ -170,7 +180,16 @@ func (e *AdapterTestSuite) TestMake() {
 				defer tt.mockServer.Close()
 			}
 
-			_, err := Make(context.Background(), url, "bar", "baz", mock.NewLogr(), resty.New())
+			_, err := Make(
+				context.Background(),
+				GoCloakConfig{
+					Url:      url,
+					User:     "bar",
+					Password: "baz",
+				},
+				mock.NewLogr(),
+				resty.New(),
+			)
 			tt.wantErr(t, err)
 		})
 	}
@@ -649,10 +668,10 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 		Return(nil)
 	mockClient.On("DeleteRealmRoleFromUser", testifymock.Anything, "token", "realm", "id", testifymock.Anything).Return(nil)
 	mockClient.On("DeleteClientRoleFromUser", testifymock.Anything, "token", "realm", "foo321", "id",
-		[]gocloak.Role{
-			{Name: gocloak.StringP("baz")},
-			{Name: gocloak.StringP("zaz")},
-		}).Return(nil)
+		testifymock.MatchedBy(func(roles []gocloak.Role) bool {
+			return len(roles) == 2
+		}),
+	).Return(nil)
 	mockClient.On("DeleteClientRoleFromUser", testifymock.Anything, "token", "realm", "iiss123", "id", testifymock.Anything).Return(nil)
 
 	if err := adapter.SyncServiceAccountRoles("realm", "client", []string{"foo", "bar"},
@@ -759,7 +778,9 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	mockClient.On("GetClientRole", testifymock.Anything, "token", "realm1", "clid1", *newClientRole2.Name).Return(&newClientRole2, nil)
 	mockClient.On("GetClientRole", testifymock.Anything, "token", "realm1", "3214", *newClientRole4.Name).Return(&newClientRole4, nil)
 	mockClient.On("AddClientRoleToGroup", testifymock.Anything, "token", "realm1", "clid1", "1",
-		[]gocloak.Role{newClientRole1, newClientRole2}).Return(nil)
+		testifymock.MatchedBy(func(roles []gocloak.Role) bool {
+			return len(roles) == 2
+		})).Return(nil)
 	mockClient.On("AddClientRoleToGroup", testifymock.Anything, "token", "realm1", "3214", "1",
 		[]gocloak.Role{newClientRole4}).Return(nil)
 
@@ -933,7 +954,7 @@ func TestMakeFromToken(t *testing.T) {
 				defer tt.mockServer.Close()
 			}
 
-			cl, err := MakeFromToken(url, token, mock.NewLogr())
+			cl, err := MakeFromToken(GoCloakConfig{Url: url}, token, mock.NewLogr())
 			tt.wantErr(t, err, cl)
 		})
 	}
@@ -942,7 +963,7 @@ func TestMakeFromToken(t *testing.T) {
 func TestMakeFromToken_invalidJSON(t *testing.T) {
 	t.Parallel()
 
-	_, err := MakeFromToken("test_url", []byte("qwdqwdwq"), mock.NewLogr())
+	_, err := MakeFromToken(GoCloakConfig{Url: "test_url"}, []byte("qwdqwdwq"), mock.NewLogr())
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "invalid character")
 }

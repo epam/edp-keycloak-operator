@@ -6,6 +6,14 @@ metadata:
   name: manager-role
 rules:
 - apiGroups:
+  - v1
+  resources:
+  - configmap
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
   - v1.edp.epam.com
   resources:
   - clusterkeycloakrealms
@@ -76,6 +84,14 @@ rules:
   - list
   - patch
   - update
+  - watch
+- apiGroups:
+  - v1
+  resources:
+  - configmap
+  verbs:
+  - get
+  - list
   - watch
 - apiGroups:
   - v1.edp.epam.com

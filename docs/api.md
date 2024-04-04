@@ -429,6 +429,8 @@ ClusterKeycloak is the Schema for the clusterkeycloaks API.
         <td>object</td>
         <td>
           ClusterKeycloakStatus defines the observed state of ClusterKeycloak.<br/>
+          <br/>
+            <i>Default</i>: map[connected:false]<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -473,6 +475,122 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
             <i>Default</i>: user<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspeccacert">caCert</a></b></td>
+        <td>object</td>
+        <td>
+          CACert defines the root certificate authority that api clients use when verifying server certificates. Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>insecureSkipVerify</b></td>
+        <td>boolean</td>
+        <td>
+          InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name. If InsecureSkipVerify is true, api client accepts any certificate presented by the server and any host name in that certificate.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.caCert
+<sup><sup>[↩ Parent](#clusterkeycloakspec)</sup></sup>
+
+
+
+CACert defines the root certificate authority that api clients use when verifying server certificates. Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspeccacertconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspeccacertsecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.caCert.configMapKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspeccacert)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.caCert.secretKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspeccacert)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6982,6 +7100,8 @@ Keycloak is the Schema for the keycloaks API.
         <td>object</td>
         <td>
           KeycloakStatus defines the observed state of Keycloak.<br/>
+          <br/>
+            <i>Default</i>: map[connected:false]<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7025,6 +7145,122 @@ KeycloakSpec defines the desired state of Keycloak.
           AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspeccacert">caCert</a></b></td>
+        <td>object</td>
+        <td>
+          CACert defines the root certificate authority that api client use when verifying server certificates.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>insecureSkipVerify</b></td>
+        <td>boolean</td>
+        <td>
+          InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name. If InsecureSkipVerify is true, api client accepts any certificate presented by the server and any host name in that certificate.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.caCert
+<sup><sup>[↩ Parent](#keycloakspec)</sup></sup>
+
+
+
+CACert defines the root certificate authority that api client use when verifying server certificates.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspeccacertconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspeccacertsecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.caCert.configMapKeyRef
+<sup><sup>[↩ Parent](#keycloakspeccacert)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.caCert.secretKeyRef
+<sup><sup>[↩ Parent](#keycloakspeccacert)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>
