@@ -1,0 +1,61 @@
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-no-cert-check
+status:
+  connected: false
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-insecure-skip-verify
+status:
+  connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-ca-cert-secret
+status:
+  connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-ca-cert-configmap
+status:
+  connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-with-insecure-flag
+status:
+  connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: keycloak-with-ca-cert-secret
+status:
+  connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: keycloak-with-ca-cert-configmap
+status:
+  connected: true

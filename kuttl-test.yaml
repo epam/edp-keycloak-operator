@@ -5,3 +5,4 @@ testDirs:
 skipClusterDelete: false
 skipDelete: false
 timeout: 100
+parallel: 1

@@ -2,6 +2,8 @@ package v1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 // KeycloakSpec defines the desired state of Keycloak.
@@ -16,6 +18,16 @@ type KeycloakSpec struct {
 	// +optional
 	// +kubebuilder:validation:Enum=serviceAccount;user
 	AdminType string `json:"adminType,omitempty"`
+
+	// CACert defines the root certificate authority
+	// that api client use when verifying server certificates.
+	CACert *common.SourceRef `json:"caCert,omitempty"`
+
+	// InsecureSkipVerify controls whether api client verifies the server's
+	// certificate chain and host name. If InsecureSkipVerify is true, api client
+	// accepts any certificate presented by the server and any host name in that
+	// certificate.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 const (
@@ -47,7 +59,9 @@ type Keycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   KeycloakSpec   `json:"spec,omitempty"`
+	Spec KeycloakSpec `json:"spec,omitempty"`
+
+	// +kubebuilder:default={connected:false}
 	Status KeycloakStatus `json:"status,omitempty"`
 }
 

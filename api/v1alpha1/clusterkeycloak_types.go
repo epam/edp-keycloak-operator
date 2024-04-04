@@ -2,6 +2,8 @@ package v1alpha1
 
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 // ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
@@ -18,6 +20,18 @@ type ClusterKeycloakSpec struct {
 	// +kubebuilder:validation:Enum=serviceAccount;user
 	// +kubebuilder:default=user
 	AdminType string `json:"adminType,omitempty"`
+
+	// CACert defines the root certificate authority
+	// that api clients use when verifying server certificates.
+	// Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.
+	// +optional
+	CACert *common.SourceRef `json:"caCert,omitempty"`
+
+	// InsecureSkipVerify controls whether api client verifies the server's
+	// certificate chain and host name. If InsecureSkipVerify is true, api client
+	// accepts any certificate presented by the server and any host name in that
+	// certificate.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 func (in *ClusterKeycloak) GetAdminType() string {
@@ -45,7 +59,9 @@ type ClusterKeycloak struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec   ClusterKeycloakSpec   `json:"spec,omitempty"`
+	Spec ClusterKeycloakSpec `json:"spec,omitempty"`
+
+	// +kubebuilder:default={connected:false}
 	Status ClusterKeycloakStatus `json:"status,omitempty"`
 }
 

@@ -49,6 +49,46 @@ spec:
                 - serviceAccount
                 - user
                 type: string
+              caCert:
+                description: CACert defines the root certificate authority that api
+                  clients use when verifying server certificates. Resources should
+                  be in the namespace defined in operator OPERATOR_NAMESPACE env.
+                properties:
+                  configMapKeyRef:
+                    description: Selects a key of a ConfigMap.
+                    properties:
+                      key:
+                        description: The key to select.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  secretKeyRef:
+                    description: Selects a key of a secret.
+                    properties:
+                      key:
+                        description: The key of the secret to select from.
+                        type: string
+                      name:
+                        description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                          TODO: Add other useful fields. apiVersion, kind, uid?'
+                        type: string
+                    required:
+                    - key
+                    type: object
+                    x-kubernetes-map-type: atomic
+                type: object
+              insecureSkipVerify:
+                description: InsecureSkipVerify controls whether api client verifies
+                  the server's certificate chain and host name. If InsecureSkipVerify
+                  is true, api client accepts any certificate presented by the server
+                  and any host name in that certificate.
+                type: boolean
               secret:
                 description: Secret is a secret name which contains admin credentials.
                 type: string
@@ -60,6 +100,8 @@ spec:
             - url
             type: object
           status:
+            default:
+              connected: false
             description: ClusterKeycloakStatus defines the observed state of ClusterKeycloak.
             properties:
               connected:

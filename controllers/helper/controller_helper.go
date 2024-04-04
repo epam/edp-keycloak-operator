@@ -45,7 +45,8 @@ type ObjectWithKeycloakRef interface {
 
 type adapterBuilder func(
 	ctx context.Context,
-	url, user, password, adminType string,
+	conf adapter.GoCloakConfig,
+	adminType string,
 	log logr.Logger,
 	restyClient *resty.Client,
 ) (keycloak.Client, error)
@@ -62,7 +63,7 @@ type ControllerHelper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (keycloak.Client, error)
 	CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
 	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error)
-	CreateKeycloakClient(ctx context.Context, url, user, password, adminType string) (keycloak.Client, error)
+	CreateKeycloakClient(ctx context.Context, url, user, password, adminType, caCert string, insecureSkipVerify bool) (keycloak.Client, error)
 	CreateKeycloakClientFomAuthData(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error)
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
@@ -84,15 +85,13 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace 
 		operatorNamespace: operatorNamespace,
 		adapterBuilder: func(
 			ctx context.Context,
-			url,
-			user,
-			password,
+			conf adapter.GoCloakConfig,
 			adminType string,
 			log logr.Logger,
 			restyClient *resty.Client,
 		) (keycloak.Client, error) {
 			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
-				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, url, user, password, "master", log, restyClient)
+				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, conf, "master", log, restyClient)
 				if err != nil {
 					return nil, fmt.Errorf("failed to make go keycloak adapter from seviceaccount: %w", err)
 				}
@@ -100,7 +99,7 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace 
 				return goKeycloakAdapter, nil
 			}
 
-			goKeycloakAdapter, err := adapter.Make(ctx, url, user, password, log, restyClient)
+			goKeycloakAdapter, err := adapter.Make(ctx, conf, log, restyClient)
 			if err != nil {
 				return nil, fmt.Errorf("failed to make go keycloak adapter: %w", err)
 			}

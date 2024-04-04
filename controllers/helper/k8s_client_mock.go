@@ -11,6 +11,7 @@ import (
 	commonmock "github.com/epam/edp-common/pkg/mock/controller-runtime/client"
 )
 
+// Deprecated: use fake.NewClientBuilder instead.
 type K8SClientMock struct {
 	mock.Mock
 	commonmock.Client

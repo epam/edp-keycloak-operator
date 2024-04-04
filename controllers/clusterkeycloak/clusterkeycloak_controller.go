@@ -53,6 +53,7 @@ const (
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks,verbs=get;list;watch;create;update;patch;delete
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/status,verbs=get;update;patch
 //+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/finalizers,verbs=update
+//+kubebuilder:rbac:groups=v1,resources=configmap,verbs=get;list;watch
 
 // Reconcile is a loop for reconciling ClusterKeycloak object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
@@ -109,10 +110,7 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating connection status to ClusterKeycloak")
 
-	_, err := r.helper.CreateKeycloakClientFomAuthData(
-		ctx,
-		helper.MakeKeycloakAuthDataFromClusterKeycloak(instance, r.operatorNamespace),
-	)
+	err := r.createClient(ctx, instance)
 	if err != nil {
 		log.Error(err, "Unable to connect to Keycloak")
 	}
@@ -135,6 +133,20 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 	}
 
 	log.Info("Status has been updated", "status", instance.Status)
+
+	return nil
+}
+
+func (r *Reconciler) createClient(ctx context.Context, instance *keycloakApi.ClusterKeycloak) error {
+	auth, err := helper.MakeKeycloakAuthDataFromClusterKeycloak(ctx, instance, r.operatorNamespace, r.client)
+	if err != nil {
+		return fmt.Errorf("failed to make Keycloak auth data: %w", err)
+	}
+
+	_, err = r.helper.CreateKeycloakClientFomAuthData(ctx, auth)
+	if err != nil {
+		return fmt.Errorf("failed to create Keycloak client: %w", err)
+	}
 
 	return nil
 }

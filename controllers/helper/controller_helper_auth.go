@@ -10,7 +10,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -40,6 +42,12 @@ type KeycloakAuthData struct {
 
 	// KeycloakCRName is name of keycloak CR.
 	KeycloakCRName string
+
+	// CACert is root certificate authority.
+	CACert string `json:"caCert,omitempty"`
+
+	// InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name.
+	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
 }
 
 func (h *Helper) CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (keycloak.Client, error) {
@@ -69,8 +77,17 @@ func (h *Helper) CreateKeycloakClientFromClusterRealm(ctx context.Context, realm
 	return h.CreateKeycloakClientFomAuthData(ctx, authData)
 }
 
-func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password, adminType string) (keycloak.Client, error) {
-	clientAdapter, err := h.adapterBuilder(ctx, url, user, password, adminType, ctrl.LoggerFrom(ctx), h.restyClient)
+func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password, adminType, caCert string, insecureSkipVerify bool) (keycloak.Client, error) {
+	clientAdapter, err := h.adapterBuilder(
+		ctx,
+		adapter.GoCloakConfig{
+			Url:                url,
+			User:               user,
+			Password:           password,
+			RootCertificate:    caCert,
+			InsecureSkipVerify: insecureSkipVerify,
+		},
+		adminType, ctrl.LoggerFrom(ctx), h.restyClient)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to init kc client adapter")
 	}
@@ -123,7 +140,7 @@ func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, auth
 	}
 
 	clientAdapter, err := h.CreateKeycloakClient(ctx, authData.Url, string(secret.Data["username"]),
-		string(secret.Data["password"]), authData.AdminType)
+		string(secret.Data["password"]), authData.AdminType, authData.CACert, authData.InsecureSkipVerify)
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to init authData client adapter")
 	}
@@ -149,7 +166,11 @@ func (h *Helper) createKeycloakClientFromTokenSecret(ctx context.Context, authDa
 		return nil, errors.Wrap(err, "unable to get token secret")
 	}
 
-	clientAdapter, err := adapter.MakeFromToken(authData.Url, tokenSecret.Data[keycloakTokenSecretKey], ctrl.LoggerFrom(ctx))
+	clientAdapter, err := adapter.MakeFromToken(adapter.GoCloakConfig{
+		Url:                authData.Url,
+		RootCertificate:    authData.CACert,
+		InsecureSkipVerify: authData.InsecureSkipVerify,
+	}, tokenSecret.Data[keycloakTokenSecretKey], ctrl.LoggerFrom(ctx))
 	if err != nil {
 		return nil, errors.Wrap(err, "unable to make authData client from token")
 	}
@@ -230,7 +251,7 @@ func (h *Helper) getKeycloakAuthDataFromRealm(ctx context.Context, realm *keyclo
 			return nil, ErrKeycloakIsNotAvailable
 		}
 
-		return MakeKeycloakAuthDataFromKeycloak(kc), nil
+		return MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client)
 	case keycloakAlpha.ClusterKeycloakKind:
 		kc := &keycloakAlpha.ClusterKeycloak{}
 		if err := h.client.Get(ctx, types.NamespacedName{Name: name}, kc); err != nil {
@@ -241,7 +262,7 @@ func (h *Helper) getKeycloakAuthDataFromRealm(ctx context.Context, realm *keyclo
 			return nil, ErrKeycloakIsNotAvailable
 		}
 
-		return MakeKeycloakAuthDataFromClusterKeycloak(kc, h.operatorNamespace), nil
+		return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 	default:
 		return nil, fmt.Errorf("unknown keycloak kind: %s", kind)
 	}
@@ -257,27 +278,88 @@ func (h *Helper) getKeycloakAuthDataFromClusterRealm(ctx context.Context, realm 
 		return nil, ErrKeycloakIsNotAvailable
 	}
 
-	return MakeKeycloakAuthDataFromClusterKeycloak(kc, h.operatorNamespace), nil
+	return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 }
 
-func MakeKeycloakAuthDataFromKeycloak(keycloak *keycloakApi.Keycloak) *KeycloakAuthData {
-	return &KeycloakAuthData{
-		Url:             keycloak.Spec.Url,
-		SecretName:      keycloak.Spec.Secret,
-		SecretNamespace: keycloak.Namespace,
-		AdminType:       keycloak.Spec.AdminType,
-		KeycloakCRName:  keycloak.Name,
+func MakeKeycloakAuthDataFromKeycloak(
+	ctx context.Context,
+	keycloak *keycloakApi.Keycloak,
+	k8sClient client.Client,
+) (*KeycloakAuthData, error) {
+	auth := &KeycloakAuthData{
+		Url:                keycloak.Spec.Url,
+		SecretName:         keycloak.Spec.Secret,
+		SecretNamespace:    keycloak.Namespace,
+		AdminType:          keycloak.Spec.AdminType,
+		KeycloakCRName:     keycloak.Name,
+		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
 	}
+
+	caCert, err := getCaCert(ctx, keycloak.Spec.CACert, keycloak.Namespace, k8sClient)
+	if err != nil {
+		return nil, err
+	}
+
+	auth.CACert = caCert
+
+	return auth, nil
 }
 
-func MakeKeycloakAuthDataFromClusterKeycloak(keycloak *keycloakAlpha.ClusterKeycloak, secretNamespace string) *KeycloakAuthData {
-	return &KeycloakAuthData{
-		Url:             keycloak.Spec.Url,
-		SecretName:      keycloak.Spec.Secret,
-		SecretNamespace: secretNamespace,
-		AdminType:       keycloak.Spec.AdminType,
-		KeycloakCRName:  keycloak.Name,
+func MakeKeycloakAuthDataFromClusterKeycloak(
+	ctx context.Context,
+	keycloak *keycloakAlpha.ClusterKeycloak,
+	secretNamespace string,
+	k8sClient client.Client,
+) (*KeycloakAuthData, error) {
+	auth := &KeycloakAuthData{
+		Url:                keycloak.Spec.Url,
+		SecretName:         keycloak.Spec.Secret,
+		SecretNamespace:    secretNamespace,
+		AdminType:          keycloak.Spec.AdminType,
+		KeycloakCRName:     keycloak.Name,
+		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
 	}
+
+	caCert, err := getCaCert(ctx, keycloak.Spec.CACert, secretNamespace, k8sClient)
+	if err != nil {
+		return nil, err
+	}
+
+	auth.CACert = caCert
+
+	return auth, nil
+}
+
+func getCaCert(ctx context.Context, caCertRef *common.SourceRef, namespace string, k8sClient client.Client) (string, error) {
+	if caCertRef == nil {
+		return "", nil
+	}
+
+	if caCertRef.ConfigMapKeyRef != nil {
+		configMap := &coreV1.ConfigMap{}
+		if err := k8sClient.Get(ctx, types.NamespacedName{
+			Namespace: namespace,
+			Name:      caCertRef.ConfigMapKeyRef.Name,
+		}, configMap); err != nil {
+			return "", fmt.Errorf("unable to get configmap: %w", err)
+		}
+
+		return configMap.Data[caCertRef.ConfigMapKeyRef.Key], nil
+	}
+
+	if caCertRef.SecretKeyRef != nil {
+		secret := &coreV1.Secret{}
+		if err := k8sClient.Get(ctx, types.NamespacedName{
+			Namespace: namespace,
+			Name:      caCertRef.SecretKeyRef.Name,
+		}, secret); err != nil {
+			return "", fmt.Errorf("unable to get secret: %w", err)
+		}
+
+		return string(secret.Data[caCertRef.SecretKeyRef.Key]), nil
+	}
+
+	return "", nil
 }
 
 func tokenSecretName(keycloakName string) string {
