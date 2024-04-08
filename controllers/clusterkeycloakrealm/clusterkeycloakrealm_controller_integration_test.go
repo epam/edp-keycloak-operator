@@ -8,6 +8,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
@@ -26,6 +27,16 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 				ClusterKeycloakRef: ClusterKeycloakCR,
 				RealmName:          "test-realm",
 				FrontendURL:        "https://test.com",
+				TokenSettings: &common.TokenSettings{
+					DefaultSignatureAlgorithm:           "RS256",
+					RevokeRefreshToken:                  true,
+					RefreshTokenMaxReuse:                230,
+					AccessTokenLifespan:                 231,
+					AccessTokenLifespanForImplicitFlow:  232,
+					AccessCodeLifespan:                  233,
+					ActionTokenGeneratedByUserLifespan:  234,
+					ActionTokenGeneratedByAdminLifespan: 235,
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

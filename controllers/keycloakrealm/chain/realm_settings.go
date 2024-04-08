@@ -59,6 +59,8 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 		settings.PasswordPolicies = h.makePasswordPolicies(realm.Spec.PasswordPolicies)
 	}
 
+	settings.TokenSettings = adapter.ToRealmTokenSettings(realm.Spec.TokenSettings)
+
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
 		return errors.Wrap(err, "unable to update realm settings")
 	}

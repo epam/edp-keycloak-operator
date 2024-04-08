@@ -92,6 +92,16 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 						RealmRoles: []string{"administrator"},
 					},
 				},
+				TokenSettings: &common.TokenSettings{
+					DefaultSignatureAlgorithm:           "RS256",
+					RevokeRefreshToken:                  true,
+					RefreshTokenMaxReuse:                230,
+					AccessTokenLifespan:                 231,
+					AccessTokenLifespanForImplicitFlow:  232,
+					AccessCodeLifespan:                  233,
+					ActionTokenGeneratedByUserLifespan:  234,
+					ActionTokenGeneratedByAdminLifespan: 235,
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

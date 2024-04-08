@@ -164,6 +164,13 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
           Themes is a map of themes to apply to the realm.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspectokensettings">tokenSettings</a></b></td>
+        <td>object</td>
+        <td>
+          TokenSettings is the configuration for tokens in the realm.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -333,6 +340,99 @@ Themes is a map of themes to apply to the realm.
         <td>string</td>
         <td>
           LoginTheme specifies the login theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.tokenSettings
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+TokenSettings is the configuration for tokens in the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accessCodeLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol. This should normally be 1 minute.<br/>
+          <br/>
+            <i>Default</i>: 60<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessToken</b></td>
+        <td>integer</td>
+        <td>
+          AccessTokenLifespanForImplicitFlow specifies max time(in seconds) before an access token is expired for implicit flow.<br/>
+          <br/>
+            <i>Default</i>: 900<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessTokenLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessTokenLifespan specifies max time(in seconds) before an access token is expired. This value is recommended to be short relative to the SSO timeout.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>actionTokenGeneratedByAdminLifespan</b></td>
+        <td>integer</td>
+        <td>
+          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired. This value is recommended to be long to allow administrators to send e-mails for users that are currently offline. The default timeout can be overridden immediately before issuing the token.<br/>
+          <br/>
+            <i>Default</i>: 43200<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>actionTokenGeneratedByUserLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired. This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>defaultSignatureAlgorithm</b></td>
+        <td>enum</td>
+        <td>
+          DefaultSignatureAlgorithm specifies the default algorithm used to sign tokens for the realm<br/>
+          <br/>
+            <i>Enum</i>: ES256, ES384, ES512, EdDSA, HS256, HS384, HS512, PS256, PS384, PS512, RS256, RS384, RS512<br/>
+            <i>Default</i>: RS256<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>refreshTokenMaxReuse</b></td>
+        <td>integer</td>
+        <td>
+          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused. When a different token is used, revocation is immediate.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>revokeRefreshToken</b></td>
+        <td>boolean</td>
+        <td>
+          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and is revoked when a different token is used. Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6447,6 +6547,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmspectokensettings">tokenSettings</a></b></td>
+        <td>object</td>
+        <td>
+          TokenSettings is the configuration for tokens in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakrealmspecusersindex">users</a></b></td>
         <td>[]object</td>
         <td>
@@ -6679,6 +6786,99 @@ Themes is a map of themes to apply to the realm.
         <td>string</td>
         <td>
           LoginTheme specifies the login theme to use for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.tokenSettings
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+TokenSettings is the configuration for tokens in the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accessCodeLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol. This should normally be 1 minute.<br/>
+          <br/>
+            <i>Default</i>: 60<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessToken</b></td>
+        <td>integer</td>
+        <td>
+          AccessTokenLifespanForImplicitFlow specifies max time(in seconds) before an access token is expired for implicit flow.<br/>
+          <br/>
+            <i>Default</i>: 900<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessTokenLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessTokenLifespan specifies max time(in seconds) before an access token is expired. This value is recommended to be short relative to the SSO timeout.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>actionTokenGeneratedByAdminLifespan</b></td>
+        <td>integer</td>
+        <td>
+          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired. This value is recommended to be long to allow administrators to send e-mails for users that are currently offline. The default timeout can be overridden immediately before issuing the token.<br/>
+          <br/>
+            <i>Default</i>: 43200<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>actionTokenGeneratedByUserLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired. This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>defaultSignatureAlgorithm</b></td>
+        <td>enum</td>
+        <td>
+          DefaultSignatureAlgorithm specifies the default algorithm used to sign tokens for the realm<br/>
+          <br/>
+            <i>Enum</i>: ES256, ES384, ES512, EdDSA, HS256, HS384, HS512, PS256, PS384, PS512, RS256, RS384, RS512<br/>
+            <i>Default</i>: RS256<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>refreshTokenMaxReuse</b></td>
+        <td>integer</td>
+        <td>
+          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused. When a different token is used, revocation is immediate.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>revokeRefreshToken</b></td>
+        <td>boolean</td>
+        <td>
+          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and is revoked when a different token is used. Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>
