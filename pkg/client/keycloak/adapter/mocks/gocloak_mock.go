@@ -865,6 +865,68 @@ func (_c *MockGoCloak_CreateRealmRole_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// CreateScope provides a mock function with given fields: ctx, token, realm, idOfClient, scope
+func (_m *MockGoCloak) CreateScope(ctx context.Context, token string, realm string, idOfClient string, scope gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, scope)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateScope")
+	}
+
+	var r0 *gocloak.ScopeRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, scope)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.ScopeRepresentation) *gocloak.ScopeRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, scope)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.ScopeRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.ScopeRepresentation) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, scope)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_CreateScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateScope'
+type MockGoCloak_CreateScope_Call struct {
+	*mock.Call
+}
+
+// CreateScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - scope gocloak.ScopeRepresentation
+func (_e *MockGoCloak_Expecter) CreateScope(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, scope interface{}) *MockGoCloak_CreateScope_Call {
+	return &MockGoCloak_CreateScope_Call{Call: _e.mock.On("CreateScope", ctx, token, realm, idOfClient, scope)}
+}
+
+func (_c *MockGoCloak_CreateScope_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, scope gocloak.ScopeRepresentation)) *MockGoCloak_CreateScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.ScopeRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_CreateScope_Call) Return(_a0 *gocloak.ScopeRepresentation, _a1 error) *MockGoCloak_CreateScope_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_CreateScope_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error)) *MockGoCloak_CreateScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUser provides a mock function with given fields: ctx, token, realm, user
 func (_m *MockGoCloak) CreateUser(ctx context.Context, token string, realm string, user gocloak.User) (string, error) {
 	ret := _m.Called(ctx, token, realm, user)
@@ -1566,6 +1628,56 @@ func (_c *MockGoCloak_DeleteRealmRoleFromUser_Call) Return(_a0 error) *MockGoClo
 }
 
 func (_c *MockGoCloak_DeleteRealmRoleFromUser_Call) RunAndReturn(run func(context.Context, string, string, string, []gocloak.Role) error) *MockGoCloak_DeleteRealmRoleFromUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteScope provides a mock function with given fields: ctx, token, realm, idOfClient, scopeID
+func (_m *MockGoCloak) DeleteScope(ctx context.Context, token string, realm string, idOfClient string, scopeID string) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, scopeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteScope")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, scopeID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeleteScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteScope'
+type MockGoCloak_DeleteScope_Call struct {
+	*mock.Call
+}
+
+// DeleteScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - scopeID string
+func (_e *MockGoCloak_Expecter) DeleteScope(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, scopeID interface{}) *MockGoCloak_DeleteScope_Call {
+	return &MockGoCloak_DeleteScope_Call{Call: _e.mock.On("DeleteScope", ctx, token, realm, idOfClient, scopeID)}
+}
+
+func (_c *MockGoCloak_DeleteScope_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, scopeID string)) *MockGoCloak_DeleteScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteScope_Call) Return(_a0 error) *MockGoCloak_DeleteScope_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteScope_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteScope_Call {
 	_c.Call.Return(run)
 	return _c
 }

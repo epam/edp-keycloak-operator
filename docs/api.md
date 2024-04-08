@@ -4119,6 +4119,13 @@ Authorization is a client authorization configuration.
           <br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>scopes</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
