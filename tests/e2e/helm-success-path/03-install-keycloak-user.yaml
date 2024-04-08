@@ -28,6 +28,15 @@ spec:
     eventsExpiration: 15000
     eventsListeners:
       - jboss-logging
+  tokenSettings:
+    accessTokenLifespan: 300
+    accessCodeLifespan: 300
+    accessToken: 300
+    actionTokenGeneratedByAdminLifespan: 300
+    actionTokenGeneratedByUserLifespan: 300
+    refreshTokenMaxReuse: 300
+    revokeRefreshToken: true
+    defaultSignatureAlgorithm: RS256
 ---
 apiVersion: v1.edp.epam.com/v1
 kind: KeycloakRealmUser

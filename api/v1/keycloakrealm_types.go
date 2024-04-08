@@ -82,6 +82,11 @@ type KeycloakRealmSpec struct {
 	// FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
 	// +optional
 	FrontendURL string `json:"frontendUrl,omitempty"`
+
+	// TokenSettings is the configuration for tokens in the realm.
+	// +nullable
+	// +optional
+	TokenSettings *common.TokenSettings `json:"tokenSettings,omitempty"`
 }
 
 type User struct {

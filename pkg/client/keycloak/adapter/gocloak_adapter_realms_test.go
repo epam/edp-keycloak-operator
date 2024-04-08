@@ -15,6 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -34,6 +35,16 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			{Type: "bar", Value: "baz"},
 		},
 		FrontendURL: "https://google.com",
+		TokenSettings: &TokenSettings{
+			DefaultSignatureAlgorithm:           "RS256",
+			RevokeRefreshToken:                  true,
+			RefreshTokenMaxReuse:                230,
+			AccessTokenLifespan:                 231,
+			AccessTokenLifespanForImplicitFlow:  232,
+			AccessCodeLifespan:                  233,
+			ActionTokenGeneratedByUserLifespan:  234,
+			ActionTokenGeneratedByAdminLifespan: 235,
+		},
 	}
 	realmName := "ream11"
 
@@ -43,19 +54,25 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 		},
 	}
 	mockClient.On("GetRealm", mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
-
-	updateRealm := gocloak.RealmRepresentation{
-		LoginTheme: settings.Themes.LoginTheme,
-		BrowserSecurityHeaders: &map[string]string{
-			"test": "dets",
-			"foo":  "bar",
-		},
-		PasswordPolicy: gocloak.StringP("foo(bar) and bar(baz)"),
-		Attributes: &map[string]string{
-			"frontendUrl": settings.FrontendURL,
-		},
-	}
-	mockClient.On("UpdateRealm", mock.Anything, "token", updateRealm).Return(nil)
+	mockClient.On("UpdateRealm", mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, settings.Themes.LoginTheme, realm.LoginTheme) &&
+			assert.Equal(t, &map[string]string{
+				"test": "dets",
+				"foo":  "bar",
+			}, realm.BrowserSecurityHeaders) &&
+			assert.Equal(t, gocloak.StringP("foo(bar) and bar(baz)"), realm.PasswordPolicy) &&
+			assert.Equal(t, &map[string]string{
+				"frontendUrl": settings.FrontendURL,
+			}, realm.Attributes) &&
+			assert.Equal(t, settings.TokenSettings.DefaultSignatureAlgorithm, *realm.DefaultSignatureAlgorithm) &&
+			assert.Equal(t, settings.TokenSettings.RevokeRefreshToken, *realm.RevokeRefreshToken) &&
+			assert.Equal(t, settings.TokenSettings.RefreshTokenMaxReuse, *realm.RefreshTokenMaxReuse) &&
+			assert.Equal(t, settings.TokenSettings.AccessTokenLifespan, *realm.AccessTokenLifespan) &&
+			assert.Equal(t, settings.TokenSettings.AccessTokenLifespanForImplicitFlow, *realm.AccessTokenLifespanForImplicitFlow) &&
+			assert.Equal(t, settings.TokenSettings.AccessCodeLifespan, *realm.AccessCodeLifespan) &&
+			assert.Equal(t, settings.TokenSettings.ActionTokenGeneratedByUserLifespan, *realm.ActionTokenGeneratedByUserLifespan) &&
+			assert.Equal(t, settings.TokenSettings.ActionTokenGeneratedByAdminLifespan, *realm.ActionTokenGeneratedByAdminLifespan)
+	})).Return(nil)
 
 	err := adapter.UpdateRealmSettings(realmName, &settings)
 	require.NoError(t, err)
@@ -205,6 +222,54 @@ func TestGoCloakAdapter_GetRealm(t *testing.T) {
 			got, err := a.GetRealm(ctrl.LoggerInto(context.Background(), logr.Discard()), "realmName")
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestToRealmTokenSettings(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		tokenSettings *common.TokenSettings
+		want          *TokenSettings
+	}{
+		{
+			name:          "nil",
+			tokenSettings: nil,
+			want:          nil,
+		},
+		{
+			name: "full settings",
+			tokenSettings: &common.TokenSettings{
+				DefaultSignatureAlgorithm:           "RS256",
+				RevokeRefreshToken:                  true,
+				RefreshTokenMaxReuse:                230,
+				AccessTokenLifespan:                 231,
+				AccessTokenLifespanForImplicitFlow:  232,
+				AccessCodeLifespan:                  233,
+				ActionTokenGeneratedByUserLifespan:  234,
+				ActionTokenGeneratedByAdminLifespan: 235,
+			},
+			want: &TokenSettings{
+				DefaultSignatureAlgorithm:           "RS256",
+				RevokeRefreshToken:                  true,
+				RefreshTokenMaxReuse:                230,
+				AccessTokenLifespan:                 231,
+				AccessTokenLifespanForImplicitFlow:  232,
+				AccessCodeLifespan:                  233,
+				ActionTokenGeneratedByUserLifespan:  234,
+				ActionTokenGeneratedByAdminLifespan: 235,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			assert.Equal(t, tt.want, ToRealmTokenSettings(tt.tokenSettings))
 		})
 	}
 }

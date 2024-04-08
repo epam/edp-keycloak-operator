@@ -44,6 +44,11 @@ type ClusterKeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
+
+	// TokenSettings is the configuration for tokens in the realm.
+	// +nullable
+	// +optional
+	TokenSettings *common.TokenSettings `json:"tokenSettings,omitempty"`
 }
 
 type ClusterRealmThemes struct {

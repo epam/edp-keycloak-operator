@@ -10,6 +10,7 @@ import (
 	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
@@ -18,6 +19,7 @@ type RealmSettings struct {
 	BrowserSecurityHeaders *map[string]string
 	PasswordPolicies       []PasswordPolicy
 	FrontendURL            string
+	TokenSettings          *TokenSettings
 }
 
 type PasswordPolicy struct {
@@ -31,6 +33,17 @@ type RealmThemes struct {
 	AdminConsoleTheme           *string
 	EmailTheme                  *string
 	InternationalizationEnabled *bool
+}
+
+type TokenSettings struct {
+	DefaultSignatureAlgorithm           string
+	RevokeRefreshToken                  bool
+	RefreshTokenMaxReuse                int
+	AccessTokenLifespan                 int
+	AccessTokenLifespanForImplicitFlow  int
+	AccessCodeLifespan                  int
+	ActionTokenGeneratedByUserLifespan  int
+	ActionTokenGeneratedByAdminLifespan int
 }
 
 func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
@@ -86,6 +99,17 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		}
 
 		(*realm.Attributes)["frontendUrl"] = realmSettings.FrontendURL
+	}
+
+	if realmSettings.TokenSettings != nil {
+		realm.DefaultSignatureAlgorithm = gocloak.StringP(realmSettings.TokenSettings.DefaultSignatureAlgorithm)
+		realm.RevokeRefreshToken = gocloak.BoolP(realmSettings.TokenSettings.RevokeRefreshToken)
+		realm.RefreshTokenMaxReuse = gocloak.IntP(realmSettings.TokenSettings.RefreshTokenMaxReuse)
+		realm.AccessTokenLifespan = gocloak.IntP(realmSettings.TokenSettings.AccessTokenLifespan)
+		realm.AccessTokenLifespanForImplicitFlow = gocloak.IntP(realmSettings.TokenSettings.AccessTokenLifespanForImplicitFlow)
+		realm.AccessCodeLifespan = gocloak.IntP(realmSettings.TokenSettings.AccessCodeLifespan)
+		realm.ActionTokenGeneratedByUserLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByUserLifespan)
+		realm.ActionTokenGeneratedByAdminLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByAdminLifespan)
 	}
 }
 
@@ -259,4 +283,21 @@ func (a GoCloakAdapter) updateIdentityProviderMapper(realmName string, mapper dt
 	}
 
 	return nil
+}
+
+func ToRealmTokenSettings(tokenSettings *common.TokenSettings) *TokenSettings {
+	if tokenSettings == nil {
+		return nil
+	}
+
+	return &TokenSettings{
+		DefaultSignatureAlgorithm:           tokenSettings.DefaultSignatureAlgorithm,
+		RevokeRefreshToken:                  tokenSettings.RevokeRefreshToken,
+		RefreshTokenMaxReuse:                tokenSettings.RefreshTokenMaxReuse,
+		AccessTokenLifespan:                 tokenSettings.AccessTokenLifespan,
+		AccessTokenLifespanForImplicitFlow:  tokenSettings.AccessTokenLifespanForImplicitFlow,
+		AccessCodeLifespan:                  tokenSettings.AccessCodeLifespan,
+		ActionTokenGeneratedByUserLifespan:  tokenSettings.ActionTokenGeneratedByUserLifespan,
+		ActionTokenGeneratedByAdminLifespan: tokenSettings.ActionTokenGeneratedByAdminLifespan,
+	}
 }
