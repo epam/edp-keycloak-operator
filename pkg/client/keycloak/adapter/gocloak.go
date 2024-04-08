@@ -44,6 +44,10 @@ type GoCloakClients interface {
 	AddDefaultScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
 	GetClientScopes(ctx context.Context, token, realm string) ([]*gocloak.ClientScope, error)
 
+	GetScopes(ctx context.Context, token, realm, idOfClient string, params gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)
+	CreateScope(ctx context.Context, token, realm, idOfClient string, scope gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error)
+	DeleteScope(ctx context.Context, token, realm, idOfClient string, scopeID string) error
+
 	GetPolicies(ctx context.Context, token, realm, idOfClient string, params gocloak.GetPolicyParams) ([]*gocloak.PolicyRepresentation, error)
 	CreatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
 	UpdatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
@@ -55,7 +59,6 @@ type GoCloakClients interface {
 	DeletePermission(ctx context.Context, token, realm, idOfClient, permissionID string) error
 
 	GetResources(ctx context.Context, token, realm, idOfClient string, params gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error)
-	GetScopes(ctx context.Context, token, realm, idOfClient string, params gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)
 }
 
 type GoCloakUsers interface {

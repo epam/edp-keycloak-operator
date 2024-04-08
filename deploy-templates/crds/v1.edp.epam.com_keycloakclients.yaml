@@ -334,6 +334,10 @@ spec:
                       - type
                       type: object
                     type: array
+                  scopes:
+                    items:
+                      type: string
+                    type: array
                 type: object
               authorizationServicesEnabled:
                 description: ServiceAccountsEnabled enable/disable fine-grained authorization
