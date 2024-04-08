@@ -229,6 +229,8 @@ type RealmRole struct {
 }
 
 type Authorization struct {
+	Scopes []string `json:"scopes,omitempty"`
+
 	Policies []Policy `json:"policies,omitempty"`
 
 	Permissions []Permission `json:"permissions,omitempty"`
