@@ -70,8 +70,11 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	Password string `json:"password,omitempty"`
 
-	// KeepResource is a flag if resource should be kept after deletion. If set to true, user will not be deleted from keycloak.
+	// KeepResource, when set to false, results in the deletion of the KeycloakRealmUser Custom Resource (CR)
+	// from the cluster after the corresponding user is created in Keycloak. The user will continue to exist in Keycloak.
+	// When set to true, the CR will not be deleted after processing.
 	// +optional
+	// +kubebuilder:default=true
 	KeepResource bool `json:"keepResource,omitempty"`
 
 	// PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.

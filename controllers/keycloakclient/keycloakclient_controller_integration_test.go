@@ -1,7 +1,6 @@
 package keycloakclient
 
 import (
-	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -16,6 +15,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -173,20 +173,20 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
 			Name: gocloak.StringP("test-policy-group"),
 		})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Creating role for policy")
 		_, err = client.CreateRealmRole(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Role{
 			Name: gocloak.StringP("test-policy-role"),
 		})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Creating user for policy")
 		_, err = client.CreateUser(ctx, token.AccessToken, KeycloakRealmCR, gocloak.User{
 			Username: gocloak.StringP("test-policy-user"),
 			Enabled:  gocloak.BoolP(true),
 		})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
@@ -289,7 +289,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		clients, err := client.GetClients(ctx, token.AccessToken, KeycloakRealmCR, gocloak.GetClientsParams{
 			ClientID: gocloak.StringP(keycloakClient.Spec.ClientId),
 		})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 		Expect(len(clients)).Should(Equal(1))
 
 		cl := clients[0]
@@ -299,7 +299,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			gocloak.ScopeRepresentation{
 				Name: gocloak.StringP("test-scope"),
 			})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Creating resource for permission")
 		_, err = client.CreateResource(ctx, token.AccessToken, KeycloakRealmCR, *cl.ID,
@@ -307,7 +307,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Name:               gocloak.StringP("test-resource"),
 				OwnerManagedAccess: gocloak.BoolP(false),
 			})
-		Expect(skipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Getting KeycloakClient for update")
 		clientToUpdate := &keycloakApi.KeycloakClient{}
@@ -348,15 +348,3 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be updated successfully")
 	})
 })
-
-func skipAlreadyExistsErr(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	if strings.Contains(err.Error(), "409 Conflict") {
-		return nil
-	}
-
-	return err
-}

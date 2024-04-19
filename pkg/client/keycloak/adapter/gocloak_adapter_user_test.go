@@ -2,12 +2,15 @@ package adapter
 
 import (
 	"context"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
+	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
@@ -15,192 +18,352 @@ import (
 )
 
 func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
+	t.Parallel()
 
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		basePath: "",
-		token:    &gocloak.JWT{AccessToken: "token"},
-	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
 
-	restyClient := resty.New()
+	t.Cleanup(func() {
+		server.Close()
+	})
 
-	httpmock.Reset()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
-
-	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/user-id1/reset-password",
-		httpmock.NewStringResponder(200, ""))
-
-	usr := KeycloakUser{
-		Username: "vasia",
-		Attributes: map[string]string{
-			"foo": "bar",
-		},
-		RequiredUserActions: []string{"FOO"},
-		Groups:              []string{"group1"},
-		Password:            "123",
-	}
-
-	realmName := "realm1"
-
-	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
-		Return([]*gocloak.User{}, nil)
-
-	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/role-mappings/realm",
-		httpmock.NewJsonResponderOrPanic(200, []UserRealmRoleMapping{
-			{
-				ID:   "role-id-1",
-				Name: "role-name-1",
-			},
-		}))
-	mockClient.On("DeleteRealmRoleFromUser", mock.Anything, "token", realmName, "user-id1", mock.Anything).Return(nil)
-	httpmock.RegisterResponder("GET", "/admin/realms/realm1/users/user-id1/groups",
-		httpmock.NewJsonResponderOrPanic(200, []UserGroupMapping{
-			{
-				ID:   "group-id-1",
-				Name: "group-name-1",
-			},
-		}))
-	httpmock.RegisterResponder("DELETE", "/admin/realms/realm1/users/user-id1/groups/group-id-1",
-		httpmock.NewStringResponder(200, ""))
-
-	goClUser := gocloak.User{
-		Username:        &usr.Username,
-		Enabled:         &usr.Enabled,
-		EmailVerified:   &usr.EmailVerified,
-		FirstName:       &usr.FirstName,
-		LastName:        &usr.LastName,
-		RequiredActions: &usr.RequiredUserActions,
-		//Groups:          &usr.Groups,
-		Email: &usr.Email,
-		Attributes: &map[string][]string{
-			"foo": {"bar"},
-		},
-	}
-
-	mockClient.On("CreateUser", mock.Anything, "token", realmName, goClUser).Return("user-id1", nil)
-	mockClient.On("GetGroups", mock.Anything, "token", realmName, mock.Anything).Return([]*gocloak.Group{
+	tests := []struct {
+		name    string
+		userDto *KeycloakUser
+		client  func(t *testing.T) *mocks.MockGoCloak
+		wantErr require.ErrorAssertionFunc
+	}{
 		{
-			Name: gocloak.StringP("group1"),
-			ID:   gocloak.StringP("group-id-2"),
-		},
-	}, nil)
-	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/user-id1/groups/group-id-2",
-		httpmock.NewStringResponder(200, ""))
-
-	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, false)
-	require.NoError(t, err)
-
-	mockClient.AssertExpectations(t)
-}
-
-func TestGoCloakAdapter_SyncRealmUser_UserExists(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
-
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		basePath: "",
-		token:    &gocloak.JWT{AccessToken: "token"},
-	}
-
-	usr := KeycloakUser{
-		Username:   "vasia",
-		Groups:     []string{"foo"},
-		Attributes: map[string]string{"bar": "baz"},
-		Roles:      []string{"r3", "r4"},
-	}
-
-	realmName := "realm1"
-
-	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
-		Return([]*gocloak.User{
-			{
-				Username:   &usr.Username,
-				ID:         gocloak.StringP("id1"),
-				Groups:     &[]string{"g1", "g2"},
-				RealmRoles: &[]string{"r1", "r2"},
-				Attributes: &map[string][]string{"foo": {"baz", "zaz"}},
+			name: "create user success",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
 			},
-		}, nil)
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
 
-	mockClient.On("UpdateUser", mock.Anything, "token", realmName, gocloak.User{
-		ID:         gocloak.StringP("id1"),
-		Username:   gocloak.StringP("vasia"),
-		Attributes: &map[string][]string{"bar": {"baz"}, "foo": {"baz", "zaz"}},
-		RealmRoles: &[]string{"r1", "r2"},
-		Groups:     &[]string{"g1", "g2"},
-	}).Return(nil)
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, nil)
+				m.On("CreateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return("user-id", nil)
+				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
+					Return([]*gocloak.Role{{
+						Name: gocloak.StringP("role1"),
+						ID:   gocloak.StringP("role1-id"),
+					}}, nil)
+				m.On("AddRealmRoleToUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.MatchedBy(func(roles []gocloak.Role) bool {
+						return assert.Len(t, roles, 1) &&
+							assert.Equal(t, "role1-id", *roles[0].ID)
+					})).
+					Return(nil)
+				m.On("GetGroups",
+					mock.Anything,
+					"",
+					"realm",
+					mock.Anything).
+					Return([]*gocloak.Group{{
+						Name: gocloak.StringP("group1"),
+						ID:   gocloak.StringP("group1-id"),
+					}}, nil)
+				m.On("RestyClient").Return(resty.New())
+				m.On("DeleteRealmRoleFromUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.Anything,
+				).Return(nil)
 
-	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r3").Return(&gocloak.Role{}, nil)
-	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r4").Return(&gocloak.Role{}, nil)
-	mockClient.On("AddRealmRoleToUser", mock.Anything, "token", realmName, "id1", []gocloak.Role{{}}).Return(nil)
-	mockClient.On("GetGroups", mock.Anything, "token", realmName, mock.Anything).Return([]*gocloak.Group{
+				return m
+			},
+			wantErr: require.NoError,
+		},
 		{
-			ID:   gocloak.StringP("foo1"),
-			Name: gocloak.StringP("foo"),
-		},
-	}, nil)
-
-	restyClient := resty.New()
-
-	httpmock.Reset()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
-	httpmock.RegisterResponder("PUT", "/admin/realms/realm1/users/id1/groups/foo1",
-		httpmock.NewStringResponder(200, ""))
-
-	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)
-	require.NoError(t, err)
-
-	mockClient.AssertExpectations(t)
-}
-
-func TestGoCloakAdapter_SyncRealmUser_UserExists_Failure(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
-
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		basePath: "",
-		token:    &gocloak.JWT{AccessToken: "token"},
-	}
-
-	usr := KeycloakUser{
-		Username:   "vasia",
-		Groups:     []string{"foo", "bar"},
-		Attributes: map[string]string{"bar": "baz"},
-		Roles:      []string{"r3", "r4"},
-	}
-
-	realmName := "realm1"
-
-	mockClient.On("GetUsers", mock.Anything, "token", realmName, gocloak.GetUsersParams{Username: gocloak.StringP(usr.Username)}).
-		Return([]*gocloak.User{
-			{
-				Username:   &usr.Username,
-				ID:         gocloak.StringP("id1"),
-				Groups:     &[]string{"g1", "g2"},
-				RealmRoles: &[]string{"r1", "r2"},
-				Attributes: &map[string][]string{"foo": {"baz", "zaz"}},
+			name: "update user success",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
 			},
-		}, nil)
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
 
-	mockClient.On("UpdateUser", mock.Anything, "token", realmName, gocloak.User{
-		ID:         gocloak.StringP("id1"),
-		Username:   gocloak.StringP("vasia"),
-		Attributes: &map[string][]string{"bar": {"baz"}, "foo": {"baz", "zaz"}},
-		RealmRoles: &[]string{"r1", "r2"},
-		Groups:     &[]string{"g1", "g2"},
-	}).Return(nil)
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return([]*gocloak.User{{
+						ID:       gocloak.StringP("user-id"),
+						Username: gocloak.StringP("user"),
+					}}, nil)
+				m.On("UpdateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return(nil)
+				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
+					Return([]*gocloak.Role{{
+						Name: gocloak.StringP("role1"),
+						ID:   gocloak.StringP("role1-id"),
+					}}, nil)
+				m.On("AddRealmRoleToUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.MatchedBy(func(roles []gocloak.Role) bool {
+						return assert.Len(t, roles, 1) &&
+							assert.Equal(t, "role1-id", *roles[0].ID)
+					})).
+					Return(nil)
+				m.On("GetGroups",
+					mock.Anything,
+					"",
+					"realm",
+					mock.Anything).
+					Return([]*gocloak.Group{{
+						Name: gocloak.StringP("group1"),
+						ID:   gocloak.StringP("group1-id"),
+					}}, nil)
+				m.On("RestyClient").Return(resty.New())
+				m.On("DeleteRealmRoleFromUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.Anything,
+				).Return(nil)
 
-	mockClient.On("GetRealmRole", mock.Anything, "token", realmName, "r3").Return(&gocloak.Role{}, nil).Once()
-	mockClient.On("AddRealmRoleToUser", mock.Anything, "token", realmName, "id1", []gocloak.Role{{}}).
-		Return(errors.New("add realm role fatal"))
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "failed to get groups",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
 
-	err := adapter.SyncRealmUser(context.Background(), realmName, &usr, true)
-	require.Error(t, err)
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, nil)
+				m.On("CreateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return("user-id", nil)
+				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
+					Return([]*gocloak.Role{{
+						Name: gocloak.StringP("role1"),
+						ID:   gocloak.StringP("role1-id"),
+					}}, nil)
+				m.On("AddRealmRoleToUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.MatchedBy(func(roles []gocloak.Role) bool {
+						return assert.Len(t, roles, 1) &&
+							assert.Equal(t, "role1-id", *roles[0].ID)
+					})).
+					Return(nil)
+				m.On("GetGroups",
+					mock.Anything,
+					"",
+					"realm",
+					mock.Anything).
+					Return(nil, errors.New("failed to get groups"))
+				m.On("RestyClient").Return(resty.New())
+				m.On("DeleteRealmRoleFromUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.Anything,
+				).Return(nil)
 
-	if err.Error() != "unable to sync user roles: unable to add realm role to user: unable to add realm role to user: add realm role fatal" {
-		t.Fatalf("wrong error returned: %s", err.Error())
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to get groups")
+			},
+		},
+		{
+			name: "failed to get roles",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return([]*gocloak.User{{
+						ID:       gocloak.StringP("user-id"),
+						Username: gocloak.StringP("user"),
+					}}, nil)
+				m.On("UpdateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return(nil)
+				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, errors.New("failed to get roles"))
+				m.On("RestyClient").Return(resty.New())
+				m.On("DeleteRealmRoleFromUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.Anything,
+				).Return(nil)
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to get roles")
+			},
+		},
+		{
+			name: "failed to create user",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, nil)
+				m.On("CreateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return("", errors.New("failed to create user"))
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to create user")
+			},
+		},
+		{
+			name: "failed to get user",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, errors.New("failed to get user"))
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "failed to get user")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			a, err := Make(context.Background(), GoCloakConfig{Url: server.URL}, logr.Discard(), nil)
+			a.client = tt.client(t)
+
+			require.NoError(t, err)
+
+			tt.wantErr(t, a.SyncRealmUser(
+				context.Background(),
+				"realm",
+				tt.userDto,
+				false,
+			))
+		})
 	}
 }
