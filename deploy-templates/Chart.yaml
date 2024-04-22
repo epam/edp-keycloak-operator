@@ -219,9 +219,6 @@ annotations:
         id: d1-id-kc-realm-name
         realmName: d2-id-kc-realm-name
         keycloakOwner: main
-        ssoRealmName: openshift
-        ssoRealmEnabled: false # new one
-        ssoAutoRedirectEnabled: false # new one
         passwordPolicy:
           - type: "forceExpiredPasswordChange"
             value: "365"

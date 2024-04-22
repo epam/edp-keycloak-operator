@@ -18,7 +18,6 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/api"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
@@ -318,136 +317,6 @@ func (a GoCloakAdapter) buildPath(endpoint string) string {
 	return a.basePath + endpoint
 }
 
-func (a GoCloakAdapter) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
-	log := a.log.WithValues(logKeyRealm, realm)
-	log.Info("Start check central identity provider in realm")
-
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader("Content-Type", "application/json").
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-			keycloakApiParamAlias: realm.SsoRealmName,
-		}).
-		Get(a.buildPath(getOneIdP))
-	if err != nil {
-		return false, fmt.Errorf("request exists central identity provider failed: %w", err)
-	}
-
-	if resp.StatusCode() == http.StatusNotFound {
-		return false, nil
-	}
-
-	if resp.StatusCode() != http.StatusOK {
-		return false, errors.Errorf("errors in get idP, response: %s", resp.String())
-	}
-
-	log.Info("End check central identity provider in realm")
-
-	return true, nil
-}
-
-func (a GoCloakAdapter) CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error {
-	log := a.log.WithValues(logKeyRealm, realm, "keycloak client", client)
-	log.Info("Start create central identity provider...")
-
-	idP := a.getCentralIdP(client, realm.SsoRealmName)
-
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader(contentTypeHeader, contentTypeJson).
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-		}).
-		SetBody(idP).
-		Post(a.buildPath(idPResource))
-
-	if err != nil {
-		return errors.Wrap(err, "unable to create central idp")
-	}
-
-	if resp.StatusCode() != http.StatusCreated {
-		log.Info("requested url", "url", resp.Request.URL)
-		return fmt.Errorf("error in create IdP, response body %s, responce status: %s", resp.Body(), resp.Status())
-	}
-
-	if !realm.DisableCentralIDPMappers {
-		if err = a.CreateCentralIdPMappers(realm, client); err != nil {
-			return errors.Wrap(err, "unable to create central idp mappers")
-		}
-	}
-
-	log.Info("End create central identity provider")
-
-	return nil
-}
-
-func (a GoCloakAdapter) getCentralIdP(client *dto.Client, ssoRealmName string) api.IdentityProviderRepresentation {
-	return api.IdentityProviderRepresentation{
-		Alias:       ssoRealmName,
-		DisplayName: "EDP SSO",
-		Enabled:     true,
-		ProviderId:  "keycloak-oidc",
-		Config: api.IdentityProviderConfig{
-			UserInfoUrl:      a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/userinfo", ssoRealmName)),
-			TokenUrl:         a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/token", ssoRealmName)),
-			JwksUrl:          a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/certs", ssoRealmName)),
-			Issuer:           a.buildPath(fmt.Sprintf("/realms/%s", ssoRealmName)),
-			AuthorizationUrl: a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/auth", ssoRealmName)),
-			LogoutUrl:        a.buildPath(fmt.Sprintf("/realms/%s/protocol/openid-connect/logout", ssoRealmName)),
-			ClientId:         client.ClientId,
-			ClientSecret:     client.ClientSecret,
-		},
-	}
-}
-
-func (a GoCloakAdapter) CreateCentralIdPMappers(realm *dto.Realm, client *dto.Client) error {
-	log := a.log.WithValues(logKeyRealm, realm)
-	log.Info("Start create central IdP mappers...")
-
-	err := a.createIdPMapper(realm, client.ClientId+".administrator", "administrator")
-	if err != nil {
-		return errors.Wrap(err, "unable to create central idp mapper")
-	}
-
-	err = a.createIdPMapper(realm, client.ClientId+".developer", "developer")
-	if err != nil {
-		return errors.Wrap(err, "unable to create central idp mapper")
-	}
-
-	err = a.createIdPMapper(realm, client.ClientId+".administrator", "realm-management.realm-admin")
-	if err != nil {
-		return errors.Wrap(err, "unable to create central idp mapper")
-	}
-
-	log.Info("End create central IdP mappers")
-
-	return nil
-}
-
-func (a GoCloakAdapter) createIdPMapper(realm *dto.Realm, externalRole string, role string) error {
-	body := getIdPMapper(externalRole, role, realm.SsoRealmName)
-
-	resp, err := a.client.RestyClient().R().
-		SetAuthToken(a.token.AccessToken).
-		SetHeader(contentTypeHeader, contentTypeJson).
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-			keycloakApiParamAlias: realm.SsoRealmName,
-		}).
-		SetBody(body).
-		Post(a.buildPath(idPMapperResource))
-	if err != nil {
-		return fmt.Errorf("request create idp mapper failed: %w", err)
-	}
-
-	if resp.StatusCode() != http.StatusCreated {
-		return fmt.Errorf("error in creation idP mapper by name %s", body.Name)
-	}
-
-	return nil
-}
-
 func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
 	log := a.log.WithValues("clientID", clientID, logKeyRealm, realm)
 	log.Info("Start check client in Keycloak...")
@@ -741,18 +610,6 @@ func (a GoCloakAdapter) GetClients(ctx context.Context, realm string) (map[strin
 	}
 
 	return cl, nil
-}
-
-func getIdPMapper(externalRole, role, ssoRealmName string) api.IdentityProviderMapperRepresentation {
-	return api.IdentityProviderMapperRepresentation{
-		Config: map[string]string{
-			"external.role":      externalRole,
-			keycloakApiParamRole: role,
-		},
-		IdentityProviderAlias:  ssoRealmName,
-		IdentityProviderMapper: "keycloak-oidc-role-to-role-idp-mapper",
-		Name:                   role,
-	}
 }
 
 func (a GoCloakAdapter) CreateRealmUser(realmName string, user *dto.User) error {
@@ -1144,115 +1001,6 @@ func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {
 	res := resp.String()
 
 	log.Info("End get openid configuration", "openIdConfig", res)
-
-	return res, nil
-}
-
-func (a GoCloakAdapter) PutDefaultIdp(realm *dto.Realm) error {
-	log := a.log.WithValues("realm dto", realm)
-	log.Info("Start put default IdP...")
-
-	execution, err := a.getIdPRedirectExecution(realm)
-	if err != nil {
-		return err
-	}
-
-	if execution.AuthenticationConfig != "" {
-		if err = a.updateRedirectConfig(realm, execution.AuthenticationConfig); err != nil {
-			return fmt.Errorf("failed to update redirect config: %w", err)
-		}
-
-		log.Info("Default Identity Provider Redirector was successfully updated")
-
-		return nil
-	}
-
-	err = a.createRedirectConfig(realm, execution.Id)
-	if err != nil {
-		return err
-	}
-
-	log.Info("Default Identity Provider Redirector was successfully configured")
-
-	return nil
-}
-
-func (a GoCloakAdapter) getIdPRedirectExecution(realm *dto.Realm) (*api.SimpleAuthExecution, error) {
-	exs, err := a.getBrowserExecutions(realm)
-	if err != nil {
-		return nil, err
-	}
-
-	return getIdPRedirector(exs)
-}
-
-func getIdPRedirector(executions []api.SimpleAuthExecution) (*api.SimpleAuthExecution, error) {
-	for _, ex := range executions {
-		if ex.ProviderId == "identity-provider-redirector" {
-			return &ex, nil
-		}
-	}
-
-	return nil, errors.New("identity provider not found")
-}
-
-func (a GoCloakAdapter) createRedirectConfig(realm *dto.Realm, eId string) error {
-	resp, err := a.startRestyRequest().
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-			keycloakApiParamId:    eId,
-		}).
-		SetBody(map[string]interface{}{
-			keycloakApiParamAlias: "edp-sso",
-			"config": map[string]string{
-				"defaultProvider": realm.SsoRealmName,
-			},
-		}).
-		Post(a.buildPath(authExecutionConfig))
-	if err != nil {
-		return errors.Wrap(err, "error during resty request")
-	}
-
-	if resp.StatusCode() != http.StatusCreated {
-		return errors.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
-	}
-
-	if !realm.SsoAutoRedirectEnabled {
-		resp, err := a.startRestyRequest().
-			SetPathParams(map[string]string{keycloakApiParamRealm: realm.Name}).
-			SetBody(map[string]string{
-				keycloakApiParamId: eId,
-				"requirement":      "DISABLED",
-			}).
-			Put(a.buildPath(authExecutions))
-		if err != nil {
-			return errors.Wrap(err, "error during resty request")
-		}
-
-		if resp.StatusCode() != http.StatusAccepted {
-			return errors.Errorf("response is not ok by create redirect config: Status: %v", resp.Status())
-		}
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) getBrowserExecutions(realm *dto.Realm) ([]api.SimpleAuthExecution, error) {
-	res := make([]api.SimpleAuthExecution, 0)
-
-	resp, err := a.startRestyRequest().
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-		}).
-		SetResult(&res).
-		Get(a.buildPath(authExecutions))
-	if err != nil {
-		return nil, fmt.Errorf("request get browser executions failed: %w", err)
-	}
-
-	if resp.StatusCode() != http.StatusOK {
-		return res, fmt.Errorf("response is not ok by get browser executions: Status: %v", resp.Status())
-	}
 
 	return res, nil
 }

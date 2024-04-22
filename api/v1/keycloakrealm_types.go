@@ -21,29 +21,10 @@ type KeycloakRealmSpec struct {
 	// +optional
 	KeycloakRef common.KeycloakRef `json:"keycloakRef,omitempty"`
 
-	// SsoRealmName specifies the name of the SSO realm used by the realm.
-	// +optional
-	SsoRealmName string `json:"ssoRealmName,omitempty"`
-
-	// SsoRealmEnabled indicates whether to enable the SSO realm.
-	// +nullable
-	// +optional
-	SsoRealmEnabled *bool `json:"ssoRealmEnabled,omitempty"`
-
-	// SsoAutoRedirectEnabled indicates whether to enable automatic redirection to the SSO realm.
-	// +nullable
-	// +optional
-	SsoAutoRedirectEnabled *bool `json:"ssoAutoRedirectEnabled,omitempty"`
-
 	// Users is a list of users to create in the realm.
 	// +nullable
 	// +optional
 	Users []User `json:"users,omitempty"`
-
-	// SSORealmMappers is a list of SSO realm mappers to create in the realm.
-	// +nullable
-	// +optional
-	SSORealmMappers *[]SSORealmMapper `json:"ssoRealmMappers,omitempty"`
 
 	// BrowserFlow specifies the authentication flow to use for the realm's browser clients.
 	// +nullable
@@ -69,10 +50,6 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	RealmEventConfig *RealmEventConfig `json:"realmEventConfig,omitempty"`
-
-	// DisableCentralIDPMappers indicates whether to disable the default identity provider (IDP) mappers.
-	// +optional
-	DisableCentralIDPMappers bool `json:"disableCentralIDPMappers,omitempty"`
 
 	// PasswordPolicies is a list of password policies to apply to the realm.
 	// +nullable
@@ -157,14 +134,6 @@ type RealmThemes struct {
 	// +nullable
 	// +optional
 	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
-}
-
-func (in *KeycloakRealmSpec) SSOEnabled() bool {
-	return in.SsoRealmEnabled != nil && *in.SsoRealmEnabled
-}
-
-func (in *KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
-	return in.SsoAutoRedirectEnabled == nil || *in.SsoAutoRedirectEnabled
 }
 
 func (in *KeycloakRealm) GetKeycloakRef() common.KeycloakRef {

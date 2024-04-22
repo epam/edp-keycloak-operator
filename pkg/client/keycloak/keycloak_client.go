@@ -22,10 +22,7 @@ type Client interface {
 	KCloakClientScope
 	KIdentityProvider
 
-	ExistCentralIdentityProvider(realm *dto.Realm) (bool, error)
-	CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error
 	GetOpenIdConfig(realm *dto.Realm) (string, error)
-	PutDefaultIdp(realm *dto.Realm) error
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string, addOnly bool) error
 	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error

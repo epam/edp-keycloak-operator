@@ -43,11 +43,9 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	if err != nil {
 		return errors.Wrap(err, "unable to create realm with default config")
 	}
-	// put realm roles if sso realm is disabled
-	if !rDto.SsoRealmEnabled {
-		if err := h.putRealmRoles(realm, kClient); err != nil {
-			return errors.Wrap(err, "unable to create realm roles on no sso scenario")
-		}
+
+	if err = h.putRealmRoles(realm, kClient); err != nil {
+		return errors.Wrap(err, "unable to create realm roles on no sso scenario")
 	}
 
 	if err := h.hlp.InvalidateKeycloakClientTokenSecret(ctx, realm.Namespace, realm.Spec.KeycloakRef.Name); err != nil {

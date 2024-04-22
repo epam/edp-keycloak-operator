@@ -8,9 +8,6 @@ spec:
   keycloakRef:
     name: keycloak-sample
     kind: Keycloak
-  ssoRealmName: openshift
-  ssoRealmEnabled: false # new one
-  ssoAutoRedirectEnabled: false # new one
   passwordPolicy:
     - type: "forceExpiredPasswordChange"
       value: "365"
