@@ -2699,13 +2699,6 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>disableCentralIDPMappers</b></td>
-        <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
@@ -2736,34 +2729,6 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
       </tr><tr>
         <td><b><a href="#keycloakrealmspecrealmeventconfig-1">realmEventConfig</a></b></td>
         <td>object</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoAutoRedirectEnabled</b></td>
-        <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoRealmEnabled</b></td>
-        <td>boolean</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#keycloakrealmspecssorealmmappersindex-1">ssoRealmMappers</a></b></td>
-        <td>[]object</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoRealmName</b></td>
-        <td>string</td>
         <td>
           <br/>
         </td>
@@ -2876,47 +2841,6 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>[]string</td>
         <td>
           EventsListeners is a list of event listeners to enable.<br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### KeycloakRealm.spec.ssoRealmMappers[index]
-<sup><sup>[↩ Parent](#keycloakrealmspec-1)</sup></sup>
-
-
-
-
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>config</b></td>
-        <td>map[string]string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>identityProviderMapper</b></td>
-        <td>string</td>
-        <td>
-          <br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6470,13 +6394,6 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
-        <td><b>disableCentralIDPMappers</b></td>
-        <td>boolean</td>
-        <td>
-          DisableCentralIDPMappers indicates whether to disable the default identity provider (IDP) mappers.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
@@ -6516,34 +6433,6 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>object</td>
         <td>
           RealmEventConfig is the configuration for events in the realm.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoAutoRedirectEnabled</b></td>
-        <td>boolean</td>
-        <td>
-          SsoAutoRedirectEnabled indicates whether to enable automatic redirection to the SSO realm.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoRealmEnabled</b></td>
-        <td>boolean</td>
-        <td>
-          SsoRealmEnabled indicates whether to enable the SSO realm.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b><a href="#keycloakrealmspecssorealmmappersindex">ssoRealmMappers</a></b></td>
-        <td>[]object</td>
-        <td>
-          SSORealmMappers is a list of SSO realm mappers to create in the realm.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>ssoRealmName</b></td>
-        <td>string</td>
-        <td>
-          SsoRealmName specifies the name of the SSO realm used by the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6697,47 +6586,6 @@ RealmEventConfig is the configuration for events in the realm.
         <td>[]string</td>
         <td>
           EventsListeners is a list of event listeners to enable.<br/>
-        </td>
-        <td>false</td>
-      </tr></tbody>
-</table>
-
-
-### KeycloakRealm.spec.ssoRealmMappers[index]
-<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
-
-
-
-
-
-<table>
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Description</th>
-            <th>Required</th>
-        </tr>
-    </thead>
-    <tbody><tr>
-        <td><b>config</b></td>
-        <td>map[string]string</td>
-        <td>
-          Config is a map of configuration options for the SSO realm mapper.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>identityProviderMapper</b></td>
-        <td>string</td>
-        <td>
-          IdentityProviderMapper specifies the identity provider mapper to use.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name specifies the name of the SSO realm mapper.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

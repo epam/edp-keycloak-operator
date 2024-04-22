@@ -12,7 +12,6 @@ spec:
   email: "john.snow13@example.com"
   enabled: true
   emailVerified: true
-  password: "12345678"
   keepResource: true
   requiredUserActions:
     - UPDATE_PASSWORD

@@ -11,8 +11,6 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
-
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 type KeycloakAuthFlow struct {
@@ -597,30 +595,6 @@ func (a GoCloakAdapter) deleteAuthFlowConfig(realmName, configID string) error {
 
 	if err = a.checkError(err, rsp); err != nil {
 		return fmt.Errorf("unable to delete auth flow config: %w", err)
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) updateRedirectConfig(realm *dto.Realm, configID string) error {
-	rsp, err := a.startRestyRequest().
-		SetPathParams(map[string]string{
-			keycloakApiParamRealm: realm.Name,
-			keycloakApiParamId:    configID,
-		}).
-		SetBody(map[string]interface{}{
-			keycloakApiParamAlias: "edp-sso",
-			"config": map[string]string{
-				"defaultProvider": realm.SsoRealmName,
-			},
-		}).
-		Put(a.buildPath(authFlowConfig))
-	if err != nil {
-		return fmt.Errorf("unable to update auth flow config: %w", err)
-	}
-
-	if err = a.checkError(err, rsp); err != nil {
-		return fmt.Errorf("unable to update auth flow config: %w", err)
 	}
 
 	return nil

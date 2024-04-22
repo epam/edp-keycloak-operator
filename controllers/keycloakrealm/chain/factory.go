@@ -12,42 +12,24 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
 
 func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) handler.RealmHandler {
 	return PutRealm{
-		hlp: hlp,
-		next: SetLabels{
-			next: PutKeycloakClientCR{
-				next: PutKeycloakClientSecret{
-					next: PutUsers{
-						next: PutUsersRoles{
-							next: PutOpenIdConfigAnnotation{
-								next: PutIdentityProvider{
-									next: PutDefaultIdP{
-										next: RealmSettings{
-											next: AuthFlow{},
-										},
-									},
-									SecretRef: secretref.NewSecretRef(client),
-									client:    client,
-								},
-								client: client,
-							},
-						},
-					},
-					client: client,
-					scheme: scheme,
-				},
-				client: client,
-				scheme: scheme,
-			},
-			client: client,
-		},
+		hlp:    hlp,
 		client: client,
+		next: SetLabels{
+			client: client,
+			next: PutUsers{
+				next: PutUsersRoles{
+					next: RealmSettings{
+						next: AuthFlow{},
+					},
+				},
+			},
+		},
 	}
 }
 

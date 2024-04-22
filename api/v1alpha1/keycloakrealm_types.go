@@ -14,24 +14,9 @@ type KeycloakRealmSpec struct {
 	// +optional
 	KeycloakOwner string `json:"keycloakOwner,omitempty"`
 
-	// +optional
-	SsoRealmName string `json:"ssoRealmName,omitempty"`
-
-	// +nullable
-	// +optional
-	SsoRealmEnabled *bool `json:"ssoRealmEnabled,omitempty"`
-
-	// +nullable
-	// +optional
-	SsoAutoRedirectEnabled *bool `json:"ssoAutoRedirectEnabled,omitempty"`
-
 	// +nullable
 	// +optional
 	Users []User `json:"users,omitempty"`
-
-	// +nullable
-	// +optional
-	SSORealmMappers *[]SSORealmMapper `json:"ssoRealmMappers,omitempty"`
 
 	// +nullable
 	// +optional
@@ -52,9 +37,6 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	RealmEventConfig *RealmEventConfig `json:"realmEventConfig,omitempty"`
-
-	// +optional
-	DisableCentralIDPMappers bool `json:"disableCentralIDPMappers,omitempty"`
 
 	// +nullable
 	// +optional
@@ -129,14 +111,6 @@ type RealmThemes struct {
 	// +nullable
 	// +optional
 	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
-}
-
-func (in *KeycloakRealmSpec) SSOEnabled() bool {
-	return in.SsoRealmEnabled == nil || *in.SsoRealmEnabled
-}
-
-func (in *KeycloakRealmSpec) SSOAutoRedirectEnabled() bool {
-	return in.SsoAutoRedirectEnabled == nil || *in.SsoAutoRedirectEnabled
 }
 
 type SSORealmMapper struct {

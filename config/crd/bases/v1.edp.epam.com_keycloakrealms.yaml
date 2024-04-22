@@ -56,10 +56,6 @@ spec:
                   apply to HTTP responses from the realm's browser clients.
                 nullable: true
                 type: object
-              disableCentralIDPMappers:
-                description: DisableCentralIDPMappers indicates whether to disable
-                  the default identity provider (IDP) mappers.
-                type: boolean
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base
@@ -137,41 +133,6 @@ spec:
                 type: object
               realmName:
                 description: RealmName specifies the name of the realm.
-                type: string
-              ssoAutoRedirectEnabled:
-                description: SsoAutoRedirectEnabled indicates whether to enable automatic
-                  redirection to the SSO realm.
-                nullable: true
-                type: boolean
-              ssoRealmEnabled:
-                description: SsoRealmEnabled indicates whether to enable the SSO realm.
-                nullable: true
-                type: boolean
-              ssoRealmMappers:
-                description: SSORealmMappers is a list of SSO realm mappers to create
-                  in the realm.
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      description: Config is a map of configuration options for the
-                        SSO realm mapper.
-                      nullable: true
-                      type: object
-                    identityProviderMapper:
-                      description: IdentityProviderMapper specifies the identity provider
-                        mapper to use.
-                      type: string
-                    name:
-                      description: Name specifies the name of the SSO realm mapper.
-                      type: string
-                  type: object
-                nullable: true
-                type: array
-              ssoRealmName:
-                description: SsoRealmName specifies the name of the SSO realm used
-                  by the realm.
                 type: string
               themes:
                 description: Themes is a map of themes to apply to the realm.
@@ -342,8 +303,6 @@ spec:
                   type: string
                 nullable: true
                 type: object
-              disableCentralIDPMappers:
-                type: boolean
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base
@@ -399,29 +358,6 @@ spec:
                     type: array
                 type: object
               realmName:
-                type: string
-              ssoAutoRedirectEnabled:
-                nullable: true
-                type: boolean
-              ssoRealmEnabled:
-                nullable: true
-                type: boolean
-              ssoRealmMappers:
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      nullable: true
-                      type: object
-                    identityProviderMapper:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                nullable: true
-                type: array
-              ssoRealmName:
                 type: string
               themes:
                 nullable: true

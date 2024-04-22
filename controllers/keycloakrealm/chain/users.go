@@ -44,9 +44,6 @@ func createUsers(realm *dto.Realm, kClient keycloak.Client) error {
 
 func createOneUser(user *dto.User, realm *dto.Realm, kClient keycloak.Client) error {
 	realmName := realm.Name
-	if realm.SsoRealmEnabled {
-		realmName = realm.SsoRealmName
-	}
 
 	exist, err := kClient.ExistRealmUser(realmName, user)
 	if err != nil {

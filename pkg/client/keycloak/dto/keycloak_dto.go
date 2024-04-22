@@ -13,13 +13,9 @@ type Keycloak struct {
 }
 
 type Realm struct {
-	Name                     string
-	Users                    []User
-	SsoRealmName             string
-	SsoRealmEnabled          bool
-	SsoAutoRedirectEnabled   bool
-	ID                       *string
-	DisableCentralIDPMappers bool
+	Name  string
+	Users []User
+	ID    *string
 }
 
 type User struct {
@@ -55,13 +51,9 @@ func ConvertSpecToRealm(spec *keycloakApi.KeycloakRealmSpec) *Realm {
 	}
 
 	return &Realm{
-		Name:                     spec.RealmName,
-		Users:                    users,
-		SsoRealmName:             spec.SsoRealmName,
-		SsoRealmEnabled:          spec.SSOEnabled(),
-		SsoAutoRedirectEnabled:   spec.SSOAutoRedirectEnabled(),
-		ID:                       spec.ID,
-		DisableCentralIDPMappers: spec.DisableCentralIDPMappers,
+		Name:  spec.RealmName,
+		Users: users,
+		ID:    spec.ID,
 	}
 }
 
