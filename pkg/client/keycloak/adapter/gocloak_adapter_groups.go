@@ -29,6 +29,11 @@ func IsErrNotFound(err error) bool {
 		return apiErr.Code == http.StatusNotFound
 	}
 
+	apiErrp := &gocloak.APIError{}
+	if errors.As(err, &apiErrp) {
+		return apiErrp.Code == http.StatusNotFound
+	}
+
 	return false
 }
 

@@ -17,6 +17,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
+	"golang.org/x/exp/slices"
+	"golang.org/x/sync/errgroup"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
@@ -612,6 +616,25 @@ func (a GoCloakAdapter) GetClients(ctx context.Context, realm string) (map[strin
 	return cl, nil
 }
 
+func (a GoCloakAdapter) GetClient(ctx context.Context, realm, client string) (*gocloak.Client, error) {
+	cl, err := a.client.GetClients(ctx, a.token.AccessToken, realm, gocloak.GetClientsParams{
+		ClientID: gocloak.StringP(client),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get clients for realm %s: %w", realm, err)
+	}
+
+	if len(cl) == 0 {
+		return nil, NotFoundError(fmt.Sprintf("client %s doesn't exist", client))
+	}
+
+	if len(cl) > 1 {
+		return nil, fmt.Errorf("more than one client with ID %s found", client)
+	}
+
+	return cl[0], nil
+}
+
 func (a GoCloakAdapter) CreateRealmUser(realmName string, user *dto.User) error {
 	log := a.log.WithValues(logKeyUser, user, logKeyRealm, realmName)
 	log.Info("Start create realm user in Keycloak...")
@@ -942,9 +965,9 @@ func (a GoCloakAdapter) CreateIncludedRealmRole(realmName string, role *dto.Incl
 	return nil
 }
 
-func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) (string, error) {
-	log := a.log.WithValues("realm name", realmName, keycloakApiParamRole, role)
-	log.Info("Start create realm roles in Keycloak...")
+func (a GoCloakAdapter) CreatePrimaryRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) (string, error) {
+	log := ctrl.LoggerFrom(ctx).WithValues("realm_name", realmName, keycloakApiParamRole, role)
+	log.Info("Start create realm roles in Keycloak.")
 
 	realmRole := gocloak.Role{
 		Name:        &role.Name,
@@ -953,36 +976,160 @@ func (a GoCloakAdapter) CreatePrimaryRealmRole(realmName string, role *dto.Prima
 		Composite:   &role.IsComposite,
 	}
 
-	id, err := a.client.CreateRealmRole(context.Background(), a.token.AccessToken, realmName, realmRole)
+	if _, err := a.client.CreateRealmRole(ctx, a.token.AccessToken, realmName, realmRole); err != nil {
+		return "", fmt.Errorf("failed to create realm role %s: %w", role.Name, err)
+	}
+
+	currentRealmRole, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, role.Name)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to create realm role")
+		return "", fmt.Errorf("failed to get created realm role %s: %w", role.Name, err)
 	}
 
-	if role.IsComposite && len(role.Composites) > 0 {
-		compositeRoles := make([]gocloak.Role, 0, len(role.Composites))
+	role.ID = currentRealmRole.ID
 
-		for _, composite := range role.Composites {
-			var compositeRole *gocloak.Role
+	log.Info("Keycloak roles has been created.")
 
-			compositeRole, err = a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, composite)
+	return *role.ID, nil
+}
+
+func (a GoCloakAdapter) syncRoleComposites(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
+	associatedRoles, err := a.getRolesAssociatedRoles(ctx, realmName, role)
+	if err != nil {
+		return err
+	}
+
+	realmRolesToAdd, err := a.processAssociatedRealmRoles(ctx, realmName, role, associatedRoles)
+	if err != nil {
+		return err
+	}
+
+	clientRolesToAdd, err := a.processAssociatedClientRoles(ctx, realmName, role, associatedRoles)
+	if err != nil {
+		return err
+	}
+
+	rolesToAdd := slices.Clone(realmRolesToAdd)
+	rolesToAdd = append(rolesToAdd, clientRolesToAdd...)
+
+	if len(rolesToAdd) > 0 {
+		if err = a.client.AddRealmRoleComposite(ctx, a.token.AccessToken, realmName, role.Name, rolesToAdd); err != nil {
+			return fmt.Errorf("unable to add realm role composite roles: %w", err)
+		}
+	}
+
+	if len(associatedRoles) > 0 {
+		if err = a.client.DeleteRealmRoleComposite(ctx, a.token.AccessToken, realmName, role.Name, maps.Values(associatedRoles)); err != nil {
+			return fmt.Errorf("unable to delete realm role composite roles: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// processAssociatedRealmRoles returns realm roles to add to the role.
+// It also removes roles from associatedRoles map that are already associated with the role.
+func (a GoCloakAdapter) processAssociatedRealmRoles(ctx context.Context, realmName string, role *dto.PrimaryRealmRole, associatedRoles map[string]gocloak.Role) ([]gocloak.Role, error) {
+	rolesToAdd := make([]gocloak.Role, 0, len(role.Composites))
+	group := errgroup.Group{}
+	m := sync.Mutex{}
+
+	for _, composite := range role.Composites {
+		roleName := composite
+
+		if _, ok := associatedRoles[roleName]; ok {
+			delete(associatedRoles, roleName)
+			continue
+		}
+
+		group.Go(func() error {
+			compositeRole, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, roleName)
 			if err != nil {
-				return "", errors.Wrap(err, "unable to get realm role")
+				return fmt.Errorf("unable to get realm  role %s: %w", roleName, err)
 			}
 
-			compositeRoles = append(compositeRoles, *compositeRole)
+			m.Lock()
+			rolesToAdd = append(rolesToAdd, *compositeRole)
+			m.Unlock()
+
+			return nil
+		})
+	}
+
+	if err := group.Wait(); err != nil {
+		return nil, fmt.Errorf("unable to get realm roles: %w", err)
+	}
+
+	return rolesToAdd, nil
+}
+
+// processAssociatedClientRoles returns client roles to add to the role.
+// It also removes roles from associatedRoles map that are already associated with the role.
+func (a GoCloakAdapter) processAssociatedClientRoles(ctx context.Context, realmName string, role *dto.PrimaryRealmRole, associatedRoles map[string]gocloak.Role) ([]gocloak.Role, error) {
+	rolesToAdd := make([]gocloak.Role, 0)
+	group := errgroup.Group{}
+	m := sync.Mutex{}
+
+	for cl, composite := range role.CompositesClientRoles {
+		roles := composite
+
+		client, err := a.GetClient(ctx, realmName, cl)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get client %s: %w", cl, err)
 		}
 
-		if len(compositeRoles) > 0 {
-			if err = a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
-				role.Name, compositeRoles); err != nil {
-				return "", errors.Wrap(err, "unable to add role composite")
+		for _, r := range roles {
+			roleName := r
+			clientID := *client.ID
+			mapKey := fmt.Sprintf("%s-%s", clientID, roleName)
+
+			if _, ok := associatedRoles[mapKey]; ok {
+				delete(associatedRoles, mapKey)
+				continue
 			}
+
+			group.Go(func() error {
+				compositeRole, err := a.client.GetClientRole(ctx, a.token.AccessToken, realmName, clientID, roleName)
+				if err != nil {
+					return fmt.Errorf("unable to get client role %s: %w", roleName, err)
+				}
+
+				m.Lock()
+				rolesToAdd = append(rolesToAdd, *compositeRole)
+				m.Unlock()
+
+				return nil
+			})
 		}
 	}
 
-	log.Info("Keycloak roles has been created")
+	if err := group.Wait(); err != nil {
+		return nil, fmt.Errorf("unable to get realm roles: %w", err)
+	}
 
-	return id, nil
+	return rolesToAdd, nil
+}
+
+// getRolesAssociatedRoles returns map of roles associated with role.
+// Key is role name. If role is client role, key is client name + "-" + role name.
+func (a GoCloakAdapter) getRolesAssociatedRoles(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) (map[string]gocloak.Role, error) {
+	currentAssociatedRoles, err := a.client.GetCompositeRolesByRoleID(ctx, a.token.AccessToken, realmName, *role.ID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get composite realm roles: %w", err)
+	}
+
+	currentAssociatedRolesMap := make(map[string]gocloak.Role, len(currentAssociatedRoles))
+
+	for _, r := range currentAssociatedRoles {
+		mapKey := *r.Name
+
+		if r.ClientRole != nil && *r.ClientRole {
+			mapKey = fmt.Sprintf("%s-%s", *r.ContainerID, *r.Name)
+		}
+
+		currentAssociatedRolesMap[mapKey] = *r
+	}
+
+	return currentAssociatedRolesMap, nil
 }
 
 func (a GoCloakAdapter) GetOpenIdConfig(realm *dto.Realm) (string, error) {

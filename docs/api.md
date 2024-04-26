@@ -6166,6 +6166,13 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmrolespeccompositesclientroleskeyindex">compositesClientRoles</a></b></td>
+        <td>map[string][]object</td>
+        <td>
+          CompositesClientRoles is a map of composites client roles assigned to role.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>description</b></td>
         <td>string</td>
         <td>
@@ -6198,6 +6205,33 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
 
 
 ### KeycloakRealmRole.spec.composites[index]
+<sup><sup>[↩ Parent](#keycloakrealmrolespec)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a name of composite role.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmRole.spec.compositesClientRoles[key][index]
 <sup><sup>[↩ Parent](#keycloakrealmrolespec)</sup></sup>
 
 

@@ -20,7 +20,6 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
@@ -124,14 +123,6 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 			return ctrl.Result{
 				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
 			}, nil
-		}
-
-		if adapter.IsErrDuplicated(err) {
-			instance.Status.Value = keycloakApi.StatusDuplicated
-
-			log.Info("Role is duplicated", "name", instance.Name)
-
-			return
 		}
 
 		instance.Status.Value = err.Error()

@@ -64,6 +64,27 @@ spec:
                   type: object
                 nullable: true
                 type: array
+              compositesClientRoles:
+                additionalProperties:
+                  items:
+                    properties:
+                      name:
+                        description: Name is a name of composite role.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  type: array
+                description: CompositesClientRoles is a map of composites client roles
+                  assigned to role.
+                example:
+                  client1:
+                  - name: role1
+                  - name: role2
+                  client2:
+                    name: role3
+                nullable: true
+                type: object
               description:
                 description: Description is a role description.
                 type: string

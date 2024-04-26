@@ -78,6 +78,7 @@ type KCloakClients interface {
 	DeleteClient(ctx context.Context, kcClientID, realmName string) error
 	UpdateClient(ctx context.Context, client *dto.Client) error
 	GetClients(ctx context.Context, realm string) (map[string]*gocloak.Client, error)
+	GetClient(ctx context.Context, realm, client string) (*gocloak.Client, error)
 	SyncClientProtocolMapper(
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
 	GetClientID(clientID, realm string) (string, error)
@@ -115,7 +116,7 @@ type KCloakClientScope interface {
 type KCloakRealmRoles interface {
 	ExistRealmRole(realmName string, roleName string) (bool, error)
 	CreateIncludedRealmRole(realmName string, role *dto.IncludedRealmRole) error
-	CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) (string, error)
+	CreatePrimaryRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) (string, error)
 	HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error)
 	AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error
 	SyncRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error

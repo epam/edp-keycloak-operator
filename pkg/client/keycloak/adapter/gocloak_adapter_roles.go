@@ -10,20 +10,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
-type DuplicatedError string
-
-func (e DuplicatedError) Error() string {
-	return string(e)
-}
-
-func IsErrDuplicated(err error) bool {
-	errDuplicate := DuplicatedError("")
-
-	return errors.As(err, &errDuplicate)
-}
-
 func (a GoCloakAdapter) SyncRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
-	if err := a.createOrUpdateRealmRole(realmName, role); err != nil {
+	if err := a.createOrUpdateRealmRole(ctx, realmName, role); err != nil {
 		return errors.Wrap(err, "error during createOrUpdateRealmRole")
 	}
 
@@ -34,45 +22,46 @@ func (a GoCloakAdapter) SyncRealmRole(ctx context.Context, realmName string, rol
 	return nil
 }
 
-func (a GoCloakAdapter) createOrUpdateRealmRole(realmName string, role *dto.PrimaryRealmRole) error {
-	currentRealmRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, role.Name)
+func (a GoCloakAdapter) createOrUpdateRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
+	exists := true
 
-	exists, err := strip404(err)
+	currentRealmRole, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, role.Name)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm role")
+		if !IsErrNotFound(err) {
+			return fmt.Errorf("failed to get realm role: %w", err)
+		}
+
+		exists = false
+	}
+
+	if exists {
+		role.ID = currentRealmRole.ID
 	}
 
 	if !exists {
-		_, err := a.CreatePrimaryRealmRole(realmName, role)
-		if err != nil {
-			return errors.Wrap(err, "unable to create realm role during sync")
+		var roleID string
+
+		if roleID, err = a.CreatePrimaryRealmRole(ctx, realmName, role); err != nil {
+			return err
 		}
 
-		currentRealmRole, err = a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName, role.Name)
-		if err != nil {
-			return errors.Wrap(err, "unable to get realm role")
+		role.ID = &roleID
+	}
+
+	if role.IsComposite {
+		if err = a.syncRoleComposites(ctx, realmName, role); err != nil {
+			return err
 		}
-
-		role.ID = currentRealmRole.ID
-
-		return nil
 	}
 
-	if role.ID == nil {
-		return DuplicatedError("role is duplicated")
-	}
+	if exists {
+		currentRealmRole.Composite = &role.IsComposite
+		currentRealmRole.Attributes = &role.Attributes
+		currentRealmRole.Description = &role.Description
 
-	if err := a.syncRoleComposites(realmName, role, currentRealmRole); err != nil {
-		return errors.Wrap(err, "error during syncRoleComposites")
-	}
-
-	currentRealmRole.Composite = &role.IsComposite
-	currentRealmRole.Attributes = &role.Attributes
-	currentRealmRole.Description = &role.Description
-
-	if err := a.client.UpdateRealmRole(context.Background(), a.token.AccessToken, realmName, role.Name,
-		*currentRealmRole); err != nil {
-		return errors.Wrap(err, "unable to update realm role")
+		if err = a.client.UpdateRealmRole(ctx, a.token.AccessToken, realmName, role.Name, *currentRealmRole); err != nil {
+			return errors.Wrap(err, "unable to update realm role")
+		}
 	}
 
 	return nil
@@ -102,56 +91,8 @@ func (a GoCloakAdapter) DeleteRealmRole(ctx context.Context, realm, roleName str
 	return nil
 }
 
-func (a GoCloakAdapter) syncRoleComposites(realmName string, role *dto.PrimaryRealmRole, currentRealmRole *gocloak.Role) error {
-	currentComposites, err := a.client.GetCompositeRealmRolesByRoleID(context.Background(), a.token.AccessToken, realmName, *currentRealmRole.ID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get realm role composites")
-	}
-
-	if err := a.syncCreateNewComposites(realmName, role, currentComposites); err != nil {
-		return errors.Wrap(err, "error during SyncCreateNewComposites")
-	}
-
-	// temporary disable deletion of old composites to remove conflict with keycloak client roles
-
-	// if err := a.syncDeleteOldComposites(realmName, role, currentComposites); err != nil {
-	//	return errors.Wrap(err, "error during SyncDeleteOldComposites")
-	//}
-
-	return nil
-}
-
-func (a GoCloakAdapter) syncCreateNewComposites(realmName string, role *dto.PrimaryRealmRole, currentComposites []*gocloak.Role) error {
-	currentCompositesMap := make(map[string]string)
-
-	for _, currentComposite := range currentComposites {
-		currentCompositesMap[*currentComposite.Name] = *currentComposite.Name
-	}
-
-	rolesToAdd := make([]gocloak.Role, 0, len(role.Composites))
-
-	for _, claimedComposite := range role.Composites {
-		if _, ok := currentCompositesMap[claimedComposite]; !ok {
-			compRole, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realmName,
-				claimedComposite)
-			if err != nil {
-				return errors.Wrap(err, "unable to get realm role")
-			}
-
-			rolesToAdd = append(rolesToAdd, *compRole)
-		}
-	}
-
-	if len(rolesToAdd) > 0 {
-		if err := a.client.AddRealmRoleComposite(context.Background(), a.token.AccessToken, realmName,
-			role.Name, rolesToAdd); err != nil {
-			return errors.Wrap(err, "unable to add role composite")
-		}
-	}
-
-	return nil
-}
-
+// makeRoleDefault makes the role default if it is required.
+// For this purpose, the role is added to the composite role with the name "default-roles-{realmName}".
 func (a GoCloakAdapter) makeRoleDefault(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
 	if !role.IsDefault {
 		return nil

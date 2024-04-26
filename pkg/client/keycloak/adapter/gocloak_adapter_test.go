@@ -19,6 +19,7 @@ import (
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
+	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
@@ -510,75 +511,6 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_ClientIDFailure(t *testing.T) {
 	}
 
 	assert.ErrorIs(t, err, mockErr)
-}
-
-func TestGoCloakAdapter_SyncRealmRole_Duplicated(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
-	currentRole := gocloak.Role{Name: gocloak.StringP("role1")}
-
-	mockClient.On("GetRealmRole", testifymock.Anything, "token", "realm1", "role1").Return(&currentRole, nil)
-
-	adapter := GoCloakAdapter{
-		client: mockClient,
-		token:  &gocloak.JWT{AccessToken: "token"},
-		log:    mock.NewLogr(),
-	}
-
-	role := dto.PrimaryRealmRole{Name: "role1"}
-
-	err := adapter.SyncRealmRole(context.Background(), "realm1", &role)
-	if err == nil {
-		t.Fatal("no error returned on duplicated role")
-	}
-
-	if !IsErrDuplicated(err) {
-		t.Log(err)
-		t.Fatal("wrong error returned")
-	}
-}
-
-func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
-	realmName, roleName, roleID := "realm1", "role1", "id321"
-	currentRole := gocloak.Role{Name: &roleName, ID: &roleID,
-		Composite: gocloak.BoolP(true), Description: gocloak.StringP(""),
-		Attributes: &map[string][]string{
-			"foo": []string{"foo", "bar"},
-		}}
-	mockClient.On("GetRealmRole", testifymock.Anything, "token", realmName, roleName).Return(&currentRole, nil)
-
-	composite1 := gocloak.Role{Name: gocloak.StringP("c1")}
-	mockClient.On("GetCompositeRealmRolesByRoleID", testifymock.Anything, "token", realmName, roleID).Return([]*gocloak.Role{
-		&composite1,
-	}, nil)
-
-	compositeFoo := gocloak.Role{Name: gocloak.StringP("foo")}
-	mockClient.On("GetRealmRole", testifymock.Anything, "token", realmName, *compositeFoo.Name).Return(&compositeFoo, nil)
-
-	compositeBar := gocloak.Role{Name: gocloak.StringP("bar")}
-	mockClient.On("GetRealmRole", testifymock.Anything, "token", realmName, *compositeBar.Name).Return(&compositeBar, nil)
-	mockClient.On("AddRealmRoleComposite", testifymock.Anything, "token", realmName, roleName,
-		[]gocloak.Role{compositeFoo, compositeBar}).
-		Return(nil).Once()
-	mockClient.On("UpdateRealmRole", testifymock.Anything, "token", realmName, roleName, currentRole).Return(nil)
-	mockClient.On("AddRealmRoleComposite", testifymock.Anything, "token", realmName, GetDefaultCompositeRoleName(realmName), testifymock.Anything).
-		Return(nil).Once()
-
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		token:    &gocloak.JWT{AccessToken: "token"},
-		basePath: "",
-		log:      mock.NewLogr(),
-	}
-
-	role := dto.PrimaryRealmRole{Name: roleName, Composites: []string{"foo", "bar"}, IsComposite: true,
-		Attributes: map[string][]string{
-			"foo": []string{"foo", "bar"},
-		}, IsDefault: true, ID: gocloak.StringP("id321")}
-
-	if err := adapter.SyncRealmRole(context.Background(), realmName, &role); err != nil {
-		require.NoError(t, err)
-	}
 }
 
 func TestGoCloakAdapter_SyncServiceAccountRoles_AddOnly(t *testing.T) {
@@ -1108,6 +1040,101 @@ func TestGoCloakAdapter_GetUsersByNames(t *testing.T) {
 
 			got, err := a.GetUsersByNames(context.Background(), "master", tt.names)
 
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestGoCloakAdapter_CreatePrimaryRealmRole(t *testing.T) {
+	t.Parallel()
+
+	var (
+		token = "token"
+		realm = "realm"
+	)
+
+	tests := []struct {
+		name    string
+		role    *dto.PrimaryRealmRole
+		client  func(t *testing.T) *mocks.MockGoCloak
+		want    string
+		wantErr require.ErrorAssertionFunc
+	}{
+		{
+			name: "should create role successfully",
+			role: &dto.PrimaryRealmRole{
+				Name:        "role1",
+				Description: "Role description",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On(
+					"CreateRealmRole",
+					testifymock.Anything,
+					token,
+					realm,
+					testifymock.MatchedBy(func(role gocloak.Role) bool {
+						return assert.Equal(t, "role1", *role.Name) &&
+							assert.Equal(t, "Role description", *role.Description)
+					})).
+					Return("", nil)
+
+				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
+					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+
+				return m
+			},
+			want:    "role1-id",
+			wantErr: require.NoError,
+		},
+		{
+			name: "should fail to get role",
+			role: &dto.PrimaryRealmRole{
+				Name:        "role1",
+				Description: "Role description",
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On(
+					"CreateRealmRole",
+					testifymock.Anything,
+					token,
+					realm,
+					testifymock.MatchedBy(func(role gocloak.Role) bool {
+						return assert.Equal(t, "role1", *role.Name) &&
+							assert.Equal(t, "Role description", *role.Description)
+					})).
+					Return("", nil)
+
+				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
+					Return(nil, errors.New("failed to get role"))
+
+				return m
+			},
+			want: "",
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "failed to get role")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			a := GoCloakAdapter{
+				client: tt.client(t),
+				token:  &gocloak.JWT{AccessToken: token},
+				log:    logr.Discard(),
+			}
+
+			got, err := a.CreatePrimaryRealmRole(ctrl.LoggerInto(context.Background(), logr.Discard()), realm, tt.role)
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.want, got)
 		})
