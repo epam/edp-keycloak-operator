@@ -88,7 +88,7 @@ type GoCloakRealmRoles interface {
 	DeleteRealmRole(ctx context.Context, token, realm, roleName string) error
 	AddRealmRoleComposite(ctx context.Context, token, realm, roleName string, roles []gocloak.Role) error
 	DeleteRealmRoleComposite(ctx context.Context, token, realm, roleName string, roles []gocloak.Role) error
-	GetCompositeRealmRolesByRoleID(ctx context.Context, token, realm, roleID string) ([]*gocloak.Role, error)
+	GetCompositeRolesByRoleID(ctx context.Context, token, realm, roleID string) ([]*gocloak.Role, error)
 	DeleteRealmRoleFromUser(ctx context.Context, token, realm, userID string, roles []gocloak.Role) error
 	AddRealmRoleToGroup(ctx context.Context, token, realm, groupID string, roles []gocloak.Role) error
 	DeleteRealmRoleFromGroup(ctx context.Context, token, realm, groupID string, roles []gocloak.Role) error

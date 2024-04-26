@@ -176,53 +176,6 @@ func (_c *MockClient_AddRealmRoleToUser_Call) RunAndReturn(run func(context.Cont
 	return _c
 }
 
-// CreateCentralIdentityProvider provides a mock function with given fields: realm, client
-func (_m *MockClient) CreateCentralIdentityProvider(realm *dto.Realm, client *dto.Client) error {
-	ret := _m.Called(realm, client)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateCentralIdentityProvider")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*dto.Realm, *dto.Client) error); ok {
-		r0 = rf(realm, client)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockClient_CreateCentralIdentityProvider_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateCentralIdentityProvider'
-type MockClient_CreateCentralIdentityProvider_Call struct {
-	*mock.Call
-}
-
-// CreateCentralIdentityProvider is a helper method to define mock.On call
-//   - realm *dto.Realm
-//   - client *dto.Client
-func (_e *MockClient_Expecter) CreateCentralIdentityProvider(realm interface{}, client interface{}) *MockClient_CreateCentralIdentityProvider_Call {
-	return &MockClient_CreateCentralIdentityProvider_Call{Call: _e.mock.On("CreateCentralIdentityProvider", realm, client)}
-}
-
-func (_c *MockClient_CreateCentralIdentityProvider_Call) Run(run func(realm *dto.Realm, client *dto.Client)) *MockClient_CreateCentralIdentityProvider_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*dto.Realm), args[1].(*dto.Client))
-	})
-	return _c
-}
-
-func (_c *MockClient_CreateCentralIdentityProvider_Call) Return(_a0 error) *MockClient_CreateCentralIdentityProvider_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockClient_CreateCentralIdentityProvider_Call) RunAndReturn(run func(*dto.Realm, *dto.Client) error) *MockClient_CreateCentralIdentityProvider_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // CreateClient provides a mock function with given fields: ctx, client
 func (_m *MockClient) CreateClient(ctx context.Context, client *dto.Client) error {
 	ret := _m.Called(ctx, client)
@@ -699,9 +652,9 @@ func (_c *MockClient_CreatePolicy_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
-// CreatePrimaryRealmRole provides a mock function with given fields: realmName, role
-func (_m *MockClient) CreatePrimaryRealmRole(realmName string, role *dto.PrimaryRealmRole) (string, error) {
-	ret := _m.Called(realmName, role)
+// CreatePrimaryRealmRole provides a mock function with given fields: ctx, realmName, role
+func (_m *MockClient) CreatePrimaryRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) (string, error) {
+	ret := _m.Called(ctx, realmName, role)
 
 	if len(ret) == 0 {
 		panic("no return value specified for CreatePrimaryRealmRole")
@@ -709,17 +662,17 @@ func (_m *MockClient) CreatePrimaryRealmRole(realmName string, role *dto.Primary
 
 	var r0 string
 	var r1 error
-	if rf, ok := ret.Get(0).(func(string, *dto.PrimaryRealmRole) (string, error)); ok {
-		return rf(realmName, role)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *dto.PrimaryRealmRole) (string, error)); ok {
+		return rf(ctx, realmName, role)
 	}
-	if rf, ok := ret.Get(0).(func(string, *dto.PrimaryRealmRole) string); ok {
-		r0 = rf(realmName, role)
+	if rf, ok := ret.Get(0).(func(context.Context, string, *dto.PrimaryRealmRole) string); ok {
+		r0 = rf(ctx, realmName, role)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
 
-	if rf, ok := ret.Get(1).(func(string, *dto.PrimaryRealmRole) error); ok {
-		r1 = rf(realmName, role)
+	if rf, ok := ret.Get(1).(func(context.Context, string, *dto.PrimaryRealmRole) error); ok {
+		r1 = rf(ctx, realmName, role)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -733,15 +686,16 @@ type MockClient_CreatePrimaryRealmRole_Call struct {
 }
 
 // CreatePrimaryRealmRole is a helper method to define mock.On call
+//   - ctx context.Context
 //   - realmName string
 //   - role *dto.PrimaryRealmRole
-func (_e *MockClient_Expecter) CreatePrimaryRealmRole(realmName interface{}, role interface{}) *MockClient_CreatePrimaryRealmRole_Call {
-	return &MockClient_CreatePrimaryRealmRole_Call{Call: _e.mock.On("CreatePrimaryRealmRole", realmName, role)}
+func (_e *MockClient_Expecter) CreatePrimaryRealmRole(ctx interface{}, realmName interface{}, role interface{}) *MockClient_CreatePrimaryRealmRole_Call {
+	return &MockClient_CreatePrimaryRealmRole_Call{Call: _e.mock.On("CreatePrimaryRealmRole", ctx, realmName, role)}
 }
 
-func (_c *MockClient_CreatePrimaryRealmRole_Call) Run(run func(realmName string, role *dto.PrimaryRealmRole)) *MockClient_CreatePrimaryRealmRole_Call {
+func (_c *MockClient_CreatePrimaryRealmRole_Call) Run(run func(ctx context.Context, realmName string, role *dto.PrimaryRealmRole)) *MockClient_CreatePrimaryRealmRole_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(*dto.PrimaryRealmRole))
+		run(args[0].(context.Context), args[1].(string), args[2].(*dto.PrimaryRealmRole))
 	})
 	return _c
 }
@@ -751,7 +705,7 @@ func (_c *MockClient_CreatePrimaryRealmRole_Call) Return(_a0 string, _a1 error) 
 	return _c
 }
 
-func (_c *MockClient_CreatePrimaryRealmRole_Call) RunAndReturn(run func(string, *dto.PrimaryRealmRole) (string, error)) *MockClient_CreatePrimaryRealmRole_Call {
+func (_c *MockClient_CreatePrimaryRealmRole_Call) RunAndReturn(run func(context.Context, string, *dto.PrimaryRealmRole) (string, error)) *MockClient_CreatePrimaryRealmRole_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1536,62 +1490,6 @@ func (_c *MockClient_DeleteScope_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
-// ExistCentralIdentityProvider provides a mock function with given fields: realm
-func (_m *MockClient) ExistCentralIdentityProvider(realm *dto.Realm) (bool, error) {
-	ret := _m.Called(realm)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ExistCentralIdentityProvider")
-	}
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*dto.Realm) (bool, error)); ok {
-		return rf(realm)
-	}
-	if rf, ok := ret.Get(0).(func(*dto.Realm) bool); ok {
-		r0 = rf(realm)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(*dto.Realm) error); ok {
-		r1 = rf(realm)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockClient_ExistCentralIdentityProvider_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExistCentralIdentityProvider'
-type MockClient_ExistCentralIdentityProvider_Call struct {
-	*mock.Call
-}
-
-// ExistCentralIdentityProvider is a helper method to define mock.On call
-//   - realm *dto.Realm
-func (_e *MockClient_Expecter) ExistCentralIdentityProvider(realm interface{}) *MockClient_ExistCentralIdentityProvider_Call {
-	return &MockClient_ExistCentralIdentityProvider_Call{Call: _e.mock.On("ExistCentralIdentityProvider", realm)}
-}
-
-func (_c *MockClient_ExistCentralIdentityProvider_Call) Run(run func(realm *dto.Realm)) *MockClient_ExistCentralIdentityProvider_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*dto.Realm))
-	})
-	return _c
-}
-
-func (_c *MockClient_ExistCentralIdentityProvider_Call) Return(_a0 bool, _a1 error) *MockClient_ExistCentralIdentityProvider_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockClient_ExistCentralIdentityProvider_Call) RunAndReturn(run func(*dto.Realm) (bool, error)) *MockClient_ExistCentralIdentityProvider_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // ExistClient provides a mock function with given fields: clientID, realm
 func (_m *MockClient) ExistClient(clientID string, realm string) (bool, error) {
 	ret := _m.Called(clientID, realm)
@@ -1929,6 +1827,66 @@ func (_c *MockClient_ExportToken_Call) Return(_a0 []byte, _a1 error) *MockClient
 }
 
 func (_c *MockClient_ExportToken_Call) RunAndReturn(run func() ([]byte, error)) *MockClient_ExportToken_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetClient provides a mock function with given fields: ctx, realm, client
+func (_m *MockClient) GetClient(ctx context.Context, realm string, client string) (*gocloak.Client, error) {
+	ret := _m.Called(ctx, realm, client)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClient")
+	}
+
+	var r0 *gocloak.Client
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*gocloak.Client, error)); ok {
+		return rf(ctx, realm, client)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *gocloak.Client); ok {
+		r0 = rf(ctx, realm, client)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.Client)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, realm, client)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClient'
+type MockClient_GetClient_Call struct {
+	*mock.Call
+}
+
+// GetClient is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - client string
+func (_e *MockClient_Expecter) GetClient(ctx interface{}, realm interface{}, client interface{}) *MockClient_GetClient_Call {
+	return &MockClient_GetClient_Call{Call: _e.mock.On("GetClient", ctx, realm, client)}
+}
+
+func (_c *MockClient_GetClient_Call) Run(run func(ctx context.Context, realm string, client string)) *MockClient_GetClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetClient_Call) Return(_a0 *gocloak.Client, _a1 error) *MockClient_GetClient_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetClient_Call) RunAndReturn(run func(context.Context, string, string) (*gocloak.Client, error)) *MockClient_GetClient_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3278,52 +3236,6 @@ func (_c *MockClient_PutClientScopeMapper_Call) Return(_a0 error) *MockClient_Pu
 }
 
 func (_c *MockClient_PutClientScopeMapper_Call) RunAndReturn(run func(string, string, *adapter.ProtocolMapper) error) *MockClient_PutClientScopeMapper_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// PutDefaultIdp provides a mock function with given fields: realm
-func (_m *MockClient) PutDefaultIdp(realm *dto.Realm) error {
-	ret := _m.Called(realm)
-
-	if len(ret) == 0 {
-		panic("no return value specified for PutDefaultIdp")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*dto.Realm) error); ok {
-		r0 = rf(realm)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockClient_PutDefaultIdp_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PutDefaultIdp'
-type MockClient_PutDefaultIdp_Call struct {
-	*mock.Call
-}
-
-// PutDefaultIdp is a helper method to define mock.On call
-//   - realm *dto.Realm
-func (_e *MockClient_Expecter) PutDefaultIdp(realm interface{}) *MockClient_PutDefaultIdp_Call {
-	return &MockClient_PutDefaultIdp_Call{Call: _e.mock.On("PutDefaultIdp", realm)}
-}
-
-func (_c *MockClient_PutDefaultIdp_Call) Run(run func(realm *dto.Realm)) *MockClient_PutDefaultIdp_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*dto.Realm))
-	})
-	return _c
-}
-
-func (_c *MockClient_PutDefaultIdp_Call) Return(_a0 error) *MockClient_PutDefaultIdp_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockClient_PutDefaultIdp_Call) RunAndReturn(run func(*dto.Realm) error) *MockClient_PutDefaultIdp_Call {
 	_c.Call.Return(run)
 	return _c
 }

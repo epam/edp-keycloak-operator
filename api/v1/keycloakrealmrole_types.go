@@ -40,6 +40,12 @@ type KeycloakRealmRoleSpec struct {
 	// +optional
 	Composites []Composite `json:"composites,omitempty"`
 
+	// CompositesClientRoles is a map of composites client roles assigned to role.
+	// +nullable
+	// +optional
+	// +kubebuilder:example={"client1": {{"name": "role1"}, {"name": "role2"}}, "client2": {"name": "role3"}}
+	CompositesClientRoles map[string][]Composite `json:"compositesClientRoles,omitempty"`
+
 	// IsDefault is a flag if role is default.
 	// +optional
 	IsDefault bool `json:"isDefault,omitempty"`

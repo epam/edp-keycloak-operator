@@ -28,6 +28,11 @@ func TestIsErrNotFound(t *testing.T) {
 			want: true,
 		},
 		{
+			name: "test error is pointer to api error not found",
+			err:  &gocloak.APIError{Code: http.StatusNotFound},
+			want: true,
+		},
+		{
 			name: "test error is not api error not found",
 			err:  gocloak.APIError{Code: http.StatusBadRequest},
 			want: false,
@@ -35,6 +40,11 @@ func TestIsErrNotFound(t *testing.T) {
 		{
 			name: "test error is not NotFoundError",
 			err:  errors.New("error"),
+			want: false,
+		},
+		{
+			name: "test error is nil",
+			err:  nil,
 			want: false,
 		},
 	}

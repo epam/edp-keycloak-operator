@@ -4,12 +4,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -28,11 +30,14 @@ import (
 )
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	ctx               context.Context
+	cancel            context.CancelFunc
+	keycloakApiClient *gocloak.GoCloak
+	keycloakApiToken  string
+	tokenMutex        sync.Mutex
 )
 
 const (
@@ -60,7 +65,7 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	ctx = ctrl.LoggerInto(ctx, logf.Log)
 
-	By("bootstrapping test environment")
+	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("../..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
@@ -105,7 +110,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
-	By("bootstrapping Keycloak and KeycloakRealm")
+	By("Bootstrapping Keycloak and KeycloakRealm")
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
@@ -113,7 +118,7 @@ var _ = BeforeSuite(func() {
 	}
 	err = k8sClient.Create(ctx, namespace)
 	Expect(err).To(Not(HaveOccurred()))
-	By("By creating a Keycloak secret")
+	By("Creating a Keycloak secret")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "keycloak-auth-secret",
@@ -125,7 +130,7 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-	By("By creating a Keycloak")
+	By("Creating a Keycloak")
 	keycloak := &keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeycloakCR,
@@ -144,7 +149,7 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
-	By("By creating a KeycloakRealm")
+	By("Creating a KeycloakRealm")
 	keycloakRealm := &keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeycloakRealmCR,
@@ -163,11 +168,48 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloakRealm.Status.Available
 	}, timeout, interval).Should(BeTrue())
+
+	keycloakApiClient = gocloak.NewClient(os.Getenv("TEST_KEYCLOAK_URL"))
+	setKeyCloakToken()
+
+	// To prevent token expiration, we need to refresh it every 30 seconds.
+	go func() {
+		defer GinkgoRecover()
+
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				setKeyCloakToken()
+			}
+		}
+	}()
 })
 
 var _ = AfterSuite(func() {
 	cancel()
-	By("tearing down the test environment")
+	By("Tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })
+
+func setKeyCloakToken() {
+	token, err := keycloakApiClient.LoginAdmin(ctx, "admin", "admin", "master")
+	Expect(err).ShouldNot(HaveOccurred(), "failed to login to keycloak")
+
+	tokenMutex.Lock()
+	keycloakApiToken = token.AccessToken
+	tokenMutex.Unlock()
+}
+
+// getKeyCloakToken can be used to concurrently safe get keycloak token.
+func getKeyCloakToken() string {
+	tokenMutex.Lock()
+	defer tokenMutex.Unlock()
+
+	return keycloakApiToken
+}

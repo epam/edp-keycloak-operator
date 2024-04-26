@@ -2110,12 +2110,12 @@ func (_c *MockGoCloak_GetClientsDefaultScopes_Call) RunAndReturn(run func(contex
 	return _c
 }
 
-// GetCompositeRealmRolesByRoleID provides a mock function with given fields: ctx, token, realm, roleID
-func (_m *MockGoCloak) GetCompositeRealmRolesByRoleID(ctx context.Context, token string, realm string, roleID string) ([]*gocloak.Role, error) {
+// GetCompositeRolesByRoleID provides a mock function with given fields: ctx, token, realm, roleID
+func (_m *MockGoCloak) GetCompositeRolesByRoleID(ctx context.Context, token string, realm string, roleID string) ([]*gocloak.Role, error) {
 	ret := _m.Called(ctx, token, realm, roleID)
 
 	if len(ret) == 0 {
-		panic("no return value specified for GetCompositeRealmRolesByRoleID")
+		panic("no return value specified for GetCompositeRolesByRoleID")
 	}
 
 	var r0 []*gocloak.Role
@@ -2140,33 +2140,33 @@ func (_m *MockGoCloak) GetCompositeRealmRolesByRoleID(ctx context.Context, token
 	return r0, r1
 }
 
-// MockGoCloak_GetCompositeRealmRolesByRoleID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCompositeRealmRolesByRoleID'
-type MockGoCloak_GetCompositeRealmRolesByRoleID_Call struct {
+// MockGoCloak_GetCompositeRolesByRoleID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetCompositeRolesByRoleID'
+type MockGoCloak_GetCompositeRolesByRoleID_Call struct {
 	*mock.Call
 }
 
-// GetCompositeRealmRolesByRoleID is a helper method to define mock.On call
+// GetCompositeRolesByRoleID is a helper method to define mock.On call
 //   - ctx context.Context
 //   - token string
 //   - realm string
 //   - roleID string
-func (_e *MockGoCloak_Expecter) GetCompositeRealmRolesByRoleID(ctx interface{}, token interface{}, realm interface{}, roleID interface{}) *MockGoCloak_GetCompositeRealmRolesByRoleID_Call {
-	return &MockGoCloak_GetCompositeRealmRolesByRoleID_Call{Call: _e.mock.On("GetCompositeRealmRolesByRoleID", ctx, token, realm, roleID)}
+func (_e *MockGoCloak_Expecter) GetCompositeRolesByRoleID(ctx interface{}, token interface{}, realm interface{}, roleID interface{}) *MockGoCloak_GetCompositeRolesByRoleID_Call {
+	return &MockGoCloak_GetCompositeRolesByRoleID_Call{Call: _e.mock.On("GetCompositeRolesByRoleID", ctx, token, realm, roleID)}
 }
 
-func (_c *MockGoCloak_GetCompositeRealmRolesByRoleID_Call) Run(run func(ctx context.Context, token string, realm string, roleID string)) *MockGoCloak_GetCompositeRealmRolesByRoleID_Call {
+func (_c *MockGoCloak_GetCompositeRolesByRoleID_Call) Run(run func(ctx context.Context, token string, realm string, roleID string)) *MockGoCloak_GetCompositeRolesByRoleID_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
 	})
 	return _c
 }
 
-func (_c *MockGoCloak_GetCompositeRealmRolesByRoleID_Call) Return(_a0 []*gocloak.Role, _a1 error) *MockGoCloak_GetCompositeRealmRolesByRoleID_Call {
+func (_c *MockGoCloak_GetCompositeRolesByRoleID_Call) Return(_a0 []*gocloak.Role, _a1 error) *MockGoCloak_GetCompositeRolesByRoleID_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *MockGoCloak_GetCompositeRealmRolesByRoleID_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*gocloak.Role, error)) *MockGoCloak_GetCompositeRealmRolesByRoleID_Call {
+func (_c *MockGoCloak_GetCompositeRolesByRoleID_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*gocloak.Role, error)) *MockGoCloak_GetCompositeRolesByRoleID_Call {
 	_c.Call.Return(run)
 	return _c
 }
