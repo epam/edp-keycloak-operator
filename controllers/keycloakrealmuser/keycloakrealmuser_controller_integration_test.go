@@ -16,11 +16,13 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/controllers/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 	const (
-		userCR = "test-keycloak-realm-user"
+		userCR         = "test-keycloak-realm-user"
+		userSecretName = "test-user-secret"
 	)
 	It("Should create KeycloakRealmUser", func() {
 		By("Creating group for user")
@@ -38,7 +40,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		By("Creating Secret for user password")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-user-secret",
+				Name:      userSecretName,
 				Namespace: ns,
 			},
 			StringData: map[string]string{
@@ -111,6 +113,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		Eventually(func(g Gomega) {
 			users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
 				Username: gocloak.StringP(user.Spec.Username),
+				Exact:    gocloak.BoolP(true),
 			})
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(users).Should(HaveLen(1))
@@ -130,5 +133,144 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
 		}, timeout, interval).Should(Succeed())
+	})
+	It("Should preserve user with annotation", func() {
+		By("Creating a KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-user-preserve",
+				Namespace: ns,
+				Annotations: map[string]string{
+					objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
+				},
+			},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Username: "test-user",
+				PasswordSecret: keycloakApi.PasswordSecret{
+					Name: userSecretName,
+					Key:  "password",
+				},
+				KeepResource: true,
+			},
+		}
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Deleting KeycloakRealmUser")
+		Expect(k8sClient.Delete(ctx, user)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
+				Username: gocloak.StringP(user.Spec.Username),
+				Exact:    gocloak.BoolP(true),
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(users).Should(HaveLen(1))
+		}, time.Minute, time.Second*5).Should(Succeed())
+	})
+	It("Should fail to create KeycloakRealmUser with invalid password secret", func() {
+		By("Creating a KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-user-with-invalid-secret",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Username: "test-user-invalid-secret",
+				PasswordSecret: keycloakApi.PasswordSecret{
+					Name: "invalid-secret",
+					Key:  "password",
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+
+		By("Waiting for KeycloakRealmUser to be processed")
+		time.Sleep(time.Second * 3)
+
+		By("Checking KeycloakRealmUser status")
+		Consistently(func(g Gomega) {
+			createdUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdUser.Status.Value).Should(ContainSubstring("unable to get password"))
+		}, time.Second*3, time.Second).Should(Succeed())
+	})
+	It("Should fail to create KeycloakRealmUser with invalid password secret key", func() {
+		By("Creating a KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-user-with-invalid-secret-key",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Username: "test-user-invalid-secret-key",
+				PasswordSecret: keycloakApi.PasswordSecret{
+					Name: userSecretName,
+					Key:  "invalid-key",
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+
+		By("Waiting for KeycloakRealmUser to be processed")
+		time.Sleep(time.Second * 3)
+
+		By("Checking KeycloakRealmUser status")
+		Consistently(func(g Gomega) {
+			createdUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdUser.Status.Value).Should(ContainSubstring("key invalid-key not found in secret"))
+		}, time.Second*3, time.Second).Should(Succeed())
+	})
+	It("Should fail to create KeycloakRealmUser with invalid role", func() {
+		By("Creating a KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-user-with-invalid-role",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Username: "test-user-invalid-role",
+				PasswordSecret: keycloakApi.PasswordSecret{
+					Name: userSecretName,
+					Key:  "password",
+				},
+				Roles: []string{"invalid-role"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+
+		By("Waiting for KeycloakRealmUser to be processed")
+		time.Sleep(time.Second * 3)
+
+		By("Checking KeycloakRealmUser status")
+		Consistently(func(g Gomega) {
+			createdUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdUser.Status.Value).Should(ContainSubstring("unable to sync realm user"))
+		}, time.Second*3, time.Second).Should(Succeed())
 	})
 })

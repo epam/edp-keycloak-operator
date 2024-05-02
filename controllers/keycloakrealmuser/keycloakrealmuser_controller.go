@@ -94,9 +94,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 		log.Error(err, "An error has occurred while handling KeycloakRealmUser")
 
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{
-				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
-			}, nil
+			return helper.RequeueOnKeycloakNotAvailable, nil
 		}
 
 		instance.Status.Value = err.Error()
