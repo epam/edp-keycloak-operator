@@ -29,6 +29,12 @@ const (
 	RequeueOnKeycloakNotAvailablePeriod = time.Minute
 )
 
+var (
+	RequeueOnKeycloakNotAvailable = ctrl.Result{
+		RequeueAfter: RequeueOnKeycloakNotAvailablePeriod,
+	}
+)
+
 type Terminator interface {
 	DeleteResource(ctx context.Context) error
 }

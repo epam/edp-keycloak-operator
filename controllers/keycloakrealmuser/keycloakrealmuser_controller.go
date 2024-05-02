@@ -102,7 +102,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 		instance.Status.Value = err.Error()
 
 		if statusErr := r.updateKeycloakRealmUserStatus(ctx, &instance, oldStatus); statusErr != nil {
-			return ctrl.Result{}, err
+			return ctrl.Result{}, statusErr
 		}
 
 		return ctrl.Result{}, err
