@@ -35,9 +35,8 @@ type Helper interface {
 }
 
 type Reconcile struct {
-	client                  client.Client
-	helper                  Helper
-	successReconcileTimeout time.Duration
+	client client.Client
+	helper Helper
 }
 
 func NewReconcile(client client.Client, helper Helper) *Reconcile {
@@ -47,9 +46,7 @@ func NewReconcile(client client.Client, helper Helper) *Reconcile {
 	}
 }
 
-func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
-	r.successReconcileTimeout = successReconcileTimeout
-
+func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
@@ -84,51 +81,49 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakauthflows/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakAuthFlow object.
-func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakAuthFlow")
 
-	var instance keycloakApi.KeycloakAuthFlow
-	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+	authFlow := &keycloakApi.KeycloakAuthFlow{}
+	if err := r.client.Get(ctx, request.NamespacedName, authFlow); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return
+			return reconcile.Result{}, nil
 		}
 
-		resultErr = errors.Wrap(err, "unable to get keycloak auth flow from k8s")
-
-		return
+		return reconcile.Result{}, fmt.Errorf("unable to get keycloak auth flow from k8s: %w", err)
 	}
 
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		resultErr = fmt.Errorf("unable to apply default values: %w", err)
-		return
+	if updated, err := r.applyDefaults(ctx, authFlow); err != nil {
+		return reconcile.Result{}, err
 	} else if updated {
-		return
+		return reconcile.Result{}, nil
 	}
 
-	if err := r.tryReconcile(ctx, &instance); err != nil {
+	oldStatus := authFlow.Status
+
+	if err := r.tryReconcile(ctx, authFlow); err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{
-				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
-			}, nil
+			return helper.RequeueOnKeycloakNotAvailable, nil
 		}
 
-		instance.Status.Value = err.Error()
-		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		authFlow.Status.Value = err.Error()
 
-		log.Error(err, "an error has occurred while handling keycloak auth flow", "name", request.Name)
-	} else {
-		result.RequeueAfter = r.successReconcileTimeout
-		helper.SetSuccessStatus(&instance)
+		if statusErr := r.updateKeycloakAuthFlowStatus(ctx, authFlow, oldStatus); statusErr != nil {
+			return ctrl.Result{}, err
+		}
+
+		return ctrl.Result{}, err
 	}
 
-	if err := r.client.Status().Update(ctx, &instance); err != nil {
-		resultErr = err
+	authFlow.Status.Value = helper.StatusOK
+	if statusErr := r.updateKeycloakAuthFlowStatus(ctx, authFlow, oldStatus); statusErr != nil {
+		return ctrl.Result{}, statusErr
 	}
 
 	log.Info("Reconciling KeycloakAuthFlow done.")
 
-	return
+	return ctrl.Result{}, nil
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakAuthFlow) error {
@@ -169,7 +164,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return nil
 	}
 
-	if err := kClient.SyncAuthFlow(gocloak.PString(realm.Realm), keycloakAuthFlow); err != nil {
+	if err = kClient.SyncAuthFlow(gocloak.PString(realm.Realm), keycloakAuthFlow); err != nil {
 		return fmt.Errorf("unable to sync auth flow: %w", err)
 	}
 
@@ -225,4 +220,20 @@ func authFlowSpecToAdapterAuthFlow(spec *keycloakApi.KeycloakAuthFlowSpec) *adap
 	}
 
 	return &flow
+}
+
+func (r *Reconcile) updateKeycloakAuthFlowStatus(
+	ctx context.Context,
+	authFlow *keycloakApi.KeycloakAuthFlow,
+	oldStatus keycloakApi.KeycloakAuthFlowStatus,
+) error {
+	if authFlow.Status == oldStatus {
+		return nil
+	}
+
+	if err := r.client.Status().Update(ctx, authFlow); err != nil {
+		return fmt.Errorf("failed to update KeycloakAuthFlow status: %w", err)
+	}
+
+	return nil
 }
