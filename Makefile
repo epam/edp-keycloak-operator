@@ -19,6 +19,8 @@ ENVTEST ?= $(LOCALBIN)/setup-envtest
 ENVTEST_K8S_VERSION = 1.23.5
 
 # Use kind cluster for testing
+CONTAINER_REGISTRY_URL?="repo"
+CONTAINER_REGISTRY_SPACE?="edp"
 START_KIND_CLUSTER?=true
 KIND_CLUSTER_NAME?="keycloak-operator"
 KUBE_VERSION?=1.26
@@ -94,9 +96,9 @@ test: fmt vet envtest
 
 ## Run e2e tests. Requires kind with running cluster and kuttl tool.
 e2e: build
-	docker build --no-cache -t ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
-	kind load --name $(KIND_CLUSTER_NAME) docker-image ${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
-	E2E_IMAGE_REPOSITORY=${E2E_IMAGE_REPOSITORY} E2E_IMAGE_TAG=${E2E_IMAGE_TAG} kubectl kuttl test
+	docker build --no-cache -t ${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
+	kind load --name $(KIND_CLUSTER_NAME) docker-image ${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
+	E2E_IMAGE_REPOSITORY=${E2E_IMAGE_REPOSITORY} CONTAINER_REGISTRY_URL=${CONTAINER_REGISTRY_URL} CONTAINER_REGISTRY_SPACE=${CONTAINER_REGISTRY_SPACE} E2E_IMAGE_TAG=${E2E_IMAGE_TAG} kubectl-kuttl test
 
 .PHONY: fmt
 fmt:  ## Run go fmt
