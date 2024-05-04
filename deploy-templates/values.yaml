@@ -16,6 +16,8 @@ image:
   tag:
 # -- If defined, a imagePullPolicy applied to the deployment
 imagePullPolicy: "IfNotPresent"
+# -- If defined, imagePullSecrets are applied to deployment
+imagePullSecrets: []
 
 # -- Resource limits and requests for the pod
 resources:
