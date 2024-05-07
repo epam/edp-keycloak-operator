@@ -16,9 +16,6 @@ jobs:
 
   check-commit-message:
     runs-on: ubuntu-20.04
-    env:
-      COMMIT_MESSAGE_PATTERN: '^(feat|fix|docs|style|refactor|test|chore){1}(!)?:\s[A-Z][a-z]([\/\.\w\-\s]+)\(\#\d+\)$'
-      MAX_LINE_LENGTH: '80'
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,8 +25,12 @@ jobs:
       - name: Check Commit Format
         uses: gsactions/commit-message-checker@v2
         with:
-          pattern: '^(fix|feat|docs|style|refactor|test|chore): .+ \(#\d+\)$'
+          pattern: '^(fix|feat|docs|style|refactor|test|chore){1}(\([\w\-\.]+\))?(!)?: .+( (#\d+))?$'
           error: 'Your commit message should be in the format "type: Description (#issue)". Example: "fix: Update build (#33)"'
+          excludeDescription: 'true'
+          excludeTitle: 'true'
+          checkAllCommitMessages: 'true'
+          accessToken: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check Line Length
         uses: gsactions/commit-message-checker@v2
@@ -131,8 +132,8 @@ jobs:
        # All Kubernetes version in between expose the same APIs, hence the operator
        # should be compatible with them.
        kube-version:
-       - "1.26"
        - "1.27"
+       - "1.28"
 
     steps:
       - name: Check out code into the Go module directory
@@ -174,8 +175,8 @@ jobs:
     strategy:
       matrix:
         kube-version:
-        - "1.26"
         - "1.27"
+        - "1.28"
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
