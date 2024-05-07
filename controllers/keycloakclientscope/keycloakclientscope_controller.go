@@ -8,6 +8,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	"golang.org/x/exp/maps"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -35,9 +36,8 @@ type Helper interface {
 }
 
 type Reconcile struct {
-	client                  client.Client
-	helper                  Helper
-	successReconcileTimeout time.Duration
+	client client.Client
+	helper Helper
 }
 
 func NewReconcile(client client.Client, helper Helper) *Reconcile {
@@ -47,9 +47,7 @@ func NewReconcile(client client.Client, helper Helper) *Reconcile {
 	}
 }
 
-func (r *Reconcile) SetupWithManager(mgr ctrl.Manager, successReconcileTimeout time.Duration) error {
-	r.successReconcileTimeout = successReconcileTimeout
-
+func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 	pred := predicate.Funcs{
 		UpdateFunc: isSpecUpdated,
 	}
@@ -84,54 +82,52 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 //+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclientscopes/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakClientScope object.
-func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
+func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakClientScope")
 
-	var instance keycloakApi.KeycloakClientScope
-	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
+	scope := &keycloakApi.KeycloakClientScope{}
+	if err := r.client.Get(ctx, request.NamespacedName, scope); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			log.Info("instance not found")
-			return
+			return reconcile.Result{}, nil
 		}
 
-		resultErr = errors.Wrap(err, "unable to get keycloak realm user from k8s")
-
-		return
+		return reconcile.Result{}, fmt.Errorf("unable to get keycloak client scope from k8s: %w", err)
 	}
 
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		resultErr = fmt.Errorf("unable to apply default values: %w", err)
-		return
+	if updated, err := r.applyDefaults(ctx, scope); err != nil {
+		return reconcile.Result{}, fmt.Errorf("unable to apply default values: %w", err)
 	} else if updated {
-		return
+		return reconcile.Result{}, nil
 	}
 
-	scopeID, err := r.tryReconcile(ctx, &instance)
+	oldStatus := scope.Status
+
+	scopeID, err := r.tryReconcile(ctx, scope)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{
-				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
-			}, nil
+			return helper.RequeueOnKeycloakNotAvailable, nil
 		}
 
-		instance.Status.Value = err.Error()
-		result.RequeueAfter = r.helper.SetFailureCount(&instance)
+		scope.Status.Value = err.Error()
 
-		log.Error(err, "an error has occurred while handling keycloak client scope", "name", request.Name)
-	} else {
-		helper.SetSuccessStatus(&instance)
-		instance.Status.ID = scopeID
-		result.RequeueAfter = r.successReconcileTimeout
+		if statusErr := r.updateKeycloakClientScopeStatus(ctx, scope, oldStatus); statusErr != nil {
+			return reconcile.Result{}, statusErr
+		}
+
+		return reconcile.Result{}, err
 	}
 
-	if err := r.client.Status().Update(ctx, &instance); err != nil {
-		resultErr = err
+	scope.Status.Value = helper.StatusOK
+	scope.Status.ID = scopeID
+
+	if statusErr := r.updateKeycloakClientScopeStatus(ctx, scope, oldStatus); statusErr != nil {
+		return reconcile.Result{}, statusErr
 	}
 
-	log.Info("Reconciling KeycloakClientScope done.")
+	log.Info("Reconciling KeycloakClientScope done")
 
-	return
+	return reconcile.Result{}, nil
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakClientScope) (string, error) {
@@ -155,7 +151,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return "", errors.Wrap(err, "unable to sync client scope")
 	}
 
-	if _, err := r.helper.TryToDelete(ctx, instance,
+	if _, err = r.helper.TryToDelete(ctx, instance,
 		makeTerminator(
 			cl,
 			gocloak.PString(realm.Realm),
@@ -185,6 +181,22 @@ func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.Key
 	}
 
 	return false, nil
+}
+
+func (r *Reconcile) updateKeycloakClientScopeStatus(
+	ctx context.Context,
+	scope *keycloakApi.KeycloakClientScope,
+	oldStatus keycloakApi.KeycloakClientScopeStatus,
+) error {
+	if scope.Status == oldStatus {
+		return nil
+	}
+
+	if err := r.client.Status().Update(ctx, scope); err != nil {
+		return fmt.Errorf("failed to update KeycloakClientScope status: %w", err)
+	}
+
+	return nil
 }
 
 func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realmName string, cl keycloak.Client) (string, error) {
@@ -226,13 +238,18 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 
 func convertProtocolMappers(mappers []keycloakApi.ProtocolMapper) []adapter.ProtocolMapper {
 	aMappers := make([]adapter.ProtocolMapper, 0, len(mappers))
+
 	for _, m := range mappers {
-		aMappers = append(aMappers, adapter.ProtocolMapper{
+		pm := adapter.ProtocolMapper{
 			Name:           m.Name,
-			Config:         m.Config,
+			Config:         make(map[string]string, len(m.Config)),
 			ProtocolMapper: m.ProtocolMapper,
 			Protocol:       m.Protocol,
-		})
+		}
+
+		maps.Copy(pm.Config, m.Config)
+
+		aMappers = append(aMappers, pm)
 	}
 
 	return aMappers
