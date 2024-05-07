@@ -183,7 +183,7 @@ func main() {
 	}
 
 	if err = keycloakclientscope.NewReconcile(mgr.GetClient(), h).
-		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
+		SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-client-scope controller")
 		os.Exit(1)
 	}
