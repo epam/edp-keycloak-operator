@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GOLANG_VERSION: '1.20'
+  GOLANG_VERSION: '1.22'
 
 jobs:
   e2e-tests:
