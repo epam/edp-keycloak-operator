@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GOLANG_VERSION: '1.20'
+  GOLANG_VERSION: '1.22'
 
 jobs:
 
@@ -180,6 +180,11 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
 
     - name: Setup KinD Cluster
       env:

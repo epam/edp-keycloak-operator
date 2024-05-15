@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: keycloakclients.v1.edp.epam.com
 spec:
   group: v1.edp.epam.com
@@ -26,14 +25,19 @@ spec:
         description: KeycloakClient is the Schema for the keycloak clients API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -81,9 +85,9 @@ spec:
                           description: Name is a permission name.
                           type: string
                         policies:
-                          description: Policies is a list of policies names. Specifies
-                            all the policies that must be applied to the scopes defined
-                            by this policy or permission.
+                          description: |-
+                            Policies is a list of policies names.
+                            Specifies all the policies that must be applied to the scopes defined by this policy or permission.
                           example:
                           - policy1
                           - policy2
@@ -92,9 +96,9 @@ spec:
                           nullable: true
                           type: array
                         resources:
-                          description: Resources is a list of resources names. Specifies
-                            that this permission must be applied to all resource instances
-                            of a given type.
+                          description: |-
+                            Resources is a list of resources names.
+                            Specifies that this permission must be applied to all resource instances of a given type.
                           example:
                           - resource1
                           - resource2
@@ -103,9 +107,9 @@ spec:
                           nullable: true
                           type: array
                         scopes:
-                          description: Scopes is a list of authorization scopes names.
-                            Specifies that this permission must be applied to one
-                            or more scopes.
+                          description: |-
+                            Scopes is a list of authorization scopes names.
+                            Specifies that this permission must be applied to one or more scopes.
                           example:
                           - scope1
                           - scope2
@@ -132,9 +136,9 @@ spec:
                           description: AggregatedPolicy is an aggregated policy settings.
                           properties:
                             policies:
-                              description: Policies is a list of aggregated policies
-                                names. Specifies all the policies that must be applied
-                                to the scopes defined by this policy or permission.
+                              description: |-
+                                Policies is a list of aggregated policies names.
+                                Specifies all the policies that must be applied to the scopes defined by this policy or permission.
                               example:
                                 policies:
                                 - policy1
@@ -195,11 +199,11 @@ spec:
                                 type: object
                               type: array
                             groupsClaim:
-                              description: GroupsClaim is a group claim. If defined,
-                                the policy will fetch user's groups from the given
-                                claim within an access token or ID token representing
-                                the identity asking permissions. If not defined, user's
-                                groups are obtained from your realm configuration.
+                              description: |-
+                                GroupsClaim is a group claim.
+                                If defined, the policy will fetch user's groups from the given claim
+                                within an access token or ID token representing the identity asking permissions.
+                                If not defined, user's groups are obtained from your realm configuration.
                               type: string
                           type: object
                         logic:
@@ -245,59 +249,55 @@ spec:
                           description: ScopePolicy is a scope policy settings.
                           properties:
                             dayMonth:
-                              description: Day defines the month which the policy
-                                MUST be granted. You can also provide a range by filling
-                                the dayMonthEnd field. In this case, permission is
-                                granted only if current month is between or equal
-                                to the two values you provided.
+                              description: |-
+                                Day defines the month which the policy MUST be granted.
+                                You can also provide a range by filling the dayMonthEnd field.
+                                In this case, permission is granted only if current month is between or equal to the two values you provided.
                               example: "1"
                               type: string
                             dayMonthEnd:
                               example: "2"
                               type: string
                             hour:
-                              description: Hour defines the hour when the policy MUST
-                                be granted. You can also provide a range by filling
-                                the hourEnd. In this case, permission is granted only
-                                if current hour is between or equal to the two values
-                                you provided.
+                              description: |-
+                                Hour defines the hour when the policy MUST be granted.
+                                You can also provide a range by filling the hourEnd.
+                                In this case, permission is granted only if current hour is between or equal to the two values you provided.
                               example: "1"
                               type: string
                             hourEnd:
                               example: "2"
                               type: string
                             minute:
-                              description: Minute defines the minute when the policy
-                                MUST be granted. You can also provide a range by filling
-                                the minuteEnd field. In this case, permission is granted
-                                only if current minute is between or equal to the
-                                two values you provided.
+                              description: |-
+                                Minute defines the minute when the policy MUST be granted.
+                                You can also provide a range by filling the minuteEnd field.
+                                In this case, permission is granted only if current minute is between or equal to the two values you provided.
                               example: "1"
                               type: string
                             minuteEnd:
                               example: "2"
                               type: string
                             month:
-                              description: Month defines the month which the policy
-                                MUST be granted. You can also provide a range by filling
-                                the monthEnd. In this case, permission is granted
-                                only if current month is between or equal to the two
-                                values you provided.
+                              description: |-
+                                Month defines the month which the policy MUST be granted.
+                                You can also provide a range by filling the monthEnd.
+                                In this case, permission is granted only if current month is between or equal to the two values you provided.
                               example: "1"
                               type: string
                             monthEnd:
                               example: "2"
                               type: string
                             notBefore:
-                              description: NotBefore defines the time before which
-                                the policy MUST NOT be granted. Only granted if current
-                                date/time is after or equal to this value.
+                              description: |-
+                                NotBefore defines the time before which the policy MUST NOT be granted.
+                                Only granted if current date/time is after or equal to this value.
                               example: "2024-03-03 00:00:00"
                               type: string
                             notOnOrAfter:
-                              description: NotOnOrAfter defines the time after which
-                                the policy MUST NOT be granted. Only granted if current
-                                date/time is before or equal to this value.
+                              description: |-
+                                NotOnOrAfter defines the time after which the policy MUST NOT be granted.
+                                Only granted if current date/time is before or equal to this value.
                               example: "2024-04-04 00:00:00"
                               type: string
                           required:
@@ -461,12 +461,11 @@ spec:
                 - addOnly
                 type: string
               redirectUris:
-                description: RedirectUris is a list of valid URI pattern a browser
-                  can redirect to after a successful login. Simple wildcards are allowed
-                  such as 'https://example.com/*'. Relative path can be specified
-                  too, such as /my/relative/path/*. Relative paths are relative to
-                  the client root URL. If not specified, spec.webUrl + "/*" will be
-                  used.
+                description: |-
+                  RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login.
+                  Simple wildcards are allowed such as 'https://example.com/*'.
+                  Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL.
+                  If not specified, spec.webUrl + "/*" will be used.
                 example:
                 - https://example.com/*
                 - /my/relative/path/*
@@ -475,11 +474,11 @@ spec:
                 nullable: true
                 type: array
               secret:
-                description: 'Secret is kubernetes secret name where the client''s
-                  secret will be stored. Secret should have the following format:
-                  $secretName:secretKey. If not specified, a client secret will be
-                  generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
-                  If keycloak client is public, secret property will be ignored.'
+                description: |-
+                  Secret is kubernetes secret name where the client's secret will be stored.
+                  Secret should have the following format: $secretName:secretKey.
+                  If not specified, a client secret will be generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
+                  If keycloak client is public, secret property will be ignored.
                 example: $keycloak-secret:client_secret
                 type: string
               serviceAccount:
@@ -531,15 +530,17 @@ spec:
                 description: SurrogateAuthRequired is a flag to enable surrogate auth.
                 type: boolean
               targetRealm:
-                description: 'Deprecated: use RealmRef instead. TargetRealm is a realm
-                  name where client will be created. It has higher priority than RealmRef
-                  for backward compatibility. If both TargetRealm and RealmRef are
-                  specified, TargetRealm will be used for client creation.'
+                description: |-
+                  Deprecated: use RealmRef instead.
+                  TargetRealm is a realm name where client will be created.
+                  It has higher priority than RealmRef for backward compatibility.
+                  If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.
                 type: string
               webOrigins:
-                description: WebOrigins is a list of allowed CORS origins. To permit
-                  all origins of Valid Redirect URIs, add '+'. This does not include
-                  the '*' wildcard though. To permit all origins, explicitly add '*'.
+                description: |-
+                  WebOrigins is a list of allowed CORS origins.
+                  To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though.
+                  To permit all origins, explicitly add '*'.
                   If not specified, the value from `WebUrl` is used
                 example:
                 - https://example.com/*
@@ -576,14 +577,19 @@ spec:
         description: KeycloakClient is the Schema for the keycloakclients API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
