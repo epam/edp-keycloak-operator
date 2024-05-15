@@ -133,7 +133,8 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
-          FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
+          FrontendURL Set the frontend URL for the realm.
+Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -366,7 +367,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>accessCodeLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol. This should normally be 1 minute.<br/>
+          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol.
+This should normally be 1 minute.<br/>
           <br/>
             <i>Default</i>: 60<br/>
         </td>
@@ -384,7 +386,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>accessTokenLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessTokenLifespan specifies max time(in seconds) before an access token is expired. This value is recommended to be short relative to the SSO timeout.<br/>
+          AccessTokenLifespan specifies max time(in seconds) before an access token is expired.
+This value is recommended to be short relative to the SSO timeout.<br/>
           <br/>
             <i>Default</i>: 300<br/>
         </td>
@@ -393,7 +396,9 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>actionTokenGeneratedByAdminLifespan</b></td>
         <td>integer</td>
         <td>
-          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired. This value is recommended to be long to allow administrators to send e-mails for users that are currently offline. The default timeout can be overridden immediately before issuing the token.<br/>
+          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired.
+This value is recommended to be long to allow administrators to send e-mails for users that are currently offline.
+The default timeout can be overridden immediately before issuing the token.<br/>
           <br/>
             <i>Default</i>: 43200<br/>
         </td>
@@ -402,7 +407,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>actionTokenGeneratedByUserLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired. This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
+          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired.
+This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
           <br/>
             <i>Default</i>: 300<br/>
         </td>
@@ -421,7 +427,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>refreshTokenMaxReuse</b></td>
         <td>integer</td>
         <td>
-          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused. When a different token is used, revocation is immediate.<br/>
+          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused.
+When a different token is used, revocation is immediate.<br/>
           <br/>
             <i>Default</i>: 0<br/>
         </td>
@@ -430,7 +437,9 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>revokeRefreshToken</b></td>
         <td>boolean</td>
         <td>
-          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and is revoked when a different token is used. Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
+          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and
+is revoked when a different token is used.
+Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -571,7 +580,8 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
         <td><b>adminType</b></td>
         <td>enum</td>
         <td>
-          AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.<br/>
+          AdminType can be user or serviceAccount, if serviceAccount was specified,
+then client_credentials grant type should be used for getting admin realm token.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
             <i>Default</i>: user<br/>
@@ -581,14 +591,19 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
         <td><b><a href="#clusterkeycloakspeccacert">caCert</a></b></td>
         <td>object</td>
         <td>
-          CACert defines the root certificate authority that api clients use when verifying server certificates. Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.<br/>
+          CACert defines the root certificate authority
+that api clients use when verifying server certificates.
+Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>insecureSkipVerify</b></td>
         <td>boolean</td>
         <td>
-          InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name. If InsecureSkipVerify is true, api client accepts any certificate presented by the server and any host name in that certificate.<br/>
+          InsecureSkipVerify controls whether api client verifies the server's
+certificate chain and host name. If InsecureSkipVerify is true, api client
+accepts any certificate presented by the server and any host name in that
+certificate.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -600,7 +615,9 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
 
 
 
-CACert defines the root certificate authority that api clients use when verifying server certificates. Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.
+CACert defines the root certificate authority
+that api clients use when verifying server certificates.
+Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.
 
 <table>
     <thead>
@@ -656,7 +673,9 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -690,7 +709,9 @@ Selects a key of a secret.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3529,7 +3550,8 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3955,14 +3977,20 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>redirectUris</b></td>
         <td>[]string</td>
         <td>
-          RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login. Simple wildcards are allowed such as 'https://example.com/*'. Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL. If not specified, spec.webUrl + "/*" will be used.<br/>
+          RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login.
+Simple wildcards are allowed such as 'https://example.com/*'.
+Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL.
+If not specified, spec.webUrl + "/*" will be used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>secret</b></td>
         <td>string</td>
         <td>
-          Secret is kubernetes secret name where the client's secret will be stored. Secret should have the following format: $secretName:secretKey. If not specified, a client secret will be generated and stored in a secret with the name keycloak-client-{metadata.name}-secret. If keycloak client is public, secret property will be ignored.<br/>
+          Secret is kubernetes secret name where the client's secret will be stored.
+Secret should have the following format: $secretName:secretKey.
+If not specified, a client secret will be generated and stored in a secret with the name keycloak-client-{metadata.name}-secret.
+If keycloak client is public, secret property will be ignored.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3992,14 +4020,20 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>targetRealm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. TargetRealm is a realm name where client will be created. It has higher priority than RealmRef for backward compatibility. If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.<br/>
+          Deprecated: use RealmRef instead.
+TargetRealm is a realm name where client will be created.
+It has higher priority than RealmRef for backward compatibility.
+If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>webOrigins</b></td>
         <td>[]string</td>
         <td>
-          WebOrigins is a list of allowed CORS origins. To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though. To permit all origins, explicitly add '*'. If not specified, the value from `WebUrl` is used<br/>
+          WebOrigins is a list of allowed CORS origins.
+To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though.
+To permit all origins, explicitly add '*'.
+If not specified, the value from `WebUrl` is used<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4117,21 +4151,24 @@ Authorization is a client authorization configuration.
         <td><b>policies</b></td>
         <td>[]string</td>
         <td>
-          Policies is a list of policies names. Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
+          Policies is a list of policies names.
+Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>resources</b></td>
         <td>[]string</td>
         <td>
-          Resources is a list of resources names. Specifies that this permission must be applied to all resource instances of a given type.<br/>
+          Resources is a list of resources names.
+Specifies that this permission must be applied to all resource instances of a given type.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>scopes</b></td>
         <td>[]string</td>
         <td>
-          Scopes is a list of authorization scopes names. Specifies that this permission must be applied to one or more scopes.<br/>
+          Scopes is a list of authorization scopes names.
+Specifies that this permission must be applied to one or more scopes.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4263,7 +4300,8 @@ AggregatedPolicy is an aggregated policy settings.
         <td><b>policies</b></td>
         <td>[]string</td>
         <td>
-          Policies is a list of aggregated policies names. Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
+          Policies is a list of aggregated policies names.
+Specifies all the policies that must be applied to the scopes defined by this policy or permission.<br/>
         </td>
         <td>true</td>
       </tr></tbody>
@@ -4324,7 +4362,10 @@ GroupPolicy is a group policy settings.
         <td><b>groupsClaim</b></td>
         <td>string</td>
         <td>
-          GroupsClaim is a group claim. If defined, the policy will fetch user's groups from the given claim within an access token or ID token representing the identity asking permissions. If not defined, user's groups are obtained from your realm configuration.<br/>
+          GroupsClaim is a group claim.
+If defined, the policy will fetch user's groups from the given claim
+within an access token or ID token representing the identity asking permissions.
+If not defined, user's groups are obtained from your realm configuration.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4446,21 +4487,25 @@ ScopePolicy is a scope policy settings.
         <td><b>notBefore</b></td>
         <td>string</td>
         <td>
-          NotBefore defines the time before which the policy MUST NOT be granted. Only granted if current date/time is after or equal to this value.<br/>
+          NotBefore defines the time before which the policy MUST NOT be granted.
+Only granted if current date/time is after or equal to this value.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>notOnOrAfter</b></td>
         <td>string</td>
         <td>
-          NotOnOrAfter defines the time after which the policy MUST NOT be granted. Only granted if current date/time is before or equal to this value.<br/>
+          NotOnOrAfter defines the time after which the policy MUST NOT be granted.
+Only granted if current date/time is before or equal to this value.<br/>
         </td>
         <td>true</td>
       </tr><tr>
         <td><b>dayMonth</b></td>
         <td>string</td>
         <td>
-          Day defines the month which the policy MUST be granted. You can also provide a range by filling the dayMonthEnd field. In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
+          Day defines the month which the policy MUST be granted.
+You can also provide a range by filling the dayMonthEnd field.
+In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4474,7 +4519,9 @@ ScopePolicy is a scope policy settings.
         <td><b>hour</b></td>
         <td>string</td>
         <td>
-          Hour defines the hour when the policy MUST be granted. You can also provide a range by filling the hourEnd. In this case, permission is granted only if current hour is between or equal to the two values you provided.<br/>
+          Hour defines the hour when the policy MUST be granted.
+You can also provide a range by filling the hourEnd.
+In this case, permission is granted only if current hour is between or equal to the two values you provided.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4488,7 +4535,9 @@ ScopePolicy is a scope policy settings.
         <td><b>minute</b></td>
         <td>string</td>
         <td>
-          Minute defines the minute when the policy MUST be granted. You can also provide a range by filling the minuteEnd field. In this case, permission is granted only if current minute is between or equal to the two values you provided.<br/>
+          Minute defines the minute when the policy MUST be granted.
+You can also provide a range by filling the minuteEnd field.
+In this case, permission is granted only if current minute is between or equal to the two values you provided.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4502,7 +4551,9 @@ ScopePolicy is a scope policy settings.
         <td><b>month</b></td>
         <td>string</td>
         <td>
-          Month defines the month which the policy MUST be granted. You can also provide a range by filling the monthEnd. In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
+          Month defines the month which the policy MUST be granted.
+You can also provide a range by filling the monthEnd.
+In this case, permission is granted only if current month is between or equal to the two values you provided.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4901,7 +4952,8 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5136,21 +5188,25 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
         <td><b>config</b></td>
         <td>map[string][]string</td>
         <td>
-          Config is a map of component configuration. Map key is a name of configuration property, map value is an array value of configuration properties. Any configuration property can be a reference to k8s secret, in this case the property should be in format $secretName:secretKey.<br/>
+          Config is a map of component configuration.
+Map key is a name of configuration property, map value is an array value of configuration properties.
+Any configuration property can be a reference to k8s secret, in this case the property should be in format $secretName:secretKey.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b><a href="#keycloakrealmcomponentspecparentref">parentRef</a></b></td>
         <td>object</td>
         <td>
-          ParentRef specifies a parent resource. If not specified, then parent is realm specified in realm field.<br/>
+          ParentRef specifies a parent resource.
+If not specified, then parent is realm specified in realm field.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5169,7 +5225,8 @@ KeycloakComponentSpec defines the desired state of KeycloakRealmComponent.
 
 
 
-ParentRef specifies a parent resource. If not specified, then parent is realm specified in realm field.
+ParentRef specifies a parent resource.
+If not specified, then parent is realm specified in realm field.
 
 <table>
     <thead>
@@ -5184,7 +5241,8 @@ ParentRef specifies a parent resource. If not specified, then parent is realm sp
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name is a name of parent component custom resource. For example, if Kind is KeycloakRealm, then Name is name of KeycloakRealm custom resource.<br/>
+          Name is a name of parent component custom resource.
+For example, if Kind is KeycloakRealm, then Name is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5381,7 +5439,8 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5602,7 +5661,9 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          Config is a map of identity provider configuration. Map key is a name of configuration property, map value is a value of configuration property. Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.<br/>
+          Config is a map of identity provider configuration.
+Map key is a name of configuration property, map value is a value of configuration property.
+Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -5665,7 +5726,8 @@ KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIden
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5893,7 +5955,8 @@ KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6190,7 +6253,8 @@ KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6445,7 +6509,8 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>keycloakOwner</b></td>
         <td>string</td>
         <td>
-          Deprecated: use KeycloakRef instead. KeycloakOwner specifies the name of the Keycloak instance that owns the realm.<br/>
+          Deprecated: use KeycloakRef instead.
+KeycloakOwner specifies the name of the Keycloak instance that owns the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6701,7 +6766,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>accessCodeLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol. This should normally be 1 minute.<br/>
+          AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol.
+This should normally be 1 minute.<br/>
           <br/>
             <i>Default</i>: 60<br/>
         </td>
@@ -6719,7 +6785,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>accessTokenLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessTokenLifespan specifies max time(in seconds) before an access token is expired. This value is recommended to be short relative to the SSO timeout.<br/>
+          AccessTokenLifespan specifies max time(in seconds) before an access token is expired.
+This value is recommended to be short relative to the SSO timeout.<br/>
           <br/>
             <i>Default</i>: 300<br/>
         </td>
@@ -6728,7 +6795,9 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>actionTokenGeneratedByAdminLifespan</b></td>
         <td>integer</td>
         <td>
-          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired. This value is recommended to be long to allow administrators to send e-mails for users that are currently offline. The default timeout can be overridden immediately before issuing the token.<br/>
+          ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired.
+This value is recommended to be long to allow administrators to send e-mails for users that are currently offline.
+The default timeout can be overridden immediately before issuing the token.<br/>
           <br/>
             <i>Default</i>: 43200<br/>
         </td>
@@ -6737,7 +6806,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>actionTokenGeneratedByUserLifespan</b></td>
         <td>integer</td>
         <td>
-          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired. This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
+          AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired.
+This value is recommended to be short because it's expected that the user would react to self-created action quickly.<br/>
           <br/>
             <i>Default</i>: 300<br/>
         </td>
@@ -6756,7 +6826,8 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>refreshTokenMaxReuse</b></td>
         <td>integer</td>
         <td>
-          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused. When a different token is used, revocation is immediate.<br/>
+          RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused.
+When a different token is used, revocation is immediate.<br/>
           <br/>
             <i>Default</i>: 0<br/>
         </td>
@@ -6765,7 +6836,9 @@ TokenSettings is the configuration for tokens in the realm.
         <td><b>revokeRefreshToken</b></td>
         <td>boolean</td>
         <td>
-          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and is revoked when a different token is used. Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
+          RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and
+is revoked when a different token is used.
+Otherwise, refresh tokens are not revoked when used and can be used multiple times.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -6973,7 +7046,9 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>keepResource</b></td>
         <td>boolean</td>
         <td>
-          KeepResource, when set to false, results in the deletion of the KeycloakRealmUser Custom Resource (CR) from the cluster after the corresponding user is created in Keycloak. The user will continue to exist in Keycloak. When set to true, the CR will not be deleted after processing.<br/>
+          KeepResource, when set to false, results in the deletion of the KeycloakRealmUser Custom Resource (CR)
+from the cluster after the corresponding user is created in Keycloak. The user will continue to exist in Keycloak.
+When set to true, the CR will not be deleted after processing.<br/>
           <br/>
             <i>Default</i>: true<br/>
         </td>
@@ -7003,7 +7078,8 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>realm</b></td>
         <td>string</td>
         <td>
-          Deprecated: use RealmRef instead. Realm is name of KeycloakRealm custom resource.<br/>
+          Deprecated: use RealmRef instead.
+Realm is name of KeycloakRealm custom resource.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7017,7 +7093,9 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>reconciliationStrategy</b></td>
         <td>string</td>
         <td>
-          ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only. Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated. If set to full, user will be created if it does not exist, or updated if it exists.<br/>
+          ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
+Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
+If set to full, user will be created if it does not exist, or updated if it exists.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7242,14 +7320,18 @@ KeycloakSpec defines the desired state of Keycloak.
         <td><b><a href="#keycloakspeccacert">caCert</a></b></td>
         <td>object</td>
         <td>
-          CACert defines the root certificate authority that api client use when verifying server certificates.<br/>
+          CACert defines the root certificate authority
+that api client use when verifying server certificates.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>insecureSkipVerify</b></td>
         <td>boolean</td>
         <td>
-          InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name. If InsecureSkipVerify is true, api client accepts any certificate presented by the server and any host name in that certificate.<br/>
+          InsecureSkipVerify controls whether api client verifies the server's
+certificate chain and host name. If InsecureSkipVerify is true, api client
+accepts any certificate presented by the server and any host name in that
+certificate.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7261,7 +7343,8 @@ KeycloakSpec defines the desired state of Keycloak.
 
 
 
-CACert defines the root certificate authority that api client use when verifying server certificates.
+CACert defines the root certificate authority
+that api client use when verifying server certificates.
 
 <table>
     <thead>
@@ -7317,7 +7400,9 @@ Selects a key of a ConfigMap.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7351,7 +7436,9 @@ Selects a key of a secret.
         <td><b>name</b></td>
         <td>string</td>
         <td>
-          Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names TODO: Add other useful fields. apiVersion, kind, uid?<br/>
+          Name of the referent.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+TODO: Add other useful fields. apiVersion, kind, uid?<br/>
         </td>
         <td>false</td>
       </tr></tbody>

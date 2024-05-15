@@ -177,7 +177,7 @@ crdoc: ## Download crdoc locally if necessary.
 CONTROLLER_GEN = $(LOCALBIN)/controller-gen
 .PHONY: controller-gen
 controller-gen: ## Download controller-gen locally if necessary.
-	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,v0.11.3)
+	$(call go-get-tool,$(CONTROLLER_GEN),sigs.k8s.io/controller-tools/cmd/controller-gen,v0.15.0)
 # go-get-tool will 'go get' any package $2 and install it to $1.
 PROJECT_DIR := $(shell dirname $(abspath $(lastword $(MAKEFILE_LIST))))
 define go-get-tool
@@ -218,4 +218,4 @@ mocks: mockery
 MOCKERY = $(LOCALBIN)/mockery
 .PHONY: mockery
 mockery: ## Download mockery locally if necessary.
-	$(call go-get-tool,$(MOCKERY),github.com/vektra/mockery/v2,v2.38.0)
+	$(call go-get-tool,$(MOCKERY),github.com/vektra/mockery/v2,v2.43.0)

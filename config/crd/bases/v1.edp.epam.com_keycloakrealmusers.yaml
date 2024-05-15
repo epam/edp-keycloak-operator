@@ -3,8 +3,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
-  creationTimestamp: null
+    controller-gen.kubebuilder.io/version: v0.15.0
   name: keycloakrealmusers.v1.edp.epam.com
 spec:
   group: v1.edp.epam.com
@@ -26,14 +25,19 @@ spec:
         description: KeycloakRealmUser is the Schema for the keycloak user API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -66,11 +70,10 @@ spec:
                 type: array
               keepResource:
                 default: true
-                description: KeepResource, when set to false, results in the deletion
-                  of the KeycloakRealmUser Custom Resource (CR) from the cluster after
-                  the corresponding user is created in Keycloak. The user will continue
-                  to exist in Keycloak. When set to true, the CR will not be deleted
-                  after processing.
+                description: |-
+                  KeepResource, when set to false, results in the deletion of the KeycloakRealmUser Custom Resource (CR)
+                  from the cluster after the corresponding user is created in Keycloak. The user will continue to exist in Keycloak.
+                  When set to true, the CR will not be deleted after processing.
                 type: boolean
               lastName:
                 description: LastName is a user last name.
@@ -96,8 +99,9 @@ spec:
                 - name
                 type: object
               realm:
-                description: 'Deprecated: use RealmRef instead. Realm is name of KeycloakRealm
-                  custom resource.'
+                description: |-
+                  Deprecated: use RealmRef instead.
+                  Realm is name of KeycloakRealm custom resource.
                 type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
@@ -113,11 +117,10 @@ spec:
                     type: string
                 type: object
               reconciliationStrategy:
-                description: 'ReconciliationStrategy is a strategy for reconciliation.
-                  Possible values: full, create-only. Default value: full. If set
-                  to create-only, user will be created only if it does not exist.
-                  If user exists, it will not be updated. If set to full, user will
-                  be created if it does not exist, or updated if it exists.'
+                description: |-
+                  ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
+                  Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
+                  If set to full, user will be created if it does not exist, or updated if it exists.
                 type: string
               requiredUserActions:
                 description: 'RequiredUserActions is required action when user log
@@ -158,14 +161,19 @@ spec:
       openAPIV3Schema:
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object

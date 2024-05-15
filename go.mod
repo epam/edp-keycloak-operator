@@ -1,6 +1,6 @@
 module github.com/epam/edp-keycloak-operator
 
-go 1.20
+go 1.22
 
 require (
 	github.com/Nerzal/gocloak/v12 v12.0.0
