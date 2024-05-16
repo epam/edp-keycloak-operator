@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.11.3
+    controller-gen.kubebuilder.io/version: v0.15.0
   creationTimestamp: null
   name: keycloakrealms.v1.edp.epam.com
 spec:
@@ -29,14 +29,19 @@ spec:
         description: KeycloakRealm is the Schema for the keycloak realms API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -55,10 +60,6 @@ spec:
                   apply to HTTP responses from the realm's browser clients.
                 nullable: true
                 type: object
-              disableCentralIDPMappers:
-                description: DisableCentralIDPMappers indicates whether to disable
-                  the default identity provider (IDP) mappers.
-                type: boolean
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base
@@ -69,8 +70,9 @@ spec:
                 nullable: true
                 type: string
               keycloakOwner:
-                description: 'Deprecated: use KeycloakRef instead. KeycloakOwner specifies
-                  the name of the Keycloak instance that owns the realm.'
+                description: |-
+                  Deprecated: use KeycloakRef instead.
+                  KeycloakOwner specifies the name of the Keycloak instance that owns the realm.
                 nullable: true
                 type: string
               keycloakRef:
@@ -137,41 +139,6 @@ spec:
               realmName:
                 description: RealmName specifies the name of the realm.
                 type: string
-              ssoAutoRedirectEnabled:
-                description: SsoAutoRedirectEnabled indicates whether to enable automatic
-                  redirection to the SSO realm.
-                nullable: true
-                type: boolean
-              ssoRealmEnabled:
-                description: SsoRealmEnabled indicates whether to enable the SSO realm.
-                nullable: true
-                type: boolean
-              ssoRealmMappers:
-                description: SSORealmMappers is a list of SSO realm mappers to create
-                  in the realm.
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      description: Config is a map of configuration options for the
-                        SSO realm mapper.
-                      nullable: true
-                      type: object
-                    identityProviderMapper:
-                      description: IdentityProviderMapper specifies the identity provider
-                        mapper to use.
-                      type: string
-                    name:
-                      description: Name specifies the name of the SSO realm mapper.
-                      type: string
-                  type: object
-                nullable: true
-                type: array
-              ssoRealmName:
-                description: SsoRealmName specifies the name of the SSO realm used
-                  by the realm.
-                type: string
               themes:
                 description: Themes is a map of themes to apply to the realm.
                 nullable: true
@@ -201,6 +168,76 @@ spec:
                       realm.
                     nullable: true
                     type: string
+                type: object
+              tokenSettings:
+                description: TokenSettings is the configuration for tokens in the
+                  realm.
+                nullable: true
+                properties:
+                  accessCodeLifespan:
+                    default: 60
+                    description: |-
+                      AccessCodeLifespan specifies max time(in seconds)a client has to finish the access token protocol.
+                      This should normally be 1 minute.
+                    type: integer
+                  accessToken:
+                    default: 900
+                    description: AccessTokenLifespanForImplicitFlow specifies max
+                      time(in seconds) before an access token is expired for implicit
+                      flow.
+                    type: integer
+                  accessTokenLifespan:
+                    default: 300
+                    description: |-
+                      AccessTokenLifespan specifies max time(in seconds) before an access token is expired.
+                      This value is recommended to be short relative to the SSO timeout.
+                    type: integer
+                  actionTokenGeneratedByAdminLifespan:
+                    default: 43200
+                    description: |-
+                      ActionTokenGeneratedByAdminLifespan specifies max time(in seconds) before an action permit sent to a user by administrator is expired.
+                      This value is recommended to be long to allow administrators to send e-mails for users that are currently offline.
+                      The default timeout can be overridden immediately before issuing the token.
+                    type: integer
+                  actionTokenGeneratedByUserLifespan:
+                    default: 300
+                    description: |-
+                      AccessCodeLifespanUserAction specifies max time(in seconds) before an action permit sent by a user (such as a forgot password e-mail) is expired.
+                      This value is recommended to be short because it's expected that the user would react to self-created action quickly.
+                    type: integer
+                  defaultSignatureAlgorithm:
+                    default: RS256
+                    description: DefaultSignatureAlgorithm specifies the default algorithm
+                      used to sign tokens for the realm
+                    enum:
+                    - ES256
+                    - ES384
+                    - ES512
+                    - EdDSA
+                    - HS256
+                    - HS384
+                    - HS512
+                    - PS256
+                    - PS384
+                    - PS512
+                    - RS256
+                    - RS384
+                    - RS512
+                    example: RS256
+                    type: string
+                  refreshTokenMaxReuse:
+                    default: 0
+                    description: |-
+                      RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused.
+                      When a different token is used, revocation is immediate.
+                    type: integer
+                  revokeRefreshToken:
+                    default: false
+                    description: |-
+                      RevokeRefreshToken if enabled a refresh token can only be used up to 'refreshTokenMaxReuse' and
+                      is revoked when a different token is used.
+                      Otherwise, refresh tokens are not revoked when used and can be used multiple times.
+                    type: boolean
                 type: object
               users:
                 description: Users is a list of users to create in the realm.
@@ -246,14 +283,19 @@ spec:
         description: KeycloakRealm is the Schema for the keycloakrealms API.
         properties:
           apiVersion:
-            description: 'APIVersion defines the versioned schema of this representation
-              of an object. Servers should convert recognized schemas to the latest
-              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
             type: string
           kind:
-            description: 'Kind is a string value representing the REST resource this
-              object represents. Servers may infer this from the endpoint the client
-              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
             type: string
           metadata:
             type: object
@@ -268,8 +310,6 @@ spec:
                   type: string
                 nullable: true
                 type: object
-              disableCentralIDPMappers:
-                type: boolean
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base
@@ -325,29 +365,6 @@ spec:
                     type: array
                 type: object
               realmName:
-                type: string
-              ssoAutoRedirectEnabled:
-                nullable: true
-                type: boolean
-              ssoRealmEnabled:
-                nullable: true
-                type: boolean
-              ssoRealmMappers:
-                items:
-                  properties:
-                    config:
-                      additionalProperties:
-                        type: string
-                      nullable: true
-                      type: object
-                    identityProviderMapper:
-                      type: string
-                    name:
-                      type: string
-                  type: object
-                nullable: true
-                type: array
-              ssoRealmName:
                 type: string
               themes:
                 nullable: true
