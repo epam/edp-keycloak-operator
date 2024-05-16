@@ -55,6 +55,142 @@ metadata:
           "apiVersion": "v1.edp.epam.com/v1",
           "kind": "KeycloakClient",
           "metadata": {
+            "name": "keycloakclient-policy-sample"
+          },
+          "spec": {
+            "authorization": {
+              "permissions": [
+                {
+                  "decisionStrategy": "AFFIRMATIVE",
+                  "description": "Resource permission",
+                  "logic": "POSITIVE",
+                  "name": "resource-permission",
+                  "policies": [
+                    "role-policy"
+                  ],
+                  "resources": [
+                    "resource1"
+                  ],
+                  "type": "resource"
+                },
+                {
+                  "decisionStrategy": "CONSENSUS",
+                  "description": "Scope permission",
+                  "logic": "POSITIVE",
+                  "name": "scope-permission",
+                  "policies": [
+                    "role-policy"
+                  ],
+                  "scopes": [
+                    "scope1"
+                  ],
+                  "type": "scope"
+                }
+              ],
+              "policies": [
+                {
+                  "decisionStrategy": "AFFIRMATIVE",
+                  "description": "Role policy",
+                  "logic": "POSITIVE",
+                  "name": "role-policy",
+                  "rolePolicy": {
+                    "roles": [
+                      {
+                        "name": "developer",
+                        "required": true
+                      }
+                    ]
+                  },
+                  "type": "role"
+                },
+                {
+                  "aggregatedPolicy": {
+                    "policies": [
+                      "policy1",
+                      "policy2"
+                    ]
+                  },
+                  "description": "Aggregate policy",
+                  "name": "aggregate-policy",
+                  "type": "aggregate"
+                },
+                {
+                  "clientPolicy": {
+                    "clients": [
+                      "client1",
+                      "client2"
+                    ]
+                  },
+                  "description": "Client policy",
+                  "name": "client-policy",
+                  "type": "client"
+                },
+                {
+                  "description": "Group policy",
+                  "groupPolicy": {
+                    "groups": [
+                      {
+                        "extendChildren": true,
+                        "name": "group1"
+                      }
+                    ]
+                  },
+                  "name": "group-policy",
+                  "type": "group"
+                },
+                {
+                  "description": "Role policy",
+                  "name": "role-policy",
+                  "rolePolicy": {
+                    "roles": [
+                      {
+                        "name": "developer",
+                        "required": true
+                      }
+                    ]
+                  },
+                  "type": "role"
+                },
+                {
+                  "description": "Time policy",
+                  "name": "time-policy",
+                  "timePolicy": {
+                    "notBefore": "2021-01-01T00:00:00Z",
+                    "notOnOrAfter": "2021-12-31T23:59:59Z"
+                  },
+                  "type": "time"
+                },
+                {
+                  "description": "User policy",
+                  "name": "user-policy",
+                  "type": "user",
+                  "userPolicy": {
+                    "users": [
+                      "user1",
+                      "user2"
+                    ]
+                  }
+                }
+              ]
+            },
+            "authorizationServicesEnabled": true,
+            "clientId": "policy-sample",
+            "directAccess": true,
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            },
+            "secret": "$client-secret-policy-sample:client-secret-key",
+            "serviceAccount": {
+              "enabled": true
+            },
+            "webUrl": "http://example.com"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1",
+          "kind": "KeycloakClient",
+          "metadata": {
             "name": "keycloakclient-sample"
           },
           "spec": {
@@ -138,10 +274,7 @@ metadata:
                 "jboss-logging"
               ]
             },
-            "realmName": "d2-id-kc-realm-name",
-            "ssoAutoRedirectEnabled": false,
-            "ssoRealmEnabled": false,
-            "ssoRealmName": "openshift"
+            "realmName": "d2-id-kc-realm-name"
           }
         },
         {
@@ -371,13 +504,14 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.20.0
-    createdAt: "2024-03-13T09:59:01Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.21.0
+    createdAt: "2024-05-16T16:38:08Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.34.1
+    operators.operatorframework.io/builder: operator-sdk-v1.34.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
-  name: edp-keycloak-operator.v1.20.0
+    support: EPAM Delivery Platform
+  name: edp-keycloak-operator.v1.21.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -400,59 +534,92 @@ spec:
       kind: KeycloakAuthFlow
       name: keycloakauthflows.v1.edp.epam.com
       version: v1
+    - kind: KeycloakAuthFlow
+      name: keycloakauthflows.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakClient is the Schema for the keycloak clients API.
       displayName: Keycloak Client
       kind: KeycloakClient
       name: keycloakclients.v1.edp.epam.com
       version: v1
+    - kind: KeycloakClient
+      name: keycloakclients.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakClientScope is the Schema for the keycloakclientscopes
         API.
       displayName: Keycloak Client Scope
       kind: KeycloakClientScope
       name: keycloakclientscopes.v1.edp.epam.com
       version: v1
+    - kind: KeycloakClientScope
+      name: keycloakclientscopes.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmComponent is the Schema for the keycloak component
         API.
       displayName: Keycloak Realm Component
       kind: KeycloakRealmComponent
       name: keycloakrealmcomponents.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmComponent
+      name: keycloakrealmcomponents.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmGroup is the Schema for the keycloak group API.
       displayName: Keycloak Realm Group
       kind: KeycloakRealmGroup
       name: keycloakrealmgroups.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmGroup
+      name: keycloakrealmgroups.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmIdentityProvider is the Schema for the keycloak realm
         identity provider API.
       displayName: Keycloak Realm Identity Provider
       kind: KeycloakRealmIdentityProvider
       name: keycloakrealmidentityproviders.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmIdentityProvider
+      name: keycloakrealmidentityproviders.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmRoleBatch is the Schema for the keycloak roles API.
       displayName: Keycloak Realm Role Batch
       kind: KeycloakRealmRoleBatch
       name: keycloakrealmrolebatches.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmRoleBatch
+      name: keycloakrealmrolebatches.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmRole is the Schema for the keycloak group API.
       displayName: Keycloak Realm Role
       kind: KeycloakRealmRole
       name: keycloakrealmroles.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmRole
+      name: keycloakrealmroles.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealm is the Schema for the keycloak realms API.
       displayName: Keycloak Realm
       kind: KeycloakRealm
       name: keycloakrealms.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealm
+      name: keycloakrealms.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmUser is the Schema for the keycloak user API.
       displayName: Keycloak Realm User
       kind: KeycloakRealmUser
       name: keycloakrealmusers.v1.edp.epam.com
       version: v1
+    - kind: KeycloakRealmUser
+      name: keycloakrealmusers.v1.edp.epam.com
+      version: v1alpha1
     - description: Keycloak is the Schema for the keycloaks API.
       displayName: Keycloak
       kind: Keycloak
       name: keycloaks.v1.edp.epam.com
       version: v1
+    - kind: Keycloak
+      name: keycloaks.v1.edp.epam.com
+      version: v1alpha1
   description: |
     Keycloak Operator is an operator that is responsible for establishing
     a connection to provided Keycloak Server, reconciling Keycloak entities (realms,
@@ -518,6 +685,14 @@ spec:
     spec:
       clusterPermissions:
       - rules:
+        - apiGroups:
+          - v1
+          resources:
+          - configmap
+          verbs:
+          - get
+          - list
+          - watch
         - apiGroups:
           - v1.edp.epam.com
           resources:
@@ -602,7 +777,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.20.0
+                image: docker.io/epamedp/keycloak-operator:1.21.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -673,6 +848,14 @@ spec:
           - list
           - patch
           - update
+          - watch
+        - apiGroups:
+          - v1
+          resources:
+          - configmap
+          verbs:
+          - get
+          - list
           - watch
         - apiGroups:
           - v1.edp.epam.com
@@ -993,4 +1176,4 @@ spec:
   provider:
     name: EPAM Delivery Platform
     url: https://epam.github.io/edp-install/
-  version: 1.20.0
+  version: 1.21.0
