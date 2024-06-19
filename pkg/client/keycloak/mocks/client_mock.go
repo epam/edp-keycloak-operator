@@ -3240,17 +3240,17 @@ func (_c *MockClient_PutClientScopeMapper_Call) RunAndReturn(run func(string, st
 	return _c
 }
 
-// SetRealmBrowserFlow provides a mock function with given fields: realmName, flowAlias
-func (_m *MockClient) SetRealmBrowserFlow(realmName string, flowAlias string) error {
-	ret := _m.Called(realmName, flowAlias)
+// SetRealmBrowserFlow provides a mock function with given fields: ctx, realmName, flowAlias
+func (_m *MockClient) SetRealmBrowserFlow(ctx context.Context, realmName string, flowAlias string) error {
+	ret := _m.Called(ctx, realmName, flowAlias)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SetRealmBrowserFlow")
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string) error); ok {
-		r0 = rf(realmName, flowAlias)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, realmName, flowAlias)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -3264,15 +3264,16 @@ type MockClient_SetRealmBrowserFlow_Call struct {
 }
 
 // SetRealmBrowserFlow is a helper method to define mock.On call
+//   - ctx context.Context
 //   - realmName string
 //   - flowAlias string
-func (_e *MockClient_Expecter) SetRealmBrowserFlow(realmName interface{}, flowAlias interface{}) *MockClient_SetRealmBrowserFlow_Call {
-	return &MockClient_SetRealmBrowserFlow_Call{Call: _e.mock.On("SetRealmBrowserFlow", realmName, flowAlias)}
+func (_e *MockClient_Expecter) SetRealmBrowserFlow(ctx interface{}, realmName interface{}, flowAlias interface{}) *MockClient_SetRealmBrowserFlow_Call {
+	return &MockClient_SetRealmBrowserFlow_Call{Call: _e.mock.On("SetRealmBrowserFlow", ctx, realmName, flowAlias)}
 }
 
-func (_c *MockClient_SetRealmBrowserFlow_Call) Run(run func(realmName string, flowAlias string)) *MockClient_SetRealmBrowserFlow_Call {
+func (_c *MockClient_SetRealmBrowserFlow_Call) Run(run func(ctx context.Context, realmName string, flowAlias string)) *MockClient_SetRealmBrowserFlow_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -3282,7 +3283,7 @@ func (_c *MockClient_SetRealmBrowserFlow_Call) Return(_a0 error) *MockClient_Set
 	return _c
 }
 
-func (_c *MockClient_SetRealmBrowserFlow_Call) RunAndReturn(run func(string, string) error) *MockClient_SetRealmBrowserFlow_Call {
+func (_c *MockClient_SetRealmBrowserFlow_Call) RunAndReturn(run func(context.Context, string, string) error) *MockClient_SetRealmBrowserFlow_Call {
 	_c.Call.Return(run)
 	return _c
 }

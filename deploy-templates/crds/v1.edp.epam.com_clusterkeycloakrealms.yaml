@@ -45,6 +45,17 @@ spec:
           spec:
             description: ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
             properties:
+              authenticationFlows:
+                description: AuthenticationFlow is the configuration for authentication
+                  flows in the realm.
+                nullable: true
+                properties:
+                  browserFlow:
+                    description: BrowserFlow specifies the authentication flow to
+                      use for the realm's browser clients.
+                    example: browser
+                    type: string
+                type: object
               browserSecurityHeaders:
                 additionalProperties:
                   type: string

@@ -123,6 +123,13 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecauthenticationflows">authenticationFlows</a></b></td>
+        <td>object</td>
+        <td>
+          AuthenticationFlow is the configuration for authentication flows in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>browserSecurityHeaders</b></td>
         <td>map[string]string</td>
         <td>
@@ -170,6 +177,33 @@ Use in combination with the default hostname provider to override the base URL f
         <td>object</td>
         <td>
           TokenSettings is the configuration for tokens in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.authenticationFlows
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+AuthenticationFlow is the configuration for authentication flows in the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>browserFlow</b></td>
+        <td>string</td>
+        <td>
+          BrowserFlow specifies the authentication flow to use for the realm's browser clients.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

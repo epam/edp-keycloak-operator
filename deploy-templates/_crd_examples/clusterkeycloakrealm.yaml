@@ -5,3 +5,5 @@ metadata:
 spec:
   clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample1234
+  authenticationFlows:
+    browserFlow: browserFlow-sample

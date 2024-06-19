@@ -144,14 +144,14 @@ func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *Keycloa
 	return nil
 }
 
-func (a GoCloakAdapter) SetRealmBrowserFlow(realmName string, flowAlias string) error {
-	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
+func (a GoCloakAdapter) SetRealmBrowserFlow(ctx context.Context, realmName string, flowAlias string) error {
+	realm, err := a.client.GetRealm(ctx, a.token.AccessToken, realmName)
 	if err != nil {
 		return errors.Wrap(err, "unable to get realm")
 	}
 
 	realm.BrowserFlow = &flowAlias
-	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
+	if err := a.client.UpdateRealm(ctx, a.token.AccessToken, *realm); err != nil {
 		return errors.Wrap(err, "unable to update realm")
 	}
 

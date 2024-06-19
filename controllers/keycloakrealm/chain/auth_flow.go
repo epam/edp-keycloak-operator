@@ -23,7 +23,7 @@ func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 		return nextServeOrNil(ctx, a.next, realm, kClient)
 	}
 
-	if err := kClient.SetRealmBrowserFlow(realm.Spec.RealmName, *realm.Spec.BrowserFlow); err != nil {
+	if err := kClient.SetRealmBrowserFlow(ctx, realm.Spec.RealmName, *realm.Spec.BrowserFlow); err != nil {
 		return errors.Wrap(err, "unable to set realm auth flow")
 	}
 
