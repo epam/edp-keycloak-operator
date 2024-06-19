@@ -7,6 +7,7 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -28,7 +29,7 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 	err := af.ServeRequest(ctx, &realm, kc)
 	require.NoError(t, err)
 
-	kc.On("SetRealmBrowserFlow", "realm1", "flow-alias-1").Return(nil)
+	kc.On("SetRealmBrowserFlow", mock.Anything, "realm1", "flow-alias-1").Return(nil)
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 
@@ -48,7 +49,7 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 
 	mockErr := errors.New("fatal")
 
-	kc.On("SetRealmBrowserFlow", "realm1", "flow-alias-1").Return(mockErr)
+	kc.On("SetRealmBrowserFlow", mock.Anything, "realm1", "flow-alias-1").Return(mockErr)
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 

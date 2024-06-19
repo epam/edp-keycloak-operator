@@ -49,6 +49,18 @@ type ClusterKeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	TokenSettings *common.TokenSettings `json:"tokenSettings,omitempty"`
+
+	// AuthenticationFlow is the configuration for authentication flows in the realm.
+	// +nullable
+	// +optional
+	AuthenticationFlow *AuthenticationFlow `json:"authenticationFlows,omitempty"`
+}
+
+type AuthenticationFlow struct {
+	// BrowserFlow specifies the authentication flow to use for the realm's browser clients.
+	// +optional
+	// +kubebuilder:example="browser"
+	BrowserFlow string `json:"browserFlow,omitempty"`
 }
 
 type ClusterRealmThemes struct {
