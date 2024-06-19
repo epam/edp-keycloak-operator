@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -243,7 +244,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow() {
 	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(&realm, nil)
 	e.goCloakMockClient.On("UpdateRealm", mock.Anything, "token", realm).Return(nil)
 
-	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
+	err := e.adapter.SetRealmBrowserFlow(context.Background(), "realm1", "flow1")
 	assert.NoError(e.T(), err)
 }
 
@@ -251,7 +252,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureGetRealm() {
 	mockErr := errors.New("mock err")
 	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(nil, mockErr)
 
-	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
+	err := e.adapter.SetRealmBrowserFlow(context.Background(), "realm1", "flow1")
 	assert.Error(e.T(), err)
 	assert.ErrorIs(e.T(), errors.Cause(err), mockErr)
 }
@@ -266,7 +267,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureUpdateRealm() {
 	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", "realm1").Return(&realm, nil)
 	e.goCloakMockClient.On("UpdateRealm", mock.Anything, "token", realm).Return(mockErr)
 
-	err := e.adapter.SetRealmBrowserFlow("realm1", "flow1")
+	err := e.adapter.SetRealmBrowserFlow(context.Background(), "realm1", "flow1")
 	assert.Error(e.T(), err)
 	assert.ErrorIs(e.T(), errors.Cause(err), mockErr)
 }
