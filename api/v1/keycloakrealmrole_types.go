@@ -6,8 +6,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
-const StatusDuplicated = "duplicated"
-
 // KeycloakRealmRoleSpec defines the desired state of KeycloakRealmRole.
 type KeycloakRealmRoleSpec struct {
 	// Name of keycloak role.
