@@ -106,11 +106,6 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		return
 	}
 
-	if instance.Status.Value == keycloakApi.StatusDuplicated {
-		log.Info("Role is duplicated, exit.")
-		return
-	}
-
 	defer func() {
 		if err := r.client.Status().Update(ctx, &instance); err != nil {
 			resultErr = err
