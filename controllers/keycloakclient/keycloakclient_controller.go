@@ -133,17 +133,22 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		return fmt.Errorf("unable to get keycloak realm: %w", err)
 	}
 
-	if err := chain.MakeChain(kClient, r.client).Serve(ctx, keycloakClient, realm); err != nil {
-		return fmt.Errorf("unable to serve keycloak client: %w", err)
-	}
-
-	if _, err := r.helper.TryToDelete(
+	deleted, err := r.helper.TryToDelete(
 		ctx,
 		keycloakClient,
 		makeTerminator(keycloakClient.Status.ClientID, realm, kClient, objectmeta.PreserveResourcesOnDeletion(keycloakClient)),
 		keyCloakClientOperatorFinalizerName,
-	); err != nil {
-		return pkgErrors.Wrap(err, "unable to delete kc client")
+	)
+	if err != nil {
+		return fmt.Errorf("deliting keycloak client: %w", err)
+	}
+
+	if deleted {
+		return nil
+	}
+
+	if err = chain.MakeChain(kClient, r.client).Serve(ctx, keycloakClient, realm); err != nil {
+		return fmt.Errorf("unable to serve keycloak client: %w", err)
 	}
 
 	return nil
