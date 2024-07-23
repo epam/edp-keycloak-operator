@@ -2,6 +2,21 @@
 ## [Unreleased]
 
 
+<a name="v1.22.0"></a>
+## [v1.22.0] - 2024-07-23
+### Features
+- Add ClusterKeycloakRealm browserFlow setting ([#66](https://github.com/epam/edp-keycloak-operator/issues/66))
+
+### Bug Fixes
+- move imagePullSecrets to spec.template.spec ([#73](https://github.com/epam/edp-keycloak-operator/issues/73))
+- Error if KeycloakClient secret is deleted before it ([#62](https://github.com/epam/edp-keycloak-operator/issues/62))
+- KeycloakRealmRole CR duplicated status ([#68](https://github.com/epam/edp-keycloak-operator/issues/68))
+
+### Routine
+- Generate OperatorHub bundle for v1.21.0 ([#59](https://github.com/epam/edp-keycloak-operator/issues/59))
+- Update current development version ([#59](https://github.com/epam/edp-keycloak-operator/issues/59))
+
+
 <a name="v1.21.0"></a>
 ## [v1.21.0] - 2024-05-16
 ### Features
@@ -112,7 +127,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.21.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...HEAD
+[v1.22.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.21.0...v1.22.0
 [v1.21.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.20.0...v1.21.0
 [v1.20.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.19.0...v1.20.0
 [v1.19.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.18.2...v1.19.0
