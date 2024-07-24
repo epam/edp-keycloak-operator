@@ -18,6 +18,7 @@ type RealmSettings struct {
 	Themes                 *RealmThemes
 	BrowserSecurityHeaders *map[string]string
 	PasswordPolicies       []PasswordPolicy
+	DisplayHTMLName        string
 	FrontendURL            string
 	TokenSettings          *TokenSettings
 }
@@ -91,6 +92,14 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		}
 
 		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " and "))
+	}
+
+	if realmSettings.DisplayHTMLName != "" {
+		if realm.Attributes == nil {
+			realm.Attributes = &map[string]string{}
+		}
+
+		(*realm.Attributes)["displayHTMLName"] = realmSettings.DisplayHTMLName
 	}
 
 	if realmSettings.FrontendURL != "" {

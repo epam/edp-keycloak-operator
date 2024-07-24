@@ -6526,6 +6526,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>displayHtmlName</b></td>
+        <td>string</td>
+        <td>
+          DisplayHTMLName name to render in the UI<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
