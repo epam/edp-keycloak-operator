@@ -38,7 +38,8 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	settings := adapter.RealmSettings{
-		FrontendURL: realm.Spec.FrontendURL,
+		DisplayHTMLName: realm.Spec.DisplayHTMLName,
+		FrontendURL:     realm.Spec.FrontendURL,
 	}
 
 	if realm.Spec.Themes != nil {
