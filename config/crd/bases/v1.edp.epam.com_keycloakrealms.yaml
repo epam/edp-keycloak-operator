@@ -60,6 +60,9 @@ spec:
                   apply to HTTP responses from the realm's browser clients.
                 nullable: true
                 type: object
+              displayHtmlName:
+                description: DisplayHTMLName name to render in the UI
+                type: string
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base

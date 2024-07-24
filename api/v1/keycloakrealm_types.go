@@ -56,6 +56,10 @@ type KeycloakRealmSpec struct {
 	// +optional
 	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
 
+	// DisplayHTMLName name to render in the UI
+	// +optional
+	DisplayHTMLName string `json:"displayHtmlName,omitempty"`
+
 	// FrontendURL Set the frontend URL for the realm. Use in combination with the default hostname provider to override the base URL for frontend requests for a specific realm.
 	// +optional
 	FrontendURL string `json:"frontendUrl,omitempty"`
