@@ -1,6 +1,6 @@
 apiVersion: v2
 description: A Helm chart for EDP Keycloak Operator
-home: https://epam.github.io/edp-install/
+home: https://docs.kuberocketci.io/
 name: keycloak-operator
 type: application
 version: 1.23.0-SNAPSHOT
@@ -20,7 +20,7 @@ keywords:
 maintainers:
   - name: epmd-edp
     email: SupportEPMD-EDP@epam.com
-    url: https://solutionshub.epam.com/solution/epam-delivery-platform
+    url: https://solutionshub.epam.com/solution/kuberocketci
   - name: sergk
     url: https://github.com/SergK
 sources:
