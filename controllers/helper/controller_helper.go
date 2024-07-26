@@ -10,7 +10,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -61,8 +60,6 @@ type adapterBuilder func(
 //
 //go:generate mockery --name ControllerHelper --filename helper_mock.go
 type ControllerHelper interface {
-	SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error
-	SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error
 	SetFailureCount(fc FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error)
 	GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
@@ -112,114 +109,6 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace 
 
 			return goKeycloakAdapter, nil
 		},
-	}
-}
-
-// SetKeycloakOwnerRef sets owner reference for object.
-//
-//nolint:dupl,cyclop
-func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error {
-	if metav1.GetControllerOf(object) != nil {
-		return nil
-	}
-
-	kind := object.GetKeycloakRef().Kind
-	name := object.GetKeycloakRef().Name
-
-	switch kind {
-	case keycloakApi.KeycloakKind:
-		kc := &keycloakApi.Keycloak{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Namespace: object.GetNamespace(),
-			Name:      name,
-		}, kc); err != nil {
-			return fmt.Errorf("failed to get Keycloak: %w", err)
-		}
-
-		if err := controllerutil.SetControllerReference(kc, object, h.scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
-		}
-
-		if err := h.client.Update(ctx, object); err != nil {
-			return fmt.Errorf("failed to update keycloak owner reference %s: %w", kc.GetName(), err)
-		}
-
-		return nil
-
-	case keycloakAlpha.ClusterKeycloakKind:
-		clusterKc := &keycloakAlpha.ClusterKeycloak{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Name: name,
-		}, clusterKc); err != nil {
-			return fmt.Errorf("failed to get ClusterKeycloak: %w", err)
-		}
-
-		if err := controllerutil.SetControllerReference(clusterKc, object, h.scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
-		}
-
-		if err := h.client.Update(ctx, object); err != nil {
-			return fmt.Errorf("failed to update keycloak owner reference %s: %w", clusterKc.GetName(), err)
-		}
-
-		return nil
-
-	default:
-		return fmt.Errorf("unknown keycloak kind: %s", kind)
-	}
-}
-
-// SetRealmOwnerRef sets owner reference for object.
-//
-//nolint:dupl,cyclop
-func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error {
-	if metav1.GetControllerOf(object) != nil {
-		return nil
-	}
-
-	kind := object.GetRealmRef().Kind
-	name := object.GetRealmRef().Name
-
-	switch kind {
-	case keycloakApi.KeycloakRealmKind:
-		realm := &keycloakApi.KeycloakRealm{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Namespace: object.GetNamespace(),
-			Name:      name,
-		}, realm); err != nil {
-			return fmt.Errorf("failed to get KeycloakRealm: %w", err)
-		}
-
-		if err := controllerutil.SetControllerReference(realm, object, h.scheme); err != nil {
-			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
-		}
-
-		if err := h.client.Update(ctx, object); err != nil {
-			return fmt.Errorf("failed to update realm owner reference %s: %w", realm.GetName(), err)
-		}
-
-		return nil
-
-	case keycloakAlpha.ClusterKeycloakRealmKind:
-		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Name: name,
-		}, clusterRealm); err != nil {
-			return fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
-		}
-
-		if err := controllerutil.SetControllerReference(clusterRealm, object, h.scheme); err != nil {
-			return fmt.Errorf("unable to set controller reference for %s: %w", object.GetName(), err)
-		}
-
-		if err := h.client.Update(ctx, object); err != nil {
-			return fmt.Errorf("failed to update realm owner reference %s: %w", clusterRealm.GetName(), err)
-		}
-
-		return nil
-
-	default:
-		return fmt.Errorf("unknown realm kind: %s", kind)
 	}
 }
 

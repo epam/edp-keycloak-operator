@@ -30,7 +30,6 @@ const finalizerName = "keycloak.clientscope.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
@@ -131,11 +130,6 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakClientScope) (string, error) {
-	err := r.helper.SetRealmOwnerRef(ctx, instance)
-	if err != nil {
-		return "", fmt.Errorf("unable to set realm owner ref: %w", err)
-	}
-
 	cl, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
 	if err != nil {
 		return "", fmt.Errorf("unable to create keycloak client from realm ref: %w", err)

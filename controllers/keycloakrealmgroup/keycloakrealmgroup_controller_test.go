@@ -58,7 +58,6 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 	h := helpermock.NewControllerHelper(t)
 	kcMock := mocks.NewMockClient(t)
 
-	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
 	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kcMock, nil)
 	h.On("GetKeycloakRealmFromRef", testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(&gocloak.RealmRepresentation{
