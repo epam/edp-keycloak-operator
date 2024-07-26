@@ -62,7 +62,6 @@ func TestReconcile_Reconcile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).Build()
 	h := helpermock.NewControllerHelper(t)
 
-	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
 	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kcAdapter, nil)
 	h.On("TryToDelete", testifymock.Anything, testifymock.Anything, testifymock.Anything, testifymock.Anything).
 		Return(false, nil)

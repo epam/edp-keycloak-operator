@@ -125,6 +125,14 @@ To prevent the operator from deleting resources from Keycloak, add the `edp.epam
        kind: Keycloak
    ```
 
+#### Resources deletion
+
+To avoid resources getting stuck during deletion, it is important to delete them in the correct order:
+
+1. **First**, remove realm resources `KeycloakClient`, `KeycloakRealmUser`, etc.
+2. **Then**, remove `KeycloakRealm`/`ClusterKeycloakRealm`.
+3. **Finally**, remove `Keycloak`/`ClusterKeycloak`.
+
 ## Local Development
 
 To develop the operator, first set up a local environment, and refer to the [Local Development](https://epam.github.io/edp-install/developer-guide/local-development/) page.

@@ -9,15 +9,11 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -35,7 +31,6 @@ const finalizerName = "keycloak.realmcomponent.operator.finalizer.name"
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
@@ -117,15 +112,6 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return ctrl.Result{}, fmt.Errorf("unable to apply defaults: %w", err)
 	} else if updated {
 		return ctrl.Result{}, nil
-	}
-
-	err := r.helper.SetRealmOwnerRef(ctx, keycloakRealmComponent)
-	if err != nil {
-		return ctrl.Result{}, fmt.Errorf("unable to get realm owner ref: %w", err)
-	}
-
-	if err = r.setComponentOwnerReference(ctx, keycloakRealmComponent); err != nil {
-		return reconcile.Result{}, err
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmComponent)
@@ -289,52 +275,6 @@ func (r *Reconcile) getParentID(
 	}
 
 	return "", fmt.Errorf("parent kind %s is not supported", component.Spec.ParentRef.Kind)
-}
-
-// setComponentOwnerReference sets the owner reference for the component.
-// In case the component has a parent component, we need to set owner reference to it
-// to trigger the deletion of the child KeycloakRealmComponent.
-// In the keycloak API side child component is automatically deleted,
-// so we need to do the same with the KeycloakRealmComponent resource.
-func (r *Reconcile) setComponentOwnerReference(
-	ctx context.Context,
-	component *keycloakApi.KeycloakRealmComponent,
-) error {
-	if component.Spec.ParentRef == nil || component.Spec.ParentRef.Kind != keycloakApi.KeycloakRealmComponentKind {
-		return nil
-	}
-
-	for _, ref := range component.GetOwnerReferences() {
-		if ref.Kind == keycloakApi.KeycloakRealmComponentKind {
-			return nil
-		}
-	}
-
-	parentComponent := &keycloakApi.KeycloakRealmComponent{}
-	if err := r.client.Get(ctx, types.NamespacedName{Name: component.Spec.ParentRef.Name, Namespace: component.GetNamespace()}, parentComponent); err != nil {
-		return fmt.Errorf("unable to get parent component: %w", err)
-	}
-
-	gvk, err := apiutil.GVKForObject(parentComponent, r.scheme)
-	if err != nil {
-		return fmt.Errorf("unable to get gvk for parent component: %w", err)
-	}
-
-	ref := metav1.OwnerReference{
-		APIVersion:         gvk.GroupVersion().String(),
-		Kind:               gvk.Kind,
-		Name:               parentComponent.GetName(),
-		UID:                parentComponent.GetUID(),
-		BlockOwnerDeletion: pointer.Bool(true),
-		Controller:         pointer.Bool(true),
-	}
-	component.SetOwnerReferences([]v1.OwnerReference{ref})
-
-	if err := r.client.Update(ctx, component); err != nil {
-		return fmt.Errorf("failed to set owner reference %s: %w", parentComponent.Name, err)
-	}
-
-	return nil
 }
 
 func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmComponent) (bool, error) {

@@ -27,7 +27,6 @@ const keyCloakRealmRoleBatchOperatorFinalizerName = "keycloak.realmrolebatch.ope
 
 type Helper interface {
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 }
 
@@ -201,11 +200,6 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {
-	err := r.helper.SetRealmOwnerRef(ctx, batch)
-	if err != nil {
-		return fmt.Errorf("unable to set realm owner ref: %w", err)
-	}
-
 	createdRoles, err := r.putRoles(ctx, batch)
 	if err != nil {
 		return errors.Wrap(err, "unable to put roles batch")
