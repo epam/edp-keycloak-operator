@@ -33,8 +33,8 @@ To install the Keycloak Operator, follow the steps below:
      ```bash
      helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
+     epamedp/keycloak-operator      1.22.0          1.22.0          A Helm chart for EDP Keycloak Operator
      epamedp/keycloak-operator      1.21.0          1.21.0          A Helm chart for EDP Keycloak Operator
-     epamedp/keycloak-operator      1.20.0          1.20.0          A Helm chart for EDP Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest stable version._
@@ -133,4 +133,4 @@ Development versions are also available from the [snapshot Helm Chart repository
 
 ### Related Articles
 
-* [Install EDP](https://epam.github.io/edp-install/operator-guide/install-edp/)
+* [Install KubeRocketCI](https://docs.kuberocketci.io/docs/operator-guide/installation-overview?utm_source=github&utm_medium=keyqcloak_readme&utm_campaign=installation)
