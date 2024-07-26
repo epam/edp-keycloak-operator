@@ -497,6 +497,9 @@ metadata:
             "name": "clusterkeycloakrealm-sample"
           },
           "spec": {
+            "authenticationFlows": {
+              "browserFlow": "browserFlow-sample"
+            },
             "clusterKeycloakRef": "clusterkeycloak-sample",
             "realmName": "realm-sample"
           }
@@ -504,14 +507,14 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.21.0
-    createdAt: "2024-05-16T16:38:08Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.22.0
+    createdAt: "2024-07-26T10:29:46Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.34.2
+    operators.operatorframework.io/builder: operator-sdk-v1.35.0
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v3
     repository: https://github.com/epam/edp-keycloak-operator
     support: EPAM Delivery Platform
-  name: edp-keycloak-operator.v1.21.0
+  name: edp-keycloak-operator.v1.22.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -777,7 +780,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.21.0
+                image: docker.io/epamedp/keycloak-operator:1.22.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1176,4 +1179,4 @@ spec:
   provider:
     name: EPAM Delivery Platform
     url: https://epam.github.io/edp-install/
-  version: 1.21.0
+  version: 1.22.0
