@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 )
 
 // ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
@@ -36,7 +37,7 @@ type ClusterKeycloakSpec struct {
 
 func (in *ClusterKeycloak) GetAdminType() string {
 	if in.Spec.AdminType == "" {
-		in.Spec.AdminType = KeycloakAdminTypeUser
+		in.Spec.AdminType = keycloakApi.KeycloakAdminTypeUser
 	}
 
 	return in.Spec.AdminType
