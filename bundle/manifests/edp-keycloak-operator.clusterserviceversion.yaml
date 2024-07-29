@@ -537,92 +537,59 @@ spec:
       kind: KeycloakAuthFlow
       name: keycloakauthflows.v1.edp.epam.com
       version: v1
-    - kind: KeycloakAuthFlow
-      name: keycloakauthflows.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakClient is the Schema for the keycloak clients API.
       displayName: Keycloak Client
       kind: KeycloakClient
       name: keycloakclients.v1.edp.epam.com
       version: v1
-    - kind: KeycloakClient
-      name: keycloakclients.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakClientScope is the Schema for the keycloakclientscopes
         API.
       displayName: Keycloak Client Scope
       kind: KeycloakClientScope
       name: keycloakclientscopes.v1.edp.epam.com
       version: v1
-    - kind: KeycloakClientScope
-      name: keycloakclientscopes.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmComponent is the Schema for the keycloak component
         API.
       displayName: Keycloak Realm Component
       kind: KeycloakRealmComponent
       name: keycloakrealmcomponents.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmComponent
-      name: keycloakrealmcomponents.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmGroup is the Schema for the keycloak group API.
       displayName: Keycloak Realm Group
       kind: KeycloakRealmGroup
       name: keycloakrealmgroups.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmGroup
-      name: keycloakrealmgroups.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmIdentityProvider is the Schema for the keycloak realm
         identity provider API.
       displayName: Keycloak Realm Identity Provider
       kind: KeycloakRealmIdentityProvider
       name: keycloakrealmidentityproviders.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmIdentityProvider
-      name: keycloakrealmidentityproviders.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmRoleBatch is the Schema for the keycloak roles API.
       displayName: Keycloak Realm Role Batch
       kind: KeycloakRealmRoleBatch
       name: keycloakrealmrolebatches.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmRoleBatch
-      name: keycloakrealmrolebatches.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmRole is the Schema for the keycloak group API.
       displayName: Keycloak Realm Role
       kind: KeycloakRealmRole
       name: keycloakrealmroles.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmRole
-      name: keycloakrealmroles.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealm is the Schema for the keycloak realms API.
       displayName: Keycloak Realm
       kind: KeycloakRealm
       name: keycloakrealms.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealm
-      name: keycloakrealms.v1.edp.epam.com
-      version: v1alpha1
     - description: KeycloakRealmUser is the Schema for the keycloak user API.
       displayName: Keycloak Realm User
       kind: KeycloakRealmUser
       name: keycloakrealmusers.v1.edp.epam.com
       version: v1
-    - kind: KeycloakRealmUser
-      name: keycloakrealmusers.v1.edp.epam.com
-      version: v1alpha1
     - description: Keycloak is the Schema for the keycloaks API.
       displayName: Keycloak
       kind: Keycloak
       name: keycloaks.v1.edp.epam.com
       version: v1
-    - kind: Keycloak
-      name: keycloaks.v1.edp.epam.com
-      version: v1alpha1
   description: |
     Keycloak Operator is an operator that is responsible for establishing
     a connection to provided Keycloak Server, reconciling Keycloak entities (realms,
