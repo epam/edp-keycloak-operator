@@ -13,6 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+var errAuthFlowNotFound = NotFoundError("auth flow not found")
+
 type KeycloakAuthFlow struct {
 	ID                       string                    `json:"id,omitempty"`
 	Alias                    string                    `json:"alias"`
@@ -22,6 +24,7 @@ type KeycloakAuthFlow struct {
 	BuiltIn                  bool                      `json:"builtIn"`
 	ParentName               string                    `json:"-"`
 	ChildType                string                    `json:"-"`
+	ChildRequirement         string                    `json:"-"`
 	AuthenticationExecutions []AuthenticationExecution `json:"-"`
 }
 
@@ -177,6 +180,20 @@ func (a GoCloakAdapter) syncBaseAuthFlow(realmName string, flow *KeycloakAuthFlo
 		}
 	}
 
+	if flow.ParentName != "" && flow.ChildRequirement != "" {
+		exec, err := a.getFlowExecution(realmName, flow)
+		if err != nil {
+			return "", err
+		}
+
+		// We cant set child flow requirement during creation, so we need to update it.
+		exec.Requirement = flow.ChildRequirement
+
+		if err := a.updateFlowExecution(realmName, flow.ParentName, exec); err != nil {
+			return "", fmt.Errorf("unable to update flow execution requirement: %w", err)
+		}
+	}
+
 	if err := a.validateChildFlowsCreated(realmName, flow); err != nil {
 		return "", errors.Wrap(err, "child flows validation failed")
 	}
@@ -269,7 +286,7 @@ func (a GoCloakAdapter) getFlowExecutionID(realmName string, flow *KeycloakAuthF
 		}
 	}
 
-	return "", NotFoundError("auth flow not found")
+	return "", errAuthFlowNotFound
 }
 
 func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) (string, error) {
@@ -285,7 +302,7 @@ func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) 
 			}
 		}
 
-		return "", NotFoundError("auth flow not found")
+		return "", errAuthFlowNotFound
 	}
 
 	flows, err := a.getRealmAuthFlows(realmName)
@@ -299,7 +316,22 @@ func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) 
 		}
 	}
 
-	return "", NotFoundError("auth flow not found")
+	return "", errAuthFlowNotFound
+}
+
+func (a GoCloakAdapter) getFlowExecution(realmName string, flow *KeycloakAuthFlow) (*FlowExecution, error) {
+	execs, err := a.getFlowExecutions(realmName, flow.ParentName)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get auth flow executions: %w", err)
+	}
+
+	for i := range execs {
+		if execs[i].DisplayName == flow.Alias {
+			return &execs[i], nil
+		}
+	}
+
+	return nil, errAuthFlowNotFound
 }
 
 func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow, error) {

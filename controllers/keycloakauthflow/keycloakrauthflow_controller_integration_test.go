@@ -125,4 +125,56 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			g.Expect(createdAuthFlow.Status.Value).Should(ContainSubstring("unable to sync auth flow"))
 		}).WithTimeout(time.Second * 10).WithPolling(time.Second).Should(Succeed())
 	})
+	It("Should create child KeycloakAuthFlow", func() {
+		By("Creating a parent KeycloakAuthFlow")
+		parentAuthFlow := &keycloakApi.KeycloakAuthFlow{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-auth-flow-parent",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakAuthFlowSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Alias:       "test-auth-flow-parent",
+				Description: "test-auth-flow-parent",
+				ProviderID:  "basic-flow",
+				TopLevel:    true,
+			},
+		}
+		Expect(k8sClient.Create(ctx, parentAuthFlow)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdParentAuthFlow := &keycloakApi.KeycloakAuthFlow{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: parentAuthFlow.Name, Namespace: ns}, createdParentAuthFlow)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdParentAuthFlow.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+		By("Creating a child KeycloakAuthFlow")
+		childAuthFlow := &keycloakApi.KeycloakAuthFlow{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-auth-flow-child",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakAuthFlowSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Alias:            "test-auth-flow-child",
+				Description:      "test-auth-flow-child",
+				ProviderID:       "basic-flow",
+				ParentName:       parentAuthFlow.Name,
+				ChildType:        "basic-flow",
+				ChildRequirement: "REQUIRED",
+			},
+		}
+		Expect(k8sClient.Create(ctx, childAuthFlow)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdChildAuthFlow := &keycloakApi.KeycloakAuthFlow{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: childAuthFlow.Name, Namespace: ns}, createdChildAuthFlow)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdChildAuthFlow.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+	})
 })
