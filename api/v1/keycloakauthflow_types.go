@@ -45,6 +45,10 @@ type KeycloakAuthFlowSpec struct {
 	// ChildType is type for auth flow if it has a parent, available options: basic-flow, form-flow
 	// +optional
 	ChildType string `json:"childType,omitempty"`
+
+	// ChildRequirement is requirement for child execution. Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.
+	// +optional
+	ChildRequirement string `json:"childRequirement,omitempty"`
 }
 
 // AuthenticationExecution defines keycloak authentication execution.

@@ -891,6 +891,13 @@ KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>childRequirement</b></td>
+        <td>string</td>
+        <td>
+          ChildRequirement is requirement for child execution. Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>childType</b></td>
         <td>string</td>
         <td>
