@@ -91,6 +91,10 @@ spec:
               builtIn:
                 description: BuiltIn is true if this is built-in auth flow.
                 type: boolean
+              childRequirement:
+                description: 'ChildRequirement is requirement for child execution.
+                  Available options: REQUIRED, ALTERNATIVE, DISABLED, CONDITIONAL.'
+                type: string
               childType:
                 description: 'ChildType is type for auth flow if it has a parent,
                   available options: basic-flow, form-flow'

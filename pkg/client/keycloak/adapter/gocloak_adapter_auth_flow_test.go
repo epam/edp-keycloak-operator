@@ -233,7 +233,7 @@ func (e *ExecFlowTestSuite) TestGetAuthFlowID() {
 	id, err := e.adapter.getAuthFlowID(e.realmName, &flow)
 
 	assert.NoError(e.T(), err)
-	assert.Equal(e.T(), id, flowID)
+	assert.Equal(e.T(), flowID, id)
 }
 
 func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow() {
@@ -307,6 +307,134 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "child flows validation failed: not all child flows created")
+}
+
+func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowShouldUpdateChildFlowRequirement() {
+	flow := KeycloakAuthFlow{
+		Alias:            "flow1",
+		ParentName:       "parent",
+		ChildRequirement: "REQUIRED",
+	}
+	flowID := "flow-id-1"
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(
+			http.StatusOK,
+			[]FlowExecution{{
+				DisplayName: flow.Alias,
+				FlowID:      flowID,
+			}},
+		),
+	)
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{}),
+	)
+
+	httpmock.RegisterResponder(
+		http.MethodPut,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, map[string]string{}),
+	)
+
+	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
+
+	assert.NoError(e.T(), err)
+}
+
+func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedUpdateChildFlowRequirement() {
+	flow := KeycloakAuthFlow{
+		Alias:            "flow1",
+		ParentName:       "parent",
+		ChildRequirement: "REQUIRED",
+	}
+	flowID := "flow-id-1"
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(
+			http.StatusOK,
+			[]FlowExecution{{
+				DisplayName: flow.Alias,
+				FlowID:      flowID,
+			}},
+		),
+	)
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
+		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{}),
+	)
+
+	httpmock.RegisterResponder(
+		http.MethodPut,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(http.StatusBadRequest, map[string]string{}),
+	)
+
+	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
+
+	require.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "unable to update flow execution requirement")
+}
+
+func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedToGetFlowExecution() {
+	flow := KeycloakAuthFlow{
+		Alias:            "flow1",
+		ParentName:       "parent",
+		ChildRequirement: "REQUIRED",
+	}
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(
+			http.StatusInternalServerError,
+			[]FlowExecution{},
+		),
+	)
+
+	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
+
+	require.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "unable to get auth flow")
+}
+
+func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedToCreateChildFlow() {
+	flow := KeycloakAuthFlow{
+		Alias:            "flow1",
+		ParentName:       "parent",
+		ChildRequirement: "REQUIRED",
+	}
+
+	httpmock.RegisterResponder(
+		http.MethodGet,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(
+			http.StatusOK,
+			[]FlowExecution{},
+		),
+	)
+
+	httpmock.RegisterResponder(
+		http.MethodPost,
+		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions/flow", e.realmName, flow.ParentName),
+		httpmock.NewJsonResponderOrPanic(
+			http.StatusInternalServerError,
+			map[string]string{},
+		),
+	)
+
+	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
+
+	require.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "unable to create child auth flow in realm")
 }
 
 func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
