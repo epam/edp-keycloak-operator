@@ -1,4 +1,4 @@
-name: Create EDP release
+name: Create KRCI release
 on:
   push:
     tags:
@@ -65,7 +65,7 @@ jobs:
 
           # Create a new file with the desired text and the UUIDs
           echo "### Deployment Certifications and Source Traceability" > new_release.md
-          echo "EDP container images bear [cosign](https://github.com/sigstore/cosign) signatures. Refer to the [documentation](https://epam.github.io/edp-install/operator-guide/artifacts-verification/) for instructions on verification." >> new_release.md
+          echo "KubeRocketCI container images bear [cosign](https://github.com/sigstore/cosign) signatures. Refer to the [documentation](https://docs.kuberocketci.io/docs/developer-guide/artifacts-verification) for instructions on verification." >> new_release.md
           echo "The Rekor UUID's for this release is \`${ATTESTATION_UUID}\` - attestation and" >> new_release.md
           echo "\`${SIGNATURE_UUID}\` - signature" >> new_release.md
 
