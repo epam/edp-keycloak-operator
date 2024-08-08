@@ -2,14 +2,14 @@
 
 # Keycloak Operator
 
-| :heavy_exclamation_mark: Please refer to [EDP documentation](https://epam.github.io/edp-install/) to get the main concepts and guidelines. |
+| :heavy_exclamation_mark: Please refer to [KubeRocketCI documentation](https://docs.kuberocketci.io/) to get the main concepts and guidelines. |
 | --- |
 
 Get acquainted with the Keycloak Operator, the installation process, the quick start, and the local development guidelines.
 
 ## Overview
 
-Keycloak Operator is an EDP operator responsible for configuring existing Keycloak instances. The operator runs both on OpenShift and Kubernetes.
+Keycloak Operator is a KubeRocketCI operator responsible for configuring existing Keycloak instances. The operator runs both on OpenShift and Kubernetes.
 
 _**NOTE:** Operator is platform-independent, which is why there is a unified instruction for deployment._
 
@@ -33,8 +33,7 @@ To install the Keycloak Operator, follow the steps below:
      ```bash
      helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
-     epamedp/keycloak-operator      1.22.0          1.22.0          A Helm chart for EDP Keycloak Operator
-     epamedp/keycloak-operator      1.21.0          1.21.0          A Helm chart for EDP Keycloak Operator
+     epamedp/keycloak-operator      1.22.0          1.22.0          A Helm chart for KRCI Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest stable version._
@@ -127,10 +126,10 @@ To prevent the operator from deleting resources from Keycloak, add the `edp.epam
 
 ## Local Development
 
-To develop the operator, first set up a local environment, and refer to the [Local Development](https://epam.github.io/edp-install/developer-guide/local-development/) page.
+To develop the operator, first set up a local environment, and refer to the [Local Development](https://docs.kuberocketci.io/docs/developer-guide/local-development) page.
 
 Development versions are also available from the [snapshot Helm Chart repository](https://epam.github.io/edp-helm-charts/snapshot/) page.
 
 ### Related Articles
 
-* [Install KubeRocketCI](https://docs.kuberocketci.io/docs/operator-guide/installation-overview?utm_source=github&utm_medium=keyqcloak_readme&utm_campaign=installation)
+* [Install KubeRocketCI](https://docs.kuberocketci.io/docs/operator-guide/install-kuberocketci)
