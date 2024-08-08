@@ -9,10 +9,10 @@ tolerations: []
 # -- Affinity for pod assignment
 affinity: {}
 image:
-  # -- EDP keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator)
+  # -- KubeRocketCI keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator)
   repository: epamedp/keycloak-operator
   # if not defined then .Chart.AppVersion is used
-  # -- EDP keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags)
+  # -- KubeRocketCI keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags)
   tag:
 # -- If defined, a imagePullPolicy applied to the deployment
 imagePullPolicy: "IfNotPresent"

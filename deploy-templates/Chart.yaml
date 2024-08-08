@@ -1,11 +1,11 @@
 apiVersion: v2
-description: A Helm chart for EDP Keycloak Operator
+description: A Helm chart for KubeRocketCI Keycloak Operator
 home: https://docs.kuberocketci.io/
 name: keycloak-operator
 type: application
 version: 1.23.0-SNAPSHOT
 appVersion: 1.23.0-SNAPSHOT
-icon: https://epam.github.io/edp-install/assets/logo.png
+icon: https://docs.kuberocketci.io/img/logo.svg
 keywords:
   - authentication
   - authorization
@@ -298,10 +298,10 @@ annotations:
         secret: secret-name-in-operator-ns
         url: https://keycloak.example.com
   artifacthub.io/links: |
-    - name: EDP Documentation
-      url: https://epam.github.io/edp-install/
+    - name: KubeRocketCI Documentation
+      url: https://docs.kuberocketci.io
     - name: EPAM SolutionHub
-      url: https://solutionshub.epam.com/solution/epam-delivery-platform
+      url: https://solutionshub.epam.com/solution/kuberocketci
   artifacthub.io/changes: |
     - Add frontend url property for realm
     - Allow define KeycloakRealmUser password in Kubernetes secret
