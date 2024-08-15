@@ -176,6 +176,56 @@ func (_c *MockGoCloak_AddDefaultScopeToClient_Call) RunAndReturn(run func(contex
 	return _c
 }
 
+// AddOptionalScopeToClient provides a mock function with given fields: ctx, token, realm, clientID, scopeID
+func (_m *MockGoCloak) AddOptionalScopeToClient(ctx context.Context, token string, realm string, clientID string, scopeID string) error {
+	ret := _m.Called(ctx, token, realm, clientID, scopeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddOptionalScopeToClient")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, clientID, scopeID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_AddOptionalScopeToClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddOptionalScopeToClient'
+type MockGoCloak_AddOptionalScopeToClient_Call struct {
+	*mock.Call
+}
+
+// AddOptionalScopeToClient is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - clientID string
+//   - scopeID string
+func (_e *MockGoCloak_Expecter) AddOptionalScopeToClient(ctx interface{}, token interface{}, realm interface{}, clientID interface{}, scopeID interface{}) *MockGoCloak_AddOptionalScopeToClient_Call {
+	return &MockGoCloak_AddOptionalScopeToClient_Call{Call: _e.mock.On("AddOptionalScopeToClient", ctx, token, realm, clientID, scopeID)}
+}
+
+func (_c *MockGoCloak_AddOptionalScopeToClient_Call) Run(run func(ctx context.Context, token string, realm string, clientID string, scopeID string)) *MockGoCloak_AddOptionalScopeToClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_AddOptionalScopeToClient_Call) Return(_a0 error) *MockGoCloak_AddOptionalScopeToClient_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_AddOptionalScopeToClient_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_AddOptionalScopeToClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddRealmRoleComposite provides a mock function with given fields: ctx, token, realm, roleName, roles
 func (_m *MockGoCloak) AddRealmRoleComposite(ctx context.Context, token string, realm string, roleName string, roles []gocloak.Role) error {
 	ret := _m.Called(ctx, token, realm, roleName, roles)
@@ -2106,6 +2156,67 @@ func (_c *MockGoCloak_GetClientsDefaultScopes_Call) Return(_a0 []*gocloak.Client
 }
 
 func (_c *MockGoCloak_GetClientsDefaultScopes_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*gocloak.ClientScope, error)) *MockGoCloak_GetClientsDefaultScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetClientsOptionalScopes provides a mock function with given fields: ctx, token, realm, clientID
+func (_m *MockGoCloak) GetClientsOptionalScopes(ctx context.Context, token string, realm string, clientID string) ([]*gocloak.ClientScope, error) {
+	ret := _m.Called(ctx, token, realm, clientID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientsOptionalScopes")
+	}
+
+	var r0 []*gocloak.ClientScope
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]*gocloak.ClientScope, error)); ok {
+		return rf(ctx, token, realm, clientID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []*gocloak.ClientScope); ok {
+		r0 = rf(ctx, token, realm, clientID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.ClientScope)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = rf(ctx, token, realm, clientID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_GetClientsOptionalScopes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientsOptionalScopes'
+type MockGoCloak_GetClientsOptionalScopes_Call struct {
+	*mock.Call
+}
+
+// GetClientsOptionalScopes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - clientID string
+func (_e *MockGoCloak_Expecter) GetClientsOptionalScopes(ctx interface{}, token interface{}, realm interface{}, clientID interface{}) *MockGoCloak_GetClientsOptionalScopes_Call {
+	return &MockGoCloak_GetClientsOptionalScopes_Call{Call: _e.mock.On("GetClientsOptionalScopes", ctx, token, realm, clientID)}
+}
+
+func (_c *MockGoCloak_GetClientsOptionalScopes_Call) Run(run func(ctx context.Context, token string, realm string, clientID string)) *MockGoCloak_GetClientsOptionalScopes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_GetClientsOptionalScopes_Call) Return(_a0 []*gocloak.ClientScope, _a1 error) *MockGoCloak_GetClientsOptionalScopes_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_GetClientsOptionalScopes_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*gocloak.ClientScope, error)) *MockGoCloak_GetClientsOptionalScopes_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -1302,6 +1302,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>optionalClientScopes</b></td>
+        <td>[]string</td>
+        <td>
+          OptionalClientScopes is a list of optional client scopes assigned to client.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>protocol</b></td>
         <td>string</td>
         <td>

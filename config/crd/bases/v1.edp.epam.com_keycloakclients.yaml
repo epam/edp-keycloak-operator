@@ -396,6 +396,13 @@ spec:
               name:
                 description: Name is a client name.
                 type: string
+              optionalClientScopes:
+                description: OptionalClientScopes is a list of optional client scopes
+                  assigned to client.
+                items:
+                  type: string
+                nullable: true
+                type: array
               protocol:
                 description: Protocol is a client protocol.
                 nullable: true
