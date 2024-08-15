@@ -83,6 +83,7 @@ type KCloakClients interface {
 		client *dto.Client, crMappers []gocloak.ProtocolMapperRepresentation, addOnly bool) error
 	GetClientID(clientID, realm string) (string, error)
 	AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []adapter.ClientScope) error
+	AddOptionalScopeToClient(ctx context.Context, realmName, clientName string, scopes []adapter.ClientScope) error
 
 	GetScopes(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ScopeRepresentation, error)
 	CreateScope(ctx context.Context, realm, idOfClient string, scope string) (*gocloak.ScopeRepresentation, error)

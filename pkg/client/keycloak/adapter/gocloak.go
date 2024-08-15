@@ -42,6 +42,8 @@ type GoCloakClients interface {
 	GetClientScope(ctx context.Context, token, realm, scopeID string) (*gocloak.ClientScope, error)
 	GetClientsDefaultScopes(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error)
 	AddDefaultScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
+	GetClientsOptionalScopes(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error)
+	AddOptionalScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
 	GetClientScopes(ctx context.Context, token, realm string) ([]*gocloak.ClientScope, error)
 
 	GetScopes(ctx context.Context, token, realm, idOfClient string, params gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)

@@ -98,6 +98,11 @@ type KeycloakClientSpec struct {
 	// +optional
 	DefaultClientScopes []string `json:"defaultClientScopes,omitempty"`
 
+	// OptionalClientScopes is a list of optional client scopes assigned to client.
+	// +nullable
+	// +optional
+	OptionalClientScopes []string `json:"optionalClientScopes,omitempty"`
+
 	// RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login.
 	// Simple wildcards are allowed such as 'https://example.com/*'.
 	// Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL.
