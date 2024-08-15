@@ -12,7 +12,7 @@ const defaultMax = 100
 
 func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
 	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
-	log.Info("Start add Client Scopes to client...")
+	log.Info("Start add Default Client Scopes to client...")
 
 	clientID, err := a.GetClientID(clientName, realmName)
 	if err != nil {
@@ -43,7 +43,45 @@ func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, 
 		}
 	}
 
-	log.Info("End add Client Scopes to client...")
+	log.Info("End add Default Client Scopes to client...")
+
+	return nil
+}
+
+func (a GoCloakAdapter) AddOptionalScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
+	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
+	log.Info("Start add Optional Client Scopes to client...")
+
+	clientID, err := a.GetClientID(clientName, realmName)
+	if err != nil {
+		return errors.Wrap(err, "error during GetClientId")
+	}
+
+	existingScopes, err := a.client.GetClientsOptionalScopes(ctx, a.token.AccessToken, realmName, clientID)
+	if err != nil {
+		return errors.Wrap(err, fmt.Sprintf("failed to get existing client scope for client %s", clientName))
+	}
+
+	existingScopesMap := make(map[string]*gocloak.ClientScope)
+
+	for _, s := range existingScopes {
+		if s != nil {
+			existingScopesMap[*s.ID] = s
+		}
+	}
+
+	for _, scope := range scopes {
+		if _, ok := existingScopesMap[scope.ID]; ok {
+			continue
+		}
+
+		err := a.client.AddOptionalScopeToClient(ctx, a.token.AccessToken, realmName, clientID, scope.ID)
+		if err != nil {
+			a.log.Error(err, fmt.Sprintf("failed link scope %s to client %s", scope.Name, clientName))
+		}
+	}
+
+	log.Info("End add Optional Client Scopes to client...")
 
 	return nil
 }

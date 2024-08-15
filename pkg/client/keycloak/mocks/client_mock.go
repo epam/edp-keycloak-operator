@@ -127,6 +127,55 @@ func (_c *MockClient_AddDefaultScopeToClient_Call) RunAndReturn(run func(context
 	return _c
 }
 
+// AddOptionalScopeToClient provides a mock function with given fields: ctx, realmName, clientName, scopes
+func (_m *MockClient) AddOptionalScopeToClient(ctx context.Context, realmName string, clientName string, scopes []adapter.ClientScope) error {
+	ret := _m.Called(ctx, realmName, clientName, scopes)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddOptionalScopeToClient")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, []adapter.ClientScope) error); ok {
+		r0 = rf(ctx, realmName, clientName, scopes)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_AddOptionalScopeToClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddOptionalScopeToClient'
+type MockClient_AddOptionalScopeToClient_Call struct {
+	*mock.Call
+}
+
+// AddOptionalScopeToClient is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - clientName string
+//   - scopes []adapter.ClientScope
+func (_e *MockClient_Expecter) AddOptionalScopeToClient(ctx interface{}, realmName interface{}, clientName interface{}, scopes interface{}) *MockClient_AddOptionalScopeToClient_Call {
+	return &MockClient_AddOptionalScopeToClient_Call{Call: _e.mock.On("AddOptionalScopeToClient", ctx, realmName, clientName, scopes)}
+}
+
+func (_c *MockClient_AddOptionalScopeToClient_Call) Run(run func(ctx context.Context, realmName string, clientName string, scopes []adapter.ClientScope)) *MockClient_AddOptionalScopeToClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].([]adapter.ClientScope))
+	})
+	return _c
+}
+
+func (_c *MockClient_AddOptionalScopeToClient_Call) Return(_a0 error) *MockClient_AddOptionalScopeToClient_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_AddOptionalScopeToClient_Call) RunAndReturn(run func(context.Context, string, string, []adapter.ClientScope) error) *MockClient_AddOptionalScopeToClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddRealmRoleToUser provides a mock function with given fields: ctx, realmName, username, roleName
 func (_m *MockClient) AddRealmRoleToUser(ctx context.Context, realmName string, username string, roleName string) error {
 	ret := _m.Called(ctx, realmName, username, roleName)
