@@ -7,11 +7,13 @@ commands:
     namespaced: true
   - command: kubectl delete keycloakrealmidentityprovider keycloakrealmidentityprovider-sample keycloakrealmidentityprovider-sample-with-pass
     namespaced: true
-  - command: kubectl delete keycloakrealmcomponent component-sample
+  - command: kubectl delete keycloakrealmcomponent component-sample component-sample-child
     namespaced: true
   - command: kubectl delete keycloakrealmuser keycloakrealmuser-sample
     namespaced: true
   - command: kubectl delete keycloakrealm keycloakrealm-sample
+    namespaced: true
+  - command: kubectl delete keycloak keycloak
     namespaced: true
     # we have to uninstall helm since clusterwide resources, like ClusterRole are preserved
   - command: helm uninstall keycloak-operator-e2e
