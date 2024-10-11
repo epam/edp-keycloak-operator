@@ -130,7 +130,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
-	id, err := kClient.SyncRealmGroup(gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec)
+	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec)
 	if err != nil {
 		return fmt.Errorf("unable to sync realm group: %w", err)
 	}

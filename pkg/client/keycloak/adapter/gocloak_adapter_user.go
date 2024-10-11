@@ -3,6 +3,7 @@ package adapter
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
@@ -126,36 +127,47 @@ func (a GoCloakAdapter) GetUserByName(ctx context.Context, realmName, username s
 }
 
 func (a GoCloakAdapter) syncUserGroups(ctx context.Context, realmName string, userID string, groups []string, addOnly bool) error {
-	if !addOnly {
-		if err := a.clearUserGroups(ctx, realmName, userID); err != nil {
-			return errors.Wrap(err, "unable to clear user groups")
-		}
-	}
-
-	kcGroups, err := a.client.GetGroups(
-		ctx,
-		a.token.AccessToken,
-		realmName,
-		gocloak.GetGroupsParams{
-			Max: gocloak.IntP(100),
-		})
+	userGroups, err := a.GetUserGroupMappings(ctx, realmName, userID)
 	if err != nil {
-		return fmt.Errorf("unable to get groups: %w", err)
+		return err
 	}
 
-	groupDict := make(map[string]string, len(kcGroups))
-	for _, gr := range kcGroups {
-		groupDict[*gr.Name] = *gr.ID
+	groupsToAdd := make([]string, 0, len(groups))
+
+	for _, gn := range groups {
+		if !slices.ContainsFunc(userGroups, func(mapping UserGroupMapping) bool {
+			return mapping.Name == gn
+		}) {
+			groupsToAdd = append(groupsToAdd, gn)
+		}
 	}
 
-	for _, gr := range groups {
-		groupID, ok := groupDict[gr]
-		if !ok {
-			return errors.Errorf("group %s not found", gr)
+	if len(groupsToAdd) > 0 {
+		var kcGroups map[string]gocloak.Group
+
+		kcGroups, err = a.getGroupsByNames(
+			ctx,
+			realmName,
+			groupsToAdd,
+		)
+		if err != nil {
+			return fmt.Errorf("unable to get groups: %w", err)
 		}
 
-		if err = a.AddUserToGroup(ctx, realmName, userID, groupID); err != nil {
-			return errors.Wrap(err, "unable to add user to group")
+		for _, gr := range kcGroups {
+			if err = a.AddUserToGroup(ctx, realmName, userID, *gr.ID); err != nil {
+				return fmt.Errorf("failed to add user to group %v: %w", gr.Name, err)
+			}
+		}
+	}
+
+	if !addOnly {
+		for _, gr := range userGroups {
+			if !slices.Contains(groups, gr.Name) {
+				if err = a.RemoveUserFromGroup(ctx, realmName, userID, gr.ID); err != nil {
+					return fmt.Errorf("unable to remove user from group: %w", err)
+				}
+			}
 		}
 	}
 
@@ -272,21 +284,6 @@ func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, g
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to add user to group")
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) clearUserGroups(ctx context.Context, realmName, userID string) error {
-	groups, err := a.GetUserGroupMappings(ctx, realmName, userID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get user groups")
-	}
-
-	for _, gr := range groups {
-		if err := a.RemoveUserFromGroup(ctx, realmName, userID, gr.ID); err != nil {
-			return errors.Wrap(err, "unable to remove user from group")
-		}
 	}
 
 	return nil

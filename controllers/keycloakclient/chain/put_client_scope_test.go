@@ -2,8 +2,8 @@ package chain
 
 import (
 	"context"
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	"testing"
+
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -13,7 +13,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestPutClientScope_Serve(t *testing.T) {

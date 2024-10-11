@@ -31,6 +31,23 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		})
 		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
+		By("Creating group and subgroup for user")
+		_, err = keycloakApiClient.CreateGroup(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Group{
+			Name: gocloak.StringP("test-user-group2"),
+		})
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		gr, err := keycloakApiClient.GetGroups(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetGroupsParams{
+			Search: gocloak.StringP("test-user-group2"),
+		})
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(gr).Should(HaveLen(1))
+
+		_, err = keycloakApiClient.CreateChildGroup(ctx, getKeyCloakToken(), KeycloakRealmCR, *gr[0].ID, gocloak.Group{
+			Name: gocloak.StringP("test-user-group2-subgroup"),
+		})
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
 		By("Creating role for user")
 		_, err = keycloakApiClient.CreateRealmRole(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Role{
 			Name: gocloak.StringP("test-user-role"),
@@ -74,6 +91,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				},
 				Groups: []string{
 					"test-user-group",
+					"test-user-group2-subgroup",
 				},
 				Attributes: map[string]string{
 					"attr1": "test-value",
