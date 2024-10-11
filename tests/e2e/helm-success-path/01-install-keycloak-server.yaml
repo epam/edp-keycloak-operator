@@ -62,15 +62,18 @@ spec:
           - name: configs
             mountPath: /etc/nginx/conf.d
         - name: keycloak
-          image: quay.io/keycloak/keycloak:20.0.3
-          args: ["start-dev"]
+          image: quay.io/keycloak/keycloak:24.0.4
+          args:
+            - "start-dev"
+            - "--proxy-headers"
+            - "forwarded"
+            - "--http-enabled"
+            - "true"
           env:
             - name: KEYCLOAK_ADMIN
               value: "admin"
             - name: KEYCLOAK_ADMIN_PASSWORD
               value: "admin"
-            - name: KC_PROXY
-              value: "edge"
           ports:
             - name: http
               containerPort: 8080

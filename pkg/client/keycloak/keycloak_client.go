@@ -49,7 +49,7 @@ type KAuthFlow interface {
 }
 
 type KCloakGroups interface {
-	SyncRealmGroup(realm string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error)
+	SyncRealmGroup(ctx context.Context, realm string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error)
 	DeleteGroup(ctx context.Context, realm, groupName string) error
 	GetGroups(ctx context.Context, realm string) (map[string]*gocloak.Group, error)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -21,6 +22,15 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 	t.Parallel()
 
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "users/user-with-groups-id/groups") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+
+			_, err := w.Write([]byte(`[{"id":"group1-id","name":"group1"},{"id":"group2-id","name":"group2"}]`))
+			assert.NoError(t, err)
+
+			return
+		}
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -110,7 +120,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				LastName:            "last-name",
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
-				Groups:              []string{"group1"},
+				Groups:              []string{"group1", "group3"},
 				Attributes:          map[string]string{"attr1": "attr1value"},
 				Password:            "password",
 			},
@@ -119,7 +129,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 
 				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
 					Return([]*gocloak.User{{
-						ID:       gocloak.StringP("user-id"),
+						ID:       gocloak.StringP("user-with-groups-id"),
 						Username: gocloak.StringP("user"),
 					}}, nil)
 				m.On("UpdateUser",
@@ -139,7 +149,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 					mock.Anything,
 					"",
 					"realm",
-					"user-id",
+					"user-with-groups-id",
 					mock.MatchedBy(func(roles []gocloak.Role) bool {
 						return assert.Len(t, roles, 1) &&
 							assert.Equal(t, "role1-id", *roles[0].ID)
@@ -150,16 +160,26 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 					"",
 					"realm",
 					mock.Anything).
-					Return([]*gocloak.Group{{
-						Name: gocloak.StringP("group1"),
-						ID:   gocloak.StringP("group1-id"),
-					}}, nil)
+					Return([]*gocloak.Group{
+						{
+							Name: gocloak.StringP("group1"),
+							ID:   gocloak.StringP("group1-id"),
+						},
+						{
+							Name: gocloak.StringP("group2"),
+							ID:   gocloak.StringP("group2-id"),
+						},
+						{
+							Name: gocloak.StringP("group3"),
+							ID:   gocloak.StringP("group3-id"),
+						},
+					}, nil)
 				m.On("RestyClient").Return(resty.New())
 				m.On("DeleteRealmRoleFromUser",
 					mock.Anything,
 					"",
 					"realm",
-					"user-id",
+					"user-with-groups-id",
 					mock.Anything,
 				).Return(nil)
 
