@@ -132,6 +132,25 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
+	if instance.Spec.KeepResource {
+		deleted, err := r.helper.TryToDelete(ctx, instance,
+			makeTerminator(
+				gocloak.PString(realm.Realm),
+				instance.Spec.Username,
+				kClient,
+				objectmeta.PreserveResourcesOnDeletion(instance),
+			),
+			finalizer,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to delete keycloak realm user: %w", err)
+		}
+
+		if deleted {
+			return nil
+		}
+	}
+
 	password, getPasswordErr := r.getPassword(ctx, instance)
 	if getPasswordErr != nil {
 		return fmt.Errorf("unable to get password: %w", getPasswordErr)
@@ -153,19 +172,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return errors.Wrap(err, "unable to sync realm user")
 	}
 
-	if instance.Spec.KeepResource {
-		if _, err := r.helper.TryToDelete(ctx, instance,
-			makeTerminator(
-				gocloak.PString(realm.Realm),
-				instance.Spec.Username,
-				kClient,
-				objectmeta.PreserveResourcesOnDeletion(instance),
-			),
-			finalizer,
-		); err != nil {
-			return errors.Wrap(err, "unable to set finalizers")
-		}
-	} else {
+	if !instance.Spec.KeepResource {
 		if err := r.client.Delete(ctx, instance); err != nil {
 			return errors.Wrap(err, "unable to delete instance of keycloak realm user")
 		}
