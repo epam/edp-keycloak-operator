@@ -30,7 +30,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakRealmGroup subgroup")
-		group := &keycloakApi.KeycloakRealmGroup{
+		subgroup := &keycloakApi.KeycloakRealmGroup{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "test-subgroup",
 				Namespace: ns,
@@ -44,16 +44,39 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 				Path: "/test-subgroup",
 			},
 		}
-		Expect(k8sClient.Create(ctx, group)).Should(Succeed())
+		Expect(k8sClient.Create(ctx, subgroup)).Should(Succeed())
 		Eventually(func(g Gomega) {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
-			err = k8sClient.Get(ctx, types.NamespacedName{Name: "test-subgroup", Namespace: ns}, createdGroup)
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, createdGroup)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Creating a KeycloakRealmGroup subgroup2")
+		subgroup2 := &keycloakApi.KeycloakRealmGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-subgroup2",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name: "test-subgroup2",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Path: "/test-subgroup2",
+			},
+		}
+		Expect(k8sClient.Create(ctx, subgroup2)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdGroup := &keycloakApi.KeycloakRealmGroup{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: subgroup2.Name, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Creating a KeycloakRealmGroup")
-		group = &keycloakApi.KeycloakRealmGroup{
+		group := &keycloakApi.KeycloakRealmGroup{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      groupCR,
 				Namespace: ns,
@@ -83,7 +106,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: groupCR}, group)).Should(Succeed())
 
 		By("Updating a parent KeycloakRealmGroup")
-		group.Spec.SubGroups = []string{}
+		group.Spec.SubGroups = []string{"test-subgroup2"}
 
 		Expect(k8sClient.Update(ctx, group)).Should(Succeed())
 		Eventually(func(g Gomega) {
@@ -93,11 +116,87 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(updatedGroup.Status.Value).Should(Equal(helper.StatusOK))
 		}, time.Minute, time.Second*5).Should(Succeed())
 	})
-	It("Should delete KeycloakRealmGroup", func() {
+	It("Should delete KeycloakRealmGroup and subgroup", func() {
 		By("Getting KeycloakRealmGroup")
 		group := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: groupCR}, group)).Should(Succeed())
 		By("Deleting KeycloakRealmGroup")
+		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, deletedGroup)
+
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, timeout, interval).Should(Succeed())
+
+		By("Getting KeycloakRealmGroup subgroup")
+		subgroup := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "test-subgroup2"}, subgroup)).Should(Succeed())
+		By("Deleting KeycloakRealmGroup subgroup")
+		Expect(k8sClient.Delete(ctx, subgroup)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedSubGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, deletedSubGroup)
+
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, timeout, interval).Should(Succeed())
+	})
+	It("Should delete KeycloakRealmGroup if subgroup is deleted", func() {
+		By("Creating a subgroup")
+		subgroup := &keycloakApi.KeycloakRealmGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-subgroup-for-deletion",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name: "test-subgroup-for-deletion",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, subgroup)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdSubGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, createdSubGroup)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdSubGroup.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Creating a group with subgroup")
+		group := &keycloakApi.KeycloakRealmGroup{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-group-for-deletion",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name: "test-group-for-deletion",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				SubGroups: []string{"test-subgroup-for-deletion"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, group)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, createdGroup)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Deleting subgroup")
+		Expect(k8sClient.Delete(ctx, subgroup)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedSubGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, deletedSubGroup)
+
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, timeout, interval).Should(Succeed())
+
+		By("Deleting group")
 		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
 		Eventually(func(g Gomega) {
 			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
