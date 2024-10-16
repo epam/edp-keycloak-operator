@@ -130,14 +130,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
-	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec)
-	if err != nil {
-		return fmt.Errorf("unable to sync realm group: %w", err)
-	}
-
-	keycloakRealmGroup.Status.ID = id
-
-	if _, err := r.helper.TryToDelete(
+	deleted, err := r.helper.TryToDelete(
 		ctx,
 		keycloakRealmGroup,
 		makeTerminator(
@@ -147,9 +140,21 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 			objectmeta.PreserveResourcesOnDeletion(keycloakRealmGroup),
 		),
 		keyCloakRealmGroupOperatorFinalizerName,
-	); err != nil {
+	)
+	if err != nil {
 		return fmt.Errorf("failed to delete keycloak realm group: %w", err)
 	}
+
+	if deleted {
+		return nil
+	}
+
+	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec)
+	if err != nil {
+		return fmt.Errorf("unable to sync realm group: %w", err)
+	}
+
+	keycloakRealmGroup.Status.ID = id
 
 	return nil
 }

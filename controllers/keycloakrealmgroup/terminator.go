@@ -7,6 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 type terminator struct {
@@ -26,6 +27,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	log.Info("Start deleting group")
 
 	if err := t.kClient.DeleteGroup(ctx, t.realmName, t.groupName); err != nil {
+		if adapter.IsErrNotFound(err) {
+			log.Info("Group not found, skipping deletion")
+
+			return nil
+		}
+
 		return fmt.Errorf("unable to delete group %w", err)
 	}
 
