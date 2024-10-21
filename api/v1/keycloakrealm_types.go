@@ -68,6 +68,10 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	TokenSettings *common.TokenSettings `json:"tokenSettings,omitempty"`
+
+	// DisplayName is the display name of the realm.
+	// +optional
+	DisplayName string `json:"displayName,omitempty"`
 }
 
 type User struct {

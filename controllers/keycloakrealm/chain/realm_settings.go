@@ -32,14 +32,10 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 		}
 	}
 
-	if realm.Spec.BrowserSecurityHeaders == nil && realm.Spec.Themes == nil && len(realm.Spec.PasswordPolicies) == 0 {
-		rLog.Info("Realm settings is not set, exit.")
-		return nextServeOrNil(ctx, h.next, realm, kClient)
-	}
-
 	settings := adapter.RealmSettings{
 		DisplayHTMLName: realm.Spec.DisplayHTMLName,
 		FrontendURL:     realm.Spec.FrontendURL,
+		DisplayName:     realm.Spec.DisplayName,
 	}
 
 	if realm.Spec.Themes != nil {

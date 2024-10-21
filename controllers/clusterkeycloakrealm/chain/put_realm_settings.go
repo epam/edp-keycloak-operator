@@ -39,7 +39,9 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 	}
 
 	settings := adapter.RealmSettings{
-		FrontendURL: realm.Spec.FrontendURL,
+		FrontendURL:     realm.Spec.FrontendURL,
+		DisplayHTMLName: realm.Spec.DisplayHTMLName,
+		DisplayName:     realm.Spec.DisplayName,
 	}
 
 	if realm.Spec.Themes != nil {
