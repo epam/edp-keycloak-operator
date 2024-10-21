@@ -54,6 +54,14 @@ type ClusterKeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	AuthenticationFlow *AuthenticationFlow `json:"authenticationFlows,omitempty"`
+
+	// DisplayHTMLName name to render in the UI.
+	// +optional
+	DisplayHTMLName string `json:"displayHtmlName,omitempty"`
+
+	// DisplayName is the display name of the realm.
+	// +optional
+	DisplayName string `json:"displayName,omitempty"`
 }
 
 type AuthenticationFlow struct {

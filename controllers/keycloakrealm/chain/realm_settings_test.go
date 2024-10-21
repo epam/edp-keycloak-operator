@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -18,6 +19,8 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	kClient := mocks.NewMockClient(t)
 	realm := keycloakApi.KeycloakRealm{}
 	ctx := context.Background()
+
+	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
 
 	err := rs.ServeRequest(ctx, &realm, kClient)
 	require.NoError(t, err)
@@ -56,6 +59,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		},
 		DisplayHTMLName: realm.Spec.DisplayHTMLName,
 		FrontendURL:     realm.Spec.FrontendURL,
+		DisplayName:     realm.Spec.DisplayName,
 	}).Return(nil)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
@@ -68,6 +72,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
 		EventsListeners: []string{"foo", "bar"},
 	}).Return(errors.New("event config fatal")).Once()
+	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
 
 	err = rs.ServeRequest(ctx, &realm, kClient)
 	require.Error(t, err)

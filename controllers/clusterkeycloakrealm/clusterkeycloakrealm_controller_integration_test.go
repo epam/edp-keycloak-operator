@@ -37,6 +37,8 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 					ActionTokenGeneratedByUserLifespan:  234,
 					ActionTokenGeneratedByAdminLifespan: 235,
 				},
+				DisplayName:     "Test Realm",
+				DisplayHTMLName: "<b>Test Realm</b>",
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

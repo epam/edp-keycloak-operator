@@ -56,6 +56,7 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On(
 		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName}).
 		Return(nil)
+	kClient.On("UpdateRealmSettings", testifymock.Anything, testifymock.Anything).Return(nil)
 
 	hm := helpermock.NewControllerHelper(t)
 
