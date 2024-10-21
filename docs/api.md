@@ -115,6 +115,20 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>displayHtmlName</b></td>
+        <td>string</td>
+        <td>
+          DisplayHTMLName name to render in the UI.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>displayName</b></td>
+        <td>string</td>
+        <td>
+          DisplayName is the display name of the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>frontendUrl</b></td>
         <td>string</td>
         <td>
@@ -3875,6 +3889,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>string</td>
         <td>
           DisplayHTMLName name to render in the UI<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>displayName</b></td>
+        <td>string</td>
+        <td>
+          DisplayName is the display name of the realm.<br/>
         </td>
         <td>false</td>
       </tr><tr>

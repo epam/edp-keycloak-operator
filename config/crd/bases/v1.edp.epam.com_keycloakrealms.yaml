@@ -63,6 +63,9 @@ spec:
               displayHtmlName:
                 description: DisplayHTMLName name to render in the UI
                 type: string
+              displayName:
+                description: DisplayName is the display name of the realm.
+                type: string
               frontendUrl:
                 description: FrontendURL Set the frontend URL for the realm. Use in
                   combination with the default hostname provider to override the base

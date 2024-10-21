@@ -21,6 +21,7 @@ type RealmSettings struct {
 	DisplayHTMLName        string
 	FrontendURL            string
 	TokenSettings          *TokenSettings
+	DisplayName            string
 }
 
 type PasswordPolicy struct {
@@ -109,6 +110,8 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 
 		(*realm.Attributes)["frontendUrl"] = realmSettings.FrontendURL
 	}
+
+	realm.DisplayName = gocloak.StringP(realmSettings.DisplayName)
 
 	if realmSettings.TokenSettings != nil {
 		realm.DefaultSignatureAlgorithm = gocloak.StringP(realmSettings.TokenSettings.DefaultSignatureAlgorithm)
