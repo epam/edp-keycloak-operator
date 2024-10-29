@@ -2,6 +2,27 @@
 ## [Unreleased]
 
 
+<a name="v1.23.0"></a>
+## [v1.23.0] - 2024-10-29
+### Features
+- Add DisplayName to KeycloakRealm/ClusterKeycloakRealm ([#94](https://github.com/epam/edp-keycloak-operator/issues/94))
+- Add support for optional client scopes
+- Add childRequirement for KeycloakAuthFlow ([#82](https://github.com/epam/edp-keycloak-operator/issues/82))
+- Remove deprecated v1alpha1 versions from the operator ([#86](https://github.com/epam/edp-keycloak-operator/issues/86))
+- Add displayHTMLName to realm resource ([#80](https://github.com/epam/edp-keycloak-operator/issues/80))
+
+### Bug Fixes
+- Deletion resources related to subgroup ([#95](https://github.com/epam/edp-keycloak-operator/issues/95))
+- Resolve subgroup creation and assignment issues ([#95](https://github.com/epam/edp-keycloak-operator/issues/95))
+
+### Routine
+- Update Pull Request Template ([#17](https://github.com/epam/edp-keycloak-operator/issues/17))
+- Update KubeRocketCI names and documentation links ([#91](https://github.com/epam/edp-keycloak-operator/issues/91))
+- Publish update on OperatorHub ([#76](https://github.com/epam/edp-keycloak-operator/issues/76))
+- Add additional examples of Keycloak AuthFlow resource ([#79](https://github.com/epam/edp-keycloak-operator/issues/79))
+- Update current development version ([#76](https://github.com/epam/edp-keycloak-operator/issues/76))
+
+
 <a name="v1.22.0"></a>
 ## [v1.22.0] - 2024-07-23
 ### Features
@@ -127,7 +148,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...HEAD
+[v1.23.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...v1.23.0
 [v1.22.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.21.0...v1.22.0
 [v1.21.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.20.0...v1.21.0
 [v1.20.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.19.0...v1.20.0
