@@ -157,6 +157,35 @@ func (a GoCloakAdapter) GetResources(ctx context.Context, realm, idOfClient stri
 	return resources, nil
 }
 
+// CreateResource creates a client authorization resource.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) CreateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error) {
+	p, err := a.client.CreateResource(ctx, a.token.AccessToken, realm, idOfClient, resource)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create resource: %w", err)
+	}
+
+	return p, nil
+}
+
+// UpdateResource updates a client authorization resource.
+// nolint:gocritic // gocloak is a third party library, we can't change the function signature
+func (a GoCloakAdapter) UpdateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) error {
+	if err := a.client.UpdateResource(ctx, a.token.AccessToken, realm, idOfClient, resource); err != nil {
+		return fmt.Errorf("failed to update resource: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) DeleteResource(ctx context.Context, realm, idOfClient, resourceID string) error {
+	if err := a.client.DeleteResource(ctx, a.token.AccessToken, realm, idOfClient, resourceID); err != nil {
+		return fmt.Errorf("failed to delete resource: %w", err)
+	}
+
+	return nil
+}
+
 // CreateScope creates a client authorization permission.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
 func (a GoCloakAdapter) CreateScope(ctx context.Context, realm, idOfClient string, scope string) (*gocloak.ScopeRepresentation, error) {

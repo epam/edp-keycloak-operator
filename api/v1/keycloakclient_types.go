@@ -239,6 +239,8 @@ type Authorization struct {
 	Policies []Policy `json:"policies,omitempty"`
 
 	Permissions []Permission `json:"permissions,omitempty"`
+
+	Resources []Resource `json:"resources,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

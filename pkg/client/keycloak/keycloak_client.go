@@ -100,6 +100,9 @@ type KCloakClients interface {
 	DeletePermission(ctx context.Context, realm, idOfClient, permissionID string) error
 
 	GetResources(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ResourceRepresentation, error)
+	UpdateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) error
+	CreateResource(ctx context.Context, realm string, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)
+	DeleteResource(ctx context.Context, realm, idOfClient, resourceID string) error
 }
 
 type KCloakClientScope interface {
