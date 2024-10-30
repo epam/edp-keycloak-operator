@@ -242,3 +242,41 @@ type Permission struct {
 	// +kubebuilder:example={scope1,scope2}
 	Scopes []string `json:"scopes,omitempty"`
 }
+
+type Resource struct {
+	// Name is unique resource name.
+	// +required
+	Name string `json:"name"`
+
+	// DisplayName for Identity Providers.
+	// +required
+	DisplayName string `json:"displayName"`
+
+	// Type of this resource. It can be used to group different resource instances with the same type.
+	// +optional
+	Type string `json:"type,omitempty"`
+
+	// IconURI pointing to an icon.
+	// +optional
+	IconURI string `json:"iconUri,omitempty"`
+
+	// OwnerManagedAccess if enabled, the access to this resource can be managed by the resource owner.
+	// +optional
+	OwnerManagedAccess bool `json:"ownerManagedAccess"`
+
+	// URIs which are protected by resource.
+	// +optional
+	// +nullable
+	URIs []string `json:"uris,omitempty"`
+
+	// Attributes is a map of resource attributes.
+	// +optional
+	// +nullable
+	Attributes map[string][]string `json:"attributes"`
+
+	// Scopes requested or assigned in advance to the client to determine whether the policy is applied to this client.
+	// Condition is evaluated during OpenID Connect authorization request and/or token request.
+	// +optional
+	// +nullable
+	Scopes []string `json:"scopes"`
+}

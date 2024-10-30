@@ -915,6 +915,68 @@ func (_c *MockGoCloak_CreateRealmRole_Call) RunAndReturn(run func(context.Contex
 	return _c
 }
 
+// CreateResource provides a mock function with given fields: ctx, token, realm, idOfClient, resource
+func (_m *MockGoCloak) CreateResource(ctx context.Context, token string, realm string, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, idOfClient, resource)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateResource")
+	}
+
+	var r0 *gocloak.ResourceRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)); ok {
+		return rf(ctx, token, realm, idOfClient, resource)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.ResourceRepresentation) *gocloak.ResourceRepresentation); ok {
+		r0 = rf(ctx, token, realm, idOfClient, resource)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.ResourceRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string, gocloak.ResourceRepresentation) error); ok {
+		r1 = rf(ctx, token, realm, idOfClient, resource)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_CreateResource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateResource'
+type MockGoCloak_CreateResource_Call struct {
+	*mock.Call
+}
+
+// CreateResource is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - resource gocloak.ResourceRepresentation
+func (_e *MockGoCloak_Expecter) CreateResource(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, resource interface{}) *MockGoCloak_CreateResource_Call {
+	return &MockGoCloak_CreateResource_Call{Call: _e.mock.On("CreateResource", ctx, token, realm, idOfClient, resource)}
+}
+
+func (_c *MockGoCloak_CreateResource_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, resource gocloak.ResourceRepresentation)) *MockGoCloak_CreateResource_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.ResourceRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_CreateResource_Call) Return(_a0 *gocloak.ResourceRepresentation, _a1 error) *MockGoCloak_CreateResource_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_CreateResource_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)) *MockGoCloak_CreateResource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateScope provides a mock function with given fields: ctx, token, realm, idOfClient, scope
 func (_m *MockGoCloak) CreateScope(ctx context.Context, token string, realm string, idOfClient string, scope gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error) {
 	ret := _m.Called(ctx, token, realm, idOfClient, scope)
@@ -1678,6 +1740,56 @@ func (_c *MockGoCloak_DeleteRealmRoleFromUser_Call) Return(_a0 error) *MockGoClo
 }
 
 func (_c *MockGoCloak_DeleteRealmRoleFromUser_Call) RunAndReturn(run func(context.Context, string, string, string, []gocloak.Role) error) *MockGoCloak_DeleteRealmRoleFromUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteResource provides a mock function with given fields: ctx, token, realm, idOfClient, resourceID
+func (_m *MockGoCloak) DeleteResource(ctx context.Context, token string, realm string, idOfClient string, resourceID string) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, resourceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteResource")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, resourceID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeleteResource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteResource'
+type MockGoCloak_DeleteResource_Call struct {
+	*mock.Call
+}
+
+// DeleteResource is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - resourceID string
+func (_e *MockGoCloak_Expecter) DeleteResource(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, resourceID interface{}) *MockGoCloak_DeleteResource_Call {
+	return &MockGoCloak_DeleteResource_Call{Call: _e.mock.On("DeleteResource", ctx, token, realm, idOfClient, resourceID)}
+}
+
+func (_c *MockGoCloak_DeleteResource_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, resourceID string)) *MockGoCloak_DeleteResource_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteResource_Call) Return(_a0 error) *MockGoCloak_DeleteResource_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteResource_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteResource_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3407,6 +3519,56 @@ func (_c *MockGoCloak_UpdateRealmRole_Call) Return(_a0 error) *MockGoCloak_Updat
 }
 
 func (_c *MockGoCloak_UpdateRealmRole_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.Role) error) *MockGoCloak_UpdateRealmRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateResource provides a mock function with given fields: ctx, token, realm, idOfClient, resource
+func (_m *MockGoCloak) UpdateResource(ctx context.Context, token string, realm string, idOfClient string, resource gocloak.ResourceRepresentation) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, resource)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateResource")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.ResourceRepresentation) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, resource)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_UpdateResource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateResource'
+type MockGoCloak_UpdateResource_Call struct {
+	*mock.Call
+}
+
+// UpdateResource is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - resource gocloak.ResourceRepresentation
+func (_e *MockGoCloak_Expecter) UpdateResource(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, resource interface{}) *MockGoCloak_UpdateResource_Call {
+	return &MockGoCloak_UpdateResource_Call{Call: _e.mock.On("UpdateResource", ctx, token, realm, idOfClient, resource)}
+}
+
+func (_c *MockGoCloak_UpdateResource_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, resource gocloak.ResourceRepresentation)) *MockGoCloak_UpdateResource_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.ResourceRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_UpdateResource_Call) Return(_a0 error) *MockGoCloak_UpdateResource_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_UpdateResource_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.ResourceRepresentation) error) *MockGoCloak_UpdateResource_Call {
 	_c.Call.Return(run)
 	return _c
 }
