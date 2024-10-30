@@ -1471,6 +1471,13 @@ Authorization is a client authorization configuration.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationresourcesindex">resources</a></b></td>
+        <td>[]object</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>scopes</b></td>
         <td>[]string</td>
         <td>
@@ -1983,6 +1990,83 @@ UserPolicy is a user policy settings.
           Users is a list of usernames. Specifies which user(s) are allowed by this policy.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.resources[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorization)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>displayName</b></td>
+        <td>string</td>
+        <td>
+          DisplayName for Identity Providers.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is unique resource name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>attributes</b></td>
+        <td>map[string][]string</td>
+        <td>
+          Attributes is a map of resource attributes.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>iconUri</b></td>
+        <td>string</td>
+        <td>
+          IconURI pointing to an icon.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>ownerManagedAccess</b></td>
+        <td>boolean</td>
+        <td>
+          OwnerManagedAccess if enabled, the access to this resource can be managed by the resource owner.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>scopes</b></td>
+        <td>[]string</td>
+        <td>
+          Scopes requested or assigned in advance to the client to determine whether the policy is applied to this client.
+Condition is evaluated during OpenID Connect authorization request and/or token request.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>string</td>
+        <td>
+          Type of this resource. It can be used to group different resource instances with the same type.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>uris</b></td>
+        <td>[]string</td>
+        <td>
+          URIs which are protected by resource.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

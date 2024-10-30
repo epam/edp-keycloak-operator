@@ -61,6 +61,9 @@ type GoCloakClients interface {
 	DeletePermission(ctx context.Context, token, realm, idOfClient, permissionID string) error
 
 	GetResources(ctx context.Context, token, realm, idOfClient string, params gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error)
+	UpdateResource(ctx context.Context, token, realm, idOfClient string, resource gocloak.ResourceRepresentation) error
+	CreateResource(ctx context.Context, token, realm string, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)
+	DeleteResource(ctx context.Context, token, realm, idOfClient, resourceID string) error
 }
 
 type GoCloakUsers interface {

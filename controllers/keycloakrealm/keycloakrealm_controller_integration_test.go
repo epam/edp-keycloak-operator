@@ -50,8 +50,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				FrontendURL: "https://test.com",
 				Users: []keycloakApi.User{
 					{
-						Username:   "keycloakrealm-user@mail.com",
-						RealmRoles: []string{"administrator"},
+						Username: "keycloakrealm-user@mail.com",
 					},
 				},
 				TokenSettings: &common.TokenSettings{

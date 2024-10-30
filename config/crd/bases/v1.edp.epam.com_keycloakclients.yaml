@@ -334,6 +334,53 @@ spec:
                       - type
                       type: object
                     type: array
+                  resources:
+                    items:
+                      properties:
+                        attributes:
+                          additionalProperties:
+                            items:
+                              type: string
+                            type: array
+                          description: Attributes is a map of resource attributes.
+                          nullable: true
+                          type: object
+                        displayName:
+                          description: DisplayName for Identity Providers.
+                          type: string
+                        iconUri:
+                          description: IconURI pointing to an icon.
+                          type: string
+                        name:
+                          description: Name is unique resource name.
+                          type: string
+                        ownerManagedAccess:
+                          description: OwnerManagedAccess if enabled, the access to
+                            this resource can be managed by the resource owner.
+                          type: boolean
+                        scopes:
+                          description: |-
+                            Scopes requested or assigned in advance to the client to determine whether the policy is applied to this client.
+                            Condition is evaluated during OpenID Connect authorization request and/or token request.
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                        type:
+                          description: Type of this resource. It can be used to group
+                            different resource instances with the same type.
+                          type: string
+                        uris:
+                          description: URIs which are protected by resource.
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                      required:
+                      - displayName
+                      - name
+                      type: object
+                    type: array
                   scopes:
                     items:
                       type: string

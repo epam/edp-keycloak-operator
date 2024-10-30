@@ -269,6 +269,19 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 						},
 					},
 					Permissions: []keycloakApi.Permission{},
+					Scopes:      []string{"test-scope"},
+					Resources: []keycloakApi.Resource{
+						{
+							Name:               "test-resource",
+							DisplayName:        "Test resource",
+							Type:               "test",
+							IconURI:            "https://example.com/icon.png",
+							OwnerManagedAccess: true,
+							URIs:               []string{"https://example.com"},
+							Attributes:         map[string][]string{"test": {"test-value"}},
+							Scopes:             []string{"test-scope"},
+						},
+					},
 				},
 			},
 		}
@@ -333,6 +346,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Resources:        []string{"test-resource"},
 			},
 		}
+		clientToUpdate.Spec.Authorization.Resources = []keycloakApi.Resource{}
 
 		By("Waiting for the KeycloakClient will be processed at least once")
 		time.Sleep(5 * time.Second)
