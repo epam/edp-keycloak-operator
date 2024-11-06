@@ -149,12 +149,12 @@ type KeycloakClientSpec struct {
 	// Enabled is a flag to enable client.
 	// +optional
 	// +kubebuilder:default=true
-	Enabled bool `json:"enabled,omitempty"`
+	Enabled bool `json:"enabled"`
 
 	// FullScopeAllowed is a flag to enable full scope.
 	// +optional
 	// +kubebuilder:default=true
-	FullScopeAllowed bool `json:"fullScopeAllowed,omitempty"`
+	FullScopeAllowed bool `json:"fullScopeAllowed"`
 
 	// Name is a client name.
 	// +optional
@@ -163,7 +163,7 @@ type KeycloakClientSpec struct {
 	// StandardFlowEnabled is a flag to enable standard flow.
 	// +optional
 	// +kubebuilder:default=true
-	StandardFlowEnabled bool `json:"standardFlowEnabled,omitempty"`
+	StandardFlowEnabled bool `json:"standardFlowEnabled"`
 
 	// SurrogateAuthRequired is a flag to enable surrogate auth.
 	SurrogateAuthRequired bool `json:"surrogateAuthRequired,omitempty"`

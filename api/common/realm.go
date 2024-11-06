@@ -15,7 +15,7 @@ type TokenSettings struct {
 	// Otherwise, refresh tokens are not revoked when used and can be used multiple times.
 	// +optional
 	// +kubebuilder:default=false
-	RevokeRefreshToken bool `json:"revokeRefreshToken,omitempty"`
+	RevokeRefreshToken bool `json:"revokeRefreshToken"`
 
 	// RefreshTokenMaxReuse specifies maximum number of times a refresh token can be reused.
 	// When a different token is used, revocation is immediate.

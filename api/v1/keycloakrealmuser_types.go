@@ -75,7 +75,7 @@ type KeycloakRealmUserSpec struct {
 	// When set to true, the CR will not be deleted after processing.
 	// +optional
 	// +kubebuilder:default=true
-	KeepResource bool `json:"keepResource,omitempty"`
+	KeepResource bool `json:"keepResource"`
 
 	// PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
 	// +nullable
