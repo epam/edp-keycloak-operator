@@ -23,6 +23,14 @@ spec:
       jsonPath: .status.value
       name: Status
       type: string
+    - description: Keycloak realm name
+      jsonPath: .spec.realmName
+      name: Realm
+      type: boolean
+    - description: Keycloak instance name
+      jsonPath: .spec.keycloakRef
+      name: Keycloak
+      type: boolean
     name: v1
     schema:
       openAPIV3Schema:
