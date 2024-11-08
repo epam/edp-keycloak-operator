@@ -188,6 +188,8 @@ func (in *KeycloakRealm) SetFailureCount(count int64) {
 // +kubebuilder:storageversion
 // +kubebuilder:printcolumn:name="Available",type="boolean",JSONPath=".status.available",description="Is the resource available"
 // +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
+//+kubebuilder:printcolumn:name="Realm",type="boolean",JSONPath=".spec.realmName",description="Keycloak realm name"
+//+kubebuilder:printcolumn:name="Keycloak",type="boolean",JSONPath=".spec.keycloakRef",description="Keycloak instance name"
 
 // KeycloakRealm is the Schema for the keycloak realms API.
 type KeycloakRealm struct {

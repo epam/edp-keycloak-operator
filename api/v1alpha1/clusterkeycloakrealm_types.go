@@ -153,6 +153,8 @@ type ClusterKeycloakRealmStatus struct {
 //+kubebuilder:storageversion
 //+kubebuilder:resource:scope=Cluster
 //+kubebuilder:printcolumn:name="Available",type="boolean",JSONPath=".status.available",description="Keycloak realm is available"
+//+kubebuilder:printcolumn:name="Realm",type="boolean",JSONPath=".spec.realmName",description="Keycloak realm name"
+//+kubebuilder:printcolumn:name="Cluster-Keycloak",type="boolean",JSONPath=".spec.clusterKeycloakRef",description="ClusterKeycloak instance name"
 
 // ClusterKeycloakRealm is the Schema for the clusterkeycloakrealms API.
 type ClusterKeycloakRealm struct {
