@@ -19,6 +19,14 @@ spec:
       jsonPath: .status.available
       name: Available
       type: boolean
+    - description: Keycloak realm name
+      jsonPath: .spec.realmName
+      name: Realm
+      type: boolean
+    - description: ClusterKeycloak instance name
+      jsonPath: .spec.clusterKeycloakRef
+      name: Cluster-Keycloak
+      type: boolean
     name: v1alpha1
     schema:
       openAPIV3Schema:
