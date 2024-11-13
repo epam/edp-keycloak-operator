@@ -72,6 +72,13 @@ type KeycloakRealmSpec struct {
 	// DisplayName is the display name of the realm.
 	// +optional
 	DisplayName string `json:"displayName,omitempty"`
+
+	// UserProfileConfig is the configuration for user profiles in the realm.
+	// Attributes and groups will be added to the current realm configuration.
+	// Deletion of attributes and groups is not supported.
+	// +nullable
+	// +optional
+	UserProfileConfig *common.UserProfileConfig `json:"userProfileConfig,omitempty"`
 }
 
 type User struct {

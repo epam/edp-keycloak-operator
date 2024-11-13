@@ -243,6 +243,143 @@ spec:
                       Otherwise, refresh tokens are not revoked when used and can be used multiple times.
                     type: boolean
                 type: object
+              userProfileConfig:
+                description: UserProfileConfig is the configuration for user profiles
+                  in the realm.
+                nullable: true
+                properties:
+                  attributes:
+                    description: Attributes specifies the list of user profile attributes.
+                    items:
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: Annotations specifies the annotations for the
+                            attribute.
+                          type: object
+                        displayName:
+                          description: Display name for the attribute.
+                          type: string
+                        group:
+                          description: Group to which the attribute belongs.
+                          type: string
+                        multivalued:
+                          description: |-
+                            Multivalued specifies if this attribute supports multiple values.
+                            This setting is an indicator and does not enable any validation
+                          type: boolean
+                        name:
+                          description: Name of the user attribute, used to uniquely
+                            identify an attribute.
+                          type: string
+                        permissions:
+                          description: Permissions specifies the permissions for the
+                            attribute.
+                          properties:
+                            edit:
+                              description: Edit specifies who can edit the attribute.
+                              items:
+                                type: string
+                              type: array
+                            view:
+                              description: View specifies who can view the attribute.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        required:
+                          description: Required indicates that the attribute must
+                            be set by users and administrators.
+                          properties:
+                            roles:
+                              description: Roles specifies the roles for whom the
+                                attribute is required.
+                              items:
+                                type: string
+                              type: array
+                            scopes:
+                              description: Scopes specifies the scopes when the attribute
+                                is required.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        selector:
+                          description: Selector specifies the scopes for which the
+                            attribute is available.
+                          properties:
+                            scopes:
+                              description: Scopes specifies the scopes for which the
+                                attribute is available.
+                              items:
+                                type: string
+                              type: array
+                          type: object
+                        validations:
+                          additionalProperties:
+                            additionalProperties:
+                              properties:
+                                intVal:
+                                  type: integer
+                                mapVal:
+                                  additionalProperties:
+                                    type: string
+                                  nullable: true
+                                  type: object
+                                sliceVal:
+                                  items:
+                                    type: string
+                                  nullable: true
+                                  type: array
+                                stringVal:
+                                  type: string
+                              type: object
+                            type: object
+                          description: Validations specifies the validations for the
+                            attribute.
+                          type: object
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  groups:
+                    description: Groups specifies the list of user profile groups.
+                    items:
+                      properties:
+                        annotations:
+                          additionalProperties:
+                            type: string
+                          description: |-
+                            Annotations specifies the annotations for the group.
+                            nullable
+                          type: object
+                        displayDescription:
+                          description: DisplayDescription specifies a user-friendly
+                            name for the group that should be used when rendering
+                            a group of attributes in user-facing forms.
+                          type: string
+                        displayHeader:
+                          description: DisplayHeader specifies a text that should
+                            be used as a header when rendering user-facing forms.
+                          type: string
+                        name:
+                          description: Name is unique name of the group.
+                          type: string
+                      required:
+                      - name
+                      type: object
+                    type: array
+                  unmanagedAttributePolicy:
+                    description: |-
+                      UnmanagedAttributePolicy are user attributes not explicitly defined in the user profile configuration.
+                      Empty value means that unmanaged attributes are disabled.
+                      Possible values:
+                      ENABLED - unmanaged attributes are allowed.
+                      ADMIN_VIEW - unmanaged attributes are read-only and only available through the administration console and API.
+                      ADMIN_EDIT - unmanaged attributes can be managed only through the administration console and API.
+                    type: string
+                type: object
             required:
             - clusterKeycloakRef
             - realmName
