@@ -158,18 +158,3 @@ type IdentityProviderMapper struct {
 	Config                 map[string]string `json:"config"`
 	ID                     string            `json:"id"`
 }
-
-func ConvertSSOMappersToIdentityProviderMappers(idpAlias string,
-	ssoMappers []keycloakApi.SSORealmMapper) []IdentityProviderMapper {
-	idpMappers := make([]IdentityProviderMapper, 0, len(ssoMappers))
-	for _, sm := range ssoMappers {
-		idpMappers = append(idpMappers, IdentityProviderMapper{
-			IdentityProviderAlias:  idpAlias,
-			IdentityProviderMapper: sm.IdentityProviderMapper,
-			Config:                 sm.Config,
-			Name:                   sm.Name,
-		})
-	}
-
-	return idpMappers
-}

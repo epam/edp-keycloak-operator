@@ -60,7 +60,6 @@ func TestIsErrNotFound(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -237,7 +236,6 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.want, got)
-
 		})
 	}
 }

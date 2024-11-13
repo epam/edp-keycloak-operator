@@ -95,8 +95,6 @@ func (a GoCloakAdapter) getGroupsByNames(ctx context.Context, realm string, grou
 	m := sync.Mutex{}
 
 	for _, groupName := range groupNames {
-		groupName := groupName
-
 		eg.Go(func() error {
 			group, err := a.getGroup(ctx, realm, groupName)
 			if err != nil {

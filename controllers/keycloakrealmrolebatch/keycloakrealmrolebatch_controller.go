@@ -95,6 +95,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 		log.Error(err, "an error has occurred while handling keycloak realm role batch")
 	} else {
 		helper.SetSuccessStatus(&instance)
+
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 
@@ -165,7 +166,9 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 		} else if err == nil {
 			if r.isOwner(batch, &crRole) {
 				log.Info("Role already created")
+
 				roles = append(roles, crRole)
+
 				continue
 			}
 

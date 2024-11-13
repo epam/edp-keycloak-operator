@@ -9,7 +9,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"k8s.io/utils/pointer"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -32,7 +32,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					Name: keycloakCR,
 					Kind: keycloakApi.KeycloakKind,
 				},
-				BrowserFlow: pointer.String("browser"),
+				BrowserFlow: ptr.To("browser"),
 				RealmEventConfig: &keycloakApi.RealmEventConfig{
 					AdminEventsDetailsEnabled: false,
 					AdminEventsEnabled:        true,
@@ -65,6 +65,59 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				},
 				DisplayName:     "Test Realm",
 				DisplayHTMLName: "<b>Test Realm</b>",
+				UserProfileConfig: &common.UserProfileConfig{
+					Attributes: []common.UserProfileAttribute{
+						{
+							DisplayName: "Attribute 1",
+							Group:       "test-group",
+							Name:        "attr1",
+							Multivalued: true,
+							Permissions: &common.UserProfileAttributePermissions{
+								Edit: []string{"admin"},
+								View: []string{"admin"},
+							},
+							Required: &common.UserProfileAttributeRequired{
+								Roles:  []string{"admin", "user"},
+								Scopes: []string{"email"},
+							},
+							Selector: &common.UserProfileAttributeSelector{
+								Scopes: []string{"roles"},
+							},
+							Annotations: map[string]string{
+								"inputType": "text",
+							},
+							Validations: map[string]map[string]common.UserProfileAttributeValidation{
+								"email": {
+									"max-local-length": {
+										IntVal: 64,
+									},
+								},
+								"local-date": {},
+								"multivalued": {
+									"min": {
+										StringVal: "1",
+									},
+									"max": {
+										StringVal: "10",
+									},
+								},
+								"options": {
+									"options": {
+										SliceVal: []string{"option1", "option2"},
+									},
+								},
+							},
+						},
+					},
+					Groups: []common.UserProfileGroup{
+						{
+							Annotations:        map[string]string{"group": "test"},
+							DisplayDescription: "Group description",
+							DisplayHeader:      "Group header",
+							Name:               "test-group",
+						},
+					},
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

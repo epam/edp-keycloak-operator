@@ -32,8 +32,6 @@ func TestMockServerBuilder_AddStringResponder(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -82,8 +80,6 @@ func TestMockServerBuilder_AddStringResponderWithCode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -132,8 +128,6 @@ func TestMockServerBuilder_AddJsonResponderWithCode(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -157,7 +151,6 @@ func TestMockServerBuilder_AddJsonResponderWithCode(t *testing.T) {
 			require.NoError(t, err)
 
 			require.JSONEq(t, string(jsonResp), string(body))
-
 		})
 	}
 }
@@ -188,8 +181,6 @@ func TestDefaultFakeServer_Close(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -226,8 +217,6 @@ func TestDefaultFakeServer_GetURL(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
-
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 

@@ -9,6 +9,7 @@ func MakeChain(c client.Client) RealmHandler {
 	ch.Use(
 		NewPutRealm(c),
 		NewPutRealmSettings(),
+		NewUserProfile(),
 	)
 
 	return ch

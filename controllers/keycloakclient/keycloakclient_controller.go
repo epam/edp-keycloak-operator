@@ -107,6 +107,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 		log.Error(err, "an error has occurred while handling keycloak client", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
+
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 

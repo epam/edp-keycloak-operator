@@ -139,7 +139,7 @@ helm-docs: helmdocs	## generate helm docs
 GOLANGCILINT = ${CURRENT_DIR}/bin/golangci-lint
 .PHONY: golangci-lint
 golangci-lint: ## Download golangci-lint locally if necessary.
-	$(call go-get-tool,$(GOLANGCILINT),github.com/golangci/golangci-lint/cmd/golangci-lint,v1.55.2)
+	$(call go-get-tool,$(GOLANGCILINT),github.com/golangci/golangci-lint/cmd/golangci-lint,v1.62.0)
 
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -218,4 +218,4 @@ mocks: mockery
 MOCKERY = $(LOCALBIN)/mockery
 .PHONY: mockery
 mockery: ## Download mockery locally if necessary.
-	$(call go-get-tool,$(MOCKERY),github.com/vektra/mockery/v2,v2.43.0)
+	$(call go-get-tool,$(MOCKERY),github.com/vektra/mockery/v2,v2.46.3)
