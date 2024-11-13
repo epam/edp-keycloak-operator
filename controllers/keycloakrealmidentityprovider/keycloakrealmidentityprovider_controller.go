@@ -128,6 +128,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		log.Error(err, "an error has occurred while handling keycloak realm idp", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
+
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 

@@ -120,8 +120,6 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 	}
 
 	for name, tc := range tests {
-		tc := tc
-
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
@@ -135,6 +133,7 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 				assert.Error(t, err)
 				return
 			}
+
 			assert.NoError(t, err)
 		})
 	}

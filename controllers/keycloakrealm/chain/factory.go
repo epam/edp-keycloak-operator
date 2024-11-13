@@ -25,7 +25,9 @@ func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) ha
 			next: PutUsers{
 				next: PutUsersRoles{
 					next: RealmSettings{
-						next: AuthFlow{},
+						next: AuthFlow{
+							next: UserProfile{},
+						},
 					},
 				},
 			},

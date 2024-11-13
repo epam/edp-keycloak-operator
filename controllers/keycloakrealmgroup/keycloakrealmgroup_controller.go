@@ -102,6 +102,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 		log.Error(err, "an error has occurred while handling keycloak realm group", "name", request.Name)
 	} else {
 		helper.SetSuccessStatus(&instance)
+
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 

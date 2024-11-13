@@ -18,10 +18,12 @@ type RealmRef struct {
 	Name string `json:"name,omitempty"`
 }
 
+// +kubebuilder:object:generate=false
 type HasRealmRef interface {
 	GetRealmRef() RealmRef
 }
 
+// +kubebuilder:object:generate=false
 type HasKeycloakRef interface {
 	GetKeycloakRef() KeycloakRef
 }

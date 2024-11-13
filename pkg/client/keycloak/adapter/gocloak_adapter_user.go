@@ -7,6 +7,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 )
 
 type KeycloakUser struct {
@@ -73,7 +74,7 @@ func (a GoCloakAdapter) createOrUpdateUser(ctx context.Context, realmName string
 			Email:           &userDto.Email,
 		}
 
-		if userDto.Attributes != nil && len(userDto.Attributes) > 0 {
+		if len(userDto.Attributes) > 0 {
 			kcUser.Attributes = a.makeUserAttributes(&kcUser, userDto, addOnly)
 		}
 
@@ -95,7 +96,7 @@ func (a GoCloakAdapter) createOrUpdateUser(ctx context.Context, realmName string
 	user.RequiredActions = &userDto.RequiredUserActions
 	user.Email = &userDto.Email
 
-	if userDto.Attributes != nil && len(userDto.Attributes) > 0 {
+	if len(userDto.Attributes) > 0 {
 		user.Attributes = a.makeUserAttributes(user, userDto, addOnly)
 	}
 
@@ -284,6 +285,59 @@ func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, g
 
 	if err = a.checkError(err, rsp); err != nil {
 		return errors.Wrap(err, "unable to add user to group")
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) UpdateUsersProfile(
+	ctx context.Context,
+	realm string,
+	userProfile keycloak_go_client.UserProfileConfig,
+) (*keycloak_go_client.UserProfileConfig, error) {
+	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
+	}
+
+	profile, res, err := cl.Users.UpdateUsersProfile(ctx, realm, userProfile)
+	if err = checkHttpResp(res, err); err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+func (a GoCloakAdapter) GetUsersProfile(
+	ctx context.Context,
+	realm string,
+) (*keycloak_go_client.UserProfileConfig, error) {
+	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
+	}
+
+	profile, res, err := cl.Users.GetUsersProfile(ctx, realm)
+	if err = checkHttpResp(res, err); err != nil {
+		return nil, err
+	}
+
+	return profile, nil
+}
+
+func checkHttpResp(res *keycloak_go_client.Response, err error) error {
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+
+	if res == nil || res.HTTPResponse == nil {
+		return errors.New("empty response")
+	}
+
+	const maxStatusCodesSuccess = 399
+
+	if res.HTTPResponse.StatusCode > maxStatusCodesSuccess {
+		return errors.Errorf("status: %s, body: %s", res.HTTPResponse.Status, res.Body)
 	}
 
 	return nil

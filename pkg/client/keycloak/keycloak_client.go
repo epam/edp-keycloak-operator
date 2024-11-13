@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/Nerzal/gocloak/v12"
+	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -60,6 +61,8 @@ type KCloakUsers interface {
 	SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error
 	DeleteRealmUser(ctx context.Context, realmName, username string) error
 	GetUsersByNames(ctx context.Context, realm string, names []string) (map[string]gocloak.User, error)
+	UpdateUsersProfile(ctx context.Context, realm string, userProfile keycloak_go_client.UserProfileConfig) (*keycloak_go_client.UserProfileConfig, error)
+	GetUsersProfile(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error)
 }
 
 type KCloakRealms interface {

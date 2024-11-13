@@ -62,6 +62,11 @@ type ClusterKeycloakRealmSpec struct {
 	// DisplayName is the display name of the realm.
 	// +optional
 	DisplayName string `json:"displayName,omitempty"`
+
+	// UserProfileConfig is the configuration for user profiles in the realm.
+	// +nullable
+	// +optional
+	UserProfileConfig *common.UserProfileConfig `json:"userProfileConfig,omitempty"`
 }
 
 type AuthenticationFlow struct {

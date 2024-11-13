@@ -535,7 +535,7 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		WebOrigins:              &client.WebOrigins,
 	}
 
-	if client.RedirectUris != nil && len(client.RedirectUris) > 0 {
+	if len(client.RedirectUris) > 0 {
 		cl.RedirectURIs = &client.RedirectUris
 	}
 
