@@ -12,6 +12,8 @@ spec:
   public: false
   secret: $client-secret-name:client-secret-key
   webUrl: https://argocd.example.com
+  adminUrl: https://admin.example.com
+  homeUrl: /home/
   defaultClientScopes:
     - groups
   redirectUris:
