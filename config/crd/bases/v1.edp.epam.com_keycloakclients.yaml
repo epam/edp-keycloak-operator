@@ -44,6 +44,9 @@ spec:
           spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
+              adminUrl:
+                description: AdminUrl
+                type: string
               advancedProtocolMappers:
                 description: AdvancedProtocolMappers is a flag to enable advanced
                   protocol mappers.
@@ -436,6 +439,8 @@ spec:
                 default: true
                 description: FullScopeAllowed is a flag to enable full scope.
                 type: boolean
+              homeUrl:
+                type: string
               implicitFlowEnabled:
                 description: ImplicitFlowEnabled is a flag to enable support for OpenID
                   Connect redirect based authentication without authorization code.

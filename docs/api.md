@@ -1525,6 +1525,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>adminUrl</b></td>
+        <td>string</td>
+        <td>
+          AdminUrl<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>advancedProtocolMappers</b></td>
         <td>boolean</td>
         <td>
@@ -1628,6 +1635,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
           FullScopeAllowed is a flag to enable full scope.<br/>
           <br/>
             <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>homeUrl</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr><tr>
