@@ -50,6 +50,15 @@ type KeycloakClientSpec struct {
 	// +optional
 	WebUrl string `json:"webUrl,omitempty"`
 
+	// AdminUrl is client admin url.
+	// If empty - WebUrl will be used.
+	// +optional
+	AdminUrl string `json:"adminUrl,omitempty"`
+
+	// HomeUrl is a client home url.
+	// +optional
+	HomeUrl string `json:"homeUrl,omitempty"`
+
 	// Protocol is a client protocol.
 	// +nullable
 	// +optional
