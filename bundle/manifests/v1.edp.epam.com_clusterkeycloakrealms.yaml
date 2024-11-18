@@ -67,6 +67,12 @@ spec:
                 description: ClusterKeycloakRef is a name of the ClusterKeycloak instance
                   that owns the realm.
                 type: string
+              displayHtmlName:
+                description: DisplayHTMLName name to render in the UI.
+                type: string
+              displayName:
+                description: DisplayName is the display name of the realm.
+                type: string
               frontendUrl:
                 description: |-
                   FrontendURL Set the frontend URL for the realm.
