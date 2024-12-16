@@ -43,7 +43,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 				},
 				Spec: keycloakApi.ClusterKeycloakRealmSpec{
 					RealmName: "realm",
-					EmailConfig: &common.SMTP{
+					Smtp: &common.SMTP{
 						Template: common.EmailTemplate{
 							From: "from@mailcom",
 						},

@@ -22,7 +22,7 @@ func NewConfigureEmail(client client.Client, operatorNs string) *ConfigureEmail 
 }
 
 func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client) error {
-	if realm.Spec.EmailConfig == nil {
+	if realm.Spec.Smtp == nil {
 		return nil
 	}
 
@@ -32,7 +32,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Clu
 	if err := keycloakrealmchain.ConfigureRamlEmail(
 		ctx,
 		realm.Spec.RealmName,
-		realm.Spec.EmailConfig,
+		realm.Spec.Smtp,
 		s.operatorNs,
 		kClient,
 		s.client,
