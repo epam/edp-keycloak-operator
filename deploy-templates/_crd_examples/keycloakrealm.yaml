@@ -76,3 +76,21 @@ spec:
         displayHeader: "Test Group"
         annotations:
           groupAnnotation: "groupAnnotation"
+  smtp:
+    template:
+      from: "frm@mailcom"
+      fromDisplayName: "from display name"
+      replyTo: "to@mail.com"
+      replyToDisplayName: "reply to display name"
+      envelopeFrom: "envelopeFrom@mail.com"
+    connection:
+      host: "host"
+      enableSSL: true
+      enableStartTLS: true
+      authentication:
+        password:
+          secretKeyRef:
+            name: "secret-with-email-authentication"
+            key: "password"
+        username:
+          value: "username"
