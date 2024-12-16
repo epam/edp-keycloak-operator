@@ -29,13 +29,14 @@ type Helper interface {
 
 // ClusterKeycloakRealmReconciler reconciles a ClusterKeycloakRealm object.
 type ClusterKeycloakRealmReconciler struct {
-	client client.Client
-	scheme *runtime.Scheme
-	helper Helper
+	client            client.Client
+	scheme            *runtime.Scheme
+	helper            Helper
+	operatorNamespace string
 }
 
-func NewClusterKeycloakRealmReconciler(client client.Client, scheme *runtime.Scheme, helper Helper) *ClusterKeycloakRealmReconciler {
-	return &ClusterKeycloakRealmReconciler{client: client, scheme: scheme, helper: helper}
+func NewClusterKeycloakRealmReconciler(client client.Client, scheme *runtime.Scheme, helper Helper, operatorNamespace string) *ClusterKeycloakRealmReconciler {
+	return &ClusterKeycloakRealmReconciler{client: client, scheme: scheme, helper: helper, operatorNamespace: operatorNamespace}
 }
 
 const (
@@ -87,7 +88,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return reconcile.Result{}, nil
 	}
 
-	if err := chain.MakeChain(r.client).ServeRequest(ctx, clusterRealm, kClient); err != nil {
+	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient); err != nil {
 		clusterRealm.Status.Available = false
 		clusterRealm.Status.Value = err.Error()
 		requeue := r.helper.SetFailureCount(clusterRealm)

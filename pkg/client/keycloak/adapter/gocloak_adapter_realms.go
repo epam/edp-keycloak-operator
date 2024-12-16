@@ -63,6 +63,14 @@ func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *Rea
 	return nil
 }
 
+func (a GoCloakAdapter) UpdateRealm(ctx context.Context, realm *gocloak.RealmRepresentation) error {
+	if err := a.client.UpdateRealm(ctx, a.token.AccessToken, *realm); err != nil {
+		return fmt.Errorf("unable to update realm: %w", err)
+	}
+
+	return nil
+}
+
 func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSettings) {
 	if realmSettings.Themes != nil {
 		realm.LoginTheme = realmSettings.Themes.LoginTheme

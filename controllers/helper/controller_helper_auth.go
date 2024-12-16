@@ -12,11 +12,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const (
@@ -295,9 +295,9 @@ func MakeKeycloakAuthDataFromKeycloak(
 		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
 	}
 
-	caCert, err := getCaCert(ctx, keycloak.Spec.CACert, keycloak.Namespace, k8sClient)
+	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloak.Spec.CACert, keycloak.Namespace, k8sClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get ca cert: %w", err)
 	}
 
 	auth.CACert = caCert
@@ -320,46 +320,14 @@ func MakeKeycloakAuthDataFromClusterKeycloak(
 		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
 	}
 
-	caCert, err := getCaCert(ctx, keycloak.Spec.CACert, secretNamespace, k8sClient)
+	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloak.Spec.CACert, secretNamespace, k8sClient)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to get ca cert: %w", err)
 	}
 
 	auth.CACert = caCert
 
 	return auth, nil
-}
-
-func getCaCert(ctx context.Context, caCertRef *common.SourceRef, namespace string, k8sClient client.Client) (string, error) {
-	if caCertRef == nil {
-		return "", nil
-	}
-
-	if caCertRef.ConfigMapKeyRef != nil {
-		configMap := &coreV1.ConfigMap{}
-		if err := k8sClient.Get(ctx, types.NamespacedName{
-			Namespace: namespace,
-			Name:      caCertRef.ConfigMapKeyRef.Name,
-		}, configMap); err != nil {
-			return "", fmt.Errorf("unable to get configmap: %w", err)
-		}
-
-		return configMap.Data[caCertRef.ConfigMapKeyRef.Key], nil
-	}
-
-	if caCertRef.SecretKeyRef != nil {
-		secret := &coreV1.Secret{}
-		if err := k8sClient.Get(ctx, types.NamespacedName{
-			Namespace: namespace,
-			Name:      caCertRef.SecretKeyRef.Name,
-		}, secret); err != nil {
-			return "", fmt.Errorf("unable to get secret: %w", err)
-		}
-
-		return string(secret.Data[caCertRef.SecretKeyRef.Key]), nil
-	}
-
-	return "", nil
 }
 
 func tokenSecretName(keycloakName string) string {

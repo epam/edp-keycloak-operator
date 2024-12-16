@@ -73,6 +73,7 @@ type KCloakRealms interface {
 	SyncRealmIdentityProviderMappers(realmName string, mappers []dto.IdentityProviderMapper) error
 	UpdateRealmSettings(realmName string, realmSettings *adapter.RealmSettings) error
 	SetRealmEventConfig(realmName string, eventConfig *adapter.RealmEventConfig) error
+	UpdateRealm(ctx context.Context, realm *gocloak.RealmRepresentation) error
 }
 
 type KCloakClients interface {

@@ -159,3 +159,66 @@ type UserProfileGroup struct {
 	// DisplayHeader specifies a text that should be used as a header when rendering user-facing forms.
 	DisplayHeader string `json:"displayHeader,omitempty"`
 }
+
+type SMTP struct {
+	// Template specifies the email template configuration.
+	// +required
+	Template EmailTemplate `json:"template"`
+
+	// Connection specifies the email connection configuration.
+	// +required
+	Connection EmailConnection `json:"connection"`
+}
+
+type EmailTemplate struct {
+	// From specifies the sender email address.
+	// +required
+	From string `json:"from"`
+
+	// FromDisplayName specifies the sender display for sender email address.
+	// +optional
+	FromDisplayName string `json:"fromDisplayName,omitempty"`
+
+	// ReplyTo specifies the reply-to email address.
+	// +optional
+	ReplyTo string `json:"replyTo,omitempty"`
+
+	// ReplyToDisplayName specifies display name for reply-to email address.
+	// +optional
+	ReplyToDisplayName string `json:"replyToDisplayName,omitempty"`
+
+	// EnvelopeFrom is an email address used for bounces .
+	// +optional
+	EnvelopeFrom string `json:"envelopeFrom,omitempty"`
+}
+
+type EmailConnection struct {
+	// Host specifies the email server host.
+	// +required
+	Host string `json:"host"`
+
+	// Port specifies the email server port.
+	// +optional
+	// +kubebuilder:default=25
+	Port int `json:"port"`
+
+	// EnableSSL specifies if SSL is enabled.
+	EnableSSL bool `json:"enableSSL,omitempty"`
+
+	// EnableStartTLS specifies if StartTLS is enabled.
+	EnableStartTLS bool `json:"enableStartTLS,omitempty"`
+
+	// Authentication specifies the email authentication configuration.
+	// +optional
+	Authentication *EmailAuthentication `json:"authentication,omitempty"`
+}
+
+type EmailAuthentication struct {
+	// Username specifies login username.
+	// +required
+	Username SourceRefOrVal `json:"username"`
+
+	// Password specifies login password.
+	// +required
+	Password SourceRef `json:"password"`
+}

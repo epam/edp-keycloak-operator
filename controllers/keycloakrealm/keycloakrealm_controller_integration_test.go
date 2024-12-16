@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -20,6 +21,18 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 		keycloakRealmCR = "test-keycloak-realm-cr"
 	)
 	It("Should create KeycloakRealm", func() {
+		By("Creating secret for email configuration")
+		emailSecret := &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "email-config",
+				Namespace: ns,
+			},
+			StringData: map[string]string{
+				"password": "test",
+			},
+		}
+		Expect(k8sClient.Create(ctx, emailSecret)).Should(Succeed())
+
 		By("Creating KeycloakRealm")
 		keycloakRealm := &keycloakApi.KeycloakRealm{
 			ObjectMeta: metav1.ObjectMeta{
@@ -115,6 +128,34 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 							DisplayDescription: "Group description",
 							DisplayHeader:      "Group header",
 							Name:               "test-group",
+						},
+					},
+				},
+				Smtp: &common.SMTP{
+					Template: common.EmailTemplate{
+						From:               "from@mailcom",
+						FromDisplayName:    "from test",
+						ReplyTo:            "to@mail.com",
+						ReplyToDisplayName: "to test",
+						EnvelopeFrom:       "envelope@mail.com",
+					},
+					Connection: common.EmailConnection{
+						Host:           "smtp-host",
+						Port:           25,
+						EnableSSL:      true,
+						EnableStartTLS: true,
+						Authentication: &common.EmailAuthentication{
+							Username: common.SourceRefOrVal{
+								Value: "username",
+							},
+							Password: common.SourceRef{
+								SecretKeyRef: &common.SecretKeySelector{
+									LocalObjectReference: corev1.LocalObjectReference{
+										Name: "email-config",
+									},
+									Key: "password",
+								},
+							},
 						},
 					},
 				},
