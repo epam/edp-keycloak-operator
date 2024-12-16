@@ -92,7 +92,7 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewClusterKeycloakRealmReconciler(k8sManager.GetClient(), k8sManager.GetScheme(), h).
+	err = NewClusterKeycloakRealmReconciler(k8sManager.GetClient(), k8sManager.GetScheme(), h, ns).
 		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

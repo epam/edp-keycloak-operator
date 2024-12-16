@@ -4290,6 +4290,53 @@ func (_c *MockClient_UpdatePolicy_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
+// UpdateRealm provides a mock function with given fields: ctx, realm
+func (_m *MockClient) UpdateRealm(ctx context.Context, realm *gocloak.RealmRepresentation) error {
+	ret := _m.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateRealm")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, *gocloak.RealmRepresentation) error); ok {
+		r0 = rf(ctx, realm)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_UpdateRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRealm'
+type MockClient_UpdateRealm_Call struct {
+	*mock.Call
+}
+
+// UpdateRealm is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm *gocloak.RealmRepresentation
+func (_e *MockClient_Expecter) UpdateRealm(ctx interface{}, realm interface{}) *MockClient_UpdateRealm_Call {
+	return &MockClient_UpdateRealm_Call{Call: _e.mock.On("UpdateRealm", ctx, realm)}
+}
+
+func (_c *MockClient_UpdateRealm_Call) Run(run func(ctx context.Context, realm *gocloak.RealmRepresentation)) *MockClient_UpdateRealm_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(*gocloak.RealmRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockClient_UpdateRealm_Call) Return(_a0 error) *MockClient_UpdateRealm_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_UpdateRealm_Call) RunAndReturn(run func(context.Context, *gocloak.RealmRepresentation) error) *MockClient_UpdateRealm_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateRealmSettings provides a mock function with given fields: realmName, realmSettings
 func (_m *MockClient) UpdateRealmSettings(realmName string, realmSettings *adapter.RealmSettings) error {
 	ret := _m.Called(realmName, realmSettings)

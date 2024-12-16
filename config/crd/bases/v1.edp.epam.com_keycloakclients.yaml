@@ -45,7 +45,9 @@ spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
               adminUrl:
-                description: AdminUrl
+                description: |-
+                  AdminUrl is client admin url.
+                  If empty - WebUrl will be used.
                 type: string
               advancedProtocolMappers:
                 description: AdvancedProtocolMappers is a flag to enable advanced
@@ -440,6 +442,7 @@ spec:
                 description: FullScopeAllowed is a flag to enable full scope.
                 type: boolean
               homeUrl:
+                description: HomeUrl is a client home url.
                 type: string
               implicitFlowEnabled:
                 description: ImplicitFlowEnabled is a flag to enable support for OpenID

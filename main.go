@@ -207,7 +207,8 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err = clusterkeycloakrealm.NewClusterKeycloakRealmReconciler(mgr.GetClient(), mgr.GetScheme(), h).SetupWithManager(mgr); err != nil {
+		if err = clusterkeycloakrealm.NewClusterKeycloakRealmReconciler(mgr.GetClient(), mgr.GetScheme(), h, operatorNamespace).
+			SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterKeycloakRealm")
 			os.Exit(1)
 		}

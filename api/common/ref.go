@@ -54,6 +54,17 @@ type SourceRef struct {
 	SecretKeyRef *SecretKeySelector `json:"secretKeyRef,omitempty"`
 }
 
+// SourceRefOrVal is reference to a key in a ConfigMap or a Secret or a direct value.
+// +kubebuilder:object:generate=true
+type SourceRefOrVal struct {
+	// Selects a key of a ConfigMap or a Secret.
+	SourceRef *SourceRef `json:",inline,omitempty"`
+
+	// Directly specifies a value.
+	// +optional
+	Value string `json:"value,omitempty"`
+}
+
 type ConfigMapKeySelector struct {
 	// The ConfigMap to select from.
 	v1.LocalObjectReference `json:",inline"`

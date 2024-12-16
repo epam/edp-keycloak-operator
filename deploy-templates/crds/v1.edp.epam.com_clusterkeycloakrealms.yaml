@@ -148,6 +148,140 @@ spec:
               realmName:
                 description: RealmName specifies the name of the realm.
                 type: string
+              smtp:
+                description: Smtp is the configuration for email in the realm.
+                nullable: true
+                properties:
+                  connection:
+                    description: Connection specifies the email connection configuration.
+                    properties:
+                      authentication:
+                        description: Authentication specifies the email authentication
+                          configuration.
+                        properties:
+                          password:
+                            description: Password specifies login password.
+                            properties:
+                              configMapKeyRef:
+                                description: Selects a key of a ConfigMap.
+                                properties:
+                                  key:
+                                    description: The key to select.
+                                    type: string
+                                  name:
+                                    description: |-
+                                      Name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind, uid?
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: Selects a key of a secret.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.
+                                    type: string
+                                  name:
+                                    description: |-
+                                      Name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind, uid?
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                            type: object
+                          username:
+                            description: Username specifies login username.
+                            properties:
+                              configMapKeyRef:
+                                description: Selects a key of a ConfigMap.
+                                properties:
+                                  key:
+                                    description: The key to select.
+                                    type: string
+                                  name:
+                                    description: |-
+                                      Name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind, uid?
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              secretKeyRef:
+                                description: Selects a key of a secret.
+                                properties:
+                                  key:
+                                    description: The key of the secret to select from.
+                                    type: string
+                                  name:
+                                    description: |-
+                                      Name of the referent.
+                                      More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                      TODO: Add other useful fields. apiVersion, kind, uid?
+                                    type: string
+                                required:
+                                - key
+                                type: object
+                                x-kubernetes-map-type: atomic
+                              value:
+                                description: Directly specifies a value.
+                                type: string
+                            type: object
+                        required:
+                        - password
+                        - username
+                        type: object
+                      enableSSL:
+                        description: EnableSSL specifies if SSL is enabled.
+                        type: boolean
+                      enableStartTLS:
+                        description: EnableStartTLS specifies if StartTLS is enabled.
+                        type: boolean
+                      host:
+                        description: Host specifies the email server host.
+                        type: string
+                      port:
+                        default: 25
+                        description: Port specifies the email server port.
+                        type: integer
+                    required:
+                    - host
+                    type: object
+                  template:
+                    description: Template specifies the email template configuration.
+                    properties:
+                      envelopeFrom:
+                        description: EnvelopeFrom is an email address used for bounces
+                          .
+                        type: string
+                      from:
+                        description: From specifies the sender email address.
+                        type: string
+                      fromDisplayName:
+                        description: FromDisplayName specifies the sender display
+                          for sender email address.
+                        type: string
+                      replyTo:
+                        description: ReplyTo specifies the reply-to email address.
+                        type: string
+                      replyToDisplayName:
+                        description: ReplyToDisplayName specifies display name for
+                          reply-to email address.
+                        type: string
+                    required:
+                    - from
+                    type: object
+                required:
+                - connection
+                - template
+                type: object
               themes:
                 description: Themes is a map of themes to apply to the realm.
                 nullable: true

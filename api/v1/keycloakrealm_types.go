@@ -79,6 +79,11 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	UserProfileConfig *common.UserProfileConfig `json:"userProfileConfig,omitempty"`
+
+	// Smtp is the configuration for email in the realm.
+	// +nullable
+	// +optional
+	Smtp *common.SMTP `json:"smtp,omitempty"`
 }
 
 type User struct {
