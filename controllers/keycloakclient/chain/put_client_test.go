@@ -310,6 +310,71 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			wantErr: require.NoError,
 		},
+		{
+			name: "create client with auth flows",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+										Browser:     "browser",
+										DirectGrant: "direct grant",
+									},
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				adapterClient: func(t *testing.T) keycloak.Client {
+					m := keycloakmocks.NewMockClient(t)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("", adapter.NotFoundError("not found")).
+						Once()
+
+					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
+						Return(nil)
+
+					m.On("GetClientID", "test-client-id", "realm").
+						Return("123", nil)
+					m.On("GetRealmAuthFlows", "realm").
+						Return([]adapter.KeycloakAuthFlow{
+							{
+								ID:    "A39C9C6E-430A-4891-8592-FC195AF2581B",
+								Alias: "browser",
+							},
+							{
+								ID:    "8BF514C6-922C-44A0-8F90-488D1B9DE437",
+								Alias: "direct grant",
+							},
+						}, nil)
+
+					return m
+				},
+			},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {

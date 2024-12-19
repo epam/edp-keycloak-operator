@@ -14,6 +14,9 @@ spec:
   webUrl: https://argocd.example.com
   defaultClientScopes:
     - argocd_groups
+  authenticationFlowBindingOverrides:
+    browser: "browser"
+    directGrant: "direct grant"
 
 ---
 
