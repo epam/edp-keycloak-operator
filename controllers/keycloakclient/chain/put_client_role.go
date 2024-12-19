@@ -31,7 +31,7 @@ func (el *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClie
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client role")
 
-	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName)
+	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil)
 
 	for _, role := range clientDto.Roles {
 		exist, err := el.keycloakApiClient.ExistClientRole(clientDto, role)

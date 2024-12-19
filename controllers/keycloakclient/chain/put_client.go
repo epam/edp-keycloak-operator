@@ -24,6 +24,9 @@ const (
 	passwordLength  = 36
 	passwordDigits  = 9
 	passwordSymbols = 0
+
+	browserAuthFlow     = "browser"
+	directGrantAuthFlow = "direct_grant"
 )
 
 // secretRef is an interface for getting secret from ref.
@@ -57,7 +60,19 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start creation of Keycloak client")
 
-	clientDto, err := el.convertCrToDto(ctx, keycloakClient, realmName)
+	var (
+		authFlowOverrides map[string]string
+		err               error
+	)
+
+	if keycloakClient.Spec.AuthenticationFlowBindingOverrides != nil {
+		authFlowOverrides, err = el.getAuthFlows(keycloakClient, realmName)
+		if err != nil {
+			return "", fmt.Errorf("unable to get auth flows: %w", err)
+		}
+	}
+
+	clientDto, err := el.convertCrToDto(ctx, keycloakClient, realmName, authFlowOverrides)
 	if err != nil {
 		return "", fmt.Errorf("error during convertCrToDto: %w", err)
 	}
@@ -93,9 +108,9 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 	return id, nil
 }
 
-func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (*dto.Client, error) {
+func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, authflowOverrides map[string]string) (*dto.Client, error) {
 	if keycloakClient.Spec.Public {
-		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName)
+		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, authflowOverrides)
 		return res, nil
 	}
 
@@ -104,7 +119,7 @@ func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloa
 		return nil, fmt.Errorf("unable to get secret, err: %w", err)
 	}
 
-	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName), nil
+	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName, authflowOverrides), nil
 }
 
 func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
@@ -180,4 +195,38 @@ func (el *PutClient) setSecretRef(ctx context.Context, keycloakClient *keycloakA
 	}
 
 	return nil
+}
+
+func (el *PutClient) getAuthFlows(keycloakClient *keycloakApi.KeycloakClient, realmName string) (map[string]string, error) {
+	clientAuthFlows := keycloakClient.Spec.AuthenticationFlowBindingOverrides
+
+	flows, err := el.keycloakApiClient.GetRealmAuthFlows(realmName)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get realm: %w", err)
+	}
+
+	realmAuthFlows := make(map[string]string)
+	for i := range flows {
+		realmAuthFlows[flows[i].Alias] = flows[i].ID
+	}
+
+	authFlowOverrides := make(map[string]string)
+
+	if clientAuthFlows.Browser != "" {
+		if _, ok := realmAuthFlows[clientAuthFlows.Browser]; !ok {
+			return nil, fmt.Errorf("auth flow %s not found in realm %s", clientAuthFlows.Browser, realmName)
+		}
+
+		authFlowOverrides[browserAuthFlow] = realmAuthFlows[clientAuthFlows.Browser]
+	}
+
+	if clientAuthFlows.DirectGrant != "" {
+		if _, ok := realmAuthFlows[clientAuthFlows.DirectGrant]; !ok {
+			return nil, fmt.Errorf("auth flow %s not found in realm %s", clientAuthFlows.DirectGrant, realmName)
+		}
+
+		authFlowOverrides[directGrantAuthFlow] = realmAuthFlows[clientAuthFlows.DirectGrant]
+	}
+
+	return authFlowOverrides, nil
 }

@@ -181,6 +181,10 @@ type KeycloakClientSpec struct {
 	// +nullable
 	// +optional
 	Authorization *Authorization `json:"authorization,omitempty"`
+
+	// AuthenticationFlowBindingOverrides client auth flow overrides
+	// +optional
+	AuthenticationFlowBindingOverrides *AuthenticationFlowBindingOverrides `json:"authenticationFlowBindingOverrides,omitempty"`
 }
 
 type ServiceAccount struct {
@@ -250,6 +254,11 @@ type Authorization struct {
 	Permissions []Permission `json:"permissions,omitempty"`
 
 	Resources []Resource `json:"resources,omitempty"`
+}
+
+type AuthenticationFlowBindingOverrides struct {
+	Browser     string `json:"browser,omitempty"`
+	DirectGrant string `json:"directGrant,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

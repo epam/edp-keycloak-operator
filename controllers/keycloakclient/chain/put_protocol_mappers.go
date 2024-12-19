@@ -49,7 +49,7 @@ func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *keycloakApi.Key
 	}
 
 	if err := el.keycloakApiClient.SyncClientProtocolMapper(
-		dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName),
+		dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil),
 		protocolMappers, keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync protocol mapper")
 	}

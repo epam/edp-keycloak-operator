@@ -61,6 +61,14 @@ spec:
                 description: Attributes is a map of client attributes.
                 nullable: true
                 type: object
+              authenticationFlowBindingOverrides:
+                description: AuthenticationFlowBindingOverrides client auth flow overrides
+                properties:
+                  browser:
+                    type: string
+                  directGrant:
+                    type: string
+                type: object
               authorization:
                 description: Authorization is a client authorization configuration.
                 nullable: true

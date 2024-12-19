@@ -2939,6 +2939,64 @@ func (_c *MockClient_GetRealm_Call) RunAndReturn(run func(context.Context, strin
 	return _c
 }
 
+// GetRealmAuthFlows provides a mock function with given fields: realmName
+func (_m *MockClient) GetRealmAuthFlows(realmName string) ([]adapter.KeycloakAuthFlow, error) {
+	ret := _m.Called(realmName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRealmAuthFlows")
+	}
+
+	var r0 []adapter.KeycloakAuthFlow
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string) ([]adapter.KeycloakAuthFlow, error)); ok {
+		return rf(realmName)
+	}
+	if rf, ok := ret.Get(0).(func(string) []adapter.KeycloakAuthFlow); ok {
+		r0 = rf(realmName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]adapter.KeycloakAuthFlow)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string) error); ok {
+		r1 = rf(realmName)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetRealmAuthFlows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRealmAuthFlows'
+type MockClient_GetRealmAuthFlows_Call struct {
+	*mock.Call
+}
+
+// GetRealmAuthFlows is a helper method to define mock.On call
+//   - realmName string
+func (_e *MockClient_Expecter) GetRealmAuthFlows(realmName interface{}) *MockClient_GetRealmAuthFlows_Call {
+	return &MockClient_GetRealmAuthFlows_Call{Call: _e.mock.On("GetRealmAuthFlows", realmName)}
+}
+
+func (_c *MockClient_GetRealmAuthFlows_Call) Run(run func(realmName string)) *MockClient_GetRealmAuthFlows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetRealmAuthFlows_Call) Return(_a0 []adapter.KeycloakAuthFlow, _a1 error) *MockClient_GetRealmAuthFlows_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetRealmAuthFlows_Call) RunAndReturn(run func(string) ([]adapter.KeycloakAuthFlow, error)) *MockClient_GetRealmAuthFlows_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRealmRoles provides a mock function with given fields: ctx, realm
 func (_m *MockClient) GetRealmRoles(ctx context.Context, realm string) (map[string]gocloak.Role, error) {
 	ret := _m.Called(ctx, realm)

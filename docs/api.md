@@ -1955,6 +1955,13 @@ If empty - WebUrl will be used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecauthenticationflowbindingoverrides">authenticationFlowBindingOverrides</a></b></td>
+        <td>object</td>
+        <td>
+          AuthenticationFlowBindingOverrides client auth flow overrides<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakclientspecauthorization">authorization</a></b></td>
         <td>object</td>
         <td>
@@ -2184,6 +2191,40 @@ If not specified, the value from `WebUrl` is used<br/>
         <td>string</td>
         <td>
           WebUrl is a client web url.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authenticationFlowBindingOverrides
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+AuthenticationFlowBindingOverrides client auth flow overrides
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>browser</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>directGrant</b></td>
+        <td>string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
