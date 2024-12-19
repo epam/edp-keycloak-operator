@@ -305,7 +305,7 @@ func (a GoCloakAdapter) getAuthFlowID(realmName string, flow *KeycloakAuthFlow) 
 		return "", errAuthFlowNotFound
 	}
 
-	flows, err := a.getRealmAuthFlows(realmName)
+	flows, err := a.GetRealmAuthFlows(realmName)
 	if err != nil {
 		return "", errors.Wrap(err, "unable to get realm auth flows")
 	}
@@ -334,7 +334,7 @@ func (a GoCloakAdapter) getFlowExecution(realmName string, flow *KeycloakAuthFlo
 	return nil, errAuthFlowNotFound
 }
 
-func (a GoCloakAdapter) getRealmAuthFlows(realmName string) ([]KeycloakAuthFlow, error) {
+func (a GoCloakAdapter) GetRealmAuthFlows(realmName string) ([]KeycloakAuthFlow, error) {
 	var flows []KeycloakAuthFlow
 
 	resp, err := a.startRestyRequest().
@@ -540,7 +540,7 @@ func (a GoCloakAdapter) unsetBrowserFlow(realmName, flowAlias string) (realm *go
 		return realm, false, nil
 	}
 
-	authFlows, err := a.getRealmAuthFlows(realmName)
+	authFlows, err := a.GetRealmAuthFlows(realmName)
 	if err != nil {
 		return nil, false, errors.Wrapf(err, "unable to get auth flows for realm: %s", realmName)
 	}

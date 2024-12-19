@@ -524,15 +524,16 @@ func getGclCln(client *dto.Client) gocloak.Client {
 		RedirectURIs: &[]string{
 			client.WebUrl + "/*",
 		},
-		RegistrationAccessToken: &client.RegistrationAccessToken,
-		RootURL:                 &client.WebUrl,
-		AdminURL:                &client.AdminUrl,
-		BaseURL:                 &client.HomeUrl,
-		Secret:                  &client.ClientSecret,
-		ServiceAccountsEnabled:  &client.ServiceAccountEnabled,
-		StandardFlowEnabled:     &client.StandardFlowEnabled,
-		SurrogateAuthRequired:   &client.SurrogateAuthRequired,
-		WebOrigins:              &client.WebOrigins,
+		RegistrationAccessToken:            &client.RegistrationAccessToken,
+		RootURL:                            &client.WebUrl,
+		AdminURL:                           &client.AdminUrl,
+		BaseURL:                            &client.HomeUrl,
+		Secret:                             &client.ClientSecret,
+		ServiceAccountsEnabled:             &client.ServiceAccountEnabled,
+		StandardFlowEnabled:                &client.StandardFlowEnabled,
+		SurrogateAuthRequired:              &client.SurrogateAuthRequired,
+		WebOrigins:                         &client.WebOrigins,
+		AuthenticationFlowBindingOverrides: &client.AuthenticationFlowBindingOverrides,
 	}
 
 	// Set the admin URL to the web URL for backwards compatibility.
