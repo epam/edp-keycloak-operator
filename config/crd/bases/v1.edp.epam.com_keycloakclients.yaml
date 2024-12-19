@@ -398,6 +398,9 @@ spec:
               bearerOnly:
                 description: BearerOnly is a flag to enable bearer-only.
                 type: boolean
+              browserAuthFlow:
+                description: BrowserAuthFlow client browser auth flow override
+                type: string
               clientAuthenticatorType:
                 default: client-secret
                 description: ClientAuthenticatorType is a client authenticator type.
@@ -429,6 +432,9 @@ spec:
               directAccess:
                 description: DirectAccess is a flag to set client as direct access.
                 type: boolean
+              directGrantAuthFlow:
+                description: DirectGrantAuthFlow client direct grant auth flow override
+                type: string
               enabled:
                 default: true
                 description: Enabled is a flag to enable client.

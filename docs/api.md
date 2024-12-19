@@ -1976,6 +1976,13 @@ If empty - WebUrl will be used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>browserAuthFlow</b></td>
+        <td>string</td>
+        <td>
+          BrowserAuthFlow client browser auth flow override<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>clientAuthenticatorType</b></td>
         <td>string</td>
         <td>
@@ -2017,6 +2024,13 @@ If empty - WebUrl will be used.<br/>
         <td>boolean</td>
         <td>
           DirectAccess is a flag to set client as direct access.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>directGrantAuthFlow</b></td>
+        <td>string</td>
+        <td>
+          DirectGrantAuthFlow client direct grant auth flow override<br/>
         </td>
         <td>false</td>
       </tr><tr>

@@ -181,6 +181,14 @@ type KeycloakClientSpec struct {
 	// +nullable
 	// +optional
 	Authorization *Authorization `json:"authorization,omitempty"`
+
+	// BrowserAuthFlow client browser auth flow override
+	// +optional
+	BrowserAuthFlow string `json:"browserAuthFlow,omitempty"`
+
+	// DirectGrantAuthFlow client direct grant auth flow override
+	// +optional
+	DirectGrantAuthFlow string `json:"directGrantAuthFlow,omitempty"`
 }
 
 type ServiceAccount struct {

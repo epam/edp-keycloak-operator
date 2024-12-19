@@ -97,6 +97,8 @@ type Client struct {
 	RegistrationAccessToken      string
 	StandardFlowEnabled          bool
 	SurrogateAuthRequired        bool
+	BrowserAuthFlow              string
+	DirectGrantAuthFlow          string
 }
 
 type PrimaryRealmRole struct {
@@ -144,6 +146,8 @@ func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret, rea
 		Name:                         spec.Name,
 		StandardFlowEnabled:          spec.StandardFlowEnabled,
 		SurrogateAuthRequired:        spec.SurrogateAuthRequired,
+		BrowserAuthFlow:              spec.BrowserAuthFlow,
+		DirectGrantAuthFlow:          spec.DirectGrantAuthFlow,
 	}
 }
 
