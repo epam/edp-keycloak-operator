@@ -61,6 +61,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Name:                    "test name",
 				StandardFlowEnabled:     true,
 				ClientAuthenticatorType: "client-secret",
+				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+					Browser:     "browser",
+					DirectGrant: "direct grant",
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
@@ -101,6 +105,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Name: KeycloakRealmCR,
 					Kind: keycloakApi.KeycloakRealmKind,
 				},
+				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+					Browser:     "browser",
+					DirectGrant: "direct grant",
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
@@ -140,6 +148,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Kind: keycloakApi.KeycloakRealmKind,
 				},
 				Secret: clientSecret.Name,
+				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+					Browser:     "browser",
+					DirectGrant: "direct grant",
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
@@ -207,6 +219,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				AuthorizationServicesEnabled: true,
 				ServiceAccount: &keycloakApi.ServiceAccount{
 					Enabled: true,
+				},
+				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+					Browser:     "browser",
+					DirectGrant: "direct grant",
 				},
 				Authorization: &keycloakApi.Authorization{
 					Policies: []keycloakApi.Policy{
