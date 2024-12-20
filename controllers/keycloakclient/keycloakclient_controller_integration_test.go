@@ -61,6 +61,9 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Name:                    "test name",
 				StandardFlowEnabled:     true,
 				ClientAuthenticatorType: "client-secret",
+				AdminFineGrainedPermissions: keycloakApi.AdminFineGrainedPermissions{
+					Enabled: true,
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())

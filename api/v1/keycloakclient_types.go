@@ -181,6 +181,10 @@ type KeycloakClientSpec struct {
 	// +nullable
 	// +optional
 	Authorization *Authorization `json:"authorization,omitempty"`
+
+	// AdminFineGrainedPermissions enable admin fine grained permissions
+	// +optional
+	AdminFineGrainedPermissions AdminFineGrainedPermissions `json:"adminFineGrainedPermissions"`
 }
 
 type ServiceAccount struct {
@@ -250,6 +254,17 @@ type Authorization struct {
 	Permissions []Permission `json:"permissions,omitempty"`
 
 	Resources []Resource `json:"resources,omitempty"`
+}
+
+type AdminFineGrainedPermissions struct {
+	Enabled bool `json:"enabled"`
+	// ScopePermissions mapping of scope and the policies attached
+	ScopePermissions []ScopePermission `json:"scopePermissions,omitempty"`
+}
+
+type ScopePermission struct {
+	Name     string   `json:"name"`
+	Policies []string `json:"policies,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

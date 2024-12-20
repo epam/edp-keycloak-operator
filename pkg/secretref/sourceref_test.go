@@ -2,14 +2,16 @@ package secretref
 
 import (
 	"context"
-	"github.com/epam/edp-keycloak-operator/api/common"
+	"testing"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
-	"testing"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 func TestGetValueFromSourceRef(t *testing.T) {
