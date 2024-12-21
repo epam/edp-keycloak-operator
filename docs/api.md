@@ -1931,6 +1931,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecadminfinegrainedpermissions">adminFineGrainedPermissions</a></b></td>
+        <td>object</td>
+        <td>
+          AdminFineGrainedPermissions enable admin fine grained permissions<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>adminUrl</b></td>
         <td>string</td>
         <td>
@@ -2184,6 +2191,74 @@ If not specified, the value from `WebUrl` is used<br/>
         <td>string</td>
         <td>
           WebUrl is a client web url.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.adminFineGrainedPermissions
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+AdminFineGrainedPermissions enable admin fine grained permissions
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>enabled</b></td>
+        <td>boolean</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecadminfinegrainedpermissionsscopepermissionsindex">scopePermissions</a></b></td>
+        <td>[]object</td>
+        <td>
+          ScopePermissions mapping of scope and the policies attached<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.adminFineGrainedPermissions.scopePermissions[index]
+<sup><sup>[↩ Parent](#keycloakclientspecadminfinegrainedpermissions)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>policies</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>
