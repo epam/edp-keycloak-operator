@@ -112,6 +112,13 @@ spec:
           - role-policy
         scopes:
           - scope1
+    adminFineGrainedPermissions:
+      enabled: true
+      scopePermissions:
+        - name: token-exchange
+          policies:
+            - policy1
+            - policy2
 
 ---
 

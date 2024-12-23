@@ -44,6 +44,30 @@ spec:
           spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
+              adminFineGrainedPermissions:
+                description: AdminFineGrainedPermissions enable admin fine grained
+                  permissions
+                properties:
+                  enabled:
+                    type: boolean
+                  scopePermissions:
+                    description: ScopePermissions mapping of scope and the policies
+                      attached
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        policies:
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      type: object
+                    type: array
+                required:
+                - enabled
+                type: object
               adminUrl:
                 description: |-
                   AdminUrl is client admin url.
