@@ -1931,6 +1931,13 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>adminFineGrainedPermissionsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>adminUrl</b></td>
         <td>string</td>
         <td>
@@ -1972,7 +1979,7 @@ If empty - WebUrl will be used.<br/>
         <td><b>authorizationServicesEnabled</b></td>
         <td>boolean</td>
         <td>
-          ServiceAccountsEnabled enable/disable fine-grained authorization support for a client.<br/>
+          AuthorizationServicesEnabled enable/disable fine-grained authorization support for a client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2077,6 +2084,13 @@ If empty - WebUrl will be used.<br/>
         <td>[]string</td>
         <td>
           OptionalClientScopes is a list of optional client scopes assigned to client.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecpermission">permission</a></b></td>
+        <td>object</td>
+        <td>
+          Permission is a client permissions configuration<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2856,6 +2870,67 @@ Condition is evaluated during OpenID Connect authorization request and/or token 
         <td>[]string</td>
         <td>
           URIs which are protected by resource.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.permission
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+Permission is a client permissions configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecpermissionscopepermissionsindex">scopePermissions</a></b></td>
+        <td>[]object</td>
+        <td>
+          ScopePermissions mapping of scope and the policies attached<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.permission.scopePermissions[index]
+<sup><sup>[↩ Parent](#keycloakclientspecpermission)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>policies</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

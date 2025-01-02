@@ -65,8 +65,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Browser:     "browser",
 					DirectGrant: "direct grant",
 				},
+				AdminFineGrainedPermissionsEnabled: true,
 			},
 		}
+
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
 		Eventually(func() bool {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
