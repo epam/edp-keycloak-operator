@@ -290,3 +290,43 @@ func (a GoCloakAdapter) DeletePolicy(ctx context.Context, realm, idOfClient, pol
 
 	return nil
 }
+
+type ManagementPermissionRepresentation struct {
+	Enabled          *bool              `json:"enabled,omitempty"`
+	Resource         *string            `json:"resource,omitempty"`
+	ScopePermissions *map[string]string `json:"scopePermissions,omitempty"`
+}
+
+func (a GoCloakAdapter) GetClientManagementPermissions(realm, idOfClient string) (*ManagementPermissionRepresentation, error) {
+	var result ManagementPermissionRepresentation
+
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamId:    idOfClient,
+		}).
+		SetResult(&result).
+		Get(a.buildPath(clientManagementPermissions))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return nil, fmt.Errorf("unable to get client management permissions: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (a GoCloakAdapter) UpdateClientManagementPermissions(realm, idOfClient string, permission ManagementPermissionRepresentation) error {
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamId:    idOfClient,
+		}).
+		SetBody(permission).
+		Put(a.buildPath(clientManagementPermissions))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to update client management permissions: %w", err)
+	}
+
+	return nil
+}

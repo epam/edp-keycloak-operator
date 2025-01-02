@@ -33,6 +33,7 @@ spec:
   webUrl: https:///example.com
   directAccess: true
   authorizationServicesEnabled: true
+  adminFineGrainedPermissionsEnabled: true
   serviceAccount:
     enabled: true
   authorization:
@@ -115,7 +116,11 @@ spec:
           - role-policy
         scopes:
           - scope1
-
+  permission:
+    scopePermissions:
+      - name: token-exchange
+        policies:
+          - policy1
 ---
 
 apiVersion: v1

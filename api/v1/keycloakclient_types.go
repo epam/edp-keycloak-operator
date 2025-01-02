@@ -134,9 +134,13 @@ type KeycloakClientSpec struct {
 	// +optional
 	ImplicitFlowEnabled bool `json:"implicitFlowEnabled,omitempty"`
 
-	// ServiceAccountsEnabled enable/disable fine-grained authorization support for a client.
+	// AuthorizationServicesEnabled enable/disable fine-grained authorization support for a client.
 	// +optional
 	AuthorizationServicesEnabled bool `json:"authorizationServicesEnabled,omitempty"`
+
+	// AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.
+	// +optional
+	AdminFineGrainedPermissionsEnabled bool `json:"adminFineGrainedPermissionsEnabled,omitempty"`
 
 	// BearerOnly is a flag to enable bearer-only.
 	// +optional
@@ -181,6 +185,11 @@ type KeycloakClientSpec struct {
 	// +nullable
 	// +optional
 	Authorization *Authorization `json:"authorization,omitempty"`
+
+	// Permission is a client permissions configuration
+	// +nullable
+	// +optional
+	Permission *AdminFineGrainedPermission `json:"permission,omitempty"`
 
 	// AuthenticationFlowBindingOverrides client auth flow overrides
 	// +optional
@@ -259,6 +268,17 @@ type Authorization struct {
 type AuthenticationFlowBindingOverrides struct {
 	Browser     string `json:"browser,omitempty"`
 	DirectGrant string `json:"directGrant,omitempty"`
+}
+
+type AdminFineGrainedPermission struct {
+	// ScopePermissions mapping of scope and the policies attached
+	// +optional
+	ScopePermissions []ScopePermissions `json:"scopePermissions,omitempty"`
+}
+
+type ScopePermissions struct {
+	Name     string   `json:"name"`
+	Policies []string `json:"policies,omitempty"`
 }
 
 // KeycloakClientStatus defines the observed state of KeycloakClient.

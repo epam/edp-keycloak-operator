@@ -70,6 +70,7 @@ func MakeChain(
 		NewProcessResources(keycloakApiClient),
 		NewProcessPolicy(keycloakApiClient),
 		NewProcessPermissions(keycloakApiClient),
+		NewPutAdminFineGrainedPermissions(keycloakApiClient),
 	)
 
 	return c

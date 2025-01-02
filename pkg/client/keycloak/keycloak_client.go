@@ -99,6 +99,8 @@ type KCloakClients interface {
 	UpdatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
 	DeletePolicy(ctx context.Context, realm, idOfClient, policyID string) error
 
+	GetClientManagementPermissions(realm, idOfClient string) (*adapter.ManagementPermissionRepresentation, error)
+	UpdateClientManagementPermissions(realm, idOfClient string, permission adapter.ManagementPermissionRepresentation) error
 	GetPermissions(ctx context.Context, realm, idOfClient string) (map[string]gocloak.PermissionRepresentation, error)
 	CreatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)
 	UpdatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) error

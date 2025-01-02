@@ -2109,6 +2109,65 @@ func (_c *MockClient_GetClientID_Call) RunAndReturn(run func(string, string) (st
 	return _c
 }
 
+// GetClientManagementPermissions provides a mock function with given fields: realm, idOfClient
+func (_m *MockClient) GetClientManagementPermissions(realm string, idOfClient string) (*adapter.ManagementPermissionRepresentation, error) {
+	ret := _m.Called(realm, idOfClient)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientManagementPermissions")
+	}
+
+	var r0 *adapter.ManagementPermissionRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, string) (*adapter.ManagementPermissionRepresentation, error)); ok {
+		return rf(realm, idOfClient)
+	}
+	if rf, ok := ret.Get(0).(func(string, string) *adapter.ManagementPermissionRepresentation); ok {
+		r0 = rf(realm, idOfClient)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*adapter.ManagementPermissionRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(realm, idOfClient)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetClientManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientManagementPermissions'
+type MockClient_GetClientManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// GetClientManagementPermissions is a helper method to define mock.On call
+//   - realm string
+//   - idOfClient string
+func (_e *MockClient_Expecter) GetClientManagementPermissions(realm interface{}, idOfClient interface{}) *MockClient_GetClientManagementPermissions_Call {
+	return &MockClient_GetClientManagementPermissions_Call{Call: _e.mock.On("GetClientManagementPermissions", realm, idOfClient)}
+}
+
+func (_c *MockClient_GetClientManagementPermissions_Call) Run(run func(realm string, idOfClient string)) *MockClient_GetClientManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetClientManagementPermissions_Call) Return(_a0 *adapter.ManagementPermissionRepresentation, _a1 error) *MockClient_GetClientManagementPermissions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetClientManagementPermissions_Call) RunAndReturn(run func(string, string) (*adapter.ManagementPermissionRepresentation, error)) *MockClient_GetClientManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetClientScope provides a mock function with given fields: scopeName, realmName
 func (_m *MockClient) GetClientScope(scopeName string, realmName string) (*adapter.ClientScope, error) {
 	ret := _m.Called(scopeName, realmName)
@@ -4052,6 +4111,54 @@ func (_c *MockClient_UpdateClient_Call) Return(_a0 error) *MockClient_UpdateClie
 }
 
 func (_c *MockClient_UpdateClient_Call) RunAndReturn(run func(context.Context, *dto.Client) error) *MockClient_UpdateClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateClientManagementPermissions provides a mock function with given fields: realm, idOfClient, permission
+func (_m *MockClient) UpdateClientManagementPermissions(realm string, idOfClient string, permission adapter.ManagementPermissionRepresentation) error {
+	ret := _m.Called(realm, idOfClient, permission)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClientManagementPermissions")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, adapter.ManagementPermissionRepresentation) error); ok {
+		r0 = rf(realm, idOfClient, permission)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_UpdateClientManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClientManagementPermissions'
+type MockClient_UpdateClientManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// UpdateClientManagementPermissions is a helper method to define mock.On call
+//   - realm string
+//   - idOfClient string
+//   - permission adapter.ManagementPermissionRepresentation
+func (_e *MockClient_Expecter) UpdateClientManagementPermissions(realm interface{}, idOfClient interface{}, permission interface{}) *MockClient_UpdateClientManagementPermissions_Call {
+	return &MockClient_UpdateClientManagementPermissions_Call{Call: _e.mock.On("UpdateClientManagementPermissions", realm, idOfClient, permission)}
+}
+
+func (_c *MockClient_UpdateClientManagementPermissions_Call) Run(run func(realm string, idOfClient string, permission adapter.ManagementPermissionRepresentation)) *MockClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string), args[2].(adapter.ManagementPermissionRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockClient_UpdateClientManagementPermissions_Call) Return(_a0 error) *MockClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_UpdateClientManagementPermissions_Call) RunAndReturn(run func(string, string, adapter.ManagementPermissionRepresentation) error) *MockClient_UpdateClientManagementPermissions_Call {
 	_c.Call.Return(run)
 	return _c
 }

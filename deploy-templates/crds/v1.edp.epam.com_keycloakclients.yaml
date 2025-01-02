@@ -44,6 +44,10 @@ spec:
           spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
+              adminFineGrainedPermissionsEnabled:
+                description: AdminFineGrainedPermissionsEnabled enable/disable fine-grained
+                  admin permissions for a client.
+                type: boolean
               adminUrl:
                 description: |-
                   AdminUrl is client admin url.
@@ -400,8 +404,8 @@ spec:
                     type: array
                 type: object
               authorizationServicesEnabled:
-                description: ServiceAccountsEnabled enable/disable fine-grained authorization
-                  support for a client.
+                description: AuthorizationServicesEnabled enable/disable fine-grained
+                  authorization support for a client.
                 type: boolean
               bearerOnly:
                 description: BearerOnly is a flag to enable bearer-only.
@@ -466,6 +470,26 @@ spec:
                   type: string
                 nullable: true
                 type: array
+              permission:
+                description: Permission is a client permissions configuration
+                nullable: true
+                properties:
+                  scopePermissions:
+                    description: ScopePermissions mapping of scope and the policies
+                      attached
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        policies:
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
               protocol:
                 description: Protocol is a client protocol.
                 nullable: true
