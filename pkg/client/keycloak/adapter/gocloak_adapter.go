@@ -68,6 +68,7 @@ const (
 	manageUserGroups                = "/admin/realms/{realm}/users/{userID}/groups/{groupID}"
 	getChildGroups                  = "/admin/realms/{realm}/groups/{groupID}/children"
 	getGroup                        = "/admin/realms/{realm}/groups/{groupID}"
+	clientManagementPermissions     = "/admin/realms/{realm}/clients/{id}/management/permissions"
 	logClientDTO                    = "client dto"
 )
 

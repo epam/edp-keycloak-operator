@@ -74,6 +74,8 @@ spec:
               value: "admin"
             - name: KEYCLOAK_ADMIN_PASSWORD
               value: "admin"
+            - name: KC_FEATURES
+              value: admin-fine-grained-authz
           ports:
             - name: http
               containerPort: 8080
