@@ -2,6 +2,26 @@
 ## [Unreleased]
 
 
+<a name="v1.24.0"></a>
+## [v1.24.0] - 2025-02-05
+### Features
+- Add Admin Fine Grained Permissions to Keycloak Client
+- Add Browser and Direct Grant Flow fields to Keycloak Client
+- Add realm SMTP configuration ([#96](https://github.com/epam/edp-keycloak-operator/issues/96))
+- Add realm SMTP configuration ([#96](https://github.com/epam/edp-keycloak-operator/issues/96))
+- Add setting adminUrl homeUrl for Client ([#106](https://github.com/epam/edp-keycloak-operator/issues/106))
+- Add the ability to manage Realm Attributes ([#85](https://github.com/epam/edp-keycloak-operator/issues/85))
+- Add print columns for KeycloakRealm Resources ([#109](https://github.com/epam/edp-keycloak-operator/issues/109))
+- Add managing Authorization Resources for a Client ([#75](https://github.com/epam/edp-keycloak-operator/issues/75))
+
+### Bug Fixes
+- Boolean parameters with default values are always 'true' ([#56](https://github.com/epam/edp-keycloak-operator/issues/56))
+
+### Routine
+- Update current development version ([#102](https://github.com/epam/edp-keycloak-operator/issues/102))
+- Update current development version ([#102](https://github.com/epam/edp-keycloak-operator/issues/102))
+
+
 <a name="v1.23.0"></a>
 ## [v1.23.0] - 2024-10-29
 ### Features
@@ -148,7 +168,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...HEAD
+[v1.24.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...v1.24.0
 [v1.23.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...v1.23.0
 [v1.22.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.21.0...v1.22.0
 [v1.21.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.20.0...v1.21.0
