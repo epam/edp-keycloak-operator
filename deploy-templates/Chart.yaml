@@ -299,7 +299,7 @@ annotations:
         url: https://keycloak.example.com
   artifacthub.io/links: |
     - name: KubeRocketCI Documentation
-      url: https://docs.kuberocketci.io
+      url: https://docs.kuberocketci.io/
     - name: EPAM SolutionHub
       url: https://solutionshub.epam.com/solution/kuberocketci
   artifacthub.io/changes: |
