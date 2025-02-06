@@ -30,7 +30,7 @@ spec:
     kind: KeycloakRealm
   clientId: authorization-sample
   secret: $client-secret-authorization-sample:client-secret-key
-  webUrl: https:///example.com
+  webUrl: https://example.com
   directAccess: true
   authorizationServicesEnabled: true
   adminFineGrainedPermissionsEnabled: true
