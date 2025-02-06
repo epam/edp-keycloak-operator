@@ -172,7 +172,7 @@ git-chglog: ## Download git-chglog locally if necessary.
 CRDOC = $(LOCALBIN)/crdoc
 .PHONY: crdoc
 crdoc: ## Download crdoc locally if necessary.
-	$(call go-get-tool,$(CRDOC),fybrik.io/crdoc,v0.6.1)
+	$(call go-get-tool,$(CRDOC),fybrik.io/crdoc,v0.6.4)
 
 CONTROLLER_GEN = $(LOCALBIN)/controller-gen
 .PHONY: controller-gen
