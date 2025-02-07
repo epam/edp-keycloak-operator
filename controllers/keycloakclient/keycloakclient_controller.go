@@ -141,7 +141,7 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 		keyCloakClientOperatorFinalizerName,
 	)
 	if err != nil {
-		return fmt.Errorf("deliting keycloak client: %w", err)
+		return fmt.Errorf("deleting keycloak client: %w", err)
 	}
 
 	if deleted {
