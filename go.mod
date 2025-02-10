@@ -13,7 +13,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/sethvargo/go-password v0.2.0
 	github.com/stretchr/testify v1.8.4
-	github.com/zmotso/keycloak-go-client v0.0.0-20241113095118-1d5b34e077a1
+	github.com/zmotso/keycloak-go-client v0.0.0-20250210093813-603460227832
 	golang.org/x/exp v0.0.0-20240213143201-ec583247a57a
 	golang.org/x/sync v0.10.0
 	k8s.io/api v0.26.10
