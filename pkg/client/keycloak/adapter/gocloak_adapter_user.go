@@ -295,7 +295,9 @@ func (a GoCloakAdapter) UpdateUsersProfile(
 	realm string,
 	userProfile keycloak_go_client.UserProfileConfig,
 ) (*keycloak_go_client.UserProfileConfig, error) {
-	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken))
+	httpClient := a.client.RestyClient().GetClient()
+
+	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken), keycloak_go_client.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
 	}
@@ -312,7 +314,9 @@ func (a GoCloakAdapter) GetUsersProfile(
 	ctx context.Context,
 	realm string,
 ) (*keycloak_go_client.UserProfileConfig, error) {
-	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken))
+	httpClient := a.client.RestyClient().GetClient()
+
+	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken), keycloak_go_client.WithHTTPClient(httpClient))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
 	}
