@@ -185,8 +185,8 @@ github.com/xeipuuv/gojsonschema v1.2.0/go.mod h1:anYRn/JVcOK2ZgGU+IjEV4nwlhoK5sQ
 github.com/yuin/goldmark v1.1.27/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.2.1/go.mod h1:3hX8gzYuyVAZsxl0MRgGTJEmQBFcNTphYh9decYSb74=
 github.com/yuin/goldmark v1.4.13/go.mod h1:6yULJ656Px+3vBD8DxQVa3kxgyrAnzto9xy5taEt/CY=
-github.com/zmotso/keycloak-go-client v0.0.0-20241113095118-1d5b34e077a1 h1:DuYSQTTDngQtUlcqESuNZ+IkQTdjrF9xVEoAKyYsycE=
-github.com/zmotso/keycloak-go-client v0.0.0-20241113095118-1d5b34e077a1/go.mod h1:PAvCkvb+irLo/9DRh+wpMR8+duFJcxthaixEveen2wU=
+github.com/zmotso/keycloak-go-client v0.0.0-20250210093813-603460227832 h1:hyHVk4QZcpVp+Q1lP0nwVuvk7RWLtAdByqF1vUPqUUo=
+github.com/zmotso/keycloak-go-client v0.0.0-20250210093813-603460227832/go.mod h1:PAvCkvb+irLo/9DRh+wpMR8+duFJcxthaixEveen2wU=
 go.opentelemetry.io/proto/otlp v0.7.0/go.mod h1:PqfVotwruBrMGOCsRd/89rSnXhoiJIqeYNgFYFoEGnI=
 go.uber.org/atomic v1.7.0 h1:ADUqmZGgLDDfbSL9ZmPxKTybcoEYHgpYfELNoN+7hsw=
 go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=

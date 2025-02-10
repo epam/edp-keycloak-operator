@@ -113,6 +113,10 @@ func userProfileConfigAttributeToMap(profile *keycloakgoclient.UserProfileConfig
 }
 
 func userProfileConfigGroupToMap(spec *keycloakgoclient.UserProfileConfig) map[string]keycloakgoclient.UserProfileGroup {
+	if spec.Groups == nil {
+		return make(map[string]keycloakgoclient.UserProfileGroup)
+	}
+
 	groups := make(map[string]keycloakgoclient.UserProfileGroup, len(*spec.Groups))
 
 	for _, v := range *spec.Groups {
