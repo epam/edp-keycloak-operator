@@ -103,14 +103,6 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		realm.PasswordPolicy = gocloak.StringP(strings.Join(policies, " and "))
 	}
 
-	if realmSettings.DisplayHTMLName != "" {
-		if realm.Attributes == nil {
-			realm.Attributes = &map[string]string{}
-		}
-
-		(*realm.Attributes)["displayHTMLName"] = realmSettings.DisplayHTMLName
-	}
-
 	if realmSettings.FrontendURL != "" {
 		if realm.Attributes == nil {
 			realm.Attributes = &map[string]string{}
@@ -120,6 +112,7 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 	}
 
 	realm.DisplayName = gocloak.StringP(realmSettings.DisplayName)
+	realm.DisplayNameHTML = gocloak.StringP(realmSettings.DisplayHTMLName)
 
 	if realmSettings.TokenSettings != nil {
 		realm.DefaultSignatureAlgorithm = gocloak.StringP(realmSettings.TokenSettings.DefaultSignatureAlgorithm)
