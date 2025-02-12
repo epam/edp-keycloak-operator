@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -22,6 +23,7 @@ type RealmSettings struct {
 	FrontendURL            string
 	TokenSettings          *TokenSettings
 	DisplayName            string
+	AdminEventsExpiration  *int
 }
 
 type PasswordPolicy struct {
@@ -123,6 +125,10 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		realm.AccessCodeLifespan = gocloak.IntP(realmSettings.TokenSettings.AccessCodeLifespan)
 		realm.ActionTokenGeneratedByUserLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByUserLifespan)
 		realm.ActionTokenGeneratedByAdminLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByAdminLifespan)
+	}
+
+	if realmSettings.AdminEventsExpiration != nil {
+		(*realm.Attributes)["adminEventsExpiration"] = strconv.Itoa(*realmSettings.AdminEventsExpiration)
 	}
 }
 
