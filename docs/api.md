@@ -308,6 +308,14 @@ RealmEventConfig is the configuration for events in the realm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>adminEventsExpiration</b></td>
+        <td>integer</td>
+        <td>
+          AdminEventsExpiration sets the expiration for events in seconds.
+Expired events are periodically deleted from the database.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>enabledEventTypes</b></td>
         <td>[]string</td>
         <td>
@@ -5030,6 +5038,14 @@ RealmEventConfig is the configuration for events in the realm.
         <td>boolean</td>
         <td>
           AdminEventsEnabled indicates whether to enable admin events.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>adminEventsExpiration</b></td>
+        <td>integer</td>
+        <td>
+          AdminEventsExpiration sets the expiration for events in seconds.
+Expired events are periodically deleted from the database.<br/>
         </td>
         <td>false</td>
       </tr><tr>

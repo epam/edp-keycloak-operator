@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -45,6 +46,7 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			ActionTokenGeneratedByUserLifespan:  234,
 			ActionTokenGeneratedByAdminLifespan: 235,
 		},
+		AdminEventsExpiration: ptr.To(100),
 	}
 	realmName := "ream11"
 
@@ -62,7 +64,8 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 			}, realm.BrowserSecurityHeaders) &&
 			assert.Equal(t, gocloak.StringP("foo(bar) and bar(baz)"), realm.PasswordPolicy) &&
 			assert.Equal(t, &map[string]string{
-				"frontendUrl": settings.FrontendURL,
+				"frontendUrl":           settings.FrontendURL,
+				"adminEventsExpiration": "100",
 			}, realm.Attributes) &&
 			assert.Equal(t, settings.TokenSettings.DefaultSignatureAlgorithm, *realm.DefaultSignatureAlgorithm) &&
 			assert.Equal(t, settings.TokenSettings.RevokeRefreshToken, *realm.RevokeRefreshToken) &&

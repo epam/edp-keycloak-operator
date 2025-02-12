@@ -67,6 +67,12 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 
 	settings.TokenSettings = adapter.ToRealmTokenSettings(realm.Spec.TokenSettings)
 
+	if realm.Spec.RealmEventConfig != nil && realm.Spec.RealmEventConfig.AdminEventsEnabled {
+		eventCfCopy := realm.Spec.RealmEventConfig.DeepCopy()
+
+		settings.AdminEventsExpiration = &eventCfCopy.AdminEventsExpiration
+	}
+
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
 		return errors.Wrap(err, "unable to update realm settings")
 	}

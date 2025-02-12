@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -37,7 +38,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 				"foo": "bar",
 			},
 			RealmEventConfig: &keycloakApi.RealmEventConfig{
-				EventsListeners: []string{"foo", "bar"},
+				EventsListeners:       []string{"foo", "bar"},
+				AdminEventsEnabled:    true,
+				AdminEventsExpiration: 100,
 			},
 			PasswordPolicies: []keycloakApi.PasswordPolicy{
 				{Type: "foo", Value: "bar"},
@@ -57,20 +60,23 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		PasswordPolicies: []adapter.PasswordPolicy{
 			{Type: "foo", Value: "bar"},
 		},
-		DisplayHTMLName: realm.Spec.DisplayHTMLName,
-		FrontendURL:     realm.Spec.FrontendURL,
-		DisplayName:     realm.Spec.DisplayName,
+		DisplayHTMLName:       realm.Spec.DisplayHTMLName,
+		FrontendURL:           realm.Spec.FrontendURL,
+		DisplayName:           realm.Spec.DisplayName,
+		AdminEventsExpiration: ptr.To(100),
 	}).Return(nil)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
-		EventsListeners: []string{"foo", "bar"},
+		EventsListeners:    []string{"foo", "bar"},
+		AdminEventsEnabled: true,
 	}).Return(nil).Once()
 
 	err = rs.ServeRequest(ctx, &realm, kClient)
 	require.NoError(t, err)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
-		EventsListeners: []string{"foo", "bar"},
+		EventsListeners:    []string{"foo", "bar"},
+		AdminEventsEnabled: true,
 	}).Return(errors.New("event config fatal")).Once()
 	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
 

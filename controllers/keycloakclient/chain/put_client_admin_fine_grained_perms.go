@@ -13,7 +13,7 @@ import (
 
 const (
 	// RealmManagementClient built-in Keycloak client for the realm
-	// This client manages admin fine-grained permissions for other clients
+	// This client manages admin fine-grained permissions for other clients.
 	RealmManagementClient = "realm-management"
 )
 
