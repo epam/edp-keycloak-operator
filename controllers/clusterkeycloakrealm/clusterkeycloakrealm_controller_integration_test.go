@@ -39,6 +39,10 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 				},
 				DisplayName:     "Test Realm",
 				DisplayHTMLName: "<b>Test Realm</b>",
+				RealmEventConfig: &keycloakAlpha.RealmEventConfig{
+					AdminEventsEnabled:    true,
+					AdminEventsExpiration: 100,
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

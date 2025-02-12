@@ -53,6 +53,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					EventsEnabled:             true,
 					EventsExpiration:          15000,
 					EventsListeners:           []string{"jboss-logging"},
+					AdminEventsExpiration:     100,
 				},
 				PasswordPolicies: []keycloakApi.PasswordPolicy{
 					{
