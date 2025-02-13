@@ -2,6 +2,21 @@
 ## [Unreleased]
 
 
+<a name="v1.25.0"></a>
+## [v1.25.0] - 2025-02-13
+### Features
+- Add adminEventsExpiration to KeycloakRealm realmEventConfig ([#122](https://github.com/epam/edp-keycloak-operator/issues/122))
+
+### Bug Fixes
+- Realm HTML Display Name not properly set
+- Add Resty HTTP client to keycloak_go_client.Client
+- Spelling mistake in keycloak client deletion
+
+### Routine
+- Publish 1.24.0 on the OperatorHub ([#123](https://github.com/epam/edp-keycloak-operator/issues/123))
+- Update current development version ([#123](https://github.com/epam/edp-keycloak-operator/issues/123))
+
+
 <a name="v1.24.0"></a>
 ## [v1.24.0] - 2025-02-05
 ### Features
@@ -168,7 +183,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...HEAD
+[v1.25.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...v1.25.0
 [v1.24.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...v1.24.0
 [v1.23.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...v1.23.0
 [v1.22.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.21.0...v1.22.0
