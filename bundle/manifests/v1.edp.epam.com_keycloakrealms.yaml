@@ -132,6 +132,11 @@ spec:
                     description: AdminEventsEnabled indicates whether to enable admin
                       events.
                     type: boolean
+                  adminEventsExpiration:
+                    description: |-
+                      AdminEventsExpiration sets the expiration for events in seconds.
+                      Expired events are periodically deleted from the database.
+                    type: integer
                   enabledEventTypes:
                     description: EnabledEventTypes is a list of event types to enable.
                     items:

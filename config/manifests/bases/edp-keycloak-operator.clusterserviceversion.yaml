@@ -9,7 +9,7 @@ metadata:
     description: An Operator for managing Keycloak
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.24.0
+  name: edp-keycloak-operator.v1.25.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
