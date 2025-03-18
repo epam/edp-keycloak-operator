@@ -121,11 +121,3 @@ spec:
       - name: token-exchange
         policies:
           - policy1
----
-
-apiVersion: v1
-kind: Secret
-metadata:
-  name: client-secret-authorization-sample
-data:
-  client-secret-key: cGFzc3dvcmQ=

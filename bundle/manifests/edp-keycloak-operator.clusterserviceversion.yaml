@@ -607,9 +607,9 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.25.0
-    createdAt: "2025-03-07T16:08:08Z"
+    createdAt: "2025-03-21T08:40:32Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.39.1
+    operators.operatorframework.io/builder: operator-sdk-v1.39.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
@@ -766,31 +766,6 @@ spec:
           - v1.edp.epam.com
           resources:
           - clusterkeycloakrealms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - clusterkeycloakrealms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - clusterkeycloakrealms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - clusterkeycloaks
           verbs:
           - create
@@ -803,20 +778,36 @@ spec:
         - apiGroups:
           - v1.edp.epam.com
           resources:
+          - clusterkeycloakrealms/finalizers
           - clusterkeycloaks/finalizers
           verbs:
           - update
         - apiGroups:
           - v1.edp.epam.com
           resources:
+          - clusterkeycloakrealms/status
           - clusterkeycloaks/status
           verbs:
           - get
           - patch
           - update
+        - apiGroups:
+          - authentication.k8s.io
+          resources:
+          - tokenreviews
+          verbs:
+          - create
+        - apiGroups:
+          - authorization.k8s.io
+          resources:
+          - subjectaccessreviews
+          verbs:
+          - create
         serviceAccountName: edp-keycloak-operator-controller-manager
       deployments:
       - label:
+          app.kubernetes.io/managed-by: kustomize
+          app.kubernetes.io/name: keycloak-operator
           control-plane: controller-manager
         name: edp-keycloak-operator-controller-manager
         spec:
@@ -834,7 +825,9 @@ spec:
             spec:
               containers:
               - args:
+                - --metrics-bind-address=:8443
                 - --leader-elect
+                - --health-probe-bind-address=:8081
                 command:
                 - /manager
                 env:
@@ -930,265 +923,15 @@ spec:
           - v1.edp.epam.com
           resources:
           - keycloakauthflows
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakauthflows/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakauthflows/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakclients
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakclients/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakclients/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakclientscopes
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakclientscopes/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakclientscopes/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmcomponents
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmcomponents/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmcomponents/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmgroups
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmgroups/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmgroups/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmidentityproviders
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmidentityproviders/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmidentityproviders/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmrolebatches
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmrolebatches/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmrolebatches/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmroles
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmroles/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmroles/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealms
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealms/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealms/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloakrealmusers
-          verbs:
-          - create
-          - delete
-          - get
-          - list
-          - patch
-          - update
-          - watch
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmusers/finalizers
-          verbs:
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
-          - keycloakrealmusers/status
-          verbs:
-          - get
-          - patch
-          - update
-        - apiGroups:
-          - v1.edp.epam.com
-          resources:
           - keycloaks
           verbs:
           - create
@@ -1201,12 +944,32 @@ spec:
         - apiGroups:
           - v1.edp.epam.com
           resources:
+          - keycloakauthflows/finalizers
+          - keycloakclients/finalizers
+          - keycloakclientscopes/finalizers
+          - keycloakrealmcomponents/finalizers
+          - keycloakrealmgroups/finalizers
+          - keycloakrealmidentityproviders/finalizers
+          - keycloakrealmrolebatches/finalizers
+          - keycloakrealmroles/finalizers
+          - keycloakrealms/finalizers
+          - keycloakrealmusers/finalizers
           - keycloaks/finalizers
           verbs:
           - update
         - apiGroups:
           - v1.edp.epam.com
           resources:
+          - keycloakauthflows/status
+          - keycloakclients/status
+          - keycloakclientscopes/status
+          - keycloakrealmcomponents/status
+          - keycloakrealmgroups/status
+          - keycloakrealmidentityproviders/status
+          - keycloakrealmrolebatches/status
+          - keycloakrealmroles/status
+          - keycloakrealms/status
+          - keycloakrealmusers/status
           - keycloaks/status
           verbs:
           - get
