@@ -6,8 +6,10 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 	"sync"
@@ -17,8 +19,6 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
 	"github.com/pkg/errors"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 	"golang.org/x/sync/errgroup"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -1028,7 +1028,7 @@ func (a GoCloakAdapter) syncRoleComposites(ctx context.Context, realmName string
 	}
 
 	if len(associatedRoles) > 0 {
-		if err = a.client.DeleteRealmRoleComposite(ctx, a.token.AccessToken, realmName, role.Name, maps.Values(associatedRoles)); err != nil {
+		if err = a.client.DeleteRealmRoleComposite(ctx, a.token.AccessToken, realmName, role.Name, slices.Collect(maps.Values(associatedRoles))); err != nil {
 			return fmt.Errorf("unable to delete realm role composite roles: %w", err)
 		}
 	}

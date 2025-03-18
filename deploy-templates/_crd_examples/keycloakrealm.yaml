@@ -16,6 +16,7 @@ spec:
   realmEventConfig:
     adminEventsDetailsEnabled: false
     adminEventsEnabled: true
+    adminEventsExpiration: 544
     enabledEventTypes:
       - UPDATE_CONSENT_ERROR
       - CLIENT_LOGIN

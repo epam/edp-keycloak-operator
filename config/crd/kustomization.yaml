@@ -17,22 +17,22 @@ resources:
 - bases/v1.edp.epam.com_clusterkeycloakrealms.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
-patchesStrategicMerge:
+patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-#- patches/webhook_in_keycloaks.yaml
-#- patches/webhook_in_keycloakauthflows.yaml
-#- patches/webhook_in_keycloakclients.yaml
-#- patches/webhook_in_keycloakclientscopes.yaml
-#- patches/webhook_in_keycloakrealmcomponents.yaml
-#- patches/webhook_in_keycloakrealms.yaml
-#- patches/webhook_in_keycloakrealmgroups.yaml
-#- patches/webhook_in_keycloakrealmidentityproviders.yaml
-#- patches/webhook_in_keycloakrealmroles.yaml
-#- patches/webhook_in_keycloakrealmrolebatches.yaml
-#- patches/webhook_in_keycloakrealmusers.yaml
-#- patches/webhook_in_clusterkeycloaks.yaml
-#- patches/webhook_in_clusterkeycloakrealms.yaml
+#- path: patches/webhook_in_keycloaks.yaml
+#- path: patches/webhook_in_keycloakauthflows.yaml
+#- path: patches/webhook_in_keycloakclients.yaml
+#- path: patches/webhook_in_keycloakclientscopes.yaml
+#- path: patches/webhook_in_keycloakrealmcomponents.yaml
+#- path: patches/webhook_in_keycloakrealms.yaml
+#- path: patches/webhook_in_keycloakrealmgroups.yaml
+#- path: patches/webhook_in_keycloakrealmidentityproviders.yaml
+#- path: patches/webhook_in_keycloakrealmroles.yaml
+#- path: patches/webhook_in_keycloakrealmrolebatches.yaml
+#- path: patches/webhook_in_keycloakrealmusers.yaml
+#- path: patches/webhook_in_clusterkeycloaks.yaml
+#- path: patches/webhook_in_clusterkeycloakrealms.yaml
 #+kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
