@@ -19,8 +19,9 @@ spec:
         name: {{ .Values.name }}
     spec:
       serviceAccountName: edp-{{ .Values.name }}
-      securityContext:
-        runAsNonRoot: true
+      {{- if .Values.securityContext }}
+      securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
+      {{- end }}
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
@@ -32,8 +33,9 @@ spec:
           imagePullPolicy: "{{ .Values.imagePullPolicy }}"
           command:
             - /manager
-          securityContext:
-            allowPrivilegeEscalation: false
+          {{- if .Values.containerSecurityContext }}
+          securityContext: {{ toYaml .Values.containerSecurityContext | nindent 12 }}
+          {{- end }}
           env:
             - name: WATCH_NAMESPACE
               {{- if .Values.clusterReconciliationEnabled }}

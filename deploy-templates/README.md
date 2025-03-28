@@ -130,6 +130,7 @@ Development versions are also available from the [snapshot helm chart repository
 | affinity | object | `{}` | Affinity for pod assignment |
 | annotations | object | `{}` | Annotations to be added to the Deployment |
 | clusterReconciliationEnabled | bool | `false` | If clusterReconciliationEnabled is true, the operator reconciles all Keycloak instances in the cluster;  otherwise, it only reconciles instances in the same namespace by default, and cluster-scoped resources are ignored. |
+| containerSecurityContext | object | `{"allowPrivilegeEscalation":false}` | Container Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | extraVolumeMounts | list | `[]` | Additional volumeMounts to be added to the container |
 | extraVolumes | list | `[]` | Additional volumes to be added to the pod |
 | image.repository | string | `"epamedp/keycloak-operator"` | KubeRocketCI keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator) |
@@ -139,4 +140,5 @@ Development versions are also available from the [snapshot helm chart repository
 | name | string | `"keycloak-operator"` | Application name string |
 | nodeSelector | object | `{}` | Node labels for pod assignment |
 | resources | object | `{"limits":{"memory":"192Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource limits and requests for the pod |
+| securityContext | object | `{"runAsNonRoot":true}` | Deployment Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints |
