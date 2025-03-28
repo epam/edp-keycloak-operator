@@ -27,6 +27,16 @@ resources:
     cpu: 50m
     memory: 64Mi
 
+# -- Deployment Security Context
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  runAsNonRoot: true
+
+# -- Container Security Context
+# Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+
 # -- Additional volumes to be added to the pod
 extraVolumes: []
 #  - name: custom-ca
