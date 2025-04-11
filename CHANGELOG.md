@@ -2,6 +2,14 @@
 ## [Unreleased]
 
 
+<a name="v1.26.0"></a>
+## [v1.26.0] - 2025-04-11
+### Routine
+- Make securityContext configurable via values.yaml ([#141](https://github.com/epam/edp-keycloak-operator/issues/141))
+- Publish on OperatorHub ([#132](https://github.com/epam/edp-keycloak-operator/issues/132))
+- Update current development version ([#132](https://github.com/epam/edp-keycloak-operator/issues/132))
+
+
 <a name="v1.25.0"></a>
 ## [v1.25.0] - 2025-02-13
 ### Features
@@ -183,7 +191,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...HEAD
+[v1.26.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...v1.26.0
 [v1.25.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...v1.25.0
 [v1.24.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...v1.24.0
 [v1.23.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.22.0...v1.23.0
