@@ -67,6 +67,7 @@ type KeycloakRealmUserSpec struct {
 	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
 
 	// Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.
+	// Deperecated: use PasswordSecret instead.
 	// +optional
 	Password string `json:"password,omitempty"`
 
@@ -81,6 +82,11 @@ type KeycloakRealmUserSpec struct {
 	// +nullable
 	// +optional
 	PasswordSecret PasswordSecret `json:"passwordSecret,omitempty"`
+
+	// IdentityProviders linked to the user.
+	// +nullable
+	// +optional
+	IdentityProviders *[]string `json:"identityProviders,omitempty"`
 }
 
 // PasswordSecret defines struct which contains reference to secret name and key.
