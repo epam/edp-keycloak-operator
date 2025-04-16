@@ -14,7 +14,7 @@ env:
 jobs:
   e2e-tests:
     name: End-to-end tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -43,7 +43,7 @@ jobs:
         run: make start-kind KUBE_VERSION=$KUBE_VERSION && make e2e
 
   e2e-tests-check:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     if: always()
     needs: [e2e-tests]
     steps:
