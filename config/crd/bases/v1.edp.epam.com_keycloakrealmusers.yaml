@@ -68,6 +68,12 @@ spec:
                   type: string
                 nullable: true
                 type: array
+              identityProviders:
+                description: IdentityProviders linked to the user.
+                items:
+                  type: string
+                nullable: true
+                type: array
               keepResource:
                 default: true
                 description: |-
@@ -79,9 +85,9 @@ spec:
                 description: LastName is a user last name.
                 type: string
               password:
-                description: Password is a user password. Allows to keep user password
-                  within Custom Resource. For security concerns, it is recommended
-                  to use PasswordSecret instead.
+                description: |-
+                  Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.
+                  Deperecated: use PasswordSecret instead.
                 type: string
               passwordSecret:
                 description: PasswordSecret defines Kubernetes secret Name and Key,

@@ -156,18 +156,21 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return fmt.Errorf("unable to get password: %w", getPasswordErr)
 	}
 
+	userSpec := instance.Spec.DeepCopy()
+
 	if err := kClient.SyncRealmUser(ctx, gocloak.PString(realm.Realm), &adapter.KeycloakUser{
-		Username:            instance.Spec.Username,
-		Groups:              instance.Spec.Groups,
-		Roles:               instance.Spec.Roles,
-		RequiredUserActions: instance.Spec.RequiredUserActions,
-		LastName:            instance.Spec.LastName,
-		FirstName:           instance.Spec.FirstName,
-		EmailVerified:       instance.Spec.EmailVerified,
-		Enabled:             instance.Spec.Enabled,
-		Email:               instance.Spec.Email,
-		Attributes:          instance.Spec.Attributes,
+		Username:            userSpec.Username,
+		Groups:              userSpec.Groups,
+		Roles:               userSpec.Roles,
+		RequiredUserActions: userSpec.RequiredUserActions,
+		LastName:            userSpec.LastName,
+		FirstName:           userSpec.FirstName,
+		EmailVerified:       userSpec.EmailVerified,
+		Enabled:             userSpec.Enabled,
+		Email:               userSpec.Email,
+		Attributes:          userSpec.Attributes,
 		Password:            password,
+		IdentityProviders:   userSpec.IdentityProviders,
 	}, instance.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
 		return errors.Wrap(err, "unable to sync realm user")
 	}

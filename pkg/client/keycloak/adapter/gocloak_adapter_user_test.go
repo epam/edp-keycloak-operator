@@ -59,6 +59,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				Groups:              []string{"group1"},
 				Attributes:          map[string]string{"attr1": "attr1value"},
 				Password:            "password",
+				IdentityProviders:   &[]string{"idp1"},
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
 				m := mocks.NewMockGoCloak(t)
@@ -105,6 +106,28 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 					"user-id",
 					mock.Anything,
 				).Return(nil)
+				m.On("GetUserFederatedIdentities",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id").
+					Return([]*gocloak.FederatedIdentityRepresentation{{IdentityProvider: gocloak.StringP("idp2")}}, nil)
+				m.On("CreateUserFederatedIdentity",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					"idp1",
+					mock.Anything).
+					Return(nil)
+				m.On("DeleteUserFederatedIdentity",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					"idp2",
+					mock.Anything).
+					Return(nil)
 
 				return m
 			},
