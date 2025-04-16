@@ -72,6 +72,9 @@ type GoCloakUsers interface {
 	GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
 		userID string) (*gocloak.MappingsRepresentation, error)
 	UpdateUser(ctx context.Context, accessToken, realm string, user gocloak.User) error
+	CreateUserFederatedIdentity(ctx context.Context, token, realm, userID, providerID string, federatedIdentityRep gocloak.FederatedIdentityRepresentation) error
+	GetUserFederatedIdentities(ctx context.Context, token, realm, userID string) ([]*gocloak.FederatedIdentityRepresentation, error)
+	DeleteUserFederatedIdentity(ctx context.Context, token, realm, userID, providerID string) error
 }
 
 type GoCloakClientRoles interface {

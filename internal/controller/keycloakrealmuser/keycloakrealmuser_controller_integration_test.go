@@ -54,6 +54,33 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		})
 		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
+		By("Creating Identity Provider")
+		_, err = keycloakApiClient.CreateIdentityProvider(
+			ctx,
+			getKeyCloakToken(),
+			KeycloakRealmCR,
+			gocloak.IdentityProviderRepresentation{
+				Alias:                     gocloak.StringP("test-idp"),
+				DisplayName:               gocloak.StringP("Test Identity Provider"),
+				ProviderID:                gocloak.StringP("oidc"),
+				Enabled:                   gocloak.BoolP(true),
+				TrustEmail:                gocloak.BoolP(true),
+				StoreToken:                gocloak.BoolP(true),
+				AddReadTokenRoleOnCreate:  gocloak.BoolP(false),
+				LinkOnly:                  gocloak.BoolP(false),
+				FirstBrokerLoginFlowAlias: gocloak.StringP("first broker login"),
+				Config: &map[string]string{
+					"clientId":         "test-client-id",
+					"clientSecret":     "test-client-secret",
+					"issuer":           "https://example.com",
+					"authorizationUrl": "https://example.com/auth",
+					"tokenUrl":         "https://example.com/token",
+					"userInfoUrl":      "https://example.com/userinfo",
+				},
+			},
+		)
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
 		By("Creating Secret for user password")
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -100,7 +127,8 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 					Name: secret.Name,
 					Key:  "password",
 				},
-				KeepResource: true,
+				KeepResource:      true,
+				IdentityProviders: &[]string{"test-idp"},
 			},
 		}
 		Expect(k8sClient.Create(ctx, user)).Should(Succeed())

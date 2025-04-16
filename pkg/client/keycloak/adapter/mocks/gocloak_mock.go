@@ -1098,6 +1098,57 @@ func (_c *MockGoCloak_CreateUser_Call) RunAndReturn(run func(context.Context, st
 	return _c
 }
 
+// CreateUserFederatedIdentity provides a mock function with given fields: ctx, token, realm, userID, providerID, federatedIdentityRep
+func (_m *MockGoCloak) CreateUserFederatedIdentity(ctx context.Context, token string, realm string, userID string, providerID string, federatedIdentityRep gocloak.FederatedIdentityRepresentation) error {
+	ret := _m.Called(ctx, token, realm, userID, providerID, federatedIdentityRep)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateUserFederatedIdentity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string, gocloak.FederatedIdentityRepresentation) error); ok {
+		r0 = rf(ctx, token, realm, userID, providerID, federatedIdentityRep)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_CreateUserFederatedIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateUserFederatedIdentity'
+type MockGoCloak_CreateUserFederatedIdentity_Call struct {
+	*mock.Call
+}
+
+// CreateUserFederatedIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - userID string
+//   - providerID string
+//   - federatedIdentityRep gocloak.FederatedIdentityRepresentation
+func (_e *MockGoCloak_Expecter) CreateUserFederatedIdentity(ctx interface{}, token interface{}, realm interface{}, userID interface{}, providerID interface{}, federatedIdentityRep interface{}) *MockGoCloak_CreateUserFederatedIdentity_Call {
+	return &MockGoCloak_CreateUserFederatedIdentity_Call{Call: _e.mock.On("CreateUserFederatedIdentity", ctx, token, realm, userID, providerID, federatedIdentityRep)}
+}
+
+func (_c *MockGoCloak_CreateUserFederatedIdentity_Call) Run(run func(ctx context.Context, token string, realm string, userID string, providerID string, federatedIdentityRep gocloak.FederatedIdentityRepresentation)) *MockGoCloak_CreateUserFederatedIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string), args[5].(gocloak.FederatedIdentityRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_CreateUserFederatedIdentity_Call) Return(_a0 error) *MockGoCloak_CreateUserFederatedIdentity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_CreateUserFederatedIdentity_Call) RunAndReturn(run func(context.Context, string, string, string, string, gocloak.FederatedIdentityRepresentation) error) *MockGoCloak_CreateUserFederatedIdentity_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteClient provides a mock function with given fields: ctx, accessToken, realm, clientID
 func (_m *MockGoCloak) DeleteClient(ctx context.Context, accessToken string, realm string, clientID string) error {
 	ret := _m.Called(ctx, accessToken, realm, clientID)
@@ -1840,6 +1891,56 @@ func (_c *MockGoCloak_DeleteScope_Call) Return(_a0 error) *MockGoCloak_DeleteSco
 }
 
 func (_c *MockGoCloak_DeleteScope_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteUserFederatedIdentity provides a mock function with given fields: ctx, token, realm, userID, providerID
+func (_m *MockGoCloak) DeleteUserFederatedIdentity(ctx context.Context, token string, realm string, userID string, providerID string) error {
+	ret := _m.Called(ctx, token, realm, userID, providerID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteUserFederatedIdentity")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, userID, providerID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeleteUserFederatedIdentity_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteUserFederatedIdentity'
+type MockGoCloak_DeleteUserFederatedIdentity_Call struct {
+	*mock.Call
+}
+
+// DeleteUserFederatedIdentity is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - userID string
+//   - providerID string
+func (_e *MockGoCloak_Expecter) DeleteUserFederatedIdentity(ctx interface{}, token interface{}, realm interface{}, userID interface{}, providerID interface{}) *MockGoCloak_DeleteUserFederatedIdentity_Call {
+	return &MockGoCloak_DeleteUserFederatedIdentity_Call{Call: _e.mock.On("DeleteUserFederatedIdentity", ctx, token, realm, userID, providerID)}
+}
+
+func (_c *MockGoCloak_DeleteUserFederatedIdentity_Call) Run(run func(ctx context.Context, token string, realm string, userID string, providerID string)) *MockGoCloak_DeleteUserFederatedIdentity_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteUserFederatedIdentity_Call) Return(_a0 error) *MockGoCloak_DeleteUserFederatedIdentity_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteUserFederatedIdentity_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteUserFederatedIdentity_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3003,6 +3104,67 @@ func (_c *MockGoCloak_GetScopes_Call) Return(_a0 []*gocloak.ScopeRepresentation,
 }
 
 func (_c *MockGoCloak_GetScopes_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)) *MockGoCloak_GetScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUserFederatedIdentities provides a mock function with given fields: ctx, token, realm, userID
+func (_m *MockGoCloak) GetUserFederatedIdentities(ctx context.Context, token string, realm string, userID string) ([]*gocloak.FederatedIdentityRepresentation, error) {
+	ret := _m.Called(ctx, token, realm, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserFederatedIdentities")
+	}
+
+	var r0 []*gocloak.FederatedIdentityRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) ([]*gocloak.FederatedIdentityRepresentation, error)); ok {
+		return rf(ctx, token, realm, userID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) []*gocloak.FederatedIdentityRepresentation); ok {
+		r0 = rf(ctx, token, realm, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]*gocloak.FederatedIdentityRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = rf(ctx, token, realm, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockGoCloak_GetUserFederatedIdentities_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserFederatedIdentities'
+type MockGoCloak_GetUserFederatedIdentities_Call struct {
+	*mock.Call
+}
+
+// GetUserFederatedIdentities is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - userID string
+func (_e *MockGoCloak_Expecter) GetUserFederatedIdentities(ctx interface{}, token interface{}, realm interface{}, userID interface{}) *MockGoCloak_GetUserFederatedIdentities_Call {
+	return &MockGoCloak_GetUserFederatedIdentities_Call{Call: _e.mock.On("GetUserFederatedIdentities", ctx, token, realm, userID)}
+}
+
+func (_c *MockGoCloak_GetUserFederatedIdentities_Call) Run(run func(ctx context.Context, token string, realm string, userID string)) *MockGoCloak_GetUserFederatedIdentities_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_GetUserFederatedIdentities_Call) Return(_a0 []*gocloak.FederatedIdentityRepresentation, _a1 error) *MockGoCloak_GetUserFederatedIdentities_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockGoCloak_GetUserFederatedIdentities_Call) RunAndReturn(run func(context.Context, string, string, string) ([]*gocloak.FederatedIdentityRepresentation, error)) *MockGoCloak_GetUserFederatedIdentities_Call {
 	_c.Call.Return(run)
 	return _c
 }

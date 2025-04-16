@@ -22,6 +22,7 @@ type KeycloakUser struct {
 	Groups              []string
 	Attributes          map[string]string
 	Password            string
+	IdentityProviders   *[]string
 }
 
 type UserRealmRoleMapping struct {
@@ -52,6 +53,10 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 
 	if err = a.syncUserGroups(ctx, realmName, userID, userDto.Groups, addOnly); err != nil {
 		return err
+	}
+
+	if userDto.IdentityProviders != nil {
+		return a.syncUserIdentityProviders(ctx, realmName, userID, userDto.Username, *userDto.IdentityProviders)
 	}
 
 	return nil
@@ -398,4 +403,85 @@ func (a GoCloakAdapter) makeUserAttributes(keycloakUser *gocloak.User, userCR *K
 	}
 
 	return &attrs
+}
+
+func (a GoCloakAdapter) syncUserIdentityProviders(
+	ctx context.Context,
+	realmName,
+	userID,
+	userName string,
+	providers []string,
+) error {
+	existingProviders, err := a.getExistingIdentityProviders(ctx, realmName, userID)
+	if err != nil {
+		return err
+	}
+
+	if err := a.addMissingIdentityProviders(ctx, realmName, userID, userName, providers, existingProviders); err != nil {
+		return err
+	}
+
+	return a.removeExtraIdentityProviders(ctx, realmName, userID, providers, existingProviders)
+}
+
+func (a GoCloakAdapter) getExistingIdentityProviders(
+	ctx context.Context,
+	realmName, userID string,
+) (map[string]struct{}, error) {
+	existingIdentities, err := a.client.GetUserFederatedIdentities(ctx, a.token.AccessToken, realmName, userID)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get user identity providers: %w", err)
+	}
+
+	existingProviders := make(map[string]struct{}, len(existingIdentities))
+
+	for _, identity := range existingIdentities {
+		if identity.IdentityProvider != nil {
+			existingProviders[*identity.IdentityProvider] = struct{}{}
+		}
+	}
+
+	return existingProviders, nil
+}
+
+func (a GoCloakAdapter) addMissingIdentityProviders(
+	ctx context.Context,
+	realmName, userID, userName string,
+	providers []string,
+	existingProviders map[string]struct{},
+) error {
+	for _, provider := range providers {
+		if _, exists := existingProviders[provider]; exists {
+			continue
+		}
+
+		federatedIdentity := gocloak.FederatedIdentityRepresentation{
+			IdentityProvider: &provider,
+			UserID:           &userID,
+			UserName:         &userName,
+		}
+
+		if err := a.client.CreateUserFederatedIdentity(ctx, a.token.AccessToken, realmName, userID, provider, federatedIdentity); err != nil {
+			return fmt.Errorf("unable to add user to identity provider %s: %w", provider, err)
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) removeExtraIdentityProviders(
+	ctx context.Context,
+	realmName, userID string,
+	providers []string,
+	existingProviders map[string]struct{},
+) error {
+	for existingProvider := range existingProviders {
+		if !slices.Contains(providers, existingProvider) {
+			if err := a.client.DeleteUserFederatedIdentity(ctx, a.token.AccessToken, realmName, userID, existingProvider); err != nil {
+				return fmt.Errorf("unable to remove user from identity provider %s: %w", existingProvider, err)
+			}
+		}
+	}
+
+	return nil
 }

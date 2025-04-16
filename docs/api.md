@@ -6195,6 +6195,13 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>identityProviders</b></td>
+        <td>[]string</td>
+        <td>
+          IdentityProviders linked to the user.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>keepResource</b></td>
         <td>boolean</td>
         <td>
@@ -6216,7 +6223,8 @@ When set to true, the CR will not be deleted after processing.<br/>
         <td><b>password</b></td>
         <td>string</td>
         <td>
-          Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.<br/>
+          Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.
+Deperecated: use PasswordSecret instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
