@@ -26,6 +26,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	metricsserver "sigs.k8s.io/controller-runtime/pkg/metrics/server"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
@@ -163,8 +164,10 @@ var _ = BeforeSuite(func() {
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakRealmSpec{
-			RealmName:     KeycloakRealmCR,
-			KeycloakOwner: keycloak.Name,
+			RealmName: KeycloakRealmCR,
+			KeycloakRef: common.KeycloakRef{
+				Name: keycloak.Name,
+			},
 		},
 	}
 	Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

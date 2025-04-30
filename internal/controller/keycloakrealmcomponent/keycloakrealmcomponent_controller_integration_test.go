@@ -146,8 +146,11 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component",
-				Realm:        "invalid-realm",
+				Name: "test-keycloak-realm-component",
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: "invalid-realm",
+				},
 				ProviderID:   "scope",
 				ProviderType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy",
 			},

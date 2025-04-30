@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -80,12 +79,6 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 		}
 
 		return ctrl.Result{}, errors.Wrap(err, "unable to get keycloak realm user from k8s")
-	}
-
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		return ctrl.Result{}, fmt.Errorf("unable to apply default values: %w", err)
-	} else if updated {
-		return ctrl.Result{}, nil
 	}
 
 	oldStatus := instance.Status
@@ -210,23 +203,6 @@ func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.Keycl
 	log.Info("Using password from instance Spec.password")
 
 	return instance.Spec.Password, nil
-}
-
-func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (bool, error) {
-	if instance.Spec.RealmRef.Name == "" {
-		instance.Spec.RealmRef = common.RealmRef{
-			Kind: keycloakApi.KeycloakRealmKind,
-			Name: instance.Spec.Realm,
-		}
-
-		if err := r.client.Update(ctx, instance); err != nil {
-			return false, fmt.Errorf("failed to update default values: %w", err)
-		}
-
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func (r *Reconcile) updateKeycloakRealmUserStatus(

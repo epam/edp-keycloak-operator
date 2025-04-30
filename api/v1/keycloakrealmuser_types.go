@@ -8,13 +8,8 @@ import (
 
 // KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
 type KeycloakRealmUserSpec struct {
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Username is a username in keycloak.
