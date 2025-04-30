@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -108,13 +107,6 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return
 	}
 
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		resultErr = fmt.Errorf("unable to apply default values: %w", err)
-		return
-	} else if updated {
-		return
-	}
-
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{
@@ -191,23 +183,6 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 	}
 
 	return nil
-}
-
-func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider) (bool, error) {
-	if instance.Spec.RealmRef.Name == "" {
-		instance.Spec.RealmRef = common.RealmRef{
-			Kind: keycloakApi.KeycloakRealmKind,
-			Name: instance.Spec.Realm,
-		}
-
-		if err := r.client.Update(ctx, instance); err != nil {
-			return false, fmt.Errorf("failed to update default values: %w", err)
-		}
-
-		return true, nil
-	}
-
-	return false, nil
 }
 
 func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdentityProviderSpec,

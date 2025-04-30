@@ -15,7 +15,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
@@ -169,19 +168,6 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 		updated = true
 	}
 
-	if keycloakClient.Spec.RealmRef.Name == "" {
-		realmName, err := r.getKeycloakCRName(ctx, keycloakClient.Spec.TargetRealm, keycloakClient.Namespace)
-		if err != nil {
-			return false, fmt.Errorf("unable to get keycloak cr name: %w", err)
-		}
-
-		keycloakClient.Spec.RealmRef = common.RealmRef{
-			Kind: keycloakApi.KeycloakRealmKind,
-			Name: realmName,
-		}
-		updated = true
-	}
-
 	if keycloakClient.Spec.WebOrigins == nil {
 		keycloakClient.Spec.WebOrigins = []string{
 			keycloakClient.Spec.WebUrl,
@@ -201,44 +187,15 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 	return false, nil
 }
 
-func (r *ReconcileKeycloakClient) getKeycloakCRName(ctx context.Context, targetRealm, namespace string) (string, error) {
-	realmList := &keycloakApi.KeycloakRealmList{}
-
-	if err := r.client.List(ctx, realmList, client.InNamespace(namespace)); err != nil {
-		return "", fmt.Errorf("unable to get realms: %w", err)
-	}
-
-	for i := 0; i < len(realmList.Items); i++ {
-		if realmList.Items[i].Spec.RealmName == targetRealm {
-			return realmList.Items[i].Name, nil
-		}
-	}
-
-	// Add this for backward compatibility because in old versions KeycloakRealm CR name was hardcoded to "main".
-	// We can remove this in the future release as RealmRef will be set for all KeycloakClient CRs.
-	for i := 0; i < len(realmList.Items); i++ {
-		if realmList.Items[i].Name == "main" {
-			return realmList.Items[i].Name, nil
-		}
-	}
-
-	return "", fmt.Errorf("realm %s not found", targetRealm)
-}
-
 func (r *ReconcileKeycloakClient) getKeycloakRealm(
 	ctx context.Context,
 	keycloakClient *keycloakApi.KeycloakClient,
 	adapterClient keycloak.Client,
 ) (string, error) {
-	if keycloakClient.Spec.TargetRealm == "" {
-		realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakClient, adapterClient)
-		if err != nil {
-			return "", fmt.Errorf("unable to get keycloak realm from ref: %w", err)
-		}
-
-		return gocloak.PString(realm.Realm), nil
+	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakClient, adapterClient)
+	if err != nil {
+		return "", fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
-	// If TargetRealm is set, use it instead of RealmRef. This is for backward compatibility.
-	return keycloakClient.Spec.TargetRealm, nil
+	return gocloak.PString(realm.Realm), nil
 }

@@ -8,13 +8,8 @@ import (
 
 // KeycloakAuthFlowSpec defines the desired state of KeycloakAuthFlow.
 type KeycloakAuthFlowSpec struct {
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm,omitempty"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Alias is display name for authentication flow.

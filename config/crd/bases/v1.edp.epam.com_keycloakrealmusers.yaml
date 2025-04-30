@@ -104,15 +104,11 @@ spec:
                 - key
                 - name
                 type: object
-              realm:
-                description: |-
-                  Deprecated: use RealmRef instead.
-                  Realm is name of KeycloakRealm custom resource.
-                type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
                 properties:
                   kind:
+                    default: KeycloakRealm
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - KeycloakRealm
@@ -121,6 +117,8 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
               reconciliationStrategy:
                 description: |-
@@ -145,6 +143,7 @@ spec:
                 description: Username is a username in keycloak.
                 type: string
             required:
+            - realmRef
             - username
             type: object
           status:

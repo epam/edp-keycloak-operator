@@ -11,14 +11,8 @@ type KeycloakRealmSpec struct {
 	// RealmName specifies the name of the realm.
 	RealmName string `json:"realmName"`
 
-	// Deprecated: use KeycloakRef instead.
-	// KeycloakOwner specifies the name of the Keycloak instance that owns the realm.
-	// +nullable
-	// +optional
-	KeycloakOwner string `json:"keycloakOwner,omitempty"`
-
 	// KeycloakRef is reference to Keycloak custom resource.
-	// +optional
+	// +required
 	KeycloakRef common.KeycloakRef `json:"keycloakRef,omitempty"`
 
 	// Users is a list of users to create in the realm.

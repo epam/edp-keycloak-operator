@@ -8,13 +8,8 @@ import (
 
 // KeycloakRealmIdentityProviderSpec defines the desired state of KeycloakRealmIdentityProvider.
 type KeycloakRealmIdentityProviderSpec struct {
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// ProviderID is a provider ID of identity provider.

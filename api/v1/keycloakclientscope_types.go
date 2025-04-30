@@ -11,13 +11,8 @@ type KeycloakClientScopeSpec struct {
 	// Name of keycloak client scope.
 	Name string `json:"name"`
 
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Protocol is SSO protocol configuration which is being supplied by this client scope.

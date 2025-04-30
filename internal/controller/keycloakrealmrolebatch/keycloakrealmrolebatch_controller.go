@@ -17,7 +17,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
@@ -78,13 +77,6 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role batch from k8s")
 
-		return
-	}
-
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		resultErr = fmt.Errorf("unable to apply default values: %w", err)
-		return
-	} else if updated {
 		return
 	}
 
@@ -228,21 +220,4 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 	}
 
 	return nil
-}
-
-func (r *ReconcileKeycloakRealmRoleBatch) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmRoleBatch) (bool, error) {
-	if instance.Spec.RealmRef.Name == "" {
-		instance.Spec.RealmRef = common.RealmRef{
-			Kind: keycloakApi.KeycloakRealmKind,
-			Name: instance.Spec.Realm,
-		}
-
-		if err := r.client.Update(ctx, instance); err != nil {
-			return false, fmt.Errorf("failed to update default values: %w", err)
-		}
-
-		return true, nil
-	}
-
-	return false, nil
 }

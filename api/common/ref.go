@@ -10,11 +10,12 @@ import (
 type RealmRef struct {
 	// Kind specifies the kind of the Keycloak resource.
 	// +kubebuilder:validation:Enum=KeycloakRealm;ClusterKeycloakRealm
+	// +kubebuilder:default=KeycloakRealm
 	// +optional
 	Kind string `json:"kind,omitempty"`
 
 	// Name specifies the name of the Keycloak resource.
-	// +optional
+	// +required
 	Name string `json:"name,omitempty"`
 }
 
@@ -34,11 +35,12 @@ type HasKeycloakRef interface {
 type KeycloakRef struct {
 	// Kind specifies the kind of the Keycloak resource.
 	// +kubebuilder:validation:Enum=Keycloak;ClusterKeycloak
+	// +kubebuilder:default=Keycloak
 	// +optional
 	Kind string `json:"kind,omitempty"`
 
 	// Name specifies the name of the Keycloak resource.
-	// +optional
+	// +required
 	Name string `json:"name,omitempty"`
 }
 
