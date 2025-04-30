@@ -11,13 +11,8 @@ type KeycloakComponentSpec struct {
 	// Name of keycloak component.
 	Name string `json:"name"`
 
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// ProviderID is a provider ID of component.

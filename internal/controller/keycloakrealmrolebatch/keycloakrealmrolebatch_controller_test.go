@@ -47,10 +47,16 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 			Finalizers:        []string{keyCloakRealmRoleBatchOperatorFinalizerName},
 			OwnerReferences:   []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}},
 		},
-		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []keycloakApi.BatchRole{
-			{Name: "sub-role1"},
-			{Name: "sub-role2", IsDefault: true},
-		}},
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{
+			RealmRef: common.RealmRef{
+				Kind: keycloakApi.KeycloakRealmKind,
+				Name: realm.Name,
+			},
+			Roles: []keycloakApi.BatchRole{
+				{Name: "sub-role1"},
+				{Name: "sub-role2", IsDefault: true},
+			},
+		},
 		Status: keycloakApi.KeycloakRealmRoleBatchStatus{},
 	}
 
@@ -91,14 +97,16 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		Data: map[string][]byte{"username": []byte("user"), "password": []byte("pass")}}
 	batch := keycloakApi.KeycloakRealmRoleBatch{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
 		OwnerReferences: []metav1.OwnerReference{{Name: "test", Kind: "KeycloakRealm"}}},
-		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "test", Roles: []keycloakApi.BatchRole{
-			{Name: "sub-role1"},
-			{Name: "sub-role2", IsDefault: true},
-		},
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{
+			Roles: []keycloakApi.BatchRole{
+				{Name: "sub-role1"},
+				{Name: "sub-role2", IsDefault: true},
+			},
 			RealmRef: common.RealmRef{
 				Kind: keycloakApi.KeycloakRealmKind,
 				Name: realm.Name,
-			}},
+			},
+		},
 		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "test2", Namespace: ns,
@@ -198,10 +206,11 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 			Name:      "batch1",
 			Namespace: ns,
 		},
-		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{Realm: "realm1", Roles: []keycloakApi.BatchRole{
-			{Name: "role1"},
-			{Name: "role2"},
-		},
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{
+			Roles: []keycloakApi.BatchRole{
+				{Name: "role1"},
+				{Name: "role2"},
+			},
 			RealmRef: common.RealmRef{
 				Kind: keycloakApi.KeycloakRealmKind,
 				Name: realm.Name,
@@ -210,7 +219,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		Status: keycloakApi.KeycloakRealmRoleBatchStatus{}}
 
 	role := keycloakApi.KeycloakRealmRole{ObjectMeta: metav1.ObjectMeta{Name: "batch1-role2", Namespace: ns},
-		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "batch1-role2", Realm: "realm1"},
+		Spec:   keycloakApi.KeycloakRealmRoleSpec{Name: "batch1-role2", RealmRef: common.RealmRef{Name: "realm1"}},
 		Status: keycloakApi.KeycloakRealmRoleStatus{Value: ""},
 	}
 

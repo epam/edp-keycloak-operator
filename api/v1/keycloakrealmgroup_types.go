@@ -11,13 +11,8 @@ type KeycloakRealmGroupSpec struct {
 	// Name of keycloak group.
 	Name string `json:"name"`
 
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Path is a group path.

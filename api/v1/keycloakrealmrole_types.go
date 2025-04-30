@@ -11,13 +11,8 @@ type KeycloakRealmRoleSpec struct {
 	// Name of keycloak role.
 	Name string `json:"name"`
 
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Description is a role description.

@@ -18,15 +18,8 @@ type KeycloakClientSpec struct {
 	// ClientId is a unique keycloak client ID referenced in URI and tokens.
 	ClientId string `json:"clientId"`
 
-	// Deprecated: use RealmRef instead.
-	// TargetRealm is a realm name where client will be created.
-	// It has higher priority than RealmRef for backward compatibility.
-	// If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.
-	// +optional
-	TargetRealm string `json:"targetRealm,omitempty"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Secret is kubernetes secret name where the client's secret will be stored.

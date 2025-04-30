@@ -10,13 +10,8 @@ import (
 
 // KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
 type KeycloakRealmRoleBatchSpec struct {
-	// Deprecated: use RealmRef instead.
-	// Realm is name of KeycloakRealm custom resource.
-	// +optional
-	Realm string `json:"realm"`
-
 	// RealmRef is reference to Realm custom resource.
-	// +optional
+	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Roles is a list of roles to be created.

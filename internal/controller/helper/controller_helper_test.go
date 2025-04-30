@@ -59,7 +59,6 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 			Namespace: "test",
 		},
 		Spec: keycloakApi.KeycloakRealmGroupSpec{
-			Realm: "foo13",
 			RealmRef: common.RealmRef{
 				Kind: keycloakApi.KeycloakRealmKind,
 				Name: "realm",

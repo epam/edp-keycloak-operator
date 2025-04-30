@@ -3,7 +3,9 @@ kind: KeycloakRealmComponent
 metadata:
   name: component-sample
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   name: component-sample
   providerId: scope
   providerType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
@@ -15,7 +17,9 @@ kind: KeycloakRealmComponent
 metadata:
   name: component-sample-child
 spec:
-  realm: keycloakrealm-sample
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
   name: component-sample-child
   providerId: scope
   providerType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
