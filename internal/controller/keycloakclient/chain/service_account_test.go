@@ -30,6 +30,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				RealmRoles: []string{"baz", "zaz"},
+				Groups:     []string{"group1", "group2"},
 			},
 		},
 		Status: keycloakApi.KeycloakClientStatus{
@@ -46,6 +47,8 @@ func TestServiceAccount_Serve(t *testing.T) {
 			kc.Spec.ServiceAccount.ClientRoles[0].ClientID: kc.Spec.ServiceAccount.ClientRoles[0].Roles}, false).Return(nil)
 	apiClient.On("SetServiceAccountAttributes", realmName, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
+	apiClient.On("SetServiceAccountGroups", realmName, kc.Status.ClientID,
+		kc.Spec.ServiceAccount.Groups, false).Return(nil)
 
 	sa := NewServiceAccount(apiClient)
 

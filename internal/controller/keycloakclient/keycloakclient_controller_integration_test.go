@@ -111,6 +111,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Browser:     "browser",
 					DirectGrant: "direct grant",
 				},
+				ServiceAccount: &keycloakApi.ServiceAccount{
+					Enabled: true,
+					Groups:  []string{"test-group"},
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
@@ -153,6 +157,9 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 					Browser:     "browser",
 					DirectGrant: "direct grant",
+				},
+				ServiceAccount: &keycloakApi.ServiceAccount{
+					Enabled: true,
 				},
 			},
 		}
