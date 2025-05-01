@@ -3721,6 +3721,55 @@ func (_c *MockClient_SetServiceAccountAttributes_Call) RunAndReturn(run func(str
 	return _c
 }
 
+// SetServiceAccountGroups provides a mock function with given fields: realm, clientID, groups, addOnly
+func (_m *MockClient) SetServiceAccountGroups(realm string, clientID string, groups []string, addOnly bool) error {
+	ret := _m.Called(realm, clientID, groups, addOnly)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetServiceAccountGroups")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, []string, bool) error); ok {
+		r0 = rf(realm, clientID, groups, addOnly)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_SetServiceAccountGroups_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetServiceAccountGroups'
+type MockClient_SetServiceAccountGroups_Call struct {
+	*mock.Call
+}
+
+// SetServiceAccountGroups is a helper method to define mock.On call
+//   - realm string
+//   - clientID string
+//   - groups []string
+//   - addOnly bool
+func (_e *MockClient_Expecter) SetServiceAccountGroups(realm interface{}, clientID interface{}, groups interface{}, addOnly interface{}) *MockClient_SetServiceAccountGroups_Call {
+	return &MockClient_SetServiceAccountGroups_Call{Call: _e.mock.On("SetServiceAccountGroups", realm, clientID, groups, addOnly)}
+}
+
+func (_c *MockClient_SetServiceAccountGroups_Call) Run(run func(realm string, clientID string, groups []string, addOnly bool)) *MockClient_SetServiceAccountGroups_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string), args[2].([]string), args[3].(bool))
+	})
+	return _c
+}
+
+func (_c *MockClient_SetServiceAccountGroups_Call) Return(_a0 error) *MockClient_SetServiceAccountGroups_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_SetServiceAccountGroups_Call) RunAndReturn(run func(string, string, []string, bool) error) *MockClient_SetServiceAccountGroups_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SyncAuthFlow provides a mock function with given fields: realmName, flow
 func (_m *MockClient) SyncAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error {
 	ret := _m.Called(realmName, flow)

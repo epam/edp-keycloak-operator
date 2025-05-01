@@ -3109,6 +3109,13 @@ ServiceAccount is a service account configuration.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>groups</b></td>
+        <td>[]string</td>
+        <td>
+          Groups is a list of groups assigned to service account<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>

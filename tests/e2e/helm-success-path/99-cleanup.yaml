@@ -3,7 +3,9 @@ kind: TestStep
 commands:
   - command: kubectl delete keycloakrealmrole keycloakrealmrole-sample
     namespaced: true
-  - command: kubectl delete keycloakclient keycloakclient-sample keycloakclient-nosecret
+  - command: kubectl delete keycloakclient keycloakclient-sample keycloakclient-nosecret keycloakclient-serviceaccount
+    namespaced: true
+  - command: kubectl delete keycloakrealmgroup keycloakrealmgroup-sample
     namespaced: true
   - command: kubectl delete keycloakrealmidentityprovider keycloakrealmidentityprovider-sample keycloakrealmidentityprovider-sample-with-pass
     namespaced: true
