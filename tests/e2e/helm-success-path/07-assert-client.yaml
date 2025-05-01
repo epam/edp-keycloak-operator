@@ -49,3 +49,30 @@ kind: Secret
 metadata:
   name: keycloak-client-keycloakclient-nosecret-secret
 type: Opaque
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakClient
+metadata:
+  name: keycloakclient-serviceaccount
+spec:
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample
+  clientId: keycloakclient-serviceaccount
+  secret: $client-secret-name:clientSecretKey
+  webUrl: https://keycloakclient-serviceaccount.com
+  attributes:
+    post.logout.redirect.uris: "+"
+  clientRoles:
+    - administrator
+    - developer
+  redirectUris:
+    - https://keycloakclient-serviceaccount.com
+    - https://keycloakclient-serviceaccount.com/*
+  serviceAccount:
+    enabled: true
+    groups:
+      - developers
+status:
+  value: "OK"

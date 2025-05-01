@@ -613,6 +613,12 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable service account.
                     type: boolean
+                  groups:
+                    description: Groups is a list of groups assigned to service account
+                    items:
+                      type: string
+                    nullable: true
+                    type: array
                   realmRoles:
                     description: RealmRoles is a list of realm roles assigned to service
                       account.

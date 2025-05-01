@@ -208,6 +208,11 @@ type ServiceAccount struct {
 	// +nullable
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// Groups is a list of groups assigned to service account
+	// +nullable
+	// +optional
+	Groups []string `json:"groups,omitempty"`
 }
 
 type ClientRole struct {

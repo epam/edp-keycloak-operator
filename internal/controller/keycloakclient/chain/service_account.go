@@ -45,5 +45,12 @@ func (el *ServiceAccount) Serve(_ context.Context, keycloakClient *keycloakApi.K
 		}
 	}
 
+	if keycloakClient.Spec.ServiceAccount.Groups != nil {
+		if err := el.keycloakApiClient.SetServiceAccountGroups(realmName,
+			keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.Groups, addOnly); err != nil {
+			return errors.Wrap(err, "unable to sync service account groups")
+		}
+	}
+
 	return nil
 }
