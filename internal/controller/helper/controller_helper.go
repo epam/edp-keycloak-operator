@@ -81,14 +81,18 @@ type Helper struct {
 	adapterBuilder    adapterBuilder
 	tokenSecretLock   *sync.Mutex
 	operatorNamespace string
+	// enableOwnerRef is a flag to enable legacy owner reference to Keycloak and KeycloakRealm for operator objects.
+	// This is needed for backward compatibility with the old version of the operator.
+	enableOwnerRef bool
 }
 
-func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace string) *Helper {
-	return &Helper{
+func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
+	helper := &Helper{
 		tokenSecretLock:   new(sync.Mutex),
 		client:            client,
 		scheme:            scheme,
 		operatorNamespace: operatorNamespace,
+		enableOwnerRef:    false,
 		adapterBuilder: func(
 			ctx context.Context,
 			conf adapter.GoCloakConfig,
@@ -99,7 +103,7 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace 
 			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
 				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, conf, "master", log, restyClient)
 				if err != nil {
-					return nil, fmt.Errorf("failed to make go keycloak adapter from seviceaccount: %w", err)
+					return nil, fmt.Errorf("failed to make go keycloak adapter from service account: %w", err)
 				}
 
 				return goKeycloakAdapter, nil
@@ -113,12 +117,29 @@ func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace 
 			return goKeycloakAdapter, nil
 		},
 	}
+
+	for _, option := range options {
+		option(helper)
+	}
+
+	return helper
+}
+
+// EnableOwnerRef is an option to set the enableOwnerRef field in Helper.
+func EnableOwnerRef(setOwnerRef bool) func(*Helper) {
+	return func(h *Helper) {
+		h.enableOwnerRef = setOwnerRef
+	}
 }
 
 // SetKeycloakOwnerRef sets owner reference for object.
 //
 //nolint:dupl,cyclop
 func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error {
+	if !h.enableOwnerRef {
+		return nil
+	}
+
 	if metav1.GetControllerOf(object) != nil {
 		return nil
 	}
@@ -173,6 +194,10 @@ func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycl
 //
 //nolint:dupl,cyclop
 func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error {
+	if !h.enableOwnerRef {
+		return nil
+	}
+
 	if metav1.GetControllerOf(object) != nil {
 		return nil
 	}
