@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -184,7 +185,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme(), operatorNamespace)
+	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme(), operatorNamespace, helper.EnableOwnerRef(enableOwnerRef()))
 
 	keycloakCtrl := keycloak.NewReconcileKeycloak(mgr.GetClient(), mgr.GetScheme(), h)
 	if err = keycloakCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
@@ -311,4 +312,20 @@ func getOperatorNamespace() (string, error) {
 	}
 
 	return ns, nil
+}
+
+func enableOwnerRef() bool {
+	val, exists := os.LookupEnv("ENABLE_OWNER_REF")
+	if !exists {
+		return false
+	}
+
+	b, err := strconv.ParseBool(val)
+	if err != nil {
+		setupLog.Error(err, "unable to parse ENABLE_OWNER_REF. Using default value false")
+
+		return false
+	}
+
+	return b
 }
