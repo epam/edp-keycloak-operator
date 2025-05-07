@@ -38,17 +38,17 @@ func (el *ServiceAccount) Serve(_ context.Context, keycloakClient *keycloakApi.K
 		return errors.Wrap(err, "unable to sync service account roles")
 	}
 
+	if keycloakClient.Spec.ServiceAccount.Groups != nil {
+		if err := el.keycloakApiClient.SyncServiceAccountGroups(realmName,
+			keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.Groups, addOnly); err != nil {
+			return errors.Wrap(err, "unable to sync service account groups")
+		}
+	}
+
 	if keycloakClient.Spec.ServiceAccount.Attributes != nil {
 		if err := el.keycloakApiClient.SetServiceAccountAttributes(realmName, keycloakClient.Status.ClientID,
 			keycloakClient.Spec.ServiceAccount.Attributes, addOnly); err != nil {
 			return errors.Wrap(err, "unable to set service account attributes")
-		}
-	}
-
-	if keycloakClient.Spec.ServiceAccount.Groups != nil {
-		if err := el.keycloakApiClient.SetServiceAccountGroups(realmName,
-			keycloakClient.Status.ClientID, keycloakClient.Spec.ServiceAccount.Groups, addOnly); err != nil {
-			return errors.Wrap(err, "unable to sync service account groups")
 		}
 	}
 

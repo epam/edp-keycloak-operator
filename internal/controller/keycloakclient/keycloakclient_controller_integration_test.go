@@ -95,6 +95,15 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be deleted")
 	})
 	It("Should create KeycloakClient with empty secret", func() {
+		By("Creating keycloak api client")
+		client := gocloak.NewClient(keycloakURL)
+		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
+		Expect(err).ShouldNot(HaveOccurred())
+		By("Creating group for service account")
+		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
+			Name: gocloak.StringP("test-group"),
+		})
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
@@ -187,7 +196,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
-		By("Crating keycloak api client")
+		By("Creating keycloak api client")
 		client := gocloak.NewClient(keycloakURL)
 		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
 		Expect(err).ShouldNot(HaveOccurred())
