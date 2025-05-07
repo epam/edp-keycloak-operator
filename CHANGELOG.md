@@ -2,6 +2,19 @@
 ## [Unreleased]
 
 
+<a name="v1.27.0"></a>
+## [v1.27.0] - 2025-05-07
+### Features
+- Add the ability to add KeycloakClient service accounts to groups
+- Make ownerReference in Keycloak resources optional ([#71](https://github.com/epam/edp-keycloak-operator/issues/71))
+- Add support for Identity Providers in KeycloakRealmUser ([#148](https://github.com/epam/edp-keycloak-operator/issues/148))
+
+### Routine
+- Remove deprecated properties from CRs ([#154](https://github.com/epam/edp-keycloak-operator/issues/154))
+- Bump GitHub Actions runner image to 22.04([#150](https://github.com/epam/edp-keycloak-operator/issues/150))
+- Update current development version ([#146](https://github.com/epam/edp-keycloak-operator/issues/146))
+
+
 <a name="v1.26.0"></a>
 ## [v1.26.0] - 2025-04-11
 ### Routine
@@ -191,7 +204,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...HEAD
+[v1.27.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...v1.27.0
 [v1.26.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...v1.26.0
 [v1.25.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...v1.25.0
 [v1.24.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.23.0...v1.24.0
