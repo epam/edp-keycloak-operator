@@ -26,8 +26,8 @@ type Client interface {
 	GetOpenIdConfig(realm *dto.Realm) (string, error)
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string, addOnly bool) error
+	SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error
 	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
-	SetServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error
 	ExportToken() ([]byte, error)
 }
 

@@ -42,6 +42,15 @@ func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRol
 	return nil
 }
 
+func (a GoCloakAdapter) SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error {
+	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
+	if err != nil {
+		return errors.Wrap(err, "unable to get client service account")
+	}
+
+	return a.syncUserGroups(context.Background(), realm, *user.ID, groups, addOnly)
+}
+
 func doNotDeleteRealmRoleFromUser(ctx context.Context, token, realm, entityID string, roles []gocloak.Role) error {
 	return nil
 }
@@ -69,37 +78,6 @@ func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attr
 	user.Attributes = &svcAttributes
 
 	if err := a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
-		return errors.Wrapf(err, "unable to update service account user: %s", clientID)
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) SetServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error {
-	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get client service account")
-	}
-
-	svcGroups := make(map[string]struct{})
-	if addOnly && user.Groups != nil {
-		for _, group := range *user.Groups {
-			svcGroups[group] = struct{}{}
-		}
-	}
-
-	for _, group := range groups {
-		svcGroups[group] = struct{}{}
-	}
-
-	var newGroups []string
-	for group := range svcGroups {
-		newGroups = append(newGroups, group)
-	}
-
-	user.Groups = &newGroups
-
-	if err = a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
 		return errors.Wrapf(err, "unable to update service account user: %s", clientID)
 	}
 
