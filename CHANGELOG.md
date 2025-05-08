@@ -1,6 +1,18 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Bug Fixes
+- KeycloakClient service account users groups aren't being populated correctly
+
+### Routine
+- Update current development version ([#160](https://github.com/epam/edp-keycloak-operator/issues/160))
+
+
+<a name="v1.27.1"></a>
+## [v1.27.1] - 2025-05-08
+### Bug Fixes
+- KeycloakClient service account users groups aren't being populated correctly
+
 
 <a name="v1.27.0"></a>
 ## [v1.27.0] - 2025-05-07
@@ -204,7 +216,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...HEAD
+[v1.27.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...v1.27.1
 [v1.27.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...v1.27.0
 [v1.26.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...v1.26.0
 [v1.25.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.24.0...v1.25.0
