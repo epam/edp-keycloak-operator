@@ -2,8 +2,8 @@
 ## [Unreleased]
 
 
-<a name="v1.27.0"></a>
-## v1.27.0 - 2025-05-01
+<a name="v1.27.1"></a>
+## v1.27.1 - 2025-05-07
 ### Features
 - Add the ability to add KeycloakClient service accounts to groups
 - Make ownerReference in Keycloak resources optional ([#71](https://github.com/epam/edp-keycloak-operator/issues/71))
@@ -41,6 +41,7 @@
 - Allow multiple redirect URIs ([#12](https://github.com/epam/edp-keycloak-operator/issues/12))
 
 ### Bug Fixes
+- KeycloakClient service account users groups aren't being populated correctly
 - Realm HTML Display Name not properly set
 - Add Resty HTTP client to keycloak_go_client.Client
 - Spelling mistake in keycloak client deletion
@@ -109,4 +110,4 @@
 - [EPMDEDP-4226] Correctly update KeycloakClient CR to get correct .status.value after reconciliation
 
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...HEAD
