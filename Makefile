@@ -122,8 +122,8 @@ lint: golangci-lint ## Run go lint
 	${GOLANGCI_LINT} run -v -c .golangci.yaml ./...
 
 .PHONY: build
-build: clean ## build operator's binary
-	CGO_ENABLED=0 GOOS=${HOST_OS} GOARCH=${HOST_ARCH} go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME} -gcflags '${GCFLAGS}' ./cmd
+build:  ## build operator's binary
+	CGO_ENABLED=0 GOOS=${HOST_OS} GOARCH=${HOST_ARCH} go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME}-${HOST_ARCH} -gcflags '${GCFLAGS}' ./cmd
 
 .PHONY: clean
 clean:  ## clean up
