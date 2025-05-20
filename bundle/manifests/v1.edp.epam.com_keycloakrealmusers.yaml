@@ -68,6 +68,12 @@ spec:
                   type: string
                 nullable: true
                 type: array
+              identityProviders:
+                description: IdentityProviders linked to the user.
+                items:
+                  type: string
+                nullable: true
+                type: array
               keepResource:
                 default: true
                 description: |-
@@ -79,9 +85,9 @@ spec:
                 description: LastName is a user last name.
                 type: string
               password:
-                description: Password is a user password. Allows to keep user password
-                  within Custom Resource. For security concerns, it is recommended
-                  to use PasswordSecret instead.
+                description: |-
+                  Password is a user password. Allows to keep user password within Custom Resource. For security concerns, it is recommended to use PasswordSecret instead.
+                  Deperecated: use PasswordSecret instead.
                 type: string
               passwordSecret:
                 description: PasswordSecret defines Kubernetes secret Name and Key,
@@ -98,15 +104,11 @@ spec:
                 - key
                 - name
                 type: object
-              realm:
-                description: |-
-                  Deprecated: use RealmRef instead.
-                  Realm is name of KeycloakRealm custom resource.
-                type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
                 properties:
                   kind:
+                    default: KeycloakRealm
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - KeycloakRealm
@@ -115,6 +117,8 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
               reconciliationStrategy:
                 description: |-
@@ -139,6 +143,7 @@ spec:
                 description: Username is a username in keycloak.
                 type: string
             required:
+            - realmRef
             - username
             type: object
           status:
