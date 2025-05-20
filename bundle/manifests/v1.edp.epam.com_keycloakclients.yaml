@@ -526,6 +526,7 @@ spec:
                 description: RealmRef is reference to Realm custom resource.
                 properties:
                   kind:
+                    default: KeycloakRealm
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - KeycloakRealm
@@ -534,6 +535,8 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
               realmRoles:
                 description: RealmRoles is a list of realm roles assigned to client.
@@ -610,6 +613,12 @@ spec:
                   enabled:
                     description: Enabled is a flag to enable service account.
                     type: boolean
+                  groups:
+                    description: Groups is a list of groups assigned to service account
+                    items:
+                      type: string
+                    nullable: true
+                    type: array
                   realmRoles:
                     description: RealmRoles is a list of realm roles assigned to service
                       account.
@@ -625,13 +634,6 @@ spec:
               surrogateAuthRequired:
                 description: SurrogateAuthRequired is a flag to enable surrogate auth.
                 type: boolean
-              targetRealm:
-                description: |-
-                  Deprecated: use RealmRef instead.
-                  TargetRealm is a realm name where client will be created.
-                  It has higher priority than RealmRef for backward compatibility.
-                  If both TargetRealm and RealmRef are specified, TargetRealm will be used for client creation.
-                type: string
               webOrigins:
                 description: |-
                   WebOrigins is a list of allowed CORS origins.
@@ -649,6 +651,7 @@ spec:
                 type: string
             required:
             - clientId
+            - realmRef
             type: object
           status:
             description: KeycloakClientStatus defines the observed state of KeycloakClient.

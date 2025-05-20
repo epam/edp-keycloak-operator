@@ -44,15 +44,11 @@ spec:
           spec:
             description: KeycloakRealmRoleBatchSpec defines the desired state of KeycloakRealmRoleBatch.
             properties:
-              realm:
-                description: |-
-                  Deprecated: use RealmRef instead.
-                  Realm is name of KeycloakRealm custom resource.
-                type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
                 properties:
                   kind:
+                    default: KeycloakRealm
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - KeycloakRealm
@@ -61,6 +57,8 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
               roles:
                 description: Roles is a list of roles to be created.
@@ -104,6 +102,7 @@ spec:
                   type: object
                 type: array
             required:
+            - realmRef
             - roles
             type: object
           status:

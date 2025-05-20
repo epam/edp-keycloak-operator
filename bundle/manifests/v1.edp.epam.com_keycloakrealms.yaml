@@ -83,16 +83,11 @@ spec:
                 description: ID is the ID of the realm.
                 nullable: true
                 type: string
-              keycloakOwner:
-                description: |-
-                  Deprecated: use KeycloakRef instead.
-                  KeycloakOwner specifies the name of the Keycloak instance that owns the realm.
-                nullable: true
-                type: string
               keycloakRef:
                 description: KeycloakRef is reference to Keycloak custom resource.
                 properties:
                   kind:
+                    default: Keycloak
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - Keycloak
@@ -101,6 +96,8 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
               passwordPolicy:
                 description: PasswordPolicies is a list of password policies to apply
@@ -562,6 +559,7 @@ spec:
                 nullable: true
                 type: array
             required:
+            - keycloakRef
             - realmName
             type: object
           status:
