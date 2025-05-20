@@ -98,15 +98,11 @@ spec:
               name:
                 description: Name of keycloak role.
                 type: string
-              realm:
-                description: |-
-                  Deprecated: use RealmRef instead.
-                  Realm is name of KeycloakRealm custom resource.
-                type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
                 properties:
                   kind:
+                    default: KeycloakRealm
                     description: Kind specifies the kind of the Keycloak resource.
                     enum:
                     - KeycloakRealm
@@ -115,9 +111,12 @@ spec:
                   name:
                     description: Name specifies the name of the Keycloak resource.
                     type: string
+                required:
+                - name
                 type: object
             required:
             - name
+            - realmRef
             type: object
           status:
             description: KeycloakRealmRoleStatus defines the observed state of KeycloakRealmRole.

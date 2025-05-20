@@ -607,7 +607,7 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.27.1
-    createdAt: "2025-03-21T08:40:32Z"
+    createdAt: "2025-05-19T15:13:10Z"
     description: An Operator for managing Keycloak
     operators.operatorframework.io/builder: operator-sdk-v1.39.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
