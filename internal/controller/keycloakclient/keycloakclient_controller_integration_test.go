@@ -11,6 +11,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -65,7 +66,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Browser:     "browser",
 					DirectGrant: "direct grant",
 				},
-				AdminFineGrainedPermissionsEnabled: true,
+				//AdminFineGrainedPermissionsEnabled: true,
 			},
 		}
 
@@ -396,5 +397,56 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			return createdKeycloakClient.Status.Value == helper.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be updated successfully")
+	})
+
+	It("Should successfully delete KeycloakClient if ErrKeycloakRealmNotFound occurs", func() {
+		By("By creating a KeycloakRealm")
+		testRealm := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-realm",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: "test-realm",
+				KeycloakRef: common.KeycloakRef{
+					Kind: keycloakApi.KeycloakKind,
+					Name: KeycloakCR,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, testRealm)).Should(Succeed())
+
+		By("Creating a KeycloakClient")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				RealmRef: common.RealmRef{Name: "test-realm"},
+				ClientId: "test-client-id",
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+
+		By("Waiting for KeycloakClient to be ready")
+		Eventually(func() bool {
+			var c keycloakApi.KeycloakClient
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, &c)
+			return err == nil && controllerutil.ContainsFinalizer(&c, keyCloakClientOperatorFinalizerName)
+		}, timeout, interval).Should(BeTrue())
+
+		By("Deleting KeycloakRealm")
+		Expect(k8sClient.Delete(ctx, testRealm)).Should(Succeed())
+
+		By("Deleting KeycloakClient")
+		Expect(k8sClient.Delete(ctx, keycloakClient)).Should(Succeed())
+
+		By("Waiting for KeycloakClient to be deleted")
+		Eventually(func() bool {
+			var c keycloakApi.KeycloakClient
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, &c)
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue())
 	})
 })

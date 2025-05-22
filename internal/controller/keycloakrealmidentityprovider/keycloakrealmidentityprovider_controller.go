@@ -28,6 +28,7 @@ const finalizerName = "keycloak.realmidp.operator.finalizer.name"
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
+	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
@@ -139,6 +140,15 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmIDP)
 	if err != nil {
+		// if the realm is already deleted try to delete finalizer
+		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
+			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmIDP, finalizerName); removeErr != nil {
+				return fmt.Errorf("unable to remove finalizer: %w", removeErr)
+			}
+
+			return nil
+		}
+
 		return fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
 	}
 
