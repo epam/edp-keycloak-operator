@@ -147,6 +147,21 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
 	}
 
+	term := makeTerminator(
+		gocloak.PString(realm.Realm),
+		keycloakRealmIDP.Spec.Alias,
+		kClient,
+		objectmeta.PreserveResourcesOnDeletion(keycloakRealmIDP),
+	)
+	deleted, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName)
+	if err != nil {
+		return fmt.Errorf("unable to delete realm idp: %w", err)
+	}
+
+	if deleted {
+		return nil
+	}
+
 	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
 
 	if err = r.secretRefClient.MapConfigSecretsRefs(ctx, keycloakIDP.Config, keycloakRealmIDP.Namespace); err != nil {
@@ -170,16 +185,6 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 
 	if err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, kClient, gocloak.PString(realm.Realm)); err != nil {
 		return errors.Wrap(err, "unable to sync idp mappers")
-	}
-
-	term := makeTerminator(
-		gocloak.PString(realm.Realm),
-		keycloakRealmIDP.Spec.Alias,
-		kClient,
-		objectmeta.PreserveResourcesOnDeletion(keycloakRealmIDP),
-	)
-	if _, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName); err != nil {
-		return errors.Wrap(err, "unable to delete realm idp")
 	}
 
 	return nil
