@@ -74,11 +74,16 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						return assert.Equal(t, "user", *user.Username)
 					})).
 					Return("user-id", nil)
-				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
-					Return([]*gocloak.Role{{
+				m.On("GetRoleMappingByUserID", mock.Anything, "", "realm", "user-id").
+					Return(&gocloak.MappingsRepresentation{
+						RealmMappings:  &[]gocloak.Role{},
+						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
+					}, nil)
+				m.On("GetRealmRole", mock.Anything, "", "realm", "role1").
+					Return(&gocloak.Role{
 						Name: gocloak.StringP("role1"),
 						ID:   gocloak.StringP("role1-id"),
-					}}, nil)
+					}, nil)
 				m.On("AddRealmRoleToUser",
 					mock.Anything,
 					"",
@@ -99,13 +104,6 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						ID:   gocloak.StringP("group1-id"),
 					}}, nil)
 				m.On("RestyClient").Return(resty.New())
-				m.On("DeleteRealmRoleFromUser",
-					mock.Anything,
-					"",
-					"realm",
-					"user-id",
-					mock.Anything,
-				).Return(nil)
 				m.On("GetUserFederatedIdentities",
 					mock.Anything,
 					"",
@@ -164,11 +162,16 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						return assert.Equal(t, "user", *user.Username)
 					})).
 					Return(nil)
-				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
-					Return([]*gocloak.Role{{
+				m.On("GetRoleMappingByUserID", mock.Anything, "", "realm", "user-with-groups-id").
+					Return(&gocloak.MappingsRepresentation{
+						RealmMappings:  &[]gocloak.Role{},
+						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
+					}, nil)
+				m.On("GetRealmRole", mock.Anything, "", "realm", "role1").
+					Return(&gocloak.Role{
 						Name: gocloak.StringP("role1"),
 						ID:   gocloak.StringP("role1-id"),
-					}}, nil)
+					}, nil)
 				m.On("AddRealmRoleToUser",
 					mock.Anything,
 					"",
@@ -199,13 +202,6 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						},
 					}, nil)
 				m.On("RestyClient").Return(resty.New())
-				m.On("DeleteRealmRoleFromUser",
-					mock.Anything,
-					"",
-					"realm",
-					"user-with-groups-id",
-					mock.Anything,
-				).Return(nil)
 
 				return m
 			},
@@ -239,11 +235,16 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						return assert.Equal(t, "user", *user.Username)
 					})).
 					Return("user-id", nil)
-				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
-					Return([]*gocloak.Role{{
+				m.On("GetRoleMappingByUserID", mock.Anything, "", "realm", "user-id").
+					Return(&gocloak.MappingsRepresentation{
+						RealmMappings:  &[]gocloak.Role{},
+						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
+					}, nil)
+				m.On("GetRealmRole", mock.Anything, "", "realm", "role1").
+					Return(&gocloak.Role{
 						Name: gocloak.StringP("role1"),
 						ID:   gocloak.StringP("role1-id"),
-					}}, nil)
+					}, nil)
 				m.On("AddRealmRoleToUser",
 					mock.Anything,
 					"",
@@ -261,13 +262,6 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 					mock.Anything).
 					Return(nil, errors.New("failed to get groups"))
 				m.On("RestyClient").Return(resty.New())
-				m.On("DeleteRealmRoleFromUser",
-					mock.Anything,
-					"",
-					"realm",
-					"user-id",
-					mock.Anything,
-				).Return(nil)
 
 				return m
 			},
@@ -307,16 +301,14 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 						return assert.Equal(t, "user", *user.Username)
 					})).
 					Return(nil)
-				m.On("GetRealmRoles", mock.Anything, "", "realm", mock.Anything).
+				m.On("GetRoleMappingByUserID", mock.Anything, "", "realm", "user-id").
+					Return(&gocloak.MappingsRepresentation{
+						RealmMappings:  &[]gocloak.Role{},
+						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
+					}, nil)
+				m.On("GetRealmRole", mock.Anything, "", "realm", "role1").
 					Return(nil, errors.New("failed to get roles"))
 				m.On("RestyClient").Return(resty.New())
-				m.On("DeleteRealmRoleFromUser",
-					mock.Anything,
-					"",
-					"realm",
-					"user-id",
-					mock.Anything,
-				).Return(nil)
 
 				return m
 			},

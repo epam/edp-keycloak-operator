@@ -19,6 +19,7 @@ type KeycloakUser struct {
 	LastName            string
 	RequiredUserActions []string
 	Roles               []string
+	ClientRoles         map[string][]string
 	Groups              []string
 	Attributes          map[string]string
 	Password            string
@@ -47,7 +48,7 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 		}
 	}
 
-	if err = a.syncUserRoles(ctx, realmName, userID, userDto.Roles, addOnly); err != nil {
+	if err = a.SyncUserRoles(ctx, realmName, userID, userDto.Roles, userDto.ClientRoles, addOnly); err != nil {
 		return err
 	}
 
@@ -180,39 +181,49 @@ func (a GoCloakAdapter) syncUserGroups(ctx context.Context, realmName string, us
 	return nil
 }
 
-func (a GoCloakAdapter) syncUserRoles(ctx context.Context, realmName string, userID string, roles []string, addOnly bool) error {
-	if !addOnly {
-		if err := a.clearUserRealmRoles(ctx, realmName, userID); err != nil {
-			return errors.Wrap(err, "unable to clear realm roles")
-		}
-	}
-
-	realmRoles, err := a.client.GetRealmRoles(ctx, a.token.AccessToken, realmName, gocloak.GetRoleParams{
-		Max:                 gocloak.IntP(100),
-		BriefRepresentation: gocloak.BoolP(true),
-	})
+// SyncUserRoles syncs user realm and client roles.
+func (a GoCloakAdapter) SyncUserRoles(
+	ctx context.Context,
+	realm, userID string,
+	realmRoles []string,
+	clientRoles map[string][]string,
+	addOnly bool,
+) error {
+	roleMappings, err := a.client.GetRoleMappingByUserID(ctx, a.token.AccessToken, realm, userID)
 	if err != nil {
-		return fmt.Errorf("unable to get realm roles: %w", err)
+		return fmt.Errorf("error during GetRoleMappingByUserID: %w", err)
 	}
 
-	realmRolesDict := make(map[string]gocloak.Role, len(realmRoles))
-	for _, role := range realmRoles {
-		realmRolesDict[*role.Name] = *role
+	deleteRealmRoleFunc := a.client.DeleteRealmRoleFromUser
+	if addOnly {
+		deleteRealmRoleFunc = doNotDeleteRealmRoleFromUser
 	}
 
-	kcRoles := make([]gocloak.Role, 0, len(roles))
-
-	for _, roleName := range roles {
-		role, ok := realmRolesDict[roleName]
-		if !ok {
-			return errors.Errorf("realm role %s not found", roleName)
-		}
-
-		kcRoles = append(kcRoles, role)
+	if err := a.syncEntityRealmRoles(
+		userID,
+		realm,
+		realmRoles,
+		roleMappings.RealmMappings,
+		a.client.AddRealmRoleToUser,
+		deleteRealmRoleFunc,
+	); err != nil {
+		return fmt.Errorf("unable to sync user realm roles: %w", err)
 	}
 
-	if err = a.client.AddRealmRoleToUser(ctx, a.token.AccessToken, realmName, userID, kcRoles); err != nil {
-		return fmt.Errorf("unable to add realm roles to user: %w", err)
+	deleteClientRoleFromUserFunc := a.client.DeleteClientRoleFromUser
+	if addOnly {
+		deleteClientRoleFromUserFunc = doNotDeleteClientRoleFromUser
+	}
+
+	if err := a.syncEntityClientRoles(
+		realm,
+		userID,
+		clientRoles,
+		roleMappings.ClientMappings,
+		a.client.AddClientRoleToUser,
+		deleteClientRoleFromUserFunc,
+	); err != nil {
+		return fmt.Errorf("unable to sync user client roles: %w", err)
 	}
 
 	return nil
@@ -231,7 +242,7 @@ func (a GoCloakAdapter) GetUserRealmRoleMappings(ctx context.Context, realmName 
 		Get(a.buildPath(getUserRealmRoleMappings))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "unable to get realm role mappings")
+		return nil, fmt.Errorf("unable to get realm role mappings: %w", err)
 	}
 
 	return roles, nil
@@ -250,7 +261,7 @@ func (a GoCloakAdapter) GetUserGroupMappings(ctx context.Context, realmName stri
 		Get(a.buildPath(getUserGroupMappings))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "unable to get group mappings")
+		return nil, fmt.Errorf("unable to get group mappings: %w", err)
 	}
 
 	return groups, nil
@@ -267,7 +278,7 @@ func (a GoCloakAdapter) RemoveUserFromGroup(ctx context.Context, realmName, user
 		Delete(a.buildPath(manageUserGroups))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to remove user from group")
+		return fmt.Errorf("unable to remove user from group: %w", err)
 	}
 
 	return nil
@@ -289,7 +300,7 @@ func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, g
 		Put(a.buildPath(manageUserGroups))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to add user to group")
+		return fmt.Errorf("unable to add user to group: %w", err)
 	}
 
 	return nil
@@ -346,25 +357,7 @@ func checkHttpResp(res *keycloak_go_client.Response, err error) error {
 	const maxStatusCodesSuccess = 399
 
 	if res.HTTPResponse.StatusCode > maxStatusCodesSuccess {
-		return errors.Errorf("status: %s, body: %s", res.HTTPResponse.Status, res.Body)
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) clearUserRealmRoles(ctx context.Context, realmName string, userID string) error {
-	roles, err := a.GetUserRealmRoleMappings(ctx, realmName, userID)
-	if err != nil {
-		return errors.Wrap(err, "unable to get user realm role map")
-	}
-
-	goRoles := make([]gocloak.Role, 0, len(roles))
-	for i := range roles {
-		goRoles = append(goRoles, gocloak.Role{ID: &roles[i].ID, Name: &roles[i].Name})
-	}
-
-	if err := a.client.DeleteRealmRoleFromUser(ctx, a.token.AccessToken, realmName, userID, goRoles); err != nil {
-		return errors.Wrap(err, "unable to delete realm role from user")
+		return fmt.Errorf("status: %s, body: %s", res.HTTPResponse.Status, res.Body)
 	}
 
 	return nil
@@ -384,7 +377,7 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 		Put(a.buildPath(setRealmUserPassword))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to set user password")
+		return fmt.Errorf("unable to set user password: %w", err)
 	}
 
 	return nil

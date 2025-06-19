@@ -110,6 +110,19 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 	return ctrl.Result{}, nil
 }
 
+func convertClientRoles(apiClientRoles []keycloakApi.ClientRole) map[string][]string {
+	if apiClientRoles == nil {
+		return nil
+	}
+
+	clientRolesMap := make(map[string][]string)
+	for _, apiRole := range apiClientRoles {
+		clientRolesMap[apiRole.ClientID] = apiRole.Roles
+	}
+
+	return clientRolesMap
+}
+
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) error {
 	err := r.helper.SetRealmOwnerRef(ctx, instance)
 	if err != nil {
@@ -165,6 +178,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		Username:            userSpec.Username,
 		Groups:              userSpec.Groups,
 		Roles:               userSpec.Roles,
+		ClientRoles:         convertClientRoles(userSpec.ClientRoles),
 		RequiredUserActions: userSpec.RequiredUserActions,
 		LastName:            userSpec.LastName,
 		FirstName:           userSpec.FirstName,

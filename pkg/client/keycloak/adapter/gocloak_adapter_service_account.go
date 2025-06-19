@@ -14,32 +14,7 @@ func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRol
 		return errors.Wrap(err, "unable to get client service account")
 	}
 
-	roleMappings, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realm, *user.ID)
-	if err != nil {
-		return errors.Wrap(err, "error during GetRoleMappingByUserID")
-	}
-
-	deleteRealmRoleFunc := a.client.DeleteRealmRoleFromUser
-	if addOnly {
-		deleteRealmRoleFunc = doNotDeleteRealmRoleFromUser
-	}
-
-	if err := a.syncEntityRealmRoles(*user.ID, realm, realmRoles, roleMappings.RealmMappings,
-		a.client.AddRealmRoleToUser, deleteRealmRoleFunc); err != nil {
-		return errors.Wrap(err, "unable to sync service account realm roles")
-	}
-
-	deleteClientRoleFromUserFunc := a.client.DeleteClientRoleFromUser
-	if addOnly {
-		deleteClientRoleFromUserFunc = doNotDeleteClientRoleFromUser
-	}
-
-	if err := a.syncEntityClientRoles(realm, *user.ID, clientRoles, roleMappings.ClientMappings,
-		a.client.AddClientRoleToUser, deleteClientRoleFromUserFunc); err != nil {
-		return errors.Wrap(err, "unable to sync service account client roles")
-	}
-
-	return nil
+	return a.SyncUserRoles(context.Background(), realm, *user.ID, realmRoles, clientRoles, addOnly)
 }
 
 func (a GoCloakAdapter) SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error {
