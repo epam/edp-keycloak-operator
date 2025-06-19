@@ -93,7 +93,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		}
 		Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
 
-		By("Creating a KeycloakRealmUser")
+		By("Creating a KeycloakRealmUser with realm roles and client roles")
 		user := &keycloakApi.KeycloakRealmUser{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      userCR,
@@ -114,7 +114,23 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 					"UPDATE_PASSWORD",
 				},
 				Roles: []string{
-					"test-user-role",
+					"offline_access",
+					"uma_authorization",
+				},
+				ClientRoles: []keycloakApi.ClientRole{
+					{
+						ClientID: "account",
+						Roles: []string{
+							"view-profile",
+							"view-groups",
+						},
+					},
+					{
+						ClientID: "realm-management",
+						Roles: []string{
+							"create-client",
+						},
+					},
 				},
 				Groups: []string{
 					"test-user-group",
@@ -138,6 +154,63 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		// Verify that the roles were created in Keycloak
+		Eventually(func(g Gomega) {
+			users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
+				Username: gocloak.StringP(user.Spec.Username),
+				Exact:    gocloak.BoolP(true),
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(users).Should(HaveLen(1))
+
+			// Get user role mappings to verify realm roles
+			roleMappings, err := keycloakApiClient.GetRoleMappingByUserID(ctx, getKeyCloakToken(), KeycloakRealmCR, *users[0].ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			// Check realm roles
+			realmRoleNames := make([]string, 0)
+			if roleMappings.RealmMappings != nil {
+				for _, role := range *roleMappings.RealmMappings {
+					if role.Name != nil {
+						realmRoleNames = append(realmRoleNames, *role.Name)
+					}
+				}
+			}
+			g.Expect(realmRoleNames).Should(ContainElement("offline_access"))
+			g.Expect(realmRoleNames).Should(ContainElement("uma_authorization"))
+
+			// Check client roles for account client
+			accountClientRoleNames := make([]string, 0)
+			for _, clientMapping := range roleMappings.ClientMappings {
+				if clientMapping.Client != nil && *clientMapping.Client == "account" {
+					if clientMapping.Mappings != nil {
+						for _, role := range *clientMapping.Mappings {
+							if role.Name != nil {
+								accountClientRoleNames = append(accountClientRoleNames, *role.Name)
+							}
+						}
+					}
+				}
+			}
+			g.Expect(accountClientRoleNames).Should(ContainElement("view-profile"))
+			g.Expect(accountClientRoleNames).Should(ContainElement("view-groups"))
+
+			// Check client roles for realm-management client
+			realmManagementClientRoleNames := make([]string, 0)
+			for _, clientMapping := range roleMappings.ClientMappings {
+				if clientMapping.Client != nil && *clientMapping.Client == "realm-management" {
+					if clientMapping.Mappings != nil {
+						for _, role := range *clientMapping.Mappings {
+							if role.Name != nil {
+								realmManagementClientRoleNames = append(realmManagementClientRoleNames, *role.Name)
+							}
+						}
+					}
+				}
+			}
+			g.Expect(realmManagementClientRoleNames).Should(ContainElement("create-client"))
+		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should update KeycloakRealmUser", func() {
 		By("Getting KeycloakRealmUser")
@@ -165,6 +238,74 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(users).Should(HaveLen(1))
 			g.Expect(*users[0].FirstName).Should(Equal("new-first-name"))
 			g.Expect(*users[0].LastName).Should(Equal("new-last-name"))
+		}, time.Minute, time.Second*5).Should(Succeed())
+	})
+	It("Should update KeycloakRealmUser roles", func() {
+		By("Getting KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: userCR}, user)).Should(Succeed())
+
+		By("Updating KeycloakRealmUser roles")
+		user.Spec.Roles = []string{
+			"offline_access",
+		}
+		user.Spec.ClientRoles = []keycloakApi.ClientRole{
+			{
+				ClientID: "account",
+				Roles: []string{
+					"view-profile",
+				},
+			},
+		}
+
+		Expect(k8sClient.Update(ctx, user)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			updatedUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, updatedUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(updatedUser.Status.Value).Should(Equal(helper.StatusOK))
+		}, time.Minute, time.Second*5).Should(Succeed())
+
+		// Verify that the roles were updated in Keycloak
+		Eventually(func(g Gomega) {
+			users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
+				Username: gocloak.StringP(user.Spec.Username),
+				Exact:    gocloak.BoolP(true),
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(users).Should(HaveLen(1))
+
+			// Get user role mappings to verify realm roles
+			roleMappings, err := keycloakApiClient.GetRoleMappingByUserID(ctx, getKeyCloakToken(), KeycloakRealmCR, *users[0].ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			// Check realm roles
+			realmRoleNames := make([]string, 0)
+			if roleMappings.RealmMappings != nil {
+				for _, role := range *roleMappings.RealmMappings {
+					if role.Name != nil {
+						realmRoleNames = append(realmRoleNames, *role.Name)
+					}
+				}
+			}
+			g.Expect(realmRoleNames).Should(ContainElement("offline_access"))
+			g.Expect(realmRoleNames).ShouldNot(ContainElement("uma_authorization"))
+
+			// Check client roles
+			clientRoleNames := make([]string, 0)
+			for _, clientMapping := range roleMappings.ClientMappings {
+				if clientMapping.Client != nil && *clientMapping.Client == "account" {
+					if clientMapping.Mappings != nil {
+						for _, role := range *clientMapping.Mappings {
+							if role.Name != nil {
+								clientRoleNames = append(clientRoleNames, *role.Name)
+							}
+						}
+					}
+				}
+			}
+			g.Expect(clientRoleNames).Should(ContainElement("view-profile"))
+			g.Expect(clientRoleNames).ShouldNot(ContainElement("view-groups"))
 		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should delete KeycloakRealmUser", func() {
