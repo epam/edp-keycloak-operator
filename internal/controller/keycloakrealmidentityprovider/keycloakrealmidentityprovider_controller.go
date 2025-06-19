@@ -163,6 +163,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 		kClient,
 		objectmeta.PreserveResourcesOnDeletion(keycloakRealmIDP),
 	)
+
 	deleted, err := r.helper.TryToDelete(ctx, keycloakRealmIDP, term, finalizerName)
 	if err != nil {
 		return fmt.Errorf("unable to delete realm idp: %w", err)

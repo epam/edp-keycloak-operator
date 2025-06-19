@@ -1514,6 +1514,13 @@ func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.ClientRoles != nil {
+		in, out := &in.ClientRoles, &out.ClientRoles
+		*out = make([]ClientRole, len(*in))
+		for i := range *in {
+			(*in)[i].DeepCopyInto(&(*out)[i])
+		}
+	}
 	if in.Groups != nil {
 		in, out := &in.Groups, &out.Groups
 		*out = make([]string, len(*in))
