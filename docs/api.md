@@ -3153,7 +3153,7 @@ ServiceAccount is a service account configuration.
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of client roles names assigned to service account.<br/>
+          Roles is a list of client roles names assigned to user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3876,7 +3876,7 @@ RealmRef is reference to Realm custom resource.
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of client roles names assigned to service account.<br/>
+          Roles is a list of client roles names assigned to user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6109,6 +6109,13 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmuserspecclientrolesindex">clientRoles</a></b></td>
+        <td>[]object</td>
+        <td>
+          ClientRoles is a list of client roles assigned to user.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>email</b></td>
         <td>string</td>
         <td>
@@ -6241,6 +6248,40 @@ RealmRef is reference to Realm custom resource.
           <br/>
             <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
             <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmUser.spec.clientRoles[index]
+<sup><sup>[↩ Parent](#keycloakrealmuserspec)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>clientId</b></td>
+        <td>string</td>
+        <td>
+          ClientID is a client ID.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>roles</b></td>
+        <td>[]string</td>
+        <td>
+          Roles is a list of client roles names assigned to user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

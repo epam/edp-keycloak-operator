@@ -50,6 +50,25 @@ spec:
                 description: Attributes is a map of user attributes.
                 nullable: true
                 type: object
+              clientRoles:
+                description: ClientRoles is a list of client roles assigned to user.
+                items:
+                  properties:
+                    clientId:
+                      description: ClientID is a client ID.
+                      type: string
+                    roles:
+                      description: Roles is a list of client roles names assigned
+                        to user.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                  required:
+                  - clientId
+                  type: object
+                nullable: true
+                type: array
               email:
                 description: Email is a user email.
                 type: string

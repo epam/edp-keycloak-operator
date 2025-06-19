@@ -219,7 +219,7 @@ type ClientRole struct {
 	// ClientID is a client ID.
 	ClientID string `json:"clientId"`
 
-	// Roles is a list of client roles names assigned to service account.
+	// Roles is a list of client roles names assigned to user.
 	// +nullable
 	// +optional
 	Roles []string `json:"roles,omitempty"`
