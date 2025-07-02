@@ -460,4 +460,61 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(createdUser.Status.Value).Should(ContainSubstring("unable to sync realm user"))
 		}, time.Second*3, time.Second).Should(Succeed())
 	})
+	It("Should delete KeycloakRealmUser if user not found", func() {
+		By("Creating a KeycloakRealmUser")
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-user-not-found",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Username: "test-user-not-found",
+				PasswordSecret: keycloakApi.PasswordSecret{
+					Name: userSecretName,
+					Key:  "password",
+				},
+				KeepResource: true,
+			},
+		}
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Manually deleting the user from Keycloak to simulate user not found scenario")
+		users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
+			Username: gocloak.StringP(user.Spec.Username),
+			Exact:    gocloak.BoolP(true),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(users).Should(HaveLen(1))
+
+		err = keycloakApiClient.DeleteUser(ctx, getKeyCloakToken(), KeycloakRealmCR, *users[0].ID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("Verifying user is deleted from Keycloak")
+		Eventually(func(g Gomega) {
+			users, err := keycloakApiClient.GetUsers(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetUsersParams{
+				Username: gocloak.StringP(user.Spec.Username),
+				Exact:    gocloak.BoolP(true),
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(users).Should(HaveLen(0))
+		}, time.Minute, time.Second*5).Should(Succeed())
+
+		By("Deleting KeycloakRealmUser CR - should succeed even though user doesn't exist in Keycloak")
+		Expect(k8sClient.Delete(ctx, user)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedUser := &keycloakApi.KeycloakRealmUser{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, deletedUser)
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, timeout, interval).Should(Succeed())
+	})
 })
