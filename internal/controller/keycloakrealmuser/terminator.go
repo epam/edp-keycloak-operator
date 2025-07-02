@@ -7,6 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakadapter "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 type terminator struct {
@@ -25,6 +26,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	log.Info("Start deleting keycloak realm user")
 
 	if err := t.kClient.DeleteRealmUser(ctx, t.realmName, t.userName); err != nil {
+		if keycloakadapter.IsErrNotFound(err) {
+			log.Info("Realm user not found, skipping deletion.")
+
+			return nil
+		}
+
 		return fmt.Errorf("unable to delete realm user %w", err)
 	}
 
