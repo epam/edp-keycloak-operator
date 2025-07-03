@@ -32,6 +32,22 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 			return
 		}
 
+		if strings.Contains(r.URL.Path, "identity-provider/instances/idp1") {
+			w.WriteHeader(http.StatusOK)
+			_, err := w.Write([]byte(`{"alias":"idp1"}`))
+			assert.NoError(t, err)
+
+			return
+		}
+
+		if strings.Contains(r.URL.Path, "identity-provider/instances/non-existent-idp") {
+			w.WriteHeader(http.StatusNotFound)
+			_, err := w.Write([]byte(`{"error":"idp not found"}`))
+			assert.NoError(t, err)
+
+			return
+		}
+
 		w.WriteHeader(http.StatusOK)
 	}))
 
@@ -379,6 +395,79 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 			wantErr: func(t require.TestingT, err error, i ...interface{}) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get user")
+			},
+		},
+		{
+			name: "identity provider does not exist",
+			userDto: &KeycloakUser{
+				Username:            "user",
+				Enabled:             true,
+				EmailVerified:       true,
+				Email:               "mail@mail.com",
+				FirstName:           "first-name",
+				LastName:            "last-name",
+				RequiredUserActions: []string{"change-password"},
+				Roles:               []string{"role1"},
+				Groups:              []string{"group1"},
+				Attributes:          map[string]string{"attr1": "attr1value"},
+				Password:            "password",
+				IdentityProviders:   &[]string{"non-existent-idp"},
+			},
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On("GetUsers", mock.Anything, "", "realm", mock.Anything).
+					Return(nil, nil)
+				m.On("CreateUser",
+					mock.Anything,
+					"",
+					"realm",
+					mock.MatchedBy(func(user gocloak.User) bool {
+						return assert.Equal(t, "user", *user.Username)
+					})).
+					Return("user-id", nil)
+				m.On("GetRoleMappingByUserID", mock.Anything, "", "realm", "user-id").
+					Return(&gocloak.MappingsRepresentation{
+						RealmMappings:  &[]gocloak.Role{},
+						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
+					}, nil)
+				m.On("GetRealmRole", mock.Anything, "", "realm", "role1").
+					Return(&gocloak.Role{
+						Name: gocloak.StringP("role1"),
+						ID:   gocloak.StringP("role1-id"),
+					}, nil)
+				m.On("AddRealmRoleToUser",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id",
+					mock.MatchedBy(func(roles []gocloak.Role) bool {
+						return assert.Len(t, roles, 1) &&
+							assert.Equal(t, "role1-id", *roles[0].ID)
+					})).
+					Return(nil)
+				m.On("GetGroups",
+					mock.Anything,
+					"",
+					"realm",
+					mock.Anything).
+					Return([]*gocloak.Group{{
+						Name: gocloak.StringP("group1"),
+						ID:   gocloak.StringP("group1-id"),
+					}}, nil)
+				m.On("RestyClient").Return(resty.New())
+				m.On("GetUserFederatedIdentities",
+					mock.Anything,
+					"",
+					"realm",
+					"user-id").
+					Return([]*gocloak.FederatedIdentityRepresentation{}, nil)
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "identity provider non-existent-idp does not exist")
 			},
 		},
 	}

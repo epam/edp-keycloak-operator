@@ -448,6 +448,15 @@ func (a GoCloakAdapter) addMissingIdentityProviders(
 			continue
 		}
 
+		exists, err := a.IdentityProviderExists(ctx, realmName, provider)
+		if err != nil {
+			return fmt.Errorf("unable to check if identity provider exists: %w", err)
+		}
+
+		if !exists {
+			return fmt.Errorf("identity provider %s does not exist", provider)
+		}
+
 		federatedIdentity := gocloak.FederatedIdentityRepresentation{
 			IdentityProvider: &provider,
 			UserID:           &userID,

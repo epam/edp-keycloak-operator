@@ -6154,7 +6154,7 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>identityProviders</b></td>
         <td>[]string</td>
         <td>
-          IdentityProviders linked to the user.<br/>
+          IdentityProviders is a list of identity providers aliases linked to the user.<br/>
         </td>
         <td>false</td>
       </tr><tr>

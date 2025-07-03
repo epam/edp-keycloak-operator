@@ -88,7 +88,8 @@ spec:
                 nullable: true
                 type: array
               identityProviders:
-                description: IdentityProviders linked to the user.
+                description: IdentityProviders is a list of identity providers aliases
+                  linked to the user.
                 items:
                   type: string
                 nullable: true

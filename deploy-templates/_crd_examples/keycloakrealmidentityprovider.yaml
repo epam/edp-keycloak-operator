@@ -5,7 +5,7 @@ metadata:
 spec:
   realmRef:
     kind: KeycloakRealm
-    name: realm
+    name: keycloakrealm-sample
   alias: instagram
   authenticateByDefault: false
   enabled: true
