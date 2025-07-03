@@ -83,7 +83,7 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	PasswordSecret PasswordSecret `json:"passwordSecret,omitempty"`
 
-	// IdentityProviders linked to the user.
+	// IdentityProviders is a list of identity providers aliases linked to the user.
 	// +nullable
 	// +optional
 	IdentityProviders *[]string `json:"identityProviders,omitempty"`
