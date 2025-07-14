@@ -1,10 +1,24 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.28.0"></a>
+## [v1.28.0] - 2025-07-14
+### Features
+- Add validation for user identity provider ([#183](https://github.com/epam/edp-keycloak-operator/issues/183))
+- Add the ability to add client roles to KeycloakRealmUser ([#135](https://github.com/epam/edp-keycloak-operator/issues/135))
+- Allow finalizer cleanup when realm is already deleted ([#173](https://github.com/epam/edp-keycloak-operator/issues/173))
+
 ### Bug Fixes
+- Handle not found error when deleting KeycloakRealmUser ([#181](https://github.com/epam/edp-keycloak-operator/issues/181))
+- keycloakrealmidentityprovider try to delete first in reconciliation loop_
 - KeycloakClient service account users groups aren't being populated correctly
 
 ### Routine
+- Update codeql and codecov scan gh actions ([#178](https://github.com/epam/edp-keycloak-operator/issues/178))
+- Publish on the OperatorHub ([#170](https://github.com/epam/edp-keycloak-operator/issues/170))
+- Add multi-architecture build support ([#168](https://github.com/epam/edp-keycloak-operator/issues/168))
+- Update current development version ([#160](https://github.com/epam/edp-keycloak-operator/issues/160))
 - Update current development version ([#160](https://github.com/epam/edp-keycloak-operator/issues/160))
 
 
@@ -216,7 +230,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...HEAD
+[v1.28.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...v1.28.0
 [v1.27.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...v1.27.1
 [v1.27.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...v1.27.0
 [v1.26.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.25.0...v1.26.0
