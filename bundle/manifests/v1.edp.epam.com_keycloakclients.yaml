@@ -600,7 +600,7 @@ spec:
                           type: string
                         roles:
                           description: Roles is a list of client roles names assigned
-                            to service account.
+                            to user.
                           items:
                             type: string
                           nullable: true
