@@ -25,19 +25,45 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating of keycloak realm settings")
 
-	if realm.Spec.RealmEventConfig != nil {
-		if err := kClient.SetRealmEventConfig(realm.Spec.RealmName, &adapter.RealmEventConfig{
-			AdminEventsDetailsEnabled: realm.Spec.RealmEventConfig.AdminEventsDetailsEnabled,
-			AdminEventsEnabled:        realm.Spec.RealmEventConfig.AdminEventsEnabled,
-			EnabledEventTypes:         realm.Spec.RealmEventConfig.EnabledEventTypes,
-			EventsEnabled:             realm.Spec.RealmEventConfig.EventsEnabled,
-			EventsExpiration:          realm.Spec.RealmEventConfig.EventsExpiration,
-			EventsListeners:           realm.Spec.RealmEventConfig.EventsListeners,
-		}); err != nil {
-			return fmt.Errorf("failed to set realm event config: %w", err)
-		}
+	if err := h.setRealmEventConfig(kClient, realm); err != nil {
+		return err
 	}
 
+	settings := h.buildRealmSettings(realm)
+
+	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
+		return errors.Wrap(err, "unable to update realm settings")
+	}
+
+	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {
+		return fmt.Errorf("unable to set realm organizations enabled: %w", err)
+	}
+
+	log.Info("Realm settings is updating done.")
+
+	return nil
+}
+
+func (h PutRealmSettings) setRealmEventConfig(kClient keycloak.Client, realm *v1alpha1.ClusterKeycloakRealm) error {
+	if realm.Spec.RealmEventConfig == nil {
+		return nil
+	}
+
+	if err := kClient.SetRealmEventConfig(realm.Spec.RealmName, &adapter.RealmEventConfig{
+		AdminEventsDetailsEnabled: realm.Spec.RealmEventConfig.AdminEventsDetailsEnabled,
+		AdminEventsEnabled:        realm.Spec.RealmEventConfig.AdminEventsEnabled,
+		EnabledEventTypes:         realm.Spec.RealmEventConfig.EnabledEventTypes,
+		EventsEnabled:             realm.Spec.RealmEventConfig.EventsEnabled,
+		EventsExpiration:          realm.Spec.RealmEventConfig.EventsExpiration,
+		EventsListeners:           realm.Spec.RealmEventConfig.EventsListeners,
+	}); err != nil {
+		return fmt.Errorf("failed to set realm event config: %w", err)
+	}
+
+	return nil
+}
+
+func (h PutRealmSettings) buildRealmSettings(realm *v1alpha1.ClusterKeycloakRealm) adapter.RealmSettings {
 	settings := adapter.RealmSettings{
 		FrontendURL:     realm.Spec.FrontendURL,
 		DisplayHTMLName: realm.Spec.DisplayHTMLName,
@@ -69,17 +95,10 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 
 	if realm.Spec.RealmEventConfig != nil && realm.Spec.RealmEventConfig.AdminEventsEnabled {
 		eventCfCopy := realm.Spec.RealmEventConfig.DeepCopy()
-
 		settings.AdminEventsExpiration = &eventCfCopy.AdminEventsExpiration
 	}
 
-	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
-		return errors.Wrap(err, "unable to update realm settings")
-	}
-
-	log.Info("Realm settings is updating done.")
-
-	return nil
+	return settings
 }
 
 func (h PutRealmSettings) makePasswordPolicies(policiesSpec []v1alpha1.PasswordPolicy) []adapter.PasswordPolicy {

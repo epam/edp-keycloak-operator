@@ -2,14 +2,17 @@ package adapter
 
 import (
 	"context"
-	"errors"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
+	"github.com/go-resty/resty/v2"
 	"github.com/jarcoal/httpmock"
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -270,6 +273,199 @@ func TestToRealmTokenSettings(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.want, ToRealmTokenSettings(tt.tokenSettings))
+		})
+	}
+}
+
+func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		realmName     string
+		enabled       bool
+		setupServer   func(t *testing.T) *httptest.Server
+		expectedError string
+	}{
+		{
+			name:      "enable organizations successfully",
+			realmName: "test-realm",
+			enabled:   true,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch r.Method {
+					case "GET":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							response := map[string]interface{}{
+								"realm":                "test-realm",
+								"organizationsEnabled": false,
+							}
+							w.Header().Set("Content-Type", "application/json")
+							w.WriteHeader(http.StatusOK)
+							_ = json.NewEncoder(w).Encode(response)
+							return
+						}
+					case "PUT":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							w.WriteHeader(http.StatusOK)
+							return
+						}
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "",
+		},
+		{
+			name:      "disable organizations successfully",
+			realmName: "test-realm",
+			enabled:   false,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch r.Method {
+					case "GET":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							response := map[string]interface{}{
+								"realm":                "test-realm",
+								"organizationsEnabled": true,
+							}
+							w.Header().Set("Content-Type", "application/json")
+							w.WriteHeader(http.StatusOK)
+							_ = json.NewEncoder(w).Encode(response)
+							return
+						}
+					case "PUT":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							w.WriteHeader(http.StatusOK)
+							return
+						}
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "",
+		},
+		{
+			name:      "no change needed - already enabled",
+			realmName: "test-realm",
+			enabled:   true,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+						response := map[string]interface{}{
+							"realm":                "test-realm",
+							"organizationsEnabled": true,
+						}
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusOK)
+						_ = json.NewEncoder(w).Encode(response)
+						return
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "",
+		},
+		{
+			name:      "no change needed - already disabled",
+			realmName: "test-realm",
+			enabled:   false,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+						response := map[string]interface{}{
+							"realm":                "test-realm",
+							"organizationsEnabled": false,
+						}
+						w.Header().Set("Content-Type", "application/json")
+						w.WriteHeader(http.StatusOK)
+						_ = json.NewEncoder(w).Encode(response)
+						return
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "",
+		},
+		{
+			name:      "get realm fails",
+			realmName: "test-realm",
+			enabled:   true,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+						w.WriteHeader(http.StatusNotFound)
+						_, _ = w.Write([]byte("realm not found"))
+						return
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "unable to get realm",
+		},
+		{
+			name:      "update realm fails",
+			realmName: "test-realm",
+			enabled:   true,
+			setupServer: func(t *testing.T) *httptest.Server {
+				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					switch r.Method {
+					case "GET":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							response := map[string]interface{}{
+								"realm":                "test-realm",
+								"organizationsEnabled": false,
+							}
+							w.Header().Set("Content-Type", "application/json")
+							w.WriteHeader(http.StatusOK)
+							_ = json.NewEncoder(w).Encode(response)
+							return
+						}
+					case "PUT":
+						if r.URL.Path == "/admin/realms/test-realm" {
+							w.WriteHeader(http.StatusInternalServerError)
+							_, _ = w.Write([]byte("internal server error"))
+							return
+						}
+					}
+					http.NotFound(w, r)
+				}))
+			},
+			expectedError: "unable to set realm organizations enabled",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Setup test server
+			server := tt.setupServer(t)
+			defer server.Close()
+
+			// Initialize adapter with test server URL (without httpmock)
+			mockClient := mocks.NewMockGoCloak(t)
+			restyClient := resty.New()
+			restyClient.SetBaseURL(server.URL)
+			mockClient.On("RestyClient").Return(restyClient).Maybe()
+
+			adapter := &GoCloakAdapter{
+				client:   mockClient,
+				basePath: "",
+				token:    &gocloak.JWT{AccessToken: "token"},
+				log:      logr.Discard(),
+			}
+
+			// Execute the method
+			err := adapter.SetRealmOrganizationsEnabled(context.Background(), tt.realmName, tt.enabled)
+
+			// Assert results
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

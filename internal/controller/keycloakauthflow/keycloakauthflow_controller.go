@@ -16,6 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -110,7 +111,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		return ctrl.Result{}, err
 	}
 
-	authFlow.Status.Value = helper.StatusOK
+	authFlow.Status.Value = common.StatusOK
 	if statusErr := r.updateKeycloakAuthFlowStatus(ctx, authFlow, oldStatus); statusErr != nil {
 		return ctrl.Result{}, statusErr
 	}

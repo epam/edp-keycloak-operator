@@ -15,7 +15,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -101,7 +100,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				return false
 			}
 
-			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+			return createdKeycloakClient.Status.Value == common.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
@@ -158,7 +157,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				return false
 			}
 
-			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+			return createdKeycloakClient.Status.Value == common.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
@@ -204,7 +203,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				return false
 			}
 
-			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+			return createdKeycloakClient.Status.Value == common.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 	})
@@ -352,7 +351,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				return false
 			}
 
-			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+			return createdKeycloakClient.Status.Value == common.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
 
@@ -417,7 +416,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				return false
 			}
 
-			return createdKeycloakClient.Status.Value == helper.StatusOK &&
+			return createdKeycloakClient.Status.Value == common.StatusOK &&
 				createdKeycloakClient.Status.ClientID != ""
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be updated successfully")
 	})

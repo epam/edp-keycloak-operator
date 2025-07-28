@@ -58,7 +58,7 @@ spec:
   mappers:
     - name: "mymapper"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
-      identityProviderAlias: "instagram"
+      identityProviderAlias: "github"
       config:
         attribute: "foo"
         "attribute.value": "bar"

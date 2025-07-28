@@ -13,7 +13,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
@@ -49,7 +48,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Creating a KeycloakRealmGroup subgroup2")
@@ -72,7 +71,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: subgroup2.Name, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Creating a KeycloakRealmGroup")
@@ -97,7 +96,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: groupCR, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakRealmGroup", func() {
@@ -113,7 +112,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			updatedGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatedGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(updatedGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(updatedGroup.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should delete KeycloakRealmGroup and subgroup", func() {
@@ -161,7 +160,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdSubGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: subgroup.Name, Namespace: ns}, createdSubGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdSubGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdSubGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Creating a group with subgroup")
@@ -184,7 +183,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Deleting subgroup")
@@ -228,7 +227,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			createdGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, createdGroup)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdGroup.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdGroup.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Deleting KeycloakRealmGroup")

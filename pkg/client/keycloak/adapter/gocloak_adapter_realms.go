@@ -73,6 +73,57 @@ func (a GoCloakAdapter) UpdateRealm(ctx context.Context, realm *gocloak.RealmRep
 	return nil
 }
 
+type RealmOrganizationsEnabled struct {
+	Realm                string `json:"realm"`
+	OrganizationsEnabled bool   `json:"organizationsEnabled"`
+}
+
+// SetRealmOrganizationsEnabled sets the organizations enabled flag for a realm.
+// This method is workaround because the OrganizationsEnabled field is not available
+// in the github.com/Nerzal/gocloak/v12 package.
+// TODO: remove this method and use UpdateRealm when the OrganizationsEnabled field will be available in the github.com/Nerzal/gocloak/v12 package.
+func (a GoCloakAdapter) SetRealmOrganizationsEnabled(ctx context.Context, realmName string, enabled bool) error {
+	// Get current realm to check OrganizationsEnabled
+	var currentRealm RealmOrganizationsEnabled
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+		}).
+		SetResult(&currentRealm).
+		Get(a.buildPath(realmEntity))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to get realm: %w", err)
+	}
+
+	// Check if OrganizationsEnabled is different
+	if currentRealm.OrganizationsEnabled == enabled {
+		return nil
+	}
+
+	// Create request body for updating organizations enabled
+	requestBody := RealmOrganizationsEnabled{
+		Realm:                realmName,
+		OrganizationsEnabled: enabled,
+	}
+
+	// Make custom request to update realm organizations enabled
+	rsp, err = a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+		}).
+		SetBody(requestBody).
+		Put(a.buildPath(realmEntity))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to set realm organizations enabled: %w", err)
+	}
+
+	return nil
+}
+
 func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSettings) {
 	if realmSettings.Themes != nil {
 		realm.LoginTheme = realmSettings.Themes.LoginTheme

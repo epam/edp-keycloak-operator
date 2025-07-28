@@ -11,5 +11,6 @@ metadata:
 spec:
   clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample
+  organizationsEnabled: false
   authenticationFlows:
     browserFlow: browserFlow-sample

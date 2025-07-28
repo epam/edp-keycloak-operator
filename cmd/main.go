@@ -36,6 +36,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakauthflow"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclientscope"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakorganization"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmcomponent"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmgroup"
@@ -267,6 +268,11 @@ func main() {
 		}
 	}
 
+	organizationCtrl := keycloakorganization.NewReconcileOrganization(mgr.GetClient(), h)
+	if err = organizationCtrl.SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create keycloak-organization controller")
+		os.Exit(1)
+	}
 	//+kubebuilder:scaffold:builder
 
 	if err := mgr.AddHealthzCheck("healthz", healthz.Ping); err != nil {

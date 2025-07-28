@@ -4,6 +4,8 @@ import (
 	"time"
 
 	"sigs.k8s.io/controller-runtime/pkg/event"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 type FailureCountable interface {
@@ -51,6 +53,6 @@ func IsFailuresUpdated(e event.UpdateEvent) bool {
 }
 
 func SetSuccessStatus(el StatusValueFailureCountable) {
-	el.SetStatus(StatusOK)
+	el.SetStatus(common.StatusOK)
 	el.SetFailureCount(0)
 }

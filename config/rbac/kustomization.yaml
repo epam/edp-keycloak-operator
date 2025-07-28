@@ -48,3 +48,11 @@ resources:
   - keycloakrealmrolebatch_viewer_role.yaml
   - keycloakrealmuser_editor_role.yaml
   - keycloakrealmuser_viewer_role.yaml
+# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# default, aiding admins in cluster management. Those roles are
+# not used by the edp-keycloak-operator itself. You can comment the following lines
+# if you do not want those helpers be installed with your Project.
+- keycloakorganization_admin_role.yaml
+- keycloakorganization_editor_role.yaml
+- keycloakorganization_viewer_role.yaml
+

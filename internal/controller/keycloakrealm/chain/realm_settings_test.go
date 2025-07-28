@@ -22,6 +22,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	ctx := context.Background()
 
 	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
+	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err := rs.ServeRequest(ctx, &realm, kClient)
 	require.NoError(t, err)
@@ -79,6 +80,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		AdminEventsEnabled: true,
 	}).Return(errors.New("event config fatal")).Once()
 	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
+	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
 	err = rs.ServeRequest(ctx, &realm, kClient)
 	require.Error(t, err)
