@@ -152,7 +152,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	}, &checkBatch)
 	require.NoError(t, err)
 
-	if checkBatch.Status.Value != helper.StatusOK {
+	if checkBatch.Status.Value != common.StatusOK {
 		t.Log(checkBatch.Status.Value)
 		t.Fatal("batch status not updated on success")
 	}

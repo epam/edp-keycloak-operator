@@ -67,6 +67,13 @@ type KeycloakRealmSpec struct {
 	// +optional
 	DisplayName string `json:"displayName,omitempty"`
 
+	// OrganizationsEnabled enables Keycloak Organizations feature for this realm.
+	// When enabled, this realm can support Organization resources for multi-tenant scenarios,
+	// identity provider groupings, and domain-based user routing.
+	// +optional
+	// +kubebuilder:default=false
+	OrganizationsEnabled bool `json:"organizationsEnabled,omitempty"`
+
 	// UserProfileConfig is the configuration for user profiles in the realm.
 	// Attributes and groups will be added to the current realm configuration.
 	// Deletion of attributes and groups is not supported.

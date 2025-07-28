@@ -25,7 +25,6 @@ import (
 )
 
 const (
-	StatusOK                            = "OK"
 	RequeueOnKeycloakNotAvailablePeriod = time.Minute
 )
 

@@ -1,6 +1,12 @@
 package adapter
 
-import "strings"
+import (
+	"errors"
+	"net/http"
+	"strings"
+
+	"github.com/Nerzal/gocloak/v12"
+)
 
 // SkipAlreadyExistsErr skips error if it is already exists error.
 func SkipAlreadyExistsErr(err error) error {
@@ -13,4 +19,24 @@ func SkipAlreadyExistsErr(err error) error {
 	}
 
 	return err
+}
+
+func IsErrNotFound(err error) bool {
+	errNotFound := NotFoundError("")
+
+	if errors.As(err, &errNotFound) {
+		return true
+	}
+
+	apiErr := gocloak.APIError{}
+	if errors.As(err, &apiErr) {
+		return apiErr.Code == http.StatusNotFound
+	}
+
+	apiErrp := &gocloak.APIError{}
+	if errors.As(err, &apiErrp) {
+		return apiErrp.Code == http.StatusNotFound
+	}
+
+	return false
 }

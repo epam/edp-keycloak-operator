@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/pkg/errors"
 
@@ -66,6 +67,10 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
 		return errors.Wrap(err, "unable to update realm settings")
+	}
+
+	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {
+		return fmt.Errorf("unable to set realm organizations enabled: %w", err)
 	}
 
 	rLog.Info("Realm settings is updating done.")

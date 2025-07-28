@@ -2,6 +2,7 @@ package dto
 
 import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakApiV1Alpha1 "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 )
 
 const defaultClientProtocol = "openid-connect"
@@ -177,4 +178,50 @@ type IdentityProviderMapper struct {
 	Name                   string            `json:"name"`
 	Config                 map[string]string `json:"config"`
 	ID                     string            `json:"id"`
+}
+
+// Organization represents a Keycloak Organization.
+type Organization struct {
+	ID          string               `json:"id,omitempty"`
+	Name        string               `json:"name"`
+	Alias       string               `json:"alias"`
+	Description string               `json:"description,omitempty"`
+	RedirectURL string               `json:"redirectUrl,omitempty"`
+	Attributes  map[string][]string  `json:"attributes,omitempty"`
+	Domains     []OrganizationDomain `json:"domains,omitempty"`
+}
+
+// OrganizationDomain represents a domain within an Organization.
+type OrganizationDomain struct {
+	Name string `json:"name"`
+}
+
+// OrganizationIdentityProvider represents the link between an Organization and Identity Provider.
+type OrganizationIdentityProvider struct {
+	Alias string `json:"alias"`
+}
+
+// ConvertSpecToOrganization converts a KeycloakOrganization spec to an Organization.
+func ConvertSpecToOrganization(org *keycloakApiV1Alpha1.KeycloakOrganization) *Organization {
+	orgAdapter := &Organization{
+		Name:        org.Spec.Name,
+		Alias:       org.Spec.Alias,
+		Description: org.Spec.Description,
+		RedirectURL: org.Spec.RedirectURL,
+		Attributes:  org.Spec.Attributes,
+	}
+
+	// Convert domains to OrganizationDomain format
+	for _, domain := range org.Spec.Domains {
+		orgAdapter.Domains = append(orgAdapter.Domains, OrganizationDomain{
+			Name: domain,
+		})
+	}
+
+	// Set ID from status if available
+	if org.Status.OrganizationID != "" {
+		orgAdapter.ID = org.Status.OrganizationID
+	}
+
+	return orgAdapter
 }

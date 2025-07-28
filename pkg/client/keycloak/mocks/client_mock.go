@@ -581,6 +581,54 @@ func (_c *MockClient_CreateIncludedRealmRole_Call) RunAndReturn(run func(string,
 	return _c
 }
 
+// CreateOrganization provides a mock function with given fields: ctx, realm, org
+func (_m *MockClient) CreateOrganization(ctx context.Context, realm string, org *dto.Organization) error {
+	ret := _m.Called(ctx, realm, org)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateOrganization")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *dto.Organization) error); ok {
+		r0 = rf(ctx, realm, org)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_CreateOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateOrganization'
+type MockClient_CreateOrganization_Call struct {
+	*mock.Call
+}
+
+// CreateOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - org *dto.Organization
+func (_e *MockClient_Expecter) CreateOrganization(ctx interface{}, realm interface{}, org interface{}) *MockClient_CreateOrganization_Call {
+	return &MockClient_CreateOrganization_Call{Call: _e.mock.On("CreateOrganization", ctx, realm, org)}
+}
+
+func (_c *MockClient_CreateOrganization_Call) Run(run func(ctx context.Context, realm string, org *dto.Organization)) *MockClient_CreateOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(*dto.Organization))
+	})
+	return _c
+}
+
+func (_c *MockClient_CreateOrganization_Call) Return(_a0 error) *MockClient_CreateOrganization_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_CreateOrganization_Call) RunAndReturn(run func(context.Context, string, *dto.Organization) error) *MockClient_CreateOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreatePermission provides a mock function with given fields: ctx, realm, idOfClient, permission
 func (_m *MockClient) CreatePermission(ctx context.Context, realm string, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error) {
 	ret := _m.Called(ctx, realm, idOfClient, permission)
@@ -1308,6 +1356,54 @@ func (_c *MockClient_DeleteIdentityProvider_Call) Return(_a0 error) *MockClient_
 }
 
 func (_c *MockClient_DeleteIdentityProvider_Call) RunAndReturn(run func(context.Context, string, string) error) *MockClient_DeleteIdentityProvider_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteOrganization provides a mock function with given fields: ctx, realm, orgID
+func (_m *MockClient) DeleteOrganization(ctx context.Context, realm string, orgID string) error {
+	ret := _m.Called(ctx, realm, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteOrganization")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) error); ok {
+		r0 = rf(ctx, realm, orgID)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_DeleteOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteOrganization'
+type MockClient_DeleteOrganization_Call struct {
+	*mock.Call
+}
+
+// DeleteOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+func (_e *MockClient_Expecter) DeleteOrganization(ctx interface{}, realm interface{}, orgID interface{}) *MockClient_DeleteOrganization_Call {
+	return &MockClient_DeleteOrganization_Call{Call: _e.mock.On("DeleteOrganization", ctx, realm, orgID)}
+}
+
+func (_c *MockClient_DeleteOrganization_Call) Run(run func(ctx context.Context, realm string, orgID string)) *MockClient_DeleteOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_DeleteOrganization_Call) Return(_a0 error) *MockClient_DeleteOrganization_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_DeleteOrganization_Call) RunAndReturn(run func(context.Context, string, string) error) *MockClient_DeleteOrganization_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -2876,6 +2972,246 @@ func (_c *MockClient_GetOpenIdConfig_Call) RunAndReturn(run func(*dto.Realm) (st
 	return _c
 }
 
+// GetOrganization provides a mock function with given fields: ctx, realm, orgID
+func (_m *MockClient) GetOrganization(ctx context.Context, realm string, orgID string) (*dto.Organization, error) {
+	ret := _m.Called(ctx, realm, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganization")
+	}
+
+	var r0 *dto.Organization
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*dto.Organization, error)); ok {
+		return rf(ctx, realm, orgID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *dto.Organization); ok {
+		r0 = rf(ctx, realm, orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*dto.Organization)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, realm, orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganization'
+type MockClient_GetOrganization_Call struct {
+	*mock.Call
+}
+
+// GetOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+func (_e *MockClient_Expecter) GetOrganization(ctx interface{}, realm interface{}, orgID interface{}) *MockClient_GetOrganization_Call {
+	return &MockClient_GetOrganization_Call{Call: _e.mock.On("GetOrganization", ctx, realm, orgID)}
+}
+
+func (_c *MockClient_GetOrganization_Call) Run(run func(ctx context.Context, realm string, orgID string)) *MockClient_GetOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetOrganization_Call) Return(_a0 *dto.Organization, _a1 error) *MockClient_GetOrganization_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetOrganization_Call) RunAndReturn(run func(context.Context, string, string) (*dto.Organization, error)) *MockClient_GetOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOrganizationByAlias provides a mock function with given fields: ctx, realm, alias
+func (_m *MockClient) GetOrganizationByAlias(ctx context.Context, realm string, alias string) (*dto.Organization, error) {
+	ret := _m.Called(ctx, realm, alias)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationByAlias")
+	}
+
+	var r0 *dto.Organization
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*dto.Organization, error)); ok {
+		return rf(ctx, realm, alias)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *dto.Organization); ok {
+		r0 = rf(ctx, realm, alias)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*dto.Organization)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, realm, alias)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetOrganizationByAlias_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationByAlias'
+type MockClient_GetOrganizationByAlias_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationByAlias is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - alias string
+func (_e *MockClient_Expecter) GetOrganizationByAlias(ctx interface{}, realm interface{}, alias interface{}) *MockClient_GetOrganizationByAlias_Call {
+	return &MockClient_GetOrganizationByAlias_Call{Call: _e.mock.On("GetOrganizationByAlias", ctx, realm, alias)}
+}
+
+func (_c *MockClient_GetOrganizationByAlias_Call) Run(run func(ctx context.Context, realm string, alias string)) *MockClient_GetOrganizationByAlias_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetOrganizationByAlias_Call) Return(_a0 *dto.Organization, _a1 error) *MockClient_GetOrganizationByAlias_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetOrganizationByAlias_Call) RunAndReturn(run func(context.Context, string, string) (*dto.Organization, error)) *MockClient_GetOrganizationByAlias_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOrganizationIdentityProviders provides a mock function with given fields: ctx, realm, orgID
+func (_m *MockClient) GetOrganizationIdentityProviders(ctx context.Context, realm string, orgID string) ([]dto.OrganizationIdentityProvider, error) {
+	ret := _m.Called(ctx, realm, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationIdentityProviders")
+	}
+
+	var r0 []dto.OrganizationIdentityProvider
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) ([]dto.OrganizationIdentityProvider, error)); ok {
+		return rf(ctx, realm, orgID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) []dto.OrganizationIdentityProvider); ok {
+		r0 = rf(ctx, realm, orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.OrganizationIdentityProvider)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, realm, orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetOrganizationIdentityProviders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationIdentityProviders'
+type MockClient_GetOrganizationIdentityProviders_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationIdentityProviders is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+func (_e *MockClient_Expecter) GetOrganizationIdentityProviders(ctx interface{}, realm interface{}, orgID interface{}) *MockClient_GetOrganizationIdentityProviders_Call {
+	return &MockClient_GetOrganizationIdentityProviders_Call{Call: _e.mock.On("GetOrganizationIdentityProviders", ctx, realm, orgID)}
+}
+
+func (_c *MockClient_GetOrganizationIdentityProviders_Call) Run(run func(ctx context.Context, realm string, orgID string)) *MockClient_GetOrganizationIdentityProviders_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetOrganizationIdentityProviders_Call) Return(_a0 []dto.OrganizationIdentityProvider, _a1 error) *MockClient_GetOrganizationIdentityProviders_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetOrganizationIdentityProviders_Call) RunAndReturn(run func(context.Context, string, string) ([]dto.OrganizationIdentityProvider, error)) *MockClient_GetOrganizationIdentityProviders_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOrganizations provides a mock function with given fields: ctx, realm, params
+func (_m *MockClient) GetOrganizations(ctx context.Context, realm string, params *adapter.GetOrganizationsParams) ([]dto.Organization, error) {
+	ret := _m.Called(ctx, realm, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizations")
+	}
+
+	var r0 []dto.Organization
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *adapter.GetOrganizationsParams) ([]dto.Organization, error)); ok {
+		return rf(ctx, realm, params)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, *adapter.GetOrganizationsParams) []dto.Organization); ok {
+		r0 = rf(ctx, realm, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]dto.Organization)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, *adapter.GetOrganizationsParams) error); ok {
+		r1 = rf(ctx, realm, params)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetOrganizations_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizations'
+type MockClient_GetOrganizations_Call struct {
+	*mock.Call
+}
+
+// GetOrganizations is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - params *adapter.GetOrganizationsParams
+func (_e *MockClient_Expecter) GetOrganizations(ctx interface{}, realm interface{}, params interface{}) *MockClient_GetOrganizations_Call {
+	return &MockClient_GetOrganizations_Call{Call: _e.mock.On("GetOrganizations", ctx, realm, params)}
+}
+
+func (_c *MockClient_GetOrganizations_Call) Run(run func(ctx context.Context, realm string, params *adapter.GetOrganizationsParams)) *MockClient_GetOrganizations_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(*adapter.GetOrganizationsParams))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetOrganizations_Call) Return(_a0 []dto.Organization, _a1 error) *MockClient_GetOrganizations_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetOrganizations_Call) RunAndReturn(run func(context.Context, string, *adapter.GetOrganizationsParams) ([]dto.Organization, error)) *MockClient_GetOrganizations_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetPermissions provides a mock function with given fields: ctx, realm, idOfClient
 func (_m *MockClient) GetPermissions(ctx context.Context, realm string, idOfClient string) (map[string]gocloak.PermissionRepresentation, error) {
 	ret := _m.Called(ctx, realm, idOfClient)
@@ -3586,6 +3922,113 @@ func (_c *MockClient_IdentityProviderExists_Call) RunAndReturn(run func(context.
 	return _c
 }
 
+// LinkIdentityProviderToOrganization provides a mock function with given fields: ctx, realm, orgID, idpAlias
+func (_m *MockClient) LinkIdentityProviderToOrganization(ctx context.Context, realm string, orgID string, idpAlias string) error {
+	ret := _m.Called(ctx, realm, orgID, idpAlias)
+
+	if len(ret) == 0 {
+		panic("no return value specified for LinkIdentityProviderToOrganization")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, realm, orgID, idpAlias)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_LinkIdentityProviderToOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'LinkIdentityProviderToOrganization'
+type MockClient_LinkIdentityProviderToOrganization_Call struct {
+	*mock.Call
+}
+
+// LinkIdentityProviderToOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - idpAlias string
+func (_e *MockClient_Expecter) LinkIdentityProviderToOrganization(ctx interface{}, realm interface{}, orgID interface{}, idpAlias interface{}) *MockClient_LinkIdentityProviderToOrganization_Call {
+	return &MockClient_LinkIdentityProviderToOrganization_Call{Call: _e.mock.On("LinkIdentityProviderToOrganization", ctx, realm, orgID, idpAlias)}
+}
+
+func (_c *MockClient_LinkIdentityProviderToOrganization_Call) Run(run func(ctx context.Context, realm string, orgID string, idpAlias string)) *MockClient_LinkIdentityProviderToOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_LinkIdentityProviderToOrganization_Call) Return(_a0 error) *MockClient_LinkIdentityProviderToOrganization_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_LinkIdentityProviderToOrganization_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MockClient_LinkIdentityProviderToOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// OrganizationExists provides a mock function with given fields: ctx, realm, orgID
+func (_m *MockClient) OrganizationExists(ctx context.Context, realm string, orgID string) (bool, error) {
+	ret := _m.Called(ctx, realm, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for OrganizationExists")
+	}
+
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return rf(ctx, realm, orgID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = rf(ctx, realm, orgID)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, realm, orgID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_OrganizationExists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'OrganizationExists'
+type MockClient_OrganizationExists_Call struct {
+	*mock.Call
+}
+
+// OrganizationExists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+func (_e *MockClient_Expecter) OrganizationExists(ctx interface{}, realm interface{}, orgID interface{}) *MockClient_OrganizationExists_Call {
+	return &MockClient_OrganizationExists_Call{Call: _e.mock.On("OrganizationExists", ctx, realm, orgID)}
+}
+
+func (_c *MockClient_OrganizationExists_Call) Run(run func(ctx context.Context, realm string, orgID string)) *MockClient_OrganizationExists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_OrganizationExists_Call) Return(_a0 bool, _a1 error) *MockClient_OrganizationExists_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_OrganizationExists_Call) RunAndReturn(run func(context.Context, string, string) (bool, error)) *MockClient_OrganizationExists_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // PutClientScopeMapper provides a mock function with given fields: realmName, scopeID, protocolMapper
 func (_m *MockClient) PutClientScopeMapper(realmName string, scopeID string, protocolMapper *adapter.ProtocolMapper) error {
 	ret := _m.Called(realmName, scopeID, protocolMapper)
@@ -3725,6 +4168,54 @@ func (_c *MockClient_SetRealmEventConfig_Call) Return(_a0 error) *MockClient_Set
 }
 
 func (_c *MockClient_SetRealmEventConfig_Call) RunAndReturn(run func(string, *adapter.RealmEventConfig) error) *MockClient_SetRealmEventConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SetRealmOrganizationsEnabled provides a mock function with given fields: ctx, realmName, enabled
+func (_m *MockClient) SetRealmOrganizationsEnabled(ctx context.Context, realmName string, enabled bool) error {
+	ret := _m.Called(ctx, realmName, enabled)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetRealmOrganizationsEnabled")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, bool) error); ok {
+		r0 = rf(ctx, realmName, enabled)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_SetRealmOrganizationsEnabled_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetRealmOrganizationsEnabled'
+type MockClient_SetRealmOrganizationsEnabled_Call struct {
+	*mock.Call
+}
+
+// SetRealmOrganizationsEnabled is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - enabled bool
+func (_e *MockClient_Expecter) SetRealmOrganizationsEnabled(ctx interface{}, realmName interface{}, enabled interface{}) *MockClient_SetRealmOrganizationsEnabled_Call {
+	return &MockClient_SetRealmOrganizationsEnabled_Call{Call: _e.mock.On("SetRealmOrganizationsEnabled", ctx, realmName, enabled)}
+}
+
+func (_c *MockClient_SetRealmOrganizationsEnabled_Call) Run(run func(ctx context.Context, realmName string, enabled bool)) *MockClient_SetRealmOrganizationsEnabled_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(bool))
+	})
+	return _c
+}
+
+func (_c *MockClient_SetRealmOrganizationsEnabled_Call) Return(_a0 error) *MockClient_SetRealmOrganizationsEnabled_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_SetRealmOrganizationsEnabled_Call) RunAndReturn(run func(context.Context, string, bool) error) *MockClient_SetRealmOrganizationsEnabled_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4174,6 +4665,55 @@ func (_c *MockClient_SyncServiceAccountRoles_Call) RunAndReturn(run func(string,
 	return _c
 }
 
+// UnlinkIdentityProviderFromOrganization provides a mock function with given fields: ctx, realm, orgID, idpAlias
+func (_m *MockClient) UnlinkIdentityProviderFromOrganization(ctx context.Context, realm string, orgID string, idpAlias string) error {
+	ret := _m.Called(ctx, realm, orgID, idpAlias)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UnlinkIdentityProviderFromOrganization")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string) error); ok {
+		r0 = rf(ctx, realm, orgID, idpAlias)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_UnlinkIdentityProviderFromOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UnlinkIdentityProviderFromOrganization'
+type MockClient_UnlinkIdentityProviderFromOrganization_Call struct {
+	*mock.Call
+}
+
+// UnlinkIdentityProviderFromOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - idpAlias string
+func (_e *MockClient_Expecter) UnlinkIdentityProviderFromOrganization(ctx interface{}, realm interface{}, orgID interface{}, idpAlias interface{}) *MockClient_UnlinkIdentityProviderFromOrganization_Call {
+	return &MockClient_UnlinkIdentityProviderFromOrganization_Call{Call: _e.mock.On("UnlinkIdentityProviderFromOrganization", ctx, realm, orgID, idpAlias)}
+}
+
+func (_c *MockClient_UnlinkIdentityProviderFromOrganization_Call) Run(run func(ctx context.Context, realm string, orgID string, idpAlias string)) *MockClient_UnlinkIdentityProviderFromOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_UnlinkIdentityProviderFromOrganization_Call) Return(_a0 error) *MockClient_UnlinkIdentityProviderFromOrganization_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_UnlinkIdentityProviderFromOrganization_Call) RunAndReturn(run func(context.Context, string, string, string) error) *MockClient_UnlinkIdentityProviderFromOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateClient provides a mock function with given fields: ctx, client
 func (_m *MockClient) UpdateClient(ctx context.Context, client *dto.Client) error {
 	ret := _m.Called(ctx, client)
@@ -4459,6 +4999,54 @@ func (_c *MockClient_UpdateIdentityProvider_Call) Return(_a0 error) *MockClient_
 }
 
 func (_c *MockClient_UpdateIdentityProvider_Call) RunAndReturn(run func(context.Context, string, *adapter.IdentityProvider) error) *MockClient_UpdateIdentityProvider_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateOrganization provides a mock function with given fields: ctx, realm, org
+func (_m *MockClient) UpdateOrganization(ctx context.Context, realm string, org *dto.Organization) error {
+	ret := _m.Called(ctx, realm, org)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateOrganization")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *dto.Organization) error); ok {
+		r0 = rf(ctx, realm, org)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_UpdateOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateOrganization'
+type MockClient_UpdateOrganization_Call struct {
+	*mock.Call
+}
+
+// UpdateOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - org *dto.Organization
+func (_e *MockClient_Expecter) UpdateOrganization(ctx interface{}, realm interface{}, org interface{}) *MockClient_UpdateOrganization_Call {
+	return &MockClient_UpdateOrganization_Call{Call: _e.mock.On("UpdateOrganization", ctx, realm, org)}
+}
+
+func (_c *MockClient_UpdateOrganization_Call) Run(run func(ctx context.Context, realm string, org *dto.Organization)) *MockClient_UpdateOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(*dto.Organization))
+	})
+	return _c
+}
+
+func (_c *MockClient_UpdateOrganization_Call) Return(_a0 error) *MockClient_UpdateOrganization_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_UpdateOrganization_Call) RunAndReturn(run func(context.Context, string, *dto.Organization) error) *MockClient_UpdateOrganization_Call {
 	_c.Call.Return(run)
 	return _c
 }
