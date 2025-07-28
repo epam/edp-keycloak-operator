@@ -15,6 +15,7 @@ resources:
 - bases/v1.edp.epam.com_keycloakrealmusers.yaml
 - bases/v1.edp.epam.com_clusterkeycloaks.yaml
 - bases/v1.edp.epam.com_clusterkeycloakrealms.yaml
+- bases/v1.edp.epam.com_keycloakorganizations.yaml
 #+kubebuilder:scaffold:crdkustomizeresource
 
 patches:

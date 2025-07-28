@@ -12,7 +12,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 )
 
 var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
@@ -50,7 +49,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			createdAuthFlow := &keycloakApi.KeycloakAuthFlow{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: authFlow.Name, Namespace: ns}, createdAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdAuthFlow.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdAuthFlow.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakAuthFlow", func() {
@@ -66,7 +65,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			updatedUser := &keycloakApi.KeycloakAuthFlow{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: createdAuthFlow.Name, Namespace: ns}, updatedUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(updatedUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(updatedUser.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Second*5, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakAuthFlow", func() {
@@ -148,7 +147,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			createdParentAuthFlow := &keycloakApi.KeycloakAuthFlow{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: parentAuthFlow.Name, Namespace: ns}, createdParentAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdParentAuthFlow.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdParentAuthFlow.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 		By("Creating a child KeycloakAuthFlow")
 		childAuthFlow := &keycloakApi.KeycloakAuthFlow{
@@ -174,7 +173,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			createdChildAuthFlow := &keycloakApi.KeycloakAuthFlow{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: childAuthFlow.Name, Namespace: ns}, createdChildAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdChildAuthFlow.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdChildAuthFlow.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 	})
 })

@@ -14,7 +14,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
@@ -77,7 +76,7 @@ func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 			},
 		},
 		Status: keycloakApi.KeycloakAuthFlowStatus{
-			Value: helper.StatusOK,
+			Value: common.StatusOK,
 		},
 	}
 	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&flow).Build()

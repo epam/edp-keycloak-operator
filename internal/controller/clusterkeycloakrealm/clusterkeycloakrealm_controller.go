@@ -12,6 +12,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/clusterkeycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
@@ -117,7 +118,7 @@ func (r *ClusterKeycloakRealmReconciler) updateSuccessStatus(ctx context.Context
 	}
 
 	clusterRealm.Status.Available = true
-	clusterRealm.Status.Value = helper.StatusOK
+	clusterRealm.Status.Value = common.StatusOK
 	clusterRealm.Status.FailureCount = 0
 
 	if err := r.client.Status().Update(ctx, clusterRealm); err != nil {

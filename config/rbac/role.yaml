@@ -74,6 +74,7 @@ rules:
   - keycloakauthflows
   - keycloakclients
   - keycloakclientscopes
+  - keycloakorganizations
   - keycloakrealmcomponents
   - keycloakrealmgroups
   - keycloakrealmidentityproviders
@@ -96,6 +97,7 @@ rules:
   - keycloakauthflows/finalizers
   - keycloakclients/finalizers
   - keycloakclientscopes/finalizers
+  - keycloakorganizations/finalizers
   - keycloakrealmcomponents/finalizers
   - keycloakrealmgroups/finalizers
   - keycloakrealmidentityproviders/finalizers
@@ -112,6 +114,7 @@ rules:
   - keycloakauthflows/status
   - keycloakclients/status
   - keycloakclientscopes/status
+  - keycloakorganizations/status
   - keycloakrealmcomponents/status
   - keycloakrealmgroups/status
   - keycloakrealmidentityproviders/status

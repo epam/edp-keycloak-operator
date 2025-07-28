@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
@@ -102,7 +103,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		log.Error(err, "an error has occurred while handling keycloak realm", "name", request.Name)
 	} else {
 		instance.Status.Available = true
-		instance.Status.Value = helper.StatusOK
+		instance.Status.Value = common.StatusOK
 		instance.Status.FailureCount = 0
 		result.RequeueAfter = r.successReconcileTimeout
 	}

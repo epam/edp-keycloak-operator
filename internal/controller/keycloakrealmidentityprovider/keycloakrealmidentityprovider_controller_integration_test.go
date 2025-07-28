@@ -14,7 +14,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -64,7 +63,7 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 				return false
 			}
 
-			return createdProvider.Status.Value == helper.StatusOK
+			return createdProvider.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
 	It("Should delete KeycloakRealmIdentityProvider", func() {
@@ -113,7 +112,7 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 				return false
 			}
 
-			return createdProvider.Status.Value == helper.StatusOK
+			return createdProvider.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 		By("By deleting KeycloakRealmIdentityProvider")
 		Expect(k8sClient.Delete(ctx, provider)).Should(Succeed())

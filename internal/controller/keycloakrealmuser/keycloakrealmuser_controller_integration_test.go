@@ -14,7 +14,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
@@ -152,7 +151,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			createdUser := &keycloakApi.KeycloakRealmUser{}
 			err = k8sClient.Get(ctx, types.NamespacedName{Name: userCR, Namespace: ns}, createdUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdUser.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		// Verify that the roles were created in Keycloak
@@ -226,7 +225,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			updatedUser := &keycloakApi.KeycloakRealmUser{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, updatedUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(updatedUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(updatedUser.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Minute, time.Second*5).Should(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -263,7 +262,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			updatedUser := &keycloakApi.KeycloakRealmUser{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, updatedUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(updatedUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(updatedUser.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Minute, time.Second*5).Should(Succeed())
 
 		// Verify that the roles were updated in Keycloak
@@ -349,7 +348,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			createdUser := &keycloakApi.KeycloakRealmUser{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdUser.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Deleting KeycloakRealmUser")
@@ -485,7 +484,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			createdUser := &keycloakApi.KeycloakRealmUser{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, createdUser)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdUser.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdUser.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
 		By("Manually deleting the user from Keycloak to simulate user not found scenario")

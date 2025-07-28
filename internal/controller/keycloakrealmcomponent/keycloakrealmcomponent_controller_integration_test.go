@@ -13,7 +13,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -47,7 +46,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value == helper.StatusOK
+			return createdComponent.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 		By("By creating a child KeycloakRealmComponent")
 		childComponent := &keycloakApi.KeycloakRealmComponent{
@@ -77,7 +76,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdChildComponent.Status.Value == helper.StatusOK
+			return createdChildComponent.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 		By("By creating a KeycloakRealmComponent with parent realm")
 		componentWithParentRealm := &keycloakApi.KeycloakRealmComponent{
@@ -107,7 +106,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponentWithParentRealm.Status.Value == helper.StatusOK
+			return createdComponentWithParentRealm.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
 	It("Should delete KeycloakRealmComponents", func() {
@@ -163,7 +162,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value != helper.StatusOK
+			return createdComponent.Status.Value != common.StatusOK
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmComponent should be in failed state")
 	})
 	It("Should fail with invalid parent component", func() {
@@ -199,7 +198,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value != helper.StatusOK
+			return createdComponent.Status.Value != common.StatusOK
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmComponent with invalid parent component should be in failed state")
 	})
 	It("Should fail with invalid parent realm", func() {
@@ -235,7 +234,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value != helper.StatusOK
+			return createdComponent.Status.Value != common.StatusOK
 		}, time.Second*3, interval).Should(BeTrue(), "KeycloakRealmComponent with invalid parent realm should be in failed state")
 	})
 	It("Should skip keycloak resource removing if preserveResourcesOnDeletion is set", func() {
@@ -266,7 +265,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value == helper.StatusOK
+			return createdComponent.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 		By("By deleting KeycloakRealmComponent")
 		Expect(k8sClient.Delete(ctx, component)).Should(Succeed())
@@ -317,7 +316,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				return false
 			}
 
-			return createdComponent.Status.Value == helper.StatusOK
+			return createdComponent.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
 	It("Should fail to create resource with nonexistent secret reference in config", func() {

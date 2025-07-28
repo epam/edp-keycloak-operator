@@ -13,7 +13,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
@@ -49,7 +48,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 				return false
 			}
 
-			return createdRole.Status.Value == helper.StatusOK
+			return createdRole.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
 	It("Should updated KeycloakRealmRole", func() {
@@ -65,7 +64,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 				return false
 			}
 
-			return updatedRole.Spec.Description == "updated description" && updatedRole.Status.Value == helper.StatusOK
+			return updatedRole.Spec.Description == "updated description" && updatedRole.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmRole should be deleted")
 	})
 	It("Should delete KeycloakRealmRole", func() {
@@ -154,7 +153,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 				return false
 			}
 
-			return createdRole.Status.Value == helper.StatusOK
+			return createdRole.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 
 		By("Checking composite role")
@@ -185,7 +184,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 				return false
 			}
 
-			return updatedRole.Status.Value == helper.StatusOK
+			return updatedRole.Status.Value == common.StatusOK
 		}, time.Second*3, time.Second).Should(BeTrue())
 
 		By("Checking updated composite role")
@@ -216,7 +215,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 				return false
 			}
 
-			return createdRole.Status.Value != helper.StatusOK
+			return createdRole.Status.Value != common.StatusOK
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmRole should be in failed state")
 	})
 })

@@ -22,6 +22,7 @@ type Client interface {
 	KCloakComponents
 	KCloakClientScope
 	KIdentityProvider
+	KOrganizations
 
 	GetOpenIdConfig(realm *dto.Realm) (string, error)
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
@@ -76,6 +77,7 @@ type KCloakRealms interface {
 	SyncRealmIdentityProviderMappers(realmName string, mappers []dto.IdentityProviderMapper) error
 	UpdateRealmSettings(realmName string, realmSettings *adapter.RealmSettings) error
 	SetRealmEventConfig(realmName string, eventConfig *adapter.RealmEventConfig) error
+	SetRealmOrganizationsEnabled(ctx context.Context, realmName string, enabled bool) error
 	UpdateRealm(ctx context.Context, realm *gocloak.RealmRepresentation) error
 }
 
@@ -149,4 +151,17 @@ type KCloakComponents interface {
 	UpdateComponent(ctx context.Context, realmName string, component *adapter.Component) error
 	DeleteComponent(ctx context.Context, realmName, componentName string) error
 	GetComponent(ctx context.Context, realmName, componentName string) (*adapter.Component, error)
+}
+
+type KOrganizations interface {
+	CreateOrganization(ctx context.Context, realm string, org *dto.Organization) error
+	UpdateOrganization(ctx context.Context, realm string, org *dto.Organization) error
+	GetOrganization(ctx context.Context, realm, orgID string) (*dto.Organization, error)
+	DeleteOrganization(ctx context.Context, realm, orgID string) error
+	GetOrganizations(ctx context.Context, realm string, params *adapter.GetOrganizationsParams) ([]dto.Organization, error)
+	LinkIdentityProviderToOrganization(ctx context.Context, realm, orgID, idpAlias string) error
+	UnlinkIdentityProviderFromOrganization(ctx context.Context, realm, orgID, idpAlias string) error
+	GetOrganizationIdentityProviders(ctx context.Context, realm, orgID string) ([]dto.OrganizationIdentityProvider, error)
+	OrganizationExists(ctx context.Context, realm, orgID string) (bool, error)
+	GetOrganizationByAlias(ctx context.Context, realm, alias string) (*dto.Organization, error)
 }

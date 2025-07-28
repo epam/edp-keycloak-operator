@@ -12,7 +12,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 )
 
 var _ = Describe("KeycloakClientScope controller", Ordered, func() {
@@ -52,7 +51,7 @@ var _ = Describe("KeycloakClientScope controller", Ordered, func() {
 			createdScope := &keycloakApi.KeycloakClientScope{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: scope.Name, Namespace: ns}, createdScope)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdScope.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(createdScope.Status.Value).Should(Equal(common.StatusOK))
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakClientScope", func() {
@@ -68,7 +67,7 @@ var _ = Describe("KeycloakClientScope controller", Ordered, func() {
 			updatedScope := &keycloakApi.KeycloakClientScope{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: createdScope.Name, Namespace: ns}, updatedScope)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(updatedScope.Status.Value).Should(Equal(helper.StatusOK))
+			g.Expect(updatedScope.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Second*5, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakClientScope", func() {

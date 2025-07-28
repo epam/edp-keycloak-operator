@@ -27,6 +27,7 @@ import (
 
 const (
 	authPath                        = "/auth"
+	realmEntity                     = "/admin/realms/{realm}"
 	idPResource                     = "/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource               = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP                       = idPResource + "/{alias}"
@@ -1306,7 +1307,13 @@ func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	}
 
 	if response.IsError() {
-		return errors.Errorf("status: %s, body: %s", response.Status(), response.String())
+		respErr := errors.Errorf("status: %s, body: %s", response.Status(), response.String())
+
+		if response.StatusCode() == http.StatusNotFound {
+			return NotFoundError(respErr.Error())
+		}
+
+		return respErr
 	}
 
 	return nil

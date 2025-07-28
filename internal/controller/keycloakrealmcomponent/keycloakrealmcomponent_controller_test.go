@@ -22,7 +22,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
@@ -47,7 +46,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 					Name: "realm",
 				},
 			},
-			Status: keycloakApi.KeycloakComponentStatus{Value: helper.StatusOK},
+			Status: keycloakApi.KeycloakComponentStatus{Value: common.StatusOK},
 		}
 		realm = keycloakApi.KeycloakRealm{TypeMeta: metav1.TypeMeta{
 			APIVersion: "v1.edp.epam.com/v1", Kind: "KeycloakRealm",

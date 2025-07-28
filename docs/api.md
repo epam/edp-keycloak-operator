@@ -13,6 +13,8 @@ Resource Types:
 
 - [ClusterKeycloak](#clusterkeycloak)
 
+- [KeycloakOrganization](#keycloakorganization)
+
 
 
 
@@ -141,6 +143,17 @@ Use in combination with the default hostname provider to override the base URL f
         <td>object</td>
         <td>
           Localization is the configuration for localization in the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>organizationsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          OrganizationsEnabled enables Keycloak Organizations feature for this realm.
+When enabled, this realm can support Organization resources for multi-tenant scenarios,
+identity provider groupings, and domain-based user routing.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1534,6 +1547,244 @@ ClusterKeycloakStatus defines the observed state of ClusterKeycloak.
           Connected shows if keycloak service is up and running.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+## KeycloakOrganization
+<sup><sup>[↩ Parent](#v1edpepamcomv1alpha1 )</sup></sup>
+
+
+
+
+
+
+KeycloakOrganization is the Schema for the organizations API.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+      <td><b>apiVersion</b></td>
+      <td>string</td>
+      <td>v1.edp.epam.com/v1alpha1</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b>kind</b></td>
+      <td>string</td>
+      <td>KeycloakOrganization</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td>object</td>
+      <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
+      <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakorganizationspec">spec</a></b></td>
+        <td>object</td>
+        <td>
+          KeycloakOrganizationSpec defines the desired state of Organization.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakorganizationstatus">status</a></b></td>
+        <td>object</td>
+        <td>
+          KeycloakOrganizationStatus defines the observed state of Organization.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakOrganization.spec
+<sup><sup>[↩ Parent](#keycloakorganization)</sup></sup>
+
+
+
+KeycloakOrganizationSpec defines the desired state of Organization.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>alias</b></td>
+        <td>string</td>
+        <td>
+          Alias is the unique alias for the organization.
+The alias should be unique across Organizations.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>domains</b></td>
+        <td>[]string</td>
+        <td>
+          Domains is a list of email domains associated with the organization.
+Each domain should be unique across Organizations.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the unique name of the organization.
+The name should be unique across Organizations.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakorganizationspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>attributes</b></td>
+        <td>map[string][]string</td>
+        <td>
+          Attributes is a map of custom attributes for the organization.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is an optional description of the organization.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakorganizationspecidentityprovidersindex">identityProviders</a></b></td>
+        <td>[]object</td>
+        <td>
+          IdentityProviders is a list of identity providers associated with the organization.
+One identity provider can't be assigned to multiple organizations.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>redirectUrl</b></td>
+        <td>string</td>
+        <td>
+          RedirectURL is the optional redirect URL for the organization.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakOrganization.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakorganizationspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+            <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakOrganization.spec.identityProviders[index]
+<sup><sup>[↩ Parent](#keycloakorganizationspec)</sup></sup>
+
+
+
+OrgIdentityProvider defines an identity provider for an organization.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>alias</b></td>
+        <td>string</td>
+        <td>
+          Alias is the unique identifier for the identity provider within the organization.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakOrganization.status
+<sup><sup>[↩ Parent](#keycloakorganization)</sup></sup>
+
+
+
+KeycloakOrganizationStatus defines the observed state of Organization.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>error</b></td>
+        <td>string</td>
+        <td>
+          Error is the error message if the reconciliation failed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>organizationId</b></td>
+        <td>string</td>
+        <td>
+          OrganizationID is the unique identifier of the organization in Keycloak.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value contains the current reconciliation status.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -4850,6 +5101,17 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>string</td>
         <td>
           ID is the ID of the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>organizationsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          OrganizationsEnabled enables Keycloak Organizations feature for this realm.
+When enabled, this realm can support Organization resources for multi-tenant scenarios,
+identity provider groupings, and domain-based user routing.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>

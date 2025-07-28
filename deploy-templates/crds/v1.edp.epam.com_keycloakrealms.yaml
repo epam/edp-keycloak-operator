@@ -99,6 +99,13 @@ spec:
                 required:
                 - name
                 type: object
+              organizationsEnabled:
+                default: false
+                description: |-
+                  OrganizationsEnabled enables Keycloak Organizations feature for this realm.
+                  When enabled, this realm can support Organization resources for multi-tenant scenarios,
+                  identity provider groupings, and domain-based user routing.
+                type: boolean
               passwordPolicy:
                 description: PasswordPolicies is a list of password policies to apply
                   to the realm.

@@ -5,6 +5,7 @@ metadata:
 spec:
   id: d1-id-kc-realm-name
   realmName: d2-id-kc-realm-name
+  organizationsEnabled: true
   keycloakRef:
     name: keycloak-sample
     kind: Keycloak
