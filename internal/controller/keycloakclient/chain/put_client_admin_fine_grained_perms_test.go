@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -67,6 +68,10 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					"map-role": "321",
 				}
 
+				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), "ADMIN_FINE_GRAINED_AUTHZ").
+					Return(true, nil).
+					Once()
+
 				m.On("GetClientID", "test-client-id", "realm").
 					Return("123", nil).
 					Once()
@@ -101,6 +106,90 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				return m
 			},
 			wantErr: require.NoError,
+		},
+		{
+			name: "with feature flag disabled",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:                           "test-client-id",
+							AdminFineGrainedPermissionsEnabled: true,
+							Permission: &keycloakApi.AdminFineGrainedPermission{
+								ScopePermissions: []keycloakApi.ScopePermissions{
+									{
+										Name:     "map-role",
+										Policies: []string{"scope permission"},
+									},
+								},
+							},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), "ADMIN_FINE_GRAINED_AUTHZ").
+					Return(false, nil).
+					Once()
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "with feature flag check error",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:                           "test-client-id",
+							AdminFineGrainedPermissionsEnabled: true,
+							Permission: &keycloakApi.AdminFineGrainedPermission{
+								ScopePermissions: []keycloakApi.ScopePermissions{
+									{
+										Name:     "map-role",
+										Policies: []string{"scope permission"},
+									},
+								},
+							},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), "ADMIN_FINE_GRAINED_AUTHZ").
+					Return(false, fmt.Errorf("feature flag check failed")).
+					Once()
+
+				return m
+			},
+			wantErr: require.Error,
 		},
 	}
 

@@ -29,6 +29,7 @@ type Client interface {
 	SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error
 	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
 	ExportToken() ([]byte, error)
+	FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error)
 }
 
 type KIdentityProvider interface {

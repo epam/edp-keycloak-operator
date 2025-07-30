@@ -32,12 +32,13 @@ import (
 )
 
 var (
-	cfg         *rest.Config
-	k8sClient   client.Client
-	testEnv     *envtest.Environment
-	ctx         context.Context
-	cancel      context.CancelFunc
-	keycloakURL string
+	cfg              *rest.Config
+	k8sClient        client.Client
+	testEnv          *envtest.Environment
+	ctx              context.Context
+	cancel           context.CancelFunc
+	keycloakURL      string
+	controllerHelper *helper.Helper
 )
 
 const (
@@ -94,17 +95,17 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
+	controllerHelper = helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
 
-	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), h).
+	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), controllerHelper).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = keycloakrealm.NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), h).
+	err = keycloakrealm.NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), controllerHelper).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcileKeycloakClient(k8sManager.GetClient(), h).
+	err = NewReconcileKeycloakClient(k8sManager.GetClient(), controllerHelper).
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 

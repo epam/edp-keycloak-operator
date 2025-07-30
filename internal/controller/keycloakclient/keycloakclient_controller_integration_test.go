@@ -22,6 +22,29 @@ import (
 
 var _ = Describe("KeycloakClient controller", Ordered, func() {
 	It("Should create KeycloakClient with secret reference", func() {
+		By("Checking feature flag ADMIN_FINE_GRAINED_AUTHZ")
+		By("Creating a KeycloakClient to check feature flag")
+		keycloakApiClient, err := controllerHelper.CreateKeycloakClientFromRealmRef(
+			ctx,
+			&keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-keycloak-client-to-check-feature-flag",
+					Namespace: ns,
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					RealmRef: common.RealmRef{
+						Name: KeycloakRealmCR,
+						Kind: keycloakApi.KeycloakRealmKind,
+					},
+				},
+			},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		featureFlagEnabled, err := keycloakApiClient.FeatureFlagEnabled(ctx, "ADMIN_FINE_GRAINED_AUTHZ")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(featureFlagEnabled).Should(BeTrue(), "Feature flag ADMIN_FINE_GRAINED_AUTHZ should be enabled")
+
 		By("Creating a client secret")
 		clientSecret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -66,7 +89,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					Browser:     "browser",
 					DirectGrant: "direct grant",
 				},
-				//AdminFineGrainedPermissionsEnabled: true,
+				AdminFineGrainedPermissionsEnabled: true,
 			},
 		}
 

@@ -26,6 +26,18 @@ func NewPutAdminFineGrainedPermissions(keycloakApiClient keycloak.Client) *PutAd
 }
 
 func (el *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	featureFlagEnabled, err := el.keycloakApiClient.FeatureFlagEnabled(ctx, adapter.FeatureFlagAdminFineGrainedAuthz)
+	if err != nil {
+		return fmt.Errorf("failed to check feature flag ADMIN_FINE_GRAINED_AUTHZ: %w", err)
+	}
+
+	if !featureFlagEnabled {
+		log := ctrl.LoggerFrom(ctx)
+		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", adapter.FeatureFlagAdminFineGrainedAuthz)
+
+		return nil
+	}
+
 	clientID, err := el.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
 	if err != nil {
 		return fmt.Errorf("failed to get client id: %w", err)
