@@ -3394,7 +3394,16 @@ ServiceAccount is a service account configuration.
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          Attributes is a map of service account attributes.<br/>
+          Attributes is a map of service account attributes.
+Deprecated: Use AttributesV2 instead.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>attributesV2</b></td>
+        <td>map[string][]string</td>
+        <td>
+          AttributesV2 is a map of service account attributes.
+Each attribute can have multiple values.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6496,7 +6505,16 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
-          Attributes is a map of user attributes.<br/>
+          Attributes is a map of user attributes.
+Deprecated: Use AttributesV2 instead.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>attributesV2</b></td>
+        <td>map[string][]string</td>
+        <td>
+          AttributesV2 is a map of service account attributes.
+Each attribute can have multiple values.<br/>
         </td>
         <td>false</td>
       </tr><tr>

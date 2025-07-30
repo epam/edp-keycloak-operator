@@ -13,35 +13,125 @@ import (
 )
 
 func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
-	mockClient := mocks.NewMockGoCloak(t)
+	t.Parallel()
 
-	adapter := GoCloakAdapter{
-		client:   mockClient,
-		basePath: "",
-		token:    &gocloak.JWT{AccessToken: "token"},
-	}
+	tests := []struct {
+		name       string
+		attributes map[string][]string
+		addOnly    bool
+		client     func(t *testing.T) *mocks.MockGoCloak
+		wantErr    require.ErrorAssertionFunc
+	}{
+		{
+			name: "add only mode with existing attributes",
+			attributes: map[string][]string{
+				"foo": {"bar"},
+			},
+			addOnly: true,
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
 
-	usr1 := gocloak.User{
-		Username: gocloak.StringP("user1"),
-		Attributes: &map[string][]string{
-			"foo1": {"bar1"},
+				usr1 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo1": {"bar1"},
+					},
+				}
+
+				usr2 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo":  {"bar"},
+						"foo1": {"bar1"},
+					},
+				}
+
+				m.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
+				m.On("UpdateUser", mock.Anything, "token", "realm1", mock.MatchedBy(func(user gocloak.User) bool {
+					return assert.Equal(t, *usr2.Username, *user.Username) && assert.Equal(t, *usr2.Attributes, *user.Attributes)
+				})).Return(nil)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "add only mode with overlapping attributes",
+			attributes: map[string][]string{
+				"foo": {"bar", "baz"},
+			},
+			addOnly: true,
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				usr1 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo": {"bar"},
+					},
+				}
+
+				usr2 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo": {"bar", "baz"},
+					},
+				}
+
+				m.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
+				m.On("UpdateUser", mock.Anything, "token", "realm1", mock.MatchedBy(func(user gocloak.User) bool {
+					return assert.Equal(t, *usr2.Username, *user.Username) && assert.Equal(t, *usr2.Attributes, *user.Attributes)
+				})).Return(nil)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "overwrite mode",
+			attributes: map[string][]string{
+				"foo": {"bar"},
+			},
+			addOnly: false,
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				usr1 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo1": {"bar1"},
+					},
+				}
+
+				usr2 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo": {"bar"},
+					},
+				}
+
+				m.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
+				m.On("UpdateUser", mock.Anything, "token", "realm1", mock.MatchedBy(func(user gocloak.User) bool {
+					return assert.Equal(t, *usr2.Username, *user.Username) && assert.Equal(t, *usr2.Attributes, *user.Attributes)
+				})).Return(nil)
+
+				return m
+			},
+			wantErr: require.NoError,
 		},
 	}
 
-	usr2 := gocloak.User{
-		Username: gocloak.StringP("user1"),
-		Attributes: &map[string][]string{
-			"foo":  {"bar"},
-			"foo1": {"bar1"},
-		},
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			adapter := GoCloakAdapter{
+				client:   tt.client(t),
+				basePath: "",
+				token:    &gocloak.JWT{AccessToken: "token"},
+			}
+
+			tt.wantErr(t, adapter.SetServiceAccountAttributes("realm1", "clientID1", tt.attributes, tt.addOnly))
+		})
 	}
-
-	mockClient.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
-	mockClient.On("UpdateUser", mock.Anything, "token", "realm1", usr2).Return(nil)
-
-	err := adapter.SetServiceAccountAttributes("realm1", "clientID1",
-		map[string]string{"foo": "bar"}, true)
-	require.NoError(t, err)
 }
 
 func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {

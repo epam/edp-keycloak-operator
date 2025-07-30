@@ -20,8 +20,8 @@ func TestServiceAccount_Serve(t *testing.T) {
 			},
 			ServiceAccount: &keycloakApi.ServiceAccount{
 				Enabled: true,
-				Attributes: map[string]string{
-					"foo": "bar",
+				AttributesV2: map[string][]string{
+					"foo": {"bar"},
 				},
 				ClientRoles: []keycloakApi.UserClientRole{
 					{
@@ -48,7 +48,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 	apiClient.On("SyncServiceAccountGroups", realmName, kc.Status.ClientID,
 		kc.Spec.ServiceAccount.Groups, false).Return(nil)
 	apiClient.On("SetServiceAccountAttributes", realmName, kc.Status.ClientID,
-		kc.Spec.ServiceAccount.Attributes, false).Return(nil)
+		kc.Spec.ServiceAccount.AttributesV2, false).Return(nil)
 
 	sa := NewServiceAccount(apiClient)
 

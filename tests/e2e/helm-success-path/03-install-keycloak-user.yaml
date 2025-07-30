@@ -52,9 +52,10 @@ spec:
   enabled: true
   emailVerified: true
   keepResource: true
-  attributes:
-    foo: "bar"
-    baz: "jazz"
+  attributesV2:
+    baz:
+    - "jazz"
+    - "rock"
   passwordSecret:
     name: existing-k8s-secret
     key: key-which-contains-password
