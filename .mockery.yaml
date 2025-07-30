@@ -5,6 +5,8 @@ mockname: "Mock{{.InterfaceName}}"
 outpkg: "mocks"
 filename: "{{.InterfaceName | lower}}_mock.go"
 issue-845-fix: True
+resolve-type-alias: False
+disable-version-string: True
 packages:
   github.com/epam/edp-keycloak-operator/pkg/client/keycloak:
     interfaces:

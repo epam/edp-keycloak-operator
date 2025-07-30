@@ -1966,7 +1966,8 @@ KeycloakClientSpec defines the desired state of KeycloakClient.
         <td><b>adminFineGrainedPermissionsEnabled</b></td>
         <td>boolean</td>
         <td>
-          AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.<br/>
+          AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.
+Feature flag ADMIN_FINE_GRAINED_AUTHZ should be enabled in Keycloak server.<br/>
         </td>
         <td>false</td>
       </tr><tr>
