@@ -4,8 +4,8 @@ metadata:
   name: keycloakrealmidentityprovider-sample
 spec:
   enabled: true
-  providerId: instagram
-  alias: instagram
+  providerId: github
+  alias: github
   config:
     clientId: foo
     clientSecret: $secret-name:secretKey

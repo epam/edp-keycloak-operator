@@ -45,7 +45,7 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 					Name: KeycloakRealmCR,
 					Kind: keycloakApi.KeycloakRealmKind,
 				},
-				ProviderID: "instagram",
+				ProviderID: "github",
 				Alias:      "new-provider",
 				Config: map[string]string{
 					"clientId":     "provider-client",
@@ -95,7 +95,7 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 					Name: KeycloakRealmCR,
 					Kind: keycloakApi.KeycloakRealmKind,
 				},
-				ProviderID:                "instagram",
+				ProviderID:                "github",
 				Alias:                     "identity-provider-with-preserve-resources-on-deletion",
 				Enabled:                   true,
 				DisplayName:               "New provider",

@@ -16,21 +16,20 @@ spec:
   realmRef:
     kind: KeycloakRealm
     name: keycloakrealm-sample
-  alias: instagram
+  alias: github
   authenticateByDefault: false
   enabled: true
   firstBrokerLoginFlowAlias: "first broker login"
-  providerId: "instagram"
+  providerId: "github"
   config:
     clientId: "foo"
     clientSecret: "$secret-name:secretKey"
-    hideOnLoginPage: "true"
     syncMode: "IMPORT"
     useJwksUrl: "true"
   mappers:
     - name: "test-33221"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
-      identityProviderAlias: "instagram"
+      identityProviderAlias: "github"
       config:
         attribute: "foo"
         "attribute.value": "bar"
@@ -54,7 +53,6 @@ spec:
   config:
     clientId: "bar"
     clientSecret: "password-in-clear-form"
-    hideOnLoginPage: "true"
     syncMode: "IMPORT"
     useJwksUrl: "true"
   mappers:
