@@ -183,30 +183,29 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmIdentityProvider
       metadata:
-        name: instagram-test
+        name: github-test
       spec:
         realm: d2-id-k8s-realm-name
-        alias: instagram
+        alias: github
         authenticateByDefault: false
         enabled: true
         firstBrokerLoginFlowAlias: "first broker login"
-        providerId: "instagram"
+        providerId: "github"
         config:
           clientId: "foo"
           clientSecret: "bar"
-          hideOnLoginPage: "true"
           syncMode: "IMPORT"
           useJwksUrl: "true"
         mappers:
           - name: "test3212"
             identityProviderMapper: "oidc-hardcoded-role-idp-mapper"
-            identityProviderAlias: "instagram"
+            identityProviderAlias: "github"
             config:
               role: "role-tr"
               syncMode: "INHERIT"
           - name: "test-33221"
             identityProviderMapper: "hardcoded-attribute-idp-mapper"
-            identityProviderAlias: "instagram"
+            identityProviderAlias: "github"
             config:
               attribute: "foo"
               "attribute.value": "bar"

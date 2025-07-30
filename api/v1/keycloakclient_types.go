@@ -132,7 +132,8 @@ type KeycloakClientSpec struct {
 	AuthorizationServicesEnabled bool `json:"authorizationServicesEnabled,omitempty"`
 
 	// AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.
-	// Feature flag ADMIN_FINE_GRAINED_AUTHZ should be enabled in Keycloak server.
+	// Feature flag admin-fine-grained-authz:v1 should be enabled in Keycloak server.
+	// Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and removed in a future releases.
 	// +optional
 	AdminFineGrainedPermissionsEnabled bool `json:"adminFineGrainedPermissionsEnabled,omitempty"`
 

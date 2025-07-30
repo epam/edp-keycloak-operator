@@ -62,7 +62,7 @@ spec:
           - name: configs
             mountPath: /etc/nginx/conf.d
         - name: keycloak
-          image: quay.io/keycloak/keycloak:24.0.4
+          image: quay.io/keycloak/keycloak:26.3
           args:
             - "start-dev"
             - "--proxy-headers"
@@ -70,12 +70,12 @@ spec:
             - "--http-enabled"
             - "true"
           env:
-            - name: KEYCLOAK_ADMIN
+            - name: KC_BOOTSTRAP_ADMIN_USERNAME
               value: "admin"
-            - name: KEYCLOAK_ADMIN_PASSWORD
+            - name: KC_BOOTSTRAP_ADMIN_PASSWORD
               value: "admin"
             - name: KC_FEATURES
-              value: admin-fine-grained-authz
+              value: admin-fine-grained-authz:v1
           ports:
             - name: http
               containerPort: 8080

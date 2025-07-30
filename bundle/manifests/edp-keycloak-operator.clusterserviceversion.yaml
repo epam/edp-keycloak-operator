@@ -454,12 +454,11 @@ metadata:
             "name": "keycloakrealmidentityprovider-sample"
           },
           "spec": {
-            "alias": "instagram",
+            "alias": "github",
             "authenticateByDefault": false,
             "config": {
               "clientId": "foo",
               "clientSecret": "$secretName:secretKey",
-              "hideOnLoginPage": "true",
               "syncMode": "IMPORT",
               "useJwksUrl": "true"
             },
@@ -471,7 +470,7 @@ metadata:
                   "role": "role-tr",
                   "syncMode": "INHERIT"
                 },
-                "identityProviderAlias": "instagram",
+                "identityProviderAlias": "github",
                 "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
                 "name": "test3212"
               },
@@ -481,12 +480,12 @@ metadata:
                   "attribute.value": "bar",
                   "syncMode": "IMPORT"
                 },
-                "identityProviderAlias": "instagram",
+                "identityProviderAlias": "github",
                 "identityProviderMapper": "hardcoded-attribute-idp-mapper",
                 "name": "test-33221"
               }
             ],
-            "providerId": "instagram",
+            "providerId": "github",
             "realmRef": {
               "kind": "KeycloakRealm",
               "name": "keycloakrealm-sample"
