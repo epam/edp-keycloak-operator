@@ -135,8 +135,8 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 					"test-user-group",
 					"test-user-group2-subgroup",
 				},
-				Attributes: map[string]string{
-					"attr1": "test-value",
+				AttributesV2: map[string][]string{
+					"attr1": {"test-value"},
 				},
 				PasswordSecret: keycloakApi.PasswordSecret{
 					Name: secret.Name,

@@ -28,7 +28,7 @@ type Client interface {
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string, addOnly bool) error
 	SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error
-	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
+	SetServiceAccountAttributes(realm, clientID string, attributes map[string][]string, addOnly bool) error
 	ExportToken() ([]byte, error)
 	FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error)
 }

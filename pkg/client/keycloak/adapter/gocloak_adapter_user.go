@@ -21,7 +21,7 @@ type KeycloakUser struct {
 	Roles               []string
 	ClientRoles         map[string][]string
 	Groups              []string
-	Attributes          map[string]string
+	Attributes          map[string][]string
 	Password            string
 	IdentityProviders   *[]string
 }
@@ -384,18 +384,41 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 }
 
 func (a GoCloakAdapter) makeUserAttributes(keycloakUser *gocloak.User, userCR *KeycloakUser, addOnly bool) *map[string][]string {
-	attrs := make(map[string][]string)
-	for k, v := range userCR.Attributes {
-		attrs[k] = []string{v}
+	if keycloakUser.Attributes == nil {
+		keycloakUser.Attributes = &map[string][]string{}
 	}
 
-	if addOnly && keycloakUser.Attributes != nil && len(*keycloakUser.Attributes) > 0 {
-		for k, v := range *keycloakUser.Attributes {
-			attrs[k] = v
+	attributes := make(map[string][]string)
+	for k, v := range *keycloakUser.Attributes {
+		attributes[k] = v
+	}
+
+	for k, v := range userCR.Attributes {
+		if addOnly {
+			existingValues := attributes[k]
+
+			for _, newValue := range v {
+				if !slices.Contains(existingValues, newValue) {
+					existingValues = append(existingValues, newValue)
+				}
+			}
+
+			attributes[k] = existingValues
+		} else {
+			attributes[k] = v
 		}
 	}
 
-	return &attrs
+	// If not addOnly, remove attributes that are not in the desired list
+	if !addOnly {
+		for existingKey := range attributes {
+			if _, exists := userCR.Attributes[existingKey]; !exists {
+				delete(attributes, existingKey)
+			}
+		}
+	}
+
+	return &attributes
 }
 
 func (a GoCloakAdapter) syncUserIdentityProviders(

@@ -213,9 +213,16 @@ type ServiceAccount struct {
 	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 
 	// Attributes is a map of service account attributes.
+	// Deprecated: Use AttributesV2 instead.
 	// +nullable
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// AttributesV2 is a map of service account attributes.
+	// Each attribute can have multiple values.
+	// +nullable
+	// +optional
+	AttributesV2 map[string][]string `json:"attributesV2,omitempty"`
 
 	// Groups is a list of groups assigned to service account
 	// +nullable

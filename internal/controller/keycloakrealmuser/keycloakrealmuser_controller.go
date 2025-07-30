@@ -85,6 +85,12 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 
 	oldStatus := instance.Status
 
+	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		return reconcile.Result{}, err
+	} else if updated {
+		return reconcile.Result{}, nil
+	}
+
 	if err := r.tryReconcile(ctx, &instance); err != nil {
 		log.Error(err, "An error has occurred while handling KeycloakRealmUser")
 
@@ -109,6 +115,24 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 	log.Info("Reconciling KeycloakRealmUser done")
 
 	return ctrl.Result{}, nil
+}
+
+func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (bool, error) {
+	updated := false
+
+	if migrate := r.migrateAttributes(instance); migrate {
+		updated = true
+	}
+
+	if updated {
+		if err := r.client.Update(ctx, instance); err != nil {
+			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
+		}
+
+		return true, nil
+	}
+
+	return updated, nil
 }
 
 func convertClientRoles(apiClientRoles []keycloakApi.UserClientRole) map[string][]string {
@@ -186,7 +210,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		EmailVerified:       userSpec.EmailVerified,
 		Enabled:             userSpec.Enabled,
 		Email:               userSpec.Email,
-		Attributes:          userSpec.Attributes,
+		Attributes:          userSpec.AttributesV2,
 		Password:            password,
 		IdentityProviders:   userSpec.IdentityProviders,
 	}, instance.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
@@ -244,4 +268,26 @@ func (r *Reconcile) updateKeycloakRealmUserStatus(
 	}
 
 	return nil
+}
+
+// migrateAttributes migrates Attributes to AttributesV2 format.
+// This function converts the old string-based attributes to the new []string format.
+// It only performs migration if AttributesV2 is empty and Attributes is not empty.
+func (r *Reconcile) migrateAttributes(keycloakRealmUser *keycloakApi.KeycloakRealmUser) bool {
+	// Only migrate if AttributesV2 is empty and Attributes is not empty
+	if len(keycloakRealmUser.Spec.AttributesV2) == 0 && len(keycloakRealmUser.Spec.Attributes) > 0 {
+		keycloakRealmUser.Spec.AttributesV2 = make(map[string][]string, len(keycloakRealmUser.Spec.Attributes))
+
+		// Convert string bases attributes to []string
+		for attr, value := range keycloakRealmUser.Spec.Attributes {
+			keycloakRealmUser.Spec.AttributesV2[attr] = []string{value}
+		}
+
+		// Keep the original Attributes field for backward compatibility
+		// keycloakRealmUser.Spec.Attributes remains unchanged
+
+		return true
+	}
+
+	return false
 }

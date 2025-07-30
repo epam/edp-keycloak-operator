@@ -56,9 +56,16 @@ type KeycloakRealmUserSpec struct {
 	Groups []string `json:"groups,omitempty"`
 
 	// Attributes is a map of user attributes.
+	// Deprecated: Use AttributesV2 instead.
 	// +nullable
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
+
+	// AttributesV2 is a map of service account attributes.
+	// Each attribute can have multiple values.
+	// +nullable
+	// +optional
+	AttributesV2 map[string][]string `json:"attributesV2,omitempty"`
 
 	// ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
 	// Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
