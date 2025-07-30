@@ -3392,7 +3392,7 @@ ServiceAccount is a service account configuration.
     </thead>
     <tbody><tr>
         <td><b>attributes</b></td>
-        <td>map[string]string</td>
+        <td>map[string][]string</td>
         <td>
           Attributes is a map of service account attributes.<br/>
         </td>
@@ -6417,7 +6417,7 @@ KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
         <td>true</td>
       </tr><tr>
         <td><b>attributes</b></td>
-        <td>map[string]string</td>
+        <td>map[string][]string</td>
         <td>
           Attributes is a map of user attributes.<br/>
         </td>
