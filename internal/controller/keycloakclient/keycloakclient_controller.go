@@ -191,6 +191,13 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 		updated = true
 	}
 
+	// Migrate ServiceAccount.Attributes to ServiceAccount.AttributesV2 if needed
+	if keycloakClient.Spec.ServiceAccount != nil {
+		if migrated := r.migrateServiceAccountAttributes(keycloakClient); migrated {
+			updated = true
+		}
+	}
+
 	if updated {
 		if err := r.client.Update(ctx, keycloakClient); err != nil {
 			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
@@ -219,6 +226,28 @@ func (r *ReconcileKeycloakClient) migrateClientRoles(keycloakClient *keycloakApi
 
 		// Keep the original ClientRoles field for backward compatibility
 		// keycloakClient.Spec.ClientRoles remains unchanged
+
+		return true
+	}
+
+	return false
+}
+
+// migrateServiceAccountAttributes migrates Attributes to AttributesV2 format.
+// This function converts the old string-based attributes to the new []string format.
+// It only performs migration if AttributesV2 is empty and Attributes is not empty.
+func (r *ReconcileKeycloakClient) migrateServiceAccountAttributes(keycloakClient *keycloakApi.KeycloakClient) bool {
+	// Only migrate if AttributesV2 is empty and Attributes is not empty
+	if len(keycloakClient.Spec.ServiceAccount.AttributesV2) == 0 && len(keycloakClient.Spec.ServiceAccount.Attributes) > 0 {
+		keycloakClient.Spec.ServiceAccount.AttributesV2 = make(map[string][]string, len(keycloakClient.Spec.ServiceAccount.Attributes))
+
+		// Convert string bases attributes to []string
+		for attr, value := range keycloakClient.Spec.ServiceAccount.Attributes {
+			keycloakClient.Spec.ServiceAccount.AttributesV2[attr] = []string{value}
+		}
+
+		// Keep the original Attributes field for backward compatibility
+		// keycloakClient.Spec.ServiceAccount.Attributes remains unchanged
 
 		return true
 	}

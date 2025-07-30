@@ -45,9 +45,9 @@ func (el *ServiceAccount) Serve(_ context.Context, keycloakClient *keycloakApi.K
 		}
 	}
 
-	if keycloakClient.Spec.ServiceAccount.Attributes != nil {
+	if keycloakClient.Spec.ServiceAccount.AttributesV2 != nil {
 		if err := el.keycloakApiClient.SetServiceAccountAttributes(realmName, keycloakClient.Status.ClientID,
-			keycloakClient.Spec.ServiceAccount.Attributes, addOnly); err != nil {
+			keycloakClient.Spec.ServiceAccount.AttributesV2, addOnly); err != nil {
 			return errors.Wrap(err, "unable to set service account attributes")
 		}
 	}

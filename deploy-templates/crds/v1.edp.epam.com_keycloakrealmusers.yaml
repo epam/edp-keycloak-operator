@@ -47,7 +47,19 @@ spec:
               attributes:
                 additionalProperties:
                   type: string
-                description: Attributes is a map of user attributes.
+                description: |-
+                  Attributes is a map of user attributes.
+                  Deprecated: Use AttributesV2 instead.
+                nullable: true
+                type: object
+              attributesV2:
+                additionalProperties:
+                  items:
+                    type: string
+                  type: array
+                description: |-
+                  AttributesV2 is a map of service account attributes.
+                  Each attribute can have multiple values.
                 nullable: true
                 type: object
               clientRoles:

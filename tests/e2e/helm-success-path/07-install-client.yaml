@@ -77,3 +77,7 @@ spec:
     enabled: true
     groups:
       - developers
+    attributesV2:
+      foo:
+      - bar
+      - baz

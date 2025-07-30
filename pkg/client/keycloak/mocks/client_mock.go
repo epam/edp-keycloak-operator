@@ -4068,7 +4068,7 @@ func (_c *MockClient_SetRealmOrganizationsEnabled_Call) RunAndReturn(run func(co
 }
 
 // SetServiceAccountAttributes provides a mock function with given fields: realm, clientID, attributes, addOnly
-func (_m *MockClient) SetServiceAccountAttributes(realm string, clientID string, attributes map[string]string, addOnly bool) error {
+func (_m *MockClient) SetServiceAccountAttributes(realm string, clientID string, attributes map[string][]string, addOnly bool) error {
 	ret := _m.Called(realm, clientID, attributes, addOnly)
 
 	if len(ret) == 0 {
@@ -4076,7 +4076,7 @@ func (_m *MockClient) SetServiceAccountAttributes(realm string, clientID string,
 	}
 
 	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, map[string]string, bool) error); ok {
+	if rf, ok := ret.Get(0).(func(string, string, map[string][]string, bool) error); ok {
 		r0 = rf(realm, clientID, attributes, addOnly)
 	} else {
 		r0 = ret.Error(0)
@@ -4093,15 +4093,15 @@ type MockClient_SetServiceAccountAttributes_Call struct {
 // SetServiceAccountAttributes is a helper method to define mock.On call
 //   - realm string
 //   - clientID string
-//   - attributes map[string]string
+//   - attributes map[string][]string
 //   - addOnly bool
 func (_e *MockClient_Expecter) SetServiceAccountAttributes(realm interface{}, clientID interface{}, attributes interface{}, addOnly interface{}) *MockClient_SetServiceAccountAttributes_Call {
 	return &MockClient_SetServiceAccountAttributes_Call{Call: _e.mock.On("SetServiceAccountAttributes", realm, clientID, attributes, addOnly)}
 }
 
-func (_c *MockClient_SetServiceAccountAttributes_Call) Run(run func(realm string, clientID string, attributes map[string]string, addOnly bool)) *MockClient_SetServiceAccountAttributes_Call {
+func (_c *MockClient_SetServiceAccountAttributes_Call) Run(run func(realm string, clientID string, attributes map[string][]string, addOnly bool)) *MockClient_SetServiceAccountAttributes_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string), args[2].(map[string]string), args[3].(bool))
+		run(args[0].(string), args[1].(string), args[2].(map[string][]string), args[3].(bool))
 	})
 	return _c
 }
@@ -4111,7 +4111,7 @@ func (_c *MockClient_SetServiceAccountAttributes_Call) Return(_a0 error) *MockCl
 	return _c
 }
 
-func (_c *MockClient_SetServiceAccountAttributes_Call) RunAndReturn(run func(string, string, map[string]string, bool) error) *MockClient_SetServiceAccountAttributes_Call {
+func (_c *MockClient_SetServiceAccountAttributes_Call) RunAndReturn(run func(string, string, map[string][]string, bool) error) *MockClient_SetServiceAccountAttributes_Call {
 	_c.Call.Return(run)
 	return _c
 }
