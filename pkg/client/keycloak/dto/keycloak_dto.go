@@ -23,6 +23,20 @@ type User struct {
 	RealmRoles []string `json:"realmRoles"`
 }
 
+type ServerInfo struct {
+	SystemInfo SystemInfo      `json:"systemInfo"`
+	Features   []ServerFeature `json:"features"`
+}
+
+type ServerFeature struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
+type SystemInfo struct {
+	Version string `json:"version"`
+}
+
 func ConvertSpecToRole(roleInstance *keycloakApi.KeycloakRealmRole) *PrimaryRealmRole {
 	rr := PrimaryRealmRole{
 		Name:                  roleInstance.Spec.Name,
