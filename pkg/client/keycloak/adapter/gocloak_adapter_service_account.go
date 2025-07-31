@@ -5,6 +5,8 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
+
+	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
 func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
@@ -34,25 +36,43 @@ func doNotDeleteClientRoleFromUser(ctx context.Context, token, realm, clientID, 
 	return nil
 }
 
-func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attributes map[string]string,
+func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attributes common.UserAttributes,
 	addOnly bool) error {
 	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
 	if err != nil {
 		return errors.Wrap(err, "unable to get client service account")
 	}
 
-	svcAttributes := make(map[string][]string)
-	if addOnly && user.Attributes != nil {
-		svcAttributes = *user.Attributes
+	if user.Attributes == nil {
+		user.Attributes = &map[string][]string{}
 	}
 
 	for k, v := range attributes {
-		svcAttributes[k] = []string{v}
+		if addOnly {
+			existingValues := (*user.Attributes)[k]
+
+			for _, newValue := range v {
+				found := false
+
+				for _, existingValue := range existingValues {
+					if newValue == existingValue {
+						found = true
+						break
+					}
+				}
+
+				if !found {
+					existingValues = append(existingValues, newValue)
+				}
+			}
+
+			(*user.Attributes)[k] = existingValues
+		} else {
+			(*user.Attributes)[k] = v
+		}
 	}
 
-	user.Attributes = &svcAttributes
-
-	if err := a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
+	if err = a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
 		return errors.Wrapf(err, "unable to update service account user: %s", clientID)
 	}
 

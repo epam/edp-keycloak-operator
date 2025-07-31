@@ -506,8 +506,14 @@ func getGclCln(client *dto.Client) gocloak.Client {
 	//TODO: check collision with protocol mappers list in spec
 	protocolMappers := getProtocolMappers(client.AdvancedProtocolMappers)
 
+	attributes := make(map[string]string)
+
+	for k, v := range client.Attributes {
+		attributes[k] = v
+	}
+
 	cl := gocloak.Client{
-		Attributes:                   &client.Attributes,
+		Attributes:                   &attributes,
 		AuthorizationServicesEnabled: &client.AuthorizationServicesEnabled,
 		BearerOnly:                   &client.BearerOnly,
 		ClientAuthenticatorType:      &client.ClientAuthenticatorType,

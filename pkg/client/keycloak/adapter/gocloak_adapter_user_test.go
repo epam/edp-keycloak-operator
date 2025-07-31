@@ -73,7 +73,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 				IdentityProviders:   &[]string{"idp1"},
 			},
@@ -159,7 +159,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1", "group3"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -235,7 +235,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -298,7 +298,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -345,7 +345,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -381,7 +381,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -409,7 +409,7 @@ func TestGoCloakAdapter_SyncRealmUser(t *testing.T) {
 				RequiredUserActions: []string{"change-password"},
 				Roles:               []string{"role1"},
 				Groups:              []string{"group1"},
-				Attributes:          map[string]string{"attr1": "attr1value"},
+				Attributes:          map[string][]string{"attr1": {"attr1value"}},
 				Password:            "password",
 				IdentityProviders:   &[]string{"non-existent-idp"},
 			},
