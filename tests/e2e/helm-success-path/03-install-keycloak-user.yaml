@@ -54,7 +54,9 @@ spec:
   keepResource: true
   attributes:
     foo: "bar"
-    baz: "jazz"
+    baz:
+    - "jazz"
+    - "rock"
   passwordSecret:
     name: existing-k8s-secret
     key: key-which-contains-password

@@ -6,6 +6,7 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
@@ -28,7 +29,7 @@ type Client interface {
 	SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 		clientRoles map[string][]string, addOnly bool) error
 	SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error
-	SetServiceAccountAttributes(realm, clientID string, attributes map[string]string, addOnly bool) error
+	SetServiceAccountAttributes(realm, clientID string, attributes common.UserAttributes, addOnly bool) error
 	ExportToken() ([]byte, error)
 	FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error)
 }

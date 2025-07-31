@@ -20,8 +20,8 @@ func TestServiceAccount_Serve(t *testing.T) {
 			},
 			ServiceAccount: &keycloakApi.ServiceAccount{
 				Enabled: true,
-				Attributes: map[string]string{
-					"foo": "bar",
+				Attributes: common.UserAttributes{
+					"foo": {"bar"},
 				},
 				ClientRoles: []keycloakApi.ClientRole{
 					{

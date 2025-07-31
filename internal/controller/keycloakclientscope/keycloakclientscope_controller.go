@@ -192,9 +192,15 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 		return "", errors.Wrap(err, "unable to get client scope")
 	}
 
+	attributes := make(map[string]string)
+
+	for k, v := range instance.Spec.Attributes {
+		attributes[k] = v
+	}
+
 	cScope := adapter.ClientScope{
 		Name:            instance.Spec.Name,
-		Attributes:      instance.Spec.Attributes,
+		Attributes:      attributes,
 		Protocol:        instance.Spec.Protocol,
 		ProtocolMappers: convertProtocolMappers(instance.Spec.ProtocolMappers),
 		Description:     instance.Spec.Description,
