@@ -1,6 +1,8 @@
 package clusterkeycloakrealm
 
 import (
+	"time"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
@@ -10,6 +12,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -18,7 +22,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 		clusterKeycloakCR = "test-cluster-keycloak-realm"
 	)
 	It("Should reconcile ClusterKeycloakRealm", func() {
-		By("By creating a ClusterKeycloakRealm")
+		By("Creating a ClusterKeycloakRealm")
 		keycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: clusterKeycloakCR,
@@ -53,6 +57,70 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 			return createdKeycloakRealm.Status.Available
 		}, timeout, interval).Should(BeTrue())
+
+		By("Updating ClusterKeycloakRealm with authentication flow")
+		By("Creating authentication flow")
+		h := helper.MakeHelper(k8sClient, k8sClient.Scheme(), ns)
+
+		testClusterRealm := &keycloakAlpha.ClusterKeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "temp-realm-for-flow",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
+				ClusterKeycloakRef: ClusterKeycloakCR,
+				RealmName:          "test-realm",
+			},
+		}
+
+		keycloakClient, err := h.CreateKeycloakClientFromClusterRealm(ctx, testClusterRealm)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		testFlow := &adapter.KeycloakAuthFlow{
+			Alias:       "test-flow",
+			Description: "Test authentication flow for integration test",
+			ProviderID:  "basic-flow",
+			TopLevel:    true,
+			BuiltIn:     false,
+			AuthenticationExecutions: []adapter.AuthenticationExecution{
+				{
+					Authenticator: "auth-username-password-form",
+					Requirement:   "REQUIRED",
+					Priority:      10,
+				},
+			},
+		}
+
+		err = keycloakClient.SyncAuthFlow("test-realm", testFlow)
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
+		By("Updating ClusterKeycloakRealm with authentication flow")
+		By("Getting ClusterKeycloakRealm")
+		createdKeycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+		err = k8sClient.Get(ctx, types.NamespacedName{Name: clusterKeycloakCR}, createdKeycloakRealm)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		createdKeycloakRealm.Spec.AuthenticationFlow = &keycloakAlpha.AuthenticationFlow{
+			BrowserFlow: "test-flow",
+		}
+		Expect(k8sClient.Update(ctx, createdKeycloakRealm)).Should(Succeed())
+		Consistently(func() bool {
+			updatedKeycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+
+			Expect(k8sClient.Get(
+				ctx,
+				types.NamespacedName{Name: clusterKeycloakCR},
+				updatedKeycloakRealm,
+			)).ShouldNot(HaveOccurred())
+
+			return updatedKeycloakRealm.Status.Available
+		}, time.Second*3, time.Second).Should(BeTrue())
+
+		By("Checking realm configuration")
+		realm, err := keycloakClient.GetRealm(ctx, "test-realm")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(realm.BrowserFlow).ShouldNot(BeNil())
+		Expect(*realm.BrowserFlow).Should(Equal("test-flow"))
+
 		By("By deleting ClusterKeycloakRealm")
 		Expect(k8sClient.Delete(ctx, keycloakRealm)).Should(Succeed())
 		Eventually(func() bool {
@@ -66,7 +134,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 		By("By creating a ClusterKeycloakRealm")
 		keycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{
 			ObjectMeta: metav1.ObjectMeta{
-				Name: "test-cluster-keycloak-realm",
+				Name: "test-cluster-keycloak-realm-preserve-resources",
 				Annotations: map[string]string{
 					objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
 				},
