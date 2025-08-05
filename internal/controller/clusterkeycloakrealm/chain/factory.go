@@ -11,6 +11,7 @@ func MakeChain(c client.Client, operatorNs string) RealmHandler {
 		NewPutRealmSettings(),
 		NewUserProfile(),
 		NewConfigureEmail(c, operatorNs),
+		NewAuthFlow(),
 	)
 
 	return ch
