@@ -209,7 +209,7 @@ type ServiceAccount struct {
 	// Attributes is a map of service account attributes.
 	// +nullable
 	// +optional
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Attributes common.UserAttributes `json:"attributes,omitempty"`
 
 	// Groups is a list of groups assigned to service account
 	// +nullable

@@ -45,11 +45,10 @@ spec:
             description: KeycloakRealmUserSpec defines the desired state of KeycloakRealmUser.
             properties:
               attributes:
-                additionalProperties:
-                  type: string
                 description: Attributes is a map of user attributes.
                 nullable: true
                 type: object
+                x-kubernetes-preserve-unknown-fields: true
               clientRoles:
                 description: ClientRoles is a list of client roles assigned to user.
                 items:

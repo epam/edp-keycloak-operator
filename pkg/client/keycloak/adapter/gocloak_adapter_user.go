@@ -21,7 +21,7 @@ type KeycloakUser struct {
 	Roles               []string
 	ClientRoles         map[string][]string
 	Groups              []string
-	Attributes          map[string]string
+	Attributes          map[string][]string
 	Password            string
 	IdentityProviders   *[]string
 }
@@ -386,7 +386,7 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 func (a GoCloakAdapter) makeUserAttributes(keycloakUser *gocloak.User, userCR *KeycloakUser, addOnly bool) *map[string][]string {
 	attrs := make(map[string][]string)
 	for k, v := range userCR.Attributes {
-		attrs[k] = []string{v}
+		attrs[k] = v
 	}
 
 	if addOnly && keycloakUser.Attributes != nil && len(*keycloakUser.Attributes) > 0 {
