@@ -83,8 +83,9 @@ const (
 )
 
 const (
-	logKeyUser  = "user dto"
-	logKeyRealm = "realm"
+	logKeyUser     = "user dto"
+	logKeyRealm    = "realm"
+	logKeyRoleName = "roleName"
 )
 
 type TokenExpiredError string
@@ -345,55 +346,338 @@ func (a GoCloakAdapter) ExistClient(clientID, realm string) (bool, error) {
 	return res, nil
 }
 
-func (a GoCloakAdapter) ExistClientRole(client *dto.Client, clientRole string) (bool, error) {
-	log := a.log.WithValues(logClientDTO, client, "client role", clientRole)
-	log.Info("Start check client role in Keycloak...")
+func (a GoCloakAdapter) SyncClientRoles(ctx context.Context, realmName string, client *dto.Client) error {
+	log := ctrl.LoggerFrom(ctx).WithValues("clientId", client.ClientId, "realm", realmName)
+	log.Info("Start syncing client roles...")
 
-	id, err := a.GetClientID(client.ClientId, client.RealmName)
+	// Get client ID from Keycloak
+	clientID, err := a.GetClientID(client.ClientId, realmName)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to get client ID: %w", err)
 	}
 
-	clientRoles, err := a.client.GetClientRoles(context.Background(), a.token.AccessToken, client.RealmName, id, gocloak.GetRoleParams{})
-
-	_, err = strip404(err)
+	// Get all client roles from Keycloak
+	existingRolesMap, err := a.getExistingClientRolesMap(ctx, realmName, clientID)
 	if err != nil {
-		return false, err
+		return fmt.Errorf("failed to get client roles: %w", err)
 	}
 
-	clientRoleExists := false
+	desiredRolesMap := createDesiredRolesMap(client.Roles)
 
-	for _, cl := range clientRoles {
-		if cl.Name != nil && *cl.Name == clientRole {
-			clientRoleExists = true
-			break
-		}
-	}
-
-	log.Info("End check client role in Keycloak", "clientRoleExists", clientRoleExists)
-
-	return clientRoleExists, nil
-}
-
-func (a GoCloakAdapter) CreateClientRole(client *dto.Client, clientRole string) error {
-	log := a.log.WithValues(logClientDTO, client, "client role", clientRole)
-	log.Info("Start create client role in Keycloak...")
-
-	id, err := a.GetClientID(client.ClientId, client.RealmName)
+	// Sync existing roles (create missing and update existing)
+	err = a.syncExistingRoles(ctx, realmName, clientID, client, existingRolesMap)
 	if err != nil {
 		return err
 	}
 
-	if _, err = a.client.CreateClientRole(context.Background(), a.token.AccessToken, client.RealmName, id, gocloak.Role{
-		Name:       &clientRole,
-		ClientRole: gocloak.BoolP(true),
-	}); err != nil {
-		return errors.Wrap(err, "unable to create client role")
+	// Delete removed roles
+	err = a.deleteRemovedRoles(ctx, realmName, clientID, existingRolesMap, desiredRolesMap)
+	if err != nil {
+		return err
 	}
 
-	log.Info("Keycloak client role has been created")
+	// Handle AssociatedClientRoles
+	if err := a.syncClientRoleComposites(ctx, realmName, clientID, client.Roles); err != nil {
+		return fmt.Errorf("failed to sync client role composites: %w", err)
+	}
+
+	log.Info("Client roles synchronization completed")
 
 	return nil
+}
+
+// createClientRole creates a new client role in Keycloak.
+func (a GoCloakAdapter) createClientRole(ctx context.Context, realmName, clientID string, role dto.ClientRole) error {
+	log := ctrl.LoggerFrom(ctx).WithValues(logKeyRoleName, role.Name)
+	log.Info("Creating missing client role")
+
+	gocloakRole := gocloak.Role{
+		Name:        gocloak.StringP(role.Name),
+		Description: gocloak.StringP(role.Description),
+		ClientRole:  gocloak.BoolP(true),
+	}
+
+	_, err := a.client.CreateClientRole(ctx, a.token.AccessToken, realmName, clientID, gocloakRole)
+	if err != nil {
+		return fmt.Errorf("failed to create client role %s: %w", role.Name, err)
+	}
+
+	return nil
+}
+
+// updateClientRole updates an existing client role in Keycloak.
+func (a GoCloakAdapter) updateClientRole(ctx context.Context, realmName, clientID string, role dto.ClientRole, existingRole *gocloak.Role) error {
+	// Check if the role needs to be updated by comparing properties
+	needsUpdate := false
+
+	// Compare description
+	if existingRole.Description == nil || *existingRole.Description != role.Description {
+		needsUpdate = true
+	}
+
+	if !needsUpdate {
+		return nil
+	}
+
+	log := ctrl.LoggerFrom(ctx).WithValues(logKeyRoleName, role.Name)
+	log.Info("Updating existing client role")
+
+	// Create updated role with desired properties
+	updatedRole := gocloak.Role{
+		ID:          existingRole.ID,
+		Name:        gocloak.StringP(role.Name),
+		Description: gocloak.StringP(role.Description),
+		ClientRole:  gocloak.BoolP(true),
+	}
+
+	err := a.client.UpdateRole(ctx, a.token.AccessToken, realmName, clientID, updatedRole)
+	if err != nil {
+		return fmt.Errorf("failed to update client role %s: %w", role.Name, err)
+	}
+
+	return nil
+}
+
+// deleteRemovedRoles removes roles that are no longer desired.
+func (a GoCloakAdapter) deleteRemovedRoles(ctx context.Context, realmName, clientID string, existingRolesMap map[string]*gocloak.Role, desiredRolesMap map[string]dto.ClientRole) error {
+	log := ctrl.LoggerFrom(ctx)
+
+	for roleName := range existingRolesMap {
+		if _, desired := desiredRolesMap[roleName]; !desired {
+			log.WithValues(logKeyRoleName, roleName).Info("Deleting removed client role")
+
+			err := a.client.DeleteClientRole(ctx, a.token.AccessToken, realmName, clientID, roleName)
+			if err != nil {
+				return fmt.Errorf("failed to delete client role %s: %w", roleName, err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// syncExistingRoles handles the creation and updating of existing roles.
+func (a GoCloakAdapter) syncExistingRoles(ctx context.Context, realmName, clientID string, client *dto.Client, existingRolesMap map[string]*gocloak.Role) error {
+	for _, desiredRole := range client.Roles {
+		existingRole, exists := existingRolesMap[desiredRole.Name]
+		if !exists {
+			err := a.createClientRole(ctx, realmName, clientID, desiredRole)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		// Update existing role
+		err := a.updateClientRole(ctx, realmName, clientID, desiredRole, existingRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) syncClientRoleComposites(ctx context.Context, realmName, clientID string, desiredRoles []dto.ClientRole) error {
+	// Get all existing client roles
+	existingRolesMap, err := a.getExistingClientRolesMap(ctx, realmName, clientID)
+	if err != nil {
+		return fmt.Errorf("failed to get client roles: %w", err)
+	}
+
+	for _, desiredRole := range desiredRoles {
+		existingRole, exists := existingRolesMap[desiredRole.Name]
+		if !exists {
+			return fmt.Errorf("failed to setup composite roles: role %s does not exist in Keycloak", desiredRole.Name)
+		}
+
+		err = a.processSingleRoleComposites(ctx, realmName, clientID, desiredRole, existingRole)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// addCompositeRoles adds the specified roles as composites to the given role.
+func (a GoCloakAdapter) addCompositeRoles(ctx context.Context, realmName string, roleID string, rolesToAdd []gocloak.Role, roleName string) error {
+	if len(rolesToAdd) == 0 {
+		return nil
+	}
+
+	log := ctrl.LoggerFrom(ctx).WithValues(logKeyRoleName, roleName, "compositeRoles", len(rolesToAdd))
+	log.Info("Adding composite roles")
+
+	err := a.client.AddClientRoleComposite(ctx, a.token.AccessToken, realmName, roleID, rolesToAdd)
+	if err != nil {
+		return fmt.Errorf("failed to add composite roles to %s: %w", roleName, err)
+	}
+
+	return nil
+}
+
+// removeCompositeRoles removes the specified roles as composites from the given role.
+func (a GoCloakAdapter) removeCompositeRoles(ctx context.Context, realmName string, roleID string, rolesToRemove []gocloak.Role, roleName string) error {
+	if len(rolesToRemove) == 0 {
+		return nil
+	}
+
+	log := ctrl.LoggerFrom(ctx).WithValues(logKeyRoleName, roleName, "compositeRoles", len(rolesToRemove))
+	log.Info("Removing composite roles")
+
+	err := a.client.DeleteClientRoleComposite(ctx, a.token.AccessToken, realmName, roleID, rolesToRemove)
+	if err != nil {
+		return fmt.Errorf("failed to remove composite roles from %s: %w", roleName, err)
+	}
+
+	return nil
+}
+
+// handleEmptyComposites handles the case when no associated roles are desired.
+func (a GoCloakAdapter) handleEmptyComposites(ctx context.Context, realmName string, roleID string, currentCompositeRoles []*gocloak.Role, roleName string) error {
+	if len(currentCompositeRoles) == 0 {
+		return nil
+	}
+
+	rolesToRemove := convertRolePointersToValues(currentCompositeRoles)
+
+	return a.removeCompositeRoles(ctx, realmName, roleID, rolesToRemove, roleName)
+}
+
+// getAssociatedRoleDetails retrieves the details of an associated role.
+func (a GoCloakAdapter) getAssociatedRoleDetails(ctx context.Context, realmName, clientID, roleName string) (*gocloak.Role, error) {
+	associatedRole, err := a.client.GetClientRole(ctx, a.token.AccessToken, realmName, clientID, roleName)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get associated client role %s: %w", roleName, err)
+	}
+
+	return associatedRole, nil
+}
+
+// calculateRolesToAdd determines which roles need to be added as composites.
+func (a GoCloakAdapter) calculateRolesToAdd(ctx context.Context, realmName, clientID string, desiredRoles []string, currentCompositeMap map[string]*gocloak.Role) ([]gocloak.Role, error) {
+	rolesToAdd := make([]gocloak.Role, 0)
+
+	for _, associatedRoleName := range desiredRoles {
+		if _, exists := currentCompositeMap[associatedRoleName]; !exists {
+			associatedRole, err := a.getAssociatedRoleDetails(ctx, realmName, clientID, associatedRoleName)
+			if err != nil {
+				return nil, err
+			}
+
+			rolesToAdd = append(rolesToAdd, *associatedRole)
+		}
+	}
+
+	return rolesToAdd, nil
+}
+
+// calculateRolesToRemove determines which roles need to be removed from composites.
+func (a GoCloakAdapter) calculateRolesToRemove(currentCompositeRoles []*gocloak.Role, desiredRoles []string) []gocloak.Role {
+	rolesToRemove := make([]gocloak.Role, 0)
+
+	for _, currentRole := range currentCompositeRoles {
+		if currentRole != nil && currentRole.Name != nil {
+			if !slices.Contains(desiredRoles, *currentRole.Name) {
+				rolesToRemove = append(rolesToRemove, *currentRole)
+			}
+		}
+	}
+
+	return rolesToRemove
+}
+
+// processSingleRoleComposites handles the composite role synchronization for a single role.
+func (a GoCloakAdapter) processSingleRoleComposites(ctx context.Context, realmName, clientID string, desiredRole dto.ClientRole, existingRole *gocloak.Role) error {
+	// Get current composite roles for this role
+	currentCompositeRoles, err := a.client.GetCompositeRolesByRoleID(ctx, a.token.AccessToken, realmName, *existingRole.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get composite roles for role %s: %w", desiredRole.Name, err)
+	}
+
+	// If no associated roles are desired, handle empty composites case
+	if len(desiredRole.AssociatedClientRoles) == 0 {
+		return a.handleEmptyComposites(ctx, realmName, *existingRole.ID, currentCompositeRoles, desiredRole.Name)
+	}
+
+	// Create maps for efficient lookup
+	currentCompositeMap := createRoleNameMap(currentCompositeRoles)
+
+	// Calculate roles to add and remove
+	rolesToAdd, err := a.calculateRolesToAdd(ctx, realmName, clientID, desiredRole.AssociatedClientRoles, currentCompositeMap)
+	if err != nil {
+		return err
+	}
+
+	rolesToRemove := a.calculateRolesToRemove(currentCompositeRoles, desiredRole.AssociatedClientRoles)
+
+	// Add new composite roles
+	err = a.addCompositeRoles(ctx, realmName, *existingRole.ID, rolesToAdd, desiredRole.Name)
+	if err != nil {
+		return err
+	}
+
+	// Remove unwanted composite roles
+	err = a.removeCompositeRoles(ctx, realmName, *existingRole.ID, rolesToRemove, desiredRole.Name)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// getExistingClientRolesMap retrieves all client roles and returns them as a map for efficient lookup.
+func (a GoCloakAdapter) getExistingClientRolesMap(ctx context.Context, realmName, clientID string) (map[string]*gocloak.Role, error) {
+	existingRoles, err := a.client.GetClientRoles(ctx, a.token.AccessToken, realmName, clientID, gocloak.GetRoleParams{
+		Max: gocloak.IntP(1000),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client roles: %w", err)
+	}
+
+	// Create maps for efficient lookup with preallocated memory
+	existingRolesMap := createRoleNameMap(existingRoles)
+
+	return existingRolesMap, nil
+}
+
+// convertRolePointersToValues converts a slice of role pointers to a slice of role values, filtering out nil pointers.
+func convertRolePointersToValues(roles []*gocloak.Role) []gocloak.Role {
+	result := make([]gocloak.Role, 0, len(roles))
+
+	for _, role := range roles {
+		if role != nil {
+			result = append(result, *role)
+		}
+	}
+
+	return result
+}
+
+// createRoleNameMap creates a map of role names to role pointers for efficient lookup.
+func createRoleNameMap(roles []*gocloak.Role) map[string]*gocloak.Role {
+	roleMap := make(map[string]*gocloak.Role, len(roles))
+
+	for _, role := range roles {
+		if role != nil && role.Name != nil {
+			roleMap[*role.Name] = role
+		}
+	}
+
+	return roleMap
+}
+
+// createDesiredRolesMap creates a map of role names to dto.ClientRole for efficient lookup.
+func createDesiredRolesMap(roles []dto.ClientRole) map[string]dto.ClientRole {
+	roleMap := make(map[string]dto.ClientRole, len(roles))
+
+	for _, role := range roles {
+		roleMap[role.Name] = role
+	}
+
+	return roleMap
 }
 
 func (a GoCloakAdapter) GetRealmRoles(ctx context.Context, realm string) (map[string]gocloak.Role, error) {
@@ -808,37 +1092,6 @@ func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role 
 	return hasRealmRole, nil
 }
 
-func (a GoCloakAdapter) HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error) {
-	log := a.log.WithValues(keycloakApiParamRole, role, "client", clientId, logKeyRealm, realmName, logKeyUser, user)
-	log.Info("Start check user roles in Keycloak realm...")
-
-	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: &user.Username,
-	})
-	if err != nil {
-		return false, fmt.Errorf("failed to get user %s: %w", user.Username, err)
-	}
-
-	if len(users) == 0 {
-		return false, errors.Errorf("no such user %v has been found", user.Username)
-	}
-
-	rolesMapping, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realmName,
-		*users[0].ID)
-	if err != nil {
-		return false, fmt.Errorf("failed to get role mapping by user id %s: %w", *users[0].ID, err)
-	}
-
-	hasClientRole := false
-	if clientMap, ok := rolesMapping.ClientMappings[clientId]; ok && clientMap != nil && clientMap.Mappings != nil {
-		hasClientRole = checkFullRoleNameMatch(role, clientMap.Mappings)
-	}
-
-	log.Info("End check user role in Keycloak", "hasClientRole", hasClientRole)
-
-	return hasClientRole, nil
-}
-
 func (a GoCloakAdapter) AddRealmRoleToUser(ctx context.Context, realmName, username, roleName string) error {
 	users, err := a.client.GetUsers(ctx, a.token.AccessToken, realmName, gocloak.GetUsersParams{
 		Username: &username,
@@ -861,65 +1114,6 @@ func (a GoCloakAdapter) AddRealmRoleToUser(ctx context.Context, realmName, usern
 			*rl,
 		}); err != nil {
 		return errors.Wrap(err, "unable to add realm role to user")
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) AddClientRoleToUser(realmName string, clientId string, user *dto.User, roleName string) error {
-	log := a.log.WithValues(keycloakApiParamRole, roleName, logKeyRealm, realmName, "user", user.Username)
-	log.Info("Start mapping realm role to user in Keycloak...")
-
-	client, err := a.client.GetClients(context.Background(), a.token.AccessToken, realmName, gocloak.GetClientsParams{
-		ClientID: &clientId,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get client %s: %w", clientId, err)
-	}
-
-	if len(client) == 0 {
-		return fmt.Errorf("no such client %v has been found", clientId)
-	}
-
-	role, err := a.client.GetClientRole(context.Background(), a.token.AccessToken, realmName, *client[0].ID, roleName)
-	if err != nil {
-		return errors.Wrap(err, "error during GetClientRole")
-	}
-
-	if role == nil {
-		return errors.Errorf("no such client role %v has been found", roleName)
-	}
-
-	users, err := a.client.GetUsers(context.Background(), a.token.AccessToken, realmName, gocloak.GetUsersParams{
-		Username: &user.Username,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get user %s: %w", user.Username, err)
-	}
-
-	if len(users) == 0 {
-		return fmt.Errorf("no such user %v has been found", user.Username)
-	}
-
-	err = a.addClientRoleToUser(realmName, *users[0].ID, []gocloak.Role{*role})
-	if err != nil {
-		return err
-	}
-
-	log.Info("Role to user has been added")
-
-	return nil
-}
-
-func (a GoCloakAdapter) addClientRoleToUser(realmName string, userId string, roles []gocloak.Role) error {
-	if err := a.client.AddClientRoleToUser(
-		context.Background(),
-		a.token.AccessToken, realmName,
-		*roles[0].ContainerID,
-		userId,
-		roles,
-	); err != nil {
-		return fmt.Errorf("failed to add client role to user %s: %w", userId, err)
 	}
 
 	return nil

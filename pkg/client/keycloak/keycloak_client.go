@@ -139,10 +139,7 @@ type KCloakRealmRoles interface {
 }
 
 type KCloakClientRoles interface {
-	ExistClientRole(role *dto.Client, clientRole string) (bool, error)
-	CreateClientRole(role *dto.Client, clientRole string) error
-	HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error)
-	AddClientRoleToUser(realmName string, clientId string, user *dto.User, role string) error
+	SyncClientRoles(ctx context.Context, realmName string, client *dto.Client) error
 	GetRealmRoles(ctx context.Context, realm string) (map[string]gocloak.Role, error)
 }
 

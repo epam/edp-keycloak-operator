@@ -2287,7 +2287,15 @@ If empty - WebUrl will be used.<br/>
         <td><b>clientRoles</b></td>
         <td>[]string</td>
         <td>
-          ClientRoles is a list of client roles names assigned to client.<br/>
+          ClientRoles is a list of client roles names assigned to client.
+Deprecated: Use ClientRolesV2 instead.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecclientrolesv2index">clientRolesV2</a></b></td>
+        <td>[]object</td>
+        <td>
+          ClientRolesV2 is a list of client roles assigned to client.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3175,6 +3183,48 @@ Condition is evaluated during OpenID Connect authorization request and/or token 
         <td>[]string</td>
         <td>
           URIs which are protected by resource.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.clientRolesV2[index]
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a client role name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>associatedClientRoles</b></td>
+        <td>[]string</td>
+        <td>
+          AssociatedClientRoles is a list of client roles names associated with the current role.
+These roles won't be created automatically, user should specify them separately in clientRolesV2.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is a client role description.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

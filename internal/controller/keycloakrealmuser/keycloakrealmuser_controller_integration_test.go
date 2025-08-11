@@ -116,7 +116,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 					"offline_access",
 					"uma_authorization",
 				},
-				ClientRoles: []keycloakApi.ClientRole{
+				ClientRoles: []keycloakApi.UserClientRole{
 					{
 						ClientID: "account",
 						Roles: []string{
@@ -248,7 +248,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		user.Spec.Roles = []string{
 			"offline_access",
 		}
-		user.Spec.ClientRoles = []keycloakApi.ClientRole{
+		user.Spec.ClientRoles = []keycloakApi.UserClientRole{
 			{
 				ClientID: "account",
 				Roles: []string{

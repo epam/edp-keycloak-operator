@@ -20,6 +20,20 @@ import (
 )
 
 var _ = Describe("KeycloakClient controller", Ordered, func() {
+	var clientSecret *corev1.Secret
+	It("Should create client secret", func() {
+		clientSecret = &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-secret",
+				Namespace: ns,
+			},
+			Data: map[string][]byte{
+				"secretKey": []byte("secretValue"),
+			},
+		}
+		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed(), "failed to create client secret")
+	})
+
 	It("Should create KeycloakClient with secret reference", func() {
 		By("Checking feature flag ADMIN_FINE_GRAINED_AUTHZ")
 		By("Creating a KeycloakClient to check feature flag")
@@ -44,17 +58,6 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(featureFlagEnabled).Should(BeTrue(), "Feature flag ADMIN_FINE_GRAINED_AUTHZ should be enabled")
 
-		By("Creating a client secret")
-		clientSecret := &corev1.Secret{
-			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-keycloak-client-secret",
-				Namespace: ns,
-			},
-			Data: map[string][]byte{
-				"secretKey": []byte("secretValue"),
-			},
-		}
-		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
@@ -117,6 +120,92 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be deleted")
 	})
+	It("Should create KeycloakClient with client roles v2", func() {
+		By("Creating a KeycloakClient")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-with-client-roles-v2",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-with-client-roles-v2",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Enabled: true,
+				Public:  true,
+				Secret:  secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				ClientRolesV2: []keycloakApi.ClientRole{
+					{
+						Name:                  "roleA",
+						Description:           "Role A",
+						AssociatedClientRoles: []string{"roleB"},
+					},
+					{
+						Name:        "roleB",
+						Description: "Role B",
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+		}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
+
+		By("Checking client roles")
+		createdKeycloakClient := &keycloakApi.KeycloakClient{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).ShouldNot(HaveOccurred())
+		Expect(createdKeycloakClient.Status.ClientID).Should(Not(BeEmpty()))
+
+		roles, err := keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(roles)).Should(Equal(2))
+
+		var indexOfRoleA int
+		for i, role := range roles {
+			if *role.Name == "roleA" {
+				indexOfRoleA = i
+			}
+			Expect(*role.Name).Should(BeElementOf([]string{"roleA", "roleB"}))
+			Expect(*role.Description).Should(BeElementOf([]string{"Role A", "Role B"}))
+		}
+
+		compositeRoles, err := keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[indexOfRoleA].ID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(compositeRoles)).Should(Equal(1))
+		Expect(*compositeRoles[0].Name).Should(Equal("roleB"))
+
+		By("Updating client roles")
+		createdKeycloakClient.Spec.ClientRolesV2 = []keycloakApi.ClientRole{
+			{
+				Name:        "roleA",
+				Description: "Role A updated",
+			},
+		}
+		Expect(k8sClient.Update(ctx, createdKeycloakClient)).Should(Succeed())
+		Consistently(func(g Gomega) {
+			updatedKeycloakClient := &keycloakApi.KeycloakClient{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, updatedKeycloakClient)).ShouldNot(HaveOccurred())
+			g.Expect(updatedKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+		}).WithTimeout(time.Second * 3).WithPolling(time.Second).Should(Succeed())
+
+		By("Checking client roles")
+		roles, err = keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(roles)).Should(Equal(1))
+		Expect(*roles[0].Name).Should(Equal("roleA"))
+		Expect(*roles[0].Description).Should(Equal("Role A updated"))
+
+		compositeRoles, err = keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[0].ID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(len(compositeRoles)).Should(Equal(0))
+	})
+
 	It("Should create KeycloakClient with empty secret", func() {
 		By("Creating keycloak api client")
 		client := gocloak.NewClient(keycloakURL)
