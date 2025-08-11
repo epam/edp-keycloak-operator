@@ -31,55 +31,6 @@ func (_m *MockClient) EXPECT() *MockClient_Expecter {
 	return &MockClient_Expecter{mock: &_m.Mock}
 }
 
-// AddClientRoleToUser provides a mock function with given fields: realmName, clientId, user, role
-func (_m *MockClient) AddClientRoleToUser(realmName string, clientId string, user *dto.User, role string) error {
-	ret := _m.Called(realmName, clientId, user, role)
-
-	if len(ret) == 0 {
-		panic("no return value specified for AddClientRoleToUser")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(string, string, *dto.User, string) error); ok {
-		r0 = rf(realmName, clientId, user, role)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockClient_AddClientRoleToUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddClientRoleToUser'
-type MockClient_AddClientRoleToUser_Call struct {
-	*mock.Call
-}
-
-// AddClientRoleToUser is a helper method to define mock.On call
-//   - realmName string
-//   - clientId string
-//   - user *dto.User
-//   - role string
-func (_e *MockClient_Expecter) AddClientRoleToUser(realmName interface{}, clientId interface{}, user interface{}, role interface{}) *MockClient_AddClientRoleToUser_Call {
-	return &MockClient_AddClientRoleToUser_Call{Call: _e.mock.On("AddClientRoleToUser", realmName, clientId, user, role)}
-}
-
-func (_c *MockClient_AddClientRoleToUser_Call) Run(run func(realmName string, clientId string, user *dto.User, role string)) *MockClient_AddClientRoleToUser_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string), args[2].(*dto.User), args[3].(string))
-	})
-	return _c
-}
-
-func (_c *MockClient_AddClientRoleToUser_Call) Return(_a0 error) *MockClient_AddClientRoleToUser_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockClient_AddClientRoleToUser_Call) RunAndReturn(run func(string, string, *dto.User, string) error) *MockClient_AddClientRoleToUser_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // AddDefaultScopeToClient provides a mock function with given fields: ctx, realmName, clientName, scopes
 func (_m *MockClient) AddDefaultScopeToClient(ctx context.Context, realmName string, clientName string, scopes []adapter.ClientScope) error {
 	ret := _m.Called(ctx, realmName, clientName, scopes)
@@ -270,53 +221,6 @@ func (_c *MockClient_CreateClient_Call) Return(_a0 error) *MockClient_CreateClie
 }
 
 func (_c *MockClient_CreateClient_Call) RunAndReturn(run func(context.Context, *dto.Client) error) *MockClient_CreateClient_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// CreateClientRole provides a mock function with given fields: role, clientRole
-func (_m *MockClient) CreateClientRole(role *dto.Client, clientRole string) error {
-	ret := _m.Called(role, clientRole)
-
-	if len(ret) == 0 {
-		panic("no return value specified for CreateClientRole")
-	}
-
-	var r0 error
-	if rf, ok := ret.Get(0).(func(*dto.Client, string) error); ok {
-		r0 = rf(role, clientRole)
-	} else {
-		r0 = ret.Error(0)
-	}
-
-	return r0
-}
-
-// MockClient_CreateClientRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateClientRole'
-type MockClient_CreateClientRole_Call struct {
-	*mock.Call
-}
-
-// CreateClientRole is a helper method to define mock.On call
-//   - role *dto.Client
-//   - clientRole string
-func (_e *MockClient_Expecter) CreateClientRole(role interface{}, clientRole interface{}) *MockClient_CreateClientRole_Call {
-	return &MockClient_CreateClientRole_Call{Call: _e.mock.On("CreateClientRole", role, clientRole)}
-}
-
-func (_c *MockClient_CreateClientRole_Call) Run(run func(role *dto.Client, clientRole string)) *MockClient_CreateClientRole_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*dto.Client), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockClient_CreateClientRole_Call) Return(_a0 error) *MockClient_CreateClientRole_Call {
-	_c.Call.Return(_a0)
-	return _c
-}
-
-func (_c *MockClient_CreateClientRole_Call) RunAndReturn(run func(*dto.Client, string) error) *MockClient_CreateClientRole_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1800,63 +1704,6 @@ func (_c *MockClient_ExistClient_Call) Return(_a0 bool, _a1 error) *MockClient_E
 }
 
 func (_c *MockClient_ExistClient_Call) RunAndReturn(run func(string, string) (bool, error)) *MockClient_ExistClient_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// ExistClientRole provides a mock function with given fields: role, clientRole
-func (_m *MockClient) ExistClientRole(role *dto.Client, clientRole string) (bool, error) {
-	ret := _m.Called(role, clientRole)
-
-	if len(ret) == 0 {
-		panic("no return value specified for ExistClientRole")
-	}
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(*dto.Client, string) (bool, error)); ok {
-		return rf(role, clientRole)
-	}
-	if rf, ok := ret.Get(0).(func(*dto.Client, string) bool); ok {
-		r0 = rf(role, clientRole)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(*dto.Client, string) error); ok {
-		r1 = rf(role, clientRole)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockClient_ExistClientRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExistClientRole'
-type MockClient_ExistClientRole_Call struct {
-	*mock.Call
-}
-
-// ExistClientRole is a helper method to define mock.On call
-//   - role *dto.Client
-//   - clientRole string
-func (_e *MockClient_Expecter) ExistClientRole(role interface{}, clientRole interface{}) *MockClient_ExistClientRole_Call {
-	return &MockClient_ExistClientRole_Call{Call: _e.mock.On("ExistClientRole", role, clientRole)}
-}
-
-func (_c *MockClient_ExistClientRole_Call) Run(run func(role *dto.Client, clientRole string)) *MockClient_ExistClientRole_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(*dto.Client), args[1].(string))
-	})
-	return _c
-}
-
-func (_c *MockClient_ExistClientRole_Call) Return(_a0 bool, _a1 error) *MockClient_ExistClientRole_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockClient_ExistClientRole_Call) RunAndReturn(run func(*dto.Client, string) (bool, error)) *MockClient_ExistClientRole_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3747,65 +3594,6 @@ func (_c *MockClient_GetUsersProfile_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// HasUserClientRole provides a mock function with given fields: realmName, clientId, user, role
-func (_m *MockClient) HasUserClientRole(realmName string, clientId string, user *dto.User, role string) (bool, error) {
-	ret := _m.Called(realmName, clientId, user, role)
-
-	if len(ret) == 0 {
-		panic("no return value specified for HasUserClientRole")
-	}
-
-	var r0 bool
-	var r1 error
-	if rf, ok := ret.Get(0).(func(string, string, *dto.User, string) (bool, error)); ok {
-		return rf(realmName, clientId, user, role)
-	}
-	if rf, ok := ret.Get(0).(func(string, string, *dto.User, string) bool); ok {
-		r0 = rf(realmName, clientId, user, role)
-	} else {
-		r0 = ret.Get(0).(bool)
-	}
-
-	if rf, ok := ret.Get(1).(func(string, string, *dto.User, string) error); ok {
-		r1 = rf(realmName, clientId, user, role)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
-// MockClient_HasUserClientRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasUserClientRole'
-type MockClient_HasUserClientRole_Call struct {
-	*mock.Call
-}
-
-// HasUserClientRole is a helper method to define mock.On call
-//   - realmName string
-//   - clientId string
-//   - user *dto.User
-//   - role string
-func (_e *MockClient_Expecter) HasUserClientRole(realmName interface{}, clientId interface{}, user interface{}, role interface{}) *MockClient_HasUserClientRole_Call {
-	return &MockClient_HasUserClientRole_Call{Call: _e.mock.On("HasUserClientRole", realmName, clientId, user, role)}
-}
-
-func (_c *MockClient_HasUserClientRole_Call) Run(run func(realmName string, clientId string, user *dto.User, role string)) *MockClient_HasUserClientRole_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(string), args[1].(string), args[2].(*dto.User), args[3].(string))
-	})
-	return _c
-}
-
-func (_c *MockClient_HasUserClientRole_Call) Return(_a0 bool, _a1 error) *MockClient_HasUserClientRole_Call {
-	_c.Call.Return(_a0, _a1)
-	return _c
-}
-
-func (_c *MockClient_HasUserClientRole_Call) RunAndReturn(run func(string, string, *dto.User, string) (bool, error)) *MockClient_HasUserClientRole_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // HasUserRealmRole provides a mock function with given fields: realmName, user, role
 func (_m *MockClient) HasUserRealmRole(realmName string, user *dto.User, role string) (bool, error) {
 	ret := _m.Called(realmName, user, role)
@@ -4360,6 +4148,54 @@ func (_c *MockClient_SyncClientProtocolMapper_Call) Return(_a0 error) *MockClien
 }
 
 func (_c *MockClient_SyncClientProtocolMapper_Call) RunAndReturn(run func(*dto.Client, []gocloak.ProtocolMapperRepresentation, bool) error) *MockClient_SyncClientProtocolMapper_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SyncClientRoles provides a mock function with given fields: ctx, realmName, client
+func (_m *MockClient) SyncClientRoles(ctx context.Context, realmName string, client *dto.Client) error {
+	ret := _m.Called(ctx, realmName, client)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SyncClientRoles")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, *dto.Client) error); ok {
+		r0 = rf(ctx, realmName, client)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_SyncClientRoles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SyncClientRoles'
+type MockClient_SyncClientRoles_Call struct {
+	*mock.Call
+}
+
+// SyncClientRoles is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - client *dto.Client
+func (_e *MockClient_Expecter) SyncClientRoles(ctx interface{}, realmName interface{}, client interface{}) *MockClient_SyncClientRoles_Call {
+	return &MockClient_SyncClientRoles_Call{Call: _e.mock.On("SyncClientRoles", ctx, realmName, client)}
+}
+
+func (_c *MockClient_SyncClientRoles_Call) Run(run func(ctx context.Context, realmName string, client *dto.Client)) *MockClient_SyncClientRoles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(*dto.Client))
+	})
+	return _c
+}
+
+func (_c *MockClient_SyncClientRoles_Call) Return(_a0 error) *MockClient_SyncClientRoles_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_SyncClientRoles_Call) RunAndReturn(run func(context.Context, string, *dto.Client) error) *MockClient_SyncClientRoles_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -111,7 +111,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 	return ctrl.Result{}, nil
 }
 
-func convertClientRoles(apiClientRoles []keycloakApi.ClientRole) map[string][]string {
+func convertClientRoles(apiClientRoles []keycloakApi.UserClientRole) map[string][]string {
 	if apiClientRoles == nil {
 		return nil
 	}

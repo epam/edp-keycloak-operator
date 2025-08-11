@@ -24,6 +24,56 @@ func (_m *MockGoCloak) EXPECT() *MockGoCloak_Expecter {
 	return &MockGoCloak_Expecter{mock: &_m.Mock}
 }
 
+// AddClientRoleComposite provides a mock function with given fields: ctx, token, realm, roleID, roles
+func (_m *MockGoCloak) AddClientRoleComposite(ctx context.Context, token string, realm string, roleID string, roles []gocloak.Role) error {
+	ret := _m.Called(ctx, token, realm, roleID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddClientRoleComposite")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, []gocloak.Role) error); ok {
+		r0 = rf(ctx, token, realm, roleID, roles)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_AddClientRoleComposite_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddClientRoleComposite'
+type MockGoCloak_AddClientRoleComposite_Call struct {
+	*mock.Call
+}
+
+// AddClientRoleComposite is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - roleID string
+//   - roles []gocloak.Role
+func (_e *MockGoCloak_Expecter) AddClientRoleComposite(ctx interface{}, token interface{}, realm interface{}, roleID interface{}, roles interface{}) *MockGoCloak_AddClientRoleComposite_Call {
+	return &MockGoCloak_AddClientRoleComposite_Call{Call: _e.mock.On("AddClientRoleComposite", ctx, token, realm, roleID, roles)}
+}
+
+func (_c *MockGoCloak_AddClientRoleComposite_Call) Run(run func(ctx context.Context, token string, realm string, roleID string, roles []gocloak.Role)) *MockGoCloak_AddClientRoleComposite_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].([]gocloak.Role))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_AddClientRoleComposite_Call) Return(_a0 error) *MockGoCloak_AddClientRoleComposite_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_AddClientRoleComposite_Call) RunAndReturn(run func(context.Context, string, string, string, []gocloak.Role) error) *MockGoCloak_AddClientRoleComposite_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddClientRoleToGroup provides a mock function with given fields: ctx, token, realm, clientID, groupID, roles
 func (_m *MockGoCloak) AddClientRoleToGroup(ctx context.Context, token string, realm string, clientID string, groupID string, roles []gocloak.Role) error {
 	ret := _m.Called(ctx, token, realm, clientID, groupID, roles)
@@ -1244,6 +1294,106 @@ func (_c *MockGoCloak_DeleteClientProtocolMapper_Call) Return(_a0 error) *MockGo
 }
 
 func (_c *MockGoCloak_DeleteClientProtocolMapper_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteClientProtocolMapper_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteClientRole provides a mock function with given fields: ctx, token, realm, idOfClient, roleName
+func (_m *MockGoCloak) DeleteClientRole(ctx context.Context, token string, realm string, idOfClient string, roleName string) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, roleName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, string) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, roleName)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeleteClientRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientRole'
+type MockGoCloak_DeleteClientRole_Call struct {
+	*mock.Call
+}
+
+// DeleteClientRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - roleName string
+func (_e *MockGoCloak_Expecter) DeleteClientRole(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, roleName interface{}) *MockGoCloak_DeleteClientRole_Call {
+	return &MockGoCloak_DeleteClientRole_Call{Call: _e.mock.On("DeleteClientRole", ctx, token, realm, idOfClient, roleName)}
+}
+
+func (_c *MockGoCloak_DeleteClientRole_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, roleName string)) *MockGoCloak_DeleteClientRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(string))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteClientRole_Call) Return(_a0 error) *MockGoCloak_DeleteClientRole_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteClientRole_Call) RunAndReturn(run func(context.Context, string, string, string, string) error) *MockGoCloak_DeleteClientRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteClientRoleComposite provides a mock function with given fields: ctx, token, realm, roleID, roles
+func (_m *MockGoCloak) DeleteClientRoleComposite(ctx context.Context, token string, realm string, roleID string, roles []gocloak.Role) error {
+	ret := _m.Called(ctx, token, realm, roleID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientRoleComposite")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, []gocloak.Role) error); ok {
+		r0 = rf(ctx, token, realm, roleID, roles)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_DeleteClientRoleComposite_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientRoleComposite'
+type MockGoCloak_DeleteClientRoleComposite_Call struct {
+	*mock.Call
+}
+
+// DeleteClientRoleComposite is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - roleID string
+//   - roles []gocloak.Role
+func (_e *MockGoCloak_Expecter) DeleteClientRoleComposite(ctx interface{}, token interface{}, realm interface{}, roleID interface{}, roles interface{}) *MockGoCloak_DeleteClientRoleComposite_Call {
+	return &MockGoCloak_DeleteClientRoleComposite_Call{Call: _e.mock.On("DeleteClientRoleComposite", ctx, token, realm, roleID, roles)}
+}
+
+func (_c *MockGoCloak_DeleteClientRoleComposite_Call) Run(run func(ctx context.Context, token string, realm string, roleID string, roles []gocloak.Role)) *MockGoCloak_DeleteClientRoleComposite_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].([]gocloak.Role))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteClientRoleComposite_Call) Return(_a0 error) *MockGoCloak_DeleteClientRoleComposite_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_DeleteClientRoleComposite_Call) RunAndReturn(run func(context.Context, string, string, string, []gocloak.Role) error) *MockGoCloak_DeleteClientRoleComposite_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3731,6 +3881,56 @@ func (_c *MockGoCloak_UpdateResource_Call) Return(_a0 error) *MockGoCloak_Update
 }
 
 func (_c *MockGoCloak_UpdateResource_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.ResourceRepresentation) error) *MockGoCloak_UpdateResource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateRole provides a mock function with given fields: ctx, token, realm, idOfClient, role
+func (_m *MockGoCloak) UpdateRole(ctx context.Context, token string, realm string, idOfClient string, role gocloak.Role) error {
+	ret := _m.Called(ctx, token, realm, idOfClient, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateRole")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, string, gocloak.Role) error); ok {
+		r0 = rf(ctx, token, realm, idOfClient, role)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockGoCloak_UpdateRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRole'
+type MockGoCloak_UpdateRole_Call struct {
+	*mock.Call
+}
+
+// UpdateRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - token string
+//   - realm string
+//   - idOfClient string
+//   - role gocloak.Role
+func (_e *MockGoCloak_Expecter) UpdateRole(ctx interface{}, token interface{}, realm interface{}, idOfClient interface{}, role interface{}) *MockGoCloak_UpdateRole_Call {
+	return &MockGoCloak_UpdateRole_Call{Call: _e.mock.On("UpdateRole", ctx, token, realm, idOfClient, role)}
+}
+
+func (_c *MockGoCloak_UpdateRole_Call) Run(run func(ctx context.Context, token string, realm string, idOfClient string, role gocloak.Role)) *MockGoCloak_UpdateRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(string), args[4].(gocloak.Role))
+	})
+	return _c
+}
+
+func (_c *MockGoCloak_UpdateRole_Call) Return(_a0 error) *MockGoCloak_UpdateRole_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockGoCloak_UpdateRole_Call) RunAndReturn(run func(context.Context, string, string, string, gocloak.Role) error) *MockGoCloak_UpdateRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

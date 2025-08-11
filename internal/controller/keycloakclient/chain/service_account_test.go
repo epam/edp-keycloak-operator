@@ -23,7 +23,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 				Attributes: map[string]string{
 					"foo": "bar",
 				},
-				ClientRoles: []keycloakApi.ClientRole{
+				ClientRoles: []keycloakApi.UserClientRole{
 					{
 						ClientID: "clid2",
 						Roles:    []string{"foo", "bar"},

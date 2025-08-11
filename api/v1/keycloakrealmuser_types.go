@@ -48,7 +48,7 @@ type KeycloakRealmUserSpec struct {
 	// ClientRoles is a list of client roles assigned to user.
 	// +nullable
 	// +optional
-	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
+	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 
 	// Groups is a list of groups assigned to user.
 	// +nullable

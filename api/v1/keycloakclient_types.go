@@ -72,9 +72,15 @@ type KeycloakClientSpec struct {
 	AdvancedProtocolMappers bool `json:"advancedProtocolMappers,omitempty"`
 
 	// ClientRoles is a list of client roles names assigned to client.
+	// Deprecated: Use ClientRolesV2 instead.
 	// +nullable
 	// +optional
 	ClientRoles []string `json:"clientRoles,omitempty"`
+
+	// ClientRolesV2 is a list of client roles assigned to client.
+	// +nullable
+	// +optional
+	ClientRolesV2 []ClientRole `json:"clientRolesV2,omitempty"`
 
 	// ProtocolMappers is a list of protocol mappers assigned to client.
 	// +nullable
@@ -204,7 +210,7 @@ type ServiceAccount struct {
 	// ClientRoles is a list of client roles assigned to service account.
 	// +nullable
 	// +optional
-	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
+	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 
 	// Attributes is a map of service account attributes.
 	// +nullable
@@ -217,7 +223,7 @@ type ServiceAccount struct {
 	Groups []string `json:"groups,omitempty"`
 }
 
-type ClientRole struct {
+type UserClientRole struct {
 	// ClientID is a client ID.
 	ClientID string `json:"clientId"`
 
@@ -225,6 +231,22 @@ type ClientRole struct {
 	// +nullable
 	// +optional
 	Roles []string `json:"roles,omitempty"`
+}
+
+type ClientRole struct {
+	// Name is a client role name.
+	// +required
+	Name string `json:"name,omitempty"`
+
+	// Description is a client role description.
+	// +optional
+	Description string `json:"description,omitempty"`
+
+	// AssociatedClientRoles is a list of client roles names associated with the current role.
+	// These roles won't be created automatically, user should specify them separately in clientRolesV2.
+	// +nullable
+	// +optional
+	AssociatedClientRoles []string `json:"associatedClientRoles,omitempty"`
 }
 
 type ProtocolMapper struct {
