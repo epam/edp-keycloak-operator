@@ -42,7 +42,7 @@ type KeycloakRealmGroupSpec struct {
 	// ClientRoles is a list of client roles assigned to group.
 	// +nullable
 	// +optional
-	ClientRoles []ClientRole `json:"clientRoles,omitempty"`
+	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 }
 
 // KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.

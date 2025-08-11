@@ -85,7 +85,7 @@ type Client struct {
 	ClientId                           string
 	ClientSecret                       string `json:"-"`
 	RealmName                          string
-	Roles                              []string
+	Roles                              []ClientRole
 	PublicClient                       bool
 	DirectAccess                       bool
 	WebUrl                             string
@@ -115,6 +115,12 @@ type Client struct {
 	AuthenticationFlowBindingOverrides map[string]string
 }
 
+type ClientRole struct {
+	Name                  string   `json:"name"`
+	Description           string   `json:"description"`
+	AssociatedClientRoles []string `json:"associatedClientRoles"`
+}
+
 type PrimaryRealmRole struct {
 	ID                    *string
 	Name                  string
@@ -132,11 +138,25 @@ type IncludedRealmRole struct {
 }
 
 func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret, realmName string, authFlowOverrides map[string]string) *Client {
+	// Convert ClientRolesV2 to DTO ClientRole format
+	roles := make([]ClientRole, 0, len(spec.ClientRolesV2))
+
+	for _, role := range spec.ClientRolesV2 {
+		if role.Name != "" {
+			dtoRole := ClientRole{
+				Name:                  role.Name,
+				Description:           role.Description,
+				AssociatedClientRoles: role.AssociatedClientRoles,
+			}
+			roles = append(roles, dtoRole)
+		}
+	}
+
 	return &Client{
 		RealmName:                          realmName,
 		ClientId:                           spec.ClientId,
 		ClientSecret:                       clientSecret,
-		Roles:                              spec.ClientRoles,
+		Roles:                              roles,
 		PublicClient:                       spec.Public,
 		DirectAccess:                       spec.DirectAccess,
 		WebUrl:                             spec.WebUrl,

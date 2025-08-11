@@ -903,3 +903,806 @@ func TestGoCloakAdapter_CreatePrimaryRealmRole(t *testing.T) {
 		})
 	}
 }
+
+func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
+	t.Parallel()
+
+	var (
+		token     = "test-token"
+		realmName = "test-realm"
+		clientID  = "test-client-id"
+	)
+
+	tests := []struct {
+		name          string
+		client        *dto.Client
+		setupMocks    func(*mocks.MockGoCloak)
+		expectedError string
+		expectedCalls map[string]int
+	}{
+		{
+			name: "should successfully sync client roles - create new roles",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Role 1 description",
+					},
+					{
+						Name:        "role2",
+						Description: "Role 2 description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - no existing roles
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{}, nil).Once()
+
+				// Mock CreateClientRole for both roles
+				m.On("CreateClientRole", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return("role1-id", nil).Once()
+				m.On("CreateClientRole", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return("role2-id", nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("role1-id"),
+							Name: gocloak.StringP("role1"),
+						},
+						{
+							ID:   gocloak.StringP("role2-id"),
+							Name: gocloak.StringP("role2"),
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID for both roles
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{}, nil).Once()
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role2-id").
+					Return([]*gocloak.Role{}, nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"CreateClientRole":          2,
+				"GetCompositeRolesByRoleID": 2,
+			},
+		},
+		{
+			name: "should successfully sync client roles - update existing roles",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Updated Role 1 description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - existing role with different description
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Old description"),
+						},
+					}, nil).Once()
+
+				// Mock UpdateRole for existing role
+				m.On("UpdateRole", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return(nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("role1-id"),
+							Name: gocloak.StringP("role1"),
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{}, nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"UpdateRole":                1,
+				"GetCompositeRolesByRoleID": 1,
+			},
+		},
+		{
+			name: "should successfully sync client roles - delete removed roles",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Role 1 description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - existing roles including one to be deleted
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+						{
+							ID:   gocloak.StringP("role2-id"),
+							Name: gocloak.StringP("role2"), // This role should be deleted
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRole for removed role
+				m.On("DeleteClientRole", testifymock.Anything, token, realmName, clientID, "role2").
+					Return(nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("role1-id"),
+							Name: gocloak.StringP("role1"),
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{}, nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"DeleteClientRole":          1,
+				"GetCompositeRolesByRoleID": 1,
+			},
+		},
+		{
+			name: "should successfully sync client roles with composite roles",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:                  "role1",
+						Description:           "Role 1 description",
+						AssociatedClientRoles: []string{"composite-role1", "composite-role2"},
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{}, nil).Once()
+
+				// Mock GetClientRole for composite roles - these are called with the same clientID
+				m.On("GetClientRole", testifymock.Anything, token, realmName, clientID, "composite-role1").
+					Return(&gocloak.Role{
+						ID:   gocloak.StringP("composite-role1-id"),
+						Name: gocloak.StringP("composite-role1"),
+					}, nil).Once()
+				m.On("GetClientRole", testifymock.Anything, token, realmName, clientID, "composite-role2").
+					Return(&gocloak.Role{
+						ID:   gocloak.StringP("composite-role2-id"),
+						Name: gocloak.StringP("composite-role2"),
+					}, nil).Once()
+
+				// Mock AddClientRoleComposite
+				m.On("AddClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+					Return(nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+				"GetClientRole":             2,
+				"AddClientRoleComposite":    1,
+			},
+		},
+		{
+			name: "should successfully sync client roles with composite roles - remove existing composites",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:                  "role1",
+						Description:           "Role 1 description",
+						AssociatedClientRoles: []string{"composite-role1"}, // Only one role now
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID - return existing composite roles that need to be removed
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("composite-role1-id"),
+							Name: gocloak.StringP("composite-role1"),
+						},
+						{
+							ID:   gocloak.StringP("composite-role2-id"),
+							Name: gocloak.StringP("composite-role2"), // This role should be removed
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRoleComposite for removing unwanted composite roles
+				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+					Return(nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+				"GetClientRole":             1,
+				"DeleteClientRoleComposite": 1,
+			},
+		},
+		{
+			name: "should fail when GetClientID returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles:    []dto.ClientRole{},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID to fail
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return(nil, errors.New("client not found")).Once()
+			},
+			expectedError: "failed to get client ID: unable to get realm clients: client not found",
+			expectedCalls: map[string]int{
+				"GetClients": 1,
+			},
+		},
+		{
+			name: "should fail when getExistingClientRolesMap returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles:    []dto.ClientRole{},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap to fail
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return(nil, errors.New("failed to get roles")).Once()
+			},
+			expectedError: "failed to get client roles: failed to get client roles: failed to get roles",
+			expectedCalls: map[string]int{
+				"GetClients":     1,
+				"GetClientRoles": 1,
+			},
+		},
+		{
+			name: "should fail when createClientRole returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Role 1 description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - no existing roles
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{}, nil).Once()
+
+				// Mock CreateClientRole to fail
+				m.On("CreateClientRole", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return("", errors.New("failed to create role")).Once()
+			},
+			expectedError: "failed to create client role role1: failed to create role",
+			expectedCalls: map[string]int{
+				"GetClients":       1,
+				"GetClientRoles":   1,
+				"CreateClientRole": 1,
+			},
+		},
+		{
+			name: "should fail when updateClientRole returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Updated description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - existing role with different description
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Old description"),
+						},
+					}, nil).Once()
+
+				// Mock UpdateRole to fail
+				m.On("UpdateRole", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return(errors.New("failed to update role")).Once()
+			},
+			expectedError: "failed to update client role role1: failed to update role",
+			expectedCalls: map[string]int{
+				"GetClients":     1,
+				"GetClientRoles": 1,
+				"UpdateRole":     1,
+			},
+		},
+		{
+			name: "should fail when deleteRemovedRoles returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles:    []dto.ClientRole{},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - existing role to be deleted
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("role1-id"),
+							Name: gocloak.StringP("role1"),
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRole to fail
+				m.On("DeleteClientRole", testifymock.Anything, token, realmName, clientID, "role1").
+					Return(errors.New("failed to delete role")).Once()
+			},
+			expectedError: "failed to delete client role role1: failed to delete role",
+			expectedCalls: map[string]int{
+				"GetClients":       1,
+				"GetClientRoles":   1,
+				"DeleteClientRole": 1,
+			},
+		},
+		{
+			name: "should fail when syncClientRoleComposites returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:        "role1",
+						Description: "Role 1 description",
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID to fail
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return(nil, errors.New("failed to get composite roles")).Once()
+			},
+			expectedError: "failed to sync client role composites: failed to get composite roles for role role1: failed to get composite roles",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+			},
+		},
+		{
+			name: "should fail when DeleteClientRoleComposite returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:                  "role1",
+						Description:           "Role 1 description",
+						AssociatedClientRoles: []string{"composite-role1"}, // Only one role now
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID - return existing composite roles that need to be removed
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("composite-role1-id"),
+							Name: gocloak.StringP("composite-role1"),
+						},
+						{
+							ID:   gocloak.StringP("composite-role2-id"),
+							Name: gocloak.StringP("composite-role2"), // This role should be removed
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRoleComposite to fail
+				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+					Return(errors.New("failed to delete composite role")).Once()
+			},
+			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: failed to delete composite role",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+				"DeleteClientRoleComposite": 1,
+			},
+		},
+		{
+			name: "should handle empty roles list successfully",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles:    []dto.ClientRole{},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap - no existing roles
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{}, nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":     1,
+				"GetClientRoles": 2,
+			},
+		},
+		{
+			name: "should handle empty composite roles - remove all existing composites",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:                  "role1",
+						Description:           "Role 1 description",
+						AssociatedClientRoles: []string{}, // Empty - should remove all existing composites
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID - return existing composite roles that should all be removed
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("composite-role1-id"),
+							Name: gocloak.StringP("composite-role1"),
+						},
+						{
+							ID:   gocloak.StringP("composite-role2-id"),
+							Name: gocloak.StringP("composite-role2"),
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRoleComposite for removing all composite roles
+				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+					Return(nil).Once()
+			},
+			expectedError: "",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+				"DeleteClientRoleComposite": 1,
+			},
+		},
+		{
+			name: "should fail when handleEmptyComposites returns error",
+			client: &dto.Client{
+				ClientId: "test-client",
+				Roles: []dto.ClientRole{
+					{
+						Name:                  "role1",
+						Description:           "Role 1 description",
+						AssociatedClientRoles: []string{}, // Empty - should trigger handleEmptyComposites
+					},
+				},
+			},
+			setupMocks: func(m *mocks.MockGoCloak) {
+				// Mock GetClientID
+				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+					Return([]*gocloak.Client{
+						{
+							ID:       gocloak.StringP(clientID),
+							ClientID: gocloak.StringP("test-client"),
+						},
+					}, nil).Once()
+
+				// Mock getExistingClientRolesMap
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock syncClientRoleComposites - get existing roles again
+				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+					Return([]*gocloak.Role{
+						{
+							ID:          gocloak.StringP("role1-id"),
+							Name:        gocloak.StringP("role1"),
+							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
+						},
+					}, nil).Once()
+
+				// Mock GetCompositeRolesByRoleID - return existing composite roles that should all be removed
+				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+					Return([]*gocloak.Role{
+						{
+							ID:   gocloak.StringP("composite-role1-id"),
+							Name: gocloak.StringP("composite-role1"),
+						},
+					}, nil).Once()
+
+				// Mock DeleteClientRoleComposite to fail
+				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+					Return(errors.New("failed to delete composite role")).Once()
+			},
+			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: failed to delete composite role",
+			expectedCalls: map[string]int{
+				"GetClients":                1,
+				"GetClientRoles":            2,
+				"GetCompositeRolesByRoleID": 1,
+				"DeleteClientRoleComposite": 1,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			// Create mock client
+			mockClient := mocks.NewMockGoCloak(t)
+
+			// Setup mocks
+			if tt.setupMocks != nil {
+				tt.setupMocks(mockClient)
+			}
+
+			// Create adapter
+			adapter := &GoCloakAdapter{
+				client: mockClient,
+				token:  &gocloak.JWT{AccessToken: token},
+				log:    logr.Discard(),
+			}
+
+			// Call the method
+			err := adapter.SyncClientRoles(context.Background(), realmName, tt.client)
+
+			// Assert results
+			if tt.expectedError != "" {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedError)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}

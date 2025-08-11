@@ -20,9 +20,11 @@ spec:
   webUrl: https://keycloakclient-sample.com
   attributes:
     post.logout.redirect.uris: "+"
-  clientRoles:
-    - administrator
-    - developer
+  clientRolesV2:
+    - name: administrator
+      description: "Administrator"
+    - name: developer
+      description: "Developer"
   redirectUris:
     - https://keycloakclient-sample.com
     - https://keycloakclient-sample.com/*
@@ -40,9 +42,11 @@ spec:
   webUrl: https://keycloakclient-sample.com
   attributes:
     post.logout.redirect.uris: "+"
-  clientRoles:
-    - administrator
-    - developer
+  clientRolesV2:
+    - name: administrator
+      description: "Administrator"
+    - name: developer
+      description: "Developer"
   redirectUris:
     - https://keycloakclient-sample.com
     - https://keycloakclient-sample.com/*
@@ -61,9 +65,11 @@ spec:
   webUrl: https://keycloakclient-serviceaccount.com
   attributes:
     post.logout.redirect.uris: "+"
-  clientRoles:
-    - administrator
-    - developer
+  clientRolesV2:
+    - name: administrator
+      description: "Administrator"
+    - name: developer
+      description: "Developer"
   redirectUris:
     - https://keycloakclient-serviceaccount.com
     - https://keycloakclient-serviceaccount.com/*

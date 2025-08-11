@@ -186,6 +186,11 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 		updated = true
 	}
 
+	// Migrate ClientRoles to ClientRolesV2 if needed
+	if migrated := r.migrateClientRoles(keycloakClient); migrated {
+		updated = true
+	}
+
 	if updated {
 		if err := r.client.Update(ctx, keycloakClient); err != nil {
 			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
@@ -195,6 +200,30 @@ func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakCli
 	}
 
 	return false, nil
+}
+
+// migrateClientRoles migrates ClientRoles to ClientRolesV2 format.
+// This function converts the old string-based client roles to the new ClientRole struct format.
+// It only performs migration if ClientRolesV2 is empty and ClientRoles is not empty.
+func (r *ReconcileKeycloakClient) migrateClientRoles(keycloakClient *keycloakApi.KeycloakClient) bool {
+	// Only migrate if ClientRolesV2 is empty and ClientRoles is not empty
+	if len(keycloakClient.Spec.ClientRolesV2) == 0 && len(keycloakClient.Spec.ClientRoles) > 0 {
+		// Convert string-based roles to ClientRole structs
+		for _, roleName := range keycloakClient.Spec.ClientRoles {
+			clientRole := keycloakApi.ClientRole{
+				Name: roleName,
+				// Composite field is left empty as it wasn't available in the old format
+			}
+			keycloakClient.Spec.ClientRolesV2 = append(keycloakClient.Spec.ClientRolesV2, clientRole)
+		}
+
+		// Keep the original ClientRoles field for backward compatibility
+		// keycloakClient.Spec.ClientRoles remains unchanged
+
+		return true
+	}
+
+	return false
 }
 
 func (r *ReconcileKeycloakClient) getKeycloakRealm(

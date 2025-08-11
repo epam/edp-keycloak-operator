@@ -33,20 +33,8 @@ func (el *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClie
 
 	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil)
 
-	for _, role := range clientDto.Roles {
-		exist, err := el.keycloakApiClient.ExistClientRole(clientDto, role)
-		if err != nil {
-			return errors.Wrap(err, "error during ExistClientRole")
-		}
-
-		if exist {
-			reqLog.Info("Client role already exists", "role", role)
-			continue
-		}
-
-		if err := el.keycloakApiClient.CreateClientRole(clientDto, role); err != nil {
-			return errors.Wrap(err, "unable to create client role")
-		}
+	if err := el.keycloakApiClient.SyncClientRoles(ctx, realmName, clientDto); err != nil {
+		return errors.Wrap(err, "unable to sync client roles")
 	}
 
 	reqLog.Info("End put keycloak client role")
