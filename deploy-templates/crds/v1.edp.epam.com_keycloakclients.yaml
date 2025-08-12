@@ -611,11 +611,10 @@ spec:
                 nullable: true
                 properties:
                   attributes:
-                    additionalProperties:
-                      type: string
                     description: Attributes is a map of service account attributes.
                     nullable: true
                     type: object
+                    x-kubernetes-preserve-unknown-fields: true
                   clientRoles:
                     description: ClientRoles is a list of client roles assigned to
                       service account.

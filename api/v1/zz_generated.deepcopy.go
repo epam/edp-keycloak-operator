@@ -1533,13 +1533,7 @@ func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
-	if in.Attributes != nil {
-		in, out := &in.Attributes, &out.Attributes
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
+	in.Attributes.DeepCopyInto(&out.Attributes)
 	out.PasswordSecret = in.PasswordSecret
 	if in.IdentityProviders != nil {
 		in, out := &in.IdentityProviders, &out.IdentityProviders
@@ -1987,13 +1981,7 @@ func (in *ServiceAccount) DeepCopyInto(out *ServiceAccount) {
 			(*in)[i].DeepCopyInto(&(*out)[i])
 		}
 	}
-	if in.Attributes != nil {
-		in, out := &in.Attributes, &out.Attributes
-		*out = make(map[string]string, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val
-		}
-	}
+	in.Attributes.DeepCopyInto(&out.Attributes)
 	if in.Groups != nil {
 		in, out := &in.Groups, &out.Groups
 		*out = make([]string, len(*in))
