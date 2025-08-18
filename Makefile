@@ -87,6 +87,7 @@ help:  ## Display this help
 manifests: controller-gen ## Generate WebhookConfiguration, ClusterRole and CustomResourceDefinition objects.
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=deploy-templates/crds
 	$(CONTROLLER_GEN) rbac:roleName=manager-role crd webhook paths="./..." output:crd:artifacts:config=config/crd/bases
+	$(MAKE) api-docs
 
 .PHONY: generate
 generate: controller-gen ## Generate code containing DeepCopy, DeepCopyInto, and DeepCopyObject method implementations.
@@ -98,7 +99,7 @@ validate-docs: api-docs helm-docs  ## Validate helm and api docs
 	@git diff -s --exit-code docs/api.md || (echo " Run 'make api-docs' to address the issue." && git diff && exit 1)
 
 # Run tests
-test: fmt vet envtest
+test: fmt vet setup-envtest
 	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) --arch=amd64 use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	TEST_KEYCLOAK_URL=${TEST_KEYCLOAK_URL} \
 	go test ./... -coverprofile=coverage.out `go list ./...`
@@ -118,8 +119,16 @@ vet:  ## Run go vet
 	go vet ./...
 
 .PHONY: lint
-lint: golangci-lint ## Run go lint
-	${GOLANGCI_LINT} run -v -c .golangci.yaml ./...
+lint: golangci-lint ## Run golangci-lint linter
+	$(GOLANGCI_LINT) run
+
+.PHONY: lint-fix
+lint-fix: golangci-lint ## Run golangci-lint linter and perform fixes
+	$(GOLANGCI_LINT) run --fix
+
+.PHONY: lint-config
+lint-config: golangci-lint ## Verify golangci-lint linter configuration
+	$(GOLANGCI_LINT) config verify
 
 .PHONY: build
 build:  ## build operator's binary
@@ -158,16 +167,16 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 ##@ Build Dependencies
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.4.3
-CONTROLLER_TOOLS_VERSION ?= v0.16.5
-ENVTEST_VERSION ?= release-0.19
+KUSTOMIZE_VERSION ?= v5.6.0
+CONTROLLER_TOOLS_VERSION ?= v0.18.0
+ENVTEST_VERSION := $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
+ENVTEST_K8S_VERSION := $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
 GOLANGCI_LINT_VERSION ?= v1.64.7
 MOCKERY_VERSION ?= v2.53.2
 HELMDOCS_VERSION ?= v1.14.2
 GITCHGLOG_VERSION ?= v0.15.4
 CRDOC_VERSION ?= v0.6.4
-ENVTEST_K8S_VERSION = 1.31.0
-OPERATOR_SDK_VERSION ?= v1.39.2
+OPERATOR_SDK_VERSION ?= v1.41.1
 
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 .PHONY: kustomize
@@ -218,9 +227,17 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	$(OPERATOR_SDK) bundle validate ./bundle
 
-ENVTEST=$(LOCALBIN)/setup-envtest
+.PHONY: setup-envtest
+setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
+	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."
+	@$(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path || { \
+		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
+		exit 1; \
+	}
+
+ENVTEST ?= $(LOCALBIN)/setup-envtest
 .PHONY: envtest
-envtest: $(ENVTEST) ## Download envtest-setup locally if necessary.
+envtest: $(ENVTEST) ## Download setup-envtest locally if necessary.
 $(ENVTEST): $(LOCALBIN)
 	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
