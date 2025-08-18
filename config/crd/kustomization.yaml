@@ -21,38 +21,9 @@ resources:
 patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
-#- path: patches/webhook_in_keycloaks.yaml
-#- path: patches/webhook_in_keycloakauthflows.yaml
-#- path: patches/webhook_in_keycloakclients.yaml
-#- path: patches/webhook_in_keycloakclientscopes.yaml
-#- path: patches/webhook_in_keycloakrealmcomponents.yaml
-#- path: patches/webhook_in_keycloakrealms.yaml
-#- path: patches/webhook_in_keycloakrealmgroups.yaml
-#- path: patches/webhook_in_keycloakrealmidentityproviders.yaml
-#- path: patches/webhook_in_keycloakrealmroles.yaml
-#- path: patches/webhook_in_keycloakrealmrolebatches.yaml
-#- path: patches/webhook_in_keycloakrealmusers.yaml
-#- path: patches/webhook_in_clusterkeycloaks.yaml
-#- path: patches/webhook_in_clusterkeycloakrealms.yaml
-#+kubebuilder:scaffold:crdkustomizewebhookpatch
+# +kubebuilder:scaffold:crdkustomizewebhookpatch
 
-# [CERTMANAGER] To enable cert-manager, uncomment all the sections with [CERTMANAGER] prefix.
-# patches here are for enabling the CA injection for each CRD
-#- patches/cainjection_in_keycloaks.yaml
-#- patches/cainjection_in_keycloakauthflows.yaml
-#- patches/cainjection_in_keycloakclients.yaml
-#- patches/cainjection_in_keycloakclientscopes.yaml
-#- patches/cainjection_in_keycloakrealmcomponents.yaml
-#- patches/cainjection_in_keycloakrealms.yaml
-#- patches/cainjection_in_keycloakrealmgroups.yaml
-#- patches/cainjection_in_keycloakrealmidentityproviders.yaml
-#- patches/cainjection_in_keycloakrealmroles.yaml
-#- patches/cainjection_in_keycloakrealmrolebatches.yaml
-#- patches/cainjection_in_keycloakrealmusers.yaml
-#- patches/cainjection_in_clusterkeycloaks.yaml
-#- patches/cainjection_in_clusterkeycloakrealms.yaml
-#+kubebuilder:scaffold:crdkustomizecainjectionpatch
-
+# [WEBHOOK] To enable webhook, uncomment the following section
 # the following config is for teaching kustomize how to do kustomization for CRDs.
-configurations:
-- kustomizeconfig.yaml
+#configurations:
+#- kustomizeconfig.yaml

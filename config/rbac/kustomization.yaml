@@ -1,57 +1,66 @@
 resources:
-  # All RBAC will be applied under this service account in
-  # the deployment namespace. You may comment out this resource
-  # if your manager will use a service account that exists at
-  # runtime. Be sure to update RoleBinding and ClusterRoleBinding
-  # subjects if changing service account names.
-  - service_account.yaml
-  - role.yaml
-  - role_binding.yaml
-  - leader_election_role.yaml
-  - leader_election_role_binding.yaml
-  # The following RBAC configurations are used to protect
-  # the metrics endpoint with authn/authz. These configurations
-  # ensure that only authorized users and service accounts
-  # can access the metrics endpoint. Comment the following
-  # permissions if you want to disable this protection.
-  # More info: https://book.kubebuilder.io/reference/metrics.html
-  - metrics_auth_role.yaml
-  - metrics_auth_role_binding.yaml
-  - metrics_reader_role.yaml
-  # For each CRD, "Editor" and "Viewer" roles are scaffolded by
-  # default, aiding admins in cluster management. Those roles are
-  # not used by the Project itself. You can comment the following lines
-  # if you do not want those helpers be installed with your Project.
-  - keycloak_editor_role.yaml
-  - keycloak_viewer_role.yaml
-  - clusterkeycloak_editor_role.yaml
-  - clusterkeycloak_viewer_role.yaml
-  - clusterkeycloakrealm_editor_role.yaml
-  - clusterkeycloakrealm_viewer_role.yaml
-  - keycloakauthflow_editor_role.yaml
-  - keycloakauthflow_viewer_role.yaml
-  - keycloakclient_editor_role.yaml
-  - keycloakclient_viewer_role.yaml
-  - keycloakclientscope_editor_role.yaml
-  - keycloakclientscope_viewer_role.yaml
-  - keycloakrealm_editor_role.yaml
-  - keycloakrealm_viewer_role.yaml
-  - keycloakrealmcomponent_editor_role.yaml
-  - keycloakrealmcomponent_viewer_role.yaml
-  - keycloakrealmgroup_editor_role.yaml
-  - keycloakrealmgroup_viewer_role.yaml
-  - keycloakrealmidentityprovider_editor_role.yaml
-  - keycloakrealmidentityprovider_viewer_role.yaml
-  - keycloakrealmrole_editor_role.yaml
-  - keycloakrealmrole_viewer_role.yaml
-  - keycloakrealmrolebatch_editor_role.yaml
-  - keycloakrealmrolebatch_viewer_role.yaml
-  - keycloakrealmuser_editor_role.yaml
-  - keycloakrealmuser_viewer_role.yaml
-# For each CRD, "Admin", "Editor" and "Viewer" roles are scaffolded by
+# All RBAC will be applied under this service account in
+# the deployment namespace. You may comment out this resource
+# if your manager will use a service account that exists at
+# runtime. Be sure to update RoleBinding and ClusterRoleBinding
+# subjects if changing service account names.
+- service_account.yaml
+- role.yaml
+- role_binding.yaml
+- leader_election_role.yaml
+- leader_election_role_binding.yaml
+# The following RBAC configurations are used to protect
+# the metrics endpoint with authn/authz. These configurations
+# ensure that only authorized users and service accounts
+# can access the metrics endpoint. Comment the following
+# permissions if you want to disable this protection.
+# More info: https://book.kubebuilder.io/reference/metrics.html
+- metrics_auth_role.yaml
+- metrics_auth_role_binding.yaml
+- metrics_reader_role.yaml
+# For each CRD, "Editor" and "Viewer" roles are scaffolded by
 # default, aiding admins in cluster management. Those roles are
-# not used by the edp-keycloak-operator itself. You can comment the following lines
+# not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
+- keycloak_admin_role.yaml
+- keycloak_editor_role.yaml
+- keycloak_viewer_role.yaml
+- clusterkeycloak_admin_role.yaml
+- clusterkeycloak_editor_role.yaml
+- clusterkeycloak_viewer_role.yaml
+- clusterkeycloakrealm_admin_role.yaml
+- clusterkeycloakrealm_editor_role.yaml
+- clusterkeycloakrealm_viewer_role.yaml
+- keycloakauthflow_admin_role.yaml
+- keycloakauthflow_editor_role.yaml
+- keycloakauthflow_viewer_role.yaml
+- keycloakclient_admin_role.yaml
+- keycloakclient_editor_role.yaml
+- keycloakclient_viewer_role.yaml
+- keycloakclientscope_admin_role.yaml
+- keycloakclientscope_editor_role.yaml
+- keycloakclientscope_viewer_role.yaml
+- keycloakrealm_admin_role.yaml
+- keycloakrealm_editor_role.yaml
+- keycloakrealm_viewer_role.yaml
+- keycloakrealmcomponent_admin_role.yaml
+- keycloakrealmcomponent_editor_role.yaml
+- keycloakrealmcomponent_viewer_role.yaml
+- keycloakrealmgroup_admin_role.yaml
+- keycloakrealmgroup_editor_role.yaml
+- keycloakrealmgroup_viewer_role.yaml
+- keycloakrealmidentityprovider_admin_role.yaml
+- keycloakrealmidentityprovider_editor_role.yaml
+- keycloakrealmidentityprovider_viewer_role.yaml
+- keycloakrealmrole_admin_role.yaml
+- keycloakrealmrole_editor_role.yaml
+- keycloakrealmrole_viewer_role.yaml
+- keycloakrealmrolebatch_admin_role.yaml
+- keycloakrealmrolebatch_editor_role.yaml
+- keycloakrealmrolebatch_viewer_role.yaml
+- keycloakrealmuser_admin_role.yaml
+- keycloakrealmuser_editor_role.yaml
+- keycloakrealmuser_viewer_role.yaml
 - keycloakorganization_admin_role.yaml
 - keycloakorganization_editor_role.yaml
 - keycloakorganization_viewer_role.yaml

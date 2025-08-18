@@ -2,10 +2,8 @@ package keycloak
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"path/filepath"
-	goruntime "runtime"
 	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -23,6 +21,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var (
@@ -52,8 +51,7 @@ var _ = BeforeSuite(func() {
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
-		BinaryAssetsDirectory: filepath.Join("..", "..", "..", "bin", "k8s",
-			fmt.Sprintf("1.31.0-%s-%s", goruntime.GOOS, goruntime.GOARCH)),
+		BinaryAssetsDirectory: testutils.GetFirstFoundEnvTestBinaryDir(),
 	}
 
 	var err error
