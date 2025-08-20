@@ -194,7 +194,6 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 
 	cScope := adapter.ClientScope{
 		Name:            instance.Spec.Name,
-		Attributes:      instance.Spec.Attributes,
 		Protocol:        instance.Spec.Protocol,
 		ProtocolMappers: convertProtocolMappers(instance.Spec.ProtocolMappers),
 		Description:     instance.Spec.Description,

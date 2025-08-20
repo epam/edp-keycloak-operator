@@ -58,7 +58,7 @@ type KeycloakRealmUserSpec struct {
 	// Attributes is a map of user attributes.
 	// +nullable
 	// +optional
-	Attributes map[string]string `json:"attributes,omitempty"`
+	Attributes common.UserAttributes `json:"attributes,omitempty"`
 
 	// ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
 	// Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
