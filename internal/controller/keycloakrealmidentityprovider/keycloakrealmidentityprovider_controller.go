@@ -3,7 +3,6 @@ package keycloakrealmidentityprovider
 import (
 	"context"
 	"fmt"
-	"maps"
 	"reflect"
 	"time"
 
@@ -19,8 +18,8 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmidentityprovider/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -35,22 +34,16 @@ type Helper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
-type RefClient interface {
-	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error
-}
-
 type Reconcile struct {
 	client                  client.Client
 	helper                  Helper
-	secretRefClient         RefClient
 	successReconcileTimeout time.Duration
 }
 
-func NewReconcile(client client.Client, helper Helper, secretRefClient RefClient) *Reconcile {
+func NewReconcile(client client.Client, helper Helper) *Reconcile {
 	return &Reconcile{
-		client:          client,
-		helper:          helper,
-		secretRefClient: secretRefClient,
+		client: client,
+		helper: helper,
 	}
 }
 
@@ -173,94 +166,9 @@ func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloak
 		return nil
 	}
 
-	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
-
-	if err = r.secretRefClient.MapConfigSecretsRefs(ctx, keycloakIDP.Config, keycloakRealmIDP.Namespace); err != nil {
-		return fmt.Errorf("unable to map config secrets: %w", err)
-	}
-
-	providerExists, err := kClient.IdentityProviderExists(ctx, gocloak.PString(realm.Realm), keycloakRealmIDP.Spec.Alias)
-	if err != nil {
-		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
-	}
-
-	if providerExists {
-		if err = kClient.UpdateIdentityProvider(ctx, gocloak.PString(realm.Realm), keycloakIDP); err != nil {
-			return errors.Wrap(err, "unable to update idp")
-		}
-	} else {
-		if err = kClient.CreateIdentityProvider(ctx, gocloak.PString(realm.Realm), keycloakIDP); err != nil {
-			return errors.Wrap(err, "unable to create idp")
-		}
-	}
-
-	if err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, kClient, gocloak.PString(realm.Realm)); err != nil {
-		return errors.Wrap(err, "unable to sync idp mappers")
+	if err = chain.MakeChain(kClient, r.client).Serve(ctx, keycloakRealmIDP, *realm.Realm); err != nil {
+		return fmt.Errorf("unable to serve keycloak idp: %w", err)
 	}
 
 	return nil
-}
-
-func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdentityProviderSpec,
-	kClient keycloak.Client, targetRealm string) error {
-	if len(idpSpec.Mappers) == 0 {
-		return nil
-	}
-
-	mappers, err := kClient.GetIDPMappers(ctx, targetRealm, idpSpec.Alias)
-	if err != nil {
-		return errors.Wrap(err, "unable to get idp mappers")
-	}
-
-	for _, m := range mappers {
-		if err := kClient.DeleteIDPMapper(ctx, targetRealm, idpSpec.Alias, m.ID); err != nil {
-			return errors.Wrap(err, "unable to delete idp mapper")
-		}
-	}
-
-	for _, m := range idpSpec.Mappers {
-		if m.IdentityProviderAlias == "" {
-			m.IdentityProviderAlias = idpSpec.Alias
-		}
-
-		if _, err := kClient.CreateIDPMapper(ctx, targetRealm, idpSpec.Alias,
-			createKeycloakIDPMapperFromSpec(&m)); err != nil {
-			return errors.Wrap(err, "unable to create idp mapper")
-		}
-	}
-
-	return nil
-}
-
-func createKeycloakIDPMapperFromSpec(spec *keycloakApi.IdentityProviderMapper) *adapter.IdentityProviderMapper {
-	m := &adapter.IdentityProviderMapper{
-		IdentityProviderMapper: spec.IdentityProviderMapper,
-		Name:                   spec.Name,
-		Config:                 make(map[string]string, len(spec.Config)),
-		IdentityProviderAlias:  spec.IdentityProviderAlias,
-	}
-
-	maps.Copy(m.Config, spec.Config)
-
-	return m
-}
-
-func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSpec) *adapter.IdentityProvider {
-	p := &adapter.IdentityProvider{
-		Config:                    make(map[string]string, len(spec.Config)),
-		ProviderID:                spec.ProviderID,
-		Alias:                     spec.Alias,
-		Enabled:                   spec.Enabled,
-		AddReadTokenRoleOnCreate:  spec.AddReadTokenRoleOnCreate,
-		AuthenticateByDefault:     spec.AuthenticateByDefault,
-		DisplayName:               spec.DisplayName,
-		FirstBrokerLoginFlowAlias: spec.FirstBrokerLoginFlowAlias,
-		LinkOnly:                  spec.LinkOnly,
-		StoreToken:                spec.StoreToken,
-		TrustEmail:                spec.TrustEmail,
-	}
-
-	maps.Copy(p.Config, spec.Config)
-
-	return p
 }

@@ -2643,6 +2643,65 @@ func (_c *MockClient_GetGroups_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
+// GetIDPManagementPermissions provides a mock function with given fields: realm, idpAlias
+func (_m *MockClient) GetIDPManagementPermissions(realm string, idpAlias string) (*adapter.ManagementPermissionRepresentation, error) {
+	ret := _m.Called(realm, idpAlias)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIDPManagementPermissions")
+	}
+
+	var r0 *adapter.ManagementPermissionRepresentation
+	var r1 error
+	if rf, ok := ret.Get(0).(func(string, string) (*adapter.ManagementPermissionRepresentation, error)); ok {
+		return rf(realm, idpAlias)
+	}
+	if rf, ok := ret.Get(0).(func(string, string) *adapter.ManagementPermissionRepresentation); ok {
+		r0 = rf(realm, idpAlias)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*adapter.ManagementPermissionRepresentation)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(string, string) error); ok {
+		r1 = rf(realm, idpAlias)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// MockClient_GetIDPManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIDPManagementPermissions'
+type MockClient_GetIDPManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// GetIDPManagementPermissions is a helper method to define mock.On call
+//   - realm string
+//   - idpAlias string
+func (_e *MockClient_Expecter) GetIDPManagementPermissions(realm interface{}, idpAlias interface{}) *MockClient_GetIDPManagementPermissions_Call {
+	return &MockClient_GetIDPManagementPermissions_Call{Call: _e.mock.On("GetIDPManagementPermissions", realm, idpAlias)}
+}
+
+func (_c *MockClient_GetIDPManagementPermissions_Call) Run(run func(realm string, idpAlias string)) *MockClient_GetIDPManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *MockClient_GetIDPManagementPermissions_Call) Return(_a0 *adapter.ManagementPermissionRepresentation, _a1 error) *MockClient_GetIDPManagementPermissions_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *MockClient_GetIDPManagementPermissions_Call) RunAndReturn(run func(string, string) (*adapter.ManagementPermissionRepresentation, error)) *MockClient_GetIDPManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetIDPMappers provides a mock function with given fields: ctx, realm, idpAlias
 func (_m *MockClient) GetIDPMappers(ctx context.Context, realm string, idpAlias string) ([]adapter.IdentityProviderMapper, error) {
 	ret := _m.Called(ctx, realm, idpAlias)
@@ -4738,6 +4797,54 @@ func (_c *MockClient_UpdateComponent_Call) Return(_a0 error) *MockClient_UpdateC
 }
 
 func (_c *MockClient_UpdateComponent_Call) RunAndReturn(run func(context.Context, string, *adapter.Component) error) *MockClient_UpdateComponent_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIDPManagementPermissions provides a mock function with given fields: realm, idpAlias, permissions
+func (_m *MockClient) UpdateIDPManagementPermissions(realm string, idpAlias string, permissions adapter.ManagementPermissionRepresentation) error {
+	ret := _m.Called(realm, idpAlias, permissions)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIDPManagementPermissions")
+	}
+
+	var r0 error
+	if rf, ok := ret.Get(0).(func(string, string, adapter.ManagementPermissionRepresentation) error); ok {
+		r0 = rf(realm, idpAlias, permissions)
+	} else {
+		r0 = ret.Error(0)
+	}
+
+	return r0
+}
+
+// MockClient_UpdateIDPManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIDPManagementPermissions'
+type MockClient_UpdateIDPManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// UpdateIDPManagementPermissions is a helper method to define mock.On call
+//   - realm string
+//   - idpAlias string
+//   - permissions adapter.ManagementPermissionRepresentation
+func (_e *MockClient_Expecter) UpdateIDPManagementPermissions(realm interface{}, idpAlias interface{}, permissions interface{}) *MockClient_UpdateIDPManagementPermissions_Call {
+	return &MockClient_UpdateIDPManagementPermissions_Call{Call: _e.mock.On("UpdateIDPManagementPermissions", realm, idpAlias, permissions)}
+}
+
+func (_c *MockClient_UpdateIDPManagementPermissions_Call) Run(run func(realm string, idpAlias string, permissions adapter.ManagementPermissionRepresentation)) *MockClient_UpdateIDPManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(string), args[1].(string), args[2].(adapter.ManagementPermissionRepresentation))
+	})
+	return _c
+}
+
+func (_c *MockClient_UpdateIDPManagementPermissions_Call) Return(_a0 error) *MockClient_UpdateIDPManagementPermissions_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
+func (_c *MockClient_UpdateIDPManagementPermissions_Call) RunAndReturn(run func(string, string, adapter.ManagementPermissionRepresentation) error) *MockClient_UpdateIDPManagementPermissions_Call {
 	_c.Call.Return(run)
 	return _c
 }
