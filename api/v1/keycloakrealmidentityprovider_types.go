@@ -59,6 +59,17 @@ type KeycloakRealmIdentityProviderSpec struct {
 	// +nullable
 	// +optional
 	Mappers []IdentityProviderMapper `json:"mappers,omitempty"`
+
+	// AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for an identity provider.
+	// Feature flag admin-fine-grained-authz:v1 should be enabled in Keycloak server.
+	// Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and removed in a future releases.
+	// +optional
+	AdminFineGrainedPermissionsEnabled bool `json:"adminFineGrainedPermissionsEnabled,omitempty"`
+
+	// Permission is a identity provider permissions configuration
+	// +nullable
+	// +optional
+	Permission *AdminFineGrainedPermission `json:"permission,omitempty"`
 }
 
 type IdentityProviderMapper struct {

@@ -31,6 +31,7 @@ const (
 	idPResource                     = "/admin/realms/{realm}/identity-provider/instances"
 	idPMapperResource               = "/admin/realms/{realm}/identity-provider/instances/{alias}/mappers"
 	getOneIdP                       = idPResource + "/{alias}"
+	idpManagementPermissions        = idPResource + "/{alias}/management/permissions"
 	openIdConfig                    = "/realms/{realm}/.well-known/openid-configuration"
 	authExecutions                  = "/admin/realms/{realm}/authentication/flows/browser/executions"
 	authExecutionConfig             = "/admin/realms/{realm}/authentication/executions/{id}/config"
