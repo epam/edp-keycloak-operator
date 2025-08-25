@@ -44,6 +44,9 @@ type KIdentityProvider interface {
 	UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *adapter.IdentityProviderMapper) error
 	DeleteIDPMapper(ctx context.Context, realm, idpAlias, mapperID string) error
 	GetIDPMappers(ctx context.Context, realm, idpAlias string) ([]adapter.IdentityProviderMapper, error)
+
+	GetIDPManagementPermissions(realm, idpAlias string) (*adapter.ManagementPermissionRepresentation, error)
+	UpdateIDPManagementPermissions(realm, idpAlias string, permissions adapter.ManagementPermissionRepresentation) error
 }
 
 type KAuthFlow interface {
