@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/pkg/errors"
@@ -187,4 +188,38 @@ func (a GoCloakAdapter) GetIDPMappers(ctx context.Context, realm, idpAlias strin
 	}
 
 	return res, nil
+}
+
+func (a GoCloakAdapter) GetIDPManagementPermissions(realm, idpAlias string) (*ManagementPermissionRepresentation, error) {
+	var result ManagementPermissionRepresentation
+
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+		}).
+		SetResult(&result).
+		Get(a.buildPath(idpManagementPermissions))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return nil, fmt.Errorf("unable to get idp management permissions: %w", err)
+	}
+
+	return &result, nil
+}
+
+func (a GoCloakAdapter) UpdateIDPManagementPermissions(realm, idpAlias string, permission ManagementPermissionRepresentation) error {
+	rsp, err := a.startRestyRequest().
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realm,
+			keycloakApiParamAlias: idpAlias,
+		}).
+		SetBody(permission).
+		Put(a.buildPath(idpManagementPermissions))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to update idp management permissions: %w", err)
+	}
+
+	return nil
 }

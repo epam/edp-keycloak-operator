@@ -50,6 +50,12 @@ spec:
                 description: AddReadTokenRoleOnCreate is a flag to add read token
                   role on create.
                 type: boolean
+              adminFineGrainedPermissionsEnabled:
+                description: |-
+                  AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for an identity provider.
+                  Feature flag admin-fine-grained-authz:v1 should be enabled in Keycloak server.
+                  Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and removed in a future releases.
+                type: boolean
               alias:
                 description: Alias is a alias of identity provider.
                 type: string
@@ -102,6 +108,26 @@ spec:
                   type: object
                 nullable: true
                 type: array
+              permission:
+                description: Permission is a identity provider permissions configuration
+                nullable: true
+                properties:
+                  scopePermissions:
+                    description: ScopePermissions mapping of scope and the policies
+                      attached
+                    items:
+                      properties:
+                        name:
+                          type: string
+                        policies:
+                          items:
+                            type: string
+                          type: array
+                      required:
+                      - name
+                      type: object
+                    type: array
+                type: object
               providerId:
                 description: ProviderID is a provider ID of identity provider.
                 type: string
