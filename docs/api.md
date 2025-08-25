@@ -4343,6 +4343,15 @@ Any value can be a reference to k8s secret, in this case value should be in form
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>adminFineGrainedPermissionsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for an identity provider.
+Feature flag admin-fine-grained-authz:v1 should be enabled in Keycloak server.
+Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and removed in a future releases.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>authenticateByDefault</b></td>
         <td>boolean</td>
         <td>
@@ -4375,6 +4384,13 @@ Any value can be a reference to k8s secret, in this case value should be in form
         <td>[]object</td>
         <td>
           Mappers is a list of identity provider mappers.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmidentityproviderspecpermission">permission</a></b></td>
+        <td>object</td>
+        <td>
+          Permission is a identity provider permissions configuration<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4474,6 +4490,67 @@ RealmRef is reference to Realm custom resource.
         <td>string</td>
         <td>
           Name is a name of identity provider mapper.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmIdentityProvider.spec.permission
+<sup><sup>[↩ Parent](#keycloakrealmidentityproviderspec)</sup></sup>
+
+
+
+Permission is a identity provider permissions configuration
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakrealmidentityproviderspecpermissionscopepermissionsindex">scopePermissions</a></b></td>
+        <td>[]object</td>
+        <td>
+          ScopePermissions mapping of scope and the policies attached<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmIdentityProvider.spec.permission.scopePermissions[index]
+<sup><sup>[↩ Parent](#keycloakrealmidentityproviderspecpermission)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>policies</b></td>
+        <td>[]string</td>
+        <td>
+          <br/>
         </td>
         <td>false</td>
       </tr></tbody>

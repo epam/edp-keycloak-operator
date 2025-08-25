@@ -308,7 +308,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = keycloakrealmidentityprovider.NewReconcile(mgr.GetClient(), h, secretref.NewSecretRef(mgr.GetClient())).
+	if err = keycloakrealmidentityprovider.NewReconcile(mgr.GetClient(), h).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-identity-provider controller")
 		os.Exit(1)
