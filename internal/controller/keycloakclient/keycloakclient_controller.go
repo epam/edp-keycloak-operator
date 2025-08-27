@@ -37,10 +37,10 @@ const (
 	clientAttributeLogoutRedirectUrisDefValue = "+"
 )
 
-func NewReconcileKeycloakClient(client client.Client, helper Helper) *ReconcileKeycloakClient {
+func NewReconcileKeycloakClient(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakClient {
 	return &ReconcileKeycloakClient{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -68,9 +68,9 @@ func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager, successReco
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakClient object.
 func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -80,12 +80,12 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	var instance keycloakApi.KeycloakClient
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return
+			return result, resultErr
 		}
 
 		resultErr = err
 
-		return
+		return result, resultErr
 	}
 
 	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
@@ -115,7 +115,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 		resultErr = pkgErrors.Wrap(err, "unable to update status")
 	}
 
-	return
+	return result, resultErr
 }
 
 func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) error {

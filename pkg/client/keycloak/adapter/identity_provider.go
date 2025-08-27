@@ -137,7 +137,12 @@ func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias str
 	return id, nil
 }
 
-func (a GoCloakAdapter) UpdateIDPMapper(ctx context.Context, realm, idpAlias string, mapper *IdentityProviderMapper) error {
+func (a GoCloakAdapter) UpdateIDPMapper(
+	ctx context.Context,
+	realm,
+	idpAlias string,
+	mapper *IdentityProviderMapper,
+) error {
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).
 		SetPathParams(map[string]string{
@@ -190,7 +195,9 @@ func (a GoCloakAdapter) GetIDPMappers(ctx context.Context, realm, idpAlias strin
 	return res, nil
 }
 
-func (a GoCloakAdapter) GetIDPManagementPermissions(realm, idpAlias string) (*ManagementPermissionRepresentation, error) {
+func (a GoCloakAdapter) GetIDPManagementPermissions(
+	realm, idpAlias string,
+) (*ManagementPermissionRepresentation, error) {
 	var result ManagementPermissionRepresentation
 
 	rsp, err := a.startRestyRequest().
@@ -208,7 +215,10 @@ func (a GoCloakAdapter) GetIDPManagementPermissions(realm, idpAlias string) (*Ma
 	return &result, nil
 }
 
-func (a GoCloakAdapter) UpdateIDPManagementPermissions(realm, idpAlias string, permission ManagementPermissionRepresentation) error {
+func (a GoCloakAdapter) UpdateIDPManagementPermissions(
+	realm, idpAlias string,
+	permission ManagementPermissionRepresentation,
+) error {
 	rsp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
 			keycloakApiParamRealm: realm,

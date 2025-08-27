@@ -164,7 +164,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 		roles, err := keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(roles)).Should(Equal(2))
+		Expect(roles).Should(HaveLen(2))
 
 		var indexOfRoleA int
 		for i, role := range roles {
@@ -177,7 +177,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 		compositeRoles, err := keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[indexOfRoleA].ID)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(compositeRoles)).Should(Equal(1))
+		Expect(compositeRoles).Should(HaveLen(1))
 		Expect(*compositeRoles[0].Name).Should(Equal("roleB"))
 
 		By("Updating client roles")
@@ -197,13 +197,13 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		By("Checking client roles")
 		roles, err = keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(roles)).Should(Equal(1))
+		Expect(roles).Should(HaveLen(1))
 		Expect(*roles[0].Name).Should(Equal("roleA"))
 		Expect(*roles[0].Description).Should(Equal("Role A updated"))
 
 		compositeRoles, err = keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[0].ID)
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(len(compositeRoles)).Should(Equal(0))
+		Expect(compositeRoles).Should(BeEmpty())
 	})
 
 	It("Should create KeycloakClient with empty secret", func() {
@@ -451,7 +451,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			ClientID: gocloak.StringP(keycloakClient.Spec.ClientId),
 		})
 		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
-		Expect(len(clients)).Should(Equal(1))
+		Expect(clients).Should(HaveLen(1))
 
 		cl := clients[0]
 

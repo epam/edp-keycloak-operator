@@ -292,19 +292,19 @@ func (h *Helper) getKeycloakAuthDataFromClusterRealm(ctx context.Context, realm 
 
 func MakeKeycloakAuthDataFromKeycloak(
 	ctx context.Context,
-	keycloak *keycloakApi.Keycloak,
+	keycloakCR *keycloakApi.Keycloak,
 	k8sClient client.Client,
 ) (*KeycloakAuthData, error) {
 	auth := &KeycloakAuthData{
-		Url:                keycloak.Spec.Url,
-		SecretName:         keycloak.Spec.Secret,
-		SecretNamespace:    keycloak.Namespace,
-		AdminType:          keycloak.Spec.AdminType,
-		KeycloakCRName:     keycloak.Name,
-		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
+		Url:                keycloakCR.Spec.Url,
+		SecretName:         keycloakCR.Spec.Secret,
+		SecretNamespace:    keycloakCR.Namespace,
+		AdminType:          keycloakCR.Spec.AdminType,
+		KeycloakCRName:     keycloakCR.Name,
+		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
 	}
 
-	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloak.Spec.CACert, keycloak.Namespace, k8sClient)
+	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloakCR.Spec.CACert, keycloakCR.Namespace, k8sClient)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get ca cert: %w", err)
 	}
@@ -316,20 +316,20 @@ func MakeKeycloakAuthDataFromKeycloak(
 
 func MakeKeycloakAuthDataFromClusterKeycloak(
 	ctx context.Context,
-	keycloak *keycloakAlpha.ClusterKeycloak,
+	keycloakCR *keycloakAlpha.ClusterKeycloak,
 	secretNamespace string,
 	k8sClient client.Client,
 ) (*KeycloakAuthData, error) {
 	auth := &KeycloakAuthData{
-		Url:                keycloak.Spec.Url,
-		SecretName:         keycloak.Spec.Secret,
+		Url:                keycloakCR.Spec.Url,
+		SecretName:         keycloakCR.Spec.Secret,
 		SecretNamespace:    secretNamespace,
-		AdminType:          keycloak.Spec.AdminType,
-		KeycloakCRName:     keycloak.Name,
-		InsecureSkipVerify: keycloak.Spec.InsecureSkipVerify,
+		AdminType:          keycloakCR.Spec.AdminType,
+		KeycloakCRName:     keycloakCR.Name,
+		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
 	}
 
-	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloak.Spec.CACert, secretNamespace, k8sClient)
+	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloakCR.Spec.CACert, secretNamespace, k8sClient)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get ca cert: %w", err)
 	}

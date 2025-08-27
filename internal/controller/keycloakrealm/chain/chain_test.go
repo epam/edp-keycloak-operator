@@ -20,7 +20,7 @@ import (
 )
 
 func TestCreateDefChain(t *testing.T) {
-	ns, kSecretName, kServerUsr, kServerPwd, kRealmName, realmName := "test", "test", "test", "test", "test", "test.test"
+	ns, kSecretName, kServerUsr, kServerPwd, kRealmName, realmName := "test", "test-secret", "test-usr", "test-pwd", "test", "test.test"
 	k := keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "test-keycloak", Namespace: ns},
 		Spec: keycloakApi.KeycloakSpec{Secret: kSecretName}, Status: keycloakApi.KeycloakStatus{Connected: true},
 	}
@@ -54,14 +54,14 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("ExistRealm", testRealm.Name).
 		Return(false, nil)
 	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName}).
+		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, Users: []dto.User{}}).
 		Return(nil)
 	kClient.On("UpdateRealmSettings", testifymock.Anything, testifymock.Anything).Return(nil)
 	kClient.On("SetRealmOrganizationsEnabled", testifymock.Anything, testifymock.Anything, testifymock.Anything).Return(nil)
 
 	hm := helpermock.NewControllerHelper(t)
 
-	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, k.Namespace, k.Name).Return(nil)
+	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, kr.Namespace, kr.Spec.KeycloakRef.Name).Return(nil)
 	chain := CreateDefChain(client, s, hm)
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)

@@ -41,10 +41,10 @@ type Reconcile struct {
 	helper Helper
 }
 
-func NewReconcile(client client.Client, helper Helper) *Reconcile {
+func NewReconcile(k8sClient client.Client, controllerHelper Helper) *Reconcile {
 	return &Reconcile{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -65,9 +65,9 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmusers/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmUser object.
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (ctrl.Result, error) {

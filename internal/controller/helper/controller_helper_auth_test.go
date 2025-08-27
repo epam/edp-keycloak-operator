@@ -27,7 +27,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakApiAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
@@ -454,7 +453,7 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 	t.Parallel()
 
 	s := runtime.NewScheme()
-	require.NoError(t, keycloakApiAlpha.AddToScheme(s))
+	require.NoError(t, keycloakAlpha.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
 
 	tests := []struct {

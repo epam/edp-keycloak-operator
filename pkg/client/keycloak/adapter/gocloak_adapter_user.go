@@ -36,7 +36,12 @@ type UserGroupMapping struct {
 	Name string `json:"name"`
 }
 
-func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, userDto *KeycloakUser, addOnly bool) error {
+func (a GoCloakAdapter) SyncRealmUser(
+	ctx context.Context,
+	realmName string,
+	userDto *KeycloakUser,
+	addOnly bool,
+) error {
 	userID, err := a.createOrUpdateUser(ctx, realmName, userDto, addOnly)
 	if err != nil {
 		return err
@@ -63,7 +68,12 @@ func (a GoCloakAdapter) SyncRealmUser(ctx context.Context, realmName string, use
 	return nil
 }
 
-func (a GoCloakAdapter) createOrUpdateUser(ctx context.Context, realmName string, userDto *KeycloakUser, addOnly bool) (string, error) {
+func (a GoCloakAdapter) createOrUpdateUser(
+	ctx context.Context,
+	realmName string,
+	userDto *KeycloakUser,
+	addOnly bool,
+) (string, error) {
 	user, err := a.GetUserByName(ctx, realmName, userDto.Username)
 	if err != nil {
 		if !IsErrNotFound(err) {
@@ -133,7 +143,13 @@ func (a GoCloakAdapter) GetUserByName(ctx context.Context, realmName, username s
 	return nil, NotFoundError("user not found")
 }
 
-func (a GoCloakAdapter) syncUserGroups(ctx context.Context, realmName string, userID string, groups []string, addOnly bool) error {
+func (a GoCloakAdapter) syncUserGroups(
+	ctx context.Context,
+	realmName string,
+	userID string,
+	groups []string,
+	addOnly bool,
+) error {
 	userGroups, err := a.GetUserGroupMappings(ctx, realmName, userID)
 	if err != nil {
 		return err
@@ -229,7 +245,11 @@ func (a GoCloakAdapter) SyncUserRoles(
 	return nil
 }
 
-func (a GoCloakAdapter) GetUserRealmRoleMappings(ctx context.Context, realmName string, userID string) ([]UserRealmRoleMapping, error) {
+func (a GoCloakAdapter) GetUserRealmRoleMappings(
+	ctx context.Context,
+	realmName string,
+	userID string,
+) ([]UserRealmRoleMapping, error) {
 	var roles []UserRealmRoleMapping
 
 	rsp, err := a.startRestyRequest().
@@ -248,7 +268,11 @@ func (a GoCloakAdapter) GetUserRealmRoleMappings(ctx context.Context, realmName 
 	return roles, nil
 }
 
-func (a GoCloakAdapter) GetUserGroupMappings(ctx context.Context, realmName string, userID string) ([]UserGroupMapping, error) {
+func (a GoCloakAdapter) GetUserGroupMappings(
+	ctx context.Context,
+	realmName string,
+	userID string,
+) ([]UserGroupMapping, error) {
 	var groups []UserGroupMapping
 
 	rsp, err := a.startRestyRequest().
@@ -313,7 +337,11 @@ func (a GoCloakAdapter) UpdateUsersProfile(
 ) (*keycloak_go_client.UserProfileConfig, error) {
 	httpClient := a.client.RestyClient().GetClient()
 
-	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken), keycloak_go_client.WithHTTPClient(httpClient))
+	cl, err := keycloak_go_client.NewClient(
+		a.basePath,
+		keycloak_go_client.WithToken(a.token.AccessToken),
+		keycloak_go_client.WithHTTPClient(httpClient),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
 	}
@@ -332,7 +360,11 @@ func (a GoCloakAdapter) GetUsersProfile(
 ) (*keycloak_go_client.UserProfileConfig, error) {
 	httpClient := a.client.RestyClient().GetClient()
 
-	cl, err := keycloak_go_client.NewClient(a.basePath, keycloak_go_client.WithToken(a.token.AccessToken), keycloak_go_client.WithHTTPClient(httpClient))
+	cl, err := keycloak_go_client.NewClient(
+		a.basePath,
+		keycloak_go_client.WithToken(a.token.AccessToken),
+		keycloak_go_client.WithHTTPClient(httpClient),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
 	}
@@ -383,7 +415,11 @@ func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) erro
 	return nil
 }
 
-func (a GoCloakAdapter) makeUserAttributes(keycloakUser *gocloak.User, userCR *KeycloakUser, addOnly bool) *map[string][]string {
+func (a GoCloakAdapter) makeUserAttributes(
+	keycloakUser *gocloak.User,
+	userCR *KeycloakUser,
+	addOnly bool,
+) *map[string][]string {
 	if keycloakUser.Attributes == nil {
 		keycloakUser.Attributes = &map[string][]string{}
 	}
@@ -486,7 +522,14 @@ func (a GoCloakAdapter) addMissingIdentityProviders(
 			UserName:         &userName,
 		}
 
-		if err := a.client.CreateUserFederatedIdentity(ctx, a.token.AccessToken, realmName, userID, provider, federatedIdentity); err != nil {
+		if err := a.client.CreateUserFederatedIdentity(
+			ctx,
+			a.token.AccessToken,
+			realmName,
+			userID,
+			provider,
+			federatedIdentity,
+		); err != nil {
 			return fmt.Errorf("unable to add user to identity provider %s: %w", provider, err)
 		}
 	}
@@ -502,7 +545,13 @@ func (a GoCloakAdapter) removeExtraIdentityProviders(
 ) error {
 	for existingProvider := range existingProviders {
 		if !slices.Contains(providers, existingProvider) {
-			if err := a.client.DeleteUserFederatedIdentity(ctx, a.token.AccessToken, realmName, userID, existingProvider); err != nil {
+			if err := a.client.DeleteUserFederatedIdentity(
+				ctx,
+				a.token.AccessToken,
+				realmName,
+				userID,
+				existingProvider,
+			); err != nil {
 				return fmt.Errorf("unable to remove user from identity provider %s: %w", existingProvider, err)
 			}
 		}

@@ -30,10 +30,10 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 }
 
-func NewReconcileKeycloakRealmRoleBatch(client client.Client, helper Helper) *ReconcileKeycloakRealmRoleBatch {
+func NewReconcileKeycloakRealmRoleBatch(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakRealmRoleBatch {
 	return &ReconcileKeycloakRealmRoleBatch{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -60,9 +60,9 @@ func (r *ReconcileKeycloakRealmRoleBatch) SetupWithManager(mgr ctrl.Manager, suc
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmrolebatches/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmRoleBatch object.
 func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -72,12 +72,12 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 	var instance keycloakApi.KeycloakRealmRoleBatch
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return
+			return result, resultErr
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role batch from k8s")
 
-		return
+		return result, resultErr
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
@@ -102,7 +102,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 
 	log.Info("Reconciling done")
 
-	return
+	return result, resultErr
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) isOwner(batch *keycloakApi.KeycloakRealmRoleBatch, role *keycloakApi.KeycloakRealmRole) bool {
@@ -192,7 +192,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 
 	log.Info("Realm role batch put successfully")
 
-	return
+	return roles, resultErr
 }
 
 func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batch *keycloakApi.KeycloakRealmRoleBatch) error {

@@ -20,8 +20,9 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 	t.Parallel()
 
 	var (
-		token = "token"
-		realm = "realm"
+		token    = "token"
+		realm    = "realm"
+		roleName = "role1"
 	)
 
 	tests := []struct {
@@ -33,7 +34,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "should update associated roles",
 			role: &dto.PrimaryRealmRole{
-				Name: "role1",
+				Name: roleName,
 				// should add role3
 				Composites: []string{"role2", "role3"},
 				// should add role5
@@ -51,7 +52,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return([]*gocloak.Role{
 						{
 							Name: gocloak.StringP("role2"),
@@ -76,8 +77,8 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).Return(
 					func(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
 						switch roleName {
-						case "role1":
-							return &gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil
+						case roleName:
+							return &gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil
 						case "role3":
 							return &gocloak.Role{Name: gocloak.StringP("role3"), ID: gocloak.StringP("role3-id")}, nil
 						default:
@@ -100,7 +101,11 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					func(ctx context.Context, token, realm, clientID, roleName string) (*gocloak.Role, error) {
 						switch roleName {
 						case "role5":
-							return &gocloak.Role{Name: gocloak.StringP("role5"), ID: gocloak.StringP("role5-id"), ClientRole: gocloak.BoolP(true)}, nil
+							return &gocloak.Role{
+								Name:       gocloak.StringP("role5"),
+								ID:         gocloak.StringP("role5-id"),
+								ClientRole: gocloak.BoolP(true),
+							}, nil
 						default:
 							return nil, errors.New("unknown role")
 						}
@@ -111,7 +116,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.MatchedBy(func(roles []gocloak.Role) bool {
 						r := make([]string, 0, len(roles))
 
@@ -130,7 +135,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.MatchedBy(func(roles []gocloak.Role) bool {
 						r := make([]string, 0, len(roles))
 
@@ -149,7 +154,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.Anything).
 					Return(nil)
 
@@ -160,7 +165,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to delete composite roles",
 			role: &dto.PrimaryRealmRole{
-				Name:        "role1",
+				Name:        roleName,
 				Composites:  []string{},
 				IsComposite: true,
 			},
@@ -172,7 +177,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return([]*gocloak.Role{
 						{
 							Name: gocloak.StringP("role2"),
@@ -180,14 +185,14 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					}, nil)
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
-					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+					Return(&gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil)
 
 				m.On(
 					"DeleteRealmRoleComposite",
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.Anything).
 					Return(errors.New("failed to delete composite roles"))
 
@@ -201,7 +206,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to add composite roles",
 			role: &dto.PrimaryRealmRole{
-				Name:        "role1",
+				Name:        roleName,
 				Composites:  []string{"role2"},
 				IsComposite: true,
 				Description: "Role description",
@@ -215,14 +220,14 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return([]*gocloak.Role{}, nil)
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
 					Return(func(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
 						switch roleName {
-						case "role1":
-							return &gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil
+						case roleName:
+							return &gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil
 						case "role2":
 							return &gocloak.Role{Name: gocloak.StringP("role2"), ID: gocloak.StringP("role2-id")}, nil
 						default:
@@ -235,7 +240,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.Anything).
 					Return(errors.New("failed to add composite roles"))
 
@@ -249,7 +254,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed get composite associated role",
 			role: &dto.PrimaryRealmRole{
-				Name:        "role1",
+				Name:        roleName,
 				Composites:  []string{"role2"},
 				IsComposite: true,
 				Description: "Role description",
@@ -288,7 +293,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed get composite associated client role",
 			role: &dto.PrimaryRealmRole{
-				Name:                  "role1",
+				Name:                  roleName,
 				CompositesClientRoles: map[string][]string{"client1": {"role2"}},
 				IsComposite:           true,
 				Description:           "Role description",
@@ -302,11 +307,11 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return([]*gocloak.Role{}, nil)
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
-					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+					Return(&gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil)
 
 				m.On("GetClients", testifymock.Anything, token, realm, testifymock.Anything).
 					Return([]*gocloak.Client{{
@@ -327,7 +332,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed get client",
 			role: &dto.PrimaryRealmRole{
-				Name:                  "role1",
+				Name:                  roleName,
 				CompositesClientRoles: map[string][]string{"client1": {"role2"}},
 				IsComposite:           true,
 				Description:           "Role description",
@@ -341,11 +346,11 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return([]*gocloak.Role{}, nil)
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
-					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+					Return(&gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil)
 
 				m.On("GetClients", testifymock.Anything, token, realm, testifymock.Anything).
 					Return(nil, errors.New("failed to get client"))
@@ -360,7 +365,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed get current composite roles roles",
 			role: &dto.PrimaryRealmRole{
-				Name:                  "role1",
+				Name:                  roleName,
 				CompositesClientRoles: map[string][]string{"client1": {"role2"}},
 				IsComposite:           true,
 				Description:           "Role description",
@@ -374,11 +379,11 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1-id").
+					roleName+"-id").
 					Return(nil, errors.New("failed to get current composite roles"))
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
-					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+					Return(&gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil)
 
 				return m
 			},
@@ -390,7 +395,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "should create new default role",
 			role: &dto.PrimaryRealmRole{
-				Name:      "role1",
+				Name:      roleName,
 				IsDefault: true,
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -402,14 +407,14 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1").
+					roleName).
 					Return(func(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
 						if getRealmCall == 0 {
 							getRealmCall++
 							return nil, NotFoundError("role not found")
 						}
 
-						return &gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil
+						return &gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil
 					})
 
 				m.On(
@@ -436,20 +441,20 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to update role",
 			role: &dto.PrimaryRealmRole{
-				Name: "role1",
+				Name: roleName,
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
 				m := mocks.NewMockGoCloak(t)
 
 				m.On("GetRealmRole", testifymock.Anything, token, realm, testifymock.Anything).
-					Return(&gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil)
+					Return(&gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil)
 
 				m.On(
 					"UpdateRealmRole",
 					testifymock.Anything,
 					token,
 					realm,
-					"role1",
+					roleName,
 					testifymock.Anything).
 					Return(errors.New("failed to update role"))
 
@@ -463,7 +468,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to create role",
 			role: &dto.PrimaryRealmRole{
-				Name: "role1",
+				Name: roleName,
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
 				m := mocks.NewMockGoCloak(t)
@@ -489,7 +494,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to get role",
 			role: &dto.PrimaryRealmRole{
-				Name: "role1",
+				Name: roleName,
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
 				m := mocks.NewMockGoCloak(t)
@@ -507,7 +512,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 		{
 			name: "failed to make role default",
 			role: &dto.PrimaryRealmRole{
-				Name:      "role1",
+				Name:      roleName,
 				IsDefault: true,
 			},
 			client: func(t *testing.T) *mocks.MockGoCloak {
@@ -519,14 +524,14 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 					testifymock.Anything,
 					token,
 					realm,
-					"role1").
+					roleName).
 					Return(func(ctx context.Context, token, realm, roleName string) (*gocloak.Role, error) {
 						if getRealmCall == 0 {
 							getRealmCall++
 							return nil, NotFoundError("role not found")
 						}
 
-						return &gocloak.Role{Name: gocloak.StringP("role1"), ID: gocloak.StringP("role1-id")}, nil
+						return &gocloak.Role{Name: gocloak.StringP(roleName), ID: gocloak.StringP(roleName + "-id")}, nil
 					})
 
 				m.On(

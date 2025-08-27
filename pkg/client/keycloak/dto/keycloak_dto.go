@@ -68,7 +68,7 @@ func ConvertSpecToRole(roleInstance *keycloakApi.KeycloakRealmRole) *PrimaryReal
 }
 
 func ConvertSpecToRealm(spec *keycloakApi.KeycloakRealmSpec) *Realm {
-	var users []User
+	users := make([]User, 0, len(spec.Users))
 	for _, item := range spec.Users {
 		users = append(users, User(item))
 	}
@@ -137,7 +137,12 @@ type IncludedRealmRole struct {
 	Composite string
 }
 
-func ConvertSpecToClient(spec *keycloakApi.KeycloakClientSpec, clientSecret, realmName string, authFlowOverrides map[string]string) *Client {
+func ConvertSpecToClient(
+	spec *keycloakApi.KeycloakClientSpec,
+	clientSecret,
+	realmName string,
+	authFlowOverrides map[string]string,
+) *Client {
 	// Convert ClientRolesV2 to DTO ClientRole format
 	roles := make([]ClientRole, 0, len(spec.ClientRolesV2))
 

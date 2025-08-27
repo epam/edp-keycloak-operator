@@ -9,7 +9,6 @@ import (
 	. "github.com/onsi/gomega"
 
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
@@ -47,7 +46,7 @@ var _ = Describe("Keycloak controller", func() {
 	It("Should create Keycloak object with secret auth", func() {
 		By("By creating a secret")
 		ctx := context.Background()
-		secret := &v1.Secret{
+		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "keycloak-auth-secret",
 				Namespace: KeycloakNamespace,

@@ -161,7 +161,11 @@ func getClientScope(name string, clientScopes []ClientScope) (*ClientScope, erro
 	return nil, NotFoundError(fmt.Sprintf("scope %v was not found", name))
 }
 
-func (a GoCloakAdapter) GetClientScopesByNames(ctx context.Context, realmName string, scopeNames []string) ([]ClientScope, error) {
+func (a GoCloakAdapter) GetClientScopesByNames(
+	ctx context.Context,
+	realmName string,
+	scopeNames []string,
+) ([]ClientScope, error) {
 	log := a.log.WithValues("scopeNames", strings.Join(scopeNames, ","), "realm", realmName)
 	log.Info("Start get Client Scopes by name...")
 
@@ -320,7 +324,11 @@ func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, rea
 	return nil
 }
 
-func (a GoCloakAdapter) GetClientScopeMappers(ctx context.Context, realmName, scopeID string) ([]ProtocolMapper, error) {
+func (a GoCloakAdapter) GetClientScopeMappers(
+	ctx context.Context,
+	realmName,
+	scopeID string,
+) ([]ProtocolMapper, error) {
 	var mappers []ProtocolMapper
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).

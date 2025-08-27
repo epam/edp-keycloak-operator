@@ -196,7 +196,7 @@ func (h *ProcessPolicy) toClientPolicyRepresentation(ctx context.Context, policy
 		clientPolicy = append(clientPolicy, *existingClient.ID)
 	}
 
-	keycloakPolicy.ClientPolicyRepresentation.Clients = &clientPolicy
+	keycloakPolicy.Clients = &clientPolicy
 
 	return nil
 }
@@ -268,12 +268,12 @@ func (h *ProcessPolicy) toRolePolicyRepresentation(ctx context.Context, policy *
 		})
 	}
 
-	keycloakPolicy.RolePolicyRepresentation.Roles = &rolePolicy
+	keycloakPolicy.Roles = &rolePolicy
 
 	return nil
 }
 
-func (h *ProcessPolicy) toTimePolicyRepresentation(ctx context.Context, policy *keycloakApi.Policy, keycloakPolicy *gocloak.PolicyRepresentation) error {
+func (h *ProcessPolicy) toTimePolicyRepresentation(_ context.Context, policy *keycloakApi.Policy, keycloakPolicy *gocloak.PolicyRepresentation) error {
 	if policy.TimePolicy == nil {
 		return fmt.Errorf("time spec is not specified")
 	}
@@ -330,7 +330,7 @@ func (h *ProcessPolicy) toUserPolicyRepresentation(ctx context.Context, policy *
 		userPolicy = append(userPolicy, *existingUser.ID)
 	}
 
-	keycloakPolicy.UserPolicyRepresentation.Users = &userPolicy
+	keycloakPolicy.Users = &userPolicy
 
 	return nil
 }

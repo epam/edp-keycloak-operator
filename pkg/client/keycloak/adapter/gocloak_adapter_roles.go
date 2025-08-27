@@ -22,7 +22,11 @@ func (a GoCloakAdapter) SyncRealmRole(ctx context.Context, realmName string, rol
 	return nil
 }
 
-func (a GoCloakAdapter) createOrUpdateRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
+func (a GoCloakAdapter) createOrUpdateRealmRole(
+	ctx context.Context,
+	realmName string,
+	role *dto.PrimaryRealmRole,
+) error {
 	exists := true
 
 	currentRealmRole, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, role.Name)
@@ -116,8 +120,10 @@ func (a GoCloakAdapter) makeRoleDefault(ctx context.Context, realmName string, r
 	return nil
 }
 
-// GetDefaultCompositeRoleName returns the name of the composite role, which stores all default roles for the given realm.
-// The name is generated according to the Keycloak documentation: https://www.keycloak.org/docs/22.0.5/release_notes/#default-roles-processing-improvement
+// GetDefaultCompositeRoleName returns the name of the composite role,
+// which stores all default roles for the given realm.
+// The name is generated according to the Keycloak documentation:
+// https://www.keycloak.org/docs/22.0.5/release_notes/#default-roles-processing-improvement
 func GetDefaultCompositeRoleName(realmName string) string {
 	return "default-roles-" + realmName
 }

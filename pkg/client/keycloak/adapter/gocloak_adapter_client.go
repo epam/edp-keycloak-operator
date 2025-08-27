@@ -10,16 +10,25 @@ import (
 
 const defaultMax = 100
 
-func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
+// addScopeToClient is a helper function that handles the common logic for adding scopes to clients.
+// It takes function parameters to handle the differences between default and optional scopes.
+func (a GoCloakAdapter) addScopeToClient(
+	ctx context.Context,
+	realmName, clientName string,
+	scopes []ClientScope,
+	scopeType string,
+	getExistingScopes func(ctx context.Context, token, realm, clientID string) ([]*gocloak.ClientScope, error),
+	addScopeFunc func(ctx context.Context, token, realm, clientID, scopeID string) error,
+) error {
 	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
-	log.Info("Start add Default Client Scopes to client...")
+	log.Info(fmt.Sprintf("Start adding %s Client Scopes to client", scopeType))
 
 	clientID, err := a.GetClientID(clientName, realmName)
 	if err != nil {
 		return errors.Wrap(err, "error during GetClientId")
 	}
 
-	existingScopes, err := a.client.GetClientsDefaultScopes(ctx, a.token.AccessToken, realmName, clientID)
+	existingScopes, err := getExistingScopes(ctx, a.token.AccessToken, realmName, clientID)
 	if err != nil {
 		return errors.Wrap(err, fmt.Sprintf("failed to get existing client scope for client %s", clientName))
 	}
@@ -37,56 +46,54 @@ func (a GoCloakAdapter) AddDefaultScopeToClient(ctx context.Context, realmName, 
 			continue
 		}
 
-		err := a.client.AddDefaultScopeToClient(ctx, a.token.AccessToken, realmName, clientID, scope.ID)
+		err := addScopeFunc(ctx, a.token.AccessToken, realmName, clientID, scope.ID)
 		if err != nil {
 			a.log.Error(err, fmt.Sprintf("failed link scope %s to client %s", scope.Name, clientName))
 		}
 	}
 
-	log.Info("End add Default Client Scopes to client...")
+	log.Info(fmt.Sprintf("End adding %s Client Scopes to client", scopeType))
 
 	return nil
 }
 
-func (a GoCloakAdapter) AddOptionalScopeToClient(ctx context.Context, realmName, clientName string, scopes []ClientScope) error {
-	log := a.log.WithValues("clientName", clientName, logKeyRealm, realmName)
-	log.Info("Start add Optional Client Scopes to client...")
-
-	clientID, err := a.GetClientID(clientName, realmName)
-	if err != nil {
-		return errors.Wrap(err, "error during GetClientId")
-	}
-
-	existingScopes, err := a.client.GetClientsOptionalScopes(ctx, a.token.AccessToken, realmName, clientID)
-	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get existing client scope for client %s", clientName))
-	}
-
-	existingScopesMap := make(map[string]*gocloak.ClientScope)
-
-	for _, s := range existingScopes {
-		if s != nil {
-			existingScopesMap[*s.ID] = s
-		}
-	}
-
-	for _, scope := range scopes {
-		if _, ok := existingScopesMap[scope.ID]; ok {
-			continue
-		}
-
-		err := a.client.AddOptionalScopeToClient(ctx, a.token.AccessToken, realmName, clientID, scope.ID)
-		if err != nil {
-			a.log.Error(err, fmt.Sprintf("failed link scope %s to client %s", scope.Name, clientName))
-		}
-	}
-
-	log.Info("End add Optional Client Scopes to client...")
-
-	return nil
+func (a GoCloakAdapter) AddDefaultScopeToClient(
+	ctx context.Context,
+	realmName, clientName string,
+	scopes []ClientScope,
+) error {
+	return a.addScopeToClient(
+		ctx,
+		realmName,
+		clientName,
+		scopes,
+		"Default",
+		a.client.GetClientsDefaultScopes,
+		a.client.AddDefaultScopeToClient,
+	)
 }
 
-func (a GoCloakAdapter) GetPermissions(ctx context.Context, realm, idOfClient string) (map[string]gocloak.PermissionRepresentation, error) {
+func (a GoCloakAdapter) AddOptionalScopeToClient(
+	ctx context.Context,
+	realmName, clientName string,
+	scopes []ClientScope,
+) error {
+	return a.addScopeToClient(
+		ctx,
+		realmName,
+		clientName,
+		scopes,
+		"Optional",
+		a.client.GetClientsOptionalScopes,
+		a.client.AddOptionalScopeToClient,
+	)
+}
+
+func (a GoCloakAdapter) GetPermissions(
+	ctx context.Context,
+	realm,
+	idOfClient string,
+) (map[string]gocloak.PermissionRepresentation, error) {
 	params := gocloak.GetPermissionParams{
 		Max: gocloak.IntP(defaultMax),
 	}
@@ -109,7 +116,11 @@ func (a GoCloakAdapter) GetPermissions(ctx context.Context, realm, idOfClient st
 	return permissions, nil
 }
 
-func (a GoCloakAdapter) GetScopes(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ScopeRepresentation, error) {
+func (a GoCloakAdapter) GetScopes(
+	ctx context.Context,
+	realm,
+	idOfClient string,
+) (map[string]gocloak.ScopeRepresentation, error) {
 	params := gocloak.GetScopeParams{
 		Max:  gocloak.IntP(defaultMax),
 		Deep: gocloak.BoolP(false),
@@ -133,7 +144,11 @@ func (a GoCloakAdapter) GetScopes(ctx context.Context, realm, idOfClient string)
 	return scopes, nil
 }
 
-func (a GoCloakAdapter) GetResources(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ResourceRepresentation, error) {
+func (a GoCloakAdapter) GetResources(
+	ctx context.Context,
+	realm,
+	idOfClient string,
+) (map[string]gocloak.ResourceRepresentation, error) {
 	params := gocloak.GetResourceParams{
 		Max:  gocloak.IntP(defaultMax),
 		Deep: gocloak.BoolP(false),
@@ -159,7 +174,11 @@ func (a GoCloakAdapter) GetResources(ctx context.Context, realm, idOfClient stri
 
 // CreateResource creates a client authorization resource.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) CreateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error) {
+func (a GoCloakAdapter) CreateResource(
+	ctx context.Context,
+	realm, idOfClient string,
+	resource gocloak.ResourceRepresentation,
+) (*gocloak.ResourceRepresentation, error) {
 	p, err := a.client.CreateResource(ctx, a.token.AccessToken, realm, idOfClient, resource)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create resource: %w", err)
@@ -170,7 +189,11 @@ func (a GoCloakAdapter) CreateResource(ctx context.Context, realm, idOfClient st
 
 // UpdateResource updates a client authorization resource.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) UpdateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) error {
+func (a GoCloakAdapter) UpdateResource(
+	ctx context.Context,
+	realm, idOfClient string,
+	resource gocloak.ResourceRepresentation,
+) error {
 	if err := a.client.UpdateResource(ctx, a.token.AccessToken, realm, idOfClient, resource); err != nil {
 		return fmt.Errorf("failed to update resource: %w", err)
 	}
@@ -188,7 +211,11 @@ func (a GoCloakAdapter) DeleteResource(ctx context.Context, realm, idOfClient, r
 
 // CreateScope creates a client authorization permission.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) CreateScope(ctx context.Context, realm, idOfClient string, scope string) (*gocloak.ScopeRepresentation, error) {
+func (a GoCloakAdapter) CreateScope(
+	ctx context.Context,
+	realm, idOfClient string,
+	scope string,
+) (*gocloak.ScopeRepresentation, error) {
 	scopeRepresentation := gocloak.ScopeRepresentation{
 		Name: &scope,
 	}
@@ -211,7 +238,11 @@ func (a GoCloakAdapter) DeleteScope(ctx context.Context, realm, idOfClient, scop
 
 // CreatePermission creates a client authorization permission.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) CreatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error) {
+func (a GoCloakAdapter) CreatePermission(
+	ctx context.Context,
+	realm, idOfClient string,
+	permission gocloak.PermissionRepresentation,
+) (*gocloak.PermissionRepresentation, error) {
 	p, err := a.client.CreatePermission(ctx, a.token.AccessToken, realm, idOfClient, permission)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create permission: %w", err)
@@ -222,7 +253,11 @@ func (a GoCloakAdapter) CreatePermission(ctx context.Context, realm, idOfClient 
 
 // UpdatePermission updates a client authorization permission.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) UpdatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) error {
+func (a GoCloakAdapter) UpdatePermission(
+	ctx context.Context,
+	realm, idOfClient string,
+	permission gocloak.PermissionRepresentation,
+) error {
 	if err := a.client.UpdatePermission(ctx, a.token.AccessToken, realm, idOfClient, permission); err != nil {
 		return fmt.Errorf("failed to update permission: %w", err)
 	}
@@ -238,7 +273,10 @@ func (a GoCloakAdapter) DeletePermission(ctx context.Context, realm, idOfClient,
 	return nil
 }
 
-func (a GoCloakAdapter) GetPolicies(ctx context.Context, realm, idOfClient string) (map[string]*gocloak.PolicyRepresentation, error) {
+func (a GoCloakAdapter) GetPolicies(
+	ctx context.Context,
+	realm, idOfClient string,
+) (map[string]*gocloak.PolicyRepresentation, error) {
 	params := gocloak.GetPolicyParams{
 		Permission: gocloak.BoolP(false),
 		Max:        gocloak.IntP(defaultMax),
@@ -264,7 +302,11 @@ func (a GoCloakAdapter) GetPolicies(ctx context.Context, realm, idOfClient strin
 
 // CreatePolicy creates a client authorization policy.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) CreatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error) {
+func (a GoCloakAdapter) CreatePolicy(
+	ctx context.Context,
+	realm, idOfClient string,
+	policy gocloak.PolicyRepresentation,
+) (*gocloak.PolicyRepresentation, error) {
 	pl, err := a.client.CreatePolicy(ctx, a.token.AccessToken, realm, idOfClient, policy)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create policy: %w", err)
@@ -275,7 +317,11 @@ func (a GoCloakAdapter) CreatePolicy(ctx context.Context, realm, idOfClient stri
 
 // UpdatePolicy updates a client authorization policy.
 // nolint:gocritic // gocloak is a third party library, we can't change the function signature
-func (a GoCloakAdapter) UpdatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) error {
+func (a GoCloakAdapter) UpdatePolicy(
+	ctx context.Context,
+	realm, idOfClient string,
+	policy gocloak.PolicyRepresentation,
+) error {
 	if err := a.client.UpdatePolicy(ctx, a.token.AccessToken, realm, idOfClient, policy); err != nil {
 		return fmt.Errorf("failed to update policy: %w", err)
 	}
@@ -297,7 +343,9 @@ type ManagementPermissionRepresentation struct {
 	ScopePermissions *map[string]string `json:"scopePermissions,omitempty"`
 }
 
-func (a GoCloakAdapter) GetClientManagementPermissions(realm, idOfClient string) (*ManagementPermissionRepresentation, error) {
+func (a GoCloakAdapter) GetClientManagementPermissions(
+	realm, idOfClient string,
+) (*ManagementPermissionRepresentation, error) {
 	var result ManagementPermissionRepresentation
 
 	rsp, err := a.startRestyRequest().
@@ -315,7 +363,10 @@ func (a GoCloakAdapter) GetClientManagementPermissions(realm, idOfClient string)
 	return &result, nil
 }
 
-func (a GoCloakAdapter) UpdateClientManagementPermissions(realm, idOfClient string, permission ManagementPermissionRepresentation) error {
+func (a GoCloakAdapter) UpdateClientManagementPermissions(
+	realm, idOfClient string,
+	permission ManagementPermissionRepresentation,
+) error {
 	rsp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
 			keycloakApiParamRealm: realm,

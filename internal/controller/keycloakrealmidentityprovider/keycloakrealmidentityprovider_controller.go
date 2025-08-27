@@ -40,10 +40,10 @@ type Reconcile struct {
 	successReconcileTimeout time.Duration
 }
 
-func NewReconcile(client client.Client, helper Helper) *Reconcile {
+func NewReconcile(k8sClient client.Client, controllerHelper Helper) *Reconcile {
 	return &Reconcile{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -79,9 +79,9 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmidentityproviders/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmIdentityProvider object.
 func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -93,12 +93,12 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		if k8sErrors.IsNotFound(err) {
 			log.Info("instance not found")
 
-			return
+			return result, resultErr
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm idp from k8s")
 
-		return
+		return result, resultErr
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
@@ -122,7 +122,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (r
 		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
-	return
+	return result, resultErr
 }
 
 func (r *Reconcile) tryReconcile(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider) error {

@@ -124,9 +124,28 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 			t.Parallel()
 
 			adapter, mockClient, _ := initAdapter(t)
-			mockClient.On("GetClients", mock.Anything, "token", realm, gocloak.GetClientsParams{ClientID: gocloak.StringP("cl")}).Return(tc.onGetClientsResp, tc.onGetClientsErr)
-			mockClient.On("GetClientsDefaultScopes", mock.Anything, "token", realm, clientID).Return(tc.onGetClientsDefaultScopesResp, tc.onGetClientsDefaultScopesErr).Maybe()
-			mockClient.On("AddDefaultScopeToClient", mock.Anything, "token", realm, clientID, "scid1").Return(tc.onAddDefaultScopeToClient).Maybe()
+			mockClient.On(
+				"GetClients",
+				mock.Anything,
+				"token",
+				realm,
+				gocloak.GetClientsParams{ClientID: gocloak.StringP("cl")},
+			).Return(tc.onGetClientsResp, tc.onGetClientsErr)
+			mockClient.On(
+				"GetClientsDefaultScopes",
+				mock.Anything,
+				"token",
+				realm,
+				clientID,
+			).Return(tc.onGetClientsDefaultScopesResp, tc.onGetClientsDefaultScopesErr).Maybe()
+			mockClient.On(
+				"AddDefaultScopeToClient",
+				mock.Anything,
+				"token",
+				realm,
+				clientID,
+				"scid1",
+			).Return(tc.onAddDefaultScopeToClient).Maybe()
 
 			err := adapter.AddDefaultScopeToClient(context.Background(), realm, clientName, tc.scopes)
 			if tc.expectErr {
