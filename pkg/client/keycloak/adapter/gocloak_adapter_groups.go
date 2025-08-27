@@ -68,7 +68,11 @@ func (a GoCloakAdapter) getGroup(ctx context.Context, realm, groupName string) (
 	return nil, NotFoundError("group not found")
 }
 
-func (a GoCloakAdapter) getGroupsByNames(ctx context.Context, realm string, groupNames []string) (map[string]gocloak.Group, error) {
+func (a GoCloakAdapter) getGroupsByNames(
+	ctx context.Context,
+	realm string,
+	groupNames []string,
+) (map[string]gocloak.Group, error) {
 	groups := make(map[string]gocloak.Group, len(groupNames))
 	eg := errgroup.Group{}
 	m := sync.Mutex{}
@@ -110,7 +114,11 @@ func getGroupByName(groups []gocloak.Group, groupName string) *gocloak.Group {
 	return nil
 }
 
-func (a GoCloakAdapter) getChildGroups(ctx context.Context, realm string, parentGroup *gocloak.Group) ([]gocloak.Group, error) {
+func (a GoCloakAdapter) getChildGroups(
+	ctx context.Context,
+	realm string,
+	parentGroup *gocloak.Group,
+) ([]gocloak.Group, error) {
 	var result []gocloak.Group
 
 	resp, err := a.client.RestyClient().R().
@@ -144,7 +152,11 @@ func (a GoCloakAdapter) getChildGroups(ctx context.Context, realm string, parent
 // getChildGroupsKCVersionUnder23 is a workaround for Keycloak versions < 23.0.0.
 // Group model in Keycloak < 23.0.0 contains subgroups.
 // In Keycloak >= 23.0.0 to get subgroups we need to use dedicated endpoint.
-func (a GoCloakAdapter) getChildGroupsKCVersionUnder23(ctx context.Context, realm string, parentGroup *gocloak.Group) ([]gocloak.Group, error) {
+func (a GoCloakAdapter) getChildGroupsKCVersionUnder23(
+	ctx context.Context,
+	realm string,
+	parentGroup *gocloak.Group,
+) ([]gocloak.Group, error) {
 	result := &gocloak.Group{}
 
 	resp, err := a.client.RestyClient().R().
@@ -193,7 +205,12 @@ func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *keycloak
 	return nil
 }
 
-func (a GoCloakAdapter) syncSubGroups(ctx context.Context, realm string, group *gocloak.Group, subGroups []string) error {
+func (a GoCloakAdapter) syncSubGroups(
+	ctx context.Context,
+	realm string,
+	group *gocloak.Group,
+	subGroups []string,
+) error {
 	currentGroups, err := a.makeCurrentGroups(ctx, realm, group)
 	if err != nil {
 		return err
@@ -231,7 +248,11 @@ func (a GoCloakAdapter) syncSubGroups(ctx context.Context, realm string, group *
 	return nil
 }
 
-func (a GoCloakAdapter) SyncRealmGroup(ctx context.Context, realmName string, spec *keycloakApi.KeycloakRealmGroupSpec) (string, error) {
+func (a GoCloakAdapter) SyncRealmGroup(
+	ctx context.Context,
+	realmName string,
+	spec *keycloakApi.KeycloakRealmGroupSpec,
+) (string, error) {
 	group, err := a.getGroup(ctx, realmName, spec.Name)
 	if err != nil {
 		if !IsErrNotFound(err) {
@@ -277,7 +298,11 @@ func (a GoCloakAdapter) DeleteGroup(ctx context.Context, realm, groupName string
 	return nil
 }
 
-func (a GoCloakAdapter) makeCurrentGroups(ctx context.Context, realm string, group *gocloak.Group) (map[string]gocloak.Group, error) {
+func (a GoCloakAdapter) makeCurrentGroups(
+	ctx context.Context,
+	realm string,
+	group *gocloak.Group,
+) (map[string]gocloak.Group, error) {
 	child, err := a.getChildGroups(ctx, realm, group)
 	if err != nil {
 		return nil, err

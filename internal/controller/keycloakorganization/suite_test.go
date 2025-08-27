@@ -211,7 +211,7 @@ var _ = AfterSuite(func() {
 		},
 	}
 	err := k8sClient.Delete(ctx, keycloakRealm)
-	Expect(err).To(BeNil())
+	Expect(err).ToNot(HaveOccurred())
 
 	By("Waiting for KeycloakRealm to be deleted")
 	Eventually(func() bool {

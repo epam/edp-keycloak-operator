@@ -81,7 +81,8 @@ type RealmOrganizationsEnabled struct {
 // SetRealmOrganizationsEnabled sets the organizations enabled flag for a realm.
 // This method is workaround because the OrganizationsEnabled field is not available
 // in the github.com/Nerzal/gocloak/v12 package.
-// TODO: remove this method and use UpdateRealm when the OrganizationsEnabled field will be available in the github.com/Nerzal/gocloak/v12 package.
+// TODO: remove this method and use UpdateRealm when the OrganizationsEnabled field will be available
+// in the github.com/Nerzal/gocloak/v12 package.
 func (a GoCloakAdapter) SetRealmOrganizationsEnabled(ctx context.Context, realmName string, enabled bool) error {
 	// Get current realm to check OrganizationsEnabled
 	var currentRealm RealmOrganizationsEnabled
@@ -172,10 +173,16 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		realm.RevokeRefreshToken = gocloak.BoolP(realmSettings.TokenSettings.RevokeRefreshToken)
 		realm.RefreshTokenMaxReuse = gocloak.IntP(realmSettings.TokenSettings.RefreshTokenMaxReuse)
 		realm.AccessTokenLifespan = gocloak.IntP(realmSettings.TokenSettings.AccessTokenLifespan)
-		realm.AccessTokenLifespanForImplicitFlow = gocloak.IntP(realmSettings.TokenSettings.AccessTokenLifespanForImplicitFlow)
+		realm.AccessTokenLifespanForImplicitFlow = gocloak.IntP(
+			realmSettings.TokenSettings.AccessTokenLifespanForImplicitFlow,
+		)
 		realm.AccessCodeLifespan = gocloak.IntP(realmSettings.TokenSettings.AccessCodeLifespan)
-		realm.ActionTokenGeneratedByUserLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByUserLifespan)
-		realm.ActionTokenGeneratedByAdminLifespan = gocloak.IntP(realmSettings.TokenSettings.ActionTokenGeneratedByAdminLifespan)
+		realm.ActionTokenGeneratedByUserLifespan = gocloak.IntP(
+			realmSettings.TokenSettings.ActionTokenGeneratedByUserLifespan,
+		)
+		realm.ActionTokenGeneratedByAdminLifespan = gocloak.IntP(
+			realmSettings.TokenSettings.ActionTokenGeneratedByAdminLifespan,
+		)
 	}
 
 	if realmSettings.AdminEventsExpiration != nil {

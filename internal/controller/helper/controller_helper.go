@@ -86,10 +86,10 @@ type Helper struct {
 	enableOwnerRef bool
 }
 
-func MakeHelper(client client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
+func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
 	helper := &Helper{
 		tokenSecretLock:   new(sync.Mutex),
-		client:            client,
+		client:            k8sClient,
 		scheme:            scheme,
 		operatorNamespace: operatorNamespace,
 		enableOwnerRef:    false,

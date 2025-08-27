@@ -16,19 +16,19 @@ import (
 
 var log = ctrl.Log.WithName("realm_handler")
 
-func CreateDefChain(client client.Client, scheme *runtime.Scheme, hlp Helper) handler.RealmHandler {
+func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, controllerHelper Helper) handler.RealmHandler {
 	return PutRealm{
-		hlp:    hlp,
-		client: client,
+		hlp:    controllerHelper,
+		client: k8sClient,
 		next: SetLabels{
-			client: client,
+			client: k8sClient,
 			next: PutUsers{
 				next: PutUsersRoles{
 					next: RealmSettings{
 						next: AuthFlow{
 							next: UserProfile{
 								next: ConfigureEmail{
-									client: client,
+									client: k8sClient,
 								},
 							},
 						},

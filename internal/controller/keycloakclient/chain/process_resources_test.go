@@ -19,6 +19,10 @@ import (
 func TestProcessResources_Serve(t *testing.T) {
 	t.Parallel()
 
+	var (
+		resourceName = "resource-1"
+	)
+
 	tests := []struct {
 		name              string
 		keycloakClient    *keycloakApi.KeycloakClient
@@ -94,7 +98,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-1"
+						return p.Name != nil && *p.Name == resourceName
 					})).
 					Return(nil, nil).Once()
 				client.On(
@@ -126,7 +130,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name: "resource-1",
+								Name: resourceName,
 							},
 						},
 					},
@@ -149,7 +153,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-1"
+						return p.Name != nil && *p.Name == resourceName
 					})).
 					Return(nil, nil).Once()
 				client.On(
@@ -175,7 +179,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name:        "resource-1",
+								Name:        resourceName,
 								DisplayName: "Resource 1",
 							},
 						},
@@ -188,9 +192,9 @@ func TestProcessResources_Serve(t *testing.T) {
 					Return("clientID", nil).Once()
 				client.On("GetResources", mock.Anything, "master", "clientID").
 					Return(map[string]gocloak.ResourceRepresentation{
-						"resource-1": {
-							ID:   gocloak.StringP("resource-1-id"),
-							Name: gocloak.StringP("resource-1"),
+						resourceName: {
+							ID:   gocloak.StringP(resourceName + "-id"),
+							Name: gocloak.StringP(resourceName),
 						},
 					}, nil).Once()
 				client.On(
@@ -199,7 +203,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
-						return *p.Name == "resource-1" && *p.ID == "resource-1-id"
+						return *p.Name == resourceName && *p.ID == resourceName+"-id"
 					})).
 					Return(errors.New("failed to update resource")).Once()
 
@@ -218,7 +222,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name:        "resource-1",
+								Name:        resourceName,
 								DisplayName: "Resource 1",
 							},
 						},
@@ -237,7 +241,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-1"
+						return p.Name != nil && *p.Name == resourceName
 					})).
 					Return(nil, errors.New("failed to create resource")).Once()
 
@@ -256,7 +260,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name:        "resource-1",
+								Name:        resourceName,
 								DisplayName: "Resource 1",
 								Scopes:      []string{"scope1"},
 							},
@@ -288,7 +292,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name: "resource-1",
+								Name: resourceName,
 							},
 						},
 					},
@@ -316,7 +320,7 @@ func TestProcessResources_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Resources: []keycloakApi.Resource{
 							{
-								Name: "resource-1",
+								Name: resourceName,
 							},
 						},
 					},

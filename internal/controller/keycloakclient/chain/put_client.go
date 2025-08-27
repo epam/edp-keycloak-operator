@@ -151,7 +151,7 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 	secretErr := el.k8sClient.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace,
 		Name: secretName}, &clientSecret)
 	if secretErr != nil && !k8sErrors.IsNotFound(secretErr) {
-		return "", fmt.Errorf("unable to check client secret existance: %w", secretErr)
+		return "", fmt.Errorf("unable to check client secret existence: %w", secretErr)
 	}
 
 	pass, err := password.Generate(passwordLength, passwordDigits, passwordSymbols, true, true)

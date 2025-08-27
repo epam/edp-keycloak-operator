@@ -49,8 +49,8 @@ type ClusterKeycloakStatus struct {
 	Connected bool `json:"connected"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:printcolumn:name="Connected",type="boolean",JSONPath=".status.connected",description="Is connected to keycloak"
@@ -66,7 +66,7 @@ type ClusterKeycloak struct {
 	Status ClusterKeycloakStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ClusterKeycloakList contains a list of ClusterKeycloak.
 type ClusterKeycloakList struct {

@@ -101,7 +101,11 @@ func (a GoCloakAdapter) DeleteOrganization(ctx context.Context, realm, orgID str
 }
 
 // GetOrganizations retrieves organizations from the specified realm.
-func (a GoCloakAdapter) GetOrganizations(ctx context.Context, realm string, params *GetOrganizationsParams) ([]dto.Organization, error) {
+func (a GoCloakAdapter) GetOrganizations(
+	ctx context.Context,
+	realm string,
+	params *GetOrganizationsParams,
+) ([]dto.Organization, error) {
 	var orgs []dto.Organization
 	req := a.startRestyRequest().
 		SetContext(ctx).
@@ -143,7 +147,12 @@ func (a GoCloakAdapter) LinkIdentityProviderToOrganization(ctx context.Context, 
 }
 
 // UnlinkIdentityProviderFromOrganization unlinks an identity provider from an organization.
-func (a GoCloakAdapter) UnlinkIdentityProviderFromOrganization(ctx context.Context, realm, orgID, idpAlias string) error {
+func (a GoCloakAdapter) UnlinkIdentityProviderFromOrganization(
+	ctx context.Context,
+	realm,
+	orgID,
+	idpAlias string,
+) error {
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).
 		SetPathParams(map[string]string{
@@ -161,7 +170,11 @@ func (a GoCloakAdapter) UnlinkIdentityProviderFromOrganization(ctx context.Conte
 }
 
 // GetOrganizationIdentityProviders retrieves all identity providers linked to an organization.
-func (a GoCloakAdapter) GetOrganizationIdentityProviders(ctx context.Context, realm, orgID string) ([]dto.OrganizationIdentityProvider, error) {
+func (a GoCloakAdapter) GetOrganizationIdentityProviders(
+	ctx context.Context,
+	realm,
+	orgID string,
+) ([]dto.OrganizationIdentityProvider, error) {
 	var idps []dto.OrganizationIdentityProvider
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).

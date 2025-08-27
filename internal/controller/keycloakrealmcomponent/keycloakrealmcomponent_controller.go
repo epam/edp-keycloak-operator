@@ -10,7 +10,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
@@ -51,11 +50,11 @@ type Reconcile struct {
 	scheme                  *runtime.Scheme
 }
 
-func NewReconcile(client client.Client, scheme *runtime.Scheme, helper Helper, secretRefClient RefClient) *Reconcile {
+func NewReconcile(k8sClient client.Client, scheme *runtime.Scheme, controllerHelper Helper, secretRefClient RefClient) *Reconcile {
 	return &Reconcile{
-		client:          client,
+		client:          k8sClient,
 		scheme:          scheme,
-		helper:          helper,
+		helper:          controllerHelper,
 		secretRefClient: secretRefClient,
 	}
 }
@@ -92,9 +91,9 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmcomponents/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmComponent object.
 // nolint:cyclop
@@ -321,7 +320,7 @@ func (r *Reconcile) setComponentOwnerReference(
 		BlockOwnerDeletion: ptr.To(true),
 		Controller:         ptr.To(false),
 	}
-	component.SetOwnerReferences([]v1.OwnerReference{ref})
+	component.SetOwnerReferences([]metav1.OwnerReference{ref})
 
 	if err := r.client.Update(ctx, component); err != nil {
 		return fmt.Errorf("failed to set owner reference %s: %w", parentComponent.Name, err)

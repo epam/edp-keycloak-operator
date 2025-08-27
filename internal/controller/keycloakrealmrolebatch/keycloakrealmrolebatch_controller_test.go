@@ -30,7 +30,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
-	ns := "security"
+	ns := "ns1"
 	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
@@ -87,7 +87,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	utilruntime.Must(keycloakApi.AddToScheme(sch))
 	utilruntime.Must(corev1.AddToScheme(sch))
 
-	ns := "security"
+	ns := "ns2"
 	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "test", Namespace: ns,
@@ -193,7 +193,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	utilruntime.Must(keycloakApi.AddToScheme(scheme))
 	utilruntime.Must(corev1.AddToScheme(scheme))
 
-	ns := "security"
+	ns := "ns3"
 	keycloak := keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{Name: "keycloak1", Namespace: ns}, Status: keycloakApi.KeycloakStatus{Connected: true}}
 	realm := keycloakApi.KeycloakRealm{ObjectMeta: metav1.ObjectMeta{Name: "realm1", Namespace: ns,

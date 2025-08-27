@@ -20,21 +20,24 @@ func NewServerBuilder() *ServerBuilder {
 	return &ServerBuilder{fakeServer: NewDefaultServer()}
 }
 
-// AddStringResponder registers new handler at a given endpoint that returns a given response string with a http.StatusOK header.
+// AddStringResponder registers new handler at a given endpoint
+// that returns a given response string with a http.StatusOK header.
 func (b *ServerBuilder) AddStringResponder(endpoint, response string) *ServerBuilder {
 	b.fakeServer.addStringResponder(http.StatusOK, endpoint, response)
 
 	return b
 }
 
-// AddStringResponderWithCode registers new handler at a given endpoint that returns a given response string and status code header.
+// AddStringResponderWithCode registers new handler at a given endpoint
+// that returns a given response string and status code header.
 func (b *ServerBuilder) AddStringResponderWithCode(code int, endpoint, response string) *ServerBuilder {
 	b.fakeServer.addStringResponder(code, endpoint, response)
 
 	return b
 }
 
-// AddJsonResponderWithCode registers new handler at a given endpoint that returns a given response object as json and status code header.
+// AddJsonResponderWithCode registers new handler at a given endpoint
+// that returns a given response object as json and status code header.
 func (b *ServerBuilder) AddJsonResponderWithCode(code int, endpoint string, response any) *ServerBuilder {
 	b.fakeServer.addJsonResponder(code, endpoint, response)
 

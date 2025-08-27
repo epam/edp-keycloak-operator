@@ -27,8 +27,8 @@ type SecretRef struct {
 }
 
 // NewSecretRef returns a new instance of SecretRef.
-func NewSecretRef(client client.Client) *SecretRef {
-	return &SecretRef{client: client}
+func NewSecretRef(k8sClient client.Client) *SecretRef {
+	return &SecretRef{client: k8sClient}
 }
 
 // MapConfigSecretsRefs maps secret references in config map to actual values.
@@ -50,7 +50,11 @@ func (s *SecretRef) MapConfigSecretsRefs(ctx context.Context, config map[string]
 }
 
 // MapConfigSecretsRefs maps secret references in config map to actual values.
-func (s *SecretRef) MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error {
+func (s *SecretRef) MapComponentConfigSecretsRefs(
+	ctx context.Context,
+	config map[string][]string,
+	namespace string,
+) error {
 	for k, values := range config {
 		for i, v := range values {
 			if !HasSecretRef(v) {

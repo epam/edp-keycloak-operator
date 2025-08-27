@@ -90,7 +90,12 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 				BuildAndStart(),
 			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
 				require.Error(t, err)
-				require.EqualError(t, err, "failed to login with client creds on both current and legacy clients - clientID: k-cl-id, realm: master: 400 Bad Request")
+				require.EqualError(
+					t,
+					err,
+					"failed to login with client creds on both current and legacy clients - "+
+						"clientID: k-cl-id, realm: master: 400 Bad Request",
+				)
 			},
 		},
 	}
@@ -441,10 +446,25 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 	responder, err := httpmock.NewJsonResponder(200, kcMappers)
 	require.NoError(t, err)
 
-	mockClient.On("DeleteClientProtocolMapper", testifymock.Anything, "token", client.RealmName, clientID, *kcMappers[0].ID).
+	mockClient.On(
+		"DeleteClientProtocolMapper",
+		testifymock.Anything,
+		"token",
+		client.RealmName,
+		clientID,
+		*kcMappers[0].ID,
+	).
 		Return(nil)
 
-	mockClient.On("UpdateClientProtocolMapper", testifymock.Anything, "token", client.RealmName, clientID, *crMappers[0].ID, crMappers[0]).
+	mockClient.On(
+		"UpdateClientProtocolMapper",
+		testifymock.Anything,
+		"token",
+		client.RealmName,
+		clientID,
+		*crMappers[0].ID,
+		crMappers[0],
+	).
 		Return(nil)
 
 	mockClient.On("CreateClientProtocolMapper", testifymock.Anything, "token", client.RealmName, clientID, crMappers[1]).
@@ -517,7 +537,13 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 		log:      mock.NewLogr(),
 	}
 
-	mockClient.On("GetGroups", testifymock.Anything, "token", "realm1", gocloak.GetGroupsParams{Search: gocloak.StringP("group1")}).
+	mockClient.On(
+		"GetGroups",
+		testifymock.Anything,
+		"token",
+		"realm1",
+		gocloak.GetGroupsParams{Search: gocloak.StringP("group1")},
+	).
 		Return([]*gocloak.Group{{Name: gocloak.StringP("group1"), ID: gocloak.StringP("1")}}, nil)
 	mockClient.On("DeleteGroup", testifymock.Anything, "token", "realm1", "1").Return(nil)
 
@@ -536,7 +562,10 @@ func TestGoCloakAdapter_GetGoCloak(t *testing.T) {
 func TestMakeFromToken(t *testing.T) {
 	t.Parallel()
 
-	expiredToken := `eyJhbGciOiJIUzI1NiJ9.eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblVzZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
+	expiredToken := `eyJhbGciOiJIUzI1NiJ9.` +
+		`eyJSb2xlIjoiQWRtaW4iLCJJc3N1ZXIiOiJJc3N1ZXIiLCJVc2VybmFtZSI6IkphdmFJblV` +
+		`zZSIsImV4cCI6MTYzNDAzOTA2OCwiaWF0IjoxNjM0MDM5MDY4fQ.` +
+		`OZJDXUqfmajSh0vpqL8VnoQGqUXH25CAVkKnoyJX3AI`
 
 	tokenParts := strings.Split(expiredToken, ".")
 	rawTokenPayload, _ := base64.RawURLEncoding.DecodeString(tokenParts[1])
@@ -670,7 +699,13 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	httpmock.RegisterResponder("DELETE",
 		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
 		httpmock.NewStringResponder(200, ""))
-	e.goCloakMockClient.On("GetUsers", testifymock.Anything, "token", e.realmName, gocloak.GetUsersParams{Username: &username}).
+	e.goCloakMockClient.On(
+		"GetUsers",
+		testifymock.Anything,
+		"token",
+		e.realmName,
+		gocloak.GetUsersParams{Username: &username},
+	).
 		Return([]*gocloak.User{
 			{Username: &username, ID: &username},
 		}, nil).Once()
@@ -678,7 +713,13 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	err := e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
 	assert.NoError(e.T(), err)
 
-	e.goCloakMockClient.On("GetUsers", testifymock.Anything, "token", e.realmName, gocloak.GetUsersParams{Username: &username}).
+	e.goCloakMockClient.On(
+		"GetUsers",
+		testifymock.Anything,
+		"token",
+		e.realmName,
+		gocloak.GetUsersParams{Username: &username},
+	).
 		Return([]*gocloak.User{
 			{Username: &username, ID: &username},
 		}, nil).Once()
@@ -690,7 +731,13 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "unable to delete user: status: 404, body: ")
 
-	e.goCloakMockClient.On("GetUsers", testifymock.Anything, "token", e.realmName, gocloak.GetUsersParams{Username: &username}).
+	e.goCloakMockClient.On(
+		"GetUsers",
+		testifymock.Anything,
+		"token",
+		e.realmName,
+		gocloak.GetUsersParams{Username: &username},
+	).
 		Return([]*gocloak.User{
 			{},
 		}, nil).Once()
@@ -699,7 +746,13 @@ func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "user not found")
 
-	e.goCloakMockClient.On("GetUsers", testifymock.Anything, "token", e.realmName, gocloak.GetUsersParams{Username: &username}).
+	e.goCloakMockClient.On(
+		"GetUsers",
+		testifymock.Anything,
+		"token",
+		e.realmName,
+		gocloak.GetUsersParams{Username: &username},
+	).
 		Return(nil, errors.New("fatal get users")).Once()
 
 	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
@@ -902,6 +955,58 @@ func TestGoCloakAdapter_CreatePrimaryRealmRole(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+// setupBasicClientRoleMocks sets up the basic mock calls for getting client and roles
+func setupBasicClientRoleMocks(m *mocks.MockGoCloak, token, realmName, clientID string) {
+	// Mock GetClientID
+	m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
+		Return([]*gocloak.Client{
+			{
+				ID:       gocloak.StringP(clientID),
+				ClientID: gocloak.StringP("test-client"),
+			},
+		}, nil).Once()
+
+	// Mock getExistingClientRolesMap
+	m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+		Return([]*gocloak.Role{
+			{
+				ID:          gocloak.StringP("role1-id"),
+				Name:        gocloak.StringP("role1"),
+				Description: gocloak.StringP("Role 1 description"),
+			},
+		}, nil).Once()
+
+	// Mock syncClientRoleComposites - get existing roles again
+	m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
+		Return([]*gocloak.Role{
+			{
+				ID:          gocloak.StringP("role1-id"),
+				Name:        gocloak.StringP("role1"),
+				Description: gocloak.StringP("Role 1 description"),
+			},
+		}, nil).Once()
+}
+
+// setupCompositeRoleRemovalMocks sets up mocks for composite role removal scenarios
+func setupCompositeRoleRemovalMocks(m *mocks.MockGoCloak, token, realmName string) {
+	// Mock GetCompositeRolesByRoleID - return existing composite roles
+	m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
+		Return([]*gocloak.Role{
+			{
+				ID:   gocloak.StringP("composite-role1-id"),
+				Name: gocloak.StringP("composite-role1"),
+			},
+			{
+				ID:   gocloak.StringP("composite-role2-id"),
+				Name: gocloak.StringP("composite-role2"),
+			},
+		}, nil).Once()
+
+	// Mock DeleteClientRoleComposite for removing composite roles
+	m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
+		Return(nil).Once()
 }
 
 func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
@@ -1182,58 +1287,14 @@ func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
 				},
 			},
 			setupMocks: func(m *mocks.MockGoCloak) {
-				// Mock GetClientID
-				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
-					Return([]*gocloak.Client{
-						{
-							ID:       gocloak.StringP(clientID),
-							ClientID: gocloak.StringP("test-client"),
-						},
-					}, nil).Once()
-
-				// Mock getExistingClientRolesMap
-				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
-					Return([]*gocloak.Role{
-						{
-							ID:          gocloak.StringP("role1-id"),
-							Name:        gocloak.StringP("role1"),
-							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
-						},
-					}, nil).Once()
-
-				// Mock syncClientRoleComposites - get existing roles again
-				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
-					Return([]*gocloak.Role{
-						{
-							ID:          gocloak.StringP("role1-id"),
-							Name:        gocloak.StringP("role1"),
-							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
-						},
-					}, nil).Once()
-
-				// Mock GetCompositeRolesByRoleID - return existing composite roles that need to be removed
-				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
-					Return([]*gocloak.Role{
-						{
-							ID:   gocloak.StringP("composite-role1-id"),
-							Name: gocloak.StringP("composite-role1"),
-						},
-						{
-							ID:   gocloak.StringP("composite-role2-id"),
-							Name: gocloak.StringP("composite-role2"), // This role should be removed
-						},
-					}, nil).Once()
-
-				// Mock DeleteClientRoleComposite for removing unwanted composite roles
-				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
-					Return(nil).Once()
+				setupBasicClientRoleMocks(m, token, realmName, clientID)
+				setupCompositeRoleRemovalMocks(m, token, realmName)
 			},
 			expectedError: "",
 			expectedCalls: map[string]int{
 				"GetClients":                1,
 				"GetClientRoles":            2,
 				"GetCompositeRolesByRoleID": 1,
-				"GetClientRole":             1,
 				"DeleteClientRoleComposite": 1,
 			},
 		},
@@ -1438,7 +1499,8 @@ func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
 				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
 					Return(nil, errors.New("failed to get composite roles")).Once()
 			},
-			expectedError: "failed to sync client role composites: failed to get composite roles for role role1: failed to get composite roles",
+			expectedError: "failed to sync client role composites: failed to get composite roles for role role1: " +
+				"failed to get composite roles",
 			expectedCalls: map[string]int{
 				"GetClients":                1,
 				"GetClientRoles":            2,
@@ -1504,7 +1566,8 @@ func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
 				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
 					Return(errors.New("failed to delete composite role")).Once()
 			},
-			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: failed to delete composite role",
+			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: " +
+				"failed to delete composite role",
 			expectedCalls: map[string]int{
 				"GetClients":                1,
 				"GetClientRoles":            2,
@@ -1555,51 +1618,8 @@ func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
 				},
 			},
 			setupMocks: func(m *mocks.MockGoCloak) {
-				// Mock GetClientID
-				m.On("GetClients", testifymock.Anything, token, realmName, testifymock.Anything).
-					Return([]*gocloak.Client{
-						{
-							ID:       gocloak.StringP(clientID),
-							ClientID: gocloak.StringP("test-client"),
-						},
-					}, nil).Once()
-
-				// Mock getExistingClientRolesMap
-				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
-					Return([]*gocloak.Role{
-						{
-							ID:          gocloak.StringP("role1-id"),
-							Name:        gocloak.StringP("role1"),
-							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
-						},
-					}, nil).Once()
-
-				// Mock syncClientRoleComposites - get existing roles again
-				m.On("GetClientRoles", testifymock.Anything, token, realmName, clientID, testifymock.Anything).
-					Return([]*gocloak.Role{
-						{
-							ID:          gocloak.StringP("role1-id"),
-							Name:        gocloak.StringP("role1"),
-							Description: gocloak.StringP("Role 1 description"), // Same description, no update needed
-						},
-					}, nil).Once()
-
-				// Mock GetCompositeRolesByRoleID - return existing composite roles that should all be removed
-				m.On("GetCompositeRolesByRoleID", testifymock.Anything, token, realmName, "role1-id").
-					Return([]*gocloak.Role{
-						{
-							ID:   gocloak.StringP("composite-role1-id"),
-							Name: gocloak.StringP("composite-role1"),
-						},
-						{
-							ID:   gocloak.StringP("composite-role2-id"),
-							Name: gocloak.StringP("composite-role2"),
-						},
-					}, nil).Once()
-
-				// Mock DeleteClientRoleComposite for removing all composite roles
-				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
-					Return(nil).Once()
+				setupBasicClientRoleMocks(m, token, realmName, clientID)
+				setupCompositeRoleRemovalMocks(m, token, realmName)
 			},
 			expectedError: "",
 			expectedCalls: map[string]int{
@@ -1664,7 +1684,8 @@ func TestGoCloakAdapter_SyncClientRoles(t *testing.T) {
 				m.On("DeleteClientRoleComposite", testifymock.Anything, token, realmName, "role1-id", testifymock.Anything).
 					Return(errors.New("failed to delete composite role")).Once()
 			},
-			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: failed to delete composite role",
+			expectedError: "failed to sync client role composites: failed to remove composite roles from role1: " +
+				"failed to delete composite role",
 			expectedCalls: map[string]int{
 				"GetClients":                1,
 				"GetClientRoles":            2,

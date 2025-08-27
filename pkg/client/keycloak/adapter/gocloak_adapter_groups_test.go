@@ -81,7 +81,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 		}
 
 		if strings.Contains(r.URL.Path, "/groups/test-group-old-endpoint-id") {
-			w.Header().Set("Content-Type", "application/json")
+			setJSONContentType(w)
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(`{"id": "test-group-old-endpoint-id", "name": "test-group"}`))
 			assert.NoError(t, err)
@@ -90,7 +90,7 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 		}
 
 		if strings.Contains(r.URL.Path, "/children") {
-			w.Header().Set("Content-Type", "application/json")
+			setJSONContentType(w)
 			w.WriteHeader(http.StatusOK)
 			_, err := w.Write([]byte(`[]`))
 			assert.NoError(t, err)

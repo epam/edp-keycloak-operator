@@ -31,7 +31,11 @@ func doNotDeleteRealmRoleFromUser(ctx context.Context, token, realm, entityID st
 	return nil
 }
 
-func doNotDeleteClientRoleFromUser(ctx context.Context, token, realm, clientID, groupID string, roles []gocloak.Role) error {
+func doNotDeleteClientRoleFromUser(
+	ctx context.Context,
+	token, realm, clientID, groupID string,
+	roles []gocloak.Role,
+) error {
 	return nil
 }
 

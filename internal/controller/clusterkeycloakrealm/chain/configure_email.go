@@ -17,8 +17,8 @@ type ConfigureEmail struct {
 	operatorNs string
 }
 
-func NewConfigureEmail(client client.Client, operatorNs string) *ConfigureEmail {
-	return &ConfigureEmail{client: client, operatorNs: operatorNs}
+func NewConfigureEmail(k8sClient client.Client, operatorNs string) *ConfigureEmail {
+	return &ConfigureEmail{client: k8sClient, operatorNs: operatorNs}
 }
 
 func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client) error {

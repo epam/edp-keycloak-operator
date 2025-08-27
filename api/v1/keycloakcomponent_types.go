@@ -61,7 +61,7 @@ type ParentComponent struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconciliation status"
 
 // KeycloakRealmComponent is the Schema for the keycloak component API.
 type KeycloakRealmComponent struct {

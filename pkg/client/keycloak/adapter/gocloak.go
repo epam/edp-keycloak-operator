@@ -46,23 +46,64 @@ type GoCloakClients interface {
 	AddOptionalScopeToClient(ctx context.Context, token, realm, clientID, scopeID string) error
 	GetClientScopes(ctx context.Context, token, realm string) ([]*gocloak.ClientScope, error)
 
-	GetScopes(ctx context.Context, token, realm, idOfClient string, params gocloak.GetScopeParams) ([]*gocloak.ScopeRepresentation, error)
-	CreateScope(ctx context.Context, token, realm, idOfClient string, scope gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error)
-	DeleteScope(ctx context.Context, token, realm, idOfClient string, scopeID string) error
+	GetScopes(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		params gocloak.GetScopeParams,
+	) ([]*gocloak.ScopeRepresentation, error)
+	CreateScope(
+		ctx context.Context,
+		token, realm, idOfClient string, scope gocloak.ScopeRepresentation) (*gocloak.ScopeRepresentation, error)
+	DeleteScope(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		scopeID string,
+	) error
 
-	GetPolicies(ctx context.Context, token, realm, idOfClient string, params gocloak.GetPolicyParams) ([]*gocloak.PolicyRepresentation, error)
-	CreatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
-	UpdatePolicy(ctx context.Context, token, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
+	GetPolicies(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		params gocloak.GetPolicyParams,
+	) ([]*gocloak.PolicyRepresentation, error)
+	CreatePolicy(
+		ctx context.Context,
+		token, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
+	UpdatePolicy(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		policy gocloak.PolicyRepresentation,
+	) error
 	DeletePolicy(ctx context.Context, token, realm, idOfClient, policyID string) error
 
-	GetPermissions(ctx context.Context, token, realm, idOfClient string, params gocloak.GetPermissionParams) ([]*gocloak.PermissionRepresentation, error)
-	CreatePermission(ctx context.Context, token, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)
-	UpdatePermission(ctx context.Context, token, realm, idOfClient string, permission gocloak.PermissionRepresentation) error
+	GetPermissions(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		params gocloak.GetPermissionParams,
+	) ([]*gocloak.PermissionRepresentation, error)
+	CreatePermission(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		permission gocloak.PermissionRepresentation,
+	) (*gocloak.PermissionRepresentation, error)
+	UpdatePermission(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		permission gocloak.PermissionRepresentation,
+	) error
 	DeletePermission(ctx context.Context, token, realm, idOfClient, permissionID string) error
 
-	GetResources(ctx context.Context, token, realm, idOfClient string, params gocloak.GetResourceParams) ([]*gocloak.ResourceRepresentation, error)
+	GetResources(
+		ctx context.Context,
+		token, realm, idOfClient string,
+		params gocloak.GetResourceParams,
+	) ([]*gocloak.ResourceRepresentation, error)
 	UpdateResource(ctx context.Context, token, realm, idOfClient string, resource gocloak.ResourceRepresentation) error
-	CreateResource(ctx context.Context, token, realm string, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)
+	CreateResource(
+		ctx context.Context,
+		token, realm string,
+		idOfClient string,
+		resource gocloak.ResourceRepresentation,
+	) (*gocloak.ResourceRepresentation, error)
 	DeleteResource(ctx context.Context, token, realm, idOfClient, resourceID string) error
 }
 
@@ -72,13 +113,24 @@ type GoCloakUsers interface {
 	GetRoleMappingByUserID(ctx context.Context, accessToken, realm,
 		userID string) (*gocloak.MappingsRepresentation, error)
 	UpdateUser(ctx context.Context, accessToken, realm string, user gocloak.User) error
-	CreateUserFederatedIdentity(ctx context.Context, token, realm, userID, providerID string, federatedIdentityRep gocloak.FederatedIdentityRepresentation) error
-	GetUserFederatedIdentities(ctx context.Context, token, realm, userID string) ([]*gocloak.FederatedIdentityRepresentation, error)
+	CreateUserFederatedIdentity(
+		ctx context.Context,
+		token, realm, userID, providerID string,
+		federatedIdentityRep gocloak.FederatedIdentityRepresentation,
+	) error
+	GetUserFederatedIdentities(
+		ctx context.Context,
+		token, realm, userID string,
+	) ([]*gocloak.FederatedIdentityRepresentation, error)
 	DeleteUserFederatedIdentity(ctx context.Context, token, realm, userID, providerID string) error
 }
 
 type GoCloakClientRoles interface {
-	GetClientRoles(ctx context.Context, accessToken, realm, clientID string, params gocloak.GetRoleParams) ([]*gocloak.Role, error)
+	GetClientRoles(
+		ctx context.Context,
+		accessToken, realm, clientID string,
+		params gocloak.GetRoleParams,
+	) ([]*gocloak.Role, error)
 	CreateClientRole(ctx context.Context, accessToken, realm, clientID string, role gocloak.Role) (string, error)
 	UpdateRole(ctx context.Context, token, realm, idOfClient string, role gocloak.Role) error
 	DeleteClientRole(ctx context.Context, token, realm, idOfClient, roleName string) error

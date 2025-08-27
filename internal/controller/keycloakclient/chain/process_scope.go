@@ -18,8 +18,8 @@ type ProcessScope struct {
 	keycloakApiClient keycloak.Client
 }
 
-func NewProcessScope(keycloakApi keycloak.Client) *ProcessScope {
-	return &ProcessScope{keycloakApiClient: keycloakApi}
+func NewProcessScope(keycloakApiClient keycloak.Client) *ProcessScope {
+	return &ProcessScope{keycloakApiClient: keycloakApiClient}
 }
 
 func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {

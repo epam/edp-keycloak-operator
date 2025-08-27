@@ -38,9 +38,9 @@ const (
 	successRequeueTime = time.Minute * 10
 )
 
-func NewReconcileOrganization(client client.Client, keycloakProvider KeycloakProvider) *ReconcileOrganization {
+func NewReconcileOrganization(k8sClient client.Client, keycloakProvider KeycloakProvider) *ReconcileOrganization {
 	return &ReconcileOrganization{
-		client:           client,
+		client:           k8sClient,
 		keycloakProvider: keycloakProvider,
 	}
 }
@@ -61,10 +61,10 @@ func (r *ReconcileOrganization) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch
 
 // Reconcile is a loop for reconciling Organization object.
 func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
