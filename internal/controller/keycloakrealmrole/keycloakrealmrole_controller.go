@@ -34,10 +34,10 @@ type Helper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
-func NewReconcileKeycloakRealmRole(client client.Client, helper Helper) *ReconcileKeycloakRealmRole {
+func NewReconcileKeycloakRealmRole(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakRealmRole {
 	return &ReconcileKeycloakRealmRole{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -79,9 +79,9 @@ func isSpecUpdated(e event.UpdateEvent) bool {
 		(oo.GetDeletionTimestamp().IsZero() && !no.GetDeletionTimestamp().IsZero())
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmroles/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmRole object.
 func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -91,12 +91,12 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 	var instance keycloakApi.KeycloakRealmRole
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return
+			return result, resultErr
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm role from k8s")
 
-		return
+		return result, resultErr
 	}
 
 	defer func() {
@@ -119,7 +119,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 		log.Error(err, "an error has occurred while handling keycloak realm role", "name",
 			request.Name)
 
-		return
+		return result, resultErr
 	}
 
 	helper.SetSuccessStatus(&instance)
@@ -128,7 +128,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 
 	log.Info("Reconciling done")
 
-	return
+	return result, resultErr
 }
 
 func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakRealmRole *keycloakApi.KeycloakRealmRole) (string, error) {

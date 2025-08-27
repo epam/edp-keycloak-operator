@@ -74,7 +74,13 @@ func (a GoCloakAdapter) syncOneEntityClientRole(
 
 	if len(rolesToAdd) > 0 {
 		if err := addRoleFunc(context.Background(), a.token.AccessToken, realm, CID, entityID, rolesToAdd); err != nil {
-			return errors.Wrapf(err, "unable to add realm role to entity, realm: %s, clientID: %s, entityID: %s", realm, CID, entityID)
+			return errors.Wrapf(
+				err,
+				"unable to add realm role to entity, realm: %s, clientID: %s, entityID: %s",
+				realm,
+				CID,
+				entityID,
+			)
 		}
 	}
 
@@ -87,8 +93,21 @@ func (a GoCloakAdapter) syncOneEntityClientRole(
 	}
 
 	if len(rolesToDelete) > 0 {
-		if err := delRoleFunc(context.Background(), a.token.AccessToken, realm, CID, entityID, rolesToDelete); err != nil {
-			return errors.Wrapf(err, "unable to del client role from entity, realm: %s, clientID: %s, entityID: %s", realm, CID, entityID)
+		if err := delRoleFunc(
+			context.Background(),
+			a.token.AccessToken,
+			realm,
+			CID,
+			entityID,
+			rolesToDelete,
+		); err != nil {
+			return errors.Wrapf(
+				err,
+				"unable to del client role from entity, realm: %s, clientID: %s, entityID: %s",
+				realm,
+				CID,
+				entityID,
+			)
 		}
 	}
 
@@ -104,7 +123,15 @@ func (a GoCloakAdapter) syncEntityClientRoles(
 	delRoleFunc func(ctx context.Context, token, realm, clientID, groupID string, roles []gocloak.Role) error,
 ) error {
 	for clientID, roles := range claimedRoles {
-		if err := a.syncOneEntityClientRole(realm, entityID, clientID, roles, currentRoles, addRoleFunc, delRoleFunc); err != nil {
+		if err := a.syncOneEntityClientRole(
+			realm,
+			entityID,
+			clientID,
+			roles,
+			currentRoles,
+			addRoleFunc,
+			delRoleFunc,
+		); err != nil {
 			return errors.Wrap(err, "error during syncOneEntityClientRole")
 		}
 	}

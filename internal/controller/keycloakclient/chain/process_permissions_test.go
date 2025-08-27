@@ -19,6 +19,10 @@ import (
 func TestProcessPermissions_Serve(t *testing.T) {
 	t.Parallel()
 
+	var (
+		permissionName = "resource-permission"
+	)
+
 	tests := []struct {
 		name              string
 		keycloakClient    *keycloakApi.KeycloakClient
@@ -41,7 +45,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -107,7 +111,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-permission"
+						return p.Name != nil && *p.Name == permissionName
 					})).
 					Return(nil, nil).Once()
 				client.On(
@@ -130,7 +134,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -170,7 +174,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-permission"
+						return p.Name != nil && *p.Name == permissionName
 					})).
 					Return(nil, nil).Once()
 				client.On(
@@ -196,7 +200,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -211,9 +215,9 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Return("clientID", nil).Once()
 				client.On("GetPermissions", mock.Anything, "master", "clientID").
 					Return(map[string]gocloak.PermissionRepresentation{
-						"resource-permission": {
-							ID:   gocloak.StringP("resource-permission-id"),
-							Name: gocloak.StringP("resource-permission"),
+						permissionName: {
+							ID:   gocloak.StringP(permissionName + "-id"),
+							Name: gocloak.StringP(permissionName),
 						},
 					}, nil).Once()
 				client.On("GetResources", mock.Anything, "master", "clientID").
@@ -236,7 +240,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return *p.Name == "resource-permission" && *p.ID == "resource-permission-id"
+						return *p.Name == permissionName && *p.ID == permissionName+"-id"
 					})).
 					Return(errors.New("failed to update permission")).Once()
 
@@ -255,7 +259,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -290,7 +294,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					"master",
 					"clientID",
 					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return p.Name != nil && *p.Name == "resource-permission"
+						return p.Name != nil && *p.Name == permissionName
 					})).
 					Return(nil, errors.New("failed to create permission")).Once()
 
@@ -309,7 +313,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -354,7 +358,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -392,7 +396,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},
@@ -423,7 +427,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					Authorization: &keycloakApi.Authorization{
 						Permissions: []keycloakApi.Permission{
 							{
-								Name:      "resource-permission",
+								Name:      permissionName,
 								Type:      keycloakApi.PermissionTypeResource,
 								Policies:  []string{"policy"},
 								Resources: []string{"resource"},

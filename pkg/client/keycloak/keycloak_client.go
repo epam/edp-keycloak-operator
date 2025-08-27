@@ -68,7 +68,11 @@ type KCloakUsers interface {
 	SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error
 	DeleteRealmUser(ctx context.Context, realmName, username string) error
 	GetUsersByNames(ctx context.Context, realm string, names []string) (map[string]gocloak.User, error)
-	UpdateUsersProfile(ctx context.Context, realm string, userProfile keycloak_go_client.UserProfileConfig) (*keycloak_go_client.UserProfileConfig, error)
+	UpdateUsersProfile(
+		ctx context.Context,
+		realm string,
+		userProfile keycloak_go_client.UserProfileConfig,
+	) (*keycloak_go_client.UserProfileConfig, error)
 	GetUsersProfile(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error)
 }
 
@@ -102,20 +106,38 @@ type KCloakClients interface {
 	DeleteScope(ctx context.Context, realm, idOfClient string, scope string) error
 
 	GetPolicies(ctx context.Context, realm, idOfClient string) (map[string]*gocloak.PolicyRepresentation, error)
-	CreatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) (*gocloak.PolicyRepresentation, error)
+	CreatePolicy(
+		ctx context.Context,
+		realm,
+		idOfClient string,
+		policy gocloak.PolicyRepresentation,
+	) (*gocloak.PolicyRepresentation, error)
 	UpdatePolicy(ctx context.Context, realm, idOfClient string, policy gocloak.PolicyRepresentation) error
 	DeletePolicy(ctx context.Context, realm, idOfClient, policyID string) error
 
 	GetClientManagementPermissions(realm, idOfClient string) (*adapter.ManagementPermissionRepresentation, error)
-	UpdateClientManagementPermissions(realm, idOfClient string, permission adapter.ManagementPermissionRepresentation) error
+	UpdateClientManagementPermissions(
+		realm, idOfClient string,
+		permission adapter.ManagementPermissionRepresentation,
+	) error
 	GetPermissions(ctx context.Context, realm, idOfClient string) (map[string]gocloak.PermissionRepresentation, error)
-	CreatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) (*gocloak.PermissionRepresentation, error)
+	CreatePermission(
+		ctx context.Context,
+		realm,
+		idOfClient string,
+		permission gocloak.PermissionRepresentation,
+	) (*gocloak.PermissionRepresentation, error)
 	UpdatePermission(ctx context.Context, realm, idOfClient string, permission gocloak.PermissionRepresentation) error
 	DeletePermission(ctx context.Context, realm, idOfClient, permissionID string) error
 
 	GetResources(ctx context.Context, realm, idOfClient string) (map[string]gocloak.ResourceRepresentation, error)
 	UpdateResource(ctx context.Context, realm, idOfClient string, resource gocloak.ResourceRepresentation) error
-	CreateResource(ctx context.Context, realm string, idOfClient string, resource gocloak.ResourceRepresentation) (*gocloak.ResourceRepresentation, error)
+	CreateResource(
+		ctx context.Context,
+		realm string,
+		idOfClient string,
+		resource gocloak.ResourceRepresentation,
+	) (*gocloak.ResourceRepresentation, error)
 	DeleteResource(ctx context.Context, realm, idOfClient, resourceID string) error
 }
 

@@ -36,9 +36,9 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	return nil
 }
 
-func makeTerminator(client client.Client, childRoles []keycloakApi.KeycloakRealmRole, preserveResourcesOnDeletion bool) *terminator {
+func makeTerminator(k8sClient client.Client, childRoles []keycloakApi.KeycloakRealmRole, preserveResourcesOnDeletion bool) *terminator {
 	return &terminator{
-		client:                      client,
+		client:                      k8sClient,
 		childRoles:                  childRoles,
 		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}

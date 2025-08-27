@@ -103,7 +103,7 @@ type KeycloakRealmIdentityProviderStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconciliation status"
 
 // KeycloakRealmIdentityProvider is the Schema for the keycloak realm identity provider API.
 type KeycloakRealmIdentityProvider struct {

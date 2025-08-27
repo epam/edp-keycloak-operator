@@ -17,8 +17,8 @@ type PutRealm struct {
 }
 
 // NewPutRealm returns PutRealm chain handler.
-func NewPutRealm(client client.Client) *PutRealm {
-	return &PutRealm{client: client}
+func NewPutRealm(k8sClient client.Client) *PutRealm {
+	return &PutRealm{client: k8sClient}
 }
 
 func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client) error {

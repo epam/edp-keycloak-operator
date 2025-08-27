@@ -505,7 +505,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				Exact:    gocloak.BoolP(true),
 			})
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(users).Should(HaveLen(0))
+			g.Expect(users).Should(BeEmpty())
 		}, time.Minute, time.Second*5).Should(Succeed())
 
 		By("Deleting KeycloakRealmUser CR - should succeed even though user doesn't exist in Keycloak")

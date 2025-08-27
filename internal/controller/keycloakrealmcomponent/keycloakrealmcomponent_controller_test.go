@@ -7,7 +7,6 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/pkg/errors"
-	testifyMock "github.com/stretchr/testify/mock"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -91,12 +90,12 @@ func TestReconcile_Reconcile(t *testing.T) {
 	kcAdapter.On("GetComponent", testifymock.Anything, realm.Spec.RealmName, comp.Spec.Name).Return(nil,
 		adapter.NotFoundError("not found")).Once()
 	kcAdapter.On("CreateComponent", testifymock.Anything, realm.Spec.RealmName,
-		testifyMock.Anything).Return(errors.New("create fatal"))
+		testifymock.Anything).Return(errors.New("create fatal"))
 
 	failureComp := comp.DeepCopy()
 	failureComp.Status.Value = "unable to create component: create fatal"
 
-	h.On("SetFailureCount", testifyMock.Anything).Return(time.Minute)
+	h.On("SetFailureCount", testifymock.Anything).Return(time.Minute)
 
 	_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: types.NamespacedName{
 		Name:      comp.Name,

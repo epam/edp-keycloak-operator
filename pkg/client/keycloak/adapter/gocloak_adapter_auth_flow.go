@@ -139,7 +139,13 @@ func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *Keycloa
 	}
 
 	for i := range flowExecs {
-		if err := a.adjustFlowExecutionPriority(realmName, flow.Alias, &flowExecs[i], len(flowExecs), childFlows); err != nil {
+		if err := a.adjustFlowExecutionPriority(
+			realmName,
+			flow.Alias,
+			&flowExecs[i],
+			len(flowExecs),
+			childFlows,
+		); err != nil {
 			return err
 		}
 	}
@@ -530,7 +536,10 @@ func getIDFromResponseLocation(response *http.Response) (string, error) {
 	return locationParts[len(locationParts)-1], nil
 }
 
-func (a GoCloakAdapter) unsetBrowserFlow(realmName, flowAlias string) (realm *gocloak.RealmRepresentation, isBrowserFlowUnset bool, err error) {
+func (a GoCloakAdapter) unsetBrowserFlow(
+	realmName,
+	flowAlias string,
+) (realm *gocloak.RealmRepresentation, isBrowserFlowUnset bool, err error) {
 	realm, err = a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
 	if err != nil {
 		return nil, false, errors.Wrapf(err, "unable to get realm: %s", realmName)

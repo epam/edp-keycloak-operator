@@ -36,8 +36,14 @@ type ClusterKeycloakRealmReconciler struct {
 	operatorNamespace string
 }
 
-func NewClusterKeycloakRealmReconciler(client client.Client, scheme *runtime.Scheme, helper Helper, operatorNamespace string) *ClusterKeycloakRealmReconciler {
-	return &ClusterKeycloakRealmReconciler{client: client, scheme: scheme, helper: helper, operatorNamespace: operatorNamespace}
+func NewClusterKeycloakRealmReconciler(
+	k8sClient client.Client,
+	scheme *runtime.Scheme,
+	controllerHelper Helper,
+	operatorNamespace string,
+) *ClusterKeycloakRealmReconciler {
+	return &ClusterKeycloakRealmReconciler{
+		client: k8sClient, scheme: scheme, helper: controllerHelper, operatorNamespace: operatorNamespace}
 }
 
 const (
@@ -45,9 +51,9 @@ const (
 	successConnectionRetryPeriod       = time.Minute * 30
 )
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloakrealms/finalizers,verbs=update
 
 // Reconcile is loop for reconciling ClusterKeycloakRealm object.
 func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

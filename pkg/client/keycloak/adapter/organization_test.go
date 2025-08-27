@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -60,7 +61,10 @@ func TestGoCloakAdapter_CreateOrganization(t *testing.T) {
 			organization: org,
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "POST" && r.URL.Path == "/admin/realms/realm-name/organizations" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+					).Replace(organizationsResource)
+					if r.Method == http.MethodPost && r.URL.Path == expectedPath {
 						w.WriteHeader(http.StatusOK)
 						return
 					}
@@ -135,8 +139,12 @@ func TestGoCloakAdapter_GetOrganization(t *testing.T) {
 			orgID: "org-id",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id" {
-						w.Header().Set("Content-Type", "application/json")
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "org-id",
+					).Replace(organizationEntity)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						require.NoError(t, json.NewEncoder(w).Encode(expectedOrg))
 						return
@@ -236,7 +244,11 @@ func TestGoCloakAdapter_UpdateOrganization(t *testing.T) {
 			organization: org,
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "PUT" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "org-id",
+					).Replace(organizationEntity)
+					if r.Method == http.MethodPut && r.URL.Path == expectedPath {
 						w.WriteHeader(http.StatusOK)
 						return
 					}
@@ -308,7 +320,11 @@ func TestGoCloakAdapter_DeleteOrganization(t *testing.T) {
 			orgID: "org-id",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "DELETE" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "org-id",
+					).Replace(organizationEntity)
+					if r.Method == http.MethodDelete && r.URL.Path == expectedPath {
 						w.WriteHeader(http.StatusOK)
 						return
 					}
@@ -382,8 +398,11 @@ func TestGoCloakAdapter_GetOrganizations(t *testing.T) {
 			realm: "realm-name",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/realm-name/organizations" {
-						w.Header().Set("Content-Type", "application/json")
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+					).Replace(organizationsResource)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						require.NoError(t, json.NewEncoder(w).Encode(expectedOrgs))
 						return
@@ -431,50 +450,23 @@ func TestGoCloakAdapter_GetOrganizations(t *testing.T) {
 	}
 }
 
-func TestGoCloakAdapter_LinkIdentityProviderToOrganization(t *testing.T) {
-	tests := []struct {
-		name           string
-		realm          string
-		orgID          string
-		idpAlias       string
-		setupServer    func() *httptest.Server
-		expectedError  string
-		expectedResult bool
-	}{
-		{
-			name:     "successful linking",
-			realm:    "realm-name",
-			orgID:    "org-id",
-			idpAlias: "github-idp",
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "POST" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id/identity-providers" {
-						w.WriteHeader(http.StatusOK)
-						return
-					}
-					w.WriteHeader(http.StatusNotFound)
-				}))
-			},
-			expectedError:  "",
-			expectedResult: true,
-		},
-		{
-			name:     "server error",
-			realm:    "realm-name",
-			orgID:    "error-org",
-			idpAlias: "github-idp",
-			setupServer: func() *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-					_, err := w.Write([]byte("fatal"))
-					require.NoError(t, err)
-				}))
-			},
-			expectedError:  "unable to link identity provider to organization",
-			expectedResult: false,
-		},
-	}
+// identityProviderOrgTestCase represents a test case for identity provider organization operations
+type identityProviderOrgTestCase struct {
+	name           string
+	realm          string
+	orgID          string
+	idpAlias       string
+	setupServer    func() *httptest.Server
+	expectedError  string
+	expectedResult bool
+}
 
+// runIdentityProviderOrgTests runs common test logic for identity provider organization operations
+func runIdentityProviderOrgTests(
+	t *testing.T,
+	tests []identityProviderOrgTestCase,
+	testFunc func(adapter *GoCloakAdapter, realm, orgID, idpAlias string) error,
+) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			server := tt.setupServer()
@@ -482,7 +474,7 @@ func TestGoCloakAdapter_LinkIdentityProviderToOrganization(t *testing.T) {
 
 			adapter := createTestAdapter(t, server)
 
-			err := adapter.LinkIdentityProviderToOrganization(context.Background(), tt.realm, tt.orgID, tt.idpAlias)
+			err := testFunc(adapter, tt.realm, tt.orgID, tt.idpAlias)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -494,24 +486,28 @@ func TestGoCloakAdapter_LinkIdentityProviderToOrganization(t *testing.T) {
 	}
 }
 
-func TestGoCloakAdapter_UnlinkIdentityProviderFromOrganization(t *testing.T) {
-	tests := []struct {
-		name           string
-		realm          string
-		orgID          string
-		idpAlias       string
-		setupServer    func() *httptest.Server
-		expectedError  string
-		expectedResult bool
-	}{
+// createIdentityProviderOrgTestCases creates test cases for identity provider organization operations
+func createIdentityProviderOrgTestCases(
+	t *testing.T,
+	successAction string,
+	pathTemplate string,
+	httpMethod string,
+	errorMessage string,
+) []identityProviderOrgTestCase {
+	return []identityProviderOrgTestCase{
 		{
-			name:     "successful unlinking",
+			name:     "successful " + successAction,
 			realm:    "realm-name",
 			orgID:    "org-id",
 			idpAlias: "github-idp",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "DELETE" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id/identity-providers/github-idp" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "org-id",
+						"{alias}", "github-idp",
+					).Replace(pathTemplate)
+					if r.Method == httpMethod && r.URL.Path == expectedPath {
 						w.WriteHeader(http.StatusOK)
 						return
 					}
@@ -533,28 +529,38 @@ func TestGoCloakAdapter_UnlinkIdentityProviderFromOrganization(t *testing.T) {
 					require.NoError(t, err)
 				}))
 			},
-			expectedError:  "unable to unlink identity provider from organization",
+			expectedError:  errorMessage,
 			expectedResult: false,
 		},
 	}
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			server := tt.setupServer()
-			defer server.Close()
+func TestGoCloakAdapter_LinkIdentityProviderToOrganization(t *testing.T) {
+	tests := createIdentityProviderOrgTestCases(
+		t,
+		"linking",
+		organizationIdPsResource,
+		http.MethodPost,
+		"unable to link identity provider to organization",
+	)
 
-			adapter := createTestAdapter(t, server)
+	runIdentityProviderOrgTests(t, tests, func(adapter *GoCloakAdapter, realm, orgID, idpAlias string) error {
+		return adapter.LinkIdentityProviderToOrganization(context.Background(), realm, orgID, idpAlias)
+	})
+}
 
-			err := adapter.UnlinkIdentityProviderFromOrganization(context.Background(), tt.realm, tt.orgID, tt.idpAlias)
+func TestGoCloakAdapter_UnlinkIdentityProviderFromOrganization(t *testing.T) {
+	tests := createIdentityProviderOrgTestCases(
+		t,
+		"unlinking",
+		organizationIdPEntity,
+		http.MethodDelete,
+		"unable to unlink identity provider from organization",
+	)
 
-			if tt.expectedError != "" {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), tt.expectedError)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	runIdentityProviderOrgTests(t, tests, func(adapter *GoCloakAdapter, realm, orgID, idpAlias string) error {
+		return adapter.UnlinkIdentityProviderFromOrganization(context.Background(), realm, orgID, idpAlias)
+	})
 }
 
 func TestGoCloakAdapter_GetOrganizationIdentityProviders(t *testing.T) {
@@ -578,8 +584,12 @@ func TestGoCloakAdapter_GetOrganizationIdentityProviders(t *testing.T) {
 			orgID: "org-id",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/realm-name/organizations/org-id/identity-providers" {
-						w.Header().Set("Content-Type", "application/json")
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "org-id",
+					).Replace(organizationIdPsResource)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						require.NoError(t, json.NewEncoder(w).Encode(expectedIdPs))
 						return
@@ -643,8 +653,12 @@ func TestGoCloakAdapter_OrganizationExists(t *testing.T) {
 			orgID: "existing-org",
 			setupServer: func() *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/realm-name/organizations/existing-org" {
-						w.Header().Set("Content-Type", "application/json")
+					expectedPath := strings.NewReplacer(
+						"{realm}", "realm-name",
+						"{id}", "existing-org",
+					).Replace(organizationEntity)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						require.NoError(t, json.NewEncoder(w).Encode(&dto.Organization{ID: "existing-org"}))
 						return

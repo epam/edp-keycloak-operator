@@ -101,7 +101,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 			g.Expect(testOrg).ShouldNot(BeNil())
 			g.Expect(testOrg.Name).Should(Equal("Test Organization"))
 			g.Expect(testOrg.Alias).Should(Equal("test-org"))
-			g.Expect(len(testOrg.Domains)).Should(Equal(2))
+			g.Expect(testOrg.Domains).Should(HaveLen(2))
 			domainNames := make([]string, len(testOrg.Domains))
 			for i, domain := range testOrg.Domains {
 				domainNames[i] = domain.Name
@@ -143,7 +143,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 			g.Expect(testOrg).ShouldNot(BeNil())
 			g.Expect(testOrg.Name).Should(Equal("Updated Test Organization"))
 			g.Expect(testOrg.Description).Should(Equal("Updated test organization description"))
-			g.Expect(len(testOrg.Domains)).Should(Equal(2))
+			g.Expect(testOrg.Domains).Should(HaveLen(2))
 			domainNames := make([]string, len(testOrg.Domains))
 			for i, domain := range testOrg.Domains {
 				domainNames[i] = domain.Name

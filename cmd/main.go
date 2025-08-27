@@ -226,7 +226,7 @@ func main() {
 		LeaderElection:         enableLeaderElection,
 		LeaderElectionID:       keycloakOperatorLock,
 		Cache: cache.Options{
-			DefaultNamespaces: map[string]cache.Config{ns: cache.Config{}},
+			DefaultNamespaces: map[string]cache.Config{ns: {}},
 		},
 	})
 	if err != nil {
@@ -302,7 +302,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err = keycloakrealmcomponent.NewReconcile(mgr.GetClient(), mgr.GetScheme(), h, secretref.NewSecretRef(mgr.GetClient())).
+	if err = keycloakrealmcomponent.NewReconcile(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		h,
+		secretref.NewSecretRef(mgr.GetClient()),
+	).
 		SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-component controller")
 		os.Exit(1)
@@ -321,7 +326,12 @@ func main() {
 			os.Exit(1)
 		}
 
-		if err = clusterkeycloakrealm.NewClusterKeycloakRealmReconciler(mgr.GetClient(), mgr.GetScheme(), h, operatorNamespace).
+		if err = clusterkeycloakrealm.NewClusterKeycloakRealmReconciler(
+			mgr.GetClient(),
+			mgr.GetScheme(),
+			h,
+			operatorNamespace,
+		).
 			SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterKeycloakRealm")
 			os.Exit(1)
@@ -333,7 +343,7 @@ func main() {
 		setupLog.Error(err, "unable to create keycloak-organization controller")
 		os.Exit(1)
 	}
-	//+kubebuilder:scaffold:builder
+	// +kubebuilder:scaffold:builder
 
 	if metricsCertWatcher != nil {
 		setupLog.Info("Adding metrics certificate watcher to manager")

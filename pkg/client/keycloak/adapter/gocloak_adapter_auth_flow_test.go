@@ -275,7 +275,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureUpdateRealm() {
 func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 	var (
 		flow = KeycloakAuthFlow{
-			Alias: "flow1",
+			Alias: "flow2",
 			AuthenticationExecutions: []AuthenticationExecution{
 				{
 					AutheticatorFlow: true,
@@ -283,7 +283,7 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 				},
 			},
 		}
-		flowID = "flow-id-1"
+		flowID = "flow-id-2"
 	)
 
 	httpmock.RegisterResponder("GET",
@@ -311,11 +311,11 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 
 func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowShouldUpdateChildFlowRequirement() {
 	flow := KeycloakAuthFlow{
-		Alias:            "flow1",
+		Alias:            "flow3",
 		ParentName:       "parent",
 		ChildRequirement: "REQUIRED",
 	}
-	flowID := "flow-id-1"
+	flowID := "flow-id-3"
 
 	httpmock.RegisterResponder(
 		http.MethodGet,
@@ -348,11 +348,11 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowShouldUpdateChildFlowRequirement
 
 func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedUpdateChildFlowRequirement() {
 	flow := KeycloakAuthFlow{
-		Alias:            "flow1",
+		Alias:            "flow4",
 		ParentName:       "parent",
 		ChildRequirement: "REQUIRED",
 	}
-	flowID := "flow-id-1"
+	flowID := "flow-id-4"
 
 	httpmock.RegisterResponder(
 		http.MethodGet,

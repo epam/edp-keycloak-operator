@@ -325,7 +325,7 @@ type KeycloakClientStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconciliation status"
 
 // KeycloakClient is the Schema for the keycloak clients API.
 type KeycloakClient struct {

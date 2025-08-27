@@ -33,11 +33,15 @@ type Helper interface {
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
 
-func NewReconcileKeycloakRealm(client client.Client, scheme *runtime.Scheme, helper Helper) *ReconcileKeycloakRealm {
+func NewReconcileKeycloakRealm(
+	k8sClient client.Client,
+	scheme *runtime.Scheme,
+	controllerHelper Helper,
+) *ReconcileKeycloakRealm {
 	return &ReconcileKeycloakRealm{
-		client: client,
-		helper: helper,
-		chain:  chain.CreateDefChain(client, scheme, helper),
+		client: k8sClient,
+		helper: controllerHelper,
+		chain:  chain.CreateDefChain(k8sClient, scheme, controllerHelper),
 	}
 }
 
@@ -65,10 +69,10 @@ func (r *ReconcileKeycloakRealm) SetupWithManager(mgr ctrl.Manager, successRecon
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms/finalizers,verbs=update
-//+kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealms/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch;create;update;patch;delete
 
 // Reconcile is a loop for reconciling KeycloakRealm object.
 func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -81,12 +85,12 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 			// Request object not found, could have been deleted after reconcile request.
 			// Owned objects are automatically garbage collected. For additional cleanup logic use finalizers.
 			// Return and don't requeue
-			return
+			return result, resultErr
 		}
 
 		resultErr = err
 
-		return
+		return result, resultErr
 	}
 
 	if err := r.tryReconcile(ctx, instance); err != nil {
@@ -112,7 +116,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		resultErr = errors.Wrap(err, "unable to update status")
 	}
 
-	return
+	return result, resultErr
 }
 
 func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keycloakApi.KeycloakRealm) error {

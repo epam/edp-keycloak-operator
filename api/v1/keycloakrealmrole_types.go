@@ -65,7 +65,7 @@ type KeycloakRealmRoleStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:storageversion
-// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconcilation status"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value",description="Reconciliation status"
 
 // KeycloakRealmRole is the Schema for the keycloak group API.
 type KeycloakRealmRole struct {

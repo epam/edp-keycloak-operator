@@ -17,6 +17,40 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
+// setupTestServer creates a test server and GoCloakAdapter for testing
+func setupTestServer(t *testing.T, serverResponse string, statusCode int) *GoCloakAdapter {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/admin/serverinfo") {
+			setJSONContentType(w)
+			w.WriteHeader(statusCode)
+			_, err := w.Write([]byte(serverResponse))
+			assert.NoError(t, err)
+
+			return
+		}
+
+		// Return 200 OK for all other requests to avoid authentication issues
+		w.WriteHeader(http.StatusOK)
+	}))
+
+	t.Cleanup(func() {
+		server.Close()
+	})
+
+	// Create adapter directly to avoid authentication
+	mockClient := mocks.NewMockGoCloak(t)
+	mockClient.On("RestyClient").Return(resty.New())
+
+	a := &GoCloakAdapter{
+		client:   mockClient,
+		token:    &gocloak.JWT{AccessToken: "test-token"},
+		log:      logr.Discard(),
+		basePath: server.URL,
+	}
+
+	return a
+}
+
 func TestGoCloakAdapter_GetServerInfo_Success(t *testing.T) {
 	t.Parallel()
 
@@ -101,35 +135,7 @@ func TestGoCloakAdapter_GetServerInfo_Success(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if strings.Contains(r.URL.Path, "/admin/serverinfo") {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-
-					_, err := w.Write([]byte(tt.serverResponse))
-					assert.NoError(t, err)
-
-					return
-				}
-
-				// Return 200 OK for all other requests to avoid authentication issues
-				w.WriteHeader(http.StatusOK)
-			}))
-
-			t.Cleanup(func() {
-				server.Close()
-			})
-
-			// Create adapter directly to avoid authentication
-			mockClient := mocks.NewMockGoCloak(t)
-			mockClient.On("RestyClient").Return(resty.New())
-
-			a := &GoCloakAdapter{
-				client:   mockClient,
-				token:    &gocloak.JWT{AccessToken: "test-token"},
-				log:      logr.Discard(),
-				basePath: server.URL,
-			}
+			a := setupTestServer(t, tt.serverResponse, http.StatusOK)
 
 			got, err := a.GetServerInfo(context.Background())
 			require.NoError(t, err)
@@ -202,34 +208,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if strings.Contains(r.URL.Path, "/admin/serverinfo") {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(tt.statusCode)
-					_, err := w.Write([]byte(tt.serverResponse))
-					assert.NoError(t, err)
-
-					return
-				}
-
-				// Return 200 OK for all other requests to avoid authentication issues
-				w.WriteHeader(http.StatusOK)
-			}))
-
-			t.Cleanup(func() {
-				server.Close()
-			})
-
-			// Create adapter directly to avoid authentication
-			mockClient := mocks.NewMockGoCloak(t)
-			mockClient.On("RestyClient").Return(resty.New())
-
-			a := &GoCloakAdapter{
-				client:   mockClient,
-				token:    &gocloak.JWT{AccessToken: "test-token"},
-				log:      logr.Discard(),
-				basePath: server.URL,
-			}
+			a := setupTestServer(t, tt.serverResponse, tt.statusCode)
 
 			_, err := a.GetServerInfo(context.Background())
 			tt.wantErr(t, err)
@@ -373,35 +352,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if strings.Contains(r.URL.Path, "/admin/serverinfo") {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusOK)
-
-					_, err := w.Write([]byte(tt.serverResponse))
-					assert.NoError(t, err)
-
-					return
-				}
-
-				// Return 200 OK for all other requests to avoid authentication issues
-				w.WriteHeader(http.StatusOK)
-			}))
-
-			t.Cleanup(func() {
-				server.Close()
-			})
-
-			// Create adapter directly to avoid authentication
-			mockClient := mocks.NewMockGoCloak(t)
-			mockClient.On("RestyClient").Return(resty.New())
-
-			a := &GoCloakAdapter{
-				client:   mockClient,
-				token:    &gocloak.JWT{AccessToken: "test-token"},
-				log:      logr.Discard(),
-				basePath: server.URL,
-			}
+			a := setupTestServer(t, tt.serverResponse, http.StatusOK)
 
 			got, err := a.FeatureFlagEnabled(context.Background(), tt.featureFlag)
 			tt.expectedErr(t, err)
@@ -474,34 +425,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled_ErrorScenarios(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				if strings.Contains(r.URL.Path, "/admin/serverinfo") {
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(tt.statusCode)
-					_, err := w.Write([]byte(tt.serverResponse))
-					assert.NoError(t, err)
-
-					return
-				}
-
-				// Return 200 OK for all other requests to avoid authentication issues
-				w.WriteHeader(http.StatusOK)
-			}))
-
-			t.Cleanup(func() {
-				server.Close()
-			})
-
-			// Create adapter directly to avoid authentication
-			mockClient := mocks.NewMockGoCloak(t)
-			mockClient.On("RestyClient").Return(resty.New())
-
-			a := &GoCloakAdapter{
-				client:   mockClient,
-				token:    &gocloak.JWT{AccessToken: "test-token"},
-				log:      logr.Discard(),
-				basePath: server.URL,
-			}
+			a := setupTestServer(t, tt.serverResponse, tt.statusCode)
 
 			got, err := a.FeatureFlagEnabled(context.Background(), tt.featureFlag)
 			tt.expectedErr(t, err)

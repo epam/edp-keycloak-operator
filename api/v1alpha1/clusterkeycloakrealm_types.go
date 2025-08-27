@@ -170,13 +170,13 @@ type ClusterKeycloakRealmStatus struct {
 	Value string `json:"value,omitempty"`
 }
 
-//+kubebuilder:object:root=true
-//+kubebuilder:subresource:status
-//+kubebuilder:storageversion
-//+kubebuilder:resource:scope=Cluster
-//+kubebuilder:printcolumn:name="Available",type="boolean",JSONPath=".status.available",description="Keycloak realm is available"
-//+kubebuilder:printcolumn:name="Realm",type="boolean",JSONPath=".spec.realmName",description="Keycloak realm name"
-//+kubebuilder:printcolumn:name="Cluster-Keycloak",type="boolean",JSONPath=".spec.clusterKeycloakRef",description="ClusterKeycloak instance name"
+// +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
+// +kubebuilder:storageversion
+// +kubebuilder:resource:scope=Cluster
+// +kubebuilder:printcolumn:name="Available",type="boolean",JSONPath=".status.available",description="Keycloak realm is available"
+// +kubebuilder:printcolumn:name="Realm",type="boolean",JSONPath=".spec.realmName",description="Keycloak realm name"
+// +kubebuilder:printcolumn:name="Cluster-Keycloak",type="boolean",JSONPath=".spec.clusterKeycloakRef",description="ClusterKeycloak instance name"
 
 // ClusterKeycloakRealm is the Schema for the clusterkeycloakrealms API.
 type ClusterKeycloakRealm struct {
@@ -187,7 +187,7 @@ type ClusterKeycloakRealm struct {
 	Status ClusterKeycloakRealmStatus `json:"status,omitempty"`
 }
 
-//+kubebuilder:object:root=true
+// +kubebuilder:object:root=true
 
 // ClusterKeycloakRealmList contains a list of ClusterKeycloakRealm.
 type ClusterKeycloakRealmList struct {

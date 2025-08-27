@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
@@ -70,14 +71,46 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 				"frontendUrl":           settings.FrontendURL,
 				"adminEventsExpiration": "100",
 			}, realm.Attributes) &&
-			assert.Equal(t, settings.TokenSettings.DefaultSignatureAlgorithm, *realm.DefaultSignatureAlgorithm) &&
-			assert.Equal(t, settings.TokenSettings.RevokeRefreshToken, *realm.RevokeRefreshToken) &&
-			assert.Equal(t, settings.TokenSettings.RefreshTokenMaxReuse, *realm.RefreshTokenMaxReuse) &&
-			assert.Equal(t, settings.TokenSettings.AccessTokenLifespan, *realm.AccessTokenLifespan) &&
-			assert.Equal(t, settings.TokenSettings.AccessTokenLifespanForImplicitFlow, *realm.AccessTokenLifespanForImplicitFlow) &&
-			assert.Equal(t, settings.TokenSettings.AccessCodeLifespan, *realm.AccessCodeLifespan) &&
-			assert.Equal(t, settings.TokenSettings.ActionTokenGeneratedByUserLifespan, *realm.ActionTokenGeneratedByUserLifespan) &&
-			assert.Equal(t, settings.TokenSettings.ActionTokenGeneratedByAdminLifespan, *realm.ActionTokenGeneratedByAdminLifespan)
+			assert.Equal(
+				t,
+				settings.TokenSettings.DefaultSignatureAlgorithm,
+				*realm.DefaultSignatureAlgorithm,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.RevokeRefreshToken,
+				*realm.RevokeRefreshToken,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.RefreshTokenMaxReuse,
+				*realm.RefreshTokenMaxReuse,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.AccessTokenLifespan,
+				*realm.AccessTokenLifespan,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.AccessTokenLifespanForImplicitFlow,
+				*realm.AccessTokenLifespanForImplicitFlow,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.AccessCodeLifespan,
+				*realm.AccessCodeLifespan,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.ActionTokenGeneratedByUserLifespan,
+				*realm.ActionTokenGeneratedByUserLifespan,
+			) &&
+			assert.Equal(
+				t,
+				settings.TokenSettings.ActionTokenGeneratedByAdminLifespan,
+				*realm.ActionTokenGeneratedByAdminLifespan,
+			)
 	})).Return(nil)
 
 	err := adapter.UpdateRealmSettings(realmName, &settings)
@@ -277,6 +310,42 @@ func TestToRealmTokenSettings(t *testing.T) {
 	}
 }
 
+// setupOrganizationToggleServer creates a test server that handles GET and PUT requests
+// for toggling organization settings. It returns the current organizationsEnabled state
+// as the opposite of the target enabled state (simulating a state change).
+func setupOrganizationToggleServer(realmName string, currentOrgEnabled bool) *httptest.Server {
+	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			expectedPath := strings.NewReplacer(
+				"{realm}", realmName,
+			).Replace(realmEntity)
+			if r.URL.Path == expectedPath {
+				response := map[string]interface{}{
+					"realm":                realmName,
+					"organizationsEnabled": currentOrgEnabled,
+				}
+
+				setJSONContentType(w)
+				w.WriteHeader(http.StatusOK)
+				_ = json.NewEncoder(w).Encode(response)
+
+				return
+			}
+		case http.MethodPut:
+			expectedPath := strings.NewReplacer(
+				"{realm}", realmName,
+			).Replace(realmEntity)
+			if r.URL.Path == expectedPath {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
+		}
+
+		http.NotFound(w, r)
+	}))
+}
+
 func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 	t.Parallel()
 
@@ -292,27 +361,7 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			realmName: "test-realm",
 			enabled:   true,
 			setupServer: func(t *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch r.Method {
-					case "GET":
-						if r.URL.Path == "/admin/realms/test-realm" {
-							response := map[string]interface{}{
-								"realm":                "test-realm",
-								"organizationsEnabled": false,
-							}
-							w.Header().Set("Content-Type", "application/json")
-							w.WriteHeader(http.StatusOK)
-							_ = json.NewEncoder(w).Encode(response)
-							return
-						}
-					case "PUT":
-						if r.URL.Path == "/admin/realms/test-realm" {
-							w.WriteHeader(http.StatusOK)
-							return
-						}
-					}
-					http.NotFound(w, r)
-				}))
+				return setupOrganizationToggleServer("test-realm", false)
 			},
 			expectedError: "",
 		},
@@ -321,27 +370,7 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			realmName: "test-realm",
 			enabled:   false,
 			setupServer: func(t *testing.T) *httptest.Server {
-				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					switch r.Method {
-					case "GET":
-						if r.URL.Path == "/admin/realms/test-realm" {
-							response := map[string]interface{}{
-								"realm":                "test-realm",
-								"organizationsEnabled": true,
-							}
-							w.Header().Set("Content-Type", "application/json")
-							w.WriteHeader(http.StatusOK)
-							_ = json.NewEncoder(w).Encode(response)
-							return
-						}
-					case "PUT":
-						if r.URL.Path == "/admin/realms/test-realm" {
-							w.WriteHeader(http.StatusOK)
-							return
-						}
-					}
-					http.NotFound(w, r)
-				}))
+				return setupOrganizationToggleServer("test-realm", true)
 			},
 			expectedError: "",
 		},
@@ -351,12 +380,15 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			enabled:   true,
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "test-realm",
+					).Replace(realmEntity)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
 						response := map[string]interface{}{
 							"realm":                "test-realm",
 							"organizationsEnabled": true,
 						}
-						w.Header().Set("Content-Type", "application/json")
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						_ = json.NewEncoder(w).Encode(response)
 						return
@@ -372,12 +404,15 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			enabled:   false,
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "test-realm",
+					).Replace(realmEntity)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
 						response := map[string]interface{}{
 							"realm":                "test-realm",
 							"organizationsEnabled": false,
 						}
-						w.Header().Set("Content-Type", "application/json")
+						setJSONContentType(w)
 						w.WriteHeader(http.StatusOK)
 						_ = json.NewEncoder(w).Encode(response)
 						return
@@ -393,7 +428,10 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			enabled:   true,
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					if r.Method == "GET" && r.URL.Path == "/admin/realms/test-realm" {
+					expectedPath := strings.NewReplacer(
+						"{realm}", "test-realm",
+					).Replace(realmEntity)
+					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
 						w.WriteHeader(http.StatusNotFound)
 						_, _ = w.Write([]byte("realm not found"))
 						return
@@ -410,19 +448,25 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			setupServer: func(t *testing.T) *httptest.Server {
 				return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					switch r.Method {
-					case "GET":
-						if r.URL.Path == "/admin/realms/test-realm" {
+					case http.MethodGet:
+						expectedPath := strings.NewReplacer(
+							"{realm}", "test-realm",
+						).Replace(realmEntity)
+						if r.URL.Path == expectedPath {
 							response := map[string]interface{}{
 								"realm":                "test-realm",
 								"organizationsEnabled": false,
 							}
-							w.Header().Set("Content-Type", "application/json")
+							setJSONContentType(w)
 							w.WriteHeader(http.StatusOK)
 							_ = json.NewEncoder(w).Encode(response)
 							return
 						}
-					case "PUT":
-						if r.URL.Path == "/admin/realms/test-realm" {
+					case http.MethodPut:
+						expectedPath := strings.NewReplacer(
+							"{realm}", "test-realm",
+						).Replace(realmEntity)
+						if r.URL.Path == expectedPath {
 							w.WriteHeader(http.StatusInternalServerError)
 							_, _ = w.Write([]byte("internal server error"))
 							return

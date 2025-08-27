@@ -15,7 +15,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Reconcilation status
+    - description: Reconciliation status
       jsonPath: .status.value
       name: Status
       type: string

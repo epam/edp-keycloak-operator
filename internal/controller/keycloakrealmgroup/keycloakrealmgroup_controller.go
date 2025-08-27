@@ -31,11 +31,13 @@ type Helper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
 }
 
-func NewReconcileKeycloakRealmGroup(client client.Client,
-	helper Helper) *ReconcileKeycloakRealmGroup {
+func NewReconcileKeycloakRealmGroup(
+	k8sClient client.Client,
+	controllerHelper Helper,
+) *ReconcileKeycloakRealmGroup {
 	return &ReconcileKeycloakRealmGroup{
-		client: client,
-		helper: helper,
+		client: k8sClient,
+		helper: controllerHelper,
 	}
 }
 
@@ -62,9 +64,9 @@ func (r *ReconcileKeycloakRealmGroup) SetupWithManager(mgr ctrl.Manager, success
 	return nil
 }
 
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups,verbs=get;list;watch;create;update;patch;delete
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups/status,verbs=get;update;patch
-//+kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups/finalizers,verbs=update
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakrealmgroups/finalizers,verbs=update
 
 // Reconcile is a loop for reconciling KeycloakRealmGroup object.
 func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
@@ -74,12 +76,12 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 	var instance keycloakApi.KeycloakRealmGroup
 	if err := r.client.Get(ctx, request.NamespacedName, &instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
-			return
+			return result, resultErr
 		}
 
 		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
 
-		return
+		return result, resultErr
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
@@ -105,7 +107,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 
 	log.Info("Reconciling done")
 
-	return
+	return result, resultErr
 }
 
 func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloakRealmGroup *keycloakApi.KeycloakRealmGroup) error {
