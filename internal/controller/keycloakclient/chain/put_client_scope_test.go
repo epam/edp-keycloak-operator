@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -19,8 +20,6 @@ import (
 )
 
 func TestPutClientScope_Serve(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name              string
 		client            func(t *testing.T) client.Client
@@ -94,12 +93,272 @@ func TestPutClientScope_Serve(t *testing.T) {
 			},
 			wantErr: require.NoError,
 		},
+		{
+			name: "with both default and optional scopes",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:             "test-client-id",
+							DefaultClientScopes:  []string{"default-scope-1", "default-scope-2"},
+							OptionalClientScopes: []string{"optional-scope-1", "optional-scope-2"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, []string{"default-scope-1", "default-scope-2"}).Return(nil, nil)
+				m.On("AddDefaultScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, []string{"optional-scope-1", "optional-scope-2"}).Return(nil, nil)
+				m.On("AddOptionalScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "with no scopes",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId: "test-client-id",
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "error when GetClientScopesByNames fails for default scopes",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:            "test-client-id",
+							DefaultClientScopes: []string{"default-scope"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to get client scopes"))
+
+				return m
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error when GetClientScopesByNames fails for optional scopes",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:             "test-client-id",
+							OptionalClientScopes: []string{"optional-scope"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, mock.Anything).Return(nil, errors.New("failed to get client scopes"))
+
+				return m
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error when AddDefaultScopeToClient fails",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:            "test-client-id",
+							DefaultClientScopes: []string{"default-scope"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+				m.On("AddDefaultScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("failed to add default scope"))
+
+				return m
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error when AddOptionalScopeToClient fails",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:             "test-client-id",
+							OptionalClientScopes: []string{"optional-scope"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, mock.Anything).Return(nil, nil)
+				m.On("AddOptionalScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("failed to add optional scope"))
+
+				return m
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error when AddOptionalScopeToClient fails with both default and optional scopes",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:             "test-client-id",
+							DefaultClientScopes:  []string{"default-scope"},
+							OptionalClientScopes: []string{"optional-scope"},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, []string{"default-scope"}).Return(nil, nil)
+				m.On("AddDefaultScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				m.On("GetClientScopesByNames", mock.Anything, mock.Anything, []string{"optional-scope"}).Return(nil, nil)
+				m.On("AddOptionalScopeToClient", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("failed to add optional scope"))
+
+				return m
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "with empty scope arrays",
+			client: func(t *testing.T) client.Client {
+				s := runtime.NewScheme()
+				require.NoError(t, keycloakApi.AddToScheme(s))
+				require.NoError(t, corev1.AddToScheme(s))
+
+				return fake.NewClientBuilder().WithScheme(s).WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "test-client",
+							Namespace: "default",
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:             "test-client-id",
+							DefaultClientScopes:  []string{},
+							OptionalClientScopes: []string{},
+						},
+					}).Build()
+			},
+			keycloakClient: client.ObjectKey{
+				Name:      "test-client",
+				Namespace: "default",
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			cl := &keycloakApi.KeycloakClient{}
 			require.NoError(t, tt.client(t).Get(context.Background(), tt.keycloakClient, cl))
 

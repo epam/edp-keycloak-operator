@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +13,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -768,7 +768,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					setJSONContentType(w)
@@ -820,7 +820,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					setJSONContentType(w)
@@ -858,7 +858,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					setJSONContentType(w)
@@ -932,7 +932,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request
-				if strings.Contains(r.URL.Path, "/admin/realms/non-existent-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "non-existent-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					setJSONContentType(w)
@@ -963,7 +963,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request - return 401 for the API call
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					setJSONContentType(w)
@@ -994,7 +994,7 @@ func TestGoCloakAdapter_GetUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodGet, r.Method)
 
 					w.WriteHeader(http.StatusInternalServerError)
@@ -1065,7 +1065,7 @@ func createErrorResponseHandler(
 		}
 
 		// Handle the actual user profile update request
-		expectedPath := fmt.Sprintf("/admin/realms/%s/users/profile", realm)
+		expectedPath := strings.Replace(realmUsersProfile, "{realm}", realm, 1)
 		if strings.Contains(r.URL.Path, expectedPath) {
 			assert.Equal(t, http.MethodPut, r.Method)
 
@@ -1116,7 +1116,7 @@ func TestGoCloakAdapter_UpdateUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile update request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodPut, r.Method)
 
 					setJSONContentType(w)
@@ -1179,7 +1179,7 @@ func TestGoCloakAdapter_UpdateUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile update request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodPut, r.Method)
 
 					setJSONContentType(w)
@@ -1236,7 +1236,7 @@ func TestGoCloakAdapter_UpdateUsersProfile(t *testing.T) {
 				}
 
 				// Handle the actual user profile update request
-				if strings.Contains(r.URL.Path, "/admin/realms/test-realm/users/profile") {
+				if strings.Contains(r.URL.Path, strings.Replace(realmUsersProfile, "{realm}", "test-realm", 1)) {
 					assert.Equal(t, http.MethodPut, r.Method)
 
 					setJSONContentType(w)

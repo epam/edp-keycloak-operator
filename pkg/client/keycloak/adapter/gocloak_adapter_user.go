@@ -2,11 +2,11 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 )
 

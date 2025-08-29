@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 )
 
 const defaultMax = 100
@@ -25,12 +24,12 @@ func (a GoCloakAdapter) addScopeToClient(
 
 	clientID, err := a.GetClientID(clientName, realmName)
 	if err != nil {
-		return errors.Wrap(err, "error during GetClientId")
+		return fmt.Errorf("error during GetClientId: %w", err)
 	}
 
 	existingScopes, err := getExistingScopes(ctx, a.token.AccessToken, realmName, clientID)
 	if err != nil {
-		return errors.Wrap(err, fmt.Sprintf("failed to get existing client scope for client %s", clientName))
+		return fmt.Errorf("failed to get existing client scope for client %s: %w", clientName, err)
 	}
 
 	existingScopesMap := make(map[string]*gocloak.ClientScope)

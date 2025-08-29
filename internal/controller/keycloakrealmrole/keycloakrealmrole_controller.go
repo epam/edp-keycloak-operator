@@ -2,12 +2,12 @@ package keycloakrealmrole
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"reflect"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -94,7 +94,7 @@ func (r *ReconcileKeycloakRealmRole) Reconcile(ctx context.Context, request reco
 			return result, resultErr
 		}
 
-		resultErr = errors.Wrap(err, "unable to get keycloak realm role from k8s")
+		resultErr = fmt.Errorf("unable to get keycloak realm role from k8s: %w", err)
 
 		return result, resultErr
 	}
@@ -158,7 +158,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 
 	roleID, err := r.putRole(ctx, gocloak.PString(realm.Realm), keycloakRealmRole, kClient)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to put role")
+		return "", fmt.Errorf("unable to put role: %w", err)
 	}
 
 	if _, err := r.helper.TryToDelete(
@@ -172,7 +172,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 		),
 		keyCloakRealmRoleOperatorFinalizerName,
 	); err != nil {
-		return "", errors.Wrap(err, "unable to tryToDelete realm role")
+		return "", fmt.Errorf("unable to tryToDelete realm role: %w", err)
 	}
 
 	return roleID, nil
@@ -190,7 +190,7 @@ func (r *ReconcileKeycloakRealmRole) putRole(
 	role := dto.ConvertSpecToRole(keycloakRealmRole)
 
 	if err := kClient.SyncRealmRole(ctx, realmName, role); err != nil {
-		return "", errors.Wrap(err, "unable to sync realm role CR")
+		return "", fmt.Errorf("unable to sync realm role CR: %w", err)
 	}
 
 	var roleID string

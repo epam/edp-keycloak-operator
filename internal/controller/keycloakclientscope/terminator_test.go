@@ -2,10 +2,10 @@ package keycloakclientscope
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
-	"github.com/pkg/errors"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	ctrl "sigs.k8s.io/controller-runtime"

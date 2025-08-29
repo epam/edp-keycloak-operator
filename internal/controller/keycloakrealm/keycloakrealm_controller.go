@@ -2,10 +2,10 @@ package keycloakrealm
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
-	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -113,7 +113,7 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 	}
 
 	if err := r.client.Status().Update(ctx, instance); err != nil {
-		resultErr = errors.Wrap(err, "unable to update status")
+		resultErr = fmt.Errorf("unable to update status: %w", err)
 	}
 
 	return result, resultErr
@@ -144,7 +144,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 	}
 
 	if err := r.chain.ServeRequest(ctx, realm, kClient); err != nil {
-		return errors.Wrap(err, "error during realm chain")
+		return fmt.Errorf("error during realm chain: %w", err)
 	}
 
 	return nil

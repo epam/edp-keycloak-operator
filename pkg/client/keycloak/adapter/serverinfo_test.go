@@ -9,11 +9,9 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
-	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
@@ -38,8 +36,7 @@ func setupTestServer(t *testing.T, serverResponse string, statusCode int) *GoClo
 	})
 
 	// Create adapter directly to avoid authentication
-	mockClient := mocks.NewMockGoCloak(t)
-	mockClient.On("RestyClient").Return(resty.New())
+	mockClient := newMockClientWithResty(t, server.URL)
 
 	a := &GoCloakAdapter{
 		client:   mockClient,

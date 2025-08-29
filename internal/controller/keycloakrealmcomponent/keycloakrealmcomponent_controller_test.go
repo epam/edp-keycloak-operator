@@ -2,11 +2,11 @@ package keycloakrealmcomponent
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"

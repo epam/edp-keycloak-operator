@@ -3,7 +3,7 @@ package adapter
 import (
 	"context"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -12,8 +12,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -25,8 +23,31 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
+func initRealmsAdapter(t *testing.T, server *httptest.Server) (*GoCloakAdapter, *mocks.MockGoCloak) {
+	t.Helper()
+
+	var mockClient *mocks.MockGoCloak
+
+	if server != nil {
+		mockClient = newMockClientWithResty(t, server.URL)
+	} else {
+		mockClient = mocks.NewMockGoCloak(t)
+		restyClient := resty.New()
+		mockClient.On("RestyClient").Return(restyClient).Maybe()
+	}
+
+	logger := ctrl.Log.WithName("test")
+
+	return &GoCloakAdapter{
+		client:   mockClient,
+		basePath: "",
+		token:    &gocloak.JWT{AccessToken: "token"},
+		log:      logger,
+	}, mockClient
+}
+
 func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
-	adapter, mockClient, _ := initAdapter(t)
+	adapter, mockClient := initRealmsAdapter(t, nil)
 
 	settings := RealmSettings{
 		Themes: &RealmThemes{
@@ -118,10 +139,9 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 }
 
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
-	adapter, mockClient, restyClient := initAdapter(t)
-	httpmock.ActivateNonDefault(restyClient.GetClient())
-
 	currentMapperID := "mp1id"
+	realmName := "sso-realm-1"
+	idpAlias := "alias-1"
 
 	mappers := []interface{}{
 		map[string]interface{}{
@@ -131,26 +151,32 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	}
 
 	realm := gocloak.RealmRepresentation{
-		Realm:                   gocloak.StringP("sso-realm-1"),
+		Realm:                   gocloak.StringP(realmName),
 		IdentityProviderMappers: &mappers,
 	}
 
-	idpAlias := "alias-1"
+	// Setup test server
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == strings.Replace(
+			strings.Replace(idpMapperCreateList, "{realm}", realmName, 1), "{alias}", idpAlias, 1):
+			w.WriteHeader(http.StatusCreated)
+			_, _ = w.Write([]byte("ok"))
+		case r.Method == http.MethodPut && r.URL.Path == strings.Replace(
+			strings.Replace(
+				strings.Replace(idpMapperEntity, "{realm}", realmName, 1), "{alias}", idpAlias, 1), "{id}", currentMapperID, 1):
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("ok"))
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	defer server.Close()
 
-	mockClient.On("GetRealm", mock.Anything, adapter.token.AccessToken, *realm.Realm).Return(&realm, nil)
+	adapter, mockClient := initRealmsAdapter(t, server)
+	mockClient.On("GetRealm", mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
 
-	httpmock.RegisterResponder(
-		"POST",
-		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers", *realm.Realm, idpAlias),
-		httpmock.NewStringResponder(http.StatusCreated, "ok"))
-
-	httpmock.RegisterResponder(
-		"PUT",
-		fmt.Sprintf("/admin/realms/%s/identity-provider/instances/%s/mappers/%s", *realm.Realm, idpAlias,
-			currentMapperID),
-		httpmock.NewStringResponder(http.StatusOK, "ok"))
-
-	if err := adapter.SyncRealmIdentityProviderMappers(*realm.Realm,
+	if err := adapter.SyncRealmIdentityProviderMappers(realmName,
 		[]dto.IdentityProviderMapper{
 			{
 				Name:                   "tname1",
@@ -170,7 +196,7 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 }
 
 func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
-	adapter, mockClient, _ := initAdapter(t)
+	adapter, mockClient := initRealmsAdapter(t, nil)
 	r := dto.Realm{}
 
 	mockClient.On("CreateRealm", mock.Anything, "token", getDefaultRealm(&r)).Return("id1", nil).Once()
@@ -189,7 +215,7 @@ func TestGoCloakAdapter_CreateRealmWithDefaultConfig(t *testing.T) {
 }
 
 func TestGoCloakAdapter_DeleteRealm(t *testing.T) {
-	adapter, mockClient, _ := initAdapter(t)
+	adapter, mockClient := initRealmsAdapter(t, nil)
 
 	mockClient.On("DeleteRealm", mock.Anything, "token", "test-realm1").Return(nil).Once()
 
@@ -487,11 +513,8 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			server := tt.setupServer(t)
 			defer server.Close()
 
-			// Initialize adapter with test server URL (without httpmock)
-			mockClient := mocks.NewMockGoCloak(t)
-			restyClient := resty.New()
-			restyClient.SetBaseURL(server.URL)
-			mockClient.On("RestyClient").Return(restyClient).Maybe()
+			// Initialize adapter with test server URL
+			mockClient := newMockClientWithResty(t, server.URL)
 
 			adapter := &GoCloakAdapter{
 				client:   mockClient,

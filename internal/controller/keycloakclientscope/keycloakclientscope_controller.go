@@ -2,13 +2,13 @@ package keycloakclientscope
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"maps"
 	"reflect"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -152,7 +152,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 
 	scopeID, err := syncClientScope(ctx, instance, gocloak.PString(realm.Realm), cl)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to sync client scope")
+		return "", fmt.Errorf("unable to sync client scope: %w", err)
 	}
 
 	if _, err = r.helper.TryToDelete(ctx, instance,
@@ -189,7 +189,7 @@ func (r *Reconcile) updateKeycloakClientScopeStatus(
 func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realmName string, cl keycloak.Client) (string, error) {
 	clientScope, err := cl.GetClientScope(instance.Spec.Name, realmName)
 	if err != nil && !adapter.IsErrNotFound(err) {
-		return "", errors.Wrap(err, "unable to get client scope")
+		return "", fmt.Errorf("unable to get client scope: %w", err)
 	}
 
 	cScope := adapter.ClientScope{
@@ -207,7 +207,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 		}
 
 		if err = cl.UpdateClientScope(ctx, realmName, instance.Status.ID, &cScope); err != nil {
-			return "", errors.Wrap(err, "unable to update client scope")
+			return "", fmt.Errorf("unable to update client scope: %w", err)
 		}
 
 		return instance.Status.ID, nil
@@ -215,7 +215,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 
 	id, err := cl.CreateClientScope(ctx, realmName, &cScope)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to create client scope")
+		return "", fmt.Errorf("unable to create client scope: %w", err)
 	}
 
 	instance.Status.ID = id

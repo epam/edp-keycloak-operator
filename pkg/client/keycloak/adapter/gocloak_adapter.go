@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"net/http"
@@ -18,7 +19,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	"golang.org/x/sync/errgroup"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -52,6 +52,7 @@ const (
 	lowerExecutionPriority          = "/admin/realms/{realm}/authentication/executions/{id}/lower-priority"
 	authFlowExecutionConfig         = "/admin/realms/{realm}/authentication/executions/{id}/config"
 	authFlowConfig                  = "/admin/realms/{realm}/authentication/config/{id}"
+	realmAuthFlowParentExecutions   = "/admin/realms/{realm}/authentication/flows/{parentName}/executions/flow"
 	deleteClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/" +
 		"protocol-mappers/models/{protocolMapperID}"
 	createClientScopeProtocolMapper = "/admin/realms/{realm}/client-scopes/{clientScopeID}/protocol-mappers/models"
@@ -70,6 +71,7 @@ const (
 	getUserRealmRoleMappings        = "/admin/realms/{realm}/users/{id}/role-mappings/realm"
 	getUserGroupMappings            = "/admin/realms/{realm}/users/{id}/groups"
 	manageUserGroups                = "/admin/realms/{realm}/users/{userID}/groups/{groupID}"
+	realmUsersProfile               = "/admin/realms/{realm}/users/profile"
 	getChildGroups                  = "/admin/realms/{realm}/groups/{groupID}/children"
 	getGroup                        = "/admin/realms/{realm}/groups/{groupID}"
 	clientManagementPermissions     = "/admin/realms/{realm}/clients/{id}/management/permissions"
@@ -130,7 +132,7 @@ func (a GoCloakAdapter) GetGoCloak() GoCloak {
 func MakeFromToken(conf GoCloakConfig, tokenData []byte, log logr.Logger) (*GoCloakAdapter, error) {
 	var token gocloak.JWT
 	if err := json.Unmarshal(tokenData, &token); err != nil {
-		return nil, errors.Wrapf(err, "unable decode json data")
+		return nil, fmt.Errorf("unable decode json data: %w", err)
 	}
 
 	const requiredTokenParts = 3
@@ -143,12 +145,12 @@ func MakeFromToken(conf GoCloakConfig, tokenData []byte, log logr.Logger) (*GoCl
 
 	tokenPayload, err := base64.RawURLEncoding.DecodeString(tokenParts[1])
 	if err != nil {
-		return nil, errors.Wrap(err, "wrong JWT token base64 encoding")
+		return nil, fmt.Errorf("wrong JWT token base64 encoding: %w", err)
 	}
 
 	var tokenPayloadDecoded JWTPayload
 	if err = json.Unmarshal(tokenPayload, &tokenPayloadDecoded); err != nil {
-		return nil, errors.Wrap(err, "unable to decode JWT payload json")
+		return nil, fmt.Errorf("unable to decode JWT payload json: %w", err)
 	}
 
 	if tokenPayloadDecoded.Exp < time.Now().Unix() {
@@ -306,7 +308,7 @@ func Make(
 
 	token, err = kcCl.LoginAdmin(ctx, conf.User, conf.Password, "master")
 	if err != nil {
-		return nil, errors.Wrapf(err, "cannot login to keycloak server with user: %s", conf.User)
+		return nil, fmt.Errorf("cannot login to keycloak server with user: %s: %w", conf.User, err)
 	}
 
 	return &GoCloakAdapter{
@@ -321,7 +323,7 @@ func Make(
 func (a GoCloakAdapter) ExportToken() ([]byte, error) {
 	tokenData, err := json.Marshal(a.token)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to json encode token")
+		return nil, fmt.Errorf("unable to json encode token: %w", err)
 	}
 
 	return tokenData, nil
@@ -828,7 +830,7 @@ func (a GoCloakAdapter) DeleteClient(ctx context.Context, kcClientID, realmName 
 	log.Info("Start delete client in Keycloak...")
 
 	if err := a.client.DeleteClient(ctx, a.token.AccessToken, realmName, kcClientID); err != nil {
-		return errors.Wrap(err, "unable to delete client")
+		return fmt.Errorf("unable to delete client: %w", err)
 	}
 
 	log.Info("Keycloak client has been deleted")
@@ -958,7 +960,7 @@ func (a GoCloakAdapter) GetClientID(clientID, realm string) (string, error) {
 			ClientID: &clientID,
 		})
 	if err != nil {
-		return "", errors.Wrap(err, "unable to get realm clients")
+		return "", fmt.Errorf("unable to get realm clients: %w", err)
 	}
 
 	for _, item := range clients {
@@ -1123,7 +1125,7 @@ func (a GoCloakAdapter) DeleteRealmUser(ctx context.Context, realmName, username
 	})
 
 	if err != nil {
-		return errors.Wrap(err, "unable to get users")
+		return fmt.Errorf("unable to get users: %w", err)
 	}
 
 	usr, exists := checkFullUsernameMatch(username, usrs)
@@ -1139,7 +1141,7 @@ func (a GoCloakAdapter) DeleteRealmUser(ctx context.Context, realmName, username
 		Delete(a.buildPath(deleteRealmUser))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to delete user")
+		return fmt.Errorf("unable to delete user: %w", err)
 	}
 
 	return nil
@@ -1153,7 +1155,7 @@ func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role 
 		Username: &user.Username,
 	})
 	if err != nil {
-		return false, errors.Wrap(err, "unable to get users from keycloak")
+		return false, fmt.Errorf("unable to get users from keycloak: %w", err)
 	}
 
 	if len(users) == 0 {
@@ -1163,7 +1165,7 @@ func (a GoCloakAdapter) HasUserRealmRole(realmName string, user *dto.User, role 
 	rolesMapping, err := a.client.GetRoleMappingByUserID(context.Background(), a.token.AccessToken, realmName,
 		*users[0].ID)
 	if err != nil {
-		return false, errors.Wrap(err, "unable to GetRoleMappingByUserID")
+		return false, fmt.Errorf("unable to GetRoleMappingByUserID: %w", err)
 	}
 
 	hasRealmRole := checkFullRoleNameMatch(role, rolesMapping.RealmMappings)
@@ -1178,23 +1180,23 @@ func (a GoCloakAdapter) AddRealmRoleToUser(ctx context.Context, realmName, usern
 		Username: &username,
 	})
 	if err != nil {
-		return errors.Wrap(err, "error during get kc users")
+		return fmt.Errorf("error during get kc users: %w", err)
 	}
 
 	if len(users) == 0 {
-		return errors.Errorf("no users with username %s found", username)
+		return fmt.Errorf("no users with username %s found", username)
 	}
 
 	rl, err := a.client.GetRealmRole(ctx, a.token.AccessToken, realmName, roleName)
 	if err != nil {
-		return errors.Wrap(err, "unable to get realm role from keycloak")
+		return fmt.Errorf("unable to get realm role from keycloak: %w", err)
 	}
 
 	if err := a.client.AddRealmRoleToUser(ctx, a.token.AccessToken, realmName, *users[0].ID,
 		[]gocloak.Role{
 			*rl,
 		}); err != nil {
-		return errors.Wrap(err, "unable to add realm role to user")
+		return fmt.Errorf("unable to add realm role to user: %w", err)
 	}
 
 	return nil
@@ -1480,7 +1482,7 @@ func (a GoCloakAdapter) prepareProtocolMapperMaps(
 ) {
 	currentMappers, err := a.GetClientProtocolMappers(client, clientID)
 	if err != nil {
-		resultErr = errors.Wrap(err, "unable to get client protocol mappers")
+		resultErr = fmt.Errorf("unable to get client protocol mappers: %w", err)
 
 		return currentMappersMap,
 			claimedMappersMap,
@@ -1517,7 +1519,7 @@ func (a GoCloakAdapter) mapperNeedsToBeCreated(
 	if _, ok := currentMappersMap[*claimed.Name]; !ok { // not exists in kc, must be created
 		if _, err := a.client.CreateClientProtocolMapper(context.Background(), a.token.AccessToken,
 			realmName, clientID, *claimed); err != nil {
-			return errors.Wrap(err, "unable to client create protocol mapper")
+			return fmt.Errorf("unable to client create protocol mapper: %w", err)
 		}
 	}
 
@@ -1535,7 +1537,7 @@ func (a GoCloakAdapter) mapperNeedsToBeUpdated(
 		if !reflect.DeepEqual(claimed, current) { // mappers is not equal, needs to update
 			if err := a.client.UpdateClientProtocolMapper(context.Background(), a.token.AccessToken,
 				realmName, clientID, *claimed.ID, *claimed); err != nil {
-				return errors.Wrap(err, "unable to update client protocol mapper")
+				return fmt.Errorf("unable to update client protocol mapper: %w", err)
 			}
 		}
 	}
@@ -1550,21 +1552,21 @@ func (a GoCloakAdapter) SyncClientProtocolMapper(
 
 	clientID, err := a.GetClientID(client.ClientId, client.RealmName)
 	if err != nil {
-		return errors.Wrap(err, "unable to get client id")
+		return fmt.Errorf("unable to get client id: %w", err)
 	}
 	// prepare mapper entity maps for simplifying comparison procedure
 	currentMappersMap, claimedMappersMap, err := a.prepareProtocolMapperMaps(client, clientID, claimedMappers)
 	if err != nil {
-		return errors.Wrap(err, "unable to prepare protocol mapper maps")
+		return fmt.Errorf("unable to prepare protocol mapper maps: %w", err)
 	}
 	// compare actual client protocol mappers from keycloak to desired mappers, and sync them
 	for _, claimed := range claimedMappers {
 		if err := a.mapperNeedsToBeCreated(&claimed, currentMappersMap, client.RealmName, clientID); err != nil {
-			return errors.Wrap(err, "error during mapperNeedsToBeCreated")
+			return fmt.Errorf("error during mapperNeedsToBeCreated: %w", err)
 		}
 
 		if err := a.mapperNeedsToBeUpdated(&claimed, currentMappersMap, client.RealmName, clientID); err != nil {
-			return errors.Wrap(err, "error during mapperNeedsToBeUpdated")
+			return fmt.Errorf("error during mapperNeedsToBeUpdated: %w", err)
 		}
 	}
 
@@ -1573,7 +1575,7 @@ func (a GoCloakAdapter) SyncClientProtocolMapper(
 			if _, ok := claimedMappersMap[*kc.Name]; !ok { // current mapper not exists in claimed, must be deleted
 				if err := a.client.DeleteClientProtocolMapper(context.Background(), a.token.AccessToken, client.RealmName,
 					clientID, *kc.ID); err != nil {
-					return errors.Wrap(err, "unable to delete client protocol mapper")
+					return fmt.Errorf("unable to delete client protocol mapper: %w", err)
 				}
 			}
 		}
@@ -1597,7 +1599,7 @@ func (a GoCloakAdapter) GetClientProtocolMappers(client *dto.Client,
 		}).
 		SetResult(&mappers).Get(a.buildPath(getClientProtocolMappers))
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to get client protocol mappers")
+		return nil, fmt.Errorf("failed to get client protocol mappers: %w", err)
 	}
 
 	if resp.IsError() {
@@ -1609,7 +1611,7 @@ func (a GoCloakAdapter) GetClientProtocolMappers(client *dto.Client,
 
 func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	if err != nil {
-		return errors.Wrap(err, "response error")
+		return fmt.Errorf("response error: %w", err)
 	}
 
 	if response == nil {
@@ -1617,7 +1619,7 @@ func (a GoCloakAdapter) checkError(err error, response *resty.Response) error {
 	}
 
 	if response.IsError() {
-		respErr := errors.Errorf("status: %s, body: %s", response.Status(), response.String())
+		respErr := fmt.Errorf("status: %s, body: %s", response.Status(), response.String())
 
 		if response.StatusCode() == http.StatusNotFound {
 			return NotFoundError(respErr.Error())

@@ -315,9 +315,6 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
-
-			// Verify all expected calls were made
-			mockClient.AssertExpectations(t)
 		})
 	}
 }
