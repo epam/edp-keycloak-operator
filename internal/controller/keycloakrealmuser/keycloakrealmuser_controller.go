@@ -2,11 +2,11 @@ package keycloakrealmuser
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
@@ -80,7 +80,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 			return ctrl.Result{}, nil
 		}
 
-		return ctrl.Result{}, errors.Wrap(err, "unable to get keycloak realm user from k8s")
+		return ctrl.Result{}, fmt.Errorf("unable to get keycloak realm user from k8s: %w", err)
 	}
 
 	oldStatus := instance.Status
@@ -214,12 +214,12 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		Password:            password,
 		IdentityProviders:   userSpec.IdentityProviders,
 	}, instance.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
-		return errors.Wrap(err, "unable to sync realm user")
+		return fmt.Errorf("unable to sync realm user: %w", err)
 	}
 
 	if !instance.Spec.KeepResource {
 		if err := r.client.Delete(ctx, instance); err != nil {
-			return errors.Wrap(err, "unable to delete instance of keycloak realm user")
+			return fmt.Errorf("unable to delete instance of keycloak realm user: %w", err)
 		}
 	}
 
@@ -233,15 +233,15 @@ func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.Keycl
 		secret := &coreV1.Secret{}
 		if err := r.client.Get(ctx, types.NamespacedName{Name: instance.Spec.PasswordSecret.Name, Namespace: instance.Namespace}, secret); err != nil {
 			if k8sErrors.IsNotFound(err) {
-				return "", errors.Wrapf(err, "secret %s not found", instance.Spec.PasswordSecret.Name)
+				return "", fmt.Errorf("secret %s not found: %w", instance.Spec.PasswordSecret.Name, err)
 			}
 
-			return "", errors.Wrapf(err, "unable to get secret %s", instance.Spec.PasswordSecret.Name)
+			return "", fmt.Errorf("unable to get secret %s: %w", instance.Spec.PasswordSecret.Name, err)
 		}
 
 		passwordBytes, ok := secret.Data[instance.Spec.PasswordSecret.Key]
 		if !ok {
-			return "", errors.Errorf("key %s not found in secret %s", instance.Spec.PasswordSecret.Key, instance.Spec.PasswordSecret.Name)
+			return "", fmt.Errorf("key %s not found in secret %s", instance.Spec.PasswordSecret.Key, instance.Spec.PasswordSecret.Name)
 		}
 
 		log.Info("Using password from secret", "secret", instance.Spec.PasswordSecret.Name)

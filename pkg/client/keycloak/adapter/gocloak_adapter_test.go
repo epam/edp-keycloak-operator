@@ -4,8 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
+	"errors"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -13,8 +14,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -33,13 +32,15 @@ type AdapterTestSuite struct {
 	goCloakMockClient *mocks.MockGoCloak
 	adapter           *GoCloakAdapter
 	realmName         string
+	server            *httptest.Server
 }
 
 func (e *AdapterTestSuite) SetupTest() {
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
 	e.restyClient = resty.New()
-
-	httpmock.Reset()
-	httpmock.ActivateNonDefault(e.restyClient.GetClient())
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	e.goCloakMockClient = mocks.NewMockGoCloak(e.T())
 	e.goCloakMockClient.On("RestyClient").Return(e.restyClient).Maybe()
@@ -51,6 +52,12 @@ func (e *AdapterTestSuite) SetupTest() {
 	}
 
 	e.realmName = "realm123"
+}
+
+func (e *AdapterTestSuite) TearDownTest() {
+	if e.server != nil {
+		e.server.Close()
+	}
 }
 
 func TestAdapterTestSuite(t *testing.T) {
@@ -273,17 +280,27 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure2(t *testing.T) {
 		ClientId:  "test",
 	}
 	clientID := "321"
+	messageBody := "not found"
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := strings.Replace(getClientProtocolMappers, "{realm}", client.RealmName, 1)
+		expectedPath = strings.Replace(expectedPath, "{id}", clientID, 1)
+
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte(messageBody))
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
 	mockClient := mocks.NewMockGoCloak(t)
 	restyClient := resty.New()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
+	restyClient.SetBaseURL(server.URL)
 	mockClient.On("RestyClient").Return(restyClient)
-
-	messageBody := "not found"
-	responder := httpmock.NewStringResponder(404, messageBody)
-	httpmock.RegisterResponder(
-		"GET",
-		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
-		responder)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -303,18 +320,24 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 		ClientId:  "test",
 	}
 	clientID := "321"
+
+	// Create a server that will close the connection to simulate a network error
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		conn, _, _ := hj.Hijack()
+		_ = conn.Close() // Close connection to simulate network error
+	}))
+	defer server.Close()
+
 	mockClient := mocks.NewMockGoCloak(t)
 	restyClient := resty.New()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
+	restyClient.SetBaseURL(server.URL)
 	mockClient.On("RestyClient").Return(restyClient)
-
-	mockErr := errors.New("fatal")
-
-	responder := httpmock.NewErrorResponder(mockErr)
-	httpmock.RegisterResponder(
-		"GET",
-		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
-		responder)
 
 	adapter := GoCloakAdapter{
 		client:   mockClient,
@@ -325,7 +348,8 @@ func TestGoCloakAdapter_GetClientProtocolMappers_Failure(t *testing.T) {
 	_, err := adapter.GetClientProtocolMappers(&client, clientID)
 	require.Error(t, err)
 
-	assert.ErrorIs(t, err, mockErr)
+	// Check that we get a network-related error (EOF or connection-related)
+	assert.True(t, strings.Contains(err.Error(), "connection") || strings.Contains(err.Error(), "EOF"))
 }
 
 func TestGoCloakAdapter_CreateClient(t *testing.T) {
@@ -388,19 +412,6 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 	}
 	clientID := "321"
 
-	mockClient := mocks.NewMockGoCloak(t)
-	restyClient := resty.New()
-	httpmock.ActivateNonDefault(restyClient.GetClient())
-	mockClient.On("RestyClient").Return(restyClient)
-	mockClient.On("GetClients", testifymock.Anything, "token", client.RealmName, gocloak.GetClientsParams{
-		ClientID: &client.ClientId,
-	}).Return([]*gocloak.Client{
-		{
-			ClientID: &client.ClientId,
-			ID:       &clientID,
-		},
-	}, nil)
-
 	kcMappers := []gocloak.ProtocolMapperRepresentation{
 		{
 			ID:             gocloak.StringP("8863fce4-dcd1-48af-afbc-499cc07c31bd"),
@@ -443,8 +454,34 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		},
 	}
 
-	responder, err := httpmock.NewJsonResponder(200, kcMappers)
-	require.NoError(t, err)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := strings.Replace(getClientProtocolMappers, "{realm}", client.RealmName, 1)
+		expectedPath = strings.Replace(expectedPath, "{id}", clientID, 1)
+
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(kcMappers)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	defer server.Close()
+
+	mockClient := mocks.NewMockGoCloak(t)
+	restyClient := resty.New()
+	restyClient.SetBaseURL(server.URL)
+	mockClient.On("RestyClient").Return(restyClient)
+	mockClient.On("GetClients", testifymock.Anything, "token", client.RealmName, gocloak.GetClientsParams{
+		ClientID: &client.ClientId,
+	}).Return([]*gocloak.Client{
+		{
+			ClientID: &client.ClientId,
+			ID:       &clientID,
+		},
+	}, nil)
 
 	mockClient.On(
 		"DeleteClientProtocolMapper",
@@ -479,11 +516,6 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		}).
 		Return("", nil)
 
-	httpmock.RegisterResponder(
-		"GET",
-		fmt.Sprintf("/admin/realms/%s/clients/%s/protocol-mappers/models", client.RealmName, clientID),
-		responder)
-
 	adapter := GoCloakAdapter{
 		client:   mockClient,
 		token:    &gocloak.JWT{AccessToken: "token"},
@@ -491,7 +523,7 @@ func TestGoCloakAdapter_SyncClientProtocolMapper_Success(t *testing.T) {
 		log:      mock.NewLogr(),
 	}
 
-	err = adapter.SyncClientProtocolMapper(&client, crMappers, false)
+	err := adapter.SyncClientProtocolMapper(&client, crMappers, false)
 	require.NoError(t, err)
 }
 
@@ -695,69 +727,87 @@ func TestMakeFromToken_invalidJSON(t *testing.T) {
 }
 
 func (e *AdapterTestSuite) TestGoCloakAdapter_DeleteRealmUser() {
-	username := "username"
-	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
-		httpmock.NewStringResponder(200, ""))
-	e.goCloakMockClient.On(
-		"GetUsers",
-		testifymock.Anything,
-		"token",
-		e.realmName,
-		gocloak.GetUsersParams{Username: &username},
-	).
-		Return([]*gocloak.User{
-			{Username: &username, ID: &username},
-		}, nil).Once()
+	tests := []struct {
+		name           string
+		username       string
+		getUsersResult []*gocloak.User
+		getUsersError  error
+		deleteStatus   int
+		expectedError  string
+	}{
+		{
+			name:           "success",
+			username:       "username",
+			getUsersResult: []*gocloak.User{{Username: gocloak.StringP("username"), ID: gocloak.StringP("username")}},
+			deleteStatus:   200,
+		},
+		{
+			name:           "delete error",
+			username:       "username",
+			getUsersResult: []*gocloak.User{{Username: gocloak.StringP("username"), ID: gocloak.StringP("username")}},
+			deleteStatus:   404,
+			expectedError:  "unable to delete user: status: 404 Not Found, body: ",
+		},
+		{
+			name:           "user not found",
+			username:       "username",
+			getUsersResult: []*gocloak.User{{}},
+			expectedError:  "user not found",
+		},
+		{
+			name:          "get users error",
+			username:      "username",
+			getUsersError: errors.New("fatal get users"),
+			expectedError: "unable to get users: fatal get users",
+		},
+	}
 
-	err := e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
-	assert.NoError(e.T(), err)
+	for _, tt := range tests {
+		e.T().Run(tt.name, func(t *testing.T) {
+			// Setup server for this specific test
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				expectedPath := strings.Replace(deleteRealmUser, "{realm}", e.realmName, 1)
+				expectedPath = strings.Replace(expectedPath, "{id}", tt.username, 1)
 
-	e.goCloakMockClient.On(
-		"GetUsers",
-		testifymock.Anything,
-		"token",
-		e.realmName,
-		gocloak.GetUsersParams{Username: &username},
-	).
-		Return([]*gocloak.User{
-			{Username: &username, ID: &username},
-		}, nil).Once()
-	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/admin/realms/%s/users/%s", e.realmName, username),
-		httpmock.NewStringResponder(404, ""))
+				if r.Method == http.MethodDelete && r.URL.Path == expectedPath {
+					w.WriteHeader(tt.deleteStatus)
+					return
+				}
 
-	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
-	assert.Error(e.T(), err)
-	assert.EqualError(e.T(), err, "unable to delete user: status: 404, body: ")
+				w.WriteHeader(http.StatusNotFound)
+			}))
+			defer server.Close()
 
-	e.goCloakMockClient.On(
-		"GetUsers",
-		testifymock.Anything,
-		"token",
-		e.realmName,
-		gocloak.GetUsersParams{Username: &username},
-	).
-		Return([]*gocloak.User{
-			{},
-		}, nil).Once()
+			// Create adapter with test-specific server
+			testClient := resty.New()
+			testClient.SetBaseURL(server.URL)
 
-	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
-	assert.Error(e.T(), err)
-	assert.EqualError(e.T(), err, "user not found")
+			mockClient := mocks.NewMockGoCloak(t)
+			mockClient.On("RestyClient").Return(testClient).Maybe()
 
-	e.goCloakMockClient.On(
-		"GetUsers",
-		testifymock.Anything,
-		"token",
-		e.realmName,
-		gocloak.GetUsersParams{Username: &username},
-	).
-		Return(nil, errors.New("fatal get users")).Once()
+			mockClient.On(
+				"GetUsers",
+				testifymock.Anything,
+				"token",
+				e.realmName,
+				gocloak.GetUsersParams{Username: &tt.username},
+			).Return(tt.getUsersResult, tt.getUsersError).Once()
 
-	err = e.adapter.DeleteRealmUser(context.Background(), e.realmName, username)
-	assert.Error(e.T(), err)
-	assert.EqualError(e.T(), err, "unable to get users: fatal get users")
+			adapter := &GoCloakAdapter{
+				client: mockClient,
+				token:  &gocloak.JWT{AccessToken: "token"},
+				log:    mock.NewLogr(),
+			}
+
+			err := adapter.DeleteRealmUser(context.Background(), e.realmName, tt.username)
+			if tt.expectedError != "" {
+				assert.Error(t, err)
+				assert.EqualError(t, err, tt.expectedError)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
 }
 
 func TestGoCloakAdapter_GetUsersByNames(t *testing.T) {

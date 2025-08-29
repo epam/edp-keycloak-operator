@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 type IdentityProvider struct {
@@ -40,7 +38,7 @@ func (a GoCloakAdapter) CreateIdentityProvider(ctx context.Context, realm string
 		Post(a.buildPath(identityProviderCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to create idp")
+		return fmt.Errorf("unable to create idp: %w", err)
 	}
 
 	return nil
@@ -57,7 +55,7 @@ func (a GoCloakAdapter) UpdateIdentityProvider(ctx context.Context, realm string
 		Put(a.buildPath(identityProviderEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to update idp")
+		return fmt.Errorf("unable to update idp: %w", err)
 	}
 
 	return nil
@@ -79,7 +77,7 @@ func (a GoCloakAdapter) GetIdentityProvider(ctx context.Context, realm, alias st
 			return nil, NotFoundError("idp not found")
 		}
 
-		return nil, errors.Wrap(err, "unable to get idp")
+		return nil, fmt.Errorf("unable to get idp: %w", err)
 	}
 
 	return &idp, nil
@@ -92,7 +90,7 @@ func (a GoCloakAdapter) IdentityProviderExists(ctx context.Context, realm, alias
 			return false, nil
 		}
 
-		return false, errors.Wrap(err, "unable to get idp, unexpected error")
+		return false, fmt.Errorf("unable to get idp, unexpected error: %w", err)
 	}
 
 	return true, nil
@@ -108,7 +106,7 @@ func (a GoCloakAdapter) DeleteIdentityProvider(ctx context.Context, realm, alias
 		Delete(a.buildPath(identityProviderEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to delete idp")
+		return fmt.Errorf("unable to delete idp: %w", err)
 	}
 
 	return nil
@@ -126,12 +124,12 @@ func (a GoCloakAdapter) CreateIDPMapper(ctx context.Context, realm, idpAlias str
 		Post(a.buildPath(idpMapperCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return "", errors.Wrap(err, "unable to create idp mapper")
+		return "", fmt.Errorf("unable to create idp mapper: %w", err)
 	}
 
 	id, err := getIDFromResponseLocation(rsp.RawResponse)
 	if err != nil {
-		return "", errors.Wrap(err, "no id in response")
+		return "", fmt.Errorf("no id in response: %w", err)
 	}
 
 	return id, nil
@@ -154,7 +152,7 @@ func (a GoCloakAdapter) UpdateIDPMapper(
 		Put(a.buildPath(idpMapperEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to update idp mapper")
+		return fmt.Errorf("unable to update idp mapper: %w", err)
 	}
 
 	return nil
@@ -171,7 +169,7 @@ func (a GoCloakAdapter) DeleteIDPMapper(ctx context.Context, realm, idpAlias, ma
 		Delete(a.buildPath(idpMapperEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to delete idp mapper")
+		return fmt.Errorf("unable to delete idp mapper: %w", err)
 	}
 
 	return nil
@@ -189,7 +187,7 @@ func (a GoCloakAdapter) GetIDPMappers(ctx context.Context, realm, idpAlias strin
 		Get(a.buildPath(idpMapperCreateList))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "unable to get idp mappers")
+		return nil, fmt.Errorf("unable to get idp mappers: %w", err)
 	}
 
 	return res, nil

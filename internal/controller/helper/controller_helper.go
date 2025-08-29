@@ -9,7 +9,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -252,7 +251,7 @@ func (h *Helper) TryRemoveFinalizer(ctx context.Context, obj client.Object, fina
 	if !obj.GetDeletionTimestamp().IsZero() {
 		if controllerutil.RemoveFinalizer(obj, finalizer) {
 			if err := h.client.Update(ctx, obj); err != nil {
-				return errors.Wrap(err, "unable to update instance")
+				return fmt.Errorf("unable to update instance: %w", err)
 			}
 		}
 	}
@@ -270,7 +269,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 			logger.Info("Adding finalizer to instance")
 
 			if err := h.client.Update(ctx, obj); err != nil {
-				return false, errors.Wrap(err, "unable to update deletable object")
+				return false, fmt.Errorf("unable to update deletable object: %w", err)
 			}
 		}
 
@@ -282,14 +281,14 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 	logger.Info("terminator deleting resource")
 
 	if err := terminator.DeleteResource(ctx); err != nil {
-		return false, errors.Wrap(err, "error during keycloak resource deletion")
+		return false, fmt.Errorf("error during keycloak resource deletion: %w", err)
 	}
 
 	logger.Info("terminator removing finalizers")
 
 	if controllerutil.RemoveFinalizer(obj, finalizer) {
 		if err := h.client.Update(ctx, obj); err != nil {
-			return false, errors.Wrap(err, "unable to update instance")
+			return false, fmt.Errorf("unable to update instance: %w", err)
 		}
 	}
 

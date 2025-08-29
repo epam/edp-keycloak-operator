@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
@@ -20,7 +18,7 @@ func NewPutClientScope(keycloakApiClient keycloak.Client) *PutClientScope {
 
 func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putClientScope(ctx, keycloakClient, realmName); err != nil {
-		return errors.Wrap(err, "error during putClientScope")
+		return fmt.Errorf("error during putClientScope: %w", err)
 	}
 
 	return nil
@@ -47,7 +45,7 @@ func (el *PutClientScope) putDefaultClientScope(ctx context.Context, keycloakCli
 
 	defaultScopes, err := el.keycloakApiClient.GetClientScopesByNames(ctx, realmName, kCloakSpec.DefaultClientScopes)
 	if err != nil {
-		return errors.Wrap(err, "error during GetClientScope")
+		return fmt.Errorf("error during GetClientScope: %w", err)
 	}
 
 	err = el.keycloakApiClient.AddDefaultScopeToClient(ctx, realmName, kCloakSpec.ClientId, defaultScopes)
@@ -67,7 +65,7 @@ func (el *PutClientScope) putOptionalClientScope(ctx context.Context, keycloakCl
 
 	optionalScopes, err := el.keycloakApiClient.GetClientScopesByNames(ctx, realmName, kCloakSpec.OptionalClientScopes)
 	if err != nil {
-		return errors.Wrap(err, "error during GetClientScope")
+		return fmt.Errorf("error during GetClientScope: %w", err)
 	}
 
 	err = el.keycloakApiClient.AddOptionalScopeToClient(ctx, realmName, kCloakSpec.ClientId, optionalScopes)

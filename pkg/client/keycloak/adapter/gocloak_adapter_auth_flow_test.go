@@ -2,17 +2,16 @@ package adapter
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
-	"io"
 	"net/http"
-	"path"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-resty/resty/v2"
-	"github.com/jarcoal/httpmock"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -27,11 +26,15 @@ type ExecFlowTestSuite struct {
 	goCloakMockClient *mocks.MockGoCloak
 	adapter           *GoCloakAdapter
 	realmName         string
+	server            *httptest.Server
 }
 
 func (e *ExecFlowTestSuite) SetupTest() {
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
 	e.restyClient = resty.New()
-	httpmock.ActivateNonDefault(e.restyClient.GetClient())
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	e.goCloakMockClient = mocks.NewMockGoCloak(e.T())
 	e.goCloakMockClient.On("RestyClient").Return(e.restyClient).Maybe()
@@ -43,19 +46,41 @@ func (e *ExecFlowTestSuite) SetupTest() {
 	e.realmName = "realm123"
 }
 
+func (e *ExecFlowTestSuite) TearDownTest() {
+	if e.server != nil {
+		e.server.Close()
+	}
+}
+
+// Helper function to build auth flow execution path with realm and alias substitution
+func buildAuthFlowExecutionPath(realm, alias string) string {
+	return strings.Replace(
+		strings.Replace(authFlowExecutionGetUpdate, "{realm}", realm, 1), "{alias}", alias, 1)
+}
+
 func (e *ExecFlowTestSuite) TestCreateAuthFlowParent() {
 	var (
 		parentName = "parent-name"
 		newFlowID  = "new-flow-id"
 	)
 
-	createFlowResponse := httpmock.NewStringResponse(200, "")
-	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
-	createFlowResponse.Header.Set("Location", fmt.Sprintf("id/%s", newFlowID))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := strings.Replace(
+			strings.Replace(realmAuthFlowParentExecutions, "{realm}", e.realmName, 1),
+			"{parentName}", parentName, 1)
 
-	httpmock.RegisterResponder("POST",
-		strings.ReplaceAll(path.Join(authFlows, parentName, "executions/flow"), "{realm}", e.realmName),
-		httpmock.ResponderFromResponse(createFlowResponse))
+		if r.Method == http.MethodPost && r.URL.Path == expectedPath {
+			w.Header().Set("Location", fmt.Sprintf("id/%s", newFlowID))
+			w.WriteHeader(http.StatusOK)
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	flowID, err := e.adapter.createAuthFlow(e.realmName, &KeycloakAuthFlow{
 		ParentName: parentName,
@@ -95,66 +120,81 @@ func (e *ExecFlowTestSuite) TestSyncAuthFlow() {
 	}
 
 	existFlowID := "flow-id-1"
-
-	httpmock.RegisterResponder("GET", strings.ReplaceAll(authFlows, "{realm}", e.realmName),
-		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{{Alias: flow.Alias, ID: existFlowID},
-			{Alias: "some-another-flow", ID: "321"}}))
-
-	deleteURL := strings.ReplaceAll(authFlow, "{realm}", e.realmName)
-	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
-
-	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
-
-	createFlowResponse := httpmock.NewStringResponse(200, "")
-	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
-	createFlowResponse.Header.Set("Location", "id/new-flow-id")
-
-	httpmock.RegisterResponder("POST", strings.ReplaceAll(authFlows, "{realm}", e.realmName),
-		httpmock.ResponderFromResponse(createFlowResponse))
-
-	createExecResponse := httpmock.NewStringResponse(200, "")
-
-	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
-
 	newExecID := "new-exec-id"
-	createExecResponse.Header.Set("Location", fmt.Sprintf("id/%s", newExecID))
-	httpmock.RegisterResponder("POST", strings.ReplaceAll(authFlowExecutionCreate, "{realm}", e.realmName),
-		httpmock.ResponderFromResponse(createExecResponse))
-
-	createConfigURL := strings.ReplaceAll(authFlowExecutionConfig, "{realm}", e.realmName)
-	createConfigURL = strings.ReplaceAll(createConfigURL, "{id}", newExecID)
-
-	httpmock.RegisterResponder("POST", createConfigURL, httpmock.NewStringResponder(200, ""))
-
 	childExecutionID := "child-exec-id1"
 
-	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{ID: childExecutionID, AuthenticationConfig: "authConf1"}}))
-	httpmock.RegisterResponder("DELETE",
-		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s", e.realmName, childExecutionID),
-		httpmock.NewStringResponder(200, ""))
-	httpmock.RegisterResponder("DELETE",
-		strings.ReplaceAll(
-			strings.ReplaceAll(authFlowConfig, "{realm}", e.realmName),
-			"{id}",
-			"authConf1"),
-		httpmock.NewStringResponder(200, ""),
-	)
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		flowsPath := strings.Replace(authFlows, "{realm}", e.realmName, 1)
+		flowDeletePath := strings.Replace(authFlow, "{realm}", e.realmName, 1)
+		flowDeletePath = strings.Replace(flowDeletePath, "{id}", existFlowID, 1)
+		executionsPath := strings.Replace(authFlowExecutionCreate, "{realm}", e.realmName, 1)
+		execConfigPath := strings.Replace(authFlowExecutionConfig, "{realm}", e.realmName, 1)
+		execConfigPath = strings.Replace(execConfigPath, "{id}", newExecID, 1)
+		flowExecutionsPath := strings.Replace(authFlowExecutionGetUpdate, "{realm}", e.realmName, 1)
+		flowExecutionsPath = strings.Replace(flowExecutionsPath, "{alias}", flow.Alias, 1)
+		execDeletePath := strings.Replace(authFlowExecutionDelete, "{realm}", e.realmName, 1)
+		execDeletePath = strings.Replace(execDeletePath, "{id}", childExecutionID, 1)
+		configDeletePath := strings.Replace(authFlowConfig, "{realm}", e.realmName, 1)
+		configDeletePath = strings.Replace(configDeletePath, "{id}", "authConf1", 1)
+
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == flowsPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]KeycloakAuthFlow{{Alias: flow.Alias, ID: existFlowID},
+				{Alias: "some-another-flow", ID: "321"}})
+		case r.Method == http.MethodDelete && r.URL.Path == flowDeletePath:
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && r.URL.Path == flowsPath:
+			w.Header().Set("Location", "id/new-flow-id")
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && r.URL.Path == executionsPath:
+			w.Header().Set("Location", fmt.Sprintf("id/%s", newExecID))
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPost && r.URL.Path == execConfigPath:
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == flowExecutionsPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{{ID: childExecutionID, AuthenticationConfig: "authConf1"}})
+		case r.Method == http.MethodDelete && r.URL.Path == execDeletePath:
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodDelete && r.URL.Path == configDeletePath:
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	err := e.adapter.SyncAuthFlow(e.realmName, &flow)
 	assert.NoError(e.T(), err)
 }
 
+func (e *ExecFlowTestSuite) setupDeleteAuthFlowWithParentServer(flow KeycloakAuthFlow, deleteStatus int) {
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == buildAuthFlowExecutionPath("realm123", "par"):
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{{DisplayName: flow.Alias, ID: "id12"}})
+		case r.Method == http.MethodDelete && r.URL.Path == strings.Replace(
+			strings.Replace(authFlowExecutionDelete, "{realm}", "realm123", 1), "{id}", "id12", 1):
+			w.WriteHeader(deleteStatus)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
+}
+
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
-			{DisplayName: flow.Alias, ID: "id12"},
-		}))
-	httpmock.RegisterResponder(http.MethodDelete, "/admin/realms/realm123/authentication/executions/id12",
-		httpmock.NewStringResponder(http.StatusOK, ""))
+	e.setupDeleteAuthFlowWithParentServer(flow, http.StatusOK)
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.NoError(e.T(), err)
@@ -163,8 +203,17 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParent() {
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
-		httpmock.NewJsonResponderOrPanic(http.StatusNotFound, nil))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodGet && r.URL.Path == buildAuthFlowExecutionPath("realm123", "par") {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.Error(e.T(), err)
@@ -173,12 +222,7 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableGetFlow() {
 func (e *ExecFlowTestSuite) TestDeleteAuthFlowWithParentUnableDelete() {
 	flow := KeycloakAuthFlow{Alias: "al", ParentName: "par"}
 
-	httpmock.RegisterResponder(http.MethodGet, "/admin/realms/realm123/authentication/flows/par/executions",
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{
-			{DisplayName: flow.Alias, ID: "id12"},
-		}))
-	httpmock.RegisterResponder(http.MethodDelete, "/admin/realms/realm123/authentication/executions/id12",
-		httpmock.NewStringResponder(http.StatusBadRequest, ""))
+	e.setupDeleteAuthFlowWithParentServer(flow, http.StatusBadRequest)
 
 	err := e.adapter.DeleteAuthFlow(e.realmName, &flow)
 	assert.Error(e.T(), err)
@@ -191,17 +235,27 @@ func (e *ExecFlowTestSuite) TestDeleteAuthFlow() {
 		newBrowserFlowAlias = "alias-br-1"
 	)
 
-	httpmock.RegisterResponder("GET", strings.ReplaceAll(authFlows, "{realm}", e.realmName),
-		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{
-			{Alias: flowAlias, ID: existFlowID},
-			{
-				Alias: newBrowserFlowAlias,
-			},
-		}))
-
-	deleteURL := strings.ReplaceAll(authFlow, "{realm}", e.realmName)
-	deleteURL = strings.ReplaceAll(deleteURL, "{id}", existFlowID)
-	httpmock.RegisterResponder("DELETE", deleteURL, httpmock.NewStringResponder(200, ""))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == strings.Replace(authFlows, "{realm}", e.realmName, 1):
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]KeycloakAuthFlow{
+				{Alias: flowAlias, ID: existFlowID},
+				{
+					Alias: newBrowserFlowAlias,
+				},
+			})
+		case r.Method == http.MethodDelete && r.URL.Path == strings.Replace(
+			strings.Replace(authFlow, "{realm}", e.realmName, 1), "{id}", existFlowID, 1):
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	e.goCloakMockClient.On("GetRealm", mock.Anything, "token", e.realmName).
 		Return(&gocloak.RealmRepresentation{
@@ -221,14 +275,26 @@ func (e *ExecFlowTestSuite) TestGetAuthFlowID() {
 		flowID = "id-122"
 	)
 
-	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
-			{
-				DisplayName: flow.Alias,
-				FlowID:      flowID,
-			},
-		}))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := buildAuthFlowExecutionPath(e.realmName, flow.ParentName)
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{
+				{
+					DisplayName: flow.Alias,
+					FlowID:      flowID,
+				},
+			})
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	id, err := e.adapter.getAuthFlowID(e.realmName, &flow)
 
@@ -254,7 +320,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureGetRealm() {
 
 	err := e.adapter.SetRealmBrowserFlow(context.Background(), "realm1", "flow1")
 	assert.Error(e.T(), err)
-	assert.ErrorIs(e.T(), errors.Cause(err), mockErr)
+	assert.ErrorIs(e.T(), err, mockErr)
 }
 
 func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureUpdateRealm() {
@@ -269,7 +335,7 @@ func (e *ExecFlowTestSuite) TestSetRealmBrowserFlow_FailureUpdateRealm() {
 
 	err := e.adapter.SetRealmBrowserFlow(context.Background(), "realm1", "flow1")
 	assert.Error(e.T(), err)
-	assert.ErrorIs(e.T(), errors.Cause(err), mockErr)
+	assert.ErrorIs(e.T(), err, mockErr)
 }
 
 func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
@@ -286,22 +352,27 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlow() {
 		flowID = "flow-id-2"
 	)
 
-	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows", e.realmName),
-		httpmock.NewJsonResponderOrPanic(200, []KeycloakAuthFlow{}))
-
-	createFlowResponse := httpmock.NewStringResponse(200, "")
-	defer closeWithFailOnError(e.T(), createFlowResponse.Body)
-	createFlowResponse.Header.Set("Location", fmt.Sprintf("id/%s", flowID))
-
-	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows", e.realmName),
-		httpmock.ResponderFromResponse(createFlowResponse))
-
-	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName,
-			flow.Alias),
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{{}}))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == strings.Replace(authFlows, "{realm}", e.realmName, 1):
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]KeycloakAuthFlow{})
+		case r.Method == http.MethodPost && r.URL.Path == strings.Replace(authFlows, "{realm}", e.realmName, 1):
+			w.Header().Set("Location", fmt.Sprintf("id/%s", flowID))
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodGet && r.URL.Path == strings.Replace(
+			strings.Replace(authFlowExecutionGetUpdate, "{realm}", e.realmName, 1), "{alias}", flow.Alias, 1):
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{{}})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
 
@@ -317,29 +388,33 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowShouldUpdateChildFlowRequirement
 	}
 	flowID := "flow-id-3"
 
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(
-			http.StatusOK,
-			[]FlowExecution{{
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parentPath := buildAuthFlowExecutionPath(e.realmName, flow.ParentName)
+		aliasPath := buildAuthFlowExecutionPath(e.realmName, flow.Alias)
+
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == parentPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{{
 				DisplayName: flow.Alias,
 				FlowID:      flowID,
-			}},
-		),
-	)
-
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{}),
-	)
-
-	httpmock.RegisterResponder(
-		http.MethodPut,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, map[string]string{}),
-	)
+			}})
+		case r.Method == http.MethodGet && r.URL.Path == aliasPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{})
+		case r.Method == http.MethodPut && r.URL.Path == parentPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(map[string]string{})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
 
@@ -354,29 +429,33 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedUpdateChildFlowRequirement
 	}
 	flowID := "flow-id-4"
 
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(
-			http.StatusOK,
-			[]FlowExecution{{
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parentPath := buildAuthFlowExecutionPath(e.realmName, flow.ParentName)
+		aliasPath := buildAuthFlowExecutionPath(e.realmName, flow.Alias)
+
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == parentPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{{
 				DisplayName: flow.Alias,
 				FlowID:      flowID,
-			}},
-		),
-	)
-
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewJsonResponderOrPanic(http.StatusOK, []FlowExecution{}),
-	)
-
-	httpmock.RegisterResponder(
-		http.MethodPut,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(http.StatusBadRequest, map[string]string{}),
-	)
+			}})
+		case r.Method == http.MethodGet && r.URL.Path == aliasPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{})
+		case r.Method == http.MethodPut && r.URL.Path == parentPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusBadRequest)
+			_ = json.NewEncoder(w).Encode(map[string]string{})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
 
@@ -391,14 +470,21 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedToGetFlowExecution() {
 		ChildRequirement: "REQUIRED",
 	}
 
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(
-			http.StatusInternalServerError,
-			[]FlowExecution{},
-		),
-	)
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := buildAuthFlowExecutionPath(e.realmName, flow.ParentName)
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{})
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
 
@@ -413,23 +499,26 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedToCreateChildFlow() {
 		ChildRequirement: "REQUIRED",
 	}
 
-	httpmock.RegisterResponder(
-		http.MethodGet,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(
-			http.StatusOK,
-			[]FlowExecution{},
-		),
-	)
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		parentPath := buildAuthFlowExecutionPath(e.realmName, flow.ParentName)
 
-	httpmock.RegisterResponder(
-		http.MethodPost,
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions/flow", e.realmName, flow.ParentName),
-		httpmock.NewJsonResponderOrPanic(
-			http.StatusInternalServerError,
-			map[string]string{},
-		),
-	)
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == parentPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{})
+		case r.Method == http.MethodPost && r.URL.Path == strings.Replace(
+			strings.Replace(realmAuthFlowParentExecutions, "{realm}", e.realmName, 1), "{parentName}", flow.ParentName, 1):
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusInternalServerError)
+			_ = json.NewEncoder(w).Encode(map[string]string{})
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err := e.adapter.syncBaseAuthFlow(e.realmName, &flow)
 
@@ -439,25 +528,58 @@ func (e *ExecFlowTestSuite) TestSyncBaseAuthFlowFailedToCreateChildFlow() {
 
 func (e *ExecFlowTestSuite) TestGetFlowExecutionID() {
 	flow := KeycloakAuthFlow{ParentName: "parent", Alias: "fff"}
+
+	// First test: server returns error - should get error message
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
+
 	_, err := e.adapter.getFlowExecutionID(e.realmName, &flow)
-
 	assert.Error(e.T(), err)
-	assert.Contains(e.T(), err.Error(), "no responder found")
+	assert.Contains(e.T(), err.Error(), "unable to get auth flow executions")
 
-	httpmock.RegisterResponder("GET", "/admin/realms/realm123/authentication/flows/parent/executions",
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{}))
+	// Second test: empty executions list - should get "auth flow not found" error
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := buildAuthFlowExecutionPath("realm123", "parent")
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{})
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
 	assert.Error(e.T(), err)
 	assert.EqualError(e.T(), err, "auth flow not found")
 
-	httpmock.RegisterResponder("GET", "/admin/realms/realm123/authentication/flows/parent/executions",
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
-			{
-				DisplayName: flow.Alias,
-				ID:          "as12",
-			},
-		}))
+	// Third test: execution found - should succeed
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		expectedPath := buildAuthFlowExecutionPath("realm123", "parent")
+		if r.Method == http.MethodGet && r.URL.Path == expectedPath {
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{
+				{
+					DisplayName: flow.Alias,
+					ID:          "as12",
+				},
+			})
+
+			return
+		}
+
+		w.WriteHeader(http.StatusNotFound)
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	_, err = e.adapter.getFlowExecutionID(e.realmName, &flow)
 	assert.NoError(e.T(), err)
@@ -482,25 +604,35 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 		flowExecutionID = "flow-exec-id-1"
 	)
 
-	httpmock.RegisterResponder("GET",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewJsonResponderOrPanic(200, []FlowExecution{
-			{
-				AuthenticationFlow: true,
-				DisplayName:        flow.AuthenticationExecutions[0].Alias,
-				Index:              0,
-				ID:                 flowExecutionID,
-				Requirement:        "ALTERNATIVE",
-			},
-		}))
+	// Replace the default server with a test-specific one
+	e.server.Close()
+	e.server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		aliasPath := strings.Replace(
+			strings.Replace(authFlowExecutionGetUpdate, "{realm}", e.realmName, 1), "{alias}", flow.Alias, 1)
 
-	httpmock.RegisterResponder("POST",
-		fmt.Sprintf("/admin/realms/%s/authentication/executions/%s/lower-priority", e.realmName, flowExecutionID),
-		httpmock.NewStringResponder(200, ""))
-
-	httpmock.RegisterResponder("PUT",
-		fmt.Sprintf("/admin/realms/%s/authentication/flows/%s/executions", e.realmName, flow.Alias),
-		httpmock.NewStringResponder(200, ""))
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == aliasPath:
+			setJSONContentType(w)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode([]FlowExecution{
+				{
+					AuthenticationFlow: true,
+					DisplayName:        flow.AuthenticationExecutions[0].Alias,
+					Index:              0,
+					ID:                 flowExecutionID,
+					Requirement:        "ALTERNATIVE",
+				},
+			})
+		case r.Method == http.MethodPost && r.URL.Path == strings.Replace(
+			strings.Replace(lowerExecutionPriority, "{realm}", e.realmName, 1), "{id}", flowExecutionID, 1):
+			w.WriteHeader(http.StatusOK)
+		case r.Method == http.MethodPut && r.URL.Path == aliasPath:
+			w.WriteHeader(http.StatusOK)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	e.restyClient.SetBaseURL(e.server.URL)
 
 	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
 	assert.NoError(e.T(), err)
@@ -508,9 +640,4 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 
 func TestExecFlowTestSuite(t *testing.T) {
 	suite.Run(t, new(ExecFlowTestSuite))
-}
-
-func closeWithFailOnError(t *testing.T, closer io.Closer) {
-	err := closer.Close()
-	require.NoError(t, err)
 }

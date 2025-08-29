@@ -2,11 +2,11 @@ package keycloakrealmrolebatch
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
@@ -75,7 +75,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) Reconcile(ctx context.Context, request
 			return result, resultErr
 		}
 
-		resultErr = errors.Wrap(err, "unable to get keycloak realm role batch from k8s")
+		resultErr = fmt.Errorf("unable to get keycloak realm role batch from k8s: %w", err)
 
 		return result, resultErr
 	}
@@ -122,7 +122,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context, batch
 	)
 
 	if err := r.client.List(ctx, &namespaceRoles); err != nil {
-		return errors.Wrap(err, "unable to get keycloak realm roles")
+		return fmt.Errorf("unable to get keycloak realm roles: %w", err)
 	}
 
 	for _, r := range batch.Spec.Roles {
@@ -132,7 +132,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) removeRoles(ctx context.Context, batch
 	for i := range namespaceRoles.Items {
 		if _, ok := specRoles[namespaceRoles.Items[i].Name]; !ok && r.isOwner(batch, &namespaceRoles.Items[i]) {
 			if err := r.client.Delete(ctx, &namespaceRoles.Items[i]); err != nil {
-				return errors.Wrap(err, "unable to delete keycloak realm role")
+				return fmt.Errorf("unable to delete keycloak realm role: %w", err)
 			}
 		}
 	}
@@ -154,7 +154,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 
 		err := r.client.Get(ctx, types.NamespacedName{Namespace: batch.Namespace, Name: roleName}, &crRole)
 		if err != nil && !k8sErrors.IsNotFound(err) {
-			return nil, errors.Wrap(err, "unable to check batch role")
+			return nil, fmt.Errorf("unable to check batch role: %w", err)
 		} else if err == nil {
 			if r.isOwner(batch, &crRole) {
 				log.Info("Role already created")
@@ -184,7 +184,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 				IsDefault:   role.IsDefault,
 			}}
 		if err := r.client.Create(ctx, &newRole); err != nil {
-			return nil, errors.Wrap(err, "unable to create child role from batch")
+			return nil, fmt.Errorf("unable to create child role from batch: %w", err)
 		}
 
 		roles = append(roles, newRole)
@@ -203,11 +203,11 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 
 	createdRoles, err := r.putRoles(ctx, batch)
 	if err != nil {
-		return errors.Wrap(err, "unable to put roles batch")
+		return fmt.Errorf("unable to put roles batch: %w", err)
 	}
 
 	if err := r.removeRoles(ctx, batch); err != nil {
-		return errors.Wrap(err, "unable to delete roles")
+		return fmt.Errorf("unable to delete roles: %w", err)
 	}
 
 	if _, err := r.helper.TryToDelete(

@@ -2,8 +2,7 @@ package chain
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
@@ -23,7 +22,7 @@ func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 
 	err := putRolesToUsers(ctx, rDto, kClient)
 	if err != nil {
-		return errors.Wrap(err, "error during putRolesToUsers")
+		return fmt.Errorf("error during putRolesToUsers: %w", err)
 	}
 
 	rLog.Info("End put role to users")
@@ -35,7 +34,7 @@ func putRolesToUsers(ctx context.Context, realm *dto.Realm, kClient keycloak.Cli
 	for _, user := range realm.Users {
 		err := putRolesToOneUser(ctx, realm, &user, kClient)
 		if err != nil {
-			return errors.Wrap(err, "error during putRolesToOneUser")
+			return fmt.Errorf("error during putRolesToOneUser: %w", err)
 		}
 	}
 
@@ -45,7 +44,7 @@ func putRolesToUsers(ctx context.Context, realm *dto.Realm, kClient keycloak.Cli
 func putRolesToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, kClient keycloak.Client) error {
 	for _, role := range user.RealmRoles {
 		if err := putOneRealmRoleToOneUser(ctx, realm, user, role, kClient); err != nil {
-			return errors.Wrap(err, "error during putOneRoleToOneUser")
+			return fmt.Errorf("error during putOneRoleToOneUser: %w", err)
 		}
 	}
 
@@ -55,7 +54,7 @@ func putRolesToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, kC
 func putOneRealmRoleToOneUser(ctx context.Context, realm *dto.Realm, user *dto.User, role string, kClient keycloak.Client) error {
 	exist, err := kClient.HasUserRealmRole(realm.Name, user, role)
 	if err != nil {
-		return errors.Wrap(err, "error during check of client role")
+		return fmt.Errorf("error during check of client role: %w", err)
 	}
 
 	if exist {
@@ -64,7 +63,7 @@ func putOneRealmRoleToOneUser(ctx context.Context, realm *dto.Realm, user *dto.U
 	}
 
 	if err := kClient.AddRealmRoleToUser(ctx, realm.Name, user.Username, role); err != nil {
-		return errors.Wrap(err, "unable to add realm role to user")
+		return fmt.Errorf("unable to add realm role to user: %w", err)
 	}
 
 	return nil
