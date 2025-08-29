@@ -2,12 +2,12 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

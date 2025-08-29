@@ -2,9 +2,9 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
-	"github.com/pkg/errors"
 	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -90,7 +90,7 @@ func (h *Helper) CreateKeycloakClient(ctx context.Context, url, user, password, 
 		},
 		adminType, ctrl.LoggerFrom(ctx), h.restyClient)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to init kc client adapter")
+		return nil, fmt.Errorf("unable to init kc client adapter: %w", err)
 	}
 
 	return clientAdapter, nil
@@ -100,11 +100,11 @@ func (h *Helper) InvalidateKeycloakClientTokenSecret(ctx context.Context, namesp
 	var secret coreV1.Secret
 	if err := h.client.Get(ctx, types.NamespacedName{Namespace: namespace, Name: tokenSecretName(rootKeycloakName)},
 		&secret); err != nil {
-		return errors.Wrap(err, "unable to get client token secret")
+		return fmt.Errorf("unable to get client token secret: %w", err)
 	}
 
 	if err := h.client.Delete(ctx, &secret); err != nil {
-		return errors.Wrap(err, "unable to delete client token secret")
+		return fmt.Errorf("unable to delete client token secret: %w", err)
 	}
 
 	return nil
@@ -137,22 +137,22 @@ func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, auth
 		Name:      authData.SecretName,
 		Namespace: authData.SecretNamespace,
 	}, &secret); err != nil {
-		return nil, errors.Wrap(err, "authData login password secret not found")
+		return nil, fmt.Errorf("authData login password secret not found: %w", err)
 	}
 
 	clientAdapter, err := h.CreateKeycloakClient(ctx, authData.Url, string(secret.Data["username"]),
 		string(secret.Data["password"]), authData.AdminType, authData.CACert, authData.InsecureSkipVerify)
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to init authData client adapter")
+		return nil, fmt.Errorf("unable to init authData client adapter: %w", err)
 	}
 
 	jwtToken, err := clientAdapter.ExportToken()
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to export authData client token")
+		return nil, fmt.Errorf("unable to export authData client token: %w", err)
 	}
 
 	if err := h.saveKeycloakClientTokenSecret(ctx, tokenSecretName(authData.SecretName), secret.Namespace, jwtToken); err != nil {
-		return nil, errors.Wrap(err, "unable to save authData token to secret")
+		return nil, fmt.Errorf("unable to save authData token to secret: %w", err)
 	}
 
 	return clientAdapter, nil
@@ -164,7 +164,7 @@ func (h *Helper) createKeycloakClientFromTokenSecret(ctx context.Context, authDa
 		Name:      tokenSecretName(authData.KeycloakCRName),
 		Namespace: authData.SecretNamespace,
 	}, &tokenSecret); err != nil {
-		return nil, errors.Wrap(err, "unable to get token secret")
+		return nil, fmt.Errorf("unable to get token secret: %w", err)
 	}
 
 	clientAdapter, err := adapter.MakeFromToken(adapter.GoCloakConfig{
@@ -173,7 +173,7 @@ func (h *Helper) createKeycloakClientFromTokenSecret(ctx context.Context, authDa
 		InsecureSkipVerify: authData.InsecureSkipVerify,
 	}, tokenSecret.Data[keycloakTokenSecretKey], ctrl.LoggerFrom(ctx))
 	if err != nil {
-		return nil, errors.Wrap(err, "unable to make authData client from token")
+		return nil, fmt.Errorf("unable to make authData client from token: %w", err)
 	}
 
 	return clientAdapter, nil
@@ -189,7 +189,7 @@ func (h *Helper) saveKeycloakClientTokenSecret(ctx context.Context, secretName, 
 		}
 
 		if err = h.client.Update(ctx, &secret); err != nil {
-			return errors.Wrap(err, "unable to update token secret")
+			return fmt.Errorf("unable to update token secret: %w", err)
 		}
 
 		return nil
@@ -204,13 +204,13 @@ func (h *Helper) saveKeycloakClientTokenSecret(ctx context.Context, secretName, 
 		}}
 
 		if err = h.client.Create(ctx, &secret); err != nil {
-			return errors.Wrap(err, "unable to create token secret")
+			return fmt.Errorf("unable to create token secret: %w", err)
 		}
 
 		return nil
 	}
 
-	return errors.Wrap(err, "error during token secret retrieval")
+	return fmt.Errorf("error during token secret retrieval: %w", err)
 }
 
 func (h *Helper) getKeycloakAuthDataFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*KeycloakAuthData, error) {

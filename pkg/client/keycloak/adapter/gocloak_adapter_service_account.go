@@ -2,17 +2,17 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 	"slices"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 )
 
 func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRoles []string,
 	clientRoles map[string][]string, addOnly bool) error {
 	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get client service account")
+		return fmt.Errorf("unable to get client service account: %w", err)
 	}
 
 	return a.SyncUserRoles(context.Background(), realm, *user.ID, realmRoles, clientRoles, addOnly)
@@ -21,7 +21,7 @@ func (a GoCloakAdapter) SyncServiceAccountRoles(realm, clientID string, realmRol
 func (a GoCloakAdapter) SyncServiceAccountGroups(realm, clientID string, groups []string, addOnly bool) error {
 	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get client service account")
+		return fmt.Errorf("unable to get client service account: %w", err)
 	}
 
 	return a.syncUserGroups(context.Background(), realm, *user.ID, groups, addOnly)
@@ -39,11 +39,14 @@ func doNotDeleteClientRoleFromUser(
 	return nil
 }
 
-func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attributes map[string][]string,
-	addOnly bool) error {
+func (a GoCloakAdapter) SetServiceAccountAttributes(
+	realm, clientID string,
+	attributes map[string][]string,
+	addOnly bool,
+) error {
 	user, err := a.client.GetClientServiceAccount(context.Background(), a.token.AccessToken, realm, clientID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get client service account")
+		return fmt.Errorf("unable to get client service account: %w", err)
 	}
 
 	if user.Attributes == nil {
@@ -76,7 +79,7 @@ func (a GoCloakAdapter) SetServiceAccountAttributes(realm, clientID string, attr
 	}
 
 	if err = a.client.UpdateUser(context.Background(), a.token.AccessToken, realm, *user); err != nil {
-		return errors.Wrapf(err, "unable to update service account user: %s", clientID)
+		return fmt.Errorf("unable to update service account user: %s: %w", clientID, err)
 	}
 
 	return nil

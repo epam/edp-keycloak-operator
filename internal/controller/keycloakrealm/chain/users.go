@@ -2,8 +2,7 @@ package chain
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
@@ -23,7 +22,7 @@ func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	err := createUsers(rDto, kClient)
 	if err != nil {
-		return errors.Wrap(err, "error during createUsers")
+		return fmt.Errorf("error during createUsers: %w", err)
 	}
 
 	rLog.Info("End put users to realm")
@@ -35,7 +34,7 @@ func createUsers(realm *dto.Realm, kClient keycloak.Client) error {
 	for _, user := range realm.Users {
 		err := createOneUser(&user, realm, kClient)
 		if err != nil {
-			return errors.Wrap(err, "error during createOneUser")
+			return fmt.Errorf("error during createOneUser: %w", err)
 		}
 	}
 
@@ -47,7 +46,7 @@ func createOneUser(user *dto.User, realm *dto.Realm, kClient keycloak.Client) er
 
 	exist, err := kClient.ExistRealmUser(realmName, user)
 	if err != nil {
-		return errors.Wrap(err, "error during exist ream user check")
+		return fmt.Errorf("error during exist ream user check: %w", err)
 	}
 
 	if exist {
@@ -56,7 +55,7 @@ func createOneUser(user *dto.User, realm *dto.Realm, kClient keycloak.Client) er
 	}
 
 	if err := kClient.CreateRealmUser(realmName, user); err != nil {
-		return errors.Wrap(err, "unable to create user in realm")
+		return fmt.Errorf("unable to create user in realm: %w", err)
 	}
 
 	return nil

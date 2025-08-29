@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -53,13 +52,13 @@ type TokenSettings struct {
 func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
 	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
 	if err != nil {
-		return errors.Wrapf(err, "unable to realm: %s", realmName)
+		return fmt.Errorf("unable to realm: %s: %w", realmName, err)
 	}
 
 	setRealmSettings(realm, realmSettings)
 
 	if err := a.client.UpdateRealm(context.Background(), a.token.AccessToken, *realm); err != nil {
-		return errors.Wrap(err, "unable to update realm")
+		return fmt.Errorf("unable to update realm: %w", err)
 	}
 
 	return nil
@@ -225,7 +224,7 @@ func (a GoCloakAdapter) CreateRealmWithDefaultConfig(realm *dto.Realm) error {
 
 	_, err := a.client.CreateRealm(context.Background(), a.token.AccessToken, getDefaultRealm(realm))
 	if err != nil {
-		return errors.Wrap(err, "unable to create realm")
+		return fmt.Errorf("unable to create realm: %w", err)
 	}
 
 	log.Info("End creating realm with default config")
@@ -238,7 +237,7 @@ func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error
 	log.Info("Start deleting realm...")
 
 	if err := a.client.DeleteRealm(ctx, a.token.AccessToken, realmName); err != nil {
-		return errors.Wrap(err, "unable to delete realm")
+		return fmt.Errorf("unable to delete realm: %w", err)
 	}
 
 	log.Info("End deletion realm")
@@ -249,7 +248,7 @@ func (a GoCloakAdapter) DeleteRealm(ctx context.Context, realmName string) error
 func (a GoCloakAdapter) SyncRealmIdentityProviderMappers(realmName string, mappers []dto.IdentityProviderMapper) error {
 	realm, err := a.client.GetRealm(context.Background(), a.token.AccessToken, realmName)
 	if err != nil {
-		return errors.Wrapf(err, "unable to get realm by name: %s", realmName)
+		return fmt.Errorf("unable to get realm by name: %s: %w", realmName, err)
 	}
 
 	currentMappers := make(map[string]*dto.IdentityProviderMapper)
@@ -266,14 +265,14 @@ func (a GoCloakAdapter) SyncRealmIdentityProviderMappers(realmName string, mappe
 		if idpmTyped, ok := currentMappers[claimedMapper.Name]; ok {
 			claimedMapper.ID = idpmTyped.ID
 			if err := a.updateIdentityProviderMapper(realmName, claimedMapper); err != nil {
-				return errors.Wrapf(err, "unable to update idp mapper: %+v", claimedMapper)
+				return fmt.Errorf("unable to update idp mapper: %+v: %w", claimedMapper, err)
 			}
 
 			continue
 		}
 
 		if err := a.createIdentityProviderMapper(realmName, claimedMapper); err != nil {
-			return errors.Wrapf(err, "unable to create idp mapper: %+v", claimedMapper)
+			return fmt.Errorf("unable to create idp mapper: %+v: %w", claimedMapper, err)
 		}
 	}
 
