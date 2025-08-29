@@ -2,6 +2,8 @@
 name: keycloak-operator
 # -- Annotations to be added to the Deployment
 annotations: {}
+# -- Labels to be added to the pod
+podLabels: {}
 # -- Node labels for pod assignment
 nodeSelector: {}
 # -- Node tolerations for server scheduling to nodes with taints
@@ -9,6 +11,8 @@ tolerations: []
 # -- Affinity for pod assignment
 affinity: {}
 image:
+  # -- KubeRocketCI keycloak-operator Docker image registry.
+  registry: ""
   # -- KubeRocketCI keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator)
   repository: epamedp/keycloak-operator
   # if not defined then .Chart.AppVersion is used

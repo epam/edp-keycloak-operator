@@ -17,6 +17,12 @@ spec:
     metadata:
       labels:
         name: {{ .Values.name }}
+        {{- if hasKey .Values.podLabels "name" }}
+        {{ fail "The 'name' key is not allowed in podLabels" }}
+        {{- end }}
+        {{- range $key, $value := .Values.podLabels }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
     spec:
       serviceAccountName: edp-{{ .Values.name }}
       {{- if .Values.securityContext }}
@@ -29,7 +35,7 @@ spec:
       containers:
         - name: {{ .Values.name }}
           # Replace this with the built image name
-          image: {{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
+          image: {{ if .Values.image.registry }}{{ .Values.image.registry }}/{{ end }}{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}
           imagePullPolicy: "{{ .Values.imagePullPolicy }}"
           command:
             - /manager
