@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -11,7 +12,6 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/go-resty/resty/v2"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -259,7 +259,7 @@ func TestHelper_InvalidateKeycloakClientTokenSecret_FailureToGet(t *testing.T) {
 	err := h.InvalidateKeycloakClientTokenSecret(context.Background(), "ns", "kc-name")
 	require.Error(t, err)
 
-	if !k8sErrors.IsNotFound(errors.Cause(err)) {
+	if !k8sErrors.IsNotFound(err) {
 		t.Fatalf("wrong error returned: %+v", err)
 	}
 }

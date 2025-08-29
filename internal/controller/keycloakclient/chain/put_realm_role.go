@@ -2,8 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -21,7 +21,7 @@ func NewPutRealmRole(keycloakApiClient keycloak.Client) *PutRealmRole {
 
 func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putRealmRoles(ctx, keycloakClient, realmName); err != nil {
-		return errors.Wrap(err, "unable to put realm roles")
+		return fmt.Errorf("unable to put realm roles: %w", err)
 	}
 
 	return nil
@@ -44,7 +44,7 @@ func (el *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keycl
 
 		exist, err := el.keycloakApiClient.ExistRealmRole(realmName, roleDto.Name)
 		if err != nil {
-			return errors.Wrap(err, "error during ExistRealmRole")
+			return fmt.Errorf("error during ExistRealmRole: %w", err)
 		}
 
 		if exist {
@@ -54,7 +54,7 @@ func (el *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keycl
 
 		err = el.keycloakApiClient.CreateIncludedRealmRole(realmName, roleDto)
 		if err != nil {
-			return errors.Wrap(err, "error during CreateRealmRole")
+			return fmt.Errorf("error during CreateRealmRole: %w", err)
 		}
 	}
 

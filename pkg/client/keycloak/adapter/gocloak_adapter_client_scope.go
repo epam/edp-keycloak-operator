@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -41,17 +40,17 @@ func (a GoCloakAdapter) CreateClientScope(ctx context.Context, realmName string,
 		Post(a.buildPath(postClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return "", errors.Wrap(err, "unable to create client scope")
+		return "", fmt.Errorf("unable to create client scope: %w", err)
 	}
 
 	id, err := getIDFromResponseLocation(rsp.RawResponse)
 	if err != nil {
-		return "", errors.Wrap(err, "unable to get flow id")
+		return "", fmt.Errorf("unable to get flow id: %w", err)
 	}
 
 	if scope.Default {
 		if err := a.setDefaultClientScopeForRealm(ctx, realmName, id); err != nil {
-			return id, errors.Wrap(err, "unable to set default client scope for realm")
+			return id, fmt.Errorf("unable to set default client scope for realm: %w", err)
 		}
 	}
 
@@ -60,7 +59,7 @@ func (a GoCloakAdapter) CreateClientScope(ctx context.Context, realmName string,
 
 func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *ClientScope) error {
 	if err := a.syncClientScopeProtocolMappers(ctx, realmName, scopeID, scope.ProtocolMappers); err != nil {
-		return errors.Wrap(err, "unable to sync client scope protocol mappers")
+		return fmt.Errorf("unable to sync client scope protocol mappers: %w", err)
 	}
 
 	rsp, err := a.startRestyRequest().
@@ -73,12 +72,12 @@ func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeI
 		Put(a.buildPath(putClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to update client scope")
+		return fmt.Errorf("unable to update client scope: %w", err)
 	}
 
 	needToUpdateDefault, err := a.needToUpdateDefault(ctx, realmName, scope)
 	if err != nil {
-		return errors.Wrap(err, "unable to check if need to update default")
+		return fmt.Errorf("unable to check if need to update default: %w", err)
 	}
 
 	if !needToUpdateDefault {
@@ -87,14 +86,14 @@ func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeI
 
 	if scope.Default {
 		if err := a.setDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-			return errors.Wrap(err, "unable to set default client scope for realm")
+			return fmt.Errorf("unable to set default client scope for realm: %w", err)
 		}
 
 		return nil
 	}
 
 	if err := a.unsetDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-		return errors.Wrap(err, "unable to unset default client scope for realm")
+		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
 	}
 
 	return nil
@@ -103,7 +102,7 @@ func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeI
 func (a GoCloakAdapter) needToUpdateDefault(ctx context.Context, realmName string, scope *ClientScope) (bool, error) {
 	defaultScopes, err := a.GetDefaultClientScopesForRealm(ctx, realmName)
 	if err != nil {
-		return false, errors.Wrap(err, "unable to get default client scopes")
+		return false, fmt.Errorf("unable to get default client scopes: %w", err)
 	}
 
 	currentScopeDefaultState := false
@@ -218,11 +217,11 @@ func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []C
 
 func (a GoCloakAdapter) DeleteClientScope(ctx context.Context, realmName, scopeID string) error {
 	if err := a.unsetDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-		return errors.Wrap(err, "unable to unset default client scope for realm")
+		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
 	}
 
 	if err := a.client.DeleteClientScope(ctx, a.token.AccessToken, realmName, scopeID); err != nil {
-		return errors.Wrap(err, "unable to delete client scope")
+		return fmt.Errorf("unable to delete client scope: %w", err)
 	}
 
 	return nil
@@ -232,7 +231,7 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 	instanceProtocolMappers []ProtocolMapper) error {
 	scope, err := a.client.GetClientScope(ctx, a.token.AccessToken, realm, scopeID)
 	if err != nil {
-		return errors.Wrap(err, "unable to get client scope")
+		return fmt.Errorf("unable to get client scope: %w", err)
 	}
 
 	if scope.ProtocolMappers != nil {
@@ -247,7 +246,7 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 				Delete(a.buildPath(deleteClientScopeProtocolMapper))
 
 			if err = a.checkError(err, rsp); err != nil {
-				return errors.Wrap(err, "error during client scope protocol mapper deletion")
+				return fmt.Errorf("error during client scope protocol mapper deletion: %w", err)
 			}
 		}
 	}
@@ -263,7 +262,7 @@ func (a GoCloakAdapter) syncClientScopeProtocolMappers(ctx context.Context, real
 			Post(a.buildPath(createClientScopeProtocolMapper))
 
 		if err = a.checkError(err, rsp); err != nil {
-			return errors.Wrap(err, "error during client scope protocol mapper creation")
+			return fmt.Errorf("error during client scope protocol mapper creation: %w", err)
 		}
 	}
 
@@ -282,7 +281,7 @@ func (a GoCloakAdapter) GetDefaultClientScopesForRealm(ctx context.Context, real
 		Get(a.buildPath(getDefaultClientScopes))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "unable to get default client scopes for realm")
+		return nil, fmt.Errorf("unable to get default client scopes for realm: %w", err)
 	}
 
 	return scopes, nil
@@ -302,7 +301,7 @@ func (a GoCloakAdapter) setDefaultClientScopeForRealm(ctx context.Context, realm
 		Put(a.buildPath(putDefaultClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to set default client scope for realm")
+		return fmt.Errorf("unable to set default client scope for realm: %w", err)
 	}
 
 	return nil
@@ -318,7 +317,7 @@ func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, rea
 		Delete(a.buildPath(deleteDefaultClientScope))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "unable to unset default client scope for realm")
+		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
 	}
 
 	return nil
@@ -340,7 +339,7 @@ func (a GoCloakAdapter) GetClientScopeMappers(
 		Get(a.buildPath(postClientScopeMapper))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "unable to get client scope mappers")
+		return nil, fmt.Errorf("unable to get client scope mappers: %w", err)
 	}
 
 	return mappers, nil
@@ -377,7 +376,7 @@ func (a GoCloakAdapter) PutClientScopeMapper(realmName, scopeID string, protocol
 		SetBody(protocolMapper).
 		Post(a.buildPath(postClientScopeMapper))
 	if err = a.checkError(err, resp); err != nil {
-		return errors.Wrap(err, "unable to put client scope mapper")
+		return fmt.Errorf("unable to put client scope mapper: %w", err)
 	}
 
 	log.Info("Client Scope mapper was successfully configured!")

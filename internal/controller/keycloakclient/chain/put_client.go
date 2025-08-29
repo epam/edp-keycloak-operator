@@ -2,9 +2,10 @@ package chain
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
-	"github.com/sethvargo/go-password/password"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -21,9 +22,7 @@ import (
 )
 
 const (
-	passwordLength  = 36
-	passwordDigits  = 9
-	passwordSymbols = 0
+	secretLength = 32 // 32 bytes = 256 bits of entropy
 
 	browserAuthFlow     = "browser"
 	directGrantAuthFlow = "direct_grant"
@@ -154,9 +153,9 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 		return "", fmt.Errorf("unable to check client secret existence: %w", secretErr)
 	}
 
-	pass, err := password.Generate(passwordLength, passwordDigits, passwordSymbols, true, true)
+	pass, err := generateSecureSecret()
 	if err != nil {
-		return "", fmt.Errorf("unable to generate password: %w", err)
+		return "", fmt.Errorf("unable to generate secret: %w", err)
 	}
 
 	if k8sErrors.IsNotFound(secretErr) {
@@ -229,4 +228,14 @@ func (el *PutClient) getAuthFlows(keycloakClient *keycloakApi.KeycloakClient, re
 	}
 
 	return authFlowOverrides, nil
+}
+
+// generateSecureSecret generates a cryptographically secure random secret
+func generateSecureSecret() (string, error) {
+	bytes := make([]byte, secretLength)
+	if _, err := rand.Read(bytes); err != nil {
+		return "", err
+	}
+
+	return base64.URLEncoding.EncodeToString(bytes), nil
 }

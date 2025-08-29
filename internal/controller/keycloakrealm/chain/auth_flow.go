@@ -2,8 +2,7 @@ package chain
 
 import (
 	"context"
-
-	"github.com/pkg/errors"
+	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
@@ -24,7 +23,7 @@ func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	}
 
 	if err := kClient.SetRealmBrowserFlow(ctx, realm.Spec.RealmName, *realm.Spec.BrowserFlow); err != nil {
-		return errors.Wrap(err, "unable to set realm auth flow")
+		return fmt.Errorf("unable to set realm auth flow: %w", err)
 	}
 
 	rLog.Info("End of configuring keycloak realm auth flow")

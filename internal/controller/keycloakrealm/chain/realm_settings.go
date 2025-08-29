@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
-
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -29,7 +27,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 			EventsExpiration:          realm.Spec.RealmEventConfig.EventsExpiration,
 			EventsListeners:           realm.Spec.RealmEventConfig.EventsListeners,
 		}); err != nil {
-			return errors.Wrap(err, "unable to set realm event config")
+			return fmt.Errorf("unable to set realm event config: %w", err)
 		}
 	}
 
@@ -66,7 +64,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	}
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
-		return errors.Wrap(err, "unable to update realm settings")
+		return fmt.Errorf("unable to update realm settings: %w", err)
 	}
 
 	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {

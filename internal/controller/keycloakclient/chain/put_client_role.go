@@ -2,8 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -21,7 +21,7 @@ func NewPutClientRole(keycloakApiClient keycloak.Client) *PutClientRole {
 
 func (el *PutClientRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putKeycloakClientRole(ctx, keycloakClient, realmName); err != nil {
-		return errors.Wrap(err, "unable to put keycloak client role")
+		return fmt.Errorf("unable to put keycloak client role: %w", err)
 	}
 
 	return nil
@@ -34,7 +34,7 @@ func (el *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClie
 	clientDto := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil)
 
 	if err := el.keycloakApiClient.SyncClientRoles(ctx, realmName, clientDto); err != nil {
-		return errors.Wrap(err, "unable to sync client roles")
+		return fmt.Errorf("unable to sync client roles: %w", err)
 	}
 
 	reqLog.Info("End put keycloak client role")

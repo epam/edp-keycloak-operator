@@ -2,10 +2,10 @@ package chain
 
 import (
 	"context"
+	"fmt"
 	"maps"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -22,7 +22,7 @@ func NewPutProtocolMappers(keycloakApiClient keycloak.Client) *PutProtocolMapper
 
 func (el *PutProtocolMappers) Serve(_ context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putProtocolMappers(keycloakClient, realmName); err != nil {
-		return errors.Wrap(err, "unable to put protocol mappers")
+		return fmt.Errorf("unable to put protocol mappers: %w", err)
 	}
 
 	return nil
@@ -51,7 +51,7 @@ func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *keycloakApi.Key
 	if err := el.keycloakApiClient.SyncClientProtocolMapper(
 		dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil),
 		protocolMappers, keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
-		return errors.Wrap(err, "unable to sync protocol mapper")
+		return fmt.Errorf("unable to sync protocol mapper: %w", err)
 	}
 
 	return nil

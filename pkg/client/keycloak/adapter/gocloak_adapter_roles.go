@@ -5,18 +5,17 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 )
 
 func (a GoCloakAdapter) SyncRealmRole(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error {
 	if err := a.createOrUpdateRealmRole(ctx, realmName, role); err != nil {
-		return errors.Wrap(err, "error during createOrUpdateRealmRole")
+		return fmt.Errorf("error during createOrUpdateRealmRole: %w", err)
 	}
 
 	if err := a.makeRoleDefault(ctx, realmName, role); err != nil {
-		return errors.Wrap(err, "error during makeRoleDefault")
+		return fmt.Errorf("error during makeRoleDefault: %w", err)
 	}
 
 	return nil
@@ -64,7 +63,7 @@ func (a GoCloakAdapter) createOrUpdateRealmRole(
 		currentRealmRole.Description = &role.Description
 
 		if err = a.client.UpdateRealmRole(ctx, a.token.AccessToken, realmName, role.Name, *currentRealmRole); err != nil {
-			return errors.Wrap(err, "unable to update realm role")
+			return fmt.Errorf("unable to update realm role: %w", err)
 		}
 	}
 
@@ -89,7 +88,7 @@ func (a GoCloakAdapter) ExistRealmRole(realmName string, roleName string) (bool,
 
 func (a GoCloakAdapter) DeleteRealmRole(ctx context.Context, realm, roleName string) error {
 	if err := a.client.DeleteRealmRole(ctx, a.token.AccessToken, realm, roleName); err != nil {
-		return errors.Wrap(err, "unable to delete realm role")
+		return fmt.Errorf("unable to delete realm role: %w", err)
 	}
 
 	return nil

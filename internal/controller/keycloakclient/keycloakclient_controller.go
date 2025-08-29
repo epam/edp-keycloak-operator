@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	pkgErrors "github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -112,7 +111,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	}
 
 	if err := r.client.Status().Update(ctx, &instance); err != nil {
-		resultErr = pkgErrors.Wrap(err, "unable to update status")
+		resultErr = fmt.Errorf("unable to update status: %w", err)
 	}
 
 	return result, resultErr

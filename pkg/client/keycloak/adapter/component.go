@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/pkg/errors"
 )
 
 type Component struct {
@@ -22,7 +20,7 @@ func (a GoCloakAdapter) CreateComponent(ctx context.Context, realmName string, c
 		keycloakApiParamRealm: realmName,
 	}).SetBody(component).Post(a.buildPath(realmComponent))
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "error during request")
+		return fmt.Errorf("error during request: %w", err)
 	}
 
 	return nil
@@ -32,7 +30,7 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 	if component.ID == "" {
 		_component, err := a.GetComponent(ctx, realmName, component.Name)
 		if err != nil {
-			return errors.Wrap(err, "unable to get component id")
+			return fmt.Errorf("unable to get component id: %w", err)
 		}
 
 		component.ID = _component.ID
@@ -44,7 +42,7 @@ func (a GoCloakAdapter) UpdateComponent(ctx context.Context, realmName string, c
 	}).SetBody(component).Put(a.buildPath(realmComponentEntity))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "error during update component request")
+		return fmt.Errorf("error during update component request: %w", err)
 	}
 
 	return nil
@@ -70,7 +68,7 @@ func (a GoCloakAdapter) DeleteComponent(ctx context.Context, realmName, componen
 	}
 
 	if err = a.checkError(err, rsp); err != nil {
-		return errors.Wrap(err, "error during delete component request")
+		return fmt.Errorf("error during delete component request: %w", err)
 	}
 
 	return nil
@@ -83,7 +81,7 @@ func (a GoCloakAdapter) GetComponent(ctx context.Context, realmName, componentNa
 		keycloakApiParamRealm: realmName,
 	}).SetResult(&components).Get(a.buildPath(realmComponent))
 	if err = a.checkError(err, rsp); err != nil {
-		return nil, errors.Wrap(err, "error during get component request")
+		return nil, fmt.Errorf("error during get component request: %w", err)
 	}
 
 	for _, c := range components {

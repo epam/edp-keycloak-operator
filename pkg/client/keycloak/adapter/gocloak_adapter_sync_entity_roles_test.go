@@ -3,11 +3,11 @@ package adapter
 import (
 	"cmp"
 	"context"
+	"errors"
 	"slices"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"

@@ -2,9 +2,9 @@ package adapter
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 )
 
 func (a GoCloakAdapter) syncEntityRealmRoles(
@@ -26,8 +26,8 @@ func (a GoCloakAdapter) syncEntityRealmRoles(
 	if len(realmRolesToAdd) > 0 {
 		if err := addRoleFunc(context.Background(), a.token.AccessToken, realm, entityID,
 			realmRolesToAdd); err != nil {
-			return errors.Wrapf(err, "unable to add realm roles to entity, realm: %s, entity id: %s, roles: %v",
-				realm, entityID, realmRolesToAdd)
+			return fmt.Errorf("unable to add realm roles to entity, realm: %s, entity id: %s, roles: %v: %w",
+				realm, entityID, realmRolesToAdd, err)
 		}
 	}
 
@@ -42,8 +42,8 @@ func (a GoCloakAdapter) syncEntityRealmRoles(
 	if len(realmRolesToDelete) > 0 {
 		if err := delRoleFunc(context.Background(), a.token.AccessToken, realm, entityID,
 			realmRolesToDelete); err != nil {
-			return errors.Wrapf(err, "unable to delete realm roles from group, realm: %s, entity id: %s, roles: %v",
-				realm, entityID, realmRolesToDelete)
+			return fmt.Errorf("unable to delete realm roles from group, realm: %s, entity id: %s, roles: %v: %w",
+				realm, entityID, realmRolesToDelete, err)
 		}
 	}
 
@@ -61,7 +61,7 @@ func (a GoCloakAdapter) syncOneEntityClientRole(
 ) error {
 	CID, err := a.GetClientID(clientID, realm)
 	if err != nil {
-		return errors.Wrapf(err, "unable to get client id, realm: %s, clientID %s", realm, clientID)
+		return fmt.Errorf("unable to get client id, realm: %s, clientID %s: %w", realm, clientID, err)
 	}
 
 	currentClientRoles := a.makeCurrentClientRoles(clientID, currentRoles)
@@ -74,12 +74,12 @@ func (a GoCloakAdapter) syncOneEntityClientRole(
 
 	if len(rolesToAdd) > 0 {
 		if err := addRoleFunc(context.Background(), a.token.AccessToken, realm, CID, entityID, rolesToAdd); err != nil {
-			return errors.Wrapf(
-				err,
-				"unable to add realm role to entity, realm: %s, clientID: %s, entityID: %s",
+			return fmt.Errorf(
+				"unable to add realm role to entity, realm: %s, clientID: %s, entityID: %s: %w",
 				realm,
 				CID,
 				entityID,
+				err,
 			)
 		}
 	}
@@ -101,12 +101,12 @@ func (a GoCloakAdapter) syncOneEntityClientRole(
 			entityID,
 			rolesToDelete,
 		); err != nil {
-			return errors.Wrapf(
-				err,
-				"unable to del client role from entity, realm: %s, clientID: %s, entityID: %s",
+			return fmt.Errorf(
+				"unable to del client role from entity, realm: %s, clientID: %s, entityID: %s: %w",
 				realm,
 				CID,
 				entityID,
+				err,
 			)
 		}
 	}
@@ -132,7 +132,7 @@ func (a GoCloakAdapter) syncEntityClientRoles(
 			addRoleFunc,
 			delRoleFunc,
 		); err != nil {
-			return errors.Wrap(err, "error during syncOneEntityClientRole")
+			return fmt.Errorf("error during syncOneEntityClientRole: %w", err)
 		}
 	}
 
@@ -144,7 +144,7 @@ func (a GoCloakAdapter) syncEntityClientRoles(
 			if len(rolesToDelete) > 0 {
 				if err := delRoleFunc(context.Background(), a.token.AccessToken, realm,
 					*client.ID, entityID, rolesToDelete); err != nil {
-					return errors.Wrap(err, "unable to delete client role from user")
+					return fmt.Errorf("unable to delete client role from user: %w", err)
 				}
 			}
 		}
@@ -190,7 +190,7 @@ func (a GoCloakAdapter) makeClientRolesToAdd(
 		if _, ok := currentClientRoles[k]; !ok {
 			role, err := a.client.GetClientRole(context.Background(), a.token.AccessToken, realm, clientId, k)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to get client role, realm: %s, clientID: %s, role: %s", realm, clientId, k)
+				return nil, fmt.Errorf("unable to get client role, realm: %s, clientID: %s, role: %s: %w", realm, clientId, k, err)
 			}
 
 			rolesToAdd = append(rolesToAdd, *role)
@@ -233,7 +233,7 @@ func (a GoCloakAdapter) makeEntityRolesToAdd(
 		if _, ok := currentRealmRoleMap[r]; !ok {
 			role, err := a.client.GetRealmRole(context.Background(), a.token.AccessToken, realm, r)
 			if err != nil {
-				return nil, errors.Wrapf(err, "unable to get realm role, realm: %s, role: %s", realm, r)
+				return nil, fmt.Errorf("unable to get realm role, realm: %s, role: %s: %w", realm, r, err)
 			}
 
 			realmRolesToAdd = append(realmRolesToAdd, *role)

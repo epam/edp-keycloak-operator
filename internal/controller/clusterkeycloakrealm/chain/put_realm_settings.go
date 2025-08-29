@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
@@ -32,7 +31,7 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 	settings := h.buildRealmSettings(realm)
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
-		return errors.Wrap(err, "unable to update realm settings")
+		return fmt.Errorf("unable to update realm settings: %w", err)
 	}
 
 	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {

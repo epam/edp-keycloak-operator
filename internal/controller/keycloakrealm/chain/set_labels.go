@@ -2,8 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -28,7 +28,7 @@ func (s SetLabels) ServeRequest(ctx context.Context, realm *keycloakApi.Keycloak
 	}
 
 	if err := s.client.Update(ctx, realm); err != nil {
-		return errors.Wrapf(err, "unable to update realm with new labels, realm: %+v", realm)
+		return fmt.Errorf("unable to update realm with new labels, realm: %+v: %w", realm, err)
 	}
 
 	return nextServeOrNil(ctx, s.next, realm, kClient)
