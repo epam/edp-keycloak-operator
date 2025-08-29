@@ -1,10 +1,10 @@
 package adapter
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -118,6 +118,58 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 				return m
 			},
 			wantErr: require.NoError,
+		},
+		{
+			name: "error getting client service account",
+			attributes: map[string][]string{
+				"foo": {"bar"},
+			},
+			addOnly: false,
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On(
+					"GetClientServiceAccount",
+					mock.Anything,
+					"token",
+					"realm1",
+					"clientID1",
+				).Return(nil, errors.New("service account not found"))
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to get client service account")
+				assert.Contains(t, err.Error(), "service account not found")
+			},
+		},
+		{
+			name: "error updating service account user",
+			attributes: map[string][]string{
+				"foo": {"bar"},
+			},
+			addOnly: false,
+			client: func(t *testing.T) *mocks.MockGoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				usr1 := gocloak.User{
+					Username: gocloak.StringP("user1"),
+					Attributes: &map[string][]string{
+						"foo1": {"bar1"},
+					},
+				}
+
+				m.On("GetClientServiceAccount", mock.Anything, "token", "realm1", "clientID1").Return(&usr1, nil)
+				m.On("UpdateUser", mock.Anything, "token", "realm1", mock.Anything).Return(errors.New("update failed"))
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to update service account user: clientID1")
+				assert.Contains(t, err.Error(), "update failed")
+			},
 		},
 	}
 

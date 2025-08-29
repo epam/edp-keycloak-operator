@@ -2,8 +2,8 @@ package chain
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/pkg/errors"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -30,7 +30,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	e, err := kClient.ExistRealm(rDto.Name)
 	if err != nil {
-		return errors.Wrap(err, "unable to check realm existence")
+		return fmt.Errorf("unable to check realm existence: %w", err)
 	}
 
 	if e {
@@ -41,15 +41,15 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	err = kClient.CreateRealmWithDefaultConfig(rDto)
 	if err != nil {
-		return errors.Wrap(err, "unable to create realm with default config")
+		return fmt.Errorf("unable to create realm with default config: %w", err)
 	}
 
 	if err = h.putRealmRoles(realm, kClient); err != nil {
-		return errors.Wrap(err, "unable to create realm roles on no sso scenario")
+		return fmt.Errorf("unable to create realm roles on no sso scenario: %w", err)
 	}
 
 	if err := h.hlp.InvalidateKeycloakClientTokenSecret(ctx, realm.Namespace, realm.Spec.KeycloakRef.Name); err != nil {
-		return errors.Wrap(err, "unable invalidate keycloak client token")
+		return fmt.Errorf("unable invalidate keycloak client token: %w", err)
 	}
 
 	rLog.Info("End putting realm!")
@@ -73,12 +73,12 @@ func (h PutRealm) putRealmRoles(realm *keycloakApi.KeycloakRealm, kClient keyclo
 	for _, r := range allRoles {
 		exists, err := kClient.ExistRealmRole(dtoRealm.Name, r)
 		if err != nil {
-			return errors.Wrap(err, "unable to check realm role existence")
+			return fmt.Errorf("unable to check realm role existence: %w", err)
 		}
 
 		if !exists {
 			if err := kClient.CreateIncludedRealmRole(dtoRealm.Name, &dto.IncludedRealmRole{Name: r}); err != nil {
-				return errors.Wrap(err, "unable to create new realm role")
+				return fmt.Errorf("unable to create new realm role: %w", err)
 			}
 		}
 	}

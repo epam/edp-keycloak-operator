@@ -2,11 +2,11 @@ package keycloakrealmgroup
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -79,7 +79,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 			return result, resultErr
 		}
 
-		resultErr = errors.Wrap(err, "unable to get keycloak realm group from k8s")
+		resultErr = fmt.Errorf("unable to get keycloak realm group from k8s: %w", err)
 
 		return result, resultErr
 	}
@@ -102,7 +102,7 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 	}
 
 	if err := r.client.Status().Update(ctx, &instance); err != nil {
-		resultErr = errors.Wrap(err, "unable to update status")
+		resultErr = fmt.Errorf("unable to update status: %w", err)
 	}
 
 	log.Info("Reconciling done")

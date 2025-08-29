@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/pkg/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -54,7 +53,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 
 	for i := range authFlowList.Items {
 		if authFlowList.Items[i].Spec.RealmRef.Name == t.realmCRName && authFlowList.Items[i].Spec.ParentName == t.keycloakAuthFlow.Alias {
-			return errors.Errorf("unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
+			return fmt.Errorf("unable to delete flow: %s while it has child: %s", t.keycloakAuthFlow.Alias,
 				authFlowList.Items[i].Spec.Alias)
 		}
 	}

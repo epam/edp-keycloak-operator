@@ -2,10 +2,10 @@ package adapter
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -123,7 +123,7 @@ func TestGoCloakAdapter_AddDefaultScopeToClient(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			t.Parallel()
 
-			adapter, mockClient, _ := initAdapter(t)
+			adapter, mockClient, _ := initAdapter(t, nil)
 			mockClient.On(
 				"GetClients",
 				mock.Anything,

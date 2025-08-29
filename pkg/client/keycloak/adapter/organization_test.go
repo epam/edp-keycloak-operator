@@ -9,10 +9,8 @@ import (
 	"testing"
 
 	"github.com/Nerzal/gocloak/v12"
-	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/require"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
@@ -20,10 +18,7 @@ import (
 func createTestAdapter(t *testing.T, server *httptest.Server) *GoCloakAdapter {
 	t.Helper()
 
-	mockClient := mocks.NewMockGoCloak(t)
-	restyClient := resty.New()
-	restyClient.SetBaseURL(server.URL)
-	mockClient.On("RestyClient").Return(restyClient).Maybe()
+	mockClient := newMockClientWithResty(t, server.URL)
 
 	return &GoCloakAdapter{
 		client:   mockClient,
