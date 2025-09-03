@@ -134,7 +134,7 @@ To avoid resources getting stuck during deletion, it is important to delete them
 
 ## Local Development
 
-To develop the operator, first set up a local environment, and refer to the [Local Development](https://docs.kuberocketci.io/docs/developer-guide/local-development) page.
+For comprehensive local development setup, testing, debugging, and common development tasks, refer to the [Development Guide](docs/development.md).
 
 Development versions are also available from the [snapshot Helm Chart repository](https://epam.github.io/edp-helm-charts/snapshot/) page.
 
