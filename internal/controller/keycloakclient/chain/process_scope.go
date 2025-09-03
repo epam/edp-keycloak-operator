@@ -60,8 +60,10 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 		delete(existingScopes, scope)
 	}
 
-	if err = h.deleteScopes(ctx, existingScopes, realmName, clientID); err != nil {
-		return err
+	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
+		if err = h.deleteScopes(ctx, existingScopes, realmName, clientID); err != nil {
+			return err
+		}
 	}
 
 	return nil

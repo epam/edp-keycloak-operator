@@ -123,6 +123,89 @@ func TestProcessResources_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "resources addOnly successful",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId:               "client-1",
+					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
+					Authorization: &keycloakApi.Authorization{
+						Resources: []keycloakApi.Resource{
+							{
+								Name:               "resource-1",
+								DisplayName:        "Resource 1",
+								Type:               "resource",
+								IconURI:            "https://icon.uri",
+								OwnerManagedAccess: true,
+								URIs:               []string{"https://example.com", "https://example2.com"},
+								Attributes:         map[string][]string{"key": {"value1", "value2"}},
+								Scopes:             []string{"scope1", "scope2"},
+							},
+							{
+								Name: "resource-2",
+								Type: "resource",
+							},
+						},
+					},
+				},
+			},
+			keycloakApiClient: func(t *testing.T) keycloak.Client {
+				client := mocks.NewMockClient(t)
+				client.On("GetClientID", "client-1", "master").
+					Return("clientID", nil).Once()
+				client.On("GetResources", mock.Anything, "master", "clientID").
+					Return(map[string]gocloak.ResourceRepresentation{
+						"resource-2": {
+							ID:   gocloak.StringP("resource-resource2-id"),
+							Name: gocloak.StringP("resource-2"),
+						},
+						"resource-3": {
+							ID:   gocloak.StringP("resource-resource3-id"),
+							Name: gocloak.StringP("resource-3"),
+						},
+						"Default Resource": {
+							ID:   gocloak.StringP("resource-default-id"),
+							Name: gocloak.StringP("Default Resource"),
+						},
+						"resource.idp": {
+							ID:   gocloak.StringP("resource.idp-id"),
+							Name: gocloak.StringP("resource.idp"),
+						},
+					}, nil).Once()
+				client.On("GetScopes", mock.Anything, "master", "clientID").
+					Return(map[string]gocloak.ScopeRepresentation{
+						"scope1": {
+							ID:   gocloak.StringP("scope1-id"),
+							Name: gocloak.StringP("scope1"),
+						},
+						"scope2": {
+							ID:   gocloak.StringP("scope2-id"),
+							Name: gocloak.StringP("scope2"),
+						},
+					}, nil).Once()
+				client.On(
+					"CreateResource",
+					mock.Anything,
+					"master",
+					"clientID",
+					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
+						return p.Name != nil && *p.Name == resourceName
+					})).
+					Return(nil, nil).Once()
+				client.On(
+					"UpdateResource",
+					mock.Anything,
+					"master",
+					"clientID",
+					mock.MatchedBy(func(p gocloak.ResourceRepresentation) bool {
+						return p.Name != nil && *p.Name == "resource-2"
+					})).
+					Return(nil, nil).Once()
+
+				return client
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "failed to delete resource",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{

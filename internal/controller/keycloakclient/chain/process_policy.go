@@ -71,8 +71,10 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		log.Info("Policy created", policyLogKey, keycloakClient.Spec.Authorization.Policies[i].Name)
 	}
 
-	if err = h.deletePolicies(ctx, existingPolicies, realmName, clientID); err != nil {
-		return err
+	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
+		if err = h.deletePolicies(ctx, existingPolicies, realmName, clientID); err != nil {
+			return err
+		}
 	}
 
 	return nil

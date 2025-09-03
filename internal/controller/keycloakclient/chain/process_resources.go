@@ -72,8 +72,10 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		log.Info("Resource created", resourceLogKey, keycloakClient.Spec.Authorization.Resources[i].Name)
 	}
 
-	if err = h.deleteResources(ctx, existingResources, realmName, clientID); err != nil {
-		return err
+	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
+		if err = h.deleteResources(ctx, existingResources, realmName, clientID); err != nil {
+			return err
+		}
 	}
 
 	return nil
