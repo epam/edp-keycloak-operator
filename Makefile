@@ -99,14 +99,18 @@ validate-docs: api-docs helm-docs  ## Validate helm and api docs
 	@git diff -s --exit-code docs/api.md || (echo " Run 'make api-docs' to address the issue." && git diff && exit 1)
 
 # Run tests
-test: fmt vet setup-envtest
-	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) --arch=amd64 use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
+test: setup-envtest
+	@if [ -z "$(TEST_KEYCLOAK_URL)" ]; then \
+		echo ""; \
+		echo "WARNING: TEST_KEYCLOAK_URL is not specified, integration tests will be skipped."; \
+	fi
+	KUBEBUILDER_ASSETS="$(shell $(ENVTEST) use $(ENVTEST_K8S_VERSION) --bin-dir $(LOCALBIN) -p path)" \
 	TEST_KEYCLOAK_URL=${TEST_KEYCLOAK_URL} \
 	go test ./... -coverprofile=coverage.out `go list ./...`
 
 ## Run e2e tests. Requires kind with running cluster and kuttl tool.
-e2e: build
-	docker build --no-cache -t ${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
+e2e: build-linux-amd64
+	docker build --no-cache --platform linux/amd64 -t ${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG} .
 	kind load --name $(KIND_CLUSTER_NAME) docker-image ${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY}:${E2E_IMAGE_TAG}
 	E2E_IMAGE_REPOSITORY=${E2E_IMAGE_REPOSITORY} CONTAINER_REGISTRY_URL=${CONTAINER_REGISTRY_URL} CONTAINER_REGISTRY_SPACE=${CONTAINER_REGISTRY_SPACE} E2E_IMAGE_TAG=${E2E_IMAGE_TAG} kubectl-kuttl test
 
@@ -133,6 +137,10 @@ lint-config: golangci-lint ## Verify golangci-lint linter configuration
 .PHONY: build
 build:  ## build operator's binary
 	CGO_ENABLED=0 GOOS=${HOST_OS} GOARCH=${HOST_ARCH} go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME}-${HOST_ARCH} -gcflags '${GCFLAGS}' ./cmd
+
+.PHONY: build-linux-amd64
+build-linux-amd64:  ## build operator's binary for Linux AMD64
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -v -ldflags '${LDFLAGS}' -o ${DIST_DIR}/${BIN_NAME}-amd64 -gcflags '${GCFLAGS}' ./cmd
 
 .PHONY: clean
 clean:  ## clean up
@@ -247,6 +255,10 @@ ifeq (true,$(START_KIND_CLUSTER))
 	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG)
 endif
 
+.PHONY: delete-kind
+delete-kind:	## Delete kind cluster
+	kind delete cluster --name $(KIND_CLUSTER_NAME) || true
+
 mocks: mockery
 	$(MOCKERY)
 
@@ -283,3 +295,12 @@ bundle-push: ## Push the bundle image.
 .PHONY: docker-push
 docker-push: ## Push docker image with the manager.
 	docker push ${IMG}
+
+.PHONY: start-keycloak
+start-keycloak: ## Start Keycloak instance for testing
+	docker run -d -p 8086:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin -e KC_FEATURES=admin-fine-grained-authz:v1 --name keycloak-test quay.io/keycloak/keycloak:latest start-dev
+
+.PHONY: delete-keycloak
+delete-keycloak: ## Stop Keycloak test instance
+	docker stop keycloak-test || true
+	docker rm keycloak-test || true
