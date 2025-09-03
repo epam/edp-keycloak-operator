@@ -161,6 +161,132 @@ func TestProcessPolicy_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "policies addOnly successful",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
+					ClientId:               "test-client-2",
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name:        "aggregate-policy",
+								Type:        keycloakApi.PolicyTypeAggregate,
+								Description: "Aggregate policy",
+								AggregatedPolicy: &keycloakApi.AggregatedPolicyData{
+									Policies: []string{"role-policy", "user-policy"},
+								},
+							},
+							{
+								Name:        "client-policy",
+								Description: "Client policy",
+								Type:        keycloakApi.PolicyTypeClient,
+								ClientPolicy: &keycloakApi.ClientPolicyData{
+									Clients: []string{"test-client-2"},
+								},
+							},
+							{
+								Name:        "group-policy",
+								Description: "Group policy",
+								Type:        keycloakApi.PolicyTypeGroup,
+								GroupPolicy: &keycloakApi.GroupPolicyData{
+									Groups: []keycloakApi.GroupDefinition{
+										{
+											Name: "test-group",
+										},
+									},
+								},
+							},
+							{
+								Name:        "role-policy",
+								Description: "Role policy",
+								Type:        keycloakApi.PolicyTypeRole,
+								RolePolicy: &keycloakApi.RolePolicyData{
+									Roles: []keycloakApi.RoleDefinition{
+										{
+											Name:     "test-role",
+											Required: true,
+										},
+									},
+								},
+							},
+							{
+								Name:        "time-policy",
+								Description: "Time policy",
+								Type:        keycloakApi.PolicyTypeTime,
+								TimePolicy: &keycloakApi.TimePolicyData{
+									NotBefore:    "2024-03-03 00:00:00",
+									NotOnOrAfter: "2024-03-03 00:00:00",
+								},
+							},
+							{
+								Name:        "user-policy",
+								Description: "User policy",
+								Type:        keycloakApi.PolicyTypeUser,
+								UserPolicy: &keycloakApi.UserPolicyData{
+									Users: []string{"test-user"},
+								},
+							},
+						},
+					},
+				},
+			},
+			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
+				m := mocks.NewMockClient(t)
+
+				m.On("GetClientID", "test-client-2", "master").
+					Return("test-client-id", nil)
+				m.On("GetPolicies", mock.Anything, "master", "test-client-id").
+					Return(map[string]*gocloak.PolicyRepresentation{
+						"Default Policy": {
+							ID: gocloak.StringP("default-policy-id"),
+						},
+						"user-policy": {
+							ID: gocloak.StringP("user-policy-id"),
+						},
+						"role-policy": {
+							ID: gocloak.StringP("role-policy-id"),
+						},
+						"user-policy2": {
+							ID: gocloak.StringP("user-policy2-id"),
+						},
+						"existing-policy": {
+							ID: gocloak.StringP("existing-policy-id"),
+						},
+					}, nil)
+				m.On("GetClients", mock.Anything, "master").
+					Return(map[string]*gocloak.Client{
+						"test-client-2": {
+							ID: gocloak.StringP("test-client-id"),
+						},
+					}, nil)
+				m.On("GetGroups", mock.Anything, "master").
+					Return(map[string]*gocloak.Group{
+						"test-group": {
+							ID: gocloak.StringP("test-group-id"),
+						},
+					}, nil)
+				m.On("GetRealmRoles", mock.Anything, "master").
+					Return(map[string]gocloak.Role{
+						"test-role": {
+							ID: gocloak.StringP("test-role-id"),
+						},
+					}, nil)
+				m.On("GetUsersByNames", mock.Anything, "master", []string{"test-user"}).
+					Return(map[string]gocloak.User{
+						"test-user": {
+							ID: gocloak.StringP("test-user-id"),
+						},
+					}, nil)
+				m.On("CreatePolicy", mock.Anything, "master", mock.Anything, mock.Anything).
+					Return(&gocloak.PolicyRepresentation{}, nil).Times(4)
+				m.On("UpdatePolicy", mock.Anything, "master", mock.Anything, mock.Anything).
+					Return(nil).Times(2)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "failed to delete policy",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{

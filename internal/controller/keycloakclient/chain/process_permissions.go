@@ -70,8 +70,10 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 		log.Info("Permission created", permissionLogKey, keycloakClient.Spec.Authorization.Permissions[i].Name)
 	}
 
-	if err = h.deletePermissions(ctx, existingPermissions, realmName, clientID); err != nil {
-		return err
+	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
+		if err = h.deletePermissions(ctx, existingPermissions, realmName, clientID); err != nil {
+			return err
+		}
 	}
 
 	return nil

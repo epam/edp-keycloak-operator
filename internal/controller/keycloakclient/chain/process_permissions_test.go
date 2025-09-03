@@ -127,6 +127,93 @@ func TestProcessPermissions_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "permissions addOnly successful",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
+					ClientId:               "client-2",
+					Authorization: &keycloakApi.Authorization{
+						Permissions: []keycloakApi.Permission{
+							{
+								Name:      permissionName,
+								Type:      keycloakApi.PermissionTypeResource,
+								Policies:  []string{"policy"},
+								Resources: []string{"resource"},
+							},
+							{
+								Name:     "scope-permission",
+								Type:     keycloakApi.PermissionTypeScope,
+								Policies: []string{"policy"},
+								Scopes:   []string{"scope"},
+							},
+						},
+					},
+				},
+			},
+			keycloakApiClient: func(t *testing.T) keycloak.Client {
+				client := mocks.NewMockClient(t)
+				client.On("GetClientID", "client-2", "master").
+					Return("clientID", nil).Once()
+				client.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return(map[string]gocloak.PermissionRepresentation{
+						"resource-permission2": {
+							ID:   gocloak.StringP("resource-permission2-id"),
+							Name: gocloak.StringP("resource-permission2"),
+						},
+						"scope-permission": {
+							ID:   gocloak.StringP("scope-permission-id"),
+							Name: gocloak.StringP("scope permission"),
+						},
+						"token-exchange": {
+							ID:   gocloak.StringP("token-exchange-id"),
+							Name: gocloak.StringP("token exchange"),
+						},
+					}, nil).Once()
+				client.On("GetResources", mock.Anything, "master", "clientID").
+					Return(map[string]gocloak.ResourceRepresentation{
+						"resource": {
+							ID:   gocloak.StringP("resource-id"),
+							Name: gocloak.StringP("resource"),
+						},
+					}, nil).Once()
+				client.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return(map[string]*gocloak.PolicyRepresentation{
+						"policy": {
+							ID:   gocloak.StringP("policy-id"),
+							Name: gocloak.StringP("policy"),
+						},
+					}, nil).Twice()
+				client.On("GetScopes", mock.Anything, "master", "clientID").
+					Return(map[string]gocloak.ScopeRepresentation{
+						"scope": {
+							ID:   gocloak.StringP("scope-id"),
+							Name: gocloak.StringP("scope"),
+						},
+					}, nil).Once()
+				client.On(
+					"UpdatePermission",
+					mock.Anything,
+					"master",
+					"clientID",
+					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+						return *p.Name == "scope-permission" && *p.ID == "scope-permission-id"
+					})).
+					Return(nil).Once()
+				client.On(
+					"CreatePermission",
+					mock.Anything,
+					"master",
+					"clientID",
+					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+						return p.Name != nil && *p.Name == permissionName
+					})).
+					Return(nil, nil).Once()
+
+				return client
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "failed to delete permission",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
