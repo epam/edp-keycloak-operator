@@ -7,6 +7,7 @@ import (
 )
 
 type IdentityProvider struct {
+	InternalID                string            `json:"internalId,omitempty"`
 	ProviderID                string            `json:"providerId"`
 	Config                    map[string]string `json:"config"`
 	AddReadTokenRoleOnCreate  bool              `json:"addReadTokenRoleOnCreate"`

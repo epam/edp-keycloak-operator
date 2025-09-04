@@ -76,6 +76,10 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return("567", nil).
 					Once()
 
+				m.On("GetIdentityProvider", ctrl.LoggerInto(context.Background(), logr.Discard()), "realm", "test-idp").
+					Return(&adapter.IdentityProvider{InternalID: "12345"}, nil).
+					Once()
+
 				m.On("UpdateIDPManagementPermissions", "realm", "test-idp", adapter.ManagementPermissionRepresentation{
 					Enabled: gocloak.BoolP(true),
 				}).

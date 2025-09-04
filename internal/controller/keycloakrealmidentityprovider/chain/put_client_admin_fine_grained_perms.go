@@ -75,6 +75,11 @@ func (el *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak idp admin permission policies")
 
+	idp, err := el.keycloakApiClient.GetIdentityProvider(ctx, realmName, keycloakIDP.Spec.Alias)
+	if err != nil {
+		return fmt.Errorf("failed to get idp: %w", err)
+	}
+
 	realmManagementClientID, err := el.keycloakApiClient.GetClientID(RealmManagementClient, realmName)
 	if err != nil {
 		return fmt.Errorf("failed to get %s client id: %w", RealmManagementClient, err)
@@ -100,7 +105,7 @@ func (el *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(
 			return fmt.Errorf("scope %s not found in permissions", name)
 		}
 
-		permissionName := fmt.Sprintf("%s.permission.idp.%s", name, keycloakIDP.Spec.Alias)
+		permissionName := fmt.Sprintf("%s.permission.idp.%s", name, idp.InternalID)
 
 		if permission, ok := realmManagementPermissions[permissionName]; ok {
 			permission.Policies = &keycloakIDP.Spec.Permission.ScopePermissions[i].Policies
