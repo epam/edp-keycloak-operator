@@ -1,0 +1,6 @@
+{
+    "go.testEnvVars": {
+        "KUBEBUILDER_ASSETS": "${workspaceFolder}/bin/k8s/1.31.0-darwin-amd64",
+        "TEST_KEYCLOAK_URL": "http://localhost:8026"
+    }
+}
