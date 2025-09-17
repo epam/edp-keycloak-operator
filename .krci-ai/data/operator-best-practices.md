@@ -10,7 +10,7 @@ Considerations for Operator developers:
 
 - If there is significant orchestration and sequencing involved, an Operator should be written that represents the entire stack, in turn delegating to other Operators for orchestrating their part of it.
 
-- Operators should own a CRD and only one Operator should control a CRD on a cluster. Two Operators managing the same CRD is not a recommended best practice. An API that exists with multiple implementations is a typical example of a no-op Operator. The no-op Operator doesn't have any deployment or reconciliation loop to define the shared API and other Operators depend on this Operator to provide one implementation of the API, e.g. similar to PVCs or Ingress. 
+- Operators should own a CRD and only one Operator should control a CRD on a cluster. Two Operators managing the same CRD is not a recommended best practice. An API that exists with multiple implementations is a typical example of a no-op Operator. The no-op Operator doesn't have any deployment or reconciliation loop to define the shared API and other Operators depend on this Operator to provide one implementation of the API, e.g. similar to PVCs or Ingress.
 
 - Inside an Operator, multiple controllers should be used if multiple CRDs are managed. This helps in separation of concerns and code readability. Note that this doesn't necessarily mean that we need to have one container image per controller, but rather one reconciliation loop (which could be running as part of the same Operator binary) per CRD.
 
@@ -50,6 +50,7 @@ Considerations for Operator developers:
 
 ## Running On-Cluster
 
+<cluster_considerations>
 Considerations for on-cluster behavior
 
 - Like all containers on Kubernetes, Operators need not run as root unless absolutely necessary. Operators should come with their own ServiceAccount and not rely on the `default`.
@@ -62,11 +63,11 @@ Considerations for on-cluster behavior
 
 - Operators need to support updating managed applications (Operands) that were set up by an older version of the Operator. There are multiple models for this:
 
-| Model | Description | 
+| Model | Description |
 | ------ | ----- |
-| **Operator fan-out** | where the Operator allows the user to specify the version in the custom resource |
-| **single version** | where the Operator is tied to the version of the operand. |
-| **hybrid approach** | where the Operator is tied to a range of versions, and the user can select some level of the version. |
+| Operator fan-out | where the Operator allows the user to specify the version in the custom resource |
+| single version | where the Operator is tied to the version of the operand. |
+| hybrid approach | where the Operator is tied to a range of versions, and the user can select some level of the version. |
 
 - An Operator should not deploy another Operator - an additional component on cluster should take care of this (OLM).
 
@@ -77,8 +78,9 @@ Considerations for on-cluster behavior
 - The Operator itself should be really modest in its requirements - it should always be able to deploy by deploying its controllers, no user input should be required to start up the Operator.
 
 - If user input is required to change the configuration of the Operator itself, a Configuration CRD should be used. Init-containers as part of the Operator deployments can be used to create a default instance of those CRs and then the Operator manages their lifecycle.
+</cluster_considerations>
 
-### Summary:
+### Summary
 
 On the cluster, an Operator...
 
