@@ -4,6 +4,7 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 
 ## General Instructions
 
+<general_guidelines>
 - Write simple, clear, and idiomatic Go code
 - Favor clarity and simplicity over cleverness
 - Follow the principle of least surprise
@@ -12,6 +13,7 @@ Follow idiomatic Go practices and community standards when writing Go code. Thes
 - Make the zero value useful
 - Document exported types, functions, methods, and packages
 - Use Go modules for dependency management
+</general_guidelines>
 
 ## Naming Conventions
 
