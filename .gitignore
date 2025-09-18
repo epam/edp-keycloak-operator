@@ -73,7 +73,6 @@ Session.vim
 # auto-generated tag files
 tags
 ### VisualStudioCode ###
-.vscode/*
 .history
 # End of https://www.gitignore.io/api/go,vim,emacs,visualstudiocode
 /vendor/

@@ -24,21 +24,7 @@ A clear and concise description of what the bug is.
 
 <!-- A clear and concise description of what ACTUALLY happened (or insert a code snippet). -->
 
-**Kubernetes cluster type:**
-
-<!-- The type of cluster used for testing/deployment, ex. "vanilla", "OpenShift" -->
-
-`$ operator-sdk version`
-
-<!-- If applicable, insert the output of `operator-sdk version` here. -->
-
-`$ go version`
-
-<!-- If applicable, insert the output of `go version` here -->
-
-`$ kubectl version`
-
-<!-- If applicable, insert the output of `kubectl version` here -->
+**Operator version:**
 
 **Screenshots**
 If applicable, add screenshots to help explain your problem.
