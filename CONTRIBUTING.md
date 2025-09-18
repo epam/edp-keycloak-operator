@@ -101,4 +101,20 @@ While the prerequisites above must be satisfied prior to having your pull reques
 * Use the present tense ("Add feature" not "Added feature")
 * Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
 * Limit the first line to 72 characters or less
+* Use conventional commit format: `type: Description (#issue_number)`
 * Reference issues and pull requests liberally after the first line
+
+**Commit Message Format:**
+```
+feat: Add new field to KeycloakClient (#123)
+fix: Update client role logic (#456)
+docs: Improve development guide (#789)
+```
+
+**Common commit types:**
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring
+- `test:` - Adding or updating tests
+- `chore:` - Maintenance tasks
