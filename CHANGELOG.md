@@ -3,7 +3,7 @@
 
 
 <a name="v1.29.0"></a>
-## v1.29.0 - 2025-09-03
+## v1.29.0 - 2025-09-22
 ### Features
 - Add support for list of attributes with the same key
 - Add ability to add Permissions to KeycloakRealmIdentityProvider
