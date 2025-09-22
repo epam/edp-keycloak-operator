@@ -32,7 +32,7 @@ To install the Keycloak Operator, follow the steps below:
      ```bash
      helm search repo epamedp/keycloak-operator -l
      NAME                           CHART VERSION   APP VERSION     DESCRIPTION
-     epamedp/keycloak-operator      1.28.0          1.28.0          A Helm chart for KRCI Keycloak Operator
+     epamedp/keycloak-operator      1.29.0          1.29.0          A Helm chart for KRCI Keycloak Operator
      ```
 
     _**NOTE:** It is highly recommended to use the latest stable version._
