@@ -5,4 +5,4 @@ kind: Kustomization
 images:
 - name: controller
   newName: docker.io/epamedp/keycloak-operator
-  newTag: 1.28.0
+  newTag: 1.29.0
