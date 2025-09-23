@@ -43,6 +43,11 @@ spec:
       kind: KeycloakClientScope
       name: keycloakclientscopes.v1.edp.epam.com
       version: v1
+    - description: KeycloakOrganization is the Schema for the organizations API.
+      displayName: Keycloak Organization
+      kind: KeycloakOrganization
+      name: keycloakorganizations.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmComponent is the Schema for the keycloak component
         API.
       displayName: Keycloak Realm Component

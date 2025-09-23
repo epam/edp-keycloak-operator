@@ -233,6 +233,11 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
+	# Add OpenShift version to bundle.Dockerfile and bundle/metadata/annotations.yaml manually because operator-sdk cleans any additional labels.
+	echo "" >> bundle.Dockerfile
+	echo "LABEL com.redhat.openshift.versions=v4.7-v4.19" >> bundle.Dockerfile
+	echo "" >> bundle/metadata/annotations.yaml
+	echo "  com.redhat.openshift.versions: v4.7-v4.19" >> bundle/metadata/annotations.yaml
 	$(OPERATOR_SDK) bundle validate ./bundle
 
 .PHONY: setup-envtest
