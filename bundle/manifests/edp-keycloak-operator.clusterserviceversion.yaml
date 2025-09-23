@@ -280,6 +280,7 @@ metadata:
               "kind": "Keycloak",
               "name": "keycloak-sample"
             },
+            "organizationsEnabled": true,
             "passwordPolicy": [
               {
                 "type": "forceExpiredPasswordChange",
@@ -451,6 +452,29 @@ metadata:
           "apiVersion": "v1.edp.epam.com/v1",
           "kind": "KeycloakRealmIdentityProvider",
           "metadata": {
+            "name": "test-org-idp",
+            "namespace": "default"
+          },
+          "spec": {
+            "alias": "test-org-idp",
+            "config": {
+              "clientId": "test-org-client-id",
+              "clientSecret": "test-org-client-secret",
+              "kc.org.broker.redirect.mode.email-matches": "true",
+              "kc.org.domain": "example.com"
+            },
+            "enabled": true,
+            "providerId": "github",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "test-org-realm"
+            }
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1",
+          "kind": "KeycloakRealmIdentityProvider",
+          "metadata": {
             "name": "keycloakrealmidentityprovider-sample"
           },
           "spec": {
@@ -599,20 +623,57 @@ metadata:
               "browserFlow": "browserFlow-sample"
             },
             "clusterKeycloakRef": "clusterkeycloak-sample",
+            "organizationsEnabled": false,
             "realmName": "realm-sample"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1alpha1",
+          "kind": "KeycloakOrganization",
+          "metadata": {
+            "name": "test-keycloak-organization",
+            "namespace": "default"
+          },
+          "spec": {
+            "alias": "test-org",
+            "attributes": {
+              "department": [
+                "engineering",
+                "qa"
+              ],
+              "location": [
+                "us-east"
+              ]
+            },
+            "description": "Test organization",
+            "domains": [
+              "example.com",
+              "test.com"
+            ],
+            "identityProviders": [
+              {
+                "alias": "test-org-idp"
+              }
+            ],
+            "name": "Test Organization",
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "test-org-realm"
+            },
+            "redirectUrl": "https://example.com/redirect"
           }
         }
       ]
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.28.0
-    createdAt: "2025-07-15T08:42:18Z"
+    createdAt: "2025-09-23T07:39:38Z"
     description: An Operator for managing Keycloak
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.28.0
+  name: edp-keycloak-operator.v1.29.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -646,6 +707,11 @@ spec:
       kind: KeycloakClientScope
       name: keycloakclientscopes.v1.edp.epam.com
       version: v1
+    - description: KeycloakOrganization is the Schema for the organizations API.
+      displayName: Keycloak Organization
+      kind: KeycloakOrganization
+      name: keycloakorganizations.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmComponent is the Schema for the keycloak component
         API.
       displayName: Keycloak Realm Component
@@ -820,6 +886,7 @@ spec:
               annotations:
                 kubectl.kubernetes.io/default-container: manager
               labels:
+                app.kubernetes.io/name: keycloak-operator
                 control-plane: controller-manager
             spec:
               containers:
@@ -827,6 +894,7 @@ spec:
                 - --metrics-bind-address=:8443
                 - --leader-elect
                 - --health-probe-bind-address=:8081
+                - --metrics-cert-path=/tmp/k8s-metrics-server/metrics-certs
                 command:
                 - /manager
                 env:
@@ -838,7 +906,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.28.0
+                image: docker.io/epamedp/keycloak-operator:1.29.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -861,10 +929,28 @@ spec:
                     memory: 64Mi
                 securityContext:
                   allowPrivilegeEscalation: false
+                volumeMounts:
+                - mountPath: /tmp/k8s-metrics-server/metrics-certs
+                  name: metrics-certs
+                  readOnly: true
               securityContext:
                 runAsNonRoot: true
+                seccompProfile:
+                  type: RuntimeDefault
               serviceAccountName: edp-keycloak-operator-controller-manager
               terminationGracePeriodSeconds: 10
+              volumes:
+              - name: metrics-certs
+                secret:
+                  items:
+                  - key: ca.crt
+                    path: ca.crt
+                  - key: tls.crt
+                    path: tls.crt
+                  - key: tls.key
+                    path: tls.key
+                  optional: false
+                  secretName: metrics-server-cert
       permissions:
       - rules:
         - apiGroups:
@@ -924,6 +1010,7 @@ spec:
           - keycloakauthflows
           - keycloakclients
           - keycloakclientscopes
+          - keycloakorganizations
           - keycloakrealmcomponents
           - keycloakrealmgroups
           - keycloakrealmidentityproviders
@@ -946,6 +1033,7 @@ spec:
           - keycloakauthflows/finalizers
           - keycloakclients/finalizers
           - keycloakclientscopes/finalizers
+          - keycloakorganizations/finalizers
           - keycloakrealmcomponents/finalizers
           - keycloakrealmgroups/finalizers
           - keycloakrealmidentityproviders/finalizers
@@ -962,6 +1050,7 @@ spec:
           - keycloakauthflows/status
           - keycloakclients/status
           - keycloakclientscopes/status
+          - keycloakorganizations/status
           - keycloakrealmcomponents/status
           - keycloakrealmgroups/status
           - keycloakrealmidentityproviders/status
@@ -1008,4 +1097,4 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.28.0
+  version: 1.29.0

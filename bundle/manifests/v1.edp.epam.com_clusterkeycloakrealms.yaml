@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.18.0
   creationTimestamp: null
   name: clusterkeycloakrealms.v1.edp.epam.com
 spec:
@@ -97,6 +97,13 @@ spec:
                     nullable: true
                     type: boolean
                 type: object
+              organizationsEnabled:
+                default: false
+                description: |-
+                  OrganizationsEnabled enables Keycloak Organizations feature for this realm.
+                  When enabled, this realm can support Organization resources for multi-tenant scenarios,
+                  identity provider groupings, and domain-based user routing.
+                type: boolean
               passwordPolicy:
                 description: PasswordPolicies is a list of password policies to apply
                   to the realm.
