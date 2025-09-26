@@ -122,6 +122,21 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 								},
 							},
 						},
+						{
+							Name:        "attr2",
+							DisplayName: "Attribute 2",
+							Permissions: &common.UserProfileAttributePermissions{
+								Edit: []string{"admin"},
+								View: []string{"admin"},
+							},
+							Validations: map[string]map[string]common.UserProfileAttributeValidation{
+								"options": {
+									"options": {
+										SliceVal: []string{"option1", "option2"},
+									},
+								},
+							},
+						},
 					},
 					Groups: []common.UserProfileGroup{
 						{
