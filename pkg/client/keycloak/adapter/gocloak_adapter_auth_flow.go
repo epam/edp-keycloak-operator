@@ -632,7 +632,7 @@ func (a GoCloakAdapter) deleteAuthFlowConfig(realmName, configID string) error {
 		Delete(a.buildPath(authFlowConfig))
 
 	if err = a.checkError(err, rsp); err != nil {
-		return fmt.Errorf("unable to delete auth flow config: %w", err)
+		return fmt.Errorf("unable to delete auth flow config '%s': %w", configID, err)
 	}
 
 	return nil
