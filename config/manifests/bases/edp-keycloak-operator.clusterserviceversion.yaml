@@ -5,11 +5,11 @@ metadata:
     alm-examples: '[]'
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.29.0
+    containerImage: controller:latest
     description: An Operator for managing Keycloak
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.29.0
+  name: edp-keycloak-operator.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -187,4 +187,4 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.29.0
+  version: 0.0.0
