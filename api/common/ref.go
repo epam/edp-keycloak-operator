@@ -44,6 +44,14 @@ type KeycloakRef struct {
 	Name string `json:"name,omitempty"`
 }
 
+// GroupRef is a reference to a KeycloakRealmGroup.
+// +kubebuilder:object:generate=true
+type GroupRef struct {
+	// Name specifies the name of the KeycloakRealmGroup custom resource.
+	// +required
+	Name string `json:"name"`
+}
+
 // SourceRef is a reference to a key in a ConfigMap or a Secret.
 // +kubebuilder:object:generate=true
 type SourceRef struct {

@@ -965,6 +965,11 @@ func (in *KeycloakRealmGroupSpec) DeepCopyInto(out *KeycloakRealmGroupSpec) {
 		*out = make([]string, len(*in))
 		copy(*out, *in)
 	}
+	if in.ParentGroup != nil {
+		in, out := &in.ParentGroup, &out.ParentGroup
+		*out = new(common.GroupRef)
+		**out = **in
+	}
 	if in.ClientRoles != nil {
 		in, out := &in.ClientRoles, &out.ClientRoles
 		*out = make([]UserClientRole, len(*in))

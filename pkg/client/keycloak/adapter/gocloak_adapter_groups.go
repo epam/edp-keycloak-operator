@@ -204,6 +204,7 @@ func (a GoCloakAdapter) syncGroupRoles(realmName, groupID string, spec *keycloak
 	return nil
 }
 
+// Deprecated: Use ParentGroup approach instead.
 func (a GoCloakAdapter) syncSubGroups(
 	ctx context.Context,
 	realm string,
@@ -251,6 +252,7 @@ func (a GoCloakAdapter) SyncRealmGroup(
 	ctx context.Context,
 	realmName string,
 	spec *keycloakApi.KeycloakRealmGroupSpec,
+	parentGroupID string,
 ) (string, error) {
 	group, err := a.getGroup(ctx, realmName, spec.Name)
 	if err != nil {
@@ -260,9 +262,19 @@ func (a GoCloakAdapter) SyncRealmGroup(
 
 		group = &gocloak.Group{Name: &spec.Name, Path: &spec.Path, Attributes: &spec.Attributes, Access: &spec.Access}
 
-		groupID, err := a.client.CreateGroup(ctx, a.token.AccessToken, realmName, *group)
-		if err != nil {
-			return "", fmt.Errorf("unable to create group with spec %+v: %w", spec, err)
+		var groupID string
+
+		// If parentGroupID is specified, create as a child group
+		if parentGroupID != "" {
+			groupID, err = a.client.CreateChildGroup(ctx, a.token.AccessToken, realmName, parentGroupID, *group)
+			if err != nil {
+				return "", fmt.Errorf("unable to create child group with spec %+v under parent ID %s: %w", spec, parentGroupID, err)
+			}
+		} else {
+			groupID, err = a.client.CreateGroup(ctx, a.token.AccessToken, realmName, *group)
+			if err != nil {
+				return "", fmt.Errorf("unable to create group with spec %+v: %w", spec, err)
+			}
 		}
 
 		group.ID = &groupID
@@ -277,8 +289,10 @@ func (a GoCloakAdapter) SyncRealmGroup(
 		return "", fmt.Errorf("unable to sync group realm roles, group: %+v with spec %+v: %w", group, spec, err)
 	}
 
-	if err := a.syncSubGroups(ctx, realmName, group, spec.SubGroups); err != nil {
-		return "", fmt.Errorf("unable to sync subgroups, group: %+v with spec: %+v: %w", group, spec, err)
+	if len(spec.SubGroups) > 0 {
+		if err := a.syncSubGroups(ctx, realmName, group, spec.SubGroups); err != nil {
+			return "", fmt.Errorf("unable to sync subgroups, group: %+v with spec: %+v: %w", group, spec, err)
+		}
 	}
 
 	return *group.ID, nil

@@ -4100,6 +4100,15 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmgroupspecparentgroup">parentGroup</a></b></td>
+        <td>object</td>
+        <td>
+          ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+If specified, this group will be created as a child group of the referenced parent.
+The parent KeycloakRealmGroup must exist in the same namespace.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>path</b></td>
         <td>string</td>
         <td>
@@ -4117,7 +4126,8 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b>subGroups</b></td>
         <td>[]string</td>
         <td>
-          SubGroups is a list of subgroups assigned to group.<br/>
+          SubGroups is a list of subgroups assigned to group.
+Deprecated: This filed doesn't allow to fully support child groups. Use ParentGroup approach instead.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4191,6 +4201,35 @@ RealmRef is reference to Realm custom resource.
           Roles is a list of client roles names assigned to user.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroup.spec.parentGroup
+<sup><sup>[↩ Parent](#keycloakrealmgroupspec)</sup></sup>
+
+
+
+ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+If specified, this group will be created as a child group of the referenced parent.
+The parent KeycloakRealmGroup must exist in the same namespace.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the KeycloakRealmGroup custom resource.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
