@@ -5306,8 +5306,8 @@ func (_c *MockClient_SyncClientRoles_Call) RunAndReturn(run func(ctx context.Con
 }
 
 // SyncRealmGroup provides a mock function for the type MockClient
-func (_mock *MockClient) SyncRealmGroup(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec) (string, error) {
-	ret := _mock.Called(ctx, realm, spec)
+func (_mock *MockClient) SyncRealmGroup(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec, parentGroupID string) (string, error) {
+	ret := _mock.Called(ctx, realm, spec, parentGroupID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for SyncRealmGroup")
@@ -5315,16 +5315,16 @@ func (_mock *MockClient) SyncRealmGroup(ctx context.Context, realm string, spec 
 
 	var r0 string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *v1.KeycloakRealmGroupSpec) (string, error)); ok {
-		return returnFunc(ctx, realm, spec)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *v1.KeycloakRealmGroupSpec, string) (string, error)); ok {
+		return returnFunc(ctx, realm, spec, parentGroupID)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *v1.KeycloakRealmGroupSpec) string); ok {
-		r0 = returnFunc(ctx, realm, spec)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *v1.KeycloakRealmGroupSpec, string) string); ok {
+		r0 = returnFunc(ctx, realm, spec, parentGroupID)
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *v1.KeycloakRealmGroupSpec) error); ok {
-		r1 = returnFunc(ctx, realm, spec)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *v1.KeycloakRealmGroupSpec, string) error); ok {
+		r1 = returnFunc(ctx, realm, spec, parentGroupID)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -5340,11 +5340,12 @@ type MockClient_SyncRealmGroup_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - spec *v1.KeycloakRealmGroupSpec
-func (_e *MockClient_Expecter) SyncRealmGroup(ctx interface{}, realm interface{}, spec interface{}) *MockClient_SyncRealmGroup_Call {
-	return &MockClient_SyncRealmGroup_Call{Call: _e.mock.On("SyncRealmGroup", ctx, realm, spec)}
+//   - parentGroupID string
+func (_e *MockClient_Expecter) SyncRealmGroup(ctx interface{}, realm interface{}, spec interface{}, parentGroupID interface{}) *MockClient_SyncRealmGroup_Call {
+	return &MockClient_SyncRealmGroup_Call{Call: _e.mock.On("SyncRealmGroup", ctx, realm, spec, parentGroupID)}
 }
 
-func (_c *MockClient_SyncRealmGroup_Call) Run(run func(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec)) *MockClient_SyncRealmGroup_Call {
+func (_c *MockClient_SyncRealmGroup_Call) Run(run func(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec, parentGroupID string)) *MockClient_SyncRealmGroup_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -5358,10 +5359,15 @@ func (_c *MockClient_SyncRealmGroup_Call) Run(run func(ctx context.Context, real
 		if args[2] != nil {
 			arg2 = args[2].(*v1.KeycloakRealmGroupSpec)
 		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -5372,7 +5378,7 @@ func (_c *MockClient_SyncRealmGroup_Call) Return(s string, err error) *MockClien
 	return _c
 }
 
-func (_c *MockClient_SyncRealmGroup_Call) RunAndReturn(run func(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec) (string, error)) *MockClient_SyncRealmGroup_Call {
+func (_c *MockClient_SyncRealmGroup_Call) RunAndReturn(run func(ctx context.Context, realm string, spec *v1.KeycloakRealmGroupSpec, parentGroupID string) (string, error)) *MockClient_SyncRealmGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }

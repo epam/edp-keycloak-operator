@@ -111,6 +111,12 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 }
 
 func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloakRealmGroup *keycloakApi.KeycloakRealmGroup) error {
+	// TODO: Move this validation to a validating webhook when webhook is configured.
+	// Validate that SubGroups and ParentGroup are not used together.
+	if len(keycloakRealmGroup.Spec.SubGroups) > 0 && keycloakRealmGroup.Spec.ParentGroup != nil {
+		return fmt.Errorf("cannot use both SubGroups (deprecated) and ParentGroup fields - migrate to ParentGroup approach")
+	}
+
 	err := r.helper.SetRealmOwnerRef(ctx, keycloakRealmGroup)
 	if err != nil {
 		return fmt.Errorf("unable to set realm owner ref: %w", err)
@@ -154,7 +160,12 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return nil
 	}
 
-	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec)
+	parentGroupID, err := r.resolveParentGroupID(ctx, keycloakRealmGroup)
+	if err != nil {
+		return err
+	}
+
+	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec, parentGroupID)
 	if err != nil {
 		return fmt.Errorf("unable to sync realm group: %w", err)
 	}
@@ -162,4 +173,41 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	keycloakRealmGroup.Status.ID = id
 
 	return nil
+}
+
+// resolveParentGroupID resolves the parent group's Keycloak ID from the ParentGroup reference.
+// Returns empty string if no parent is specified.
+// Returns error if parent CR doesn't exist or is not ready yet (no ID in status).
+func (r *ReconcileKeycloakRealmGroup) resolveParentGroupID(
+	ctx context.Context,
+	keycloakRealmGroup *keycloakApi.KeycloakRealmGroup,
+) (string, error) {
+	// No parent group specified
+	if keycloakRealmGroup.Spec.ParentGroup == nil {
+		return "", nil
+	}
+
+	log := ctrl.LoggerFrom(ctx)
+
+	// Fetch the parent KeycloakRealmGroup CR
+	parentGroupCR := &keycloakApi.KeycloakRealmGroup{}
+	if err := r.client.Get(ctx, client.ObjectKey{
+		Name:      keycloakRealmGroup.Spec.ParentGroup.Name,
+		Namespace: keycloakRealmGroup.Namespace,
+	}, parentGroupCR); err != nil {
+		return "", fmt.Errorf("unable to get parent KeycloakRealmGroup %s: %w",
+			keycloakRealmGroup.Spec.ParentGroup.Name, err)
+	}
+
+	// Check if parent group has been reconciled and has an ID
+	if parentGroupCR.Status.ID == "" {
+		log.Info("Parent group not ready yet, skipping reconciliation",
+			"parentGroup", keycloakRealmGroup.Spec.ParentGroup.Name,
+			"childGroup", keycloakRealmGroup.Name)
+
+		return "", fmt.Errorf("parent group %s is not ready yet (no ID in status)",
+			keycloakRealmGroup.Spec.ParentGroup.Name)
+	}
+
+	return parentGroupCR.Status.ID, nil
 }

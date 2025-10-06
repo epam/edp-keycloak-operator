@@ -80,6 +80,20 @@ spec:
               name:
                 description: Name of keycloak group.
                 type: string
+              parentGroup:
+                description: |-
+                  ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+                  If specified, this group will be created as a child group of the referenced parent.
+                  The parent KeycloakRealmGroup must exist in the same namespace.
+                nullable: true
+                properties:
+                  name:
+                    description: Name specifies the name of the KeycloakRealmGroup
+                      custom resource.
+                    type: string
+                required:
+                - name
+                type: object
               path:
                 description: Path is a group path.
                 type: string
@@ -106,7 +120,9 @@ spec:
                 nullable: true
                 type: array
               subGroups:
-                description: SubGroups is a list of subgroups assigned to group.
+                description: |-
+                  SubGroups is a list of subgroups assigned to group.
+                  Deprecated: This filed doesn't allow to fully support child groups. Use ParentGroup approach instead.
                 items:
                   type: string
                 nullable: true
