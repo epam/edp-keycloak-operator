@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
@@ -42,6 +43,16 @@ func TestTerminatorSkipDeletion(t *testing.T) {
 		nil,
 		true,
 	)
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
+}
+
+func TestTerminatorDeleteResourceNotFound(t *testing.T) {
+	kClient := mocks.NewMockClient(t)
+	kClient.On("DeleteRealmRole", testifymock.Anything, "realm", "role").Return(adapter.NotFoundError("not found")).Once()
+
+	term := makeTerminator("realm", "role", kClient, false)
 
 	err := term.DeleteResource(context.Background())
 	require.NoError(t, err)

@@ -7,6 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 )
 
 type terminator struct {
@@ -34,6 +35,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	log.Info("Start deleting client scope")
 
 	if err := t.kClient.DeleteClientScope(ctx, t.realmName, t.scopeID); err != nil {
+		if adapter.IsErrNotFound(err) {
+			log.Info("Client scope not found, skipping deletion.")
+
+			return nil
+		}
+
 		return fmt.Errorf("failed to delete client scope: %w", err)
 	}
 

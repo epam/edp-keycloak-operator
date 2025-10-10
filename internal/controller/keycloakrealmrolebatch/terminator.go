@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -27,6 +28,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 
 	for i := range t.childRoles {
 		if err := t.client.Delete(ctx, &t.childRoles[i]); err != nil {
+			if k8sErrors.IsNotFound(err) {
+				log.Info("KeycloakRealmRole not found, skipping deletion.", "role name", t.childRoles[i].Name)
+
+				continue
+			}
+
 			return fmt.Errorf("unable to delete realm role %w", err)
 		}
 	}
