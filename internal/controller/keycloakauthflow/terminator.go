@@ -61,6 +61,12 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	log.Info("Start deleting auth flow")
 
 	if err := t.kClient.DeleteAuthFlow(t.realmName, t.keycloakAuthFlow); err != nil {
+		if adapter.IsErrNotFound(err) {
+			log.Info("Auth flow not found, skipping deletion.")
+
+			return nil
+		}
+
 		return fmt.Errorf("unable to delete auth flow: %w", err)
 	}
 
