@@ -30,12 +30,13 @@ import (
 )
 
 var (
-	cfg         *rest.Config
-	k8sClient   client.Client
-	testEnv     *envtest.Environment
-	ctx         context.Context
-	cancel      context.CancelFunc
-	keycloakURL string
+	cfg                   *rest.Config
+	k8sClient             client.Client
+	testEnv               *envtest.Environment
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	keycloakURL           string
+	keycloakClientManager *testutils.KeycloakClientManager
 )
 
 const (
@@ -141,6 +142,9 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
+
+	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
+	keycloakClientManager.Initialize(ctx)
 })
 
 var _ = AfterSuite(func() {

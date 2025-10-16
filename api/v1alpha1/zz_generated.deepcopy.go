@@ -6,6 +6,7 @@ package v1alpha1
 
 import (
 	"github.com/epam/edp-keycloak-operator/api/common"
+	"github.com/epam/edp-keycloak-operator/api/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 )
 
@@ -195,6 +196,11 @@ func (in *ClusterKeycloakRealmSpec) DeepCopyInto(out *ClusterKeycloakRealmSpec) 
 		in, out := &in.Smtp, &out.Smtp
 		*out = new(common.SMTP)
 		(*in).DeepCopyInto(*out)
+	}
+	if in.Login != nil {
+		in, out := &in.Login, &out.Login
+		*out = new(v1.RealmLogin)
+		**out = **in
 	}
 }
 

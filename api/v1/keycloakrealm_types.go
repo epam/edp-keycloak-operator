@@ -85,6 +85,11 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	Smtp *common.SMTP `json:"smtp,omitempty"`
+
+	// Login settings for the realm.
+	// +nullable
+	// +optional
+	Login *RealmLogin `json:"login,omitempty"`
 }
 
 type User struct {
@@ -179,6 +184,49 @@ type SSORealmMapper struct {
 	// +nullable
 	// +optional
 	Config map[string]string `json:"config,omitempty"`
+}
+
+// RealmLogin defines the login settings for the realm.
+type RealmLogin struct {
+	// UserRegistration enables/disables the registration page. A link for registration will show on the login page too.
+	// +optional
+	// +kubebuilder:default=false
+	UserRegistration bool `json:"userRegistration"`
+
+	// ForgotPassword shows a link on the login page for users who have forgotten their credentials.
+	// +optional
+	// +kubebuilder:default=false
+	ForgotPassword bool `json:"forgotPassword"`
+
+	// RememberMe shows checkbox on the login page to allow the user to remain logged in between browser restarts until the session expires.
+	// +optional
+	// +kubebuilder:default=false
+	RememberMe bool `json:"rememberMe"`
+
+	// EmailAsUsername allows users to set email as username.
+	// +optional
+	// +kubebuilder:default=false
+	EmailAsUsername bool `json:"emailAsUsername"`
+
+	// LoginWithEmail allows users to log in with their email address.
+	// +optional
+	// +kubebuilder:default=true
+	LoginWithEmail bool `json:"loginWithEmail"`
+
+	// DuplicateEmails allows multiple users to have the same email address.
+	// +optional
+	// +kubebuilder:default=false
+	DuplicateEmails bool `json:"duplicateEmails"`
+
+	// VerifyEmail requires user to verify their email address after initial login or after address changes are submitted.
+	// +optional
+	// +kubebuilder:default=false
+	VerifyEmail bool `json:"verifyEmail"`
+
+	// EditUsername allows to edit username.
+	// +optional
+	// +kubebuilder:default=false
+	EditUsername bool `json:"editUsername"`
 }
 
 // KeycloakRealmStatus defines the observed state of KeycloakRealm.
