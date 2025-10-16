@@ -8,27 +8,30 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 // PutRealmSettings is responsible for updating of keycloak realm settings.
 type PutRealmSettings struct {
+	settingsBuilder *realmbuilder.SettingsBuilder
 }
 
 // NewPutRealmSettings creates a new PutRealmSettings handler.
 func NewPutRealmSettings() *PutRealmSettings {
-	return &PutRealmSettings{}
+	return &PutRealmSettings{
+		settingsBuilder: realmbuilder.NewSettingsBuilder(),
+	}
 }
 
 func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating of keycloak realm settings")
 
-	if err := h.setRealmEventConfig(kClient, realm); err != nil {
+	if err := h.settingsBuilder.SetRealmEventConfigFromV1Alpha1(kClient, realm.Spec.RealmName, realm.Spec.RealmEventConfig); err != nil {
 		return err
 	}
 
-	settings := h.buildRealmSettings(realm)
+	settings := h.settingsBuilder.BuildFromV1Alpha1(realm)
 
 	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
 		return fmt.Errorf("unable to update realm settings: %w", err)
@@ -41,70 +44,4 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 	log.Info("Realm settings is updating done.")
 
 	return nil
-}
-
-func (h PutRealmSettings) setRealmEventConfig(kClient keycloak.Client, realm *v1alpha1.ClusterKeycloakRealm) error {
-	if realm.Spec.RealmEventConfig == nil {
-		return nil
-	}
-
-	if err := kClient.SetRealmEventConfig(realm.Spec.RealmName, &adapter.RealmEventConfig{
-		AdminEventsDetailsEnabled: realm.Spec.RealmEventConfig.AdminEventsDetailsEnabled,
-		AdminEventsEnabled:        realm.Spec.RealmEventConfig.AdminEventsEnabled,
-		EnabledEventTypes:         realm.Spec.RealmEventConfig.EnabledEventTypes,
-		EventsEnabled:             realm.Spec.RealmEventConfig.EventsEnabled,
-		EventsExpiration:          realm.Spec.RealmEventConfig.EventsExpiration,
-		EventsListeners:           realm.Spec.RealmEventConfig.EventsListeners,
-	}); err != nil {
-		return fmt.Errorf("failed to set realm event config: %w", err)
-	}
-
-	return nil
-}
-
-func (h PutRealmSettings) buildRealmSettings(realm *v1alpha1.ClusterKeycloakRealm) adapter.RealmSettings {
-	settings := adapter.RealmSettings{
-		FrontendURL:     realm.Spec.FrontendURL,
-		DisplayHTMLName: realm.Spec.DisplayHTMLName,
-		DisplayName:     realm.Spec.DisplayName,
-	}
-
-	if realm.Spec.Themes != nil {
-		settings.Themes = &adapter.RealmThemes{
-			EmailTheme:        realm.Spec.Themes.EmailTheme,
-			AdminConsoleTheme: realm.Spec.Themes.AdminConsoleTheme,
-			AccountTheme:      realm.Spec.Themes.AccountTheme,
-			LoginTheme:        realm.Spec.Themes.LoginTheme,
-		}
-	}
-
-	if realm.Spec.Localization != nil {
-		settings.Themes.InternationalizationEnabled = realm.Spec.Localization.InternationalizationEnabled
-	}
-
-	if realm.Spec.BrowserSecurityHeaders != nil {
-		settings.BrowserSecurityHeaders = realm.Spec.BrowserSecurityHeaders
-	}
-
-	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = h.makePasswordPolicies(realm.Spec.PasswordPolicies)
-	}
-
-	settings.TokenSettings = adapter.ToRealmTokenSettings(realm.Spec.TokenSettings)
-
-	if realm.Spec.RealmEventConfig != nil && realm.Spec.RealmEventConfig.AdminEventsEnabled {
-		eventCfCopy := realm.Spec.RealmEventConfig.DeepCopy()
-		settings.AdminEventsExpiration = &eventCfCopy.AdminEventsExpiration
-	}
-
-	return settings
-}
-
-func (h PutRealmSettings) makePasswordPolicies(policiesSpec []v1alpha1.PasswordPolicy) []adapter.PasswordPolicy {
-	policies := make([]adapter.PasswordPolicy, len(policiesSpec))
-	for i, v := range policiesSpec {
-		policies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
-	}
-
-	return policies
 }

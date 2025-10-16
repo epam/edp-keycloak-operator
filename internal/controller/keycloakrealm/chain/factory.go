@@ -12,6 +12,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
@@ -25,6 +26,7 @@ func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, controllerH
 			next: PutUsers{
 				next: PutUsersRoles{
 					next: RealmSettings{
+						settingsBuilder: realmbuilder.NewSettingsBuilder(),
 						next: AuthFlow{
 							next: UserProfile{
 								next: ConfigureEmail{
