@@ -30,17 +30,18 @@ import (
 )
 
 var (
-	cfg         *rest.Config
-	k8sClient   client.Client
-	testEnv     *envtest.Environment
-	ctx         context.Context
-	cancel      context.CancelFunc
-	keycloakURL string
+	cfg                   *rest.Config
+	k8sClient             client.Client
+	testEnv               *envtest.Environment
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	keycloakURL           string
+	keycloakClientManager *testutils.KeycloakClientManager
 )
 
 const (
 	keycloakCR = "test-keycloak"
-	ns         = "default"
+	ns         = "test-keycloak-realm"
 
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
@@ -111,9 +112,17 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
-	By("bootstrapping Keycloak")
+	By("Bootstrapping Keycloak")
+	By("Creating namespace")
+	namespace := &corev1.Namespace{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: ns,
+		},
+	}
+	err = k8sClient.Create(ctx, namespace)
+	Expect(err).To(Not(HaveOccurred()))
 
-	By("By creating a Keycloak secret")
+	By("Creating a Keycloak secret")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "keycloak-auth-secret",
@@ -125,7 +134,7 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-	By("By creating Keycloak")
+	By("Creating Keycloak")
 	keycloak := &keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      keycloakCR,
@@ -144,6 +153,9 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
+
+	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
+	keycloakClientManager.Initialize(ctx)
 })
 
 var _ = AfterSuite(func() {

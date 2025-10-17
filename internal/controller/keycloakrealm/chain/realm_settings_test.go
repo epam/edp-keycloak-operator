@@ -13,10 +13,13 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 func TestRealmSettings_ServeRequest(t *testing.T) {
-	rs := RealmSettings{}
+	rs := RealmSettings{
+		settingsBuilder: realmbuilder.NewSettingsBuilder(),
+	}
 	kClient := mocks.NewMockClient(t)
 	realm := keycloakApi.KeycloakRealm{}
 	ctx := context.Background()
@@ -88,4 +91,47 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	if !strings.Contains(err.Error(), "unable to set realm event config") {
 		t.Fatalf("wrong error returned: %s", err.Error())
 	}
+}
+
+func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
+	rs := RealmSettings{
+		settingsBuilder: realmbuilder.NewSettingsBuilder(),
+	}
+	kClient := mocks.NewMockClient(t)
+
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
+			RealmName: "realm-with-login",
+			Login: &keycloakApi.RealmLogin{
+				UserRegistration: true,
+				ForgotPassword:   true,
+				RememberMe:       true,
+				EmailAsUsername:  false,
+				LoginWithEmail:   true,
+				DuplicateEmails:  false,
+				VerifyEmail:      true,
+				EditUsername:     false,
+			},
+		},
+	}
+
+	kClient.EXPECT().UpdateRealmSettings(realm.Spec.RealmName, &adapter.RealmSettings{
+		Login: &adapter.RealmLogin{
+			UserRegistration: true,
+			ForgotPassword:   true,
+			RememberMe:       true,
+			EmailAsUsername:  false,
+			LoginWithEmail:   true,
+			DuplicateEmails:  false,
+			VerifyEmail:      true,
+			EditUsername:     false,
+		},
+		DisplayHTMLName: "",
+		FrontendURL:     "",
+		DisplayName:     "",
+	}).Return(nil)
+	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
+
+	err := rs.ServeRequest(context.Background(), &realm, kClient)
+	require.NoError(t, err)
 }

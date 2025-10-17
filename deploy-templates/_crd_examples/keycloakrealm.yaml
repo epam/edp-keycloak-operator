@@ -33,6 +33,15 @@ spec:
     refreshTokenMaxReuse: 300
     revokeRefreshToken: true
     defaultSignatureAlgorithm: RS256
+  login:
+    userRegistration: true
+    forgotPassword: true
+    rememberMe: true
+    emailAsUsername: true
+    loginWithEmail: true
+    duplicateEmails: false
+    verifyEmail: true
+    editUsername: true
   userProfileConfig:
     unmanagedAttributePolicy: "ENABLED"
     attributes:

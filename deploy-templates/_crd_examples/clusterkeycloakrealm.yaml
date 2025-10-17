@@ -7,3 +7,12 @@ spec:
   realmName: realm-sample1234
   authenticationFlows:
     browserFlow: browserFlow-sample
+  login:
+    userRegistration: true
+    forgotPassword: true
+    rememberMe: true
+    emailAsUsername: false
+    loginWithEmail: true
+    duplicateEmails: false
+    verifyEmail: true
+    editUsername: false
