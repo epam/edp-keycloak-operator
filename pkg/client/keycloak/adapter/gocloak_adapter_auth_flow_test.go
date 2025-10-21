@@ -1180,42 +1180,6 @@ func (e *ExecFlowTestSuite) TestClearFlowExecutions_ErrorDeletingFlowExecution()
 	assert.Contains(e.T(), err.Error(), "unable to delete flow execution")
 }
 
-func (e *ExecFlowTestSuite) TestClearFlowExecutions_ErrorDeletingFlowExecutionConfig() {
-	execID := "exec-id-1"
-	configID := "config-id-1"
-
-	e.setupServerWithConfig(&ServerConfig{
-		Handlers: map[string]map[string]ServerHandler{
-			http.MethodGet: {
-				e.pathBuilder.AuthFlowExecution("test-flow"): func(w http.ResponseWriter, r *http.Request) {
-					setJSONContentType(w)
-					w.WriteHeader(http.StatusOK)
-					_ = json.NewEncoder(w).Encode([]FlowExecution{
-						{
-							AuthenticationFlow:   false,
-							ID:                   execID,
-							Level:                0,
-							AuthenticationConfig: configID, // Has config to delete
-						},
-					})
-				},
-			},
-			http.MethodDelete: {
-				e.pathBuilder.AuthFlowExecutionDelete(execID): func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
-				},
-				e.pathBuilder.AuthFlowConfig(configID): func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				},
-			},
-		},
-	})
-
-	err := e.adapter.clearFlowExecutions(e.realmName, "test-flow")
-	assert.Error(e.T(), err)
-	assert.Contains(e.T(), err.Error(), "unable to delete flow execution config")
-}
-
 // Error scenario tests for validateChildFlowsCreated
 func (e *ExecFlowTestSuite) TestValidateChildFlowsCreated_ErrorGettingFlowExecutions() {
 	flow := &KeycloakAuthFlow{

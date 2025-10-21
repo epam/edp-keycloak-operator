@@ -250,14 +250,6 @@ func (a GoCloakAdapter) clearFlowExecutions(realmName, flowAlias string) error {
 		if err := a.deleteFlowExecution(realmName, execs[i].ID); err != nil {
 			return fmt.Errorf("unable to delete flow execution: %w", err)
 		}
-
-		// after deleting flow execution, we need to delete its config as well
-		// as it is not deleted automatically
-		if execs[i].AuthenticationConfig != "" {
-			if err := a.deleteAuthFlowConfig(realmName, execs[i].AuthenticationConfig); err != nil {
-				return fmt.Errorf("unable to delete flow execution config: %w", err)
-			}
-		}
 	}
 
 	return nil
