@@ -11,7 +11,6 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
-	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -541,11 +540,12 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
 
 		By("Waiting for KeycloakClient to be ready")
-		Eventually(func() bool {
-			var c keycloakApi.KeycloakClient
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, &c)
-			return err == nil && controllerutil.ContainsFinalizer(&c, keyCloakClientOperatorFinalizerName)
-		}, timeout, interval).Should(BeTrue())
+		Eventually(func(g Gomega) {
+			c := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, c)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(c.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
 
 		By("Deleting KeycloakRealm")
 		Expect(k8sClient.Delete(ctx, testRealm)).Should(Succeed())

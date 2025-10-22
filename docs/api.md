@@ -4541,6 +4541,13 @@ Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>postBrokerLoginFlowAlias</b></td>
+        <td>string</td>
+        <td>
+          PostBrokerLoginFlowAlias is a post broker login flow alias.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>storeToken</b></td>
         <td>boolean</td>
         <td>

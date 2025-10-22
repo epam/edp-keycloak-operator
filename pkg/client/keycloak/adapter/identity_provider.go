@@ -16,6 +16,7 @@ type IdentityProvider struct {
 	DisplayName               string            `json:"displayName"`
 	Enabled                   bool              `json:"enabled"`
 	FirstBrokerLoginFlowAlias string            `json:"firstBrokerLoginFlowAlias"`
+	PostBrokerLoginFlowAlias  string            `json:"postBrokerLoginFlowAlias"`
 	LinkOnly                  bool              `json:"linkOnly"`
 	StoreToken                bool              `json:"storeToken"`
 	TrustEmail                bool              `json:"trustEmail"`
