@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -53,18 +54,31 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 				Enabled:                   true,
 				DisplayName:               "New provider",
 				FirstBrokerLoginFlowAlias: "first broker login",
+				PostBrokerLoginFlowAlias:  "browser",
 			},
 		}
 		Expect(k8sClient.Create(ctx, provider)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
 			createdProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, createdProvider)
-			if err != nil {
-				return false
-			}
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdProvider.Status.Value).Should(Equal(common.StatusOK))
+		}).WithTimeout(time.Second * 30).WithPolling(time.Second).Should(Succeed())
 
-			return createdProvider.Status.Value == common.StatusOK
-		}, timeout, interval).Should(BeTrue())
+		By("Verifying the identity provider was created in Keycloak")
+		Eventually(func(g Gomega) {
+			idp, err := keycloakClientManager.Client.GetIdentityProvider(ctx, keycloakClientManager.GetToken(), KeycloakRealmCR, "new-provider")
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			g.Expect(idp).ShouldNot(BeNil())
+			g.Expect(idp.Alias).Should(Equal(gocloak.StringP("new-provider")))
+			g.Expect(idp.ProviderID).Should(Equal(gocloak.StringP("github")))
+			g.Expect(idp.Enabled).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(idp.DisplayName).Should(Equal(gocloak.StringP("New provider")))
+			g.Expect(idp.FirstBrokerLoginFlowAlias).Should(Equal(gocloak.StringP("first broker login")))
+			g.Expect(idp.Config).ShouldNot(BeNil())
+			g.Expect((*idp.Config)["clientId"]).Should(Equal("provider-client"))
+		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakRealmIdentityProvider", func() {
 		By("By getting KeycloakRealmIdentityProvider")

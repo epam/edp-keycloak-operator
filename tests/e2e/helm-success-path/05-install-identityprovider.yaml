@@ -20,6 +20,7 @@ spec:
   authenticateByDefault: false
   enabled: true
   firstBrokerLoginFlowAlias: "first broker login"
+  postBrokerLoginFlowAlias: "browser"
   providerId: "github"
   config:
     clientId: "foo"

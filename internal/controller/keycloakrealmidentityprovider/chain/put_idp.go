@@ -78,6 +78,7 @@ func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSp
 		AuthenticateByDefault:     spec.AuthenticateByDefault,
 		DisplayName:               spec.DisplayName,
 		FirstBrokerLoginFlowAlias: spec.FirstBrokerLoginFlowAlias,
+		PostBrokerLoginFlowAlias:  spec.PostBrokerLoginFlowAlias,
 		LinkOnly:                  spec.LinkOnly,
 		StoreToken:                spec.StoreToken,
 		TrustEmail:                spec.TrustEmail,

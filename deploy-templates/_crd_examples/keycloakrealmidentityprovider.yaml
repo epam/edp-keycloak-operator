@@ -10,10 +10,11 @@ spec:
   authenticateByDefault: false
   enabled: true
   firstBrokerLoginFlowAlias: "first broker login"
+  postBrokerLoginFlowAlias: "browser"
   providerId: "github"
   config:
     clientId: "foo"
-    clientSecret: "$secretName:secretKey"
+    clientSecret: "$test-idp-secret:secret"
     syncMode: "IMPORT"
     useJwksUrl: "true"
   mappers:
@@ -24,3 +25,13 @@ spec:
         attribute: "foo"
         "attribute.value": "bar"
         syncMode: "IMPORT"
+
+---
+  
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-idp-secret
+type: Opaque
+data:
+  secret: "c2VjcmV0"  # base64 encoded value of "secret"
