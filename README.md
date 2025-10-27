@@ -79,6 +79,14 @@ To install the Keycloak Operator, follow the steps below:
 
     Wait for the `.status` field with  `status.connected: true`
 
+    ```bash
+    # Check the current status
+    kubectl get keycloak keycloak-sample -n  -o jsonpath='{.status.connected}'
+    
+    # Or wait automatically until connected
+    kubectl wait --for=jsonpath='{.status.connected}'=true keycloak/keycloak-sample -n  --timeout=300s
+    ```
+
 4. Create Keycloak realm and group using Custom Resources:
 
    ```yaml
