@@ -679,16 +679,12 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority() {
 						{
 							AuthenticationFlow: true,
 							DisplayName:        flow.AuthenticationExecutions[0].Alias,
-							Index:              0,
+							Priority:           0,
 							ID:                 flowExecutionID,
 							Requirement:        "ALTERNATIVE",
+							Level:              0,
 						},
 					})
-				},
-			},
-			http.MethodPost: {
-				e.pathBuilder.LowerExecutionPriority(flowExecutionID): func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusOK)
 				},
 			},
 			http.MethodPut: {
@@ -984,7 +980,7 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorGettingFlowExecuti
 
 // Helper function to reduce code duplication for child flow priority tests
 func (e *ExecFlowTestSuite) setupChildFlowPriorityTest(
-	childAlias string, childPriority int, serverDisplayName string, serverRequirement string,
+	childAlias string, childPriority int, serverDisplayName string, serverRequirement string, serverPriority int,
 ) KeycloakAuthFlow {
 	flow := KeycloakAuthFlow{
 		Alias: "test-flow",
@@ -1008,7 +1004,7 @@ func (e *ExecFlowTestSuite) setupChildFlowPriorityTest(
 						{
 							AuthenticationFlow: true,
 							DisplayName:        serverDisplayName,
-							Index:              0,
+							Priority:           serverPriority,
 							ID:                 "flow-exec-id",
 							Requirement:        serverRequirement,
 							Level:              0,
@@ -1023,31 +1019,25 @@ func (e *ExecFlowTestSuite) setupChildFlowPriorityTest(
 }
 
 func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorChildFlowNotFound() {
-	flow := e.setupChildFlowPriorityTest("child-flow-1", 1, "different-child-flow", "ALTERNATIVE")
+	flow := e.setupChildFlowPriorityTest("child-flow-1", 1, "different-child-flow", "ALTERNATIVE", 0)
 
 	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
 	assert.Error(e.T(), err)
 	assert.Contains(e.T(), err.Error(), "unable to find child flow with name")
 }
 
-func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorWrongFlowPriority() {
-	// Invalid priority, matching names and requirements
-	flow := e.setupChildFlowPriorityTest("child-flow", 10, "child-flow", "REQUIRED")
-
-	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
-	assert.Error(e.T(), err)
-	assert.Contains(e.T(), err.Error(), "wrong flow priority")
-}
-
-func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorUpdatingFlowExecution() {
+// Helper function to setup test for update errors
+func (e *ExecFlowTestSuite) setupChildFlowPriorityUpdateErrorTest(
+	childPriority int, childRequirement string, serverPriority int, serverRequirement string,
+) KeycloakAuthFlow {
 	flow := KeycloakAuthFlow{
 		Alias: "test-flow",
 		AuthenticationExecutions: []AuthenticationExecution{
 			{
 				AutheticatorFlow: true,
 				Alias:            "child-flow",
-				Priority:         0,
-				Requirement:      "REQUIRED", // Different from what server returns
+				Priority:         childPriority,
+				Requirement:      childRequirement,
 			},
 		},
 	}
@@ -1064,9 +1054,9 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorUpdatingFlowExecut
 						{
 							AuthenticationFlow: true,
 							DisplayName:        "child-flow",
-							Index:              0,
+							Priority:           serverPriority,
 							ID:                 "flow-exec-id",
-							Requirement:        "ALTERNATIVE", // Different from flow requirement
+							Requirement:        serverRequirement,
 							Level:              0,
 						},
 					})
@@ -1080,19 +1070,35 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorUpdatingFlowExecut
 		},
 	})
 
+	return flow
+}
+
+func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorUpdatingFlowExecution() {
+	// Different priority to trigger update, but with server error
+	flow := e.setupChildFlowPriorityUpdateErrorTest(10, "REQUIRED", 0, "REQUIRED")
+
 	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
 	assert.Error(e.T(), err)
 	assert.Contains(e.T(), err.Error(), "unable to update flow execution")
 }
 
-func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorAdjustingExecutionPriority() {
+func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorUpdatingRequirement() {
+	// Different requirement to trigger update, but with server error
+	flow := e.setupChildFlowPriorityUpdateErrorTest(0, "REQUIRED", 0, "ALTERNATIVE")
+
+	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
+	assert.Error(e.T(), err)
+	assert.Contains(e.T(), err.Error(), "unable to update flow execution")
+}
+
+func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_NoUpdateNeeded() {
 	flow := KeycloakAuthFlow{
 		Alias: "test-flow",
 		AuthenticationExecutions: []AuthenticationExecution{
 			{
 				AutheticatorFlow: true,
 				Alias:            "child-flow",
-				Priority:         1, // Different from Index to trigger priority adjustment
+				Priority:         1,
 				Requirement:      "REQUIRED",
 			},
 		},
@@ -1110,25 +1116,19 @@ func (e *ExecFlowTestSuite) TestAdjustChildFlowsPriority_ErrorAdjustingExecution
 						{
 							AuthenticationFlow: true,
 							DisplayName:        "child-flow",
-							Index:              0, // Different from Priority to trigger adjustment
+							Priority:           1, // Same as flow priority
 							ID:                 flowExecID,
-							Requirement:        "REQUIRED",
+							Requirement:        "REQUIRED", // Same as flow requirement
 							Level:              0,
 						},
 					})
-				},
-			},
-			http.MethodPost: {
-				e.pathBuilder.LowerExecutionPriority(flowExecID): func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
 				},
 			},
 		},
 	})
 
 	err := e.adapter.adjustChildFlowsPriority(e.realmName, &flow)
-	assert.Error(e.T(), err)
-	assert.Contains(e.T(), err.Error(), "unable to adjust flow priority")
+	assert.NoError(e.T(), err)
 }
 
 // Error scenario tests for clearFlowExecutions
@@ -1499,24 +1499,6 @@ func (e *ExecFlowTestSuite) TestUpdateFlowExecution_Error() {
 	err := e.adapter.updateFlowExecution(e.realmName, "parent-flow", flow)
 	assert.Error(e.T(), err)
 	assert.Contains(e.T(), err.Error(), "unable to update flow execution")
-}
-
-func (e *ExecFlowTestSuite) TestAdjustExecutionPriority_Error() {
-	execID := "exec-id"
-
-	e.setupServerWithConfig(&ServerConfig{
-		Handlers: map[string]map[string]ServerHandler{
-			http.MethodPost: {
-				e.pathBuilder.LowerExecutionPriority(execID): func(w http.ResponseWriter, r *http.Request) {
-					w.WriteHeader(http.StatusInternalServerError)
-				},
-			},
-		},
-	})
-
-	err := e.adapter.adjustExecutionPriority(e.realmName, execID, -1)
-	assert.Error(e.T(), err)
-	assert.Contains(e.T(), err.Error(), "unable to adjust execution priority")
 }
 
 func (e *ExecFlowTestSuite) TestGetFlowExecutions_Error() {

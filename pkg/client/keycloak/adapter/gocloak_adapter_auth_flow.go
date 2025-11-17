@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"net/http"
 	"path"
 	"sort"
@@ -56,6 +55,7 @@ type FlowExecution struct {
 	Requirement          string   `json:"requirement"`
 	RequirementChoices   []string `json:"requirementChoices"`
 	AuthenticationConfig string   `json:"authenticationConfig"`
+	Priority             int      `json:"priority"`
 }
 
 type AuthenticatorConfig struct {
@@ -141,7 +141,6 @@ func (a GoCloakAdapter) adjustChildFlowsPriority(realmName string, flow *Keycloa
 			realmName,
 			flow.Alias,
 			&flowExecs[i],
-			len(flowExecs),
 			childFlows,
 		); err != nil {
 			return err
@@ -412,32 +411,6 @@ func (a GoCloakAdapter) updateFlowExecution(realmName, parentFlowAlias string, f
 	return nil
 }
 
-func (a GoCloakAdapter) adjustExecutionPriority(realmName, executionID string, delta int) error {
-	route := raiseExecutionPriority
-	if delta < 0 {
-		route = lowerExecutionPriority
-	}
-
-	for i := 0; i < int(math.Abs(float64(delta))); i++ {
-		rsp, err := a.startRestyRequest().
-			SetPathParams(map[string]string{
-				keycloakApiParamRealm: realmName,
-				keycloakApiParamId:    executionID,
-			}).
-			SetBody(map[string]string{
-				keycloakApiParamRealm: realmName,
-				"execution":           executionID,
-			}).
-			Post(a.buildPath(route))
-
-		if err = a.checkError(err, rsp); err != nil {
-			return fmt.Errorf("unable to adjust execution priority: %w", err)
-		}
-	}
-
-	return nil
-}
-
 func (a GoCloakAdapter) getFlowExecutions(realmName, flowAlias string) ([]FlowExecution, error) {
 	var execs []FlowExecution
 	rsp, err := a.startRestyRequest().
@@ -581,7 +554,6 @@ func (a GoCloakAdapter) adjustFlowExecutionPriority(
 	realmName,
 	flowAlias string,
 	flowExec *FlowExecution,
-	flowExecsCount int,
 	childFlows map[string]AuthenticationExecution,
 ) error {
 	if !flowExec.AuthenticationFlow || flowExec.Level != 0 {
@@ -593,23 +565,22 @@ func (a GoCloakAdapter) adjustFlowExecutionPriority(
 		return fmt.Errorf("unable to find child flow with name: %s", flowExec.DisplayName)
 	}
 
+	update := false
+
 	if childFlow.Requirement != flowExec.Requirement {
 		flowExec.Requirement = childFlow.Requirement
+		update = true
+	}
+
+	if childFlow.Priority != flowExec.Priority {
+		flowExec.Priority = childFlow.Priority
+		update = true
+	}
+
+	if update {
 		if err := a.updateFlowExecution(realmName, flowAlias, flowExec); err != nil {
-			return fmt.Errorf("unable to update flow execution: %w", err)
+			return err
 		}
-	}
-
-	if childFlow.Priority == flowExec.Index {
-		return nil
-	}
-
-	if childFlow.Priority < 0 || childFlow.Priority > flowExecsCount {
-		return fmt.Errorf("wrong flow priority, flow name: %s, priority: %d", childFlow.Alias, childFlow.Priority)
-	}
-
-	if err := a.adjustExecutionPriority(realmName, flowExec.ID, flowExec.Index-childFlow.Priority); err != nil {
-		return fmt.Errorf("unable to adjust flow priority: %w", err)
 	}
 
 	return nil
