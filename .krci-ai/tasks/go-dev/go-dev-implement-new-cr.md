@@ -1,7 +1,7 @@
 ---
 dependencies:
   data:
-    - operator-best-practices.md
+    - go-dev/operator-best-practices.md
 ---
 # Task: Implement a new Kubernetes Custom Resource
 
@@ -9,33 +9,15 @@ dependencies:
 
 This guide provides a comprehensive prompt for LLM to implement a new Kubernetes Custom Resource.
 
-## Prerequisites
+## Instructions
 
-<prerequisites>
-IMPORTANT: Before starting implementation, you must read and fully understand the following documentation:
+<instructions>
+BEFORE ANY IMPLEMENTATION confirm you have read and fully understand [Operator Best Practices](./.krci-ai/data/operator-best-practices.md) to apply ALL Kubernetes operator-specific patterns, architectural principles, CRD design guidelines, and operational practices. Ensure dependencies declared in the YAML frontmatter are readable before proceeding.
 
-1. [Operator Best Practices](./.krci-ai/data/operator-best-practices.md) - Apply ALL the Kubernetes operator-specific patterns, architectural principles, CRD design guidelines, and operational practices defined in this document.
-</prerequisites>
+CRITICAL FIRST STEP: You MUST run the `make operator-sdk create api` command first to scaffold the proper structure before manually creating any files. See Step 1.0 in the Implementation Steps below for detailed instructions.
 
-## ⚠️ CRITICAL FIRST STEP
-
-<critical_first_step>
-BEFORE ANY IMPLEMENTATION: You MUST run the `make operator-sdk create api` command first to scaffold the proper structure. See Step 1.0 below for detailed instructions on how to do this.
-
-DO NOT manually create files before running this command!
-</critical_first_step>
-
-## Overview
-
-<overview>
-You are tasked with implementing a new Kubernetes Custom Resource for the `your-operator` project. This operator follows the chain of responsibility pattern for handling reconciliation logic.
-</overview>
-
-## Implementation Steps
-
-<implementation_steps>
-Follow the [Operator SDK Tutorial](https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/) as the foundation for implementing your controller.
-</implementation_steps>
+You are tasked with implementing a new Kubernetes Custom Resource for the `your-operator` project following the chain of responsibility pattern for handling reconciliation logic. Follow the [Operator SDK Tutorial](https://sdk.operatorframework.io/docs/building-operators/golang/tutorial/) as the foundation for implementing your controller.
+ </instructions>
 
 ### 1 Scaffold API and Controller
 
