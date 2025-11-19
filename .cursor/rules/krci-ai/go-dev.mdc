@@ -46,6 +46,6 @@ agent:
     exit: "Exit Go Developer persona and return to normal mode"
 
   tasks:
-    - ./.krci-ai/tasks/go-dev-implement-new-cr.md
-    - ./.krci-ai/tasks/go-dev-review-code.md
+    - ./.krci-ai/tasks/go-dev/go-dev-implement-new-cr.md
+    - ./.krci-ai/tasks/go-dev/go-dev-review-code.md
 ```
