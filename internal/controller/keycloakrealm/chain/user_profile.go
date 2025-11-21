@@ -184,9 +184,12 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 
 	attr := keycloakgoclient.UserProfileAttribute{
 		DisplayName: &v.DisplayName,
-		Group:       &v.Group,
 		Name:        &v.Name,
 		Multivalued: &v.Multivalued,
+	}
+
+	if v.Group != "" {
+		attr.Group = &v.Group
 	}
 
 	annotations := make(map[string]interface{}, len(v.Annotations))

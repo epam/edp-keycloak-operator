@@ -4,6 +4,7 @@ package mocks
 
 import (
 	context "context"
+
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 
 	client "sigs.k8s.io/controller-runtime/pkg/client"

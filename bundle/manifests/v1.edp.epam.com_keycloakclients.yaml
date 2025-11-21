@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.16.5
+    controller-gen.kubebuilder.io/version: v0.18.0
   creationTimestamp: null
   name: keycloakclients.v1.edp.epam.com
 spec:
@@ -15,7 +15,7 @@ spec:
   scope: Namespaced
   versions:
   - additionalPrinterColumns:
-    - description: Reconcilation status
+    - description: Reconciliation status
       jsonPath: .status.value
       name: Status
       type: string
@@ -45,8 +45,10 @@ spec:
             description: KeycloakClientSpec defines the desired state of KeycloakClient.
             properties:
               adminFineGrainedPermissionsEnabled:
-                description: AdminFineGrainedPermissionsEnabled enable/disable fine-grained
-                  admin permissions for a client.
+                description: |-
+                  AdminFineGrainedPermissionsEnabled enable/disable fine-grained admin permissions for a client.
+                  Feature flag admin-fine-grained-authz:v1 should be enabled in Keycloak server.
+                  Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and removed in a future releases.
                 type: boolean
               adminUrl:
                 description: |-
@@ -421,10 +423,34 @@ spec:
                   URI and tokens.
                 type: string
               clientRoles:
-                description: ClientRoles is a list of client roles names assigned
-                  to client.
+                description: |-
+                  ClientRoles is a list of client roles names assigned to client.
+                  Deprecated: Use ClientRolesV2 instead.
                 items:
                   type: string
+                nullable: true
+                type: array
+              clientRolesV2:
+                description: ClientRolesV2 is a list of client roles assigned to client.
+                items:
+                  properties:
+                    associatedClientRoles:
+                      description: |-
+                        AssociatedClientRoles is a list of client roles names associated with the current role.
+                        These roles won't be created automatically, user should specify them separately in clientRolesV2.
+                      items:
+                        type: string
+                      nullable: true
+                      type: array
+                    description:
+                      description: Description is a client role description.
+                      type: string
+                    name:
+                      description: Name is a client role name.
+                      type: string
+                  required:
+                  - name
+                  type: object
                 nullable: true
                 type: array
               consentRequired:
@@ -587,7 +613,19 @@ spec:
                   attributes:
                     additionalProperties:
                       type: string
-                    description: Attributes is a map of service account attributes.
+                    description: |-
+                      Attributes is a map of service account attributes.
+                      Deprecated: Use AttributesV2 instead.
+                    nullable: true
+                    type: object
+                  attributesV2:
+                    additionalProperties:
+                      items:
+                        type: string
+                      type: array
+                    description: |-
+                      AttributesV2 is a map of service account attributes.
+                      Each attribute can have multiple values.
                     nullable: true
                     type: object
                   clientRoles:

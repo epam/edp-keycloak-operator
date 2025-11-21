@@ -6,11 +6,13 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
@@ -57,6 +59,32 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 			return createdKeycloakRealm.Status.Available
 		}, timeout, interval).Should(BeTrue())
+
+		By("Verifying the realm was created in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			// Verify basic fields
+			g.Expect(realm.DisplayName).Should(Equal(gocloak.StringP("Test Realm")))
+			g.Expect(realm.DisplayNameHTML).Should(Equal(gocloak.StringP("<b>Test Realm</b>")))
+			g.Expect(realm.Attributes).ShouldNot(BeNil())
+			g.Expect((*realm.Attributes)["frontendUrl"]).Should(Equal("https://test.com"))
+
+			// Verify token settings
+			g.Expect(realm.DefaultSignatureAlgorithm).Should(Equal(gocloak.StringP("RS256")))
+			g.Expect(realm.RevokeRefreshToken).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.RefreshTokenMaxReuse).Should(Equal(gocloak.IntP(230)))
+			g.Expect(realm.AccessTokenLifespan).Should(Equal(gocloak.IntP(231)))
+			g.Expect(realm.AccessTokenLifespanForImplicitFlow).Should(Equal(gocloak.IntP(232)))
+			g.Expect(realm.AccessCodeLifespan).Should(Equal(gocloak.IntP(233)))
+			g.Expect(realm.ActionTokenGeneratedByUserLifespan).Should(Equal(gocloak.IntP(234)))
+			g.Expect(realm.ActionTokenGeneratedByAdminLifespan).Should(Equal(gocloak.IntP(235)))
+
+			// Verify event config
+			g.Expect(realm.AdminEventsEnabled).Should(Equal(gocloak.BoolP(true)))
+		}, time.Second*10, time.Second).Should(Succeed())
 
 		By("Updating ClusterKeycloakRealm with authentication flow")
 		By("Creating authentication flow")
@@ -161,5 +189,63 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "ClusterKeycloakRealm with preserveResourcesOnDeletion annotation should be deleted")
+	})
+	It("Should create ClusterKeycloakRealm with Login settings", func() {
+		By("Creating ClusterKeycloakRealm with Login settings")
+		keycloakRealmWithLogin := &keycloakAlpha.ClusterKeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cluster-keycloak-realm-login",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
+				ClusterKeycloakRef: ClusterKeycloakCR,
+				RealmName:          "test-realm-login",
+				Login: &keycloakApi.RealmLogin{
+					UserRegistration: true,
+					ForgotPassword:   true,
+					RememberMe:       true,
+					EmailAsUsername:  false,
+					LoginWithEmail:   true,
+					DuplicateEmails:  false,
+					VerifyEmail:      true,
+					EditUsername:     false,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakRealmWithLogin)).Should(Succeed())
+
+		By("Waiting for ClusterKeycloakRealm to be available")
+		Eventually(func() bool {
+			createdKeycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-cluster-keycloak-realm-login"}, createdKeycloakRealm)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return createdKeycloakRealm.Status.Available
+		}, timeout, interval).Should(BeTrue())
+
+		By("Verifying the realm login settings in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-login")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			// Verify login settings
+			g.Expect(realm.RegistrationAllowed).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.ResetPasswordAllowed).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.RememberMe).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.RegistrationEmailAsUsername).Should(Equal(gocloak.BoolP(false)))
+			g.Expect(realm.LoginWithEmailAllowed).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.DuplicateEmailsAllowed).Should(Equal(gocloak.BoolP(false)))
+			g.Expect(realm.VerifyEmail).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.EditUsernameAllowed).Should(Equal(gocloak.BoolP(false)))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Deleting ClusterKeycloakRealm with Login settings")
+		Expect(k8sClient.Delete(ctx, keycloakRealmWithLogin)).Should(Succeed())
+		Eventually(func() bool {
+			deletedRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-cluster-keycloak-realm-login"}, deletedRealm)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "ClusterKeycloakRealm with Login should be deleted")
 	})
 })

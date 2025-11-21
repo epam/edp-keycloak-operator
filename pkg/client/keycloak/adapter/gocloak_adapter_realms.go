@@ -23,6 +23,7 @@ type RealmSettings struct {
 	TokenSettings          *TokenSettings
 	DisplayName            string
 	AdminEventsExpiration  *int
+	Login                  *RealmLogin
 }
 
 type PasswordPolicy struct {
@@ -47,6 +48,17 @@ type TokenSettings struct {
 	AccessCodeLifespan                  int
 	ActionTokenGeneratedByUserLifespan  int
 	ActionTokenGeneratedByAdminLifespan int
+}
+
+type RealmLogin struct {
+	UserRegistration bool
+	ForgotPassword   bool
+	RememberMe       bool
+	EmailAsUsername  bool
+	LoginWithEmail   bool
+	DuplicateEmails  bool
+	VerifyEmail      bool
+	EditUsername     bool
 }
 
 func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
@@ -186,6 +198,17 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 
 	if realmSettings.AdminEventsExpiration != nil {
 		(*realm.Attributes)["adminEventsExpiration"] = strconv.Itoa(*realmSettings.AdminEventsExpiration)
+	}
+
+	if realmSettings.Login != nil {
+		realm.RegistrationAllowed = gocloak.BoolP(realmSettings.Login.UserRegistration)
+		realm.ResetPasswordAllowed = gocloak.BoolP(realmSettings.Login.ForgotPassword)
+		realm.RememberMe = gocloak.BoolP(realmSettings.Login.RememberMe)
+		realm.RegistrationEmailAsUsername = gocloak.BoolP(realmSettings.Login.EmailAsUsername)
+		realm.LoginWithEmailAllowed = gocloak.BoolP(realmSettings.Login.LoginWithEmail)
+		realm.DuplicateEmailsAllowed = gocloak.BoolP(realmSettings.Login.DuplicateEmails)
+		realm.VerifyEmail = gocloak.BoolP(realmSettings.Login.VerifyEmail)
+		realm.EditUsernameAllowed = gocloak.BoolP(realmSettings.Login.EditUsername)
 	}
 }
 

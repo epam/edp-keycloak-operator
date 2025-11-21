@@ -31,11 +31,13 @@ import (
 )
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	cfg                   *rest.Config
+	k8sClient             client.Client
+	testEnv               *envtest.Environment
+	ctx                   context.Context
+	cancel                context.CancelFunc
+	keycloakURL           string
+	keycloakClientManager *testutils.KeycloakClientManager
 )
 
 const (
@@ -105,6 +107,8 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
+	keycloakURL = os.Getenv("TEST_KEYCLOAK_URL")
+
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(ctx)
@@ -138,7 +142,7 @@ var _ = BeforeSuite(func() {
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakSpec{
-			Url:    os.Getenv("TEST_KEYCLOAK_URL"),
+			Url:    keycloakURL,
 			Secret: secret.Name,
 		},
 	}
@@ -172,6 +176,9 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloakRealm.Status.Available
 	}, timeout, interval).Should(BeTrue())
+
+	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
+	keycloakClientManager.Initialize(ctx)
 })
 
 var _ = AfterSuite(func() {

@@ -146,6 +146,13 @@ Use in combination with the default hostname provider to override the base URL f
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspeclogin">login</a></b></td>
+        <td>object</td>
+        <td>
+          Login settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>organizationsEnabled</b></td>
         <td>boolean</td>
         <td>
@@ -250,6 +257,98 @@ Localization is the configuration for localization in the realm.
         <td>boolean</td>
         <td>
           InternationalizationEnabled indicates whether to enable internationalization.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.login
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+Login settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>duplicateEmails</b></td>
+        <td>boolean</td>
+        <td>
+          DuplicateEmails allows multiple users to have the same email address.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>editUsername</b></td>
+        <td>boolean</td>
+        <td>
+          EditUsername allows to edit username.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>emailAsUsername</b></td>
+        <td>boolean</td>
+        <td>
+          EmailAsUsername allows users to set email as username.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>forgotPassword</b></td>
+        <td>boolean</td>
+        <td>
+          ForgotPassword shows a link on the login page for users who have forgotten their credentials.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loginWithEmail</b></td>
+        <td>boolean</td>
+        <td>
+          LoginWithEmail allows users to log in with their email address.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rememberMe</b></td>
+        <td>boolean</td>
+        <td>
+          RememberMe shows checkbox on the login page to allow the user to remain logged in between browser restarts until the session expires.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userRegistration</b></td>
+        <td>boolean</td>
+        <td>
+          UserRegistration enables/disables the registration page. A link for registration will show on the login page too.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyEmail</b></td>
+        <td>boolean</td>
+        <td>
+          VerifyEmail requires user to verify their email address after initial login or after address changes are submitted.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4100,6 +4199,15 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmgroupspecparentgroup">parentGroup</a></b></td>
+        <td>object</td>
+        <td>
+          ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+If specified, this group will be created as a child group of the referenced parent.
+The parent KeycloakRealmGroup must exist in the same namespace.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>path</b></td>
         <td>string</td>
         <td>
@@ -4117,7 +4225,8 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b>subGroups</b></td>
         <td>[]string</td>
         <td>
-          SubGroups is a list of subgroups assigned to group.<br/>
+          SubGroups is a list of subgroups assigned to group.
+Deprecated: This filed doesn't allow to fully support child groups. Use ParentGroup approach instead.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4191,6 +4300,35 @@ RealmRef is reference to Realm custom resource.
           Roles is a list of client roles names assigned to user.<br/>
         </td>
         <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroup.spec.parentGroup
+<sup><sup>[↩ Parent](#keycloakrealmgroupspec)</sup></sup>
+
+
+
+ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+If specified, this group will be created as a child group of the referenced parent.
+The parent KeycloakRealmGroup must exist in the same namespace.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the KeycloakRealmGroup custom resource.<br/>
+        </td>
+        <td>true</td>
       </tr></tbody>
 </table>
 
@@ -4400,6 +4538,13 @@ Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and
         <td>object</td>
         <td>
           Permission is a identity provider permissions configuration<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>postBrokerLoginFlowAlias</b></td>
+        <td>string</td>
+        <td>
+          PostBrokerLoginFlowAlias is a post broker login flow alias.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5240,6 +5385,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmspeclogin">login</a></b></td>
+        <td>object</td>
+        <td>
+          Login settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>organizationsEnabled</b></td>
         <td>boolean</td>
         <td>
@@ -5336,6 +5488,98 @@ KeycloakRef is reference to Keycloak custom resource.
           <br/>
             <i>Enum</i>: Keycloak, ClusterKeycloak<br/>
             <i>Default</i>: Keycloak<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.login
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+Login settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>duplicateEmails</b></td>
+        <td>boolean</td>
+        <td>
+          DuplicateEmails allows multiple users to have the same email address.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>editUsername</b></td>
+        <td>boolean</td>
+        <td>
+          EditUsername allows to edit username.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>emailAsUsername</b></td>
+        <td>boolean</td>
+        <td>
+          EmailAsUsername allows users to set email as username.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>forgotPassword</b></td>
+        <td>boolean</td>
+        <td>
+          ForgotPassword shows a link on the login page for users who have forgotten their credentials.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>loginWithEmail</b></td>
+        <td>boolean</td>
+        <td>
+          LoginWithEmail allows users to log in with their email address.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>rememberMe</b></td>
+        <td>boolean</td>
+        <td>
+          RememberMe shows checkbox on the login page to allow the user to remain logged in between browser restarts until the session expires.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>userRegistration</b></td>
+        <td>boolean</td>
+        <td>
+          UserRegistration enables/disables the registration page. A link for registration will show on the login page too.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verifyEmail</b></td>
+        <td>boolean</td>
+        <td>
+          VerifyEmail requires user to verify their email address after initial login or after address changes are submitted.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr></tbody>

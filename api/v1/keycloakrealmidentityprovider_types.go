@@ -43,6 +43,10 @@ type KeycloakRealmIdentityProviderSpec struct {
 	// +optional
 	FirstBrokerLoginFlowAlias string `json:"firstBrokerLoginFlowAlias,omitempty"`
 
+	// PostBrokerLoginFlowAlias is a post broker login flow alias.
+	// +optional
+	PostBrokerLoginFlowAlias string `json:"postBrokerLoginFlowAlias,omitempty"`
+
 	// LinkOnly is a flag to link only.
 	// +optional
 	LinkOnly bool `json:"linkOnly,omitempty"`

@@ -138,6 +138,43 @@ func TestGoCloakAdapter_UpdateRealmSettings(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGoCloakAdapter_UpdateRealmSettings_WithLogin(t *testing.T) {
+	adapter, mockClient := initRealmsAdapter(t, nil)
+
+	settings := RealmSettings{
+		FrontendURL:     "https://google.com",
+		DisplayHTMLName: "Test Realm",
+		DisplayName:     "Test",
+		Login: &RealmLogin{
+			UserRegistration: true,
+			ForgotPassword:   true,
+			RememberMe:       true,
+			EmailAsUsername:  false,
+			LoginWithEmail:   true,
+			DuplicateEmails:  false,
+			VerifyEmail:      true,
+			EditUsername:     false,
+		},
+	}
+	realmName := "realm-with-login"
+
+	realm := gocloak.RealmRepresentation{}
+	mockClient.EXPECT().GetRealm(mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.EXPECT().UpdateRealm(mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, gocloak.BoolP(true), realm.RegistrationAllowed) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.ResetPasswordAllowed) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.RememberMe) &&
+			assert.Equal(t, gocloak.BoolP(false), realm.RegistrationEmailAsUsername) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.LoginWithEmailAllowed) &&
+			assert.Equal(t, gocloak.BoolP(false), realm.DuplicateEmailsAllowed) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.VerifyEmail) &&
+			assert.Equal(t, gocloak.BoolP(false), realm.EditUsernameAllowed)
+	})).Return(nil)
+
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
+}
+
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	currentMapperID := "mp1id"
 	realmName := "sso-realm-1"

@@ -88,3 +88,20 @@ func TestTerminatorDeleteResourceWithChildErr(t *testing.T) {
 	err := term.DeleteResource(context.Background())
 	assert.Error(t, err)
 }
+
+func TestTerminatorDeleteResourceNotFound(t *testing.T) {
+	sch := runtime.NewScheme()
+	assert.NoError(t, keycloakApi.AddToScheme(sch))
+
+	fakeClient := fake.NewClientBuilder().WithScheme(sch).Build()
+	kClient := mocks.NewMockClient(t)
+
+	keycloakAuthFlow := adapter.KeycloakAuthFlow{Alias: "foo"}
+
+	term := makeTerminator("realm", "realmCR", &keycloakAuthFlow, fakeClient, kClient, false)
+
+	kClient.On("DeleteAuthFlow", "realm", &keycloakAuthFlow).Return(adapter.NotFoundError("not found")).Once()
+
+	err := term.DeleteResource(context.Background())
+	require.NoError(t, err)
+}

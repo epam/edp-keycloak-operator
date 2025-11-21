@@ -134,12 +134,14 @@ Development versions are also available from the [snapshot helm chart repository
 | enableOwnerRef | bool | `true` | If set to true, the operator will set the owner reference for all resources that have Keycloak or KeycloakRealm as reference. This is legacy behavior and not recommended for use. In the future, this will be set to false by default. |
 | extraVolumeMounts | list | `[]` | Additional volumeMounts to be added to the container |
 | extraVolumes | list | `[]` | Additional volumes to be added to the pod |
+| image.registry | string | `""` | KubeRocketCI keycloak-operator Docker image registry. |
 | image.repository | string | `"epamedp/keycloak-operator"` | KubeRocketCI keycloak-operator Docker image name. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator) |
 | image.tag | string | `nil` | KubeRocketCI keycloak-operator Docker image tag. The released image can be found on [Dockerhub](https://hub.docker.com/r/epamedp/keycloak-operator/tags) |
 | imagePullPolicy | string | `"IfNotPresent"` | If defined, a imagePullPolicy applied to the deployment |
 | imagePullSecrets | list | `[]` | If defined, imagePullSecrets are applied to deployment |
 | name | string | `"keycloak-operator"` | Application name string |
 | nodeSelector | object | `{}` | Node labels for pod assignment |
+| podLabels | object | `{}` | Labels to be added to the pod |
 | resources | object | `{"limits":{"memory":"192Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource limits and requests for the pod |
 | securityContext | object | `{"runAsNonRoot":true}` | Deployment Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints |

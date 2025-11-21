@@ -466,11 +466,12 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 	t.Cleanup(server.Close)
 
 	tests := []struct {
-		name    string
-		spec    *keycloakApi.KeycloakRealmGroupSpec
-		client  func(t *testing.T) GoCloak
-		want    string
-		wantErr require.ErrorAssertionFunc
+		name          string
+		spec          *keycloakApi.KeycloakRealmGroupSpec
+		parentGroupID string
+		client        func(t *testing.T) GoCloak
+		want          string
+		wantErr       require.ErrorAssertionFunc
 	}{
 		{
 			name: "create realm group successfully",
@@ -541,8 +542,6 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 
 				m.On("GetRoleMappingByGroupID", mock.Anything, mock.Anything, "master", "test-group-id").
 					Return(&gocloak.MappingsRepresentation{}, nil)
-
-				m.On("RestyClient").Return(resty.New().SetBaseURL(server.URL))
 
 				return m
 			},
@@ -692,8 +691,6 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 						ClientMappings: map[string]*gocloak.ClientMappingsRepresentation{},
 					}, nil)
 
-				m.On("RestyClient").Return(resty.New().SetBaseURL(server.URL))
-
 				return m
 			},
 			wantErr: require.NoError,
@@ -747,6 +744,52 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 			wantErr: require.Error,
 			want:    "",
 		},
+		{
+			name:          "create child group with parentGroupID successfully",
+			parentGroupID: "parent-group-id",
+			spec: &keycloakApi.KeycloakRealmGroupSpec{
+				Name: "child-group",
+			},
+			client: func(t *testing.T) GoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				// Child group doesn't exist yet
+				m.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{}, nil)
+
+				// CreateChildGroup is called with parent ID
+				m.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "parent-group-id", mock.Anything).
+					Return("child-group-id", nil)
+
+				m.On("GetRoleMappingByGroupID", mock.Anything, mock.Anything, "master", "child-group-id").
+					Return(&gocloak.MappingsRepresentation{}, nil)
+
+				return m
+			},
+			wantErr: require.NoError,
+			want:    "child-group-id",
+		},
+		{
+			name:          "fail to create child group with invalid parent ID",
+			parentGroupID: "invalid-parent-id",
+			spec: &keycloakApi.KeycloakRealmGroupSpec{
+				Name: "child-group",
+			},
+			client: func(t *testing.T) GoCloak {
+				m := mocks.NewMockGoCloak(t)
+
+				m.On("GetGroups", mock.Anything, mock.Anything, "master", mock.Anything).
+					Return([]*gocloak.Group{}, nil)
+
+				// CreateChildGroup fails with invalid parent ID
+				m.On("CreateChildGroup", mock.Anything, mock.Anything, "master", "invalid-parent-id", mock.Anything).
+					Return("", errors.New("parent group not found"))
+
+				return m
+			},
+			wantErr: require.Error,
+			want:    "",
+		},
 	}
 
 	for _, tt := range tests {
@@ -758,7 +801,8 @@ func TestGoCloakAdapter_SyncRealmGroup(t *testing.T) {
 				},
 				log: logr.Discard(),
 			}
-			got, err := a.SyncRealmGroup(context.Background(), "master", tt.spec)
+
+			got, err := a.SyncRealmGroup(context.Background(), "master", tt.spec, tt.parentGroupID)
 
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.want, got)

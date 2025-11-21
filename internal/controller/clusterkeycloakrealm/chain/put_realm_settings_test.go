@@ -7,9 +7,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
+	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
@@ -315,6 +317,98 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 			}
+		})
+	}
+}
+
+func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
+	tests := []struct {
+		name          string
+		realm         *v1alpha1.ClusterKeycloakRealm
+		setupMocks    func(*mocks.MockClient)
+		expectedError require.ErrorAssertionFunc
+	}{
+		{
+			name: "successful realm settings update with login configuration",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					RealmName: "test-realm",
+					Login: &v1.RealmLogin{
+						UserRegistration: true,
+						ForgotPassword:   true,
+						RememberMe:       true,
+						EmailAsUsername:  false,
+						LoginWithEmail:   true,
+						DuplicateEmails:  false,
+						VerifyEmail:      true,
+						EditUsername:     false,
+					},
+				},
+			},
+			setupMocks: func(mockClient *mocks.MockClient) {
+				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
+					FrontendURL:     "",
+					DisplayHTMLName: "",
+					DisplayName:     "",
+					Login: &adapter.RealmLogin{
+						UserRegistration: true,
+						ForgotPassword:   true,
+						RememberMe:       true,
+						EmailAsUsername:  false,
+						LoginWithEmail:   true,
+						DuplicateEmails:  false,
+						VerifyEmail:      true,
+						EditUsername:     false,
+					},
+				}).Return(nil)
+				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
+			},
+			expectedError: require.NoError,
+		},
+		{
+			name: "successful realm settings update with partial login configuration",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					RealmName: "test-realm",
+					Login: &v1.RealmLogin{
+						UserRegistration: true,
+						RememberMe:       true,
+					},
+				},
+			},
+			setupMocks: func(mockClient *mocks.MockClient) {
+				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
+					FrontendURL:     "",
+					DisplayHTMLName: "",
+					DisplayName:     "",
+					Login: &adapter.RealmLogin{
+						UserRegistration: true,
+						ForgotPassword:   false,
+						RememberMe:       true,
+						EmailAsUsername:  false,
+						LoginWithEmail:   false,
+						DuplicateEmails:  false,
+						VerifyEmail:      false,
+						EditUsername:     false,
+					},
+				}).Return(nil)
+				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
+			},
+			expectedError: require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			ctx := context.Background()
+			mockClient := mocks.NewMockClient(t)
+			tt.setupMocks(mockClient)
+
+			handler := NewPutRealmSettings()
+
+			err := handler.ServeRequest(ctx, tt.realm, mockClient)
+			tt.expectedError(t, err)
 		})
 	}
 }

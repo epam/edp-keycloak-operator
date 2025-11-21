@@ -122,6 +122,21 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 								},
 							},
 						},
+						{
+							Name:        "attr2",
+							DisplayName: "Attribute 2",
+							Permissions: &common.UserProfileAttributePermissions{
+								Edit: []string{"admin"},
+								View: []string{"admin"},
+							},
+							Validations: map[string]map[string]common.UserProfileAttributeValidation{
+								"options": {
+									"options": {
+										SliceVal: []string{"option1", "option2"},
+									},
+								},
+							},
+						},
 					},
 					Groups: []common.UserProfileGroup{
 						{
@@ -174,6 +189,36 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 			return createdKeycloakRealm.Status.Available
 		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Verifying the realm was created in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-with-full-config")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			// Verify basic fields
+			g.Expect(realm.DisplayName).Should(Equal(ptr.To("Test Realm")))
+			g.Expect(realm.DisplayNameHTML).Should(Equal(ptr.To("<b>Test Realm</b>")))
+			g.Expect(realm.BrowserFlow).Should(Equal(ptr.To("browser")))
+
+			// Verify token settings
+			g.Expect(realm.DefaultSignatureAlgorithm).Should(Equal(ptr.To("RS256")))
+			g.Expect(realm.RevokeRefreshToken).Should(Equal(ptr.To(true)))
+			g.Expect(realm.RefreshTokenMaxReuse).Should(Equal(ptr.To(230)))
+			g.Expect(realm.AccessTokenLifespan).Should(Equal(ptr.To(231)))
+			g.Expect(realm.AccessTokenLifespanForImplicitFlow).Should(Equal(ptr.To(232)))
+			g.Expect(realm.AccessCodeLifespan).Should(Equal(ptr.To(233)))
+			g.Expect(realm.ActionTokenGeneratedByUserLifespan).Should(Equal(ptr.To(234)))
+			g.Expect(realm.ActionTokenGeneratedByAdminLifespan).Should(Equal(ptr.To(235)))
+
+			// Verify event config
+			g.Expect(realm.AdminEventsDetailsEnabled).Should(Equal(ptr.To(false)))
+			g.Expect(realm.AdminEventsEnabled).Should(Equal(ptr.To(true)))
+			g.Expect(realm.EventsEnabled).Should(Equal(ptr.To(true)))
+			g.Expect(realm.EventsExpiration).Should(Equal(ptr.To(int64(15000))))
+			g.Expect(*realm.EventsListeners).Should(ContainElement("jboss-logging"))
+			g.Expect(*realm.EnabledEventTypes).Should(ContainElements("UPDATE_CONSENT_ERROR", "CLIENT_LOGIN"))
+		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakRealm", func() {
 		By("Getting KeycloakRealm")
@@ -192,6 +237,15 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 			return updatedKeycloakRealm.Status.Available && updatedKeycloakRealm.Spec.FrontendURL == "https://test-updated.com"
 		}, timeout, interval).Should(BeTrue())
+
+		By("Verifying the realm was updated in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-with-full-config")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+			g.Expect(realm.Attributes).ShouldNot(BeNil())
+			g.Expect((*realm.Attributes)["frontendUrl"]).Should(Equal("https://test-updated.com"))
+		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakRealm", func() {
 		By("Getting KeycloakRealm")
@@ -207,5 +261,71 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealm should be deleted")
+	})
+	It("Should create KeycloakRealm with Login settings", func() {
+		By("Creating KeycloakRealm with Login settings")
+		keycloakRealmWithLogin := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-login",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: "test-realm-login",
+				KeycloakRef: common.KeycloakRef{
+					Name: keycloakCR,
+					Kind: keycloakApi.KeycloakKind,
+				},
+				Login: &keycloakApi.RealmLogin{
+					UserRegistration: true,
+					ForgotPassword:   true,
+					RememberMe:       true,
+					EmailAsUsername:  true,
+					LoginWithEmail:   true,
+					DuplicateEmails:  false,
+					VerifyEmail:      true,
+					EditUsername:     true,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakRealmWithLogin)).Should(Succeed())
+
+		By("Waiting for KeycloakRealm to be available")
+		Eventually(func() bool {
+			createdKeycloakRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-keycloak-realm-login", Namespace: ns}, createdKeycloakRealm)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			if !createdKeycloakRealm.Status.Available {
+				GinkgoWriter.Println("KeycloakRealm status error: ", createdKeycloakRealm.Status.Value)
+			}
+
+			return createdKeycloakRealm.Status.Available
+		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Verifying the realm login settings in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-login")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			// Verify login settings
+			g.Expect(realm.RegistrationAllowed).Should(Equal(ptr.To(true)))
+			g.Expect(realm.ResetPasswordAllowed).Should(Equal(ptr.To(true)))
+			g.Expect(realm.RememberMe).Should(Equal(ptr.To(true)))
+			g.Expect(realm.RegistrationEmailAsUsername).Should(Equal(ptr.To(true)))
+			g.Expect(realm.LoginWithEmailAllowed).Should(Equal(ptr.To(true)))
+			g.Expect(realm.DuplicateEmailsAllowed).Should(Equal(ptr.To(false)))
+			g.Expect(realm.VerifyEmail).Should(Equal(ptr.To(true)))
+			g.Expect(realm.EditUsernameAllowed).Should(Equal(ptr.To(true)))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Deleting KeycloakRealm with Login settings")
+		Expect(k8sClient.Delete(ctx, keycloakRealmWithLogin)).Should(Succeed())
+		Eventually(func() bool {
+			deletedRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-keycloak-realm-login", Namespace: ns}, deletedRealm)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "KeycloakRealm with Login should be deleted")
 	})
 })

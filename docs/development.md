@@ -207,6 +207,13 @@ make helm-docs
 helm lint deploy-templates/
 ```
 
+### Bundle Generation
+
+```bash
+# Generate a new bundle version
+VERSION=1.29.0 CHANNELS="stable" DEFAULT_CHANNEL=stable make bundle
+```
+
 ## Running and Debugging Locally
 
 This section covers how to run and debug the operator locally during development.

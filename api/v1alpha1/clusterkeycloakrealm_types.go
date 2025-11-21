@@ -4,6 +4,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
+	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 )
 
 // ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
@@ -79,6 +80,11 @@ type ClusterKeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	Smtp *common.SMTP `json:"smtp,omitempty"`
+
+	// Login settings for the realm.
+	// +nullable
+	// +optional
+	Login *v1.RealmLogin `json:"login,omitempty"`
 }
 
 type AuthenticationFlow struct {

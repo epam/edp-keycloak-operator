@@ -6,6 +6,19 @@ resources:
 - ../samples
 - ../scorecard
 
+# Replacements to populate the containerImage annotation with the operator image version.
+# This ensures the ClusterServiceVersion annotation matches the actual deployed image.
+replacements:
+- source:
+    kind: Deployment
+    name: controller-manager
+    fieldPath: spec.template.spec.containers.0.image
+  targets:
+  - select:
+      kind: ClusterServiceVersion
+    fieldPaths:
+    - metadata.annotations.containerImage
+
 # [WEBHOOK] To enable webhooks, uncomment all the sections with [WEBHOOK] prefix.
 # Do NOT uncomment sections with prefix [CERTMANAGER], as OLM does not support cert-manager.
 # These patches remove the unnecessary "cert" volume and its manager container volumeMount.

@@ -35,9 +35,17 @@ type KeycloakRealmGroupSpec struct {
 	RealmRoles []string `json:"realmRoles,omitempty"`
 
 	// SubGroups is a list of subgroups assigned to group.
+	// Deprecated: This filed doesn't allow to fully support child groups. Use ParentGroup approach instead.
 	// +nullable
 	// +optional
 	SubGroups []string `json:"subGroups,omitempty"`
+
+	// ParentGroup is a reference to a parent KeycloakRealmGroup custom resource.
+	// If specified, this group will be created as a child group of the referenced parent.
+	// The parent KeycloakRealmGroup must exist in the same namespace.
+	// +nullable
+	// +optional
+	ParentGroup *common.GroupRef `json:"parentGroup,omitempty"`
 
 	// ClientRoles is a list of client roles assigned to group.
 	// +nullable

@@ -338,7 +338,7 @@ func (a GoCloakAdapter) UpdateUsersProfile(
 	httpClient := a.client.RestyClient().GetClient()
 
 	cl, err := keycloak_go_client.NewClient(
-		a.basePath,
+		a.buildPath(""),
 		keycloak_go_client.WithToken(a.token.AccessToken),
 		keycloak_go_client.WithHTTPClient(httpClient),
 	)
@@ -361,7 +361,7 @@ func (a GoCloakAdapter) GetUsersProfile(
 	httpClient := a.client.RestyClient().GetClient()
 
 	cl, err := keycloak_go_client.NewClient(
-		a.basePath,
+		a.buildPath(""),
 		keycloak_go_client.WithToken(a.token.AccessToken),
 		keycloak_go_client.WithHTTPClient(httpClient),
 	)

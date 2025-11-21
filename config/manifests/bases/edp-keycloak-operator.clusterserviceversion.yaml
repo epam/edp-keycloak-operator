@@ -5,11 +5,11 @@ metadata:
     alm-examples: '[]'
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.29.0
+    containerImage: controller:latest
     description: An Operator for managing Keycloak
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.28.9
+  name: edp-keycloak-operator.v0.0.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -43,6 +43,11 @@ spec:
       kind: KeycloakClientScope
       name: keycloakclientscopes.v1.edp.epam.com
       version: v1
+    - description: KeycloakOrganization is the Schema for the organizations API.
+      displayName: Keycloak Organization
+      kind: KeycloakOrganization
+      name: keycloakorganizations.v1.edp.epam.com
+      version: v1alpha1
     - description: KeycloakRealmComponent is the Schema for the keycloak component
         API.
       displayName: Keycloak Realm Component
@@ -182,4 +187,4 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.29.0
+  version: 0.0.0
