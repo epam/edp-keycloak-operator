@@ -1,6 +1,58 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Features
+- Add postBrokerLoginFlowAlias to KeycloakRealmIdentityProvider ([#231](https://github.com/epam/edp-keycloak-operator/issues/231))
+- Add login settings for KeycloakRealm and ClusterKeycloakRealm ([#166](https://github.com/epam/edp-keycloak-operator/issues/166))
+- Enhance deletion logic to skip non-existent resources ([#238](https://github.com/epam/edp-keycloak-operator/issues/238))
+- Add parentGroup to KeycloakRealmGroup for improved subgroup support ([#172](https://github.com/epam/edp-keycloak-operator/issues/172))
+- Add Docker registry and podLabels to helm chart
+
+### Bug Fixes
+- Unable to get realm userProfileConfig ([#221](https://github.com/epam/edp-keycloak-operator/issues/221))
+- Unable to set realm userProfileConfig ([#221](https://github.com/epam/edp-keycloak-operator/issues/221))
+- Authentication flow priorities are not respected ([#235](https://github.com/epam/edp-keycloak-operator/issues/235))
+- Reconciliation KeycloakAuthFlow fails - authFlowConfig not found ([#234](https://github.com/epam/edp-keycloak-operator/issues/234))
+- Unable to create userProfileConfig without a group ([#165](https://github.com/epam/edp-keycloak-operator/issues/165))
+
+### Routine
+- Update krci-ai framework to the latest version ([#198](https://github.com/epam/edp-keycloak-operator/issues/198))
+- Generate containerImage annotation for ClusterServiceVersion ([#225](https://github.com/epam/edp-keycloak-operator/issues/225))
+- Update bundle manifests v1.29.0 ([#225](https://github.com/epam/edp-keycloak-operator/issues/225))
+- Generate bundle manifests v1.29.0 ([#225](https://github.com/epam/edp-keycloak-operator/issues/225))
+
+### Documentation
+- add kubectl wait example for Keycloak status check ([#243](https://github.com/epam/edp-keycloak-operator/issues/243))
+
+
+<a name="v1.29.0"></a>
+## [v1.29.0] - 2025-09-22
+### Features
+- Add support for list of attributes with the same key
+- Add ability to add Permissions to KeycloakRealmIdentityProvider
+- Add KeycloakClient ClientRolesV2 field ([#152](https://github.com/epam/edp-keycloak-operator/issues/152))
+- Introduce KeycloakOrganization feature ([#115](https://github.com/epam/edp-keycloak-operator/issues/115))
+
+### Bug Fixes
+- Don't delete Authorization settings on KeycloakClient when using addOnly strategy
+- KeycloakRealmIdentityProvider policies not being added to permissions
+- Unable to update default browserFlow in master realm ([#143](https://github.com/epam/edp-keycloak-operator/issues/143))
+- Client creation fails due to admin fine grained permissions ([#180](https://github.com/epam/edp-keycloak-operator/issues/180))
+
+### Testing
+- Use Keycloak version 26.3 for tests ([#192](https://github.com/epam/edp-keycloak-operator/issues/192))
+
+### Routine
+- Add development documentation ([#204](https://github.com/epam/edp-keycloak-operator/issues/204))
+- Update KubeRocketAI ([#198](https://github.com/epam/edp-keycloak-operator/issues/198))
+- Setup KubeRocketAI ([#198](https://github.com/epam/edp-keycloak-operator/issues/198))
+- Refactor dependencies to use standard library alternatives ([#203](https://github.com/epam/edp-keycloak-operator/issues/203))
+- Updated mockery from v2.53.2 to v3.5.4 ([#202](https://github.com/epam/edp-keycloak-operator/issues/202))
+- Upgrade golangci-lint to v2 ([#199](https://github.com/epam/edp-keycloak-operator/issues/199))
+- Update Operator SDK from v1.39.2 to v1.41.1 ([#199](https://github.com/epam/edp-keycloak-operator/issues/199))
+- Publish 1.28.0 on the OperatorHub ([#185](https://github.com/epam/edp-keycloak-operator/issues/185))
+- Update current development version ([#185](https://github.com/epam/edp-keycloak-operator/issues/185))
+
 
 <a name="v1.28.0"></a>
 ## [v1.28.0] - 2025-07-14
@@ -230,7 +282,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...HEAD
+[v1.29.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...v1.29.0
 [v1.28.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...v1.28.0
 [v1.27.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...v1.27.1
 [v1.27.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.26.0...v1.27.0
