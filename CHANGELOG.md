@@ -1,6 +1,9 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.30.0"></a>
+## [v1.30.0] - 2025-11-21
 ### Features
 - Add postBrokerLoginFlowAlias to KeycloakRealmIdentityProvider ([#231](https://github.com/epam/edp-keycloak-operator/issues/231))
 - Add login settings for KeycloakRealm and ClusterKeycloakRealm ([#166](https://github.com/epam/edp-keycloak-operator/issues/166))
@@ -16,6 +19,7 @@
 - Unable to create userProfileConfig without a group ([#165](https://github.com/epam/edp-keycloak-operator/issues/165))
 
 ### Routine
+- Update current development version ([#253](https://github.com/epam/edp-keycloak-operator/issues/253))
 - Update krci-ai framework to the latest version ([#198](https://github.com/epam/edp-keycloak-operator/issues/198))
 - Generate containerImage annotation for ClusterServiceVersion ([#225](https://github.com/epam/edp-keycloak-operator/issues/225))
 - Update bundle manifests v1.29.0 ([#225](https://github.com/epam/edp-keycloak-operator/issues/225))
@@ -282,7 +286,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...HEAD
+[v1.30.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...v1.30.0
 [v1.29.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...v1.29.0
 [v1.28.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...v1.28.0
 [v1.27.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.0...v1.27.1

@@ -666,14 +666,14 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.29.0
+    containerImage: docker.io/epamedp/keycloak-operator:1.30.0
     createdAt: "2025-09-26T13:47:12Z"
     description: An Operator for managing Keycloak
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.29.0
+  name: edp-keycloak-operator.v1.30.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -905,7 +905,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.29.0
+                image: docker.io/epamedp/keycloak-operator:1.30.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1080,4 +1080,4 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.29.0
+  version: 1.30.0
