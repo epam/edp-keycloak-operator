@@ -7,9 +7,7 @@ import (
 	"time"
 
 	"github.com/Nerzal/gocloak/v12"
-	coreV1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -20,9 +18,10 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+	apiequality "k8s.io/apimachinery/pkg/api/equality"
 )
 
 const finalizerName = "keycloak.realmuser.operator.finalizer.name"
@@ -135,19 +134,6 @@ func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.Key
 	return updated, nil
 }
 
-func convertClientRoles(apiClientRoles []keycloakApi.UserClientRole) map[string][]string {
-	if apiClientRoles == nil {
-		return nil
-	}
-
-	clientRolesMap := make(map[string][]string)
-	for _, apiRole := range apiClientRoles {
-		clientRolesMap[apiRole.ClientID] = apiRole.Roles
-	}
-
-	return clientRolesMap
-}
-
 func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) error {
 	err := r.helper.SetRealmOwnerRef(ctx, instance)
 	if err != nil {
@@ -192,66 +178,11 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		}
 	}
 
-	password, getPasswordErr := r.getPassword(ctx, instance)
-	if getPasswordErr != nil {
-		return fmt.Errorf("unable to get password: %w", getPasswordErr)
-	}
-
-	userSpec := instance.Spec.DeepCopy()
-
-	if err := kClient.SyncRealmUser(ctx, gocloak.PString(realm.Realm), &adapter.KeycloakUser{
-		Username:            userSpec.Username,
-		Groups:              userSpec.Groups,
-		Roles:               userSpec.Roles,
-		ClientRoles:         convertClientRoles(userSpec.ClientRoles),
-		RequiredUserActions: userSpec.RequiredUserActions,
-		LastName:            userSpec.LastName,
-		FirstName:           userSpec.FirstName,
-		EmailVerified:       userSpec.EmailVerified,
-		Enabled:             userSpec.Enabled,
-		Email:               userSpec.Email,
-		Attributes:          userSpec.AttributesV2,
-		Password:            password,
-		IdentityProviders:   userSpec.IdentityProviders,
-	}, instance.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
-		return fmt.Errorf("unable to sync realm user: %w", err)
-	}
-
-	if !instance.Spec.KeepResource {
-		if err := r.client.Delete(ctx, instance); err != nil {
-			return fmt.Errorf("unable to delete instance of keycloak realm user: %w", err)
-		}
+	if err := chain.MakeChain(r.client).Serve(ctx, instance, kClient, realm); err != nil {
+		return fmt.Errorf("error during realm user chain: %w", err)
 	}
 
 	return nil
-}
-
-func (r *Reconcile) getPassword(ctx context.Context, instance *keycloakApi.KeycloakRealmUser) (string, error) {
-	log := ctrl.LoggerFrom(ctx)
-
-	if instance.Spec.PasswordSecret.Name != "" && instance.Spec.PasswordSecret.Key != "" {
-		secret := &coreV1.Secret{}
-		if err := r.client.Get(ctx, types.NamespacedName{Name: instance.Spec.PasswordSecret.Name, Namespace: instance.Namespace}, secret); err != nil {
-			if k8sErrors.IsNotFound(err) {
-				return "", fmt.Errorf("secret %s not found: %w", instance.Spec.PasswordSecret.Name, err)
-			}
-
-			return "", fmt.Errorf("unable to get secret %s: %w", instance.Spec.PasswordSecret.Name, err)
-		}
-
-		passwordBytes, ok := secret.Data[instance.Spec.PasswordSecret.Key]
-		if !ok {
-			return "", fmt.Errorf("key %s not found in secret %s", instance.Spec.PasswordSecret.Key, instance.Spec.PasswordSecret.Name)
-		}
-
-		log.Info("Using password from secret", "secret", instance.Spec.PasswordSecret.Name)
-
-		return string(passwordBytes), nil
-	}
-
-	log.Info("Using password from instance Spec.password")
-
-	return instance.Spec.Password, nil
 }
 
 func (r *Reconcile) updateKeycloakRealmUserStatus(
@@ -259,7 +190,7 @@ func (r *Reconcile) updateKeycloakRealmUserStatus(
 	user *keycloakApi.KeycloakRealmUser,
 	oldStatus keycloakApi.KeycloakRealmUserStatus,
 ) error {
-	if user.Status == oldStatus {
+	if apiequality.Semantic.DeepEqual(user.Status, oldStatus) {
 		return nil
 	}
 

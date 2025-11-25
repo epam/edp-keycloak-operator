@@ -34,6 +34,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 
 	log.Info("Start deleting keycloak client")
 
+	// TODO: Fix the error if t.clientID == ""
 	if err := t.kClient.DeleteClient(ctx, t.clientID, t.realmName); err != nil {
 		if adapter.IsErrNotFound(err) {
 			log.Info("Client not found, skipping deletion.")
