@@ -67,8 +67,8 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	AttributesV2 map[string][]string `json:"attributesV2,omitempty"`
 
-	// ReconciliationStrategy is a strategy for reconciliation. Possible values: full, create-only.
-	// Default value: full. If set to create-only, user will be created only if it does not exist. If user exists, it will not be updated.
+	// ReconciliationStrategy is a strategy for reconciliation. Possible values: full, addOnly.
+	// Default value: full. If set to addOnly, user will be created only if it does not exist. If user exists, it will not be updated.
 	// If set to full, user will be created if it does not exist, or updated if it exists.
 	// +optional
 	ReconciliationStrategy string `json:"reconciliationStrategy,omitempty"`
@@ -88,7 +88,7 @@ type KeycloakRealmUserSpec struct {
 	// PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
 	// +nullable
 	// +optional
-	PasswordSecret PasswordSecret `json:"passwordSecret,omitempty"`
+	PasswordSecret *PasswordSecret `json:"passwordSecret,omitempty"`
 
 	// IdentityProviders is a list of identity providers aliases linked to the user.
 	// +nullable
@@ -103,6 +103,11 @@ type PasswordSecret struct {
 
 	// Key is the key in the secret.
 	Key string `json:"key"`
+
+	// Temporary indicates whether the password is temporary.
+	// +optional
+	// +kubebuilder:default=false
+	Temporary bool `json:"temporary"`
 }
 
 // KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.
@@ -112,6 +117,16 @@ type KeycloakRealmUserStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// Conditions represent the latest available observations of an object's state.
+	// +optional
+	// +nullable
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// LastSyncedPasswordSecretVersion stores the ResourceVersion of the password secret
+	// that was last successfully synced to Keycloak. Used to detect secret changes.
+	// +optional
+	LastSyncedPasswordSecretVersion string `json:"lastSyncedPasswordSecretVersion,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -134,6 +149,10 @@ func (in *KeycloakRealmUser) GetReconciliationStrategy() string {
 	}
 
 	return in.Spec.ReconciliationStrategy
+}
+
+func (in *KeycloakRealmUser) IsReconciliationStrategyAddOnly() bool {
+	return in.GetReconciliationStrategy() == ReconciliationStrategyAddOnly
 }
 
 func (in *KeycloakRealmUser) GetFailureCount() int64 {

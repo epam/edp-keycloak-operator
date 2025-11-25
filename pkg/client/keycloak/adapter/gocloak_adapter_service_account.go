@@ -24,7 +24,7 @@ func (a GoCloakAdapter) SyncServiceAccountGroups(realm, clientID string, groups 
 		return fmt.Errorf("unable to get client service account: %w", err)
 	}
 
-	return a.syncUserGroups(context.Background(), realm, *user.ID, groups, addOnly)
+	return a.SyncUserGroups(context.Background(), realm, *user.ID, groups, addOnly)
 }
 
 func doNotDeleteRealmRoleFromUser(ctx context.Context, token, realm, entityID string, roles []gocloak.Role) error {

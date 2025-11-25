@@ -8,6 +8,7 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	keycloak_go_client "github.com/zmotso/keycloak-go-client"
+	"k8s.io/utils/ptr"
 )
 
 type KeycloakUser struct {
@@ -22,8 +23,13 @@ type KeycloakUser struct {
 	ClientRoles         map[string][]string
 	Groups              []string
 	Attributes          map[string][]string
-	Password            string
+	Password            *KeycloakUserPassword
 	IdentityProviders   *[]string
+}
+
+type KeycloakUserPassword struct {
+	Value     string `json:"value"`
+	Temporary bool   `json:"temporary"`
 }
 
 type UserRealmRoleMapping struct {
@@ -36,39 +42,7 @@ type UserGroupMapping struct {
 	Name string `json:"name"`
 }
 
-func (a GoCloakAdapter) SyncRealmUser(
-	ctx context.Context,
-	realmName string,
-	userDto *KeycloakUser,
-	addOnly bool,
-) error {
-	userID, err := a.createOrUpdateUser(ctx, realmName, userDto, addOnly)
-	if err != nil {
-		return err
-	}
-
-	if userDto.Password != "" {
-		if err = a.setUserPassword(realmName, userID, userDto.Password); err != nil {
-			return err
-		}
-	}
-
-	if err = a.SyncUserRoles(ctx, realmName, userID, userDto.Roles, userDto.ClientRoles, addOnly); err != nil {
-		return err
-	}
-
-	if err = a.syncUserGroups(ctx, realmName, userID, userDto.Groups, addOnly); err != nil {
-		return err
-	}
-
-	if userDto.IdentityProviders != nil {
-		return a.syncUserIdentityProviders(ctx, realmName, userID, userDto.Username, *userDto.IdentityProviders)
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) createOrUpdateUser(
+func (a GoCloakAdapter) CreateOrUpdateUser(
 	ctx context.Context,
 	realmName string,
 	userDto *KeycloakUser,
@@ -109,7 +83,8 @@ func (a GoCloakAdapter) createOrUpdateUser(
 	user.EmailVerified = &userDto.EmailVerified
 	user.FirstName = &userDto.FirstName
 	user.LastName = &userDto.LastName
-	user.RequiredActions = &userDto.RequiredUserActions
+	requiredActions := preserveUpdatePasswordAction(ptr.Deref(user.RequiredActions, nil), userDto.RequiredUserActions)
+	user.RequiredActions = &requiredActions
 	user.Email = &userDto.Email
 
 	if len(userDto.Attributes) > 0 {
@@ -143,7 +118,7 @@ func (a GoCloakAdapter) GetUserByName(ctx context.Context, realmName, username s
 	return nil, NotFoundError("user not found")
 }
 
-func (a GoCloakAdapter) syncUserGroups(
+func (a GoCloakAdapter) SyncUserGroups(
 	ctx context.Context,
 	realmName string,
 	userID string,
@@ -395,16 +370,16 @@ func checkHttpResp(res *keycloak_go_client.Response, err error) error {
 	return nil
 }
 
-func (a GoCloakAdapter) setUserPassword(realmName, userID, password string) error {
+func (a GoCloakAdapter) SetUserPassword(realmName, userID string, password *KeycloakUserPassword) error {
 	rsp, err := a.startRestyRequest().
 		SetPathParams(map[string]string{
 			keycloakApiParamRealm: realmName,
 			keycloakApiParamId:    userID,
 		}).
 		SetBody(map[string]interface{}{
-			"temporary": false,
+			"temporary": password.Temporary,
 			"type":      "password",
-			"value":     password,
+			"value":     password.Value,
 		}).
 		Put(a.buildPath(setRealmUserPassword))
 
@@ -457,7 +432,7 @@ func (a GoCloakAdapter) makeUserAttributes(
 	return &attributes
 }
 
-func (a GoCloakAdapter) syncUserIdentityProviders(
+func (a GoCloakAdapter) SyncUserIdentityProviders(
 	ctx context.Context,
 	realmName,
 	userID,
@@ -558,4 +533,18 @@ func (a GoCloakAdapter) removeExtraIdentityProviders(
 	}
 
 	return nil
+}
+
+const updatePasswordAction = "UPDATE_PASSWORD"
+
+// preserveUpdatePasswordAction merges required actions, preserving UPDATE_PASSWORD
+// if it exists in the current Keycloak user state.
+func preserveUpdatePasswordAction(current, desired []string) []string {
+	result := slices.Clone(desired)
+
+	if slices.Contains(current, updatePasswordAction) && !slices.Contains(result, updatePasswordAction) {
+		result = append(result, updatePasswordAction)
+	}
+
+	return result
 }

@@ -70,7 +70,6 @@ type KCloakGroups interface {
 type KCloakUsers interface {
 	ExistRealmUser(realmName string, user *dto.User) (bool, error)
 	CreateRealmUser(realmName string, user *dto.User) error
-	SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error
 	DeleteRealmUser(ctx context.Context, realmName, username string) error
 	GetUsersByNames(ctx context.Context, realm string, names []string) (map[string]gocloak.User, error)
 	UpdateUsersProfile(
@@ -79,6 +78,38 @@ type KCloakUsers interface {
 		userProfile keycloak_go_client.UserProfileConfig,
 	) (*keycloak_go_client.UserProfileConfig, error)
 	GetUsersProfile(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error)
+	GetUserByName(
+		ctx context.Context,
+		realmName, username string,
+	) (*gocloak.User, error)
+	CreateOrUpdateUser(
+		ctx context.Context,
+		realmName string,
+		user *adapter.KeycloakUser,
+		addOnly bool,
+	) (string, error)
+	SetUserPassword(
+		realmName, userID string,
+		password *adapter.KeycloakUserPassword,
+	) error
+	SyncUserRoles(
+		ctx context.Context,
+		realm, userID string,
+		realmRoles []string,
+		clientRoles map[string][]string,
+		addOnly bool,
+	) error
+	SyncUserGroups(
+		ctx context.Context,
+		realmName, userID string,
+		groups []string,
+		addOnly bool,
+	) error
+	SyncUserIdentityProviders(
+		ctx context.Context,
+		realmName, userID, userName string,
+		providers []string,
+	) error
 }
 
 type KCloakRealms interface {

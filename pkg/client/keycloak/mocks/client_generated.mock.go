@@ -639,6 +639,84 @@ func (_c *MockClient_CreateIncludedRealmRole_Call) RunAndReturn(run func(realmNa
 	return _c
 }
 
+// CreateOrUpdateUser provides a mock function for the type MockClient
+func (_mock *MockClient) CreateOrUpdateUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) (string, error) {
+	ret := _mock.Called(ctx, realmName, user, addOnly)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateOrUpdateUser")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *adapter.KeycloakUser, bool) (string, error)); ok {
+		return returnFunc(ctx, realmName, user, addOnly)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *adapter.KeycloakUser, bool) string); ok {
+		r0 = returnFunc(ctx, realmName, user, addOnly)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *adapter.KeycloakUser, bool) error); ok {
+		r1 = returnFunc(ctx, realmName, user, addOnly)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_CreateOrUpdateUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateOrUpdateUser'
+type MockClient_CreateOrUpdateUser_Call struct {
+	*mock.Call
+}
+
+// CreateOrUpdateUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - user *adapter.KeycloakUser
+//   - addOnly bool
+func (_e *MockClient_Expecter) CreateOrUpdateUser(ctx interface{}, realmName interface{}, user interface{}, addOnly interface{}) *MockClient_CreateOrUpdateUser_Call {
+	return &MockClient_CreateOrUpdateUser_Call{Call: _e.mock.On("CreateOrUpdateUser", ctx, realmName, user, addOnly)}
+}
+
+func (_c *MockClient_CreateOrUpdateUser_Call) Run(run func(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool)) *MockClient_CreateOrUpdateUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *adapter.KeycloakUser
+		if args[2] != nil {
+			arg2 = args[2].(*adapter.KeycloakUser)
+		}
+		var arg3 bool
+		if args[3] != nil {
+			arg3 = args[3].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_CreateOrUpdateUser_Call) Return(s string, err error) *MockClient_CreateOrUpdateUser_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockClient_CreateOrUpdateUser_Call) RunAndReturn(run func(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) (string, error)) *MockClient_CreateOrUpdateUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateOrganization provides a mock function for the type MockClient
 func (_mock *MockClient) CreateOrganization(ctx context.Context, realm string, org *dto.Organization) error {
 	ret := _mock.Called(ctx, realm, org)
@@ -4380,6 +4458,80 @@ func (_c *MockClient_GetScopes_Call) RunAndReturn(run func(ctx context.Context, 
 	return _c
 }
 
+// GetUserByName provides a mock function for the type MockClient
+func (_mock *MockClient) GetUserByName(ctx context.Context, realmName string, username string) (*gocloak.User, error) {
+	ret := _mock.Called(ctx, realmName, username)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserByName")
+	}
+
+	var r0 *gocloak.User
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*gocloak.User, error)); ok {
+		return returnFunc(ctx, realmName, username)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *gocloak.User); ok {
+		r0 = returnFunc(ctx, realmName, username)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*gocloak.User)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, realmName, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_GetUserByName_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserByName'
+type MockClient_GetUserByName_Call struct {
+	*mock.Call
+}
+
+// GetUserByName is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - username string
+func (_e *MockClient_Expecter) GetUserByName(ctx interface{}, realmName interface{}, username interface{}) *MockClient_GetUserByName_Call {
+	return &MockClient_GetUserByName_Call{Call: _e.mock.On("GetUserByName", ctx, realmName, username)}
+}
+
+func (_c *MockClient_GetUserByName_Call) Run(run func(ctx context.Context, realmName string, username string)) *MockClient_GetUserByName_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_GetUserByName_Call) Return(user *gocloak.User, err error) *MockClient_GetUserByName_Call {
+	_c.Call.Return(user, err)
+	return _c
+}
+
+func (_c *MockClient_GetUserByName_Call) RunAndReturn(run func(ctx context.Context, realmName string, username string) (*gocloak.User, error)) *MockClient_GetUserByName_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetUsersByNames provides a mock function for the type MockClient
 func (_mock *MockClient) GetUsersByNames(ctx context.Context, realm string, names []string) (map[string]gocloak.User, error) {
 	ret := _mock.Called(ctx, realm, names)
@@ -5122,6 +5274,69 @@ func (_c *MockClient_SetServiceAccountAttributes_Call) RunAndReturn(run func(rea
 	return _c
 }
 
+// SetUserPassword provides a mock function for the type MockClient
+func (_mock *MockClient) SetUserPassword(realmName string, userID string, password *adapter.KeycloakUserPassword) error {
+	ret := _mock.Called(realmName, userID, password)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetUserPassword")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(string, string, *adapter.KeycloakUserPassword) error); ok {
+		r0 = returnFunc(realmName, userID, password)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_SetUserPassword_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetUserPassword'
+type MockClient_SetUserPassword_Call struct {
+	*mock.Call
+}
+
+// SetUserPassword is a helper method to define mock.On call
+//   - realmName string
+//   - userID string
+//   - password *adapter.KeycloakUserPassword
+func (_e *MockClient_Expecter) SetUserPassword(realmName interface{}, userID interface{}, password interface{}) *MockClient_SetUserPassword_Call {
+	return &MockClient_SetUserPassword_Call{Call: _e.mock.On("SetUserPassword", realmName, userID, password)}
+}
+
+func (_c *MockClient_SetUserPassword_Call) Run(run func(realmName string, userID string, password *adapter.KeycloakUserPassword)) *MockClient_SetUserPassword_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 string
+		if args[0] != nil {
+			arg0 = args[0].(string)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *adapter.KeycloakUserPassword
+		if args[2] != nil {
+			arg2 = args[2].(*adapter.KeycloakUserPassword)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_SetUserPassword_Call) Return(err error) *MockClient_SetUserPassword_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_SetUserPassword_Call) RunAndReturn(run func(realmName string, userID string, password *adapter.KeycloakUserPassword) error) *MockClient_SetUserPassword_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SyncAuthFlow provides a mock function for the type MockClient
 func (_mock *MockClient) SyncAuthFlow(realmName string, flow *adapter.KeycloakAuthFlow) error {
 	ret := _mock.Called(realmName, flow)
@@ -5712,6 +5927,237 @@ func (_c *MockClient_SyncServiceAccountRoles_Call) Return(err error) *MockClient
 }
 
 func (_c *MockClient_SyncServiceAccountRoles_Call) RunAndReturn(run func(realm string, clientID string, realmRoles []string, clientRoles map[string][]string, addOnly bool) error) *MockClient_SyncServiceAccountRoles_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SyncUserGroups provides a mock function for the type MockClient
+func (_mock *MockClient) SyncUserGroups(ctx context.Context, realmName string, userID string, groups []string, addOnly bool) error {
+	ret := _mock.Called(ctx, realmName, userID, groups, addOnly)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SyncUserGroups")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []string, bool) error); ok {
+		r0 = returnFunc(ctx, realmName, userID, groups, addOnly)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_SyncUserGroups_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SyncUserGroups'
+type MockClient_SyncUserGroups_Call struct {
+	*mock.Call
+}
+
+// SyncUserGroups is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - userID string
+//   - groups []string
+//   - addOnly bool
+func (_e *MockClient_Expecter) SyncUserGroups(ctx interface{}, realmName interface{}, userID interface{}, groups interface{}, addOnly interface{}) *MockClient_SyncUserGroups_Call {
+	return &MockClient_SyncUserGroups_Call{Call: _e.mock.On("SyncUserGroups", ctx, realmName, userID, groups, addOnly)}
+}
+
+func (_c *MockClient_SyncUserGroups_Call) Run(run func(ctx context.Context, realmName string, userID string, groups []string, addOnly bool)) *MockClient_SyncUserGroups_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []string
+		if args[3] != nil {
+			arg3 = args[3].([]string)
+		}
+		var arg4 bool
+		if args[4] != nil {
+			arg4 = args[4].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_SyncUserGroups_Call) Return(err error) *MockClient_SyncUserGroups_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_SyncUserGroups_Call) RunAndReturn(run func(ctx context.Context, realmName string, userID string, groups []string, addOnly bool) error) *MockClient_SyncUserGroups_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SyncUserIdentityProviders provides a mock function for the type MockClient
+func (_mock *MockClient) SyncUserIdentityProviders(ctx context.Context, realmName string, userID string, userName string, providers []string) error {
+	ret := _mock.Called(ctx, realmName, userID, userName, providers)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SyncUserIdentityProviders")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []string) error); ok {
+		r0 = returnFunc(ctx, realmName, userID, userName, providers)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_SyncUserIdentityProviders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SyncUserIdentityProviders'
+type MockClient_SyncUserIdentityProviders_Call struct {
+	*mock.Call
+}
+
+// SyncUserIdentityProviders is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - userID string
+//   - userName string
+//   - providers []string
+func (_e *MockClient_Expecter) SyncUserIdentityProviders(ctx interface{}, realmName interface{}, userID interface{}, userName interface{}, providers interface{}) *MockClient_SyncUserIdentityProviders_Call {
+	return &MockClient_SyncUserIdentityProviders_Call{Call: _e.mock.On("SyncUserIdentityProviders", ctx, realmName, userID, userName, providers)}
+}
+
+func (_c *MockClient_SyncUserIdentityProviders_Call) Run(run func(ctx context.Context, realmName string, userID string, userName string, providers []string)) *MockClient_SyncUserIdentityProviders_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []string
+		if args[4] != nil {
+			arg4 = args[4].([]string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_SyncUserIdentityProviders_Call) Return(err error) *MockClient_SyncUserIdentityProviders_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_SyncUserIdentityProviders_Call) RunAndReturn(run func(ctx context.Context, realmName string, userID string, userName string, providers []string) error) *MockClient_SyncUserIdentityProviders_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// SyncUserRoles provides a mock function for the type MockClient
+func (_mock *MockClient) SyncUserRoles(ctx context.Context, realm string, userID string, realmRoles []string, clientRoles map[string][]string, addOnly bool) error {
+	ret := _mock.Called(ctx, realm, userID, realmRoles, clientRoles, addOnly)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SyncUserRoles")
+	}
+
+	var r0 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []string, map[string][]string, bool) error); ok {
+		r0 = returnFunc(ctx, realm, userID, realmRoles, clientRoles, addOnly)
+	} else {
+		r0 = ret.Error(0)
+	}
+	return r0
+}
+
+// MockClient_SyncUserRoles_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SyncUserRoles'
+type MockClient_SyncUserRoles_Call struct {
+	*mock.Call
+}
+
+// SyncUserRoles is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - userID string
+//   - realmRoles []string
+//   - clientRoles map[string][]string
+//   - addOnly bool
+func (_e *MockClient_Expecter) SyncUserRoles(ctx interface{}, realm interface{}, userID interface{}, realmRoles interface{}, clientRoles interface{}, addOnly interface{}) *MockClient_SyncUserRoles_Call {
+	return &MockClient_SyncUserRoles_Call{Call: _e.mock.On("SyncUserRoles", ctx, realm, userID, realmRoles, clientRoles, addOnly)}
+}
+
+func (_c *MockClient_SyncUserRoles_Call) Run(run func(ctx context.Context, realm string, userID string, realmRoles []string, clientRoles map[string][]string, addOnly bool)) *MockClient_SyncUserRoles_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []string
+		if args[3] != nil {
+			arg3 = args[3].([]string)
+		}
+		var arg4 map[string][]string
+		if args[4] != nil {
+			arg4 = args[4].(map[string][]string)
+		}
+		var arg5 bool
+		if args[5] != nil {
+			arg5 = args[5].(bool)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_SyncUserRoles_Call) Return(err error) *MockClient_SyncUserRoles_Call {
+	_c.Call.Return(err)
+	return _c
+}
+
+func (_c *MockClient_SyncUserRoles_Call) RunAndReturn(run func(ctx context.Context, realm string, userID string, realmRoles []string, clientRoles map[string][]string, addOnly bool) error) *MockClient_SyncUserRoles_Call {
 	_c.Call.Return(run)
 	return _c
 }
