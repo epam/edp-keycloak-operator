@@ -9,7 +9,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -17,11 +20,15 @@ import (
 )
 
 func TestProcessPermissions_Serve(t *testing.T) {
-	t.Parallel()
-
-	var (
-		permissionName = "resource-permission"
+	const (
+		testClientName      = "test-client"
+		testClientNamespace = "default"
+		permissionName      = "resource-permission"
 	)
+
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
 
 	tests := []struct {
 		name              string
@@ -539,9 +546,22 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
+			// Ensure test client has proper metadata
+			if tt.keycloakClient.Name == "" {
+				tt.keycloakClient.Name = testClientName
+			}
 
-			h := NewProcessPermissions(tt.keycloakApiClient(t))
+			if tt.keycloakClient.Namespace == "" {
+				tt.keycloakClient.Namespace = testClientNamespace
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.keycloakClient).
+				WithStatusSubresource(tt.keycloakClient).
+				Build()
+
+			h := NewProcessPermissions(tt.keycloakApiClient(t), k8sClient)
 			err := h.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloakClient, "master")
 
 			tt.wantErr(t, err)

@@ -320,6 +320,11 @@ type KeycloakClientStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// Conditions represent the latest available observations of an object's state.
+	// +optional
+	// +nullable
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
 }
 
 // +kubebuilder:object:root=true
