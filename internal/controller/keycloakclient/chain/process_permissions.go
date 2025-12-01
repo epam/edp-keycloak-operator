@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -16,10 +18,11 @@ const permissionLogKey = "permission"
 
 type ProcessPermissions struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewProcessPermissions(keycloakApiClient keycloak.Client) *ProcessPermissions {
-	return &ProcessPermissions{keycloakApiClient: keycloakApiClient}
+func NewProcessPermissions(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessPermissions {
+	return &ProcessPermissions{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
 func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
@@ -32,11 +35,15 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 
 	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 		return fmt.Errorf("failed to get client id: %w", err)
 	}
 
 	existingPermissions, err := h.keycloakApiClient.GetPermissions(ctx, realmName, clientID)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 		return fmt.Errorf("failed to get permissions: %w", err)
 	}
 
@@ -46,6 +53,8 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 		var permissionRepresentation *gocloak.PermissionRepresentation
 
 		if permissionRepresentation, err = h.toPermissionRepresentation(ctx, &keycloakClient.Spec.Authorization.Permissions[i], clientID, realmName); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 			return fmt.Errorf("failed to convert permission: %w", err)
 		}
 
@@ -53,6 +62,8 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 		if ok {
 			permissionRepresentation.ID = existingPermission.ID
 			if err = h.keycloakApiClient.UpdatePermission(ctx, realmName, clientID, *permissionRepresentation); err != nil {
+				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 				return fmt.Errorf("failed to update permission: %w", err)
 			}
 
@@ -64,6 +75,8 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 		}
 
 		if _, err = h.keycloakApiClient.CreatePermission(ctx, realmName, clientID, *permissionRepresentation); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 			return fmt.Errorf("failed to create permission: %w", err)
 		}
 
@@ -72,11 +85,43 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
 		if err = h.deletePermissions(ctx, existingPermissions, realmName, clientID); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+
 			return err
 		}
 	}
 
+	h.setSuccessCondition(ctx, keycloakClient, "Authorization permissions synchronized")
+
 	return nil
+}
+
+func (h *ProcessPermissions) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationPermissionsSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (h *ProcessPermissions) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationPermissionsSynced,
+		metav1.ConditionTrue,
+		ReasonAuthorizationPermissionsSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (h *ProcessPermissions) deletePermissions(ctx context.Context, existingPermissions map[string]gocloak.PermissionRepresentation, realmName string, clientID string) error {

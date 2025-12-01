@@ -8,6 +8,7 @@ import (
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -23,8 +24,6 @@ import (
 )
 
 func TestPutClient_Serve(t *testing.T) {
-	t.Parallel()
-
 	type fields struct {
 		client    func(t *testing.T) client.Client
 		secretRef func(t *testing.T) secretRef
@@ -36,10 +35,11 @@ func TestPutClient_Serve(t *testing.T) {
 	}
 
 	tests := []struct {
-		name    string
-		fields  fields
-		args    args
-		wantErr require.ErrorAssertionFunc
+		name          string
+		fields        fields
+		args          args
+		wantErr       require.ErrorAssertionFunc
+		wantCondition *metav1.Condition
 	}{
 		{
 			name: "create client with secret ref",
@@ -51,6 +51,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -96,6 +97,11 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 		{
 			name: "create client with old secret format",
@@ -107,6 +113,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -152,6 +159,11 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 		{
 			name: "create client with empty secret ref",
@@ -163,6 +175,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -202,6 +215,11 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 		{
 			name: "update client with secret ref",
@@ -213,6 +231,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -258,6 +277,11 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 		{
 			name: "create public client",
@@ -269,6 +293,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -309,6 +334,11 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 		{
 			name: "create client with auth flows",
@@ -320,6 +350,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 					return fake.NewClientBuilder().
 						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
@@ -374,13 +405,16 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			s := runtime.NewScheme()
 			require.NoError(t, keycloakApi.AddToScheme(s))
 			require.NoError(t, corev1.AddToScheme(s))
@@ -395,6 +429,15 @@ func TestPutClient_Serve(t *testing.T) {
 				"realm",
 			)
 			tt.wantErr(t, err)
+
+			// Assert condition is set correctly
+			if tt.wantCondition != nil {
+				cond := meta.FindStatusCondition(cl.Status.Conditions, tt.wantCondition.Type)
+				require.NotNil(t, cond, "condition not found")
+				require.Equal(t, tt.wantCondition.Status, cond.Status)
+				require.Equal(t, tt.wantCondition.Reason, cond.Reason)
+				require.Equal(t, cl.Generation, cond.ObservedGeneration)
+			}
 		})
 	}
 }

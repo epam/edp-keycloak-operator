@@ -7,13 +7,20 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestServiceAccount_Serve(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
@@ -424,8 +431,23 @@ func TestServiceAccount_Serve(t *testing.T) {
 			mockClient := keycloakmocks.NewMockClient(t)
 			tt.mockSetup(mockClient)
 
+			// Ensure test client has proper metadata
+			if tt.keycloakClient.Name == "" {
+				tt.keycloakClient.Name = "test-client"
+			}
+
+			if tt.keycloakClient.Namespace == "" {
+				tt.keycloakClient.Namespace = "default"
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.keycloakClient).
+				WithStatusSubresource(tt.keycloakClient).
+				Build()
+
 			// Create the service
-			service := NewServiceAccount(mockClient)
+			service := NewServiceAccount(mockClient, k8sClient)
 
 			// Execute the method
 			err := service.Serve(context.Background(), tt.keycloakClient, tt.realmName)

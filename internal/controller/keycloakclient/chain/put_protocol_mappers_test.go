@@ -8,7 +8,10 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -16,6 +19,15 @@ import (
 )
 
 func TestPutProtocolMappers_Serve(t *testing.T) {
+	const (
+		testClientName      = "test-client"
+		testClientNamespace = "default"
+	)
+
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
 	type args struct {
 		keycloakClient *keycloakApi.KeycloakClient
 		realmName      string
@@ -317,7 +329,22 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			el := NewPutProtocolMappers(tt.args.adapterClient(t))
+			// Ensure test client has proper metadata
+			if tt.args.keycloakClient.Name == "" {
+				tt.args.keycloakClient.Name = testClientName
+			}
+
+			if tt.args.keycloakClient.Namespace == "" {
+				tt.args.keycloakClient.Namespace = testClientNamespace
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.args.keycloakClient).
+				WithStatusSubresource(tt.args.keycloakClient).
+				Build()
+
+			el := NewPutProtocolMappers(tt.args.adapterClient(t), k8sClient)
 			err := el.Serve(context.Background(), tt.args.keycloakClient, tt.args.realmName)
 			tt.wantErr(t, err)
 		})

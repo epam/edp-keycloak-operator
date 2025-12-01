@@ -61,16 +61,16 @@ func MakeChain(
 
 	c.Use(
 		NewPutClient(keycloakApiClient, k8sClient, secretref.NewSecretRef(k8sClient)),
-		NewPutClientRole(keycloakApiClient),
-		NewPutRealmRole(keycloakApiClient),
-		NewPutClientScope(keycloakApiClient),
-		NewPutProtocolMappers(keycloakApiClient),
-		NewServiceAccount(keycloakApiClient),
-		NewProcessScope(keycloakApiClient),
-		NewProcessResources(keycloakApiClient),
-		NewProcessPolicy(keycloakApiClient),
-		NewProcessPermissions(keycloakApiClient),
-		NewPutAdminFineGrainedPermissions(keycloakApiClient),
+		NewPutClientRole(keycloakApiClient, k8sClient),
+		NewPutRealmRole(keycloakApiClient, k8sClient),
+		NewPutClientScope(keycloakApiClient, k8sClient),
+		NewPutProtocolMappers(keycloakApiClient, k8sClient),
+		NewServiceAccount(keycloakApiClient, k8sClient),
+		NewProcessScope(keycloakApiClient, k8sClient),
+		NewProcessResources(keycloakApiClient, k8sClient),
+		NewProcessPolicy(keycloakApiClient, k8sClient),
+		NewProcessPermissions(keycloakApiClient, k8sClient),
+		NewPutAdminFineGrainedPermissions(keycloakApiClient, k8sClient),
 	)
 
 	return c

@@ -9,11 +9,13 @@ import (
 	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -95,16 +97,26 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}
 
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
-			if err != nil {
-				return false
-			}
+			g.Expect(err).ShouldNot(HaveOccurred())
 
-			return createdKeycloakClient.Status.Value == common.StatusOK &&
-				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+			// Check backward compatibility status field
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdKeycloakClient.Status.ClientID).ShouldNot(BeEmpty())
+
+			// Check Ready condition
+			readyCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionReady)
+			g.Expect(readyCond).ShouldNot(BeNil(), "Ready condition should be set")
+			g.Expect(readyCond.Status).Should(Equal(metav1.ConditionTrue), "Ready condition should be True")
+			g.Expect(readyCond.Reason).Should(Equal(chain.ReasonReconciliationSucceeded))
+
+			// Check that key chain step conditions are set
+			clientSyncedCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionClientSynced)
+			g.Expect(clientSyncedCond).ShouldNot(BeNil(), "ClientSynced condition should be set")
+			g.Expect(clientSyncedCond.Status).Should(Equal(metav1.ConditionTrue), "ClientSynced condition should be True")
+		}, timeout, interval).Should(Succeed(), "KeycloakClient should be created successfully")
 	})
 	It("Should delete KeycloakClient", func() {
 		By("Getting KeycloakClient")
@@ -154,6 +166,16 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+
+			// Check Ready condition
+			readyCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionReady)
+			g.Expect(readyCond).ShouldNot(BeNil(), "Ready condition should be set")
+			g.Expect(readyCond.Status).Should(Equal(metav1.ConditionTrue), "Ready condition should be True")
+
+			// Check ClientRolesSynced condition
+			clientRolesCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionClientRolesSynced)
+			g.Expect(clientRolesCond).ShouldNot(BeNil(), "ClientRolesSynced condition should be set")
+			g.Expect(clientRolesCond.Status).Should(Equal(metav1.ConditionTrue), "ClientRolesSynced condition should be True")
 		}).WithTimeout(timeout).WithPolling(interval).Should(Succeed())
 
 		By("Checking client roles")

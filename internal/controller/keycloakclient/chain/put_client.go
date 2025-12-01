@@ -8,7 +8,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -45,14 +45,45 @@ func NewPutClient(keycloakApiClient keycloak.Client, k8sClient client.Client, se
 
 func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	id, err := el.putKeycloakClient(ctx, keycloakClient, realmName)
-
 	if err != nil {
+		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync client: %s", err.Error()))
+
 		return fmt.Errorf("unable to put keycloak client: %w", err)
 	}
 
 	keycloakClient.Status.ClientID = id
 
+	el.setSuccessCondition(ctx, keycloakClient, "Client synchronized with Keycloak")
+
 	return nil
+}
+
+func (el *PutClient) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionClientSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (el *PutClient) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionClientSynced,
+		metav1.ConditionTrue,
+		ReasonClientUpdated,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (string, error) {
@@ -160,7 +191,7 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 
 	if k8sErrors.IsNotFound(secretErr) {
 		clientSecret = corev1.Secret{
-			ObjectMeta: v1.ObjectMeta{Namespace: keycloakClient.Namespace,
+			ObjectMeta: metav1.ObjectMeta{Namespace: keycloakClient.Namespace,
 				Name: secretName},
 			Data: map[string][]byte{
 				keycloakApi.ClientSecretKey: []byte(pass),

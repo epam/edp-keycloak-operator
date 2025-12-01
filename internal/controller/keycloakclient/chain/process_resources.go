@@ -7,7 +7,9 @@ import (
 	"slices"
 
 	"github.com/Nerzal/gocloak/v12"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -18,10 +20,11 @@ const resourceLogKey = "resource"
 
 type ProcessResources struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewProcessResources(keycloakApiClient keycloak.Client) *ProcessResources {
-	return &ProcessResources{keycloakApiClient: keycloakApiClient}
+func NewProcessResources(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessResources {
+	return &ProcessResources{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
 func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
@@ -34,11 +37,15 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 
 	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 		return fmt.Errorf("failed to get client id: %w", err)
 	}
 
 	existingResources, err := h.keycloakApiClient.GetResources(ctx, realmName, clientID)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 		return fmt.Errorf("failed to get resources: %w", err)
 	}
 
@@ -48,6 +55,8 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		var resourceRepresentation *gocloak.ResourceRepresentation
 
 		if resourceRepresentation, err = h.toResourceRepresentation(ctx, &keycloakClient.Spec.Authorization.Resources[i], clientID, realmName); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 			return fmt.Errorf("failed to convert resource: %w", err)
 		}
 
@@ -55,6 +64,8 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		if ok {
 			resourceRepresentation.ID = existingResource.ID
 			if err = h.keycloakApiClient.UpdateResource(ctx, realmName, clientID, *resourceRepresentation); err != nil {
+				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 				return fmt.Errorf("failed to update resource: %w", err)
 			}
 
@@ -66,6 +77,8 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		}
 
 		if _, err = h.keycloakApiClient.CreateResource(ctx, realmName, clientID, *resourceRepresentation); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 			return fmt.Errorf("failed to create resource: %w", err)
 		}
 
@@ -74,11 +87,43 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
 		if err = h.deleteResources(ctx, existingResources, realmName, clientID); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+
 			return err
 		}
 	}
 
+	h.setSuccessCondition(ctx, keycloakClient, "Authorization resources synchronized")
+
 	return nil
+}
+
+func (h *ProcessResources) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationResourcesSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (h *ProcessResources) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationResourcesSynced,
+		metav1.ConditionTrue,
+		ReasonAuthorizationResourcesSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (h *ProcessResources) deleteResources(ctx context.Context, existingResources map[string]gocloak.ResourceRepresentation, realmName string, clientID string) error {

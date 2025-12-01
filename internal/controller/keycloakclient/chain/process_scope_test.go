@@ -8,7 +8,10 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -16,7 +19,14 @@ import (
 )
 
 func TestProcessScope_Serve(t *testing.T) {
-	t.Parallel()
+	const (
+		testClientName      = "test-client"
+		testClientNamespace = "default"
+	)
+
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
 
 	tests := []struct {
 		name              string
@@ -128,8 +138,22 @@ func TestProcessScope_Serve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-			h := NewProcessScope(tt.keycloakApiClient(t))
+			// Ensure test client has proper metadata
+			if tt.keycloakClient.Name == "" {
+				tt.keycloakClient.Name = testClientName
+			}
+
+			if tt.keycloakClient.Namespace == "" {
+				tt.keycloakClient.Namespace = testClientNamespace
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.keycloakClient).
+				WithStatusSubresource(tt.keycloakClient).
+				Build()
+
+			h := NewProcessScope(tt.keycloakApiClient(t), k8sClient)
 			err := h.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloakClient, "master")
 
 			tt.wantErr(t, err)

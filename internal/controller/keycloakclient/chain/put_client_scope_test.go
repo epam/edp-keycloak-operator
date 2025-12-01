@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -26,6 +27,7 @@ func TestPutClientScope_Serve(t *testing.T) {
 		keycloakClient    client.ObjectKey
 		keycloakApiClient func(t *testing.T) *mocks.MockClient
 		wantErr           require.ErrorAssertionFunc
+		wantCondition     *metav1.Condition
 	}{
 		{
 			name: "with default scopes",
@@ -34,17 +36,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:            "test-client-id",
-							DefaultClientScopes: []string{"default-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:            "test-client-id",
+								DefaultClientScopes: []string{"default-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -59,6 +64,11 @@ func TestPutClientScope_Serve(t *testing.T) {
 				return m
 			},
 			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientScopesSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientScopesSynced,
+			},
 		},
 		{
 			name: "with optional scopes",
@@ -67,17 +77,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							OptionalClientScopes: []string{"optional-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								OptionalClientScopes: []string{"optional-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -100,18 +113,21 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							DefaultClientScopes:  []string{"default-scope-1", "default-scope-2"},
-							OptionalClientScopes: []string{"optional-scope-1", "optional-scope-2"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								DefaultClientScopes:  []string{"default-scope-1", "default-scope-2"},
+								OptionalClientScopes: []string{"optional-scope-1", "optional-scope-2"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -136,16 +152,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId: "test-client-id",
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId: "test-client-id",
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -165,17 +184,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:            "test-client-id",
-							DefaultClientScopes: []string{"default-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:            "test-client-id",
+								DefaultClientScopes: []string{"default-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -189,6 +211,11 @@ func TestPutClientScope_Serve(t *testing.T) {
 				return m
 			},
 			wantErr: require.Error,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientScopesSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
 		},
 		{
 			name: "error when GetClientScopesByNames fails for optional scopes",
@@ -197,17 +224,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							OptionalClientScopes: []string{"optional-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								OptionalClientScopes: []string{"optional-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -229,17 +259,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:            "test-client-id",
-							DefaultClientScopes: []string{"default-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:            "test-client-id",
+								DefaultClientScopes: []string{"default-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -262,17 +295,20 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							OptionalClientScopes: []string{"optional-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								OptionalClientScopes: []string{"optional-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -295,18 +331,21 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							DefaultClientScopes:  []string{"default-scope"},
-							OptionalClientScopes: []string{"optional-scope"},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								DefaultClientScopes:  []string{"default-scope"},
+								OptionalClientScopes: []string{"optional-scope"},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -331,18 +370,21 @@ func TestPutClientScope_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:             "test-client-id",
-							DefaultClientScopes:  []string{},
-							OptionalClientScopes: []string{},
-						},
-					}).Build()
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:             "test-client-id",
+								DefaultClientScopes:  []string{},
+								OptionalClientScopes: []string{},
+							},
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -362,13 +404,22 @@ func TestPutClientScope_Serve(t *testing.T) {
 			cl := &keycloakApi.KeycloakClient{}
 			require.NoError(t, tt.client(t).Get(context.Background(), tt.keycloakClient, cl))
 
-			el := NewPutClientScope(tt.keycloakApiClient(t))
+			el := NewPutClientScope(tt.keycloakApiClient(t), tt.client(t))
 			err := el.Serve(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				cl,
 				"realm",
 			)
 			tt.wantErr(t, err)
+
+			// Assert condition is set correctly
+			if tt.wantCondition != nil {
+				cond := meta.FindStatusCondition(cl.Status.Conditions, tt.wantCondition.Type)
+				require.NotNil(t, cond, "condition not found")
+				require.Equal(t, tt.wantCondition.Status, cond.Status)
+				require.Equal(t, tt.wantCondition.Reason, cond.Reason)
+				require.Equal(t, cl.Generation, cond.ObservedGeneration)
+			}
 		})
 	}
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -16,10 +18,11 @@ const scopeLogKey = "scope"
 
 type ProcessScope struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewProcessScope(keycloakApiClient keycloak.Client) *ProcessScope {
-	return &ProcessScope{keycloakApiClient: keycloakApiClient}
+func NewProcessScope(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessScope {
+	return &ProcessScope{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
 func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
@@ -32,11 +35,15 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 
 	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
+
 		return fmt.Errorf("failed to get client id: %w", err)
 	}
 
 	existingScopes, err := h.keycloakApiClient.GetScopes(ctx, realmName, clientID)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
+
 		return fmt.Errorf("failed to get scopes: %w", err)
 	}
 
@@ -52,6 +59,8 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 		}
 
 		if _, err = h.keycloakApiClient.CreateScope(ctx, realmName, clientID, scope); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
+
 			return fmt.Errorf("failed to create scope: %w", err)
 		}
 
@@ -62,11 +71,43 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
 		if err = h.deleteScopes(ctx, existingScopes, realmName, clientID); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
+
 			return err
 		}
 	}
 
+	h.setSuccessCondition(ctx, keycloakClient, "Authorization scopes synchronized")
+
 	return nil
+}
+
+func (h *ProcessScope) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationScopesSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (h *ProcessScope) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationScopesSynced,
+		metav1.ConditionTrue,
+		ReasonAuthorizationScopesSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (h *ProcessScope) deleteScopes(ctx context.Context, existingScopes map[string]gocloak.ScopeRepresentation, realmName string, clientID string) error {

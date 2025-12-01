@@ -8,6 +8,8 @@ import (
 
 	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -100,16 +102,37 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 			}, nil
 		}
 
+		// Set Ready condition to False
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:               chain.ConditionReady,
+			Status:             metav1.ConditionFalse,
+			Reason:             chain.ReasonKeycloakAPIError,
+			Message:            fmt.Sprintf("Reconciliation failed: %s", err.Error()),
+			ObservedGeneration: instance.Generation,
+		})
+
+		// Backward compatibility: set Value field
 		instance.Status.Value = err.Error()
 		result.RequeueAfter = r.helper.SetFailureCount(&instance)
 
 		log.Error(err, "an error has occurred while handling keycloak client", "name", request.Name)
 	} else {
+		// Set Ready condition to True
+		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+			Type:               chain.ConditionReady,
+			Status:             metav1.ConditionTrue,
+			Reason:             chain.ReasonReconciliationSucceeded,
+			Message:            "KeycloakClient reconciliation completed successfully",
+			ObservedGeneration: instance.Generation,
+		})
+
+		// Backward compatibility: set Value field
 		helper.SetSuccessStatus(&instance)
 
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 
+	// Final status update for Ready condition and Value field
 	if err := r.client.Status().Update(ctx, &instance); err != nil {
 		resultErr = fmt.Errorf("unable to update status: %w", err)
 	}

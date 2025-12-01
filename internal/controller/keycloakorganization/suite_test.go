@@ -218,7 +218,7 @@ var _ = AfterSuite(func() {
 		deletedKeycloakRealm := &keycloakApi.KeycloakRealm{}
 		getErr := k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, deletedKeycloakRealm)
 		return getErr != nil
-	}, time.Second*3, time.Second).Should(BeTrue())
+	}, time.Second*5, time.Second).Should(BeTrue())
 
 	cancel()
 	By("Tearing down the test environment")

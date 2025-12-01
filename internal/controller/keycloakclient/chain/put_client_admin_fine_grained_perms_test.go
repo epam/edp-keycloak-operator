@@ -21,8 +21,6 @@ import (
 )
 
 func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
 		name              string
 		client            func(t *testing.T) client.Client
@@ -37,25 +35,28 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:                           "test-client-id",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:                           "test-client-id",
+								AdminFineGrainedPermissionsEnabled: true,
+								Permission: &keycloakApi.AdminFineGrainedPermission{
+									ScopePermissions: []keycloakApi.ScopePermissions{
+										{
+											Name:     "map-role",
+											Policies: []string{"scope permission"},
+										},
 									},
 								},
 							},
-						},
-					}).Build()
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -114,25 +115,28 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:                           "test-client-id",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:                           "test-client-id",
+								AdminFineGrainedPermissionsEnabled: true,
+								Permission: &keycloakApi.AdminFineGrainedPermission{
+									ScopePermissions: []keycloakApi.ScopePermissions{
+										{
+											Name:     "map-role",
+											Policies: []string{"scope permission"},
+										},
 									},
 								},
 							},
-						},
-					}).Build()
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -156,25 +160,28 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				require.NoError(t, keycloakApi.AddToScheme(s))
 				require.NoError(t, corev1.AddToScheme(s))
 
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakClient{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-client",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakClientSpec{
-							ClientId:                           "test-client-id",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
+				return fake.NewClientBuilder().
+					WithScheme(s).
+					WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+					WithObjects(
+						&keycloakApi.KeycloakClient{
+							ObjectMeta: metav1.ObjectMeta{
+								Name:      "test-client",
+								Namespace: "default",
+							},
+							Spec: keycloakApi.KeycloakClientSpec{
+								ClientId:                           "test-client-id",
+								AdminFineGrainedPermissionsEnabled: true,
+								Permission: &keycloakApi.AdminFineGrainedPermission{
+									ScopePermissions: []keycloakApi.ScopePermissions{
+										{
+											Name:     "map-role",
+											Policies: []string{"scope permission"},
+										},
 									},
 								},
 							},
-						},
-					}).Build()
+						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
 				Name:      "test-client",
@@ -195,12 +202,10 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			t.Parallel()
-
 			cl := &keycloakApi.KeycloakClient{}
 			require.NoError(t, tt.client(t).Get(context.Background(), tt.keycloakClient, cl))
 
-			el := NewPutAdminFineGrainedPermissions(tt.keycloakApiClient(t))
+			el := NewPutAdminFineGrainedPermissions(tt.keycloakApiClient(t), tt.client(t))
 			err := el.Serve(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				cl,

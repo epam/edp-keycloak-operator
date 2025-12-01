@@ -4,7 +4,9 @@ import (
 	"context"
 	"fmt"
 
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -13,18 +15,51 @@ import (
 
 type PutRealmRole struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewPutRealmRole(keycloakApiClient keycloak.Client) *PutRealmRole {
-	return &PutRealmRole{keycloakApiClient: keycloakApiClient}
+func NewPutRealmRole(keycloakApiClient keycloak.Client, k8sClient client.Client) *PutRealmRole {
+	return &PutRealmRole{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
 func (el *PutRealmRole) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putRealmRoles(ctx, keycloakClient, realmName); err != nil {
+		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync realm roles: %s", err.Error()))
+
 		return fmt.Errorf("unable to put realm roles: %w", err)
 	}
 
+	el.setSuccessCondition(ctx, keycloakClient, "Realm roles synchronized")
+
 	return nil
+}
+
+func (el *PutRealmRole) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionRealmRolesSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (el *PutRealmRole) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionRealmRolesSynced,
+		metav1.ConditionTrue,
+		ReasonRealmRolesSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (el *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
