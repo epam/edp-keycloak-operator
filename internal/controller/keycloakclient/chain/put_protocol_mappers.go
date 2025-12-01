@@ -6,6 +6,9 @@ import (
 	"maps"
 
 	"github.com/Nerzal/gocloak/v12"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -14,18 +17,51 @@ import (
 
 type PutProtocolMappers struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewPutProtocolMappers(keycloakApiClient keycloak.Client) *PutProtocolMappers {
-	return &PutProtocolMappers{keycloakApiClient: keycloakApiClient}
+func NewPutProtocolMappers(keycloakApiClient keycloak.Client, k8sClient client.Client) *PutProtocolMappers {
+	return &PutProtocolMappers{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
-func (el *PutProtocolMappers) Serve(_ context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (el *PutProtocolMappers) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
 	if err := el.putProtocolMappers(keycloakClient, realmName); err != nil {
+		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync protocol mappers: %s", err.Error()))
+
 		return fmt.Errorf("unable to put protocol mappers: %w", err)
 	}
 
+	el.setSuccessCondition(ctx, keycloakClient, "Protocol mappers synchronized")
+
 	return nil
+}
+
+func (el *PutProtocolMappers) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionProtocolMappersSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (el *PutProtocolMappers) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, el.k8sClient, keycloakClient,
+		ConditionProtocolMappersSynced,
+		metav1.ConditionTrue,
+		ReasonProtocolMappersSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *keycloakApi.KeycloakClient, realmName string) error {

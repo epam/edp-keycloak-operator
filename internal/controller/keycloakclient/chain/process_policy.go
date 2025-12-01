@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/Nerzal/gocloak/v12"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -16,10 +18,11 @@ const policyLogKey = "policy"
 
 type ProcessPolicy struct {
 	keycloakApiClient keycloak.Client
+	k8sClient         client.Client
 }
 
-func NewProcessPolicy(keycloakApiClient keycloak.Client) *ProcessPolicy {
-	return &ProcessPolicy{keycloakApiClient: keycloakApiClient}
+func NewProcessPolicy(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessPolicy {
+	return &ProcessPolicy{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
 }
 
 // Serve method for processing keycloak client policies.
@@ -33,11 +36,15 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 
 	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 		return fmt.Errorf("failed to get client id: %w", err)
 	}
 
 	existingPolicies, err := h.keycloakApiClient.GetPolicies(ctx, realmName, clientID)
 	if err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 		return fmt.Errorf("failed to get policies: %w", err)
 	}
 
@@ -47,6 +54,8 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		var policyRepresentation *gocloak.PolicyRepresentation
 
 		if policyRepresentation, err = h.toPolicyRepresentation(ctx, &keycloakClient.Spec.Authorization.Policies[i], clientID, realmName); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 			return fmt.Errorf("failed to convert policy: %w", err)
 		}
 
@@ -54,6 +63,8 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		if ok {
 			policyRepresentation.ID = existingPolicy.ID
 			if err = h.keycloakApiClient.UpdatePolicy(ctx, realmName, clientID, *policyRepresentation); err != nil {
+				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 				return fmt.Errorf("failed to update policy: %w", err)
 			}
 
@@ -65,6 +76,8 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		}
 
 		if _, err = h.keycloakApiClient.CreatePolicy(ctx, realmName, clientID, *policyRepresentation); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 			return fmt.Errorf("failed to create policy: %w", err)
 		}
 
@@ -73,11 +86,43 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
 		if err = h.deletePolicies(ctx, existingPolicies, realmName, clientID); err != nil {
+			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization policies: %s", err.Error()))
+
 			return err
 		}
 	}
 
+	h.setSuccessCondition(ctx, keycloakClient, "Authorization policies synchronized")
+
 	return nil
+}
+
+func (h *ProcessPolicy) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationPoliciesSynced,
+		metav1.ConditionFalse,
+		ReasonKeycloakAPIError,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set failure condition")
+	}
+}
+
+func (h *ProcessPolicy) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if err := SetCondition(
+		ctx, h.k8sClient, keycloakClient,
+		ConditionAuthorizationPoliciesSynced,
+		metav1.ConditionTrue,
+		ReasonAuthorizationPoliciesSynced,
+		message,
+	); err != nil {
+		log.Error(err, "Failed to set success condition")
+	}
 }
 
 func (h *ProcessPolicy) deletePolicies(ctx context.Context, existingPolicies map[string]*gocloak.PolicyRepresentation, realmName string, clientID string) error {
