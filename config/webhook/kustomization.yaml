@@ -1,0 +1,12 @@
+resources:
+- manifests.yaml
+- service.yaml
+
+configurations:
+- kustomizeconfig.yaml
+
+# [CUSTOM] Namespace-scoped webhook validation to prevent cross-namespace conflicts.
+patches:
+- path: webhook_namespace_patch.yaml
+  target:
+    kind: ValidatingWebhookConfiguration

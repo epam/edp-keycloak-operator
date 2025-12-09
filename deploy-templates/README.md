@@ -16,6 +16,7 @@ _**NOTE:** Operator is platform-independent, which is why there is a unified ins
 
 1. Linux machine or Windows Subsystem for Linux instance with [Helm 3](https://helm.sh/docs/intro/install/) installed;
 2. Cluster admin access to the cluster;
+3. [cert-manager](https://cert-manager.io/docs/installation/) installed in the cluster (required for webhook functionality, can be disabled via `enableWebhooks: false`);
 
 ## Installation Using Helm Chart
 
@@ -132,6 +133,7 @@ Development versions are also available from the [snapshot helm chart repository
 | clusterReconciliationEnabled | bool | `false` | If clusterReconciliationEnabled is true, the operator reconciles all Keycloak instances in the cluster;  otherwise, it only reconciles instances in the same namespace by default, and cluster-scoped resources are ignored. |
 | containerSecurityContext | object | `{"allowPrivilegeEscalation":false}` | Container Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | enableOwnerRef | bool | `true` | If set to true, the operator will set the owner reference for all resources that have Keycloak or KeycloakRealm as reference. This is legacy behavior and not recommended for use. In the future, this will be set to false by default. |
+| enableWebhooks | bool | `true` | If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate). Webhooks require cert-manager to be installed in the cluster. |
 | extraVolumeMounts | list | `[]` | Additional volumeMounts to be added to the container |
 | extraVolumes | list | `[]` | Additional volumes to be added to the pod |
 | image.registry | string | `""` | KubeRocketCI keycloak-operator Docker image registry. |

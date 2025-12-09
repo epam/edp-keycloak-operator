@@ -1,0 +1,25 @@
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata:
+  name: validating-webhook-configuration
+webhooks:
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: webhook-service
+      namespace: system
+      path: /validate-v1-edp-epam-com-v1-keycloakrealm
+  failurePolicy: Fail
+  name: vkeycloakrealm-v1.kb.io
+  rules:
+  - apiGroups:
+    - v1.edp.epam.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    resources:
+    - keycloakrealms
+  sideEffects: None

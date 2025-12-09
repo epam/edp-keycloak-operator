@@ -62,3 +62,7 @@ clusterReconciliationEnabled: false
 # -- If set to true, the operator will set the owner reference for all resources that have Keycloak or KeycloakRealm as reference.
 # This is legacy behavior and not recommended for use. In the future, this will be set to false by default.
 enableOwnerRef: true
+
+# -- If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate).
+# Webhooks require cert-manager to be installed in the cluster.
+enableWebhooks: true

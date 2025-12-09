@@ -76,7 +76,8 @@ spec:
         ports: []
         securityContext:
           allowPrivilegeEscalation: false
-          drop:
+          capabilities:
+            drop:
             - "ALL"
         livenessProbe:
           httpGet:

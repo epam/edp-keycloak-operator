@@ -21,6 +21,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/cache"
 	"sigs.k8s.io/controller-runtime/pkg/certwatcher"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/healthz"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 	"sigs.k8s.io/controller-runtime/pkg/metrics/filters"
@@ -46,6 +47,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrole"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrolebatch"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser"
+	webhookv1 "github.com/epam/edp-keycloak-operator/internal/webhook/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 )
@@ -218,7 +220,9 @@ func main() {
 		os.Exit(1)
 	}
 
-	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
+	cfg := ctrl.GetConfigOrDie()
+
+	mgr, err := ctrl.NewManager(cfg, ctrl.Options{
 		Scheme:                 scheme,
 		Metrics:                metricsServerOptions,
 		WebhookServer:          webhookServer,
@@ -342,6 +346,20 @@ func main() {
 	if err = organizationCtrl.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-organization controller")
 		os.Exit(1)
+	}
+
+	if os.Getenv("ENABLE_WEBHOOKS") != "false" {
+		// Setup k8s client without cache to enable reading from non-default namespaces.
+		k8sClient, err := client.New(cfg, client.Options{Scheme: scheme})
+		if err != nil {
+			setupLog.Error(err, "unable to create k8s client for webhook setup")
+			os.Exit(1)
+		}
+
+		if err := webhookv1.SetupKeycloakRealmWebhookWithManager(mgr, k8sClient); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KeycloakRealm")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

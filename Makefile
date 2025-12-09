@@ -240,6 +240,12 @@ bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metada
 	echo "  com.redhat.openshift.versions: v4.7-v4.19" >> bundle/metadata/annotations.yaml
 	$(OPERATOR_SDK) bundle validate ./bundle
 
+.PHONY: build-installer
+build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
+	mkdir -p dist
+	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
+	$(KUSTOMIZE) build config/default > dist/install.yaml
+
 .PHONY: setup-envtest
 setup-envtest: envtest ## Download the binaries required for ENVTEST in the local bin directory.
 	@echo "Setting up envtest binaries for Kubernetes version $(ENVTEST_K8S_VERSION)..."

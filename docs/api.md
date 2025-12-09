@@ -5424,6 +5424,8 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td>string</td>
         <td>
           RealmName specifies the name of the realm.<br/>
+          <br/>
+            <i>Validations</i>:<li>self == oldSelf: Value is immutable</li>
         </td>
         <td>true</td>
       </tr><tr>

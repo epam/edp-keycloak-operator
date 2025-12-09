@@ -206,6 +206,9 @@ spec:
               realmName:
                 description: RealmName specifies the name of the realm.
                 type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
               smtp:
                 description: Smtp is the configuration for email in the realm.
                 nullable: true

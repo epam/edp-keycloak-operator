@@ -12,7 +12,8 @@
             "program": "${workspaceFolder}/cmd",
             "env": {
                 "WATCH_NAMESPACE": "",
-                "OPERATOR_NAMESPACE": "default"
+                "OPERATOR_NAMESPACE": "default",
+                "ENABLE_WEBHOOKS": "false"
             }
         }
     ]
