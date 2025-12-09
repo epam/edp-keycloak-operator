@@ -9,6 +9,8 @@ import (
 // KeycloakRealmSpec defines the desired state of KeycloakRealm.
 type KeycloakRealmSpec struct {
 	// RealmName specifies the name of the realm.
+	// +required
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	RealmName string `json:"realmName"`
 
 	// KeycloakRef is reference to Keycloak custom resource.

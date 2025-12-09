@@ -17,6 +17,7 @@ _**NOTE:** Operator is platform-independent, which is why there is a unified ins
 
 1. Linux machine or Windows Subsystem for Linux instance with [Helm 3](https://helm.sh/docs/intro/install/) installed;
 2. Cluster admin access to the cluster;
+3. [cert-manager](https://cert-manager.io/docs/installation/) installed in the cluster (required for webhook functionality, can be disabled via `enableWebhooks: false`);
 
 ## Installation Using Helm Chart
 
