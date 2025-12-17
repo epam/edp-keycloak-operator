@@ -2831,8 +2831,8 @@ func (_c *MockClient_GetClientManagementPermissions_Call) RunAndReturn(run func(
 }
 
 // GetClientScope provides a mock function for the type MockClient
-func (_mock *MockClient) GetClientScope(scopeName string, realmName string) (*adapter.ClientScope, error) {
-	ret := _mock.Called(scopeName, realmName)
+func (_mock *MockClient) GetClientScope(ctx context.Context, scopeName string, realmName string) (*adapter.ClientScope, error) {
+	ret := _mock.Called(ctx, scopeName, realmName)
 
 	if len(ret) == 0 {
 		panic("no return value specified for GetClientScope")
@@ -2840,18 +2840,18 @@ func (_mock *MockClient) GetClientScope(scopeName string, realmName string) (*ad
 
 	var r0 *adapter.ClientScope
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(string, string) (*adapter.ClientScope, error)); ok {
-		return returnFunc(scopeName, realmName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*adapter.ClientScope, error)); ok {
+		return returnFunc(ctx, scopeName, realmName)
 	}
-	if returnFunc, ok := ret.Get(0).(func(string, string) *adapter.ClientScope); ok {
-		r0 = returnFunc(scopeName, realmName)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *adapter.ClientScope); ok {
+		r0 = returnFunc(ctx, scopeName, realmName)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*adapter.ClientScope)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = returnFunc(scopeName, realmName)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, scopeName, realmName)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -2864,25 +2864,31 @@ type MockClient_GetClientScope_Call struct {
 }
 
 // GetClientScope is a helper method to define mock.On call
+//   - ctx context.Context
 //   - scopeName string
 //   - realmName string
-func (_e *MockClient_Expecter) GetClientScope(scopeName interface{}, realmName interface{}) *MockClient_GetClientScope_Call {
-	return &MockClient_GetClientScope_Call{Call: _e.mock.On("GetClientScope", scopeName, realmName)}
+func (_e *MockClient_Expecter) GetClientScope(ctx interface{}, scopeName interface{}, realmName interface{}) *MockClient_GetClientScope_Call {
+	return &MockClient_GetClientScope_Call{Call: _e.mock.On("GetClientScope", ctx, scopeName, realmName)}
 }
 
-func (_c *MockClient_GetClientScope_Call) Run(run func(scopeName string, realmName string)) *MockClient_GetClientScope_Call {
+func (_c *MockClient_GetClientScope_Call) Run(run func(ctx context.Context, scopeName string, realmName string)) *MockClient_GetClientScope_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 string
+		var arg0 context.Context
 		if args[0] != nil {
-			arg0 = args[0].(string)
+			arg0 = args[0].(context.Context)
 		}
 		var arg1 string
 		if args[1] != nil {
 			arg1 = args[1].(string)
 		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
 		run(
 			arg0,
 			arg1,
+			arg2,
 		)
 	})
 	return _c
@@ -2893,7 +2899,7 @@ func (_c *MockClient_GetClientScope_Call) Return(clientScope *adapter.ClientScop
 	return _c
 }
 
-func (_c *MockClient_GetClientScope_Call) RunAndReturn(run func(scopeName string, realmName string) (*adapter.ClientScope, error)) *MockClient_GetClientScope_Call {
+func (_c *MockClient_GetClientScope_Call) RunAndReturn(run func(ctx context.Context, scopeName string, realmName string) (*adapter.ClientScope, error)) *MockClient_GetClientScope_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -3664,6 +3670,74 @@ func (_c *MockClient_GetOpenIdConfig_Call) Return(s string, err error) *MockClie
 }
 
 func (_c *MockClient_GetOpenIdConfig_Call) RunAndReturn(run func(realm *dto.Realm) (string, error)) *MockClient_GetOpenIdConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOptionalClientScopesForRealm provides a mock function for the type MockClient
+func (_mock *MockClient) GetOptionalClientScopesForRealm(ctx context.Context, realm string) ([]adapter.ClientScope, error) {
+	ret := _mock.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOptionalClientScopesForRealm")
+	}
+
+	var r0 []adapter.ClientScope
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]adapter.ClientScope, error)); ok {
+		return returnFunc(ctx, realm)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []adapter.ClientScope); ok {
+		r0 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]adapter.ClientScope)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = returnFunc(ctx, realm)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_GetOptionalClientScopesForRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOptionalClientScopesForRealm'
+type MockClient_GetOptionalClientScopesForRealm_Call struct {
+	*mock.Call
+}
+
+// GetOptionalClientScopesForRealm is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+func (_e *MockClient_Expecter) GetOptionalClientScopesForRealm(ctx interface{}, realm interface{}) *MockClient_GetOptionalClientScopesForRealm_Call {
+	return &MockClient_GetOptionalClientScopesForRealm_Call{Call: _e.mock.On("GetOptionalClientScopesForRealm", ctx, realm)}
+}
+
+func (_c *MockClient_GetOptionalClientScopesForRealm_Call) Run(run func(ctx context.Context, realm string)) *MockClient_GetOptionalClientScopesForRealm_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_GetOptionalClientScopesForRealm_Call) Return(clientScopes []adapter.ClientScope, err error) *MockClient_GetOptionalClientScopesForRealm_Call {
+	_c.Call.Return(clientScopes, err)
+	return _c
+}
+
+func (_c *MockClient_GetOptionalClientScopesForRealm_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]adapter.ClientScope, error)) *MockClient_GetOptionalClientScopesForRealm_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -4670,6 +4744,150 @@ func (_c *MockClient_GetUsersProfile_Call) Return(v *keycloak_go_client.UserProf
 }
 
 func (_c *MockClient_GetUsersProfile_Call) RunAndReturn(run func(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error)) *MockClient_GetUsersProfile_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HasDefaultClientScope provides a mock function for the type MockClient
+func (_mock *MockClient) HasDefaultClientScope(ctx context.Context, realmName string, scopeName string) (bool, error) {
+	ret := _mock.Called(ctx, realmName, scopeName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasDefaultClientScope")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return returnFunc(ctx, realmName, scopeName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, realmName, scopeName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, realmName, scopeName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_HasDefaultClientScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasDefaultClientScope'
+type MockClient_HasDefaultClientScope_Call struct {
+	*mock.Call
+}
+
+// HasDefaultClientScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - scopeName string
+func (_e *MockClient_Expecter) HasDefaultClientScope(ctx interface{}, realmName interface{}, scopeName interface{}) *MockClient_HasDefaultClientScope_Call {
+	return &MockClient_HasDefaultClientScope_Call{Call: _e.mock.On("HasDefaultClientScope", ctx, realmName, scopeName)}
+}
+
+func (_c *MockClient_HasDefaultClientScope_Call) Run(run func(ctx context.Context, realmName string, scopeName string)) *MockClient_HasDefaultClientScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_HasDefaultClientScope_Call) Return(b bool, err error) *MockClient_HasDefaultClientScope_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockClient_HasDefaultClientScope_Call) RunAndReturn(run func(ctx context.Context, realmName string, scopeName string) (bool, error)) *MockClient_HasDefaultClientScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// HasOptionalClientScope provides a mock function for the type MockClient
+func (_mock *MockClient) HasOptionalClientScope(ctx context.Context, realmName string, scopeName string) (bool, error) {
+	ret := _mock.Called(ctx, realmName, scopeName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for HasOptionalClientScope")
+	}
+
+	var r0 bool
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (bool, error)); ok {
+		return returnFunc(ctx, realmName, scopeName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) bool); ok {
+		r0 = returnFunc(ctx, realmName, scopeName)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, realmName, scopeName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClient_HasOptionalClientScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'HasOptionalClientScope'
+type MockClient_HasOptionalClientScope_Call struct {
+	*mock.Call
+}
+
+// HasOptionalClientScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realmName string
+//   - scopeName string
+func (_e *MockClient_Expecter) HasOptionalClientScope(ctx interface{}, realmName interface{}, scopeName interface{}) *MockClient_HasOptionalClientScope_Call {
+	return &MockClient_HasOptionalClientScope_Call{Call: _e.mock.On("HasOptionalClientScope", ctx, realmName, scopeName)}
+}
+
+func (_c *MockClient_HasOptionalClientScope_Call) Run(run func(ctx context.Context, realmName string, scopeName string)) *MockClient_HasOptionalClientScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClient_HasOptionalClientScope_Call) Return(b bool, err error) *MockClient_HasOptionalClientScope_Call {
+	_c.Call.Return(b, err)
+	return _c
+}
+
+func (_c *MockClient_HasOptionalClientScope_Call) RunAndReturn(run func(ctx context.Context, realmName string, scopeName string) (bool, error)) *MockClient_HasOptionalClientScope_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -5714,75 +5932,6 @@ func (_c *MockClient_SyncRealmRole_Call) Return(err error) *MockClient_SyncRealm
 }
 
 func (_c *MockClient_SyncRealmRole_Call) RunAndReturn(run func(ctx context.Context, realmName string, role *dto.PrimaryRealmRole) error) *MockClient_SyncRealmRole_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// SyncRealmUser provides a mock function for the type MockClient
-func (_mock *MockClient) SyncRealmUser(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error {
-	ret := _mock.Called(ctx, realmName, user, addOnly)
-
-	if len(ret) == 0 {
-		panic("no return value specified for SyncRealmUser")
-	}
-
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *adapter.KeycloakUser, bool) error); ok {
-		r0 = returnFunc(ctx, realmName, user, addOnly)
-	} else {
-		r0 = ret.Error(0)
-	}
-	return r0
-}
-
-// MockClient_SyncRealmUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SyncRealmUser'
-type MockClient_SyncRealmUser_Call struct {
-	*mock.Call
-}
-
-// SyncRealmUser is a helper method to define mock.On call
-//   - ctx context.Context
-//   - realmName string
-//   - user *adapter.KeycloakUser
-//   - addOnly bool
-func (_e *MockClient_Expecter) SyncRealmUser(ctx interface{}, realmName interface{}, user interface{}, addOnly interface{}) *MockClient_SyncRealmUser_Call {
-	return &MockClient_SyncRealmUser_Call{Call: _e.mock.On("SyncRealmUser", ctx, realmName, user, addOnly)}
-}
-
-func (_c *MockClient_SyncRealmUser_Call) Run(run func(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool)) *MockClient_SyncRealmUser_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 *adapter.KeycloakUser
-		if args[2] != nil {
-			arg2 = args[2].(*adapter.KeycloakUser)
-		}
-		var arg3 bool
-		if args[3] != nil {
-			arg3 = args[3].(bool)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-			arg3,
-		)
-	})
-	return _c
-}
-
-func (_c *MockClient_SyncRealmUser_Call) Return(err error) *MockClient_SyncRealmUser_Call {
-	_c.Call.Return(err)
-	return _c
-}
-
-func (_c *MockClient_SyncRealmUser_Call) RunAndReturn(run func(ctx context.Context, realmName string, user *adapter.KeycloakUser, addOnly bool) error) *MockClient_SyncRealmUser_Call {
 	_c.Call.Return(run)
 	return _c
 }

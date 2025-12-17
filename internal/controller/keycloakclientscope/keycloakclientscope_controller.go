@@ -187,7 +187,7 @@ func (r *Reconcile) updateKeycloakClientScopeStatus(
 }
 
 func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientScope, realmName string, cl keycloak.Client) (string, error) {
-	clientScope, err := cl.GetClientScope(instance.Spec.Name, realmName)
+	clientScope, err := cl.GetClientScope(ctx, instance.Spec.Name, realmName)
 	if err != nil && !adapter.IsErrNotFound(err) {
 		return "", fmt.Errorf("unable to get client scope: %w", err)
 	}
@@ -198,7 +198,7 @@ func syncClientScope(ctx context.Context, instance *keycloakApi.KeycloakClientSc
 		Protocol:        instance.Spec.Protocol,
 		ProtocolMappers: convertProtocolMappers(instance.Spec.ProtocolMappers),
 		Description:     instance.Spec.Description,
-		Default:         instance.Spec.Default,
+		Type:            instance.GetType(),
 	}
 
 	if err == nil {

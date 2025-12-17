@@ -3799,7 +3799,8 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td><b>default</b></td>
         <td>boolean</td>
         <td>
-          Default is a flag to set client scope as default.<br/>
+          Default is a flag to set client scope as default.
+Deprecated: Use Type: default instead.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3814,6 +3815,19 @@ KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
         <td>[]object</td>
         <td>
           ProtocolMappers is a list of protocol mappers assigned to client scope.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>type</b></td>
+        <td>enum</td>
+        <td>
+          Type of the client scope.
+If set to "default", the client scope is assigned to all clients by default.
+If set to "optional", the client scope can be assigned to clients on demand.
+If set to "none", the client scope is not assigned to any clients by default.<br/>
+          <br/>
+            <i>Enum</i>: default, optional, none<br/>
+            <i>Default</i>: none<br/>
         </td>
         <td>false</td>
       </tr></tbody>

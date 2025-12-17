@@ -31,11 +31,12 @@ import (
 )
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	cfg                    *rest.Config
+	k8sClient              client.Client
+	testEnv                *envtest.Environment
+	ctx                    context.Context
+	cancel                 context.CancelFunc
+	keycloakAdapterManager *testutils.KeycloakAdapterManager
 )
 
 const (
@@ -172,6 +173,9 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloakRealm.Status.Available
 	}, timeout, interval).Should(BeTrue())
+
+	keycloakAdapterManager = testutils.NewKeycloakAdapterManager(os.Getenv("TEST_KEYCLOAK_URL"), logf.Log)
+	keycloakAdapterManager.Initialize(ctx)
 })
 
 var _ = AfterSuite(func() {
