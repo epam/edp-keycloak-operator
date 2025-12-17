@@ -52,7 +52,9 @@ spec:
                 nullable: true
                 type: object
               default:
-                description: Default is a flag to set client scope as default.
+                description: |-
+                  Default is a flag to set client scope as default.
+                  Deprecated: Use Type: default instead.
                 type: boolean
               description:
                 description: Description is a description of client scope.
@@ -103,6 +105,18 @@ spec:
                 required:
                 - name
                 type: object
+              type:
+                default: none
+                description: |-
+                  Type of the client scope.
+                  If set to "default", the client scope is assigned to all clients by default.
+                  If set to "optional", the client scope can be assigned to clients on demand.
+                  If set to "none", the client scope is not assigned to any clients by default.
+                enum:
+                - default
+                - optional
+                - none
+                type: string
             required:
             - name
             - protocol

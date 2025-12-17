@@ -6,11 +6,17 @@ import (
 	"strings"
 
 	"github.com/Nerzal/gocloak/v12"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
 	OpenIdProtocol     = "openid-connect"
 	OIDCAudienceMapper = "oidc-audience-mapper"
+
+	// Client scope type constants
+	ClientScopeTypeDefault  = "default"
+	ClientScopeTypeOptional = "optional"
+	ClientScopeTypeNone     = "none"
 )
 
 type ClientScope struct {
@@ -20,7 +26,7 @@ type ClientScope struct {
 	Attributes      map[string]string `json:"attributes"`
 	Protocol        string            `json:"protocol"`
 	ProtocolMappers []ProtocolMapper  `json:"protocolMappers"`
-	Default         bool              `json:"-"`
+	Type            string            `json:"type"`
 }
 
 type ProtocolMapper struct {
@@ -48,9 +54,9 @@ func (a GoCloakAdapter) CreateClientScope(ctx context.Context, realmName string,
 		return "", fmt.Errorf("unable to get flow id: %w", err)
 	}
 
-	if scope.Default {
-		if err := a.setDefaultClientScopeForRealm(ctx, realmName, id); err != nil {
-			return id, fmt.Errorf("unable to set default client scope for realm: %w", err)
+	if scope.Type != "" && scope.Type != ClientScopeTypeNone {
+		if err := a.setClientScopeType(ctx, realmName, id, scope.Type); err != nil {
+			return id, fmt.Errorf("unable to set client scope type: %w", err)
 		}
 	}
 
@@ -75,55 +81,87 @@ func (a GoCloakAdapter) UpdateClientScope(ctx context.Context, realmName, scopeI
 		return fmt.Errorf("unable to update client scope: %w", err)
 	}
 
-	needToUpdateDefault, err := a.needToUpdateDefault(ctx, realmName, scope)
+	needToUpdateType, err := a.needToUpdateType(ctx, realmName, scope)
 	if err != nil {
-		return fmt.Errorf("unable to check if need to update default: %w", err)
+		return fmt.Errorf("unable to check if need to update type: %w", err)
 	}
 
-	if !needToUpdateDefault {
+	if !needToUpdateType {
 		return nil
 	}
 
-	if scope.Default {
-		if err := a.setDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-			return fmt.Errorf("unable to set default client scope for realm: %w", err)
-		}
-
-		return nil
-	}
-
-	if err := a.unsetDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
+	if err := a.setClientScopeType(ctx, realmName, scopeID, scope.Type); err != nil {
+		return fmt.Errorf("unable to set client scope type: %w", err)
 	}
 
 	return nil
 }
 
-func (a GoCloakAdapter) needToUpdateDefault(ctx context.Context, realmName string, scope *ClientScope) (bool, error) {
-	defaultScopes, err := a.GetDefaultClientScopesForRealm(ctx, realmName)
-	if err != nil {
-		return false, fmt.Errorf("unable to get default client scopes: %w", err)
-	}
-
-	currentScopeDefaultState := false
-
-	for _, s := range defaultScopes {
-		if s.Name == scope.Name {
-			currentScopeDefaultState = true
-			break
+func (a GoCloakAdapter) needToUpdateType(ctx context.Context, realmName string, scope *ClientScope) (bool, error) {
+	switch scope.Type {
+	case ClientScopeTypeDefault:
+		hasDefault, err := a.HasDefaultClientScope(ctx, realmName, scope.Name)
+		if err != nil {
+			return false, fmt.Errorf("unable to check default client scopes: %w", err)
 		}
-	}
 
-	return currentScopeDefaultState != scope.Default, nil
+		if hasDefault {
+			return false, nil
+		}
+
+		return true, nil
+
+	case ClientScopeTypeOptional:
+		hasOptional, err := a.HasOptionalClientScope(ctx, realmName, scope.Name)
+		if err != nil {
+			return false, fmt.Errorf("unable to check optional client scopes: %w", err)
+		}
+
+		if hasOptional {
+			return false, nil
+		}
+
+		return true, nil
+
+	case ClientScopeTypeNone:
+		var hasDefault, hasOptional bool
+
+		g, gctx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			var err error
+			hasDefault, err = a.HasDefaultClientScope(gctx, realmName, scope.Name)
+
+			return err
+		})
+		g.Go(func() error {
+			var err error
+			hasOptional, err = a.HasOptionalClientScope(gctx, realmName, scope.Name)
+
+			return err
+		})
+
+		if err := g.Wait(); err != nil {
+			return false, fmt.Errorf("unable to check client scope lists: %w", err)
+		}
+
+		if hasDefault || hasOptional {
+			return true, nil
+		}
+
+		return false, nil
+
+	default:
+		return true, nil
+	}
 }
 
-// TODO: add context.
-func (a GoCloakAdapter) GetClientScope(scopeName, realmName string) (*ClientScope, error) {
+func (a GoCloakAdapter) GetClientScope(ctx context.Context, scopeName, realmName string) (*ClientScope, error) {
 	log := a.log.WithValues("scopeName", scopeName, logKeyRealm, realmName)
 	log.Info("Start get Client Scope...")
 
 	var result []ClientScope
 	resp, err := a.client.RestyClient().R().
+		SetContext(ctx).
 		SetAuthToken(a.token.AccessToken).
 		SetHeader(contentTypeHeader, contentTypeJson).
 		SetPathParams(map[string]string{
@@ -216,8 +254,9 @@ func (a GoCloakAdapter) filterClientScopes(scopeNames []string, clientScopes []C
 }
 
 func (a GoCloakAdapter) DeleteClientScope(ctx context.Context, realmName, scopeID string) error {
-	if err := a.unsetDefaultClientScopeForRealm(ctx, realmName, scopeID); err != nil {
-		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
+	// Remove from both default and optional lists before deletion
+	if err := a.setClientScopeType(ctx, realmName, scopeID, ClientScopeTypeNone); err != nil {
+		return fmt.Errorf("unable to unset client scope from realm: %w", err)
 	}
 
 	if err := a.client.DeleteClientScope(ctx, a.token.AccessToken, realmName, scopeID); err != nil {
@@ -287,6 +326,58 @@ func (a GoCloakAdapter) GetDefaultClientScopesForRealm(ctx context.Context, real
 	return scopes, nil
 }
 
+func (a GoCloakAdapter) GetOptionalClientScopesForRealm(ctx context.Context, realmName string) ([]ClientScope, error) {
+	var scopes []ClientScope
+
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm: realmName,
+		}).
+		SetResult(&scopes).
+		Get(a.buildPath(getOptionalClientScopes))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return nil, fmt.Errorf("unable to get optional client scopes for realm: %w", err)
+	}
+
+	return scopes, nil
+}
+
+// HasDefaultClientScope checks if a client scope with the given name
+// exists in the realm's default client scopes list.
+func (a GoCloakAdapter) HasDefaultClientScope(ctx context.Context, realmName, scopeName string) (bool, error) {
+	scopes, err := a.GetDefaultClientScopesForRealm(ctx, realmName)
+	if err != nil {
+		return false, err
+	}
+
+	for _, s := range scopes {
+		if s.Name == scopeName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+// HasOptionalClientScope checks if a client scope with the given name
+// exists in the realm's optional client scopes list.
+func (a GoCloakAdapter) HasOptionalClientScope(ctx context.Context, realmName, scopeName string) (bool, error) {
+	scopes, err := a.GetOptionalClientScopesForRealm(ctx, realmName)
+	if err != nil {
+		return false, err
+	}
+
+	for _, s := range scopes {
+		if s.Name == scopeName {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
 func (a GoCloakAdapter) setDefaultClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).
@@ -307,6 +398,68 @@ func (a GoCloakAdapter) setDefaultClientScopeForRealm(ctx context.Context, realm
 	return nil
 }
 
+func (a GoCloakAdapter) setOptionalClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		SetBody(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		Put(a.buildPath(putOptionalClientScope))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to set optional client scope for realm: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) setClientScopeType(ctx context.Context, realm, scopeID, scopeType string) error {
+	switch scopeType {
+	case ClientScopeTypeDefault:
+		// Remove from optional list (ignore 404 if not present)
+		if err := a.unsetOptionalClientScopeForRealm(ctx, realm, scopeID); err != nil && !IsErrNotFound(err) {
+			return fmt.Errorf("unable to unset optional client scope for realm: %w", err)
+		}
+
+		// Set as default scope
+		if err := a.setDefaultClientScopeForRealm(ctx, realm, scopeID); err != nil {
+			return fmt.Errorf("unable to set default client scope for realm: %w", err)
+		}
+
+	case ClientScopeTypeOptional:
+		// Remove from default list (ignore 404 if not present)
+		if err := a.unsetDefaultClientScopeForRealm(ctx, realm, scopeID); err != nil && !IsErrNotFound(err) {
+			return fmt.Errorf("unable to unset default client scope for realm: %w", err)
+		}
+
+		// Set as optional scope
+		if err := a.setOptionalClientScopeForRealm(ctx, realm, scopeID); err != nil {
+			return fmt.Errorf("unable to set optional client scope for realm: %w", err)
+		}
+
+	case ClientScopeTypeNone:
+		// Remove from default list (ignore 404 if not present)
+		if err := a.unsetDefaultClientScopeForRealm(ctx, realm, scopeID); err != nil && !IsErrNotFound(err) {
+			return fmt.Errorf("unable to unset default client scope for realm: %w", err)
+		}
+
+		// Remove from optional list (ignore 404 if not present)
+		if err := a.unsetOptionalClientScopeForRealm(ctx, realm, scopeID); err != nil && !IsErrNotFound(err) {
+			return fmt.Errorf("unable to unset optional client scope for realm: %w", err)
+		}
+
+	default:
+		return fmt.Errorf("invalid client scope type: %s", scopeType)
+	}
+
+	return nil
+}
+
 func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
 	rsp, err := a.startRestyRequest().
 		SetContext(ctx).
@@ -318,6 +471,22 @@ func (a GoCloakAdapter) unsetDefaultClientScopeForRealm(ctx context.Context, rea
 
 	if err = a.checkError(err, rsp); err != nil {
 		return fmt.Errorf("unable to unset default client scope for realm: %w", err)
+	}
+
+	return nil
+}
+
+func (a GoCloakAdapter) unsetOptionalClientScopeForRealm(ctx context.Context, realm, scopeID string) error {
+	rsp, err := a.startRestyRequest().
+		SetContext(ctx).
+		SetPathParams(map[string]string{
+			keycloakApiParamRealm:         realm,
+			keycloakApiParamClientScopeId: scopeID,
+		}).
+		Delete(a.buildPath(deleteOptionalClientScope))
+
+	if err = a.checkError(err, rsp); err != nil {
+		return fmt.Errorf("unable to unset optional client scope for realm: %w", err)
 	}
 
 	return nil

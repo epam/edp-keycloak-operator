@@ -54,6 +54,9 @@ const (
 	putDefaultClientScope           = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	deleteDefaultClientScope        = "/admin/realms/{realm}/default-default-client-scopes/{clientScopeID}"
 	getDefaultClientScopes          = "/admin/realms/{realm}/default-default-client-scopes"
+	putOptionalClientScope          = "/admin/realms/{realm}/default-optional-client-scopes/{clientScopeID}"
+	deleteOptionalClientScope       = "/admin/realms/{realm}/default-optional-client-scopes/{clientScopeID}"
+	getOptionalClientScopes         = "/admin/realms/{realm}/default-optional-client-scopes"
 	realmEventConfigPut             = "/admin/realms/{realm}/events/config"
 	realmComponent                  = "/admin/realms/{realm}/components"
 	realmComponentEntity            = "/admin/realms/{realm}/components/{id}"
@@ -148,7 +151,8 @@ func MakeFromToken(conf GoCloakConfig, tokenData []byte, log logr.Logger) (*GoCl
 		return nil, fmt.Errorf("unable to decode JWT payload json: %w", err)
 	}
 
-	if tokenPayloadDecoded.Exp < time.Now().Unix() {
+	now := time.Now().Unix()
+	if tokenPayloadDecoded.Exp < now {
 		return nil, TokenExpiredError("token is expired")
 	}
 

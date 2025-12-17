@@ -6,6 +6,12 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 )
 
+const (
+	KeycloakClientScopeTypeDefault  = "default"
+	KeycloakClientScopeTypeOptional = "optional"
+	KeycloakClientScopeTypeNone     = "none"
+)
+
 // KeycloakClientScopeSpec defines the desired state of KeycloakClientScope.
 type KeycloakClientScopeSpec struct {
 	// Name of keycloak client scope.
@@ -28,8 +34,18 @@ type KeycloakClientScopeSpec struct {
 	Attributes map[string]string `json:"attributes,omitempty"`
 
 	// Default is a flag to set client scope as default.
+	// Deprecated: Use Type: default instead.
 	// +optional
 	Default bool `json:"default,omitempty"`
+
+	// Type of the client scope.
+	// If set to "default", the client scope is assigned to all clients by default.
+	// If set to "optional", the client scope can be assigned to clients on demand.
+	// If set to "none", the client scope is not assigned to any clients by default.
+	// +kubebuilder:validation:Enum=default;optional;none
+	// +kubebuilder:default=none
+	// +optional
+	Type string `json:"type"`
 
 	// ProtocolMappers is a list of protocol mappers assigned to client scope.
 	// +nullable
@@ -81,6 +97,28 @@ func (in *KeycloakClientScope) SetStatus(value string) {
 
 func (in *KeycloakClientScope) GetRealmRef() common.RealmRef {
 	return in.Spec.RealmRef
+}
+
+// GetType returns the type of the client scope.
+// For backward compatibility, if Default is set to true, it returns "default".
+func (in *KeycloakClientScope) GetType() string {
+	if in.Spec.Default {
+		return KeycloakClientScopeTypeDefault
+	}
+
+	return in.Spec.Type
+}
+
+func (in *KeycloakClientScope) IsTypeDefault() bool {
+	return in.GetType() == KeycloakClientScopeTypeDefault
+}
+
+func (in *KeycloakClientScope) IsTypeOptional() bool {
+	return in.GetType() == KeycloakClientScopeTypeOptional
+}
+
+func (in *KeycloakClientScope) IsTypeNone() bool {
+	return in.GetType() == KeycloakClientScopeTypeNone
 }
 
 // +kubebuilder:object:root=true

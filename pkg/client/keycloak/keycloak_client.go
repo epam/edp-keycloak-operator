@@ -179,11 +179,14 @@ type KCloakClients interface {
 
 type KCloakClientScope interface {
 	PutClientScopeMapper(realmName, scopeID string, protocolMapper *adapter.ProtocolMapper) error
-	GetClientScope(scopeName, realmName string) (*adapter.ClientScope, error)
+	GetClientScope(ctx context.Context, scopeName, realmName string) (*adapter.ClientScope, error)
 	GetClientScopesByNames(ctx context.Context, realmName string, scopeNames []string) ([]adapter.ClientScope, error)
 	UpdateClientScope(ctx context.Context, realmName, scopeID string, scope *adapter.ClientScope) error
 	DeleteClientScope(ctx context.Context, realmName, scopeID string) error
 	GetDefaultClientScopesForRealm(ctx context.Context, realm string) ([]adapter.ClientScope, error)
+	GetOptionalClientScopesForRealm(ctx context.Context, realm string) ([]adapter.ClientScope, error)
+	HasDefaultClientScope(ctx context.Context, realmName, scopeName string) (bool, error)
+	HasOptionalClientScope(ctx context.Context, realmName, scopeName string) (bool, error)
 	CreateClientScope(ctx context.Context, realmName string, scope *adapter.ClientScope) (string, error)
 	GetClientScopeMappers(ctx context.Context, realmName, scopeID string) ([]adapter.ProtocolMapper, error)
 	GetClientScopes(ctx context.Context, realm string) (map[string]gocloak.ClientScope, error)
