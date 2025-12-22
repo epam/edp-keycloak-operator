@@ -261,9 +261,15 @@ $(ENVTEST): $(LOCALBIN)
 	$(call go-install-tool,$(ENVTEST),sigs.k8s.io/controller-runtime/tools/setup-envtest,$(ENVTEST_VERSION))
 
 .PHONY: start-kind
-start-kind:	## Start kind cluster
+start-kind:	## Start kind cluster and install cert-manager for webhook certificates
 ifeq (true,$(START_KIND_CLUSTER))
-	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG)
+	kind create cluster --name $(KIND_CLUSTER_NAME) --config $(KIND_CONFIG) --wait 1m
+	helm install \
+  	cert-manager oci://quay.io/jetstack/charts/cert-manager \
+	--version v1.19.2 \
+	--namespace cert-manager \
+	--create-namespace \
+	--set crds.enabled=true
 endif
 
 .PHONY: delete-kind

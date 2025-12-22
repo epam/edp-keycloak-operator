@@ -33,9 +33,7 @@ type Helper interface {
 }
 
 const (
-	keyCloakClientOperatorFinalizerName       = "keycloak.client.operator.finalizer.name"
-	clientAttributeLogoutRedirectUris         = "post.logout.redirect.uris"
-	clientAttributeLogoutRedirectUrisDefValue = "+"
+	keyCloakClientOperatorFinalizerName = "keycloak.client.operator.finalizer.name"
 )
 
 func NewReconcileKeycloakClient(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakClient {
@@ -87,12 +85,6 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 		resultErr = err
 
 		return result, resultErr
-	}
-
-	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
-		return reconcile.Result{}, err
-	} else if updated {
-		return reconcile.Result{}, nil
 	}
 
 	if err := r.tryReconcile(ctx, &instance); err != nil {
@@ -184,97 +176,6 @@ func (r *ReconcileKeycloakClient) tryReconcile(ctx context.Context, keycloakClie
 	}
 
 	return nil
-}
-
-// applyDefaults applies default values to KeycloakClient.
-func (r *ReconcileKeycloakClient) applyDefaults(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (bool, error) {
-	if keycloakClient.Spec.Attributes == nil {
-		keycloakClient.Spec.Attributes = make(map[string]string)
-	}
-
-	updated := false
-
-	if _, ok := keycloakClient.Spec.Attributes[clientAttributeLogoutRedirectUris]; !ok {
-		// set default value for logout redirect uris to "+" is required for correct logout from keycloak
-		keycloakClient.Spec.Attributes[clientAttributeLogoutRedirectUris] = clientAttributeLogoutRedirectUrisDefValue
-		updated = true
-	}
-
-	if keycloakClient.Spec.WebOrigins == nil {
-		keycloakClient.Spec.WebOrigins = []string{
-			keycloakClient.Spec.WebUrl,
-		}
-
-		updated = true
-	}
-
-	// Migrate ClientRoles to ClientRolesV2 if needed
-	if migrated := r.migrateClientRoles(keycloakClient); migrated {
-		updated = true
-	}
-
-	// Migrate ServiceAccount.Attributes to ServiceAccount.AttributesV2 if needed
-	if keycloakClient.Spec.ServiceAccount != nil {
-		if migrated := r.migrateServiceAccountAttributes(keycloakClient); migrated {
-			updated = true
-		}
-	}
-
-	if updated {
-		if err := r.client.Update(ctx, keycloakClient); err != nil {
-			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
-		}
-
-		return true, nil
-	}
-
-	return false, nil
-}
-
-// migrateClientRoles migrates ClientRoles to ClientRolesV2 format.
-// This function converts the old string-based client roles to the new ClientRole struct format.
-// It only performs migration if ClientRolesV2 is empty and ClientRoles is not empty.
-func (r *ReconcileKeycloakClient) migrateClientRoles(keycloakClient *keycloakApi.KeycloakClient) bool {
-	// Only migrate if ClientRolesV2 is empty and ClientRoles is not empty
-	if len(keycloakClient.Spec.ClientRolesV2) == 0 && len(keycloakClient.Spec.ClientRoles) > 0 {
-		// Convert string-based roles to ClientRole structs
-		for _, roleName := range keycloakClient.Spec.ClientRoles {
-			clientRole := keycloakApi.ClientRole{
-				Name: roleName,
-				// Composite field is left empty as it wasn't available in the old format
-			}
-			keycloakClient.Spec.ClientRolesV2 = append(keycloakClient.Spec.ClientRolesV2, clientRole)
-		}
-
-		// Keep the original ClientRoles field for backward compatibility
-		// keycloakClient.Spec.ClientRoles remains unchanged
-
-		return true
-	}
-
-	return false
-}
-
-// migrateServiceAccountAttributes migrates Attributes to AttributesV2 format.
-// This function converts the old string-based attributes to the new []string format.
-// It only performs migration if AttributesV2 is empty and Attributes is not empty.
-func (r *ReconcileKeycloakClient) migrateServiceAccountAttributes(keycloakClient *keycloakApi.KeycloakClient) bool {
-	// Only migrate if AttributesV2 is empty and Attributes is not empty
-	if len(keycloakClient.Spec.ServiceAccount.AttributesV2) == 0 && len(keycloakClient.Spec.ServiceAccount.Attributes) > 0 {
-		keycloakClient.Spec.ServiceAccount.AttributesV2 = make(map[string][]string, len(keycloakClient.Spec.ServiceAccount.Attributes))
-
-		// Convert string bases attributes to []string
-		for attr, value := range keycloakClient.Spec.ServiceAccount.Attributes {
-			keycloakClient.Spec.ServiceAccount.AttributesV2[attr] = []string{value}
-		}
-
-		// Keep the original Attributes field for backward compatibility
-		// keycloakClient.Spec.ServiceAccount.Attributes remains unchanged
-
-		return true
-	}
-
-	return false
 }
 
 func (r *ReconcileKeycloakClient) getKeycloakRealm(

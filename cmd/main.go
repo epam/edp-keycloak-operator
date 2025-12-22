@@ -360,6 +360,11 @@ func main() {
 			setupLog.Error(err, "unable to create webhook", "webhook", "KeycloakRealm")
 			os.Exit(1)
 		}
+
+		if err := webhookv1.SetupKeycloakClientWebhookWithManager(mgr); err != nil {
+			setupLog.Error(err, "unable to create webhook", "webhook", "KeycloakClient")
+			os.Exit(1)
+		}
 	}
 	// +kubebuilder:scaffold:builder
 

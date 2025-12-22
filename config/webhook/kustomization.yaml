@@ -10,3 +10,6 @@ patches:
 - path: webhook_namespace_patch.yaml
   target:
     kind: ValidatingWebhookConfiguration
+- path: webhook_namespace_patch.yaml
+  target:
+    kind: MutatingWebhookConfiguration
