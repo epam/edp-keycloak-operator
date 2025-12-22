@@ -243,3 +243,7 @@ replacements:
          kind: ValidatingWebhookConfiguration
        fieldPaths:
          - webhooks.0.namespaceSelector.matchExpressions.0.values.0
+     - select:
+         kind: MutatingWebhookConfiguration
+       fieldPaths:
+         - webhooks.0.namespaceSelector.matchExpressions.0.values.0

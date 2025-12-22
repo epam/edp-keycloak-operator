@@ -1,6 +1,14 @@
 apiVersion: kuttl.dev/v1beta1
 kind: TestStep
 commands:
-  - command: helm install cert-manager oci://quay.io/jetstack/charts/cert-manager --version v1.19.1 --namespace cert-manager --create-namespace --set crds.enabled=true --set prometheus.enabled=false --set prometheus.enabled=false
+  # Install cert-manager if not already installed
+  - script: |
+      helm status cert-manager -n cert-manager >/dev/null 2>&1 || \
+      helm install cert-manager oci://quay.io/jetstack/charts/cert-manager \
+        --version v1.19.1 \
+        --namespace cert-manager \
+        --create-namespace \
+        --set crds.enabled=true \
+        --set prometheus.enabled=false
   - command: helm install --set image.repository=${CONTAINER_REGISTRY_URL}/${CONTAINER_REGISTRY_SPACE}/${E2E_IMAGE_REPOSITORY} --set image.tag=${E2E_IMAGE_TAG} --replace --wait keycloak-operator-e2e ../../../deploy-templates
     namespaced: true

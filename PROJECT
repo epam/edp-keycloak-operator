@@ -38,6 +38,9 @@ resources:
   kind: KeycloakClient
   path: github.com/epam/edp-keycloak-operator/api/v1
   version: v1
+  webhooks:
+    defaulting: true
+    webhookVersion: v1
 - api:
     crdVersion: v1
     namespaced: true
