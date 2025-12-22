@@ -2,6 +2,25 @@
 ## [Unreleased]
 
 
+<a name="v1.31.0"></a>
+## [v1.31.0] - 2025-12-22
+### Features
+- Add webhook defaulting for KeycloakClient resources ([#205](https://github.com/epam/edp-keycloak-operator/issues/205))
+- Add Type field to KeycloakClientScope for default/optional/none scopes ([#220](https://github.com/epam/edp-keycloak-operator/issues/220))
+- Add webhook validation for KeycloakRealm resources ([#259](https://github.com/epam/edp-keycloak-operator/issues/259))
+- Add Conditions to KeycloakClient status ([#206](https://github.com/epam/edp-keycloak-operator/issues/206))
+- Add ability to set temporary user password ([#252](https://github.com/epam/edp-keycloak-operator/issues/252))
+
+### Routine
+- Update current development version ([#253](https://github.com/epam/edp-keycloak-operator/issues/253))
+
+### BREAKING CHANGE:
+
+Webhook functionality now requires cert-manager
+to be installed in the cluster by default.
+Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
+
+
 <a name="v1.30.0"></a>
 ## [v1.30.0] - 2025-11-21
 ### Features
@@ -286,7 +305,8 @@
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...HEAD
+[v1.31.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...v1.31.0
 [v1.30.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...v1.30.0
 [v1.29.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...v1.29.0
 [v1.28.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.27.1...v1.28.0
