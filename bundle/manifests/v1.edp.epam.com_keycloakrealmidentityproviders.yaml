@@ -128,6 +128,10 @@ spec:
                       type: object
                     type: array
                 type: object
+              postBrokerLoginFlowAlias:
+                description: PostBrokerLoginFlowAlias is a post broker login flow
+                  alias.
+                type: string
               providerId:
                 description: ProviderID is a provider ID of identity provider.
                 type: string

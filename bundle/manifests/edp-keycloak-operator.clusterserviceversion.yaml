@@ -265,7 +265,8 @@ metadata:
             "realmRef": {
               "kind": "KeycloakRealm",
               "name": "keycloakrealm-sample"
-            }
+            },
+            "type": "Default"
           }
         },
         {
@@ -438,6 +439,23 @@ metadata:
           "apiVersion": "v1.edp.epam.com/v1",
           "kind": "KeycloakRealmGroup",
           "metadata": {
+            "name": "keycloakrealmgroup-child-sample"
+          },
+          "spec": {
+            "name": "ArgoCDDevelopers",
+            "parentGroup": {
+              "name": "keycloakrealmgroup-sample"
+            },
+            "realmRef": {
+              "kind": "KeycloakRealm",
+              "name": "keycloakrealm-sample"
+            }
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1",
+          "kind": "KeycloakRealmGroup",
+          "metadata": {
             "name": "keycloakrealmgroup-sample"
           },
           "spec": {
@@ -566,9 +584,13 @@ metadata:
             "name": "keycloakrealmuser-sample"
           },
           "spec": {
-            "attributes": {
-              "baz": "jazz",
-              "foo": "bar"
+            "attributesV2": {
+              "department": [
+                "IT"
+              ],
+              "location": [
+                "Winterfell"
+              ]
             },
             "email": "john.snow13@example.com",
             "emailVerified": true,
@@ -576,13 +598,17 @@ metadata:
             "firstName": "John",
             "keepResource": true,
             "lastName": "Snow",
-            "password": "12345678",
+            "passwordSecret": {
+              "key": "password",
+              "name": "keycloakrealmuser-sample-password",
+              "temporary": true
+            },
             "realmRef": {
               "kind": "KeycloakRealm",
               "name": "keycloakrealm-sample"
             },
             "requiredUserActions": [
-              "UPDATE_PASSWORD"
+              "UPDATE_PROFILE"
             ],
             "username": "john.snow13"
           }
@@ -592,11 +618,7 @@ metadata:
           "kind": "ClusterKeycloak",
           "metadata": {
             "labels": {
-              "app.kubernetes.io/created-by": "edp-keycloak-operator",
-              "app.kubernetes.io/instance": "clusterkeycloak-sample",
-              "app.kubernetes.io/managed-by": "kustomize",
-              "app.kubernetes.io/name": "clusterkeycloak",
-              "app.kubernetes.io/part-of": "edp-keycloak-operator"
+              "app.kubernetes.io/name": "clusterkeycloak"
             },
             "name": "clusterkeycloak-sample"
           },
@@ -610,11 +632,7 @@ metadata:
           "kind": "ClusterKeycloakRealm",
           "metadata": {
             "labels": {
-              "app.kubernetes.io/created-by": "edp-keycloak-operator",
-              "app.kubernetes.io/instance": "clusterkeycloakrealm-sample",
-              "app.kubernetes.io/managed-by": "kustomize",
-              "app.kubernetes.io/name": "clusterkeycloakrealm",
-              "app.kubernetes.io/part-of": "edp-keycloak-operator"
+              "app.kubernetes.io/name": "clusterkeycloakrealm"
             },
             "name": "clusterkeycloakrealm-sample"
           },
@@ -666,14 +684,14 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.30.0
-    createdAt: "2025-09-26T13:47:12Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.31.0
+    createdAt: "2025-12-22T18:04:55Z"
     description: An Operator for managing Keycloak
     operators.operatorframework.io/builder: operator-sdk-v1.41.1
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.30.0
+  name: edp-keycloak-operator.v1.31.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -857,6 +875,14 @@ spec:
           - patch
           - update
         - apiGroups:
+          - v1.edp.epam.com
+          resources:
+          - keycloakrealms
+          verbs:
+          - get
+          - list
+          - watch
+        - apiGroups:
           - authentication.k8s.io
           resources:
           - tokenreviews
@@ -868,13 +894,13 @@ spec:
           - subjectaccessreviews
           verbs:
           - create
-        serviceAccountName: edp-keycloak-operator-controller-manager
+        serviceAccountName: keycloak-operator-controller-manager
       deployments:
       - label:
           app.kubernetes.io/managed-by: kustomize
           app.kubernetes.io/name: keycloak-operator
           control-plane: controller-manager
-        name: edp-keycloak-operator-controller-manager
+        name: keycloak-operator-controller-manager
         spec:
           replicas: 1
           selector:
@@ -894,6 +920,7 @@ spec:
                 - --metrics-bind-address=:8443
                 - --leader-elect
                 - --health-probe-bind-address=:8081
+                - --webhook-cert-path=/tmp/k8s-webhook-server/serving-certs
                 command:
                 - /manager
                 env:
@@ -905,7 +932,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.30.0
+                image: docker.io/epamedp/keycloak-operator:1.31.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -913,6 +940,10 @@ spec:
                   initialDelaySeconds: 15
                   periodSeconds: 20
                 name: manager
+                ports:
+                - containerPort: 9443
+                  name: webhook-server
+                  protocol: TCP
                 readinessProbe:
                   httpGet:
                     path: /readyz
@@ -928,11 +959,14 @@ spec:
                     memory: 64Mi
                 securityContext:
                   allowPrivilegeEscalation: false
+                  capabilities:
+                    drop:
+                    - ALL
               securityContext:
                 runAsNonRoot: true
                 seccompProfile:
                   type: RuntimeDefault
-              serviceAccountName: edp-keycloak-operator-controller-manager
+              serviceAccountName: keycloak-operator-controller-manager
               terminationGracePeriodSeconds: 10
       permissions:
       - rules:
@@ -1046,7 +1080,7 @@ spec:
           - get
           - patch
           - update
-        serviceAccountName: edp-keycloak-operator-controller-manager
+        serviceAccountName: keycloak-operator-controller-manager
     strategy: deployment
   installModes:
   - supported: true
@@ -1080,4 +1114,44 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.30.0
+  version: 1.31.0
+  webhookdefinitions:
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: keycloak-operator-controller-manager
+    failurePolicy: Fail
+    generateName: mkeycloakclient-v1.kb.io
+    rules:
+    - apiGroups:
+      - v1.edp.epam.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - keycloakclients
+    sideEffects: None
+    targetPort: 9443
+    type: MutatingAdmissionWebhook
+    webhookPath: /mutate-v1-edp-epam-com-v1-keycloakclient
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: keycloak-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vkeycloakrealm-v1.kb.io
+    rules:
+    - apiGroups:
+      - v1.edp.epam.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      resources:
+      - keycloakrealms
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-v1-edp-epam-com-v1-keycloakrealm
