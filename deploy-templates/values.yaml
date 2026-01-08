@@ -2,6 +2,8 @@
 name: keycloak-operator
 # -- Annotations to be added to the Deployment
 annotations: {}
+# -- Cluster domain for constructing service DNS names
+clusterDomain: cluster.local
 # -- Labels to be added to the pod
 podLabels: {}
 # -- Node labels for pod assignment
