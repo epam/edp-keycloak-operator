@@ -130,6 +130,7 @@ Development versions are also available from the [snapshot helm chart repository
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity for pod assignment |
 | annotations | object | `{}` | Annotations to be added to the Deployment |
+| clusterDomain | string| `cluster.local` | Cluster domain for constructing service DNS names |
 | clusterReconciliationEnabled | bool | `false` | If clusterReconciliationEnabled is true, the operator reconciles all Keycloak instances in the cluster;  otherwise, it only reconciles instances in the same namespace by default, and cluster-scoped resources are ignored. |
 | containerSecurityContext | object | `{"allowPrivilegeEscalation":false}` | Container Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | enableOwnerRef | bool | `true` | If set to true, the operator will set the owner reference for all resources that have Keycloak or KeycloakRealm as reference. This is legacy behavior and not recommended for use. In the future, this will be set to false by default. |
