@@ -99,6 +99,50 @@ spec:
                 required:
                 - name
                 type: object
+              login:
+                description: Login settings for the realm.
+                nullable: true
+                properties:
+                  duplicateEmails:
+                    default: false
+                    description: DuplicateEmails allows multiple users to have the
+                      same email address.
+                    type: boolean
+                  editUsername:
+                    default: false
+                    description: EditUsername allows to edit username.
+                    type: boolean
+                  emailAsUsername:
+                    default: false
+                    description: EmailAsUsername allows users to set email as username.
+                    type: boolean
+                  forgotPassword:
+                    default: false
+                    description: ForgotPassword shows a link on the login page for
+                      users who have forgotten their credentials.
+                    type: boolean
+                  loginWithEmail:
+                    default: true
+                    description: LoginWithEmail allows users to log in with their
+                      email address.
+                    type: boolean
+                  rememberMe:
+                    default: false
+                    description: RememberMe shows checkbox on the login page to allow
+                      the user to remain logged in between browser restarts until
+                      the session expires.
+                    type: boolean
+                  userRegistration:
+                    default: false
+                    description: UserRegistration enables/disables the registration
+                      page. A link for registration will show on the login page too.
+                    type: boolean
+                  verifyEmail:
+                    default: false
+                    description: VerifyEmail requires user to verify their email address
+                      after initial login or after address changes are submitted.
+                    type: boolean
+                type: object
               organizationsEnabled:
                 default: false
                 description: |-
@@ -162,6 +206,9 @@ spec:
               realmName:
                 description: RealmName specifies the name of the realm.
                 type: string
+                x-kubernetes-validations:
+                - message: Value is immutable
+                  rule: self == oldSelf
               smtp:
                 description: Smtp is the configuration for email in the realm.
                 nullable: true
