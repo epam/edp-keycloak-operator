@@ -2,8 +2,8 @@
 ## [Unreleased]
 
 
-<a name="v1.31.0"></a>
-## v1.31.0 - 2025-12-22
+<a name="v1.31.1"></a>
+## v1.31.1 - 2026-01-12
 ### Features
 - Add webhook defaulting for KeycloakClient resources ([#205](https://github.com/epam/edp-keycloak-operator/issues/205))
 - Add Type field to KeycloakClientScope for default/optional/none scopes ([#220](https://github.com/epam/edp-keycloak-operator/issues/220))
@@ -93,6 +93,7 @@
 - Add e2e for KeycloakRealmIdentityProvider using secret ([#20](https://github.com/epam/edp-keycloak-operator/issues/20))
 
 ### Routine
+- Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
 - Update current development version ([#253](https://github.com/epam/edp-keycloak-operator/issues/253))
 - Update current development version ([#253](https://github.com/epam/edp-keycloak-operator/issues/253))
 - Update krci-ai framework to the latest version ([#198](https://github.com/epam/edp-keycloak-operator/issues/198))
@@ -166,4 +167,4 @@ to be installed in the cluster by default.
 Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...HEAD
