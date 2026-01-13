@@ -106,7 +106,9 @@ func getGroupByName(groups []gocloak.Group, groupName string) *gocloak.Group {
 		}
 
 		if g.SubGroups != nil {
-			return getGroupByName(*g.SubGroups, groupName)
+			if group := getGroupByName(*g.SubGroups, groupName); group != nil {
+				return group
+			}
 		}
 	}
 
