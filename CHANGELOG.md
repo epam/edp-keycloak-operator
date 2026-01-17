@@ -1,6 +1,16 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Routine
+- Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
+- Update current development version ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
+
+
+<a name="v1.31.1"></a>
+## [v1.31.1] - 2026-01-13
+### Routine
+- Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
+
 
 <a name="v1.31.0"></a>
 ## [v1.31.0] - 2025-12-22
@@ -305,7 +315,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...HEAD
+[v1.31.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...v1.31.1
 [v1.31.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...v1.31.0
 [v1.30.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...v1.30.0
 [v1.29.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.28.0...v1.29.0

@@ -196,10 +196,20 @@ func TestGetGroupByName(t *testing.T) {
 			name: "find group by name",
 			groups: []gocloak.Group{
 				{Name: gocloak.StringP("group1")},
-				{Name: gocloak.StringP("group2")},
+				{
+					Name: gocloak.StringP("group2"),
+					SubGroups: &[]gocloak.Group{
+						{Name: gocloak.StringP("child1")},
+					},
+				},
 			},
 			groupName: "group2",
-			want:      &gocloak.Group{Name: gocloak.StringP("group2")},
+			want: &gocloak.Group{
+				Name: gocloak.StringP("group2"),
+				SubGroups: &[]gocloak.Group{
+					{Name: gocloak.StringP("child1")},
+				},
+			},
 		},
 		{
 			name: "find group in subgroups",
