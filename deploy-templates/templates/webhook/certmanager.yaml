@@ -8,7 +8,7 @@ metadata:
 spec:
   dnsNames:
   - {{ .Values.name }}-webhook-service.{{ .Release.Namespace }}.svc
-  - {{ .Values.name }}-webhook-service.{{ .Release.Namespace }}.svc.cluster.local
+  - {{ .Values.name }}-webhook-service.{{ .Release.Namespace }}.svc.{{ .Values.clusterDomain }}
   issuerRef:
     kind: Issuer
     name: {{ .Values.name }}-selfsigned-issuer
