@@ -1,8 +1,12 @@
+[![Build Status](https://github.com/epam/edp-keycloak-operator/actions/workflows/codecov.yaml/badge.svg)](https://github.com/epam/edp-keycloak-operator/actions/workflows/codecov.yaml)
 [![codecov](https://codecov.io/gh/epam/edp-keycloak-operator/branch/master/graph/badge.svg?token=WJ7YFRPUX2)](https://codecov.io/gh/epam/edp-keycloak-operator)
+[![Go Report Card](https://goreportcard.com/badge/github.com/epam/edp-keycloak-operator)](https://goreportcard.com/report/github.com/epam/edp-keycloak-operator)
+[![Go Reference](https://pkg.go.dev/badge/github.com/epam/edp-keycloak-operator.svg)](https://pkg.go.dev/github.com/epam/edp-keycloak-operator)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 # Keycloak Operator
 
-| :heavy_exclamation_mark: Please refer to [KubeRocketCI documentation](https://docs.kuberocketci.io/) to get the main concepts and guidelines. |
+| Please refer to [KubeRocketCI documentation](https://docs.kuberocketci.io/) to get the main concepts and guidelines. |
 | --- |
 
 Get acquainted with the Keycloak Operator, the installation process, the quick start, and the local development guidelines.
@@ -83,7 +87,7 @@ To install the Keycloak Operator, follow the steps below:
     ```bash
     # Check the current status
     kubectl get keycloak keycloak-sample -n  -o jsonpath='{.status.connected}'
-    
+
     # Or wait automatically until connected
     kubectl wait --for=jsonpath='{.status.connected}'=true keycloak/keycloak-sample -n  --timeout=300s
     ```
@@ -117,6 +121,7 @@ To install the Keycloak Operator, follow the steps below:
     Inspect [available custom resource](./docs/arch.md) and [CR templates folder](./deploy-templates/_crd_examples/) for more examples.
 
 #### Preventing the operator from deleting resources
+
 To prevent the operator from deleting resources from Keycloak, add the `edp.epam.com/preserve-resources-on-deletion: "true"` annotation to the resource.
 
    ```yaml
