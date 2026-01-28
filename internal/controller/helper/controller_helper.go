@@ -56,8 +56,6 @@ type adapterBuilder func(
 ) (keycloak.Client, error)
 
 // ControllerHelper interface defines methods for working with keycloak client and owner references.
-//
-//go:generate mockery --name ControllerHelper --filename helper_mock.go
 type ControllerHelper interface {
 	SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error
 	SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error

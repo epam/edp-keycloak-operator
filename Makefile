@@ -21,7 +21,7 @@ CONTAINER_REGISTRY_URL?="repo"
 CONTAINER_REGISTRY_SPACE?="edp"
 START_KIND_CLUSTER?=true
 KIND_CLUSTER_NAME?="keycloak-operator"
-KUBE_VERSION?=1.33
+KUBE_VERSION?=1.34
 KIND_CONFIG?=./hack/kind-$(KUBE_VERSION).yaml
 
 E2E_IMAGE_REPOSITORY?="keycloak-image"
@@ -180,11 +180,11 @@ CONTROLLER_TOOLS_VERSION ?= v0.18.0
 ENVTEST_VERSION := $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
 ENVTEST_K8S_VERSION := $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
 GOLANGCI_LINT_VERSION ?= v2.1.6
-MOCKERY_VERSION ?= v3.5.4
+MOCKERY_VERSION ?= v3.6.3
 HELMDOCS_VERSION ?= v1.14.2
 GITCHGLOG_VERSION ?= v0.15.4
 CRDOC_VERSION ?= v0.6.4
-OPERATOR_SDK_VERSION ?= v1.41.1
+OPERATOR_SDK_VERSION ?= v1.42.0
 
 KUSTOMIZE ?= $(LOCALBIN)/kustomize
 .PHONY: kustomize

@@ -11,14 +11,17 @@ concurrency:
 
 env:
   GOLANG_VERSION: '1.24'
+  HELM_VERSION: 'v3.12.1'
+  PYTHON_VERSION: '3.10'
+  CHART_TESTING_VERSION: 'v3.11.0'
 
 jobs:
 
   check-commit-message:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -44,21 +47,24 @@ jobs:
 
   helm-docs:
     needs: [check-commit-message]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
-      - name: Make Build
+      - name: Validate Helm docs
         run: make validate-docs
 
   helm-lint:
     needs: [helm-docs]
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     env:
      CHART_DIR: "deploy-templates"
      CT_CONFIGS_DIR: "."
@@ -68,18 +74,19 @@ jobs:
      CHART_SCHEMA_FILE_PATH: "chart_schema.yaml"
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v3
+        uses: azure/setup-helm@v4
         with:
-          version: v3.12.1
+          version: ${{ env.HELM_VERSION }}
 
-      - uses: actions/setup-python@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: ${{ env.PYTHON_VERSION }}
           check-latest: true
 
       - name: Set up chart-testing
@@ -92,55 +99,114 @@ jobs:
                --lint-conf ${LINTCONF_FILE_PATH} \
                --chart-yaml-schema ${CHART_SCHEMA_FILE_PATH}
 
-  build-and-lint:
-    needs: [helm-lint]
-    runs-on: ubuntu-22.04
+  lint:
+    needs: [check-commit-message]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
-      - name: Make Build
-        run: make build
+      - name: Cache golangci-lint
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/golangci-lint
+          key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-golangci-lint-
 
       - name: Make Lint
         run: make lint
+        continue-on-error: false
+
+      - name: Annotate lint results
+        if: failure()
+        run: echo "::warning::Lint checks failed. See job logs for details."
 
   docker-lint:
-    needs: [build-and-lint]
-    runs-on: ubuntu-22.04
+    needs: [check-commit-message]
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
+
       - name: Run hadolint
-        uses: hadolint/hadolint-action@v1.5.0
+        uses: hadolint/hadolint-action@v3.1.0
         with:
           dockerfile: Dockerfile
 
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: [check-commit-message]
+    strategy:
+      matrix:
+        keycloak-version:
+        - "26.5"
+        - "26.4"
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+      with:
+        fetch-depth: 1
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: ${{ env.GOLANG_VERSION }}
+
+    - name: Set up Keycloak
+      uses: ./.github/actions/setup-keycloak
+      with:
+        keycloak-version: ${{ matrix.keycloak-version }}
+
+    - name: Run tests against Keycloak
+      run: TEST_KEYCLOAK_URL="http://localhost:8081" make test
+
+  integration-tests-check:
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [integration-tests]
+    steps:
+      - name: Print result
+        run: echo ${{ needs.integration-tests.result }}
+      - name: Interpret result
+        run: |
+          if [[ success == ${{ needs.integration-tests.result }} ]]
+          then
+            echo "All integration test matrix jobs passed!"
+          else
+            echo "One or more integration test matrix jobs failed."
+            false
+          fi
+
   e2e-tests:
     name: End-to-end tests
-    needs: [docker-lint]
-    runs-on: ubuntu-22.04
+    needs: [check-commit-message]
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-       # The e2e tests are run on the lowest and highest supported k8s version.
-       # All Kubernetes version in between expose the same APIs, hence the operator
-       # should be compatible with them.
+       # The e2e tests are run on the latest supported k8s version.
+       # The operator uses standard Kubernetes APIs that are stable across versions.
        kube-version:
-       - "1.32"
-       - "1.33"
+       - "1.34"
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -152,8 +218,18 @@ jobs:
           KUBE_VERSION: ${{ matrix.kube-version }}
         run: make start-kind KUBE_VERSION=$KUBE_VERSION && make e2e
 
+      - name: Upload e2e logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-k8s-${{ matrix.kube-version }}
+          path: |
+            /tmp/kind-logs-*
+            tests/e2e/
+          retention-days: 7
+
   e2e-tests-check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: always()
     needs: [e2e-tests]
     steps:
@@ -168,55 +244,3 @@ jobs:
             echo "One or more matrix jobs failed."
             false
           fi
-
-  integration-tests:
-    runs-on: ubuntu-latest
-    needs: [e2e-tests-check]
-    strategy:
-      matrix:
-        kube-version:
-        - "1.33"
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GOLANG_VERSION }}
-
-    - name: Setup KinD Cluster
-      env:
-        YAML_CONFIG: ${{ format('hack/kind-{0}.yaml', matrix.kube-version) }}
-      run: |
-        # Install kind
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.27.0/kind-$(uname)-amd64
-        chmod +x ./kind
-        sudo mv ./kind /usr/local/bin/kind
-        # Create cluster from specific config
-        kind create cluster --config "${YAML_CONFIG}"
-
-    - name: Create keycloak namespace
-      run: kubectl create ns keycloak
-
-    - name: Deploy Keycloak server and wait for readiness
-      run: |
-        kubectl apply -f tests/e2e/helm-success-path/01-install-keycloak-server.yaml --namespace keycloak
-        kubectl wait --for condition=Available=True deployment keycloak --timeout=120s --namespace keycloak
-
-    - name: Port-forward Keycloak service
-      run: kubectl port-forward svc/keycloak 8081:8081 --namespace keycloak & sleep 5
-
-    - name: Run tests against the Keycloak service
-      run: |
-        # Extract the cluster IP and port from the service
-        TEST_KEYCLOAK_URL="http://localhost:8081"
-        echo "Test Keycloak URL: $TEST_KEYCLOAK_URL"
-        # Set the URL in environment variable for make test
-        export TEST_KEYCLOAK_URL
-        # Run the make test
-        make test
-
-    - name: Delete the Kubernetes cluster
-      if: always()
-      run: kind delete cluster

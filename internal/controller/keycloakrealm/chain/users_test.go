@@ -6,12 +6,13 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
+	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
@@ -20,7 +21,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name          string
 		realm         *keycloakApi.KeycloakRealm
-		mockSetup     func(*keycloakmocks.MockClient, *handler.MockRealmHandler)
+		mockSetup     func(*keycloakmocks.MockClient, *handlermocks.MockRealmHandler)
 		expectedError string
 	}{
 		{
@@ -43,14 +44,14 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "testuser1",
 					RealmRoles: []string{"role1", "role2"},
 				}
 				mockClient.On("ExistRealmUser", "test-realm", expectedUser).Return(false, nil)
 				mockClient.On("CreateRealmUser", "test-realm", expectedUser).Return(nil)
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -95,7 +96,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser1 := &dto.User{
 					Username:   "user1",
 					RealmRoles: []string{"role1"},
@@ -108,7 +109,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 				mockClient.On("CreateRealmUser", "test-realm", expectedUser1).Return(nil)
 				mockClient.On("ExistRealmUser", "test-realm", expectedUser2).Return(false, nil)
 				mockClient.On("CreateRealmUser", "test-realm", expectedUser2).Return(nil)
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -152,14 +153,14 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "simpleuser",
 					RealmRoles: nil,
 				}
 				mockClient.On("ExistRealmUser", "test-realm", expectedUser).Return(false, nil)
 				mockClient.On("CreateRealmUser", "test-realm", expectedUser).Return(nil)
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -194,9 +195,9 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					Users: []keycloakApi.User{},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				// No user operations should be called
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -232,14 +233,14 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "existinguser",
 					RealmRoles: []string{"role1"},
 				}
 				mockClient.On("ExistRealmUser", "test-realm", expectedUser).Return(true, nil)
 				// CreateRealmUser should not be called
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -284,7 +285,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedExistingUser := &dto.User{
 					Username:   "existinguser",
 					RealmRoles: []string{"role1"},
@@ -296,7 +297,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 				mockClient.On("ExistRealmUser", "test-realm", expectedExistingUser).Return(true, nil)
 				mockClient.On("ExistRealmUser", "test-realm", expectedNewUser).Return(false, nil)
 				mockClient.On("CreateRealmUser", "test-realm", expectedNewUser).Return(nil)
-				mockNext.On("ServeRequest", &keycloakApi.KeycloakRealm{
+				mockNext.On("ServeRequest", mock.Anything, &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "test-realm",
 						Namespace: "default",
@@ -341,7 +342,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "testuser",
 					RealmRoles: []string{"role1"},
@@ -371,7 +372,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "testuser",
 					RealmRoles: []string{"role1"},
@@ -406,7 +407,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser1 := &dto.User{
 					Username:   "user1",
 					RealmRoles: []string{"role1"},
@@ -442,7 +443,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handler.MockRealmHandler) {
+			mockSetup: func(mockClient *keycloakmocks.MockClient, mockNext *handlermocks.MockRealmHandler) {
 				expectedUser := &dto.User{
 					Username:   "testuser",
 					RealmRoles: []string{"role1"},
@@ -461,12 +462,12 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			mockClient := keycloakmocks.NewMockClient(t)
 
 			// Create mock next handler (if needed)
-			var mockNext *handler.MockRealmHandler
+			var mockNext *handlermocks.MockRealmHandler
 
 			var putUsers PutUsers
 
 			if tt.name != "success - next handler is nil" {
-				mockNext = &handler.MockRealmHandler{}
+				mockNext = &handlermocks.MockRealmHandler{}
 				putUsers = PutUsers{next: mockNext}
 			} else {
 				putUsers = PutUsers{next: nil}

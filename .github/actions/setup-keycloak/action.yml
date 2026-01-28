@@ -1,0 +1,53 @@
+name: 'Setup Keycloak'
+description: 'Start Keycloak Docker container and wait for readiness'
+inputs:
+  keycloak-version:
+    description: 'Keycloak version to run'
+    required: true
+  port:
+    description: 'Port to expose Keycloak on'
+    required: false
+    default: '8081'
+  admin-user:
+    description: 'Keycloak admin username'
+    required: false
+    default: 'admin'
+  admin-password:
+    description: 'Keycloak admin password'
+    required: false
+    default: 'admin'
+outputs:
+  keycloak-url:
+    description: 'URL of the running Keycloak instance'
+    value: http://localhost:${{ inputs.port }}
+runs:
+  using: 'composite'
+  steps:
+    - name: Start Keycloak
+      shell: bash
+      run: |
+        docker run -d \
+          --name keycloak \
+          -p ${{ inputs.port }}:${{ inputs.port }} \
+          -e KEYCLOAK_ADMIN=${{ inputs.admin-user }} \
+          -e KEYCLOAK_ADMIN_PASSWORD=${{ inputs.admin-password }} \
+          -e KC_FEATURES=admin-fine-grained-authz:v1 \
+          -e KC_HTTP_PORT=${{ inputs.port }} \
+          quay.io/keycloak/keycloak:${{ inputs.keycloak-version }} \
+          start-dev
+
+    - name: Wait for Keycloak to be ready
+      shell: bash
+      run: |
+        echo "Waiting for Keycloak to start..."
+        for i in {1..60}; do
+          if curl -f http://localhost:${{ inputs.port }}/realms/master > /dev/null 2>&1; then
+            echo "Keycloak is ready"
+            exit 0
+          fi
+          echo "Waiting for Keycloak... ($i/60)"
+          sleep 2
+        done
+        echo "Keycloak failed to start"
+        docker logs keycloak
+        exit 1

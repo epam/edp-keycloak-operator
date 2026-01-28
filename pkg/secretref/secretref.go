@@ -14,7 +14,6 @@ const (
 	keycloakSecretRefPrefix = "${"
 )
 
-//go:generate mockery --name RefClient --filename ref_mock.go
 type RefClient interface {
 	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error
 	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error

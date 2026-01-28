@@ -15,7 +15,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
-	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
+	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
@@ -42,10 +42,10 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupRealm    func() *keycloakApi.KeycloakRealm
-		setupMocks    func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler)
+		setupMocks    func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler)
 		expectError   bool
 		errorContains string
-		checkHelper   func(hlp *helpermock.ControllerHelper)
+		checkHelper   func(hlp *helpermock.MockControllerHelper)
 	}{
 		{
 			name: "success - realm does not exist, creates realm and roles",
@@ -57,7 +57,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				}
 				return realm
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				expectedRealm := &dto.Realm{
 					Name: realmName,
 					Users: []dto.User{
@@ -80,7 +80,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role3"}).Return(nil)
 
 				hlp.On("InvalidateKeycloakClientTokenSecret", ctx, namespace, keycloakRefName).Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, kClient).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient).Return(nil)
 			},
 			expectError: false,
 		},
@@ -89,12 +89,12 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("ExistRealm", realmName).Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, kClient).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient).Return(nil)
 			},
 			expectError: false,
-			checkHelper: func(hlp *helpermock.ControllerHelper) {
+			checkHelper: func(hlp *helpermock.MockControllerHelper) {
 				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
 			},
 		},
@@ -103,12 +103,12 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("ExistRealm", realmName).Return(false, errors.New("keycloak connection error"))
 			},
 			expectError:   true,
 			errorContains: "unable to check realm existence",
-			checkHelper: func(hlp *helpermock.ControllerHelper) {
+			checkHelper: func(hlp *helpermock.MockControllerHelper) {
 				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
 			},
 		},
@@ -117,7 +117,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				expectedRealm := &dto.Realm{
 					Name:  realmName,
 					Users: []dto.User{},
@@ -127,7 +127,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			expectError:   true,
 			errorContains: "unable to create realm with default config",
-			checkHelper: func(hlp *helpermock.ControllerHelper) {
+			checkHelper: func(hlp *helpermock.MockControllerHelper) {
 				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
 			},
 		},
@@ -140,7 +140,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				}
 				return realm
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				expectedRealm := &dto.Realm{
 					Name: realmName,
 					Users: []dto.User{
@@ -154,7 +154,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			expectError:   true,
 			errorContains: "unable to create realm roles on no sso scenario",
-			checkHelper: func(hlp *helpermock.ControllerHelper) {
+			checkHelper: func(hlp *helpermock.MockControllerHelper) {
 				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
 			},
 		},
@@ -163,7 +163,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.ControllerHelper, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				expectedRealm := &dto.Realm{
 					Name:  realmName,
 					Users: []dto.User{},
@@ -181,13 +181,13 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
 			kClient := mocks.NewMockClient(t)
-			hlp := helpermock.NewControllerHelper(t)
+			hlp := helpermock.NewMockControllerHelper(t)
 
-			var nextHandler *handler.MockRealmHandler
+			var nextHandler *handlermocks.MockRealmHandler
 
 			// Only create next handler if we expect success scenarios or specific error scenarios
 			if !tt.expectError || tt.name == "success - realm already exists, skips creation" {
-				nextHandler = &handler.MockRealmHandler{}
+				nextHandler = &handlermocks.MockRealmHandler{}
 			}
 
 			putRealm := PutRealm{

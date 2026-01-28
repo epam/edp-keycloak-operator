@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
+	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
@@ -21,7 +21,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupRealm    func() *keycloakApi.KeycloakRealm
-		setupMocks    func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler)
+		setupMocks    func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler)
 		expectError   bool
 		errorContains string
 	}{
@@ -35,8 +35,8 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -53,8 +53,8 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -70,10 +70,10 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -89,12 +89,12 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(false, nil)
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
 					Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -111,7 +111,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				// User1 - role1: exists, role2: needs to be added
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role1").
 					Return(true, nil)
@@ -126,7 +126,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user2", "role3").
 					Return(nil)
 
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -142,7 +142,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(false, errors.New("keycloak connection error"))
 			},
@@ -161,7 +161,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(false, nil)
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
@@ -180,8 +180,8 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything).Return(errors.New("next handler error"))
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("next handler error"))
 			},
 			expectError:   true,
 			errorContains: "chain failed",
@@ -198,7 +198,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(false, nil)
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
@@ -220,7 +220,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				// First user succeeds
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(false, nil)
@@ -246,7 +246,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handler.MockRealmHandler) {
+			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				// First role succeeds
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role1").
 					Return(false, nil)
@@ -267,9 +267,9 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 			// Setup
 			kClient := mocks.NewMockClient(t)
 
-			var nextHandler *handler.MockRealmHandler
+			var nextHandler *handlermocks.MockRealmHandler
 			if tt.name != "success - no next handler" {
-				nextHandler = &handler.MockRealmHandler{}
+				nextHandler = &handlermocks.MockRealmHandler{}
 			}
 
 			var putUsersRoles PutUsersRoles
