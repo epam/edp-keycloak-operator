@@ -67,7 +67,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					m := mocks.NewRefClient(t)
+					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
 						Return("client-secret", nil)
@@ -129,7 +129,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					m := mocks.NewRefClient(t)
+					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
 						Return("client-secret", nil)
@@ -190,7 +190,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					return mocks.NewRefClient(t)
+					return mocks.NewMockRefClient(t)
 				},
 			},
 			args: args{
@@ -247,7 +247,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					m := mocks.NewRefClient(t)
+					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
 						Return("client-secret", nil)
@@ -309,7 +309,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					return mocks.NewRefClient(t)
+					return mocks.NewMockRefClient(t)
 				},
 			},
 			args: args{
@@ -369,7 +369,7 @@ func TestPutClient_Serve(t *testing.T) {
 						Build()
 				},
 				secretRef: func(t *testing.T) secretRef {
-					return mocks.NewRefClient(t)
+					return mocks.NewMockRefClient(t)
 				},
 			},
 			args: args{

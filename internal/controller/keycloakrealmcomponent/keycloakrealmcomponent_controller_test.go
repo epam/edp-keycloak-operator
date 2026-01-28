@@ -58,7 +58,7 @@ func TestReconcile_Reconcile(t *testing.T) {
 
 	kcAdapter := mocks.NewMockClient(t)
 	client := fake.NewClientBuilder().WithScheme(sch).WithRuntimeObjects(&comp).WithStatusSubresource(&comp).Build()
-	h := helpermock.NewControllerHelper(t)
+	h := helpermock.NewMockControllerHelper(t)
 
 	h.On("SetRealmOwnerRef", testifymock.Anything, testifymock.Anything).Return(nil)
 	h.On("CreateKeycloakClientFromRealmRef", testifymock.Anything, testifymock.Anything).Return(kcAdapter, nil)

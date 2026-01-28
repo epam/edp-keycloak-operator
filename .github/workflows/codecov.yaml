@@ -6,24 +6,30 @@ on:
 
 env:
   GOLANG_VERSION: '1.24'
+  KEYCLOAK_VERSION: '26.5'
 
 jobs:
 
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
-      - name: Build
-        run: make build
+      - name: Set up Keycloak
+        uses: ./.github/actions/setup-keycloak
+        with:
+          keycloak-version: ${{ env.KEYCLOAK_VERSION }}
 
       - name: Test
-        run: make test
+        run: TEST_KEYCLOAK_URL="http://localhost:8081" make test
 
       - name: Upload codecov
         uses: codecov/codecov-action@v5

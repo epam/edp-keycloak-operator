@@ -59,7 +59,7 @@ func TestCreateDefChain(t *testing.T) {
 	kClient.On("UpdateRealmSettings", testifymock.Anything, testifymock.Anything).Return(nil)
 	kClient.On("SetRealmOrganizationsEnabled", testifymock.Anything, testifymock.Anything, testifymock.Anything).Return(nil)
 
-	hm := helpermock.NewControllerHelper(t)
+	hm := helpermock.NewMockControllerHelper(t)
 
 	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, kr.Namespace, kr.Spec.KeycloakRef.Name).Return(nil)
 	chain := CreateDefChain(client, s, hm)

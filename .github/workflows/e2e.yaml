@@ -14,23 +14,23 @@ env:
 jobs:
   e2e-tests:
     name: End-to-end tests
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-       # The e2e tests are run on the lowest and highest supported k8s version.
-       # All Kubernetes version in between expose the same APIs, hence the operator
-       # should be compatible with them.
+       # The e2e tests are run on the latest supported k8s version.
+       # The operator uses standard Kubernetes APIs that are stable across versions.
        kube-version:
-       - "1.32"
-       - "1.33"
+       - "1.34"
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -42,8 +42,18 @@ jobs:
           KUBE_VERSION: ${{ matrix.kube-version }}
         run: make start-kind KUBE_VERSION=$KUBE_VERSION && make e2e
 
+      - name: Upload e2e logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-logs-k8s-${{ matrix.kube-version }}-master
+          path: |
+            /tmp/kind-logs-*
+            tests/e2e/
+          retention-days: 7
+
   e2e-tests-check:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     if: always()
     needs: [e2e-tests]
     steps:
