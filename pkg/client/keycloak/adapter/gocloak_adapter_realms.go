@@ -15,15 +15,18 @@ import (
 )
 
 type RealmSettings struct {
-	Themes                 *RealmThemes
-	BrowserSecurityHeaders *map[string]string
-	PasswordPolicies       []PasswordPolicy
-	DisplayHTMLName        string
-	FrontendURL            string
-	TokenSettings          *TokenSettings
-	DisplayName            string
-	AdminEventsExpiration  *int
-	Login                  *RealmLogin
+	Themes                    *RealmThemes
+	BrowserSecurityHeaders    *map[string]string
+	PasswordPolicies          []PasswordPolicy
+	DisplayHTMLName           string
+	FrontendURL               string
+	TokenSettings             *TokenSettings
+	DisplayName               string
+	AdminEventsExpiration     *int
+	Login                     *RealmLogin
+	SSOSessionSettings        *SSOSessionSettings
+	SSOOfflineSessionSettings *SSOOfflineSessionSettings
+	SSOLoginSettings          *SSOLoginSettings
 }
 
 type PasswordPolicy struct {
@@ -59,6 +62,33 @@ type RealmLogin struct {
 	DuplicateEmails  bool
 	VerifyEmail      bool
 	EditUsername     bool
+}
+
+// SSOSessionSettings defines the SSO session settings for the realm.
+type SSOSessionSettings struct {
+	IdleTimeout           int
+	MaxLifespan           int
+	IdleTimeoutRememberMe int
+	MaxRememberMe         int
+}
+
+// SSOClientSessionSettings defines the SSO client session settings for the realm.
+type SSOClientSessionSettings struct {
+	IdleTimeout int
+	MaxLifespan int
+}
+
+// SSOOfflineSessionSettings defines the SSO offline session settings for the realm.
+type SSOOfflineSessionSettings struct {
+	IdleTimeout        int
+	MaxLifespanEnabled bool
+	MaxLifespan        int
+}
+
+// SSOLoginSettings defines the SSO login settings for the realm.
+type SSOLoginSettings struct {
+	AccessCodeLifespanLogin      int
+	AccessCodeLifespanUserAction int
 }
 
 func (a GoCloakAdapter) UpdateRealmSettings(realmName string, realmSettings *RealmSettings) error {
@@ -209,6 +239,24 @@ func setRealmSettings(realm *gocloak.RealmRepresentation, realmSettings *RealmSe
 		realm.DuplicateEmailsAllowed = gocloak.BoolP(realmSettings.Login.DuplicateEmails)
 		realm.VerifyEmail = gocloak.BoolP(realmSettings.Login.VerifyEmail)
 		realm.EditUsernameAllowed = gocloak.BoolP(realmSettings.Login.EditUsername)
+	}
+
+	if realmSettings.SSOSessionSettings != nil {
+		realm.SsoSessionIdleTimeout = gocloak.IntP(realmSettings.SSOSessionSettings.IdleTimeout)
+		realm.SsoSessionMaxLifespan = gocloak.IntP(realmSettings.SSOSessionSettings.MaxLifespan)
+		realm.SsoSessionIdleTimeoutRememberMe = gocloak.IntP(realmSettings.SSOSessionSettings.IdleTimeoutRememberMe)
+		realm.SsoSessionMaxLifespanRememberMe = gocloak.IntP(realmSettings.SSOSessionSettings.MaxRememberMe)
+	}
+
+	if realmSettings.SSOOfflineSessionSettings != nil {
+		realm.OfflineSessionIdleTimeout = gocloak.IntP(realmSettings.SSOOfflineSessionSettings.IdleTimeout)
+		realm.OfflineSessionMaxLifespanEnabled = gocloak.BoolP(realmSettings.SSOOfflineSessionSettings.MaxLifespanEnabled)
+		realm.OfflineSessionMaxLifespan = gocloak.IntP(realmSettings.SSOOfflineSessionSettings.MaxLifespan)
+	}
+
+	if realmSettings.SSOLoginSettings != nil {
+		realm.AccessCodeLifespanLogin = gocloak.IntP(realmSettings.SSOLoginSettings.AccessCodeLifespanLogin)
+		realm.AccessCodeLifespanUserAction = gocloak.IntP(realmSettings.SSOLoginSettings.AccessCodeLifespanUserAction)
 	}
 }
 
@@ -398,5 +446,44 @@ func ToRealmTokenSettings(tokenSettings *common.TokenSettings) *TokenSettings {
 		AccessCodeLifespan:                  tokenSettings.AccessCodeLifespan,
 		ActionTokenGeneratedByUserLifespan:  tokenSettings.ActionTokenGeneratedByUserLifespan,
 		ActionTokenGeneratedByAdminLifespan: tokenSettings.ActionTokenGeneratedByAdminLifespan,
+	}
+}
+
+// ToRealmSSOSessionSettings converts common.SSOSessionSettings to adapter.SSOSessionSettings.
+func ToRealmSSOSessionSettings(ssoSettings *common.RealmSSOSessionSettings) *SSOSessionSettings {
+	if ssoSettings == nil {
+		return nil
+	}
+
+	return &SSOSessionSettings{
+		IdleTimeout:           ssoSettings.IdleTimeout,
+		MaxLifespan:           ssoSettings.MaxLifespan,
+		IdleTimeoutRememberMe: ssoSettings.IdleTimeoutRememberMe,
+		MaxRememberMe:         ssoSettings.MaxLifespanRememberMe,
+	}
+}
+
+// ToRealmSSOOfflineSessionSettings converts common.RealmSSOOfflineSessionSettings to adapter.SSOOfflineSessionSettings.
+func ToRealmSSOOfflineSessionSettings(settings *common.RealmSSOOfflineSessionSettings) *SSOOfflineSessionSettings {
+	if settings == nil {
+		return nil
+	}
+
+	return &SSOOfflineSessionSettings{
+		IdleTimeout:        settings.IdleTimeout,
+		MaxLifespanEnabled: settings.MaxLifespanEnabled,
+		MaxLifespan:        settings.MaxLifespan,
+	}
+}
+
+// ToRealmSSOLoginSettings converts common.RealmSSOLoginSettings to adapter.SSOLoginSettings.
+func ToRealmSSOLoginSettings(settings *common.RealmSSOLoginSettings) *SSOLoginSettings {
+	if settings == nil {
+		return nil
+	}
+
+	return &SSOLoginSettings{
+		AccessCodeLifespanLogin:      settings.AccessCodeLifespanLogin,
+		AccessCodeLifespanUserAction: settings.AccessCodeLifespanUserAction,
 	}
 }

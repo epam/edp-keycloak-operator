@@ -248,4 +248,74 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "ClusterKeycloakRealm with Login should be deleted")
 	})
+	It("Should create ClusterKeycloakRealm with SSO Session settings", func() {
+		By("Creating ClusterKeycloakRealm with SSO Session settings")
+		keycloakRealmWithSSO := &keycloakAlpha.ClusterKeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cluster-keycloak-realm-sso-session",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
+				ClusterKeycloakRef: ClusterKeycloakCR,
+				RealmName:          "test-realm-sso-session",
+				Sessions: &common.RealmSessions{
+					SSOSessionSettings: &common.RealmSSOSessionSettings{
+						IdleTimeout:           1801,
+						MaxLifespan:           36002,
+						IdleTimeoutRememberMe: 3603,
+						MaxLifespanRememberMe: 72004,
+					},
+					SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+						IdleTimeout:        2592007,
+						MaxLifespanEnabled: true,
+						MaxLifespan:        5184008,
+					},
+					SSOLoginSettings: &common.RealmSSOLoginSettings{
+						AccessCodeLifespanLogin:      1809,
+						AccessCodeLifespanUserAction: 310,
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakRealmWithSSO)).Should(Succeed())
+
+		By("Waiting for ClusterKeycloakRealm to be available")
+		Eventually(func() bool {
+			createdKeycloakRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-cluster-keycloak-realm-sso-session"}, createdKeycloakRealm)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return createdKeycloakRealm.Status.Available
+		}, timeout, interval).Should(BeTrue())
+
+		By("Verifying the realm SSO session settings in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-sso-session")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			// Verify SSO session settings
+			g.Expect(realm.SsoSessionIdleTimeout).Should(Equal(gocloak.IntP(1801)))
+			g.Expect(realm.SsoSessionMaxLifespan).Should(Equal(gocloak.IntP(36002)))
+			g.Expect(realm.SsoSessionIdleTimeoutRememberMe).Should(Equal(gocloak.IntP(3603)))
+			g.Expect(realm.SsoSessionMaxLifespanRememberMe).Should(Equal(gocloak.IntP(72004)))
+
+			// Verify Offline session settings
+			g.Expect(realm.OfflineSessionIdleTimeout).Should(Equal(gocloak.IntP(2592007)))
+			g.Expect(realm.OfflineSessionMaxLifespanEnabled).Should(Equal(gocloak.BoolP(true)))
+			g.Expect(realm.OfflineSessionMaxLifespan).Should(Equal(gocloak.IntP(5184008)))
+
+			// Verify Login settings
+			g.Expect(realm.AccessCodeLifespanLogin).Should(Equal(gocloak.IntP(1809)))
+			g.Expect(realm.AccessCodeLifespanUserAction).Should(Equal(gocloak.IntP(310)))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Deleting ClusterKeycloakRealm with SSO Session settings")
+		Expect(k8sClient.Delete(ctx, keycloakRealmWithSSO)).Should(Succeed())
+		Eventually(func() bool {
+			deletedRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-cluster-keycloak-realm-sso-session"}, deletedRealm)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "ClusterKeycloakRealm with SSO Session should be deleted")
+	})
 })

@@ -3,6 +3,7 @@ package realmbuilder
 import (
 	"fmt"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -112,6 +113,8 @@ func (b *SettingsBuilder) BuildFromV1(realm *keycloakApi.KeycloakRealm) adapter.
 		}
 	}
 
+	setSessionSettings(&settings, realm.Spec.Sessions)
+
 	return settings
 }
 
@@ -168,7 +171,19 @@ func (b *SettingsBuilder) BuildFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm
 		}
 	}
 
+	setSessionSettings(&settings, realm.Spec.Sessions)
+
 	return settings
+}
+
+func setSessionSettings(settings *adapter.RealmSettings, sessions *common.RealmSessions) {
+	if sessions == nil {
+		return
+	}
+
+	settings.SSOSessionSettings = adapter.ToRealmSSOSessionSettings(sessions.SSOSessionSettings)
+	settings.SSOOfflineSessionSettings = adapter.ToRealmSSOOfflineSessionSettings(sessions.SSOOfflineSessionSettings)
+	settings.SSOLoginSettings = adapter.ToRealmSSOLoginSettings(sessions.SSOLoginSettings)
 }
 
 func makePasswordPoliciesFromV1(policiesSpec []keycloakApi.PasswordPolicy) []adapter.PasswordPolicy {

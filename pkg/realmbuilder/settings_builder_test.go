@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -231,8 +232,57 @@ func TestSettingsBuilder_BuildFromV1(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "with all session types",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "test-realm",
+					Login: &keycloakApi.RealmLogin{
+						RememberMe: true,
+					},
+					Sessions: &common.RealmSessions{
+						SSOSessionSettings: &common.RealmSSOSessionSettings{
+							IdleTimeout:           1800,
+							MaxLifespan:           36000,
+							IdleTimeoutRememberMe: 3600,
+							MaxLifespanRememberMe: 72000,
+						},
+						SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+							IdleTimeout:        2592000,
+							MaxLifespanEnabled: true,
+							MaxLifespan:        5184000,
+						},
+						SSOLoginSettings: &common.RealmSSOLoginSettings{
+							AccessCodeLifespanLogin:      1800,
+							AccessCodeLifespanUserAction: 300,
+						},
+					},
+				},
+			},
+			want: adapter.RealmSettings{
+				Login: &adapter.RealmLogin{
+					RememberMe: true,
+				},
+				SSOSessionSettings: &adapter.SSOSessionSettings{
+					IdleTimeout:           1800,
+					MaxLifespan:           36000,
+					IdleTimeoutRememberMe: 3600,
+					MaxRememberMe:         72000,
+				},
+				SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: true,
+					MaxLifespan:        5184000,
+				},
+				SSOLoginSettings: &adapter.SSOLoginSettings{
+					AccessCodeLifespanLogin:      1800,
+					AccessCodeLifespanUserAction: 300,
+				},
+			},
+		},
 	}
 
+	//nolint:dupl // Duplicate assertion pattern aids readability in testing BuildFromV1 and BuildFromV1Alpha1 separately
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := builder.BuildFromV1(tt.realm)
@@ -245,6 +295,9 @@ func TestSettingsBuilder_BuildFromV1(t *testing.T) {
 			assert.Equal(t, tt.want.Login, got.Login)
 			assert.Equal(t, tt.want.AdminEventsExpiration, got.AdminEventsExpiration)
 			assert.Equal(t, tt.want.BrowserSecurityHeaders, got.BrowserSecurityHeaders)
+			assert.Equal(t, tt.want.SSOSessionSettings, got.SSOSessionSettings)
+			assert.Equal(t, tt.want.SSOOfflineSessionSettings, got.SSOOfflineSessionSettings)
+			assert.Equal(t, tt.want.SSOLoginSettings, got.SSOLoginSettings)
 		})
 	}
 }
@@ -407,8 +460,51 @@ func TestSettingsBuilder_BuildFromV1Alpha1(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "with all session types",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					RealmName: "test-realm",
+					Sessions: &common.RealmSessions{
+						SSOSessionSettings: &common.RealmSSOSessionSettings{
+							IdleTimeout:           1800,
+							MaxLifespan:           36000,
+							IdleTimeoutRememberMe: 3600,
+							MaxLifespanRememberMe: 72000,
+						},
+						SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+							IdleTimeout:        2592000,
+							MaxLifespanEnabled: true,
+							MaxLifespan:        5184000,
+						},
+						SSOLoginSettings: &common.RealmSSOLoginSettings{
+							AccessCodeLifespanLogin:      1800,
+							AccessCodeLifespanUserAction: 300,
+						},
+					},
+				},
+			},
+			want: adapter.RealmSettings{
+				SSOSessionSettings: &adapter.SSOSessionSettings{
+					IdleTimeout:           1800,
+					MaxLifespan:           36000,
+					IdleTimeoutRememberMe: 3600,
+					MaxRememberMe:         72000,
+				},
+				SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: true,
+					MaxLifespan:        5184000,
+				},
+				SSOLoginSettings: &adapter.SSOLoginSettings{
+					AccessCodeLifespanLogin:      1800,
+					AccessCodeLifespanUserAction: 300,
+				},
+			},
+		},
 	}
 
+	//nolint:dupl // Duplicate assertion pattern aids readability in testing BuildFromV1 and BuildFromV1Alpha1 separately
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := builder.BuildFromV1Alpha1(tt.realm)
@@ -421,6 +517,9 @@ func TestSettingsBuilder_BuildFromV1Alpha1(t *testing.T) {
 			assert.Equal(t, tt.want.AdminEventsExpiration, got.AdminEventsExpiration)
 			assert.Equal(t, tt.want.BrowserSecurityHeaders, got.BrowserSecurityHeaders)
 			assert.Equal(t, tt.want.Login, got.Login)
+			assert.Equal(t, tt.want.SSOSessionSettings, got.SSOSessionSettings)
+			assert.Equal(t, tt.want.SSOOfflineSessionSettings, got.SSOOfflineSessionSettings)
+			assert.Equal(t, tt.want.SSOLoginSettings, got.SSOLoginSettings)
 		})
 	}
 }

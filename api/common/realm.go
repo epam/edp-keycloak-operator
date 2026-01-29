@@ -222,3 +222,78 @@ type EmailAuthentication struct {
 	// +required
 	Password SourceRef `json:"password"`
 }
+
+type RealmSessions struct {
+	// SSOSessionSettings defines the SSO session settings for the realm.
+	// +optional
+	SSOSessionSettings *RealmSSOSessionSettings `json:"ssoSessionSettings,omitempty"`
+
+	// SSOOfflineSessionSettings defines the SSO offline session settings for the realm.
+	// +optional
+	SSOOfflineSessionSettings *RealmSSOOfflineSessionSettings `json:"ssoOfflineSessionSettings,omitempty"`
+
+	// SSOLoginSettings defines the SSO login settings for the realm.
+	// +optional
+	SSOLoginSettings *RealmSSOLoginSettings `json:"ssoLoginSettings,omitempty"`
+}
+
+// RealmSSOSessionSettings defines the SSO session settings for the realm.
+type RealmSSOSessionSettings struct {
+	// IdleTimeout represents the time a session is allowed to be idle before it expires.
+	// Tokens and browser sessions are invalidated when a session is expired.
+	// +optional
+	// +kubebuilder:default=1800
+	IdleTimeout int `json:"idleTimeout,omitempty"`
+
+	// MaxLifespan represents the max time before a session is expired.
+	// Tokens and browser sessions are invalidated when a session is expired.
+	// +optional
+	// +kubebuilder:default=36000
+	MaxLifespan int `json:"maxLifespan,omitempty"`
+
+	// IdleTimeoutRememberMe represents the time a session is allowed to be idle before it expires.
+	// Tokens and browser sessions are invalidated when a session is expired.
+	// If not set it uses the standard ssoSessionIdle value.
+	// +optional
+	// +kubebuilder:default=0
+	IdleTimeoutRememberMe int `json:"idleTimeoutRememberMe,omitempty"`
+
+	// MaxLifespanRememberMe represents the max time before a session is expired when a user has set the remember me option.
+	// Tokens and browser sessions are invalidated when a session is expired.
+	// If not set it uses the standard ssoSessionMax value.
+	// +optional
+	// +kubebuilder:default=0
+	MaxLifespanRememberMe int `json:"maxLifespanRememberMe,omitempty"`
+}
+
+// RealmSSOOfflineSessionSettings defines the SSO offline session settings for the realm.
+type RealmSSOOfflineSessionSettings struct {
+	// IdleTimeout represents the time an offline session is allowed to be idle before it expires.
+	// You need to use offline token to refresh at least once within this period; otherwise offline session will expire.
+	// +optional
+	// +kubebuilder:default=2592000
+	IdleTimeout int `json:"idleTimeout,omitempty"`
+
+	// MaxLifespanEnabled enables the offline session maximum lifetime.
+	// +optional
+	// +kubebuilder:default=false
+	MaxLifespanEnabled bool `json:"maxLifespanEnabled,omitempty"`
+
+	// MaxLifespan represents the max time before an offline session is expired regardless of activity.
+	// +optional
+	// +kubebuilder:default=5184000
+	MaxLifespan int `json:"maxLifespan,omitempty"`
+}
+
+// RealmSSOLoginSettings defines the SSO login settings for the realm.
+type RealmSSOLoginSettings struct {
+	// AccessCodeLifespanLogin represents the max time a user has to complete a login. This is recommended to be relatively long, such as 30 minutes or more.
+	// +optional
+	// +kubebuilder:default=1800
+	AccessCodeLifespanLogin int `json:"accessCodeLifespanLogin,omitempty"`
+
+	// AccessCodeLifespanUserAction represents the max time a user has to complete login related actions like update password or configure totp. This is recommended to be relatively long, such as 5 minutes or more.
+	// +optional
+	// +kubebuilder:default=300
+	AccessCodeLifespanUserAction int `json:"accessCodeLifespanUserAction,omitempty"`
+}
