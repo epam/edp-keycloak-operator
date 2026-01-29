@@ -178,6 +178,13 @@ identity provider groupings, and domain-based user routing.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecsessions">sessions</a></b></td>
+        <td>object</td>
+        <td>
+          Sessions defines the session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#clusterkeycloakrealmspecsmtp">smtp</a></b></td>
         <td>object</td>
         <td>
@@ -453,6 +460,195 @@ Expired events are periodically deleted from the database.<br/>
         <td>[]string</td>
         <td>
           EventsListeners is a list of event listeners to enable.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.sessions
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+Sessions defines the session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakrealmspecsessionsssologinsettings">ssoLoginSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOLoginSettings defines the SSO login settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecsessionsssoofflinesessionsettings">ssoOfflineSessionSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOOfflineSessionSettings defines the SSO offline session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecsessionsssosessionsettings">ssoSessionSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOSessionSettings defines the SSO session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.sessions.ssoLoginSettings
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOLoginSettings defines the SSO login settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accessCodeLifespanLogin</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanLogin represents the max time a user has to complete a login. This is recommended to be relatively long, such as 30 minutes or more.<br/>
+          <br/>
+            <i>Default</i>: 1800<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessCodeLifespanUserAction</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanUserAction represents the max time a user has to complete login related actions like update password or configure totp. This is recommended to be relatively long, such as 5 minutes or more.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.sessions.ssoOfflineSessionSettings
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOOfflineSessionSettings defines the SSO offline session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>idleTimeout</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeout represents the time an offline session is allowed to be idle before it expires.
+You need to use offline token to refresh at least once within this period; otherwise offline session will expire.<br/>
+          <br/>
+            <i>Default</i>: 2592000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespan</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespan represents the max time before an offline session is expired regardless of activity.<br/>
+          <br/>
+            <i>Default</i>: 5184000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespanEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          MaxLifespanEnabled enables the offline session maximum lifetime.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.sessions.ssoSessionSettings
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOSessionSettings defines the SSO session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>idleTimeout</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeout represents the time a session is allowed to be idle before it expires.
+Tokens and browser sessions are invalidated when a session is expired.<br/>
+          <br/>
+            <i>Default</i>: 1800<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>idleTimeoutRememberMe</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeoutRememberMe represents the time a session is allowed to be idle before it expires.
+Tokens and browser sessions are invalidated when a session is expired.
+If not set it uses the standard ssoSessionIdle value.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespan</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespan represents the max time before a session is expired.
+Tokens and browser sessions are invalidated when a session is expired.<br/>
+          <br/>
+            <i>Default</i>: 36000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespanRememberMe</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespanRememberMe represents the max time before a session is expired when a user has set the remember me option.
+Tokens and browser sessions are invalidated when a session is expired.
+If not set it uses the standard ssoSessionMax value.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5517,6 +5713,13 @@ identity provider groupings, and domain-based user routing.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmspecsessions">sessions</a></b></td>
+        <td>object</td>
+        <td>
+          Sessions defines the session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakrealmspecsmtp">smtp</a></b></td>
         <td>object</td>
         <td>
@@ -5784,6 +5987,195 @@ Expired events are periodically deleted from the database.<br/>
         <td>[]string</td>
         <td>
           EventsListeners is a list of event listeners to enable.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.sessions
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+Sessions defines the session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakrealmspecsessionsssologinsettings">ssoLoginSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOLoginSettings defines the SSO login settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmspecsessionsssoofflinesessionsettings">ssoOfflineSessionSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOOfflineSessionSettings defines the SSO offline session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmspecsessionsssosessionsettings">ssoSessionSettings</a></b></td>
+        <td>object</td>
+        <td>
+          SSOSessionSettings defines the SSO session settings for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.sessions.ssoLoginSettings
+<sup><sup>[↩ Parent](#keycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOLoginSettings defines the SSO login settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accessCodeLifespanLogin</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanLogin represents the max time a user has to complete a login. This is recommended to be relatively long, such as 30 minutes or more.<br/>
+          <br/>
+            <i>Default</i>: 1800<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>accessCodeLifespanUserAction</b></td>
+        <td>integer</td>
+        <td>
+          AccessCodeLifespanUserAction represents the max time a user has to complete login related actions like update password or configure totp. This is recommended to be relatively long, such as 5 minutes or more.<br/>
+          <br/>
+            <i>Default</i>: 300<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.sessions.ssoOfflineSessionSettings
+<sup><sup>[↩ Parent](#keycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOOfflineSessionSettings defines the SSO offline session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>idleTimeout</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeout represents the time an offline session is allowed to be idle before it expires.
+You need to use offline token to refresh at least once within this period; otherwise offline session will expire.<br/>
+          <br/>
+            <i>Default</i>: 2592000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespan</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespan represents the max time before an offline session is expired regardless of activity.<br/>
+          <br/>
+            <i>Default</i>: 5184000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespanEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          MaxLifespanEnabled enables the offline session maximum lifetime.<br/>
+          <br/>
+            <i>Default</i>: false<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.sessions.ssoSessionSettings
+<sup><sup>[↩ Parent](#keycloakrealmspecsessions)</sup></sup>
+
+
+
+SSOSessionSettings defines the SSO session settings for the realm.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>idleTimeout</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeout represents the time a session is allowed to be idle before it expires.
+Tokens and browser sessions are invalidated when a session is expired.<br/>
+          <br/>
+            <i>Default</i>: 1800<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>idleTimeoutRememberMe</b></td>
+        <td>integer</td>
+        <td>
+          IdleTimeoutRememberMe represents the time a session is allowed to be idle before it expires.
+Tokens and browser sessions are invalidated when a session is expired.
+If not set it uses the standard ssoSessionIdle value.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespan</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespan represents the max time before a session is expired.
+Tokens and browser sessions are invalidated when a session is expired.<br/>
+          <br/>
+            <i>Default</i>: 36000<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxLifespanRememberMe</b></td>
+        <td>integer</td>
+        <td>
+          MaxLifespanRememberMe represents the max time before a session is expired when a user has set the remember me option.
+Tokens and browser sessions are invalidated when a session is expired.
+If not set it uses the standard ssoSessionMax value.<br/>
+          <br/>
+            <i>Default</i>: 0<br/>
         </td>
         <td>false</td>
       </tr></tbody>

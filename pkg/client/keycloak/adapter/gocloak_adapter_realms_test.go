@@ -175,6 +175,118 @@ func TestGoCloakAdapter_UpdateRealmSettings_WithLogin(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestGoCloakAdapter_UpdateRealmSettings_WithSSOSessionSettings(t *testing.T) {
+	adapter, mockClient := initRealmsAdapter(t, nil)
+
+	settings := RealmSettings{
+		SSOSessionSettings: &SSOSessionSettings{
+			IdleTimeout:           1800,
+			MaxLifespan:           36000,
+			IdleTimeoutRememberMe: 3600,
+			MaxRememberMe:         86400,
+		},
+	}
+	realmName := "realm-with-sso-session"
+
+	realm := gocloak.RealmRepresentation{}
+	mockClient.EXPECT().GetRealm(mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.EXPECT().UpdateRealm(mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, gocloak.IntP(1800), realm.SsoSessionIdleTimeout) &&
+			assert.Equal(t, gocloak.IntP(36000), realm.SsoSessionMaxLifespan) &&
+			assert.Equal(t, gocloak.IntP(3600), realm.SsoSessionIdleTimeoutRememberMe) &&
+			assert.Equal(t, gocloak.IntP(86400), realm.SsoSessionMaxLifespanRememberMe)
+	})).Return(nil)
+
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
+}
+
+func TestGoCloakAdapter_UpdateRealmSettings_WithSSOOfflineSessionSettings(t *testing.T) {
+	adapter, mockClient := initRealmsAdapter(t, nil)
+
+	settings := RealmSettings{
+		SSOOfflineSessionSettings: &SSOOfflineSessionSettings{
+			IdleTimeout:        2592000,
+			MaxLifespanEnabled: true,
+			MaxLifespan:        5184000,
+		},
+	}
+	realmName := "realm-with-sso-offline-session"
+
+	realm := gocloak.RealmRepresentation{}
+	mockClient.EXPECT().GetRealm(mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.EXPECT().UpdateRealm(mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, gocloak.IntP(2592000), realm.OfflineSessionIdleTimeout) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.OfflineSessionMaxLifespanEnabled) &&
+			assert.Equal(t, gocloak.IntP(5184000), realm.OfflineSessionMaxLifespan)
+	})).Return(nil)
+
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
+}
+
+func TestGoCloakAdapter_UpdateRealmSettings_WithSSOLoginSettings(t *testing.T) {
+	adapter, mockClient := initRealmsAdapter(t, nil)
+
+	settings := RealmSettings{
+		SSOLoginSettings: &SSOLoginSettings{
+			AccessCodeLifespanLogin:      1800,
+			AccessCodeLifespanUserAction: 300,
+		},
+	}
+	realmName := "realm-with-sso-login"
+
+	realm := gocloak.RealmRepresentation{}
+	mockClient.EXPECT().GetRealm(mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.EXPECT().UpdateRealm(mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, gocloak.IntP(1800), realm.AccessCodeLifespanLogin) &&
+			assert.Equal(t, gocloak.IntP(300), realm.AccessCodeLifespanUserAction)
+	})).Return(nil)
+
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
+}
+
+func TestGoCloakAdapter_UpdateRealmSettings_WithAllSSOSettings(t *testing.T) {
+	adapter, mockClient := initRealmsAdapter(t, nil)
+
+	settings := RealmSettings{
+		SSOSessionSettings: &SSOSessionSettings{
+			IdleTimeout:           1800,
+			MaxLifespan:           36000,
+			IdleTimeoutRememberMe: 3600,
+			MaxRememberMe:         86400,
+		},
+		SSOOfflineSessionSettings: &SSOOfflineSessionSettings{
+			IdleTimeout:        2592000,
+			MaxLifespanEnabled: true,
+			MaxLifespan:        5184000,
+		},
+		SSOLoginSettings: &SSOLoginSettings{
+			AccessCodeLifespanLogin:      1800,
+			AccessCodeLifespanUserAction: 300,
+		},
+	}
+	realmName := "realm-with-all-sso-settings"
+
+	realm := gocloak.RealmRepresentation{}
+	mockClient.EXPECT().GetRealm(mock.Anything, adapter.token.AccessToken, realmName).Return(&realm, nil)
+	mockClient.EXPECT().UpdateRealm(mock.Anything, "token", mock.MatchedBy(func(realm gocloak.RealmRepresentation) bool {
+		return assert.Equal(t, gocloak.IntP(1800), realm.SsoSessionIdleTimeout) &&
+			assert.Equal(t, gocloak.IntP(36000), realm.SsoSessionMaxLifespan) &&
+			assert.Equal(t, gocloak.IntP(3600), realm.SsoSessionIdleTimeoutRememberMe) &&
+			assert.Equal(t, gocloak.IntP(86400), realm.SsoSessionMaxLifespanRememberMe) &&
+			assert.Equal(t, gocloak.IntP(2592000), realm.OfflineSessionIdleTimeout) &&
+			assert.Equal(t, gocloak.BoolP(true), realm.OfflineSessionMaxLifespanEnabled) &&
+			assert.Equal(t, gocloak.IntP(5184000), realm.OfflineSessionMaxLifespan) &&
+			assert.Equal(t, gocloak.IntP(1800), realm.AccessCodeLifespanLogin) &&
+			assert.Equal(t, gocloak.IntP(300), realm.AccessCodeLifespanUserAction)
+	})).Return(nil)
+
+	err := adapter.UpdateRealmSettings(realmName, &settings)
+	require.NoError(t, err)
+}
+
 func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	currentMapperID := "mp1id"
 	realmName := "sso-realm-1"
@@ -572,4 +684,144 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSessionSettingsConversions(t *testing.T) {
+	t.Run("ToRealmSSOSessionSettings", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			settings *common.RealmSSOSessionSettings
+			want     *SSOSessionSettings
+		}{
+			{
+				name:     "nil settings returns nil",
+				settings: nil,
+				want:     nil,
+			},
+			{
+				name: "converts all fields correctly",
+				settings: &common.RealmSSOSessionSettings{
+					IdleTimeout:           1800,
+					MaxLifespan:           36000,
+					IdleTimeoutRememberMe: 3600,
+					MaxLifespanRememberMe: 86400,
+				},
+				want: &SSOSessionSettings{
+					IdleTimeout:           1800,
+					MaxLifespan:           36000,
+					IdleTimeoutRememberMe: 3600,
+					MaxRememberMe:         86400,
+				},
+			},
+			{
+				name: "converts zero values correctly",
+				settings: &common.RealmSSOSessionSettings{
+					IdleTimeout:           0,
+					MaxLifespan:           0,
+					IdleTimeoutRememberMe: 0,
+					MaxLifespanRememberMe: 0,
+				},
+				want: &SSOSessionSettings{
+					IdleTimeout:           0,
+					MaxLifespan:           0,
+					IdleTimeoutRememberMe: 0,
+					MaxRememberMe:         0,
+				},
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := ToRealmSSOSessionSettings(tt.settings)
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
+
+	t.Run("ToRealmSSOOfflineSessionSettings", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			settings *common.RealmSSOOfflineSessionSettings
+			want     *SSOOfflineSessionSettings
+		}{
+			{
+				name:     "nil settings returns nil",
+				settings: nil,
+				want:     nil,
+			},
+			{
+				name: "converts all fields correctly",
+				settings: &common.RealmSSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: true,
+					MaxLifespan:        5184000,
+				},
+				want: &SSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: true,
+					MaxLifespan:        5184000,
+				},
+			},
+			{
+				name: "converts with disabled max lifespan",
+				settings: &common.RealmSSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: false,
+					MaxLifespan:        0,
+				},
+				want: &SSOOfflineSessionSettings{
+					IdleTimeout:        2592000,
+					MaxLifespanEnabled: false,
+					MaxLifespan:        0,
+				},
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := ToRealmSSOOfflineSessionSettings(tt.settings)
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
+
+	t.Run("ToRealmSSOLoginSettings", func(t *testing.T) {
+		tests := []struct {
+			name     string
+			settings *common.RealmSSOLoginSettings
+			want     *SSOLoginSettings
+		}{
+			{
+				name:     "nil settings returns nil",
+				settings: nil,
+				want:     nil,
+			},
+			{
+				name: "converts all fields correctly",
+				settings: &common.RealmSSOLoginSettings{
+					AccessCodeLifespanLogin:      1800,
+					AccessCodeLifespanUserAction: 300,
+				},
+				want: &SSOLoginSettings{
+					AccessCodeLifespanLogin:      1800,
+					AccessCodeLifespanUserAction: 300,
+				},
+			},
+			{
+				name: "converts zero values correctly",
+				settings: &common.RealmSSOLoginSettings{
+					AccessCodeLifespanLogin:      0,
+					AccessCodeLifespanUserAction: 0,
+				},
+				want: &SSOLoginSettings{
+					AccessCodeLifespanLogin:      0,
+					AccessCodeLifespanUserAction: 0,
+				},
+			},
+		}
+		for _, tt := range tests {
+			t.Run(tt.name, func(t *testing.T) {
+				got := ToRealmSSOLoginSettings(tt.settings)
+				assert.Equal(t, tt.want, got)
+			})
+		}
+	})
 }

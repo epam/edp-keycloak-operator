@@ -68,3 +68,16 @@ spec:
         displayHeader: "Test Group"
         annotations:
           groupAnnotation: "groupAnnotation"
+  sessions:
+    ssoLoginSettings:
+      accessCodeLifespanLogin: 1800      # 30 minutes
+      accessCodeLifespanUserAction: 300  # 5 minutes
+    ssoSessionSettings:
+      idleTimeout: 1800                  # 30 minutes
+      idleTimeoutRememberMe: 604800      # 7 days
+      maxLifespan: 36000                 # 10 hours
+      maxLifespanRememberMe: 2592000     # 30 days
+    ssoOfflineSessionSettings:
+      idleTimeout: 2592000               # 30 days
+      maxLifespan: 5184000               # 60 days
+      maxLifespanEnabled: true

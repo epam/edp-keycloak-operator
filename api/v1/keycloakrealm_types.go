@@ -92,6 +92,10 @@ type KeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	Login *RealmLogin `json:"login,omitempty"`
+
+	// Sessions defines the session settings for the realm.
+	// +optional
+	Sessions *common.RealmSessions `json:"sessions,omitempty"`
 }
 
 type User struct {

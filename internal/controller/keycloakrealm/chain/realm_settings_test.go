@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
@@ -125,6 +126,67 @@ func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 			DuplicateEmails:  false,
 			VerifyEmail:      true,
 			EditUsername:     false,
+		},
+		DisplayHTMLName: "",
+		FrontendURL:     "",
+		DisplayName:     "",
+	}).Return(nil)
+	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
+
+	err := rs.ServeRequest(context.Background(), &realm, kClient)
+	require.NoError(t, err)
+}
+
+func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
+	rs := RealmSettings{
+		settingsBuilder: realmbuilder.NewSettingsBuilder(),
+	}
+	kClient := mocks.NewMockClient(t)
+
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
+			RealmName: "realm-with-sso-session",
+			Login: &keycloakApi.RealmLogin{
+				RememberMe: true,
+			},
+			Sessions: &common.RealmSessions{
+				SSOSessionSettings: &common.RealmSSOSessionSettings{
+					IdleTimeout:           1801,
+					MaxLifespan:           36002,
+					IdleTimeoutRememberMe: 3603,
+					MaxLifespanRememberMe: 72004,
+				},
+				SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+					IdleTimeout:        2592007,
+					MaxLifespanEnabled: true,
+					MaxLifespan:        5184008,
+				},
+				SSOLoginSettings: &common.RealmSSOLoginSettings{
+					AccessCodeLifespanLogin:      1809,
+					AccessCodeLifespanUserAction: 310,
+				},
+			},
+		},
+	}
+
+	kClient.EXPECT().UpdateRealmSettings(realm.Spec.RealmName, &adapter.RealmSettings{
+		Login: &adapter.RealmLogin{
+			RememberMe: true,
+		},
+		SSOSessionSettings: &adapter.SSOSessionSettings{
+			IdleTimeout:           1801,
+			MaxLifespan:           36002,
+			IdleTimeoutRememberMe: 3603,
+			MaxRememberMe:         72004,
+		},
+		SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
+			IdleTimeout:        2592007,
+			MaxLifespanEnabled: true,
+			MaxLifespan:        5184008,
+		},
+		SSOLoginSettings: &adapter.SSOLoginSettings{
+			AccessCodeLifespanLogin:      1809,
+			AccessCodeLifespanUserAction: 310,
 		},
 		DisplayHTMLName: "",
 		FrontendURL:     "",

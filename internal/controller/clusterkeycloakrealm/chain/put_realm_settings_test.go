@@ -412,3 +412,130 @@ func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 		})
 	}
 }
+
+func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
+	tests := []struct {
+		name          string
+		realm         *v1alpha1.ClusterKeycloakRealm
+		setupMocks    func(*mocks.MockClient)
+		expectedError require.ErrorAssertionFunc
+	}{
+		{
+			name: "successful realm settings update with all session types",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					RealmName: "test-realm",
+					Sessions: &common.RealmSessions{
+						SSOSessionSettings: &common.RealmSSOSessionSettings{
+							IdleTimeout:           1800,
+							MaxLifespan:           36000,
+							IdleTimeoutRememberMe: 3600,
+							MaxLifespanRememberMe: 72000,
+						},
+						SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+							IdleTimeout:        2592000,
+							MaxLifespanEnabled: true,
+							MaxLifespan:        5184000,
+						},
+						SSOLoginSettings: &common.RealmSSOLoginSettings{
+							AccessCodeLifespanLogin:      1800,
+							AccessCodeLifespanUserAction: 300,
+						},
+					},
+				},
+			},
+			setupMocks: func(mockClient *mocks.MockClient) {
+				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
+					FrontendURL:     "",
+					DisplayHTMLName: "",
+					DisplayName:     "",
+					SSOSessionSettings: &adapter.SSOSessionSettings{
+						IdleTimeout:           1800,
+						MaxLifespan:           36000,
+						IdleTimeoutRememberMe: 3600,
+						MaxRememberMe:         72000,
+					},
+					SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
+						IdleTimeout:        2592000,
+						MaxLifespanEnabled: true,
+						MaxLifespan:        5184000,
+					},
+					SSOLoginSettings: &adapter.SSOLoginSettings{
+						AccessCodeLifespanLogin:      1800,
+						AccessCodeLifespanUserAction: 300,
+					},
+				}).Return(nil)
+				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
+			},
+			expectedError: require.NoError,
+		},
+		{
+			name: "successful realm settings update with all session types and login",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					RealmName: "test-realm",
+					Login: &v1.RealmLogin{
+						RememberMe: true,
+					},
+					Sessions: &common.RealmSessions{
+						SSOSessionSettings: &common.RealmSSOSessionSettings{
+							IdleTimeout:           1800,
+							MaxLifespan:           36000,
+							IdleTimeoutRememberMe: 3600,
+							MaxLifespanRememberMe: 72000,
+						},
+						SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
+							IdleTimeout:        2592000,
+							MaxLifespanEnabled: true,
+							MaxLifespan:        5184000,
+						},
+						SSOLoginSettings: &common.RealmSSOLoginSettings{
+							AccessCodeLifespanLogin:      1800,
+							AccessCodeLifespanUserAction: 300,
+						},
+					},
+				},
+			},
+			setupMocks: func(mockClient *mocks.MockClient) {
+				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
+					FrontendURL:     "",
+					DisplayHTMLName: "",
+					DisplayName:     "",
+					Login: &adapter.RealmLogin{
+						RememberMe: true,
+					},
+					SSOSessionSettings: &adapter.SSOSessionSettings{
+						IdleTimeout:           1800,
+						MaxLifespan:           36000,
+						IdleTimeoutRememberMe: 3600,
+						MaxRememberMe:         72000,
+					},
+					SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
+						IdleTimeout:        2592000,
+						MaxLifespanEnabled: true,
+						MaxLifespan:        5184000,
+					},
+					SSOLoginSettings: &adapter.SSOLoginSettings{
+						AccessCodeLifespanLogin:      1800,
+						AccessCodeLifespanUserAction: 300,
+					},
+				}).Return(nil)
+				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
+			},
+			expectedError: require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctx := context.Background()
+			mockClient := mocks.NewMockClient(t)
+			tt.setupMocks(mockClient)
+
+			handler := NewPutRealmSettings()
+
+			err := handler.ServeRequest(ctx, tt.realm, mockClient)
+			tt.expectedError(t, err)
+		})
+	}
+}

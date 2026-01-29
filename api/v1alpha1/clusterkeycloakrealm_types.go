@@ -85,6 +85,10 @@ type ClusterKeycloakRealmSpec struct {
 	// +nullable
 	// +optional
 	Login *v1.RealmLogin `json:"login,omitempty"`
+
+	// Sessions defines the session settings for the realm.
+	// +optional
+	Sessions *common.RealmSessions `json:"sessions,omitempty"`
 }
 
 type AuthenticationFlow struct {
