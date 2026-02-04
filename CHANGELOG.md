@@ -3,7 +3,7 @@
 
 
 <a name="v1.32.0"></a>
-## v1.32.0 - 2026-01-29
+## v1.32.0 - 2026-02-04
 ### Features
 - Add SSO session settings support for KeycloakRealm ([#274](https://github.com/epam/edp-keycloak-operator/issues/274))
 - add cluster domain for DNS name construction in kubernetes services and webhook certificates
