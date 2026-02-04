@@ -1,7 +1,18 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.32.0"></a>
+## [v1.32.0] - 2026-02-04
+### Features
+- Add SSO session settings support for KeycloakRealm ([#274](https://github.com/epam/edp-keycloak-operator/issues/274))
+- add cluster domain for DNS name construction in kubernetes services and webhook certificates
+
+### Bug Fixes
+- Proceed to next group in list if SubGroups is an empty slice
+
 ### Routine
+- Update current development version ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
 - Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
 - Update current development version ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
 
@@ -315,7 +326,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...HEAD
+[v1.32.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...v1.32.0
 [v1.31.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...v1.31.1
 [v1.31.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...v1.31.0
 [v1.30.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.29.0...v1.30.0
