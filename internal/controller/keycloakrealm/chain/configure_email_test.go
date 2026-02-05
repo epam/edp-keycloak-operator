@@ -220,6 +220,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 					),
 					tt.realm,
 					tt.kClient(t),
+					nil,
 				),
 			)
 		})

@@ -36,7 +36,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 				}
 			},
 			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -54,7 +54,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 				}
 			},
 			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -73,7 +73,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
 					Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -94,7 +94,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					Return(false, nil)
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
 					Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -126,7 +126,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user2", "role3").
 					Return(nil)
 
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -181,7 +181,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 				}
 			},
 			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything).Return(errors.New("next handler error"))
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("next handler error"))
 			},
 			expectError:   true,
 			errorContains: "chain failed",
@@ -283,7 +283,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 			tt.setupMocks(kClient, nextHandler)
 
 			// Execute
-			err := putUsersRoles.ServeRequest(ctx, realm, kClient)
+			err := putUsersRoles.ServeRequest(ctx, realm, kClient, nil)
 
 			// Assert
 			if tt.expectError {

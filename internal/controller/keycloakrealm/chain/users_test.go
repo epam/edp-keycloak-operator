@@ -68,7 +68,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 							},
 						},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -130,7 +130,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 							},
 						},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -176,7 +176,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 							},
 						},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -209,7 +209,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 						},
 						Users: []keycloakApi.User{},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -257,7 +257,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 							},
 						},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -318,7 +318,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 							},
 						},
 					},
-				}, mockClient).Return(nil)
+				}, mockClient, mock.Anything).Return(nil)
 			},
 			expectedError: "",
 		},
@@ -477,7 +477,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			tt.mockSetup(mockClient, mockNext)
 
 			// Execute the method
-			err := putUsers.ServeRequest(context.Background(), tt.realm, mockClient)
+			err := putUsers.ServeRequest(context.Background(), tt.realm, mockClient, nil)
 
 			// Assert the result
 			if tt.expectedError != "" {

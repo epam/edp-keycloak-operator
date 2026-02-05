@@ -8,7 +8,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -16,13 +15,15 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestUserProfileConfigSpecToModel(t *testing.T) {
 	tests := []struct {
 		name string
 		spec *common.UserProfileConfig
-		want keycloak_go_client.UserProfileConfig
+		want keycloakv2.UserProfileConfig
 	}{
 		{
 			name: "should convert spec to model",
@@ -80,23 +81,23 @@ func TestUserProfileConfigSpecToModel(t *testing.T) {
 					},
 				},
 			},
-			want: keycloak_go_client.UserProfileConfig{
-				UnmanagedAttributePolicy: ptr.To(keycloak_go_client.UnmanagedAttributePolicy("ENABLED")),
-				Attributes: &[]keycloak_go_client.UserProfileAttribute{
+			want: keycloakv2.UserProfileConfig{
+				UnmanagedAttributePolicy: ptr.To(keycloakv2.UnmanagedAttributePolicy("ENABLED")),
+				Attributes: &[]keycloakv2.UserProfileAttribute{
 					{
 						DisplayName: ptr.To("Attribute 1"),
 						Group:       ptr.To("test-group"),
 						Name:        ptr.To("attr1"),
 						Multivalued: ptr.To(true),
-						Permissions: &keycloak_go_client.UserProfileAttributePermissions{
+						Permissions: &keycloakv2.UserProfileAttributePermissions{
 							Edit: &[]string{"edit"},
 							View: &[]string{"view"},
 						},
-						Required: &keycloak_go_client.UserProfileAttributeRequired{
+						Required: &keycloakv2.UserProfileAttributeRequired{
 							Roles:  &[]string{"role"},
 							Scopes: &[]string{"scope"},
 						},
-						Selector: &keycloak_go_client.UserProfileAttributeSelector{
+						Selector: &keycloakv2.UserProfileAttributeSelector{
 							Scopes: &[]string{"scope"},
 						},
 						Annotations: &map[string]interface{}{
@@ -117,7 +118,7 @@ func TestUserProfileConfigSpecToModel(t *testing.T) {
 						},
 					},
 				},
-				Groups: &[]keycloak_go_client.UserProfileGroup{
+				Groups: &[]keycloakv2.UserProfileGroup{
 					{
 						Annotations:        &map[string]interface{}{"group": "test"},
 						DisplayDescription: ptr.To("Group description"),
@@ -139,10 +140,11 @@ func TestUserProfileConfigSpecToModel(t *testing.T) {
 
 func TestUserProfile_ServeRequest(t *testing.T) {
 	tests := []struct {
-		name    string
-		realm   *keycloakApi.KeycloakRealm
-		kClient func(t *testing.T) keycloak.Client
-		wantErr require.ErrorAssertionFunc
+		name      string
+		realm     *keycloakApi.KeycloakRealm
+		kClient   func(t *testing.T) keycloak.Client
+		kClientV2 func(t *testing.T) *keycloakv2.KeycloakClient
+		wantErr   require.ErrorAssertionFunc
 	}{
 		{
 			name: "should update user profile successfully",
@@ -167,30 +169,33 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 				},
 			},
 			kClient: func(t *testing.T) keycloak.Client {
-				m := mocks.NewMockClient(t)
+				return mocks.NewMockClient(t)
+			},
+			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
+				mockUsers := keycloakv2mocks.NewMockUsersClient(t)
 
-				m.On("GetUsersProfile", mock.Anything, "realm").
-					Return(&keycloak_go_client.UserProfileConfig{
-						Attributes: &[]keycloak_go_client.UserProfileAttribute{
+				mockUsers.On("GetUsersProfile", mock.Anything, "realm").
+					Return(&keycloakv2.UserProfileConfig{
+						Attributes: &[]keycloakv2.UserProfileAttribute{
 							{
 								DisplayName: ptr.To("Attribute 1"),
 								Group:       ptr.To("test-group"),
 								Name:        ptr.To("attr1"),
 							},
 						},
-						Groups: &[]keycloak_go_client.UserProfileGroup{
+						Groups: &[]keycloakv2.UserProfileGroup{
 							{
 								Name:               ptr.To("test-group"),
 								DisplayDescription: ptr.To("Group description"),
 								DisplayHeader:      ptr.To("Group header"),
 							},
 						},
-					}, nil)
+					}, nil, nil)
 
-				m.On("UpdateUsersProfile", mock.Anything, "realm", mock.Anything).
-					Return(&keycloak_go_client.UserProfileConfig{}, nil)
+				mockUsers.On("UpdateUsersProfile", mock.Anything, "realm", mock.Anything).
+					Return(&keycloakv2.UserProfileConfig{}, nil, nil)
 
-				return m
+				return &keycloakv2.KeycloakClient{Users: mockUsers}
 			},
 			wantErr: require.NoError,
 		},
@@ -199,6 +204,9 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{},
 			kClient: func(t *testing.T) keycloak.Client {
 				return mocks.NewMockClient(t)
+			},
+			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
+				return nil
 			},
 			wantErr: require.NoError,
 		},
@@ -211,6 +219,7 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				tt.realm,
 				tt.kClient(t),
+				tt.kClientV2(t),
 			))
 		})
 	}

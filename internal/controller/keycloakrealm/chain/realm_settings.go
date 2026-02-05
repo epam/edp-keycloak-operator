@@ -7,6 +7,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
@@ -15,7 +16,7 @@ type RealmSettings struct {
 	settingsBuilder *realmbuilder.SettingsBuilder
 }
 
-func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
+func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start updating of Keycloak realm settings")
 
@@ -35,5 +36,5 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 
 	rLog.Info("Realm settings is updating done.")
 
-	return nextServeOrNil(ctx, h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient, kClientV2)
 }

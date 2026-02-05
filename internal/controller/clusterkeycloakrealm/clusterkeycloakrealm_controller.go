@@ -17,6 +17,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/clusterkeycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -24,6 +25,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error)
+	CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakv2.KeycloakClient, error)
 	SetKeycloakOwnerRef(ctx context.Context, object helper.ObjectWithKeycloakRef) error
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
@@ -84,6 +86,17 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{}, fmt.Errorf("failed to create keycloak client for realm: %w", err)
 	}
 
+	kClientV2, err := r.helper.CreateKeycloakClientV2FromClusterRealm(ctx, clusterRealm)
+	if err != nil {
+		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+			return ctrl.Result{
+				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
+			}, nil
+		}
+
+		return ctrl.Result{}, fmt.Errorf("failed to create keycloak v2 client for realm: %w", err)
+	}
+
 	if deleted, err := r.helper.TryToDelete(
 		ctx,
 		clusterRealm,
@@ -95,7 +108,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return reconcile.Result{}, nil
 	}
 
-	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient); err != nil {
+	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient, kClientV2); err != nil {
 		clusterRealm.Status.Available = false
 		clusterRealm.Status.Value = err.Error()
 		requeue := r.helper.SetFailureCount(clusterRealm)

@@ -308,7 +308,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 
 			// Execute test
 			ctx := context.Background()
-			err := handler.ServeRequest(ctx, tt.realm, mockClient)
+			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
 
 			// Assert results
 			if tt.expectedError != "" {
@@ -407,7 +407,7 @@ func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 
 			handler := NewPutRealmSettings()
 
-			err := handler.ServeRequest(ctx, tt.realm, mockClient)
+			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
 			tt.expectedError(t, err)
 		})
 	}
@@ -534,7 +534,7 @@ func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 
 			handler := NewPutRealmSettings()
 
-			err := handler.ServeRequest(ctx, tt.realm, mockClient)
+			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
 			tt.expectedError(t, err)
 		})
 	}

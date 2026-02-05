@@ -44,6 +44,33 @@ func (b *ServerBuilder) AddJsonResponderWithCode(code int, endpoint string, resp
 	return b
 }
 
+// AddKeycloakAuthResponders registers handlers for standard Keycloak authentication endpoints
+// for the master realm. This is useful for testing Keycloak client initialization.
+// It adds responses for:
+// - /realms/master/protocol/openid-connect/token (returns access token)
+// - /admin/realms/master (returns empty JSON)
+func (b *ServerBuilder) AddKeycloakAuthResponders() *ServerBuilder {
+	return b.AddKeycloakAuthRespondersForRealm("master")
+}
+
+// AddKeycloakAuthRespondersForRealm registers handlers for Keycloak authentication endpoints
+// for a custom realm. This is useful for testing Keycloak client initialization.
+// It adds responses for:
+// - /realms/{realm}/protocol/openid-connect/token (returns access token)
+// - /admin/realms/{realm} (returns empty JSON)
+func (b *ServerBuilder) AddKeycloakAuthRespondersForRealm(realm string) *ServerBuilder {
+	tokenResponse := map[string]string{
+		"access_token":  "test-access-token",
+		"refresh_token": "test-refresh-token",
+		"token_type":    "Bearer",
+	}
+
+	b.fakeServer.addJsonResponder(http.StatusOK, "/realms/"+realm+"/protocol/openid-connect/token", tokenResponse)
+	b.fakeServer.addJsonResponder(http.StatusOK, "/admin/realms/"+realm, map[string]interface{}{})
+
+	return b
+}
+
 // BuildAndStart returns a running Server. Don't forget to close it when done using Server.Close.
 func (b *ServerBuilder) BuildAndStart() Server {
 	b.fakeServer.Start()

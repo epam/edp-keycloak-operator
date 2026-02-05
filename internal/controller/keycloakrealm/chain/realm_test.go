@@ -80,7 +80,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role3"}).Return(nil)
 
 				hlp.On("InvalidateKeycloakClientTokenSecret", ctx, namespace, keycloakRefName).Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -91,7 +91,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
 				kClient.On("ExistRealm", realmName).Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient).Return(nil)
+				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient, mock.Anything).Return(nil)
 			},
 			expectError: false,
 			checkHelper: func(hlp *helpermock.MockControllerHelper) {
@@ -200,7 +200,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			tt.setupMocks(kClient, hlp, nextHandler)
 
 			// Execute
-			err := putRealm.ServeRequest(ctx, realm, kClient)
+			err := putRealm.ServeRequest(ctx, realm, kClient, nil)
 
 			// Assert
 			if tt.expectError {

@@ -10,6 +10,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type PutRealm struct {
@@ -21,7 +22,7 @@ func NewPutRealm(k8sClient client.Client) *PutRealm {
 	return &PutRealm{client: k8sClient}
 }
 
-func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client) error {
+func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start putting realm")
 

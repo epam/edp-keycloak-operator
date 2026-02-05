@@ -8,13 +8,14 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type PutUsersRoles struct {
 	next handler.RealmHandler
 }
 
-func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
 
@@ -27,7 +28,7 @@ func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 
 	rLog.Info("End put role to users")
 
-	return nextServeOrNil(ctx, h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient, kClientV2)
 }
 
 func putRolesToUsers(ctx context.Context, realm *dto.Realm, kClient keycloak.Client) error {

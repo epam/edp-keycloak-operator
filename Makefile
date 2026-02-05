@@ -163,11 +163,24 @@ api-docs: crdoc	## generate CRD docs
 helm-docs: helmdocs	## generate helm docs
 	$(HELMDOCS)
 
-GOLANGCI_LINT = ${CURRENT_DIR}/bin/golangci-lint
+GOLANGCI_LINT = $(LOCALBIN)/golangci-lint
 .PHONY: golangci-lint
 golangci-lint: ## Download golangci-lint locally if necessary.
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
 
+OAPICODEGEN ?= $(LOCALBIN)/oapi-codegen
+.PHONY: oapi-codegen
+oapi-codegen: $(OAPICODEGEN) ## Download oapi-codegen locally if necessary.
+$(OAPICODEGEN): $(LOCALBIN)
+	$(call go-install-tool,$(OAPICODEGEN),github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen,latest)
+
+KEYCLOAK_VERSION ?= 26.5.2
+.PHONY: generate-keycloak-go-client
+generate-keycloak-go-client: oapi-codegen
+# Currently, the OpenApi spec is manually edited due ti the issue https://github.com/keycloak/keycloak/issues/46015
+# Once the issue is resolved, the spec can be downloaded directly from the Keycloak documentation.
+# 	curl -o pkg/client/keycloakv2/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
+	$(OAPICODEGEN) -config pkg/client/keycloakv2/oapicfg.yaml pkg/client/keycloakv2/openapi.yaml
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -

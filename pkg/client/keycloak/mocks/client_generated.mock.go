@@ -12,7 +12,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	mock "github.com/stretchr/testify/mock"
-	"github.com/zmotso/keycloak-go-client"
 )
 
 // NewMockClient creates a new instance of MockClient. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
@@ -4680,74 +4679,6 @@ func (_c *MockClient_GetUsersByNames_Call) RunAndReturn(run func(ctx context.Con
 	return _c
 }
 
-// GetUsersProfile provides a mock function for the type MockClient
-func (_mock *MockClient) GetUsersProfile(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error) {
-	ret := _mock.Called(ctx, realm)
-
-	if len(ret) == 0 {
-		panic("no return value specified for GetUsersProfile")
-	}
-
-	var r0 *keycloak_go_client.UserProfileConfig
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) (*keycloak_go_client.UserProfileConfig, error)); ok {
-		return returnFunc(ctx, realm)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string) *keycloak_go_client.UserProfileConfig); ok {
-		r0 = returnFunc(ctx, realm)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloak_go_client.UserProfileConfig)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = returnFunc(ctx, realm)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockClient_GetUsersProfile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUsersProfile'
-type MockClient_GetUsersProfile_Call struct {
-	*mock.Call
-}
-
-// GetUsersProfile is a helper method to define mock.On call
-//   - ctx context.Context
-//   - realm string
-func (_e *MockClient_Expecter) GetUsersProfile(ctx interface{}, realm interface{}) *MockClient_GetUsersProfile_Call {
-	return &MockClient_GetUsersProfile_Call{Call: _e.mock.On("GetUsersProfile", ctx, realm)}
-}
-
-func (_c *MockClient_GetUsersProfile_Call) Run(run func(ctx context.Context, realm string)) *MockClient_GetUsersProfile_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		run(
-			arg0,
-			arg1,
-		)
-	})
-	return _c
-}
-
-func (_c *MockClient_GetUsersProfile_Call) Return(v *keycloak_go_client.UserProfileConfig, err error) *MockClient_GetUsersProfile_Call {
-	_c.Call.Return(v, err)
-	return _c
-}
-
-func (_c *MockClient_GetUsersProfile_Call) RunAndReturn(run func(ctx context.Context, realm string) (*keycloak_go_client.UserProfileConfig, error)) *MockClient_GetUsersProfile_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
 // HasDefaultClientScope provides a mock function for the type MockClient
 func (_mock *MockClient) HasDefaultClientScope(ctx context.Context, realmName string, scopeName string) (bool, error) {
 	ret := _mock.Called(ctx, realmName, scopeName)
@@ -7207,80 +7138,6 @@ func (_c *MockClient_UpdateResource_Call) Return(err error) *MockClient_UpdateRe
 }
 
 func (_c *MockClient_UpdateResource_Call) RunAndReturn(run func(ctx context.Context, realm string, idOfClient string, resource gocloak.ResourceRepresentation) error) *MockClient_UpdateResource_Call {
-	_c.Call.Return(run)
-	return _c
-}
-
-// UpdateUsersProfile provides a mock function for the type MockClient
-func (_mock *MockClient) UpdateUsersProfile(ctx context.Context, realm string, userProfile keycloak_go_client.UserProfileConfig) (*keycloak_go_client.UserProfileConfig, error) {
-	ret := _mock.Called(ctx, realm, userProfile)
-
-	if len(ret) == 0 {
-		panic("no return value specified for UpdateUsersProfile")
-	}
-
-	var r0 *keycloak_go_client.UserProfileConfig
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, keycloak_go_client.UserProfileConfig) (*keycloak_go_client.UserProfileConfig, error)); ok {
-		return returnFunc(ctx, realm, userProfile)
-	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, keycloak_go_client.UserProfileConfig) *keycloak_go_client.UserProfileConfig); ok {
-		r0 = returnFunc(ctx, realm, userProfile)
-	} else {
-		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloak_go_client.UserProfileConfig)
-		}
-	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, keycloak_go_client.UserProfileConfig) error); ok {
-		r1 = returnFunc(ctx, realm, userProfile)
-	} else {
-		r1 = ret.Error(1)
-	}
-	return r0, r1
-}
-
-// MockClient_UpdateUsersProfile_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateUsersProfile'
-type MockClient_UpdateUsersProfile_Call struct {
-	*mock.Call
-}
-
-// UpdateUsersProfile is a helper method to define mock.On call
-//   - ctx context.Context
-//   - realm string
-//   - userProfile keycloak_go_client.UserProfileConfig
-func (_e *MockClient_Expecter) UpdateUsersProfile(ctx interface{}, realm interface{}, userProfile interface{}) *MockClient_UpdateUsersProfile_Call {
-	return &MockClient_UpdateUsersProfile_Call{Call: _e.mock.On("UpdateUsersProfile", ctx, realm, userProfile)}
-}
-
-func (_c *MockClient_UpdateUsersProfile_Call) Run(run func(ctx context.Context, realm string, userProfile keycloak_go_client.UserProfileConfig)) *MockClient_UpdateUsersProfile_Call {
-	_c.Call.Run(func(args mock.Arguments) {
-		var arg0 context.Context
-		if args[0] != nil {
-			arg0 = args[0].(context.Context)
-		}
-		var arg1 string
-		if args[1] != nil {
-			arg1 = args[1].(string)
-		}
-		var arg2 keycloak_go_client.UserProfileConfig
-		if args[2] != nil {
-			arg2 = args[2].(keycloak_go_client.UserProfileConfig)
-		}
-		run(
-			arg0,
-			arg1,
-			arg2,
-		)
-	})
-	return _c
-}
-
-func (_c *MockClient_UpdateUsersProfile_Call) Return(v *keycloak_go_client.UserProfileConfig, err error) *MockClient_UpdateUsersProfile_Call {
-	_c.Call.Return(v, err)
-	return _c
-}
-
-func (_c *MockClient_UpdateUsersProfile_Call) RunAndReturn(run func(ctx context.Context, realm string, userProfile keycloak_go_client.UserProfileConfig) (*keycloak_go_client.UserProfileConfig, error)) *MockClient_UpdateUsersProfile_Call {
 	_c.Call.Return(run)
 	return _c
 }
