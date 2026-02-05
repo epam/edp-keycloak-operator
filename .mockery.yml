@@ -12,6 +12,9 @@ packages:
   github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter:
     interfaces:
       GoCloak: {}
+  github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2:
+    interfaces:
+      UsersClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:
       RefClient: {}

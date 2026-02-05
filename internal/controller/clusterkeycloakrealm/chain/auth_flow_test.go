@@ -84,6 +84,7 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				tt.realm,
 				tt.kClient(t),
+				nil,
 			)
 
 			tt.wantErr(t, err)

@@ -10,6 +10,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type Helper interface {
@@ -22,7 +23,7 @@ type PutRealm struct {
 	hlp    Helper
 }
 
-func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
+func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
 
@@ -36,7 +37,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	if e {
 		rLog.Info("Realm already exists")
 
-		return nextServeOrNil(ctx, h.next, realm, kClient)
+		return nextServeOrNil(ctx, h.next, realm, kClient, kClientV2)
 	}
 
 	err = kClient.CreateRealmWithDefaultConfig(rDto)
@@ -54,7 +55,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	rLog.Info("End putting realm!")
 
-	return nextServeOrNil(ctx, h.next, realm, kClient)
+	return nextServeOrNil(ctx, h.next, realm, kClient, kClientV2)
 }
 
 func (h PutRealm) putRealmRoles(realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {

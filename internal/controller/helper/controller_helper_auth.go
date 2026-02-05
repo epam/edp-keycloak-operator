@@ -16,6 +16,7 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -67,6 +68,68 @@ func (h *Helper) CreateKeycloakClientFromRealm(ctx context.Context, realm *keycl
 	}
 
 	return h.CreateKeycloakClientFomAuthData(ctx, authData)
+}
+
+func (h *Helper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakclientv2.KeycloakClient, error) {
+	authData, err := h.getKeycloakAuthDataFromRealm(ctx, realm)
+	if err != nil {
+		return nil, err
+	}
+
+	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get credentials: %w", err)
+	}
+
+	options := []keycloakclientv2.ClientOption{
+		keycloakclientv2.WithPasswordGrant(username, password),
+	}
+
+	if authData.CACert != "" {
+		options = append(options, keycloakclientv2.WithCACert(authData.CACert))
+	}
+
+	if authData.InsecureSkipVerify {
+		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
+	}
+
+	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.AdminCLIClientID, options...)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
+	}
+
+	return kcClient, nil
+}
+
+func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error) {
+	authData, err := h.getKeycloakAuthDataFromClusterRealm(ctx, realm)
+	if err != nil {
+		return nil, err
+	}
+
+	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get credentials: %w", err)
+	}
+
+	options := []keycloakclientv2.ClientOption{
+		keycloakclientv2.WithPasswordGrant(username, password),
+	}
+
+	if authData.CACert != "" {
+		options = append(options, keycloakclientv2.WithCACert(authData.CACert))
+	}
+
+	if authData.InsecureSkipVerify {
+		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
+	}
+
+	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.AdminCLIClientID, options...)
+	if err != nil {
+		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
+	}
+
+	return kcClient, nil
 }
 
 func (h *Helper) CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error) {
@@ -131,17 +194,26 @@ func (h *Helper) CreateKeycloakClientFomAuthData(ctx context.Context, authData *
 	return clientAdapter, nil
 }
 
-func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error) {
+func (h *Helper) getCredentialsFromSecret(ctx context.Context, secretName, secretNamespace string) (username, password string, err error) {
 	var secret coreV1.Secret
 	if err := h.client.Get(ctx, types.NamespacedName{
-		Name:      authData.SecretName,
-		Namespace: authData.SecretNamespace,
+		Name:      secretName,
+		Namespace: secretNamespace,
 	}, &secret); err != nil {
-		return nil, fmt.Errorf("authData login password secret not found: %w", err)
+		return "", "", fmt.Errorf("secret not found: %w", err)
 	}
 
-	clientAdapter, err := h.CreateKeycloakClient(ctx, authData.Url, string(secret.Data["username"]),
-		string(secret.Data["password"]), authData.AdminType, authData.CACert, authData.InsecureSkipVerify)
+	return string(secret.Data["username"]), string(secret.Data["password"]), nil
+}
+
+func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error) {
+	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+	if err != nil {
+		return nil, fmt.Errorf("unable to get credentials: %w", err)
+	}
+
+	clientAdapter, err := h.CreateKeycloakClient(ctx, authData.Url, username,
+		password, authData.AdminType, authData.CACert, authData.InsecureSkipVerify)
 	if err != nil {
 		return nil, fmt.Errorf("unable to init authData client adapter: %w", err)
 	}
@@ -151,7 +223,7 @@ func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, auth
 		return nil, fmt.Errorf("unable to export authData client token: %w", err)
 	}
 
-	if err := h.saveKeycloakClientTokenSecret(ctx, tokenSecretName(authData.SecretName), secret.Namespace, jwtToken); err != nil {
+	if err := h.saveKeycloakClientTokenSecret(ctx, tokenSecretName(authData.SecretName), authData.SecretNamespace, jwtToken); err != nil {
 		return nil, fmt.Errorf("unable to save authData token to secret: %w", err)
 	}
 

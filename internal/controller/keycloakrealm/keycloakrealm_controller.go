@@ -20,6 +20,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -29,6 +30,7 @@ type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
+	CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakv2.KeycloakClient, error)
 	SetKeycloakOwnerRef(ctx context.Context, object helper.ObjectWithKeycloakRef) error
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
@@ -129,6 +131,11 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 		return fmt.Errorf("failed to create keycloak client for realm: %w", err)
 	}
 
+	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealm(ctx, realm)
+	if err != nil {
+		return fmt.Errorf("failed to create keycloak v2 client for realm: %w", err)
+	}
+
 	deleted, err := r.helper.TryToDelete(
 		ctx,
 		realm,
@@ -143,7 +150,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 		return nil
 	}
 
-	if err := r.chain.ServeRequest(ctx, realm, kClient); err != nil {
+	if err := r.chain.ServeRequest(ctx, realm, kClient, kClientV2); err != nil {
 		return fmt.Errorf("error during realm chain: %w", err)
 	}
 

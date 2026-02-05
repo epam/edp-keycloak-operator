@@ -63,6 +63,6 @@ func TestCreateDefChain(t *testing.T) {
 
 	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, kr.Namespace, kr.Spec.KeycloakRef.Name).Return(nil)
 	chain := CreateDefChain(client, s, hm)
-	err := chain.ServeRequest(context.Background(), &kr, kClient)
+	err := chain.ServeRequest(context.Background(), &kr, kClient, nil)
 	require.NoError(t, err)
 }

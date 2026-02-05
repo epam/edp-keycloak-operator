@@ -2,12 +2,10 @@ package adapter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"slices"
 
 	"github.com/Nerzal/gocloak/v12"
-	keycloak_go_client "github.com/zmotso/keycloak-go-client"
 	"k8s.io/utils/ptr"
 )
 
@@ -300,71 +298,6 @@ func (a GoCloakAdapter) AddUserToGroup(ctx context.Context, realmName, userID, g
 
 	if err = a.checkError(err, rsp); err != nil {
 		return fmt.Errorf("unable to add user to group: %w", err)
-	}
-
-	return nil
-}
-
-func (a GoCloakAdapter) UpdateUsersProfile(
-	ctx context.Context,
-	realm string,
-	userProfile keycloak_go_client.UserProfileConfig,
-) (*keycloak_go_client.UserProfileConfig, error) {
-	httpClient := a.client.RestyClient().GetClient()
-
-	cl, err := keycloak_go_client.NewClient(
-		a.buildPath(""),
-		keycloak_go_client.WithToken(a.token.AccessToken),
-		keycloak_go_client.WithHTTPClient(httpClient),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
-	}
-
-	profile, res, err := cl.Users.UpdateUsersProfile(ctx, realm, userProfile)
-	if err = checkHttpResp(res, err); err != nil {
-		return nil, err
-	}
-
-	return profile, nil
-}
-
-func (a GoCloakAdapter) GetUsersProfile(
-	ctx context.Context,
-	realm string,
-) (*keycloak_go_client.UserProfileConfig, error) {
-	httpClient := a.client.RestyClient().GetClient()
-
-	cl, err := keycloak_go_client.NewClient(
-		a.buildPath(""),
-		keycloak_go_client.WithToken(a.token.AccessToken),
-		keycloak_go_client.WithHTTPClient(httpClient),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create keycloak_go_client client: %w", err)
-	}
-
-	profile, res, err := cl.Users.GetUsersProfile(ctx, realm)
-	if err = checkHttpResp(res, err); err != nil {
-		return nil, err
-	}
-
-	return profile, nil
-}
-
-func checkHttpResp(res *keycloak_go_client.Response, err error) error {
-	if err != nil {
-		return fmt.Errorf("failed to send request: %w", err)
-	}
-
-	if res == nil || res.HTTPResponse == nil {
-		return errors.New("empty response")
-	}
-
-	const maxStatusCodesSuccess = 399
-
-	if res.HTTPResponse.StatusCode > maxStatusCodesSuccess {
-		return fmt.Errorf("status: %s, body: %s", res.HTTPResponse.Status, res.Body)
 	}
 
 	return nil

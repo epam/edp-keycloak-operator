@@ -28,7 +28,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
 	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err := rs.ServeRequest(ctx, &realm, kClient)
+	err := rs.ServeRequest(ctx, &realm, kClient, nil)
 	require.NoError(t, err)
 
 	theme := "LoginTheme test"
@@ -76,7 +76,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		AdminEventsEnabled: true,
 	}).Return(nil).Once()
 
-	err = rs.ServeRequest(ctx, &realm, kClient)
+	err = rs.ServeRequest(ctx, &realm, kClient, nil)
 	require.NoError(t, err)
 
 	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
@@ -86,7 +86,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
 	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	err = rs.ServeRequest(ctx, &realm, kClient)
+	err = rs.ServeRequest(ctx, &realm, kClient, nil)
 	require.Error(t, err)
 
 	if !strings.Contains(err.Error(), "unable to set realm event config") {
@@ -133,7 +133,7 @@ func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 	}).Return(nil)
 	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
 
-	err := rs.ServeRequest(context.Background(), &realm, kClient)
+	err := rs.ServeRequest(context.Background(), &realm, kClient, nil)
 	require.NoError(t, err)
 }
 
@@ -194,6 +194,6 @@ func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 	}).Return(nil)
 	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
 
-	err := rs.ServeRequest(context.Background(), &realm, kClient)
+	err := rs.ServeRequest(context.Background(), &realm, kClient, nil)
 	require.NoError(t, err)
 }

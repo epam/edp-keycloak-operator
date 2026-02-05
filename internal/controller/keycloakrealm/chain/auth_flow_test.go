@@ -26,14 +26,14 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 
 	ctx := context.Background()
 
-	err := af.ServeRequest(ctx, &realm, kc)
+	err := af.ServeRequest(ctx, &realm, kc, nil)
 	require.NoError(t, err)
 
 	kc.On("SetRealmBrowserFlow", mock.Anything, "realm1", "flow-alias-1").Return(nil)
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 
-	err = af.ServeRequest(ctx, &realm, kc)
+	err = af.ServeRequest(ctx, &realm, kc, nil)
 	require.NoError(t, err)
 }
 
@@ -53,7 +53,7 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 
 	realm.Spec.BrowserFlow = gocloak.StringP("flow-alias-1")
 
-	err := af.ServeRequest(context.Background(), &realm, kc)
+	err := af.ServeRequest(context.Background(), &realm, kc, nil)
 	if err == nil {
 		t.Fatal("no error on mock fatal")
 	}

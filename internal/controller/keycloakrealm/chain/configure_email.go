@@ -12,6 +12,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -20,9 +21,9 @@ type ConfigureEmail struct {
 	client client.Client
 }
 
-func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client) error {
+func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	if realm.Spec.Smtp == nil {
-		return nextServeOrNil(ctx, s.next, realm, kClient)
+		return nextServeOrNil(ctx, s.next, realm, kClient, kClientV2)
 	}
 
 	l := ctrl.LoggerFrom(ctx)
@@ -41,7 +42,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 
 	l.Info("Email has been configured")
 
-	return nextServeOrNil(ctx, s.next, realm, kClient)
+	return nextServeOrNil(ctx, s.next, realm, kClient, kClientV2)
 }
 
 func ConfigureRamlEmail(

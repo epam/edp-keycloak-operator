@@ -10,6 +10,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type ConfigureEmail struct {
@@ -21,7 +22,7 @@ func NewConfigureEmail(k8sClient client.Client, operatorNs string) *ConfigureEma
 	return &ConfigureEmail{client: k8sClient, operatorNs: operatorNs}
 }
 
-func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client) error {
+func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
 	if realm.Spec.Smtp == nil {
 		return nil
 	}

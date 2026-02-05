@@ -230,3 +230,64 @@ func TestDefaultFakeServer_GetURL(t *testing.T) {
 		})
 	}
 }
+
+func TestServerBuilder_AddKeycloakAuthResponders(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name           string
+		realm          string
+		useCustomRealm bool
+	}{
+		{
+			name:           "should add auth responders for master realm",
+			realm:          "master",
+			useCustomRealm: false,
+		},
+		{
+			name:           "should add auth responders for custom realm",
+			realm:          "custom-realm",
+			useCustomRealm: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			builder := NewServerBuilder()
+			if tt.useCustomRealm {
+				builder.AddKeycloakAuthRespondersForRealm(tt.realm)
+			} else {
+				builder.AddKeycloakAuthResponders()
+			}
+
+			fakeServer := builder.BuildAndStart()
+			defer fakeServer.Close()
+
+			// Test token endpoint
+			tokenEndpoint := fakeServer.GetURL() + "/realms/" + tt.realm + "/protocol/openid-connect/token"
+			tokenResp, err := http.Get(tokenEndpoint)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, tokenResp.StatusCode)
+
+			var tokenBody map[string]interface{}
+			err = json.NewDecoder(tokenResp.Body).Decode(&tokenBody)
+			require.NoError(t, err)
+			assert.Equal(t, "test-access-token", tokenBody["access_token"])
+			assert.Equal(t, "test-refresh-token", tokenBody["refresh_token"])
+			assert.Equal(t, "Bearer", tokenBody["token_type"])
+
+			// Test admin endpoint
+			adminEndpoint := fakeServer.GetURL() + "/admin/realms/" + tt.realm
+			adminResp, err := http.Get(adminEndpoint)
+			require.NoError(t, err)
+			require.Equal(t, http.StatusOK, adminResp.StatusCode)
+
+			var adminBody map[string]interface{}
+			err = json.NewDecoder(adminResp.Body).Decode(&adminBody)
+			require.NoError(t, err)
+			assert.Empty(t, adminBody)
+		})
+	}
+}
