@@ -21,6 +21,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			Spec: keycloakApi.KeycloakRealmSpec{
 				RealmName: "test-realm",
 				KeycloakRef: common.KeycloakRef{
+					Kind: keycloakApi.KeycloakKind,
 					Name: "test-keycloak",
 				},
 			},
@@ -33,7 +34,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 	})
 
 	Context("When creating KeycloakRealm", func() {
-		It("Should deny creation with the same RealmName in the same namespace", func() {
+		It("Should deny creation with the same RealmName for the same Keycloak in the same namespace", func() {
 			duplicateObj := &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "duplicate-realm",
@@ -42,6 +43,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmName: "test-realm", // Same RealmName as the existing one in ns1
 					KeycloakRef: common.KeycloakRef{
+						Kind: keycloakApi.KeycloakKind,
 						Name: "test-keycloak",
 					},
 				},
@@ -51,7 +53,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with duplicate RealmName in the same namespace")
 		})
 
-		It("Should deny creation with the same RealmName in a different namespace", func() {
+		It("Should allow creation with the same RealmName for a different Keycloak in another namespace", func() {
 			objInNs2 := &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-realm-ns2",
@@ -60,13 +62,34 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmName: "test-realm", // Same RealmName as the existing one but in a different namespace
 					KeycloakRef: common.KeycloakRef{
+						Kind: keycloakApi.KeycloakKind,
+						Name: "test-keycloak-2",
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, objInNs2)
+			Expect(err).ShouldNot(HaveOccurred(), "unexpected error when creating KeycloakRealm with same RealmName for a different Keycloak")
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, objInNs2))).Should(Succeed(), "failed to delete KeycloakRealm in ns2")
+		})
+
+		It("Should deny creation with the same RealmName for the same Keycloak across namespaces", func() {
+			objInNs2 := &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-realm-ns2",
+					Namespace: "ns2",
+				},
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "test-realm", // Same RealmName as the existing one but in a different namespace
+					KeycloakRef: common.KeycloakRef{
+						Kind: keycloakApi.KeycloakKind,
 						Name: "test-keycloak",
 					},
 				},
 			}
 
 			err := k8sClient.Create(ctx, objInNs2)
-			Expect(err).Should(HaveOccurred(), "failed to create KeycloakRealm with same RealmName in different namespace")
+			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with same RealmName for the same Keycloak in a different namespace")
 		})
 	})
 })
