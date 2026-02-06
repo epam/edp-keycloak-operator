@@ -49,7 +49,7 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 
 	keycloakrealmlog.Info("Validation for KeycloakRealm upon creation", "name", keycloakrealm.GetName())
 
-	// Check if keycloakrealm.Spec.RealmName is unique across all KeycloakRealm resources in the cluster.
+	// Check if the combination of RealmName and KeycloakRef is unique across all KeycloakRealm resources in the cluster.
 	existingKeycloakRealms := &keycloakApi.KeycloakRealmList{}
 	if err := v.k8sclient.List(ctx, existingKeycloakRealms); err != nil {
 		return nil, fmt.Errorf("failed to list KeycloakRealm resources: %w", err)
@@ -58,8 +58,18 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 	for _, existingRealm := range existingKeycloakRealms.Items {
 		isSameResource := existingRealm.Namespace == keycloakrealm.Namespace && existingRealm.Name == keycloakrealm.Name
 
-		if existingRealm.Spec.RealmName == keycloakrealm.Spec.RealmName && !isSameResource {
-			return nil, fmt.Errorf("realm name %s is already in use by another KeycloakRealm resource in namespace %s", keycloakrealm.Spec.RealmName, keycloakrealm.Namespace)
+		isSameKeycloakInstance := existingRealm.Spec.KeycloakRef.Kind == keycloakrealm.Spec.KeycloakRef.Kind &&
+			existingRealm.Spec.KeycloakRef.Name == keycloakrealm.Spec.KeycloakRef.Name
+
+		if existingRealm.Spec.RealmName == keycloakrealm.Spec.RealmName && isSameKeycloakInstance && !isSameResource {
+			return nil, fmt.Errorf(
+				"realm name %s is already in use by another KeycloakRealm resource (%s/%s) for Keycloak instance %s/%s",
+				keycloakrealm.Spec.RealmName,
+				existingRealm.Namespace,
+				existingRealm.Name,
+				keycloakrealm.Spec.KeycloakRef.Kind,
+				keycloakrealm.Spec.KeycloakRef.Name,
+			)
 		}
 	}
 
