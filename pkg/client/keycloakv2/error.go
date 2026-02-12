@@ -8,6 +8,9 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/generated"
 )
 
+// ErrNilResponse is returned when the Keycloak API returns a nil response.
+var ErrNilResponse = errors.New("nil response from Keycloak")
+
 type ApiError struct {
 	Code         int
 	Message      string

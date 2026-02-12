@@ -2,7 +2,6 @@ package keycloakv2
 
 import (
 	"context"
-	"errors"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/generated"
 )
@@ -31,14 +30,14 @@ func (c *usersClient) GetUsersProfile(ctx context.Context, realm string) (*UserP
 	}
 
 	if res == nil {
-		return nil, nil, errors.New("nil response from Keycloak")
+		return nil, nil, ErrNilResponse
 	}
 
 	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
 
 	// Check for non-2xx status codes and return ApiError
 	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
-		return nil, nil, err
+		return nil, response, err
 	}
 
 	return res.JSON200, response, nil
@@ -55,14 +54,14 @@ func (c *usersClient) UpdateUsersProfile(
 	}
 
 	if res == nil {
-		return nil, nil, errors.New("nil response from Keycloak")
+		return nil, nil, ErrNilResponse
 	}
 
 	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
 
 	// Check for non-2xx status codes and return ApiError
 	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
-		return nil, nil, err
+		return nil, response, err
 	}
 
 	return res.JSON200, response, nil
