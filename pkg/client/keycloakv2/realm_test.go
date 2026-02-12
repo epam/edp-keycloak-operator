@@ -26,7 +26,7 @@ func TestRealmClient_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-%d", time.Now().UnixNano())
+	realmName := fmt.Sprintf("test-realm-realm-crud-%d", time.Now().UnixNano())
 	displayName := "Test Realm for CRUD"
 	enabled := true
 
@@ -36,66 +36,58 @@ func TestRealmClient_CRUD(t *testing.T) {
 	})
 
 	// 1. Create test realm
-	t.Run("Create", func(t *testing.T) {
-		realm := keycloakv2.RealmRepresentation{
-			Realm:       &realmName,
-			DisplayName: &displayName,
-			Enabled:     &enabled,
-		}
+	realm := keycloakv2.RealmRepresentation{
+		Realm:       &realmName,
+		DisplayName: &displayName,
+		Enabled:     &enabled,
+	}
 
-		resp, err := c.Realms.CreateRealm(ctx, realm)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.NotNil(t, resp.HTTPResponse)
-	})
+	resp, err := c.Realms.CreateRealm(ctx, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
 
 	// 2. Get realm and verify
-	t.Run("Get", func(t *testing.T) {
-		realm, resp, err := c.Realms.GetRealm(ctx, realmName)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.NotNil(t, resp.HTTPResponse)
-		require.NotNil(t, realm)
-		require.Equal(t, realmName, *realm.Realm)
-		require.Equal(t, displayName, *realm.DisplayName)
-		require.Equal(t, enabled, *realm.Enabled)
-	})
+	retrievedRealm, resp, err := c.Realms.GetRealm(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
+	require.NotNil(t, retrievedRealm)
+	require.Equal(t, realmName, *retrievedRealm.Realm)
+	require.Equal(t, displayName, *retrievedRealm.DisplayName)
+	require.Equal(t, enabled, *retrievedRealm.Enabled)
 
 	// 3. Update realm settings
-	t.Run("Update", func(t *testing.T) {
-		updatedDisplayName := "Updated Test Realm"
-		realm := keycloakv2.RealmRepresentation{
-			Realm:       &realmName,
-			DisplayName: &updatedDisplayName,
-			Enabled:     &enabled,
-		}
+	updatedDisplayName := "Updated Test Realm"
+	realm = keycloakv2.RealmRepresentation{
+		Realm:       &realmName,
+		DisplayName: &updatedDisplayName,
+		Enabled:     &enabled,
+	}
 
-		resp, err := c.Realms.UpdateRealm(ctx, realmName, realm)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.NotNil(t, resp.HTTPResponse)
+	resp, err = c.Realms.UpdateRealm(ctx, realmName, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
 
-		// 4. Get realm and verify update
-		updatedRealm, resp, err := c.Realms.GetRealm(ctx, realmName)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.NotNil(t, updatedRealm)
-		require.Equal(t, updatedDisplayName, *updatedRealm.DisplayName, "DisplayName should be updated")
-	})
+	// 4. Get realm and verify update
+	updatedRealm, resp, err := c.Realms.GetRealm(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, updatedRealm)
+	require.Equal(t, updatedDisplayName, *updatedRealm.DisplayName, "DisplayName should be updated")
 
 	// 5. Delete realm
-	t.Run("Delete", func(t *testing.T) {
-		resp, err := c.Realms.DeleteRealm(ctx, realmName)
-		require.NoError(t, err)
-		require.NotNil(t, resp)
-		require.NotNil(t, resp.HTTPResponse)
+	resp, err = c.Realms.DeleteRealm(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
 
-		// 6. Verify deletion (Get should fail with 404)
-		_, _, err = c.Realms.GetRealm(ctx, realmName)
-		require.Error(t, err)
+	// 6. Verify deletion (Get should fail with 404)
+	_, _, err = c.Realms.GetRealm(ctx, realmName)
+	require.Error(t, err)
 
-		require.True(t, keycloakv2.IsNotFound(err), "Expected 404 Not Found error")
-	})
+	require.True(t, keycloakv2.IsNotFound(err), "Expected 404 Not Found error")
 }
 
 func TestRealmClient_GetRealm(t *testing.T) {
@@ -143,5 +135,28 @@ func TestRealmClient_GetRealm_NotFound(t *testing.T) {
 
 	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 error for non-existent realm")
 	require.Nil(t, realm, "Realm should be nil for error response")
-	require.Nil(t, resp, "Response should be nil for error response")
+	require.NotNil(t, resp, "Response should be present even for error")
+}
+
+func TestRealmClient_DeleteRealm_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	ctx := context.Background()
+
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		ctx,
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	// Test deleting a non-existent realm
+	resp, err := c.Realms.DeleteRealm(ctx, "nonexistent-realm-12345")
+	require.Error(t, err)
+
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 error for non-existent realm")
+	require.NotNil(t, resp, "Response should be present even for error")
+	require.NotNil(t, resp.HTTPResponse, "HTTPResponse should be present even for error")
 }

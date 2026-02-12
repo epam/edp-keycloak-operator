@@ -2186,7 +2186,7 @@ func TestKeycloakClient_NewKeycloakClient_DefaultRealm(t *testing.T) {
 	)
 
 	require.NoError(t, err)
-	assert.Equal(t, DefaultRealm, client.realm)
+	assert.Equal(t, MasterRealm, client.realm)
 }
 
 func TestKeycloakClient_NewKeycloakClient_CustomRealm(t *testing.T) {

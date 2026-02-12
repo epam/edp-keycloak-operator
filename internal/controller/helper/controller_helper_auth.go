@@ -93,7 +93,7 @@ func (h *Helper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *key
 		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
 	}
 
-	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.AdminCLIClientID, options...)
+	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.DefaultAdminClientID, options...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
 	}
@@ -124,7 +124,7 @@ func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, rea
 		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
 	}
 
-	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.AdminCLIClientID, options...)
+	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.DefaultAdminClientID, options...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
 	}

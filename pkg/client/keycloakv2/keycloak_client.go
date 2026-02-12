@@ -43,6 +43,9 @@ type KeycloakClient struct {
 	logger              logr.Logger
 	Users               UsersClient
 	Realms              RealmClient
+	Groups              GroupsClient
+	Roles               RolesClient
+	Clients             ClientsClient
 }
 
 type ClientCredentials struct {
@@ -63,12 +66,6 @@ type ClientCredentials struct {
 const (
 	issuerUrl = "%s/realms/%s"
 	tokenUrl  = "%s/realms/%s/protocol/openid-connect/token"
-
-	// DefaultRealm is the default Keycloak realm if none is specified
-	DefaultRealm = "master"
-
-	// AdminCLIClientID is the default client ID for Keycloak admin operations
-	AdminCLIClientID = "admin-cli"
 
 	grantTypeClientCredentials = "client_credentials"
 
@@ -257,7 +254,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	keycloakClient := &KeycloakClient{
 		authUrl: baseURL,
 		baseUrl: baseURL,
-		realm:   DefaultRealm, // default to "master"
+		realm:   MasterRealm, // default to "master"
 		clientCredentials: &ClientCredentials{
 			ClientId: clientId,
 		},
@@ -338,6 +335,9 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 
 	keycloakClient.Users = &usersClient{client: generatedClient}
 	keycloakClient.Realms = &realmClient{client: generatedClient}
+	keycloakClient.Groups = &groupsClient{client: generatedClient}
+	keycloakClient.Roles = &rolesClient{client: generatedClient}
+	keycloakClient.Clients = &clientsClient{client: generatedClient}
 
 	return keycloakClient, nil
 }

@@ -11,6 +11,7 @@ import (
 
 func TestKeycloakClient_GetServerInfo(t *testing.T) {
 	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
 
 	c, err := keycloakv2.NewKeycloakClient(
 		context.Background(),
