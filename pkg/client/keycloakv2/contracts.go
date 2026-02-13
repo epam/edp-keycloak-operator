@@ -34,6 +34,13 @@ type GroupsClient interface {
 		params *GetChildGroupsParams,
 	) ([]GroupRepresentation, *Response, error)
 	CreateChildGroup(ctx context.Context, realm, parentGroupID string, group GroupRepresentation) (*Response, error)
+	FindGroupByName(ctx context.Context, realm, groupName string) (*GroupRepresentation, *Response, error)
+	FindChildGroupByName(
+		ctx context.Context,
+		realm string,
+		parentGroupID string,
+		groupName string,
+	) (*GroupRepresentation, *Response, error)
 	GetRoleMappings(ctx context.Context, realm, groupID string) (*MappingsRepresentation, *Response, error)
 	GetRealmRoleMappings(ctx context.Context, realm, groupID string) ([]RoleRepresentation, *Response, error)
 	AddRealmRoleMappings(ctx context.Context, realm, groupID string, roles []RoleRepresentation) (*Response, error)

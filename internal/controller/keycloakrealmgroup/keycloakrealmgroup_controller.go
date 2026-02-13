@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
@@ -16,7 +15,8 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmgroup/chain"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -27,8 +27,8 @@ type Helper interface {
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
-	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
-	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
+	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
 }
 
 func NewReconcileKeycloakRealmGroup(
@@ -122,9 +122,8 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmGroup)
+	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, keycloakRealmGroup)
 	if err != nil {
-		// if the realm is already deleted try to delete finalizer
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
 			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmGroup, keyCloakRealmGroupOperatorFinalizerName); removeErr != nil {
 				return fmt.Errorf("unable to remove finalizer: %w", removeErr)
@@ -133,20 +132,21 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 			return nil
 		}
 
-		return fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
+		return fmt.Errorf("unable to create keycloak v2 client from realm ref: %w", err)
 	}
 
-	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakRealmGroup, kClient)
+	realmName, err := r.helper.GetRealmNameFromRef(ctx, keycloakRealmGroup)
 	if err != nil {
-		return fmt.Errorf("unable to get keycloak realm from ref: %w", err)
+		return fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
 	deleted, err := r.helper.TryToDelete(
 		ctx,
 		keycloakRealmGroup,
 		makeTerminator(
-			kClient,
-			gocloak.PString(realm.Realm),
+			kClientV2,
+			realmName,
+			keycloakRealmGroup.Status.ID,
 			keycloakRealmGroup.Spec.Name,
 			objectmeta.PreserveResourcesOnDeletion(keycloakRealmGroup),
 		),
@@ -165,12 +165,16 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return err
 	}
 
-	id, err := kClient.SyncRealmGroup(ctx, gocloak.PString(realm.Realm), &keycloakRealmGroup.Spec, parentGroupID)
-	if err != nil {
-		return fmt.Errorf("unable to sync realm group: %w", err)
+	groupCtx := &chain.GroupContext{
+		RealmName:     realmName,
+		ParentGroupID: parentGroupID,
 	}
 
-	keycloakRealmGroup.Status.ID = id
+	if err := chain.MakeChain().Serve(ctx, keycloakRealmGroup, kClientV2, groupCtx); err != nil {
+		return fmt.Errorf("error during realm group chain: %w", err)
+	}
+
+	keycloakRealmGroup.Status.ID = groupCtx.GroupID
 
 	return nil
 }

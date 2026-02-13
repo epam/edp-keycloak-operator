@@ -750,3 +750,404 @@ func TestGroupsClient_ClientRoleMappings(t *testing.T) {
 		}
 	})
 }
+
+func TestGroupsClient_FindGroupByName(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Generate unique realm name to avoid conflicts
+	realmName := fmt.Sprintf("test-realm-find-grp-%d", time.Now().UnixNano())
+	enabled := true
+
+	// Ensure cleanup happens even if test fails
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	// Create test realm
+	realm := keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	}
+	resp, err := c.Realms.CreateRealm(ctx, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Test: Find non-existent group
+	t.Run("Find Non-Existent Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "non-existent-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Nil(t, group, "Should return nil for non-existent group")
+	})
+
+	// Create multiple groups with similar names to test exact matching
+	groupNames := []string{"test-group", "test-group-2", "test-group-prefix"}
+	createdGroups := make(map[string]string) // name -> ID
+
+	for _, name := range groupNames {
+		gName := name
+		group := keycloakv2.GroupRepresentation{
+			Name: &gName,
+		}
+		resp, err := c.Groups.CreateGroup(ctx, realmName, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		extractedID := keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, extractedID)
+		createdGroups[name] = extractedID
+	}
+
+	// Test: Find existing group by exact name
+	t.Run("Find Existing Group By Exact Name", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "test-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find the group")
+		require.NotNil(t, group.Name)
+		require.Equal(t, "test-group", *group.Name)
+		require.NotNil(t, group.Id)
+		require.Equal(t, createdGroups["test-group"], *group.Id)
+	})
+
+	// Test: Exact matching - should not return partial matches
+	t.Run("Exact Match Verification", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "test-group-2")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find test-group-2")
+		require.Equal(t, "test-group-2", *group.Name)
+		require.Equal(t, createdGroups["test-group-2"], *group.Id)
+	})
+
+	// Test: Find group with prefix name
+	t.Run("Find Group With Prefix", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "test-group-prefix")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group)
+		require.Equal(t, "test-group-prefix", *group.Name)
+		require.Equal(t, createdGroups["test-group-prefix"], *group.Id)
+	})
+
+	// Test: Case sensitivity
+	t.Run("Case Sensitivity", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "TEST-GROUP")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		// Keycloak search is case-insensitive, but we check exact name match in the code
+		if group != nil {
+			// If found, name should not match (case sensitive)
+			require.NotEqual(t, "TEST-GROUP", *group.Name)
+		}
+	})
+}
+
+func TestGroupsClient_FindChildGroupByName(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Generate unique realm name to avoid conflicts
+	realmName := fmt.Sprintf("test-realm-find-child-%d", time.Now().UnixNano())
+	enabled := true
+
+	// Ensure cleanup happens even if test fails
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	// Create test realm
+	realm := keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	}
+	resp, err := c.Realms.CreateRealm(ctx, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	var parentGroupID string
+
+	// Create parent group
+	t.Run("Create Parent Group", func(t *testing.T) {
+		groupName := "parent-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateGroup(ctx, realmName, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		parentGroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, parentGroupID)
+	})
+
+	// Test: Find non-existent child group
+	t.Run("Find Non-Existent Child Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "non-existent-child")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Nil(t, group, "Should return nil for non-existent child group")
+	})
+
+	// Create multiple child groups
+	childNames := []string{"child-1", "child-2", "child-1-prefix"}
+	createdChildren := make(map[string]string) // name -> ID
+
+	for _, name := range childNames {
+		cName := name
+		child := keycloakv2.GroupRepresentation{
+			Name: &cName,
+		}
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, parentGroupID, child)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		extractedID := keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, extractedID)
+		createdChildren[name] = extractedID
+	}
+
+	// Test: Find existing child by exact name
+	t.Run("Find Existing Child By Exact Name", func(t *testing.T) {
+		child, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "child-1")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, child, "Should find the child group")
+		require.NotNil(t, child.Name)
+		require.Equal(t, "child-1", *child.Name)
+		require.NotNil(t, child.Id)
+		require.Equal(t, createdChildren["child-1"], *child.Id)
+	})
+
+	// Test: Exact matching for child groups
+	t.Run("Exact Match Verification For Child", func(t *testing.T) {
+		child, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "child-2")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, child, "Should find child-2")
+		require.Equal(t, "child-2", *child.Name)
+		require.Equal(t, createdChildren["child-2"], *child.Id)
+	})
+
+	// Test: Find child with prefix name
+	t.Run("Find Child With Prefix", func(t *testing.T) {
+		child, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "child-1-prefix")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, child)
+		require.Equal(t, "child-1-prefix", *child.Name)
+		require.Equal(t, createdChildren["child-1-prefix"], *child.Id)
+	})
+
+	// Test: Find child with non-existent parent
+	t.Run("Find Child With Non-Existent Parent", func(t *testing.T) {
+		_, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, "non-existent-parent-id", "child-1")
+		require.Error(t, err)
+		require.NotNil(t, resp)
+		require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent parent")
+	})
+}
+
+func TestGroupsClient_FindGroupByName_MultiLevel(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Generate unique realm name to avoid conflicts
+	realmName := fmt.Sprintf("test-realm-multilevel-%d", time.Now().UnixNano())
+	enabled := true
+
+	// Ensure cleanup happens even if test fails
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	// Create test realm
+	realm := keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	}
+	resp, err := c.Realms.CreateRealm(ctx, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Create a hierarchy: root-group -> level1-group -> level2-group -> level3-group
+	var rootGroupID, level1GroupID, level2GroupID, level3GroupID string
+
+	// Level 0: Create root-level group
+	t.Run("Create Root Level Group", func(t *testing.T) {
+		groupName := "root-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateGroup(ctx, realmName, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		rootGroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, rootGroupID)
+	})
+
+	// Level 1: Create first level child
+	t.Run("Create Level 1 Child Group", func(t *testing.T) {
+		groupName := "level1-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, rootGroupID, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		level1GroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, level1GroupID)
+	})
+
+	// Level 2: Create second level child
+	t.Run("Create Level 2 Child Group", func(t *testing.T) {
+		groupName := "level2-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, level1GroupID, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		level2GroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, level2GroupID)
+	})
+
+	// Level 3: Create third level child
+	t.Run("Create Level 3 Child Group", func(t *testing.T) {
+		groupName := "level3-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, level2GroupID, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		level3GroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, level3GroupID)
+	})
+
+	// Test: Find root-level group (Level 0)
+	t.Run("Find Root Level Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "root-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find root-level group")
+		require.Equal(t, "root-group", *group.Name)
+		require.Equal(t, rootGroupID, *group.Id)
+	})
+
+	// Test: Find level 1 child within root group
+	t.Run("Find Level 1 Child Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level1-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find level 1 child group")
+		require.Equal(t, "level1-group", *group.Name)
+		require.Equal(t, level1GroupID, *group.Id)
+	})
+
+	// Test: Find level 2 child within level 1 group
+	t.Run("Find Level 2 Child Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, level1GroupID, "level2-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find level 2 child group")
+		require.Equal(t, "level2-group", *group.Name)
+		require.Equal(t, level2GroupID, *group.Id)
+	})
+
+	// Test: Find level 3 child within level 2 group
+	t.Run("Find Level 3 Child Group", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, level2GroupID, "level3-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group, "Should find level 3 child group")
+		require.Equal(t, "level3-group", *group.Name)
+		require.Equal(t, level3GroupID, *group.Id)
+	})
+
+	// Test: Cannot find level 2 group directly in root group (not a direct child)
+	t.Run("Cannot Find Non-Direct Child", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level2-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Nil(t, group, "Should not find level2-group in root group (it's a grandchild)")
+	})
+
+	// Test: Cannot find level 3 group directly in root group
+	t.Run("Cannot Find Grandchild In Root", func(t *testing.T) {
+		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level3-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Nil(t, group, "Should not find level3-group in root group")
+	})
+
+	// Test: Verify all groups can be retrieved at their correct levels
+	t.Run("Verify Group Hierarchy Integrity", func(t *testing.T) {
+		// Get root group's children - should only have level1
+		children, resp, err := c.Groups.GetChildGroups(ctx, realmName, rootGroupID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 1, len(children), "Root should have exactly 1 direct child")
+		require.Equal(t, "level1-group", *children[0].Name)
+
+		// Get level1 group's children - should only have level2
+		children, resp, err = c.Groups.GetChildGroups(ctx, realmName, level1GroupID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 1, len(children), "Level1 should have exactly 1 direct child")
+		require.Equal(t, "level2-group", *children[0].Name)
+
+		// Get level2 group's children - should only have level3
+		children, resp, err = c.Groups.GetChildGroups(ctx, realmName, level2GroupID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 1, len(children), "Level2 should have exactly 1 direct child")
+		require.Equal(t, "level3-group", *children[0].Name)
+
+		// Get level3 group's children - should have no children
+		children, resp, err = c.Groups.GetChildGroups(ctx, realmName, level3GroupID, nil)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.Equal(t, 0, len(children), "Level3 should have no children")
+	})
+}
