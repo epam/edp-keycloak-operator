@@ -358,6 +358,156 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 	}
 }
 
+func TestHelper_GetRealmNameFromRef(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+	require.NoError(t, keycloakApiAlpha.AddToScheme(scheme))
+
+	tests := []struct {
+		name     string
+		client   func(t *testing.T) client.Client
+		object   ObjectWithRealmRef
+		wantName string
+		wantErr  require.ErrorAssertionFunc
+	}{
+		{
+			name: "get realm name from KeycloakRealm",
+			client: func(t *testing.T) client.Client {
+				realm := &keycloakApi.KeycloakRealm{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "test",
+						Name:      "realm-cr",
+					},
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "my-realm",
+					},
+				}
+
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(realm).Build()
+			},
+			object: &keycloakApi.KeycloakRealmGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "test-group",
+				},
+				Spec: keycloakApi.KeycloakRealmGroupSpec{
+					RealmRef: common.RealmRef{
+						Kind: keycloakApi.KeycloakRealmKind,
+						Name: "realm-cr",
+					},
+				},
+			},
+			wantName: "my-realm",
+			wantErr:  require.NoError,
+		},
+		{
+			name: "get realm name from ClusterKeycloakRealm",
+			client: func(t *testing.T) client.Client {
+				clusterRealm := &keycloakApiAlpha.ClusterKeycloakRealm{
+					ObjectMeta: metav1.ObjectMeta{
+						Name: "cluster-realm",
+					},
+					Spec: keycloakApiAlpha.ClusterKeycloakRealmSpec{
+						RealmName: "cluster-my-realm",
+					},
+				}
+
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(clusterRealm).Build()
+			},
+			object: &keycloakApi.KeycloakRealmGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "test-group",
+				},
+				Spec: keycloakApi.KeycloakRealmGroupSpec{
+					RealmRef: common.RealmRef{
+						Kind: keycloakApiAlpha.ClusterKeycloakRealmKind,
+						Name: "cluster-realm",
+					},
+				},
+			},
+			wantName: "cluster-my-realm",
+			wantErr:  require.NoError,
+		},
+		{
+			name: "error when KeycloakRealm not found",
+			client: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithScheme(scheme).Build()
+			},
+			object: &keycloakApi.KeycloakRealmGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "test-group",
+				},
+				Spec: keycloakApi.KeycloakRealmGroupSpec{
+					RealmRef: common.RealmRef{
+						Kind: keycloakApi.KeycloakRealmKind,
+						Name: "nonexistent",
+					},
+				},
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error when ClusterKeycloakRealm not found",
+			client: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithScheme(scheme).Build()
+			},
+			object: &keycloakApi.KeycloakRealmGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "test-group",
+				},
+				Spec: keycloakApi.KeycloakRealmGroupSpec{
+					RealmRef: common.RealmRef{
+						Kind: keycloakApiAlpha.ClusterKeycloakRealmKind,
+						Name: "nonexistent",
+					},
+				},
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "error on unknown realm kind",
+			client: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithScheme(scheme).Build()
+			},
+			object: &keycloakApi.KeycloakRealmGroup{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: "test",
+					Name:      "test-group",
+				},
+				Spec: keycloakApi.KeycloakRealmGroupSpec{
+					RealmRef: common.RealmRef{
+						Kind: "UnknownKind",
+						Name: "some-realm",
+					},
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unknown realm kind: UnknownKind")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			h := &Helper{
+				client: tt.client(t),
+				scheme: scheme,
+			}
+
+			got, err := h.GetRealmNameFromRef(context.Background(), tt.object)
+			tt.wantErr(t, err)
+
+			if err == nil {
+				assert.Equal(t, tt.wantName, got)
+			}
+		})
+	}
+}
+
 func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(scheme))
