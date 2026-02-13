@@ -21,6 +21,7 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 const (
@@ -69,6 +70,10 @@ type ControllerHelper interface {
 	CreateKeycloakClient(ctx context.Context, url, user, password, adminType, caCert string, insecureSkipVerify bool) (keycloak.Client, error)
 	CreateKeycloakClientFomAuthData(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error)
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
+	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error)
+	CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakclientv2.KeycloakClient, error)
+	CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error)
+	GetRealmNameFromRef(ctx context.Context, object ObjectWithRealmRef) (string, error)
 }
 
 type Helper struct {
@@ -333,5 +338,36 @@ func (h *Helper) GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithR
 
 	default:
 		return nil, fmt.Errorf("unknown realm kind: %s", kind)
+	}
+}
+
+// GetRealmNameFromRef resolves the Keycloak realm name from a RealmRef without calling the Keycloak API.
+// It reads the realm name directly from the CR spec.
+func (h *Helper) GetRealmNameFromRef(ctx context.Context, object ObjectWithRealmRef) (string, error) {
+	kind := object.GetRealmRef().Kind
+	name := object.GetRealmRef().Name
+
+	switch kind {
+	case keycloakApi.KeycloakRealmKind:
+		realm := &keycloakApi.KeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{
+			Namespace: object.GetNamespace(),
+			Name:      name,
+		}, realm); err != nil {
+			return "", fmt.Errorf("failed to get KeycloakRealm: %w", err)
+		}
+
+		return realm.Spec.RealmName, nil
+
+	case keycloakAlpha.ClusterKeycloakRealmKind:
+		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
+		if err := h.client.Get(ctx, types.NamespacedName{Name: name}, clusterRealm); err != nil {
+			return "", fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
+		}
+
+		return clusterRealm.Spec.RealmName, nil
+
+	default:
+		return "", fmt.Errorf("unknown realm kind: %s", kind)
 	}
 }

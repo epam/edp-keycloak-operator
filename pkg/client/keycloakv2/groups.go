@@ -3,6 +3,8 @@ package keycloakv2
 import (
 	"context"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/generated"
 )
 
@@ -178,6 +180,72 @@ func (c *groupsClient) CreateChildGroup(
 	}
 
 	return response, nil
+}
+
+func (c *groupsClient) FindGroupByName(
+	ctx context.Context,
+	realm string,
+	groupName string,
+) (*GroupRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupsWithResponse(ctx, realm, &GetGroupsParams{
+		Search: &groupName,
+		Exact:  ptr.To(true),
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return findGroupInList(*res.JSON200, groupName), response, nil
+}
+
+func (c *groupsClient) FindChildGroupByName(
+	ctx context.Context,
+	realm string,
+	parentGroupID string,
+	groupName string,
+) (*GroupRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupsGroupIdChildrenWithResponse(
+		ctx,
+		realm,
+		parentGroupID,
+		&GetChildGroupsParams{
+			Search: &groupName,
+			Exact:  ptr.To(true),
+		},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return findGroupInList(*res.JSON200, groupName), response, nil
 }
 
 func (c *groupsClient) GetRoleMappings(
@@ -360,4 +428,15 @@ func (c *groupsClient) DeleteClientRoleMappings(
 	}
 
 	return response, nil
+}
+
+// findGroupInList searches for a group by name in a list of groups.
+func findGroupInList(groups []GroupRepresentation, name string) *GroupRepresentation {
+	for i := range groups {
+		if groups[i].Name != nil && *groups[i].Name == name {
+			return &groups[i]
+		}
+	}
+
+	return nil
 }
