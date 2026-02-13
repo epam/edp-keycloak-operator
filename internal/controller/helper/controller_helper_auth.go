@@ -76,29 +76,16 @@ func (h *Helper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *key
 		return nil, err
 	}
 
-	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+}
+
+func (h *Helper) CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error) {
+	authData, err := h.getKeycloakAuthDataFromRealmRef(ctx, object)
 	if err != nil {
-		return nil, fmt.Errorf("unable to get credentials: %w", err)
+		return nil, err
 	}
 
-	options := []keycloakclientv2.ClientOption{
-		keycloakclientv2.WithPasswordGrant(username, password),
-	}
-
-	if authData.CACert != "" {
-		options = append(options, keycloakclientv2.WithCACert(authData.CACert))
-	}
-
-	if authData.InsecureSkipVerify {
-		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
-	}
-
-	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.DefaultAdminClientID, options...)
-	if err != nil {
-		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
-	}
-
-	return kcClient, nil
+	return h.createKeycloakClientV2FromAuthData(ctx, authData)
 }
 
 func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error) {
@@ -107,6 +94,10 @@ func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, rea
 		return nil, err
 	}
 
+	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+}
+
+func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authData *KeycloakAuthData) (*keycloakclientv2.KeycloakClient, error) {
 	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get credentials: %w", err)
