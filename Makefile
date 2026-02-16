@@ -177,7 +177,7 @@ $(OAPICODEGEN): $(LOCALBIN)
 KEYCLOAK_VERSION ?= 26.5.2
 .PHONY: generate-keycloak-go-client
 generate-keycloak-go-client: oapi-codegen
-# Currently, the OpenApi spec is manually edited due ti the issue https://github.com/keycloak/keycloak/issues/46015
+# Currently, the OpenApi spec is manually edited due to the issue https://github.com/keycloak/keycloak/issues/46015
 # Once the issue is resolved, the spec can be downloaded directly from the Keycloak documentation.
 # 	curl -o pkg/client/keycloakv2/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
 	$(OAPICODEGEN) -config pkg/client/keycloakv2/oapicfg.yaml pkg/client/keycloakv2/openapi.yaml

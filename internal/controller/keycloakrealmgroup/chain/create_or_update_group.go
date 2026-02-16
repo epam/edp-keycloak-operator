@@ -45,9 +45,10 @@ func (h *CreateOrUpdateGroup) Serve(
 
 	if existingGroup == nil {
 		groupRep := keycloakv2.GroupRepresentation{
-			Name:       &spec.Name,
-			Path:       &spec.Path,
-			Attributes: &spec.Attributes,
+			Name:        &spec.Name,
+			Description: &spec.Description,
+			Path:        &spec.Path,
+			Attributes:  &spec.Attributes,
 		}
 
 		var resp *keycloakv2.Response
@@ -66,6 +67,7 @@ func (h *CreateOrUpdateGroup) Serve(
 		log.Info("Group created", "groupID", groupCtx.GroupID)
 	} else {
 		groupCtx.GroupID = *existingGroup.Id
+		existingGroup.Description = &spec.Description
 		existingGroup.Path = &spec.Path
 		existingGroup.Attributes = &spec.Attributes
 

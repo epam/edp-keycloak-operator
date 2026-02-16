@@ -169,7 +169,8 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 					Kind: keycloakApi.KeycloakRealmKind,
 					Name: KeycloakRealmCR,
 				},
-				Path: "/group-all-params",
+				Description: "Test group description",
+				Path:        "/group-all-params",
 				Attributes: map[string][]string{
 					"attr1": {"value1", "value2"},
 					"attr2": {"value3"},
@@ -204,6 +205,10 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(groupRep.Path).ShouldNot(BeNil())
 			g.Expect(*groupRep.Path).Should(Equal(group.Spec.Path))
 
+			// Verify description
+			g.Expect(groupRep.Description).ShouldNot(BeNil())
+			g.Expect(*groupRep.Description).Should(Equal("Test group description"))
+
 			// Verify attributes
 			g.Expect(groupRep.Attributes).ShouldNot(BeNil())
 			g.Expect(*groupRep.Attributes).Should(Equal(group.Spec.Attributes))
@@ -229,6 +234,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		By("Updating KeycloakRealmGroup parameters")
 		updatableGroup := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
+		updatableGroup.Spec.Description = "Updated group description"
 		updatableGroup.Spec.Attributes = map[string][]string{
 			"updated-attr": {"updated-value"},
 			"new-attr":     {"new-value"},
@@ -253,14 +259,16 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(groupRep).ShouldNot(BeNil())
 
+			// Verify description was updated
+			g.Expect(groupRep.Description).ShouldNot(BeNil())
+			g.Expect(*groupRep.Description).Should(Equal("Updated group description"))
+
 			// Verify attributes were updated
 			g.Expect(groupRep.Attributes).ShouldNot(BeNil())
 			g.Expect(*groupRep.Attributes).Should(HaveKeyWithValue("updated-attr", []string{"updated-value"}))
 			g.Expect(*groupRep.Attributes).Should(HaveKeyWithValue("new-attr", []string{"new-value"}))
 			g.Expect(*groupRep.Attributes).ShouldNot(HaveKey("attr1"))
 			g.Expect(*groupRep.Attributes).ShouldNot(HaveKey("attr2"))
-
-			// Note: groupRep.Access is server-computed; skip verification (see comment above).
 
 			// Verify realm roles were updated
 			g.Expect(groupRep.RealmRoles).ShouldNot(BeNil())

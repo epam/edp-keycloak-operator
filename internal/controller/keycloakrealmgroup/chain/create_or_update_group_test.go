@@ -39,9 +39,10 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakv2.GroupRepresentation{
-			Name:       ptr.To(testGroupName),
-			Path:       ptr.To("/test-group"),
-			Attributes: &map[string][]string{"key": {"val"}},
+			Name:        ptr.To(testGroupName),
+			Description: ptr.To(""),
+			Path:        ptr.To("/test-group"),
+			Attributes:  &map[string][]string{"key": {"val"}},
 		},
 	).Return(&keycloakv2.Response{
 		HTTPResponse: &http.Response{
@@ -63,6 +64,7 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.Name = testChildGroupName
+	group.Spec.Description = "Child group description"
 	group.Spec.Path = "/child-group"
 	group.Spec.Attributes = map[string][]string{"a": {"b"}}
 
@@ -73,9 +75,10 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 	mockGroups.EXPECT().CreateChildGroup(
 		context.Background(), "test-realm", "parent-id",
 		keycloakv2.GroupRepresentation{
-			Name:       ptr.To(testChildGroupName),
-			Path:       ptr.To("/child-group"),
-			Attributes: &map[string][]string{"a": {"b"}},
+			Name:        ptr.To(testChildGroupName),
+			Description: ptr.To("Child group description"),
+			Path:        ptr.To("/child-group"),
+			Attributes:  &map[string][]string{"a": {"b"}},
 		},
 	).Return(&keycloakv2.Response{
 		HTTPResponse: &http.Response{
@@ -97,6 +100,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.Name = "existing-group"
+	group.Spec.Description = "Updated description"
 	group.Spec.Path = testUpdatedPath
 	group.Spec.Attributes = map[string][]string{"new-key": {"new-val"}}
 
@@ -111,10 +115,11 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakv2.GroupRepresentation{
-			Id:         ptr.To("existing-id"),
-			Name:       ptr.To("existing-group"),
-			Path:       ptr.To(testUpdatedPath),
-			Attributes: &map[string][]string{"new-key": {"new-val"}},
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To("existing-group"),
+			Description: ptr.To("Updated description"),
+			Path:        ptr.To(testUpdatedPath),
+			Attributes:  &map[string][]string{"new-key": {"new-val"}},
 		},
 	).Return(nil, nil)
 
@@ -160,9 +165,10 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakv2.GroupRepresentation{
-			Name:       ptr.To(testGroupName),
-			Path:       ptr.To("/test-group"),
-			Attributes: &map[string][]string{"key": {"val"}},
+			Name:        ptr.To(testGroupName),
+			Description: ptr.To(""),
+			Path:        ptr.To("/test-group"),
+			Attributes:  &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, errors.New("create failed"))
 
@@ -193,10 +199,11 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakv2.GroupRepresentation{
-			Id:         ptr.To("existing-id"),
-			Name:       ptr.To("existing-group"),
-			Path:       ptr.To(testUpdatedPath),
-			Attributes: &map[string][]string{"key": {"val"}},
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To("existing-group"),
+			Description: ptr.To(""),
+			Path:        ptr.To(testUpdatedPath),
+			Attributes:  &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, errors.New("update failed"))
 
@@ -227,10 +234,11 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "child-id",
 		keycloakv2.GroupRepresentation{
-			Id:         ptr.To("child-id"),
-			Name:       ptr.To(testChildGroupName),
-			Path:       ptr.To(testUpdatedPath),
-			Attributes: &map[string][]string{"k": {"v"}},
+			Id:          ptr.To("child-id"),
+			Name:        ptr.To(testChildGroupName),
+			Description: ptr.To(""),
+			Path:        ptr.To(testUpdatedPath),
+			Attributes:  &map[string][]string{"k": {"v"}},
 		},
 	).Return(nil, nil)
 
