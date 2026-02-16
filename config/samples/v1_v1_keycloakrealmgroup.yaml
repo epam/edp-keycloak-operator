@@ -4,6 +4,7 @@ metadata:
   name: keycloakrealmgroup-sample
 spec:
   name: ArgoCDAdmins
+  description: "This group is for ArgoCD administrators."
   realmRef:
     name: keycloakrealm-sample
     kind: KeycloakRealm

@@ -18,6 +18,7 @@ spec:
     name: keycloakrealm-sample
     kind: KeycloakRealm
   name: ArgoCDDevelopers
+  description: "This group is for ArgoCD developers."
   parentGroup:
     name: keycloakrealmgroup-sample
 

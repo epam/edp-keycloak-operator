@@ -4493,6 +4493,13 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>description</b></td>
+        <td>string</td>
+        <td>
+          Description is a group description.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakrealmgroupspecparentgroup">parentGroup</a></b></td>
         <td>object</td>
         <td>

@@ -11,6 +11,10 @@ type KeycloakRealmGroupSpec struct {
 	// Name of keycloak group.
 	Name string `json:"name"`
 
+	// Description is a group description.
+	// +optional
+	Description string `json:"description,omitempty"`
+
 	// RealmRef is reference to Realm custom resource.
 	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
