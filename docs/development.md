@@ -86,7 +86,9 @@ edp-keycloak-operator/
 ├── internal/                    # Private application code
 │   └── controller/              # Controller implementations
 ├── pkg/                         # Public library code
-│   ├── client/                  # Keycloak client
+│   ├── client/
+│   │   ├── keycloak/            # Legacy gocloak v12 adapter (most controllers still use this)
+│   │   └── keycloakv2/          # New oapi-codegen generated client (migration in progress)
 │   ├── secretref/               # Secret reference utilities
 │   └── util/                    # Utility functions
 └── tests/                       # E2E test files
@@ -349,7 +351,7 @@ ifconfig | grep "inet " | grep -v 127.0.0.1 | awk '{print $2}' | head -1
 4. **Namespace Issues**: Verify `OPERATOR_NAMESPACE` exists and contains the secret
 
 #### Logs and Debugging
-
+Check the following when diagnosing issues:
 - The operator logs will appear in your terminal or VS Code debug console
 - Use `kubectl logs` to check other cluster resources
 - Set log level with `--zap-log-level=debug` for more verbose output
@@ -396,7 +398,7 @@ TEST_KEYCLOAK_URL="http://localhost:8086" make test
 
 # 9. Commit and push
 git add .
-git commit -m "feat: Add new field to KeycloakClient (#issue_number)"
+git commit -m "feat(KeycloakClient): add new field to KeycloakClient (#issue_number)"
 git push --force-with-lease
 ```
 
@@ -452,7 +454,7 @@ TEST_KEYCLOAK_URL="http://localhost:8086" make test
 
 # 9. Commit your work
 git add .
-git commit -m "feat: Add KeycloakSomeResource controller (#issue_number)"
+git commit -m "feat(KeycloakSomeResource): add KeycloakSomeResource controller (#issue_number)"
 git push --force-with-lease
 ```
 
@@ -482,7 +484,7 @@ TEST_KEYCLOAK_URL="http://localhost:8086" make test
 
 # 5. Commit changes
 git add .
-git commit -m "fix: Update client role logic (#issue_number)"
+git commit -m "fix: update client role logic (#issue_number)"
 git push --force-with-lease
 ```
 

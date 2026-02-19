@@ -94,27 +94,42 @@ While the prerequisites above must be satisfied prior to having your pull reques
 
 ### Pull Request
 
-* Merge request can't contain more than one commit. Please squash your commits.
+* Pull request can't contain more than one commit. Please squash your commits.
 
 ### Git Commit Messages
 
-* Use the present tense ("Add feature" not "Added feature")
-* Use the imperative mood ("Move cursor to..." not "Moves cursor to...")
+* Use the present tense ("add feature" not "added feature")
+* Use the imperative mood ("move cursor to..." not "moves cursor to...")
 * Limit the first line to 72 characters or less
-* Use conventional commit format: `type: Description (#issue_number)`
+* Use conventional commit format: `type(optional-scope): description (#issue_number)`
 * Reference issues and pull requests liberally after the first line
 
 **Commit Message Format:**
 ```
-feat: Add new field to KeycloakClient (#123)
-fix: Update client role logic (#456)
-docs: Improve development guide (#789)
+feat(KeycloakClient): add new field to KeycloakClient (#123)
+fix: update client role logic (#456)
+docs: improve development guide (#789)
 ```
+
+**Scope** is optional and describes the section of the codebase affected, e.g. `feat(webhook): ...` or `fix(keycloakv2): ...`.
 
 **Common commit types:**
 - `feat:` - New features
 - `fix:` - Bug fixes
 - `docs:` - Documentation changes
 - `refactor:` - Code refactoring
+- `perf:` - Performance improvements
 - `test:` - Adding or updating tests
+- `build:` - Build system or dependency changes
+- `ci:` - CI/CD configuration changes
+- `style:` - Formatting or whitespace changes (no logic change)
 - `chore:` - Maintenance tasks
+- `revert:` - Reverting a previous commit
+
+**Breaking changes** must be indicated either by appending `!` after the type/scope, or by adding a `BREAKING CHANGE:` footer (or both):
+
+```
+feat(api)!: remove deprecated endpoint (#789)
+
+BREAKING CHANGE: the /v1/realms endpoint has been removed; use /v2/realms instead.
+```
