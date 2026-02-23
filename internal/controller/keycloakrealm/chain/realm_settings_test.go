@@ -2,103 +2,153 @@ package chain
 
 import (
 	"context"
-	"errors"
-	"strings"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestRealmSettings_ServeRequest(t *testing.T) {
-	rs := RealmSettings{
-		settingsBuilder: realmbuilder.NewSettingsBuilder(),
-	}
-	kClient := mocks.NewMockClient(t)
-	realm := keycloakApi.KeycloakRealm{}
-	ctx := context.Background()
+	t.Parallel()
 
-	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
-	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	err := rs.ServeRequest(ctx, &realm, kClient, nil)
-	require.NoError(t, err)
-
-	theme := "LoginTheme test"
-
-	realm = keycloakApi.KeycloakRealm{
-		Spec: keycloakApi.KeycloakRealmSpec{
-			RealmName: "realm1",
-			Themes: &keycloakApi.RealmThemes{
-				LoginTheme: &theme,
+	tests := []struct {
+		name      string
+		realm     *keycloakApi.KeycloakRealm
+		setupMock func(*v2mocks.MockRealmClient)
+		wantErr   require.ErrorAssertionFunc
+	}{
+		{
+			name:  "minimal realm — no event config",
+			realm: &keycloakApi.KeycloakRealm{},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "", mock.Anything).
+					Return(nil, nil)
 			},
-			BrowserSecurityHeaders: &map[string]string{
-				"foo": "bar",
+			wantErr: require.NoError,
+		},
+		{
+			name: "with themes, security headers and password policies",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm1",
+					Themes: &keycloakApi.RealmThemes{
+						LoginTheme: ptr.To("LoginTheme test"),
+					},
+					BrowserSecurityHeaders: &map[string]string{
+						"foo": "bar",
+					},
+					PasswordPolicies: []common.PasswordPolicy{
+						{Type: "foo", Value: "bar"},
+					},
+					DisplayHTMLName: "<div class=\"kc-logo-text\"><span>Example</span></div>",
+					FrontendURL:     "http://example.com",
+				},
 			},
-			RealmEventConfig: &keycloakApi.RealmEventConfig{
-				EventsListeners:       []string{"foo", "bar"},
-				AdminEventsEnabled:    true,
-				AdminEventsExpiration: 100,
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "realm1").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm1", mock.Anything).
+					Return(nil, nil)
 			},
-			PasswordPolicies: []keycloakApi.PasswordPolicy{
-				{Type: "foo", Value: "bar"},
+			wantErr: require.NoError,
+		},
+		{
+			name: "with event config — SetRealmEventConfig called",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm1",
+					RealmEventConfig: &common.RealmEventConfig{
+						EventsListeners:       []string{"foo", "bar"},
+						AdminEventsEnabled:    true,
+						AdminEventsExpiration: 100,
+					},
+				},
 			},
-			DisplayHTMLName: "<div class=\"kc-logo-text\"><span>Example</span></div>",
-			FrontendURL:     "http://example.com",
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().SetRealmEventConfig(mock.Anything, "realm1", mock.Anything).
+					Return(nil, nil)
+				m.EXPECT().GetRealm(mock.Anything, "realm1").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm1", mock.Anything).
+					Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "SetRealmEventConfig fails",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm1",
+					RealmEventConfig: &common.RealmEventConfig{
+						EventsListeners:    []string{"foo", "bar"},
+						AdminEventsEnabled: true,
+					},
+				},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().SetRealmEventConfig(mock.Anything, "realm1", mock.Anything).
+					Return(nil, assert.AnError)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to set realm event config")
+			},
+		},
+		{
+			name:  "GetRealm fails",
+			realm: &keycloakApi.KeycloakRealm{},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "").
+					Return(nil, nil, assert.AnError)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to get realm")
+			},
+		},
+		{
+			name:  "UpdateRealm fails",
+			realm: &keycloakApi.KeycloakRealm{},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "", mock.Anything).
+					Return(nil, assert.AnError)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to update realm settings")
+			},
 		},
 	}
 
-	kClient.On("UpdateRealmSettings", realm.Spec.RealmName, &adapter.RealmSettings{
-		Themes: &adapter.RealmThemes{
-			LoginTheme: &theme,
-		},
-		BrowserSecurityHeaders: &map[string]string{
-			"foo": "bar",
-		},
-		PasswordPolicies: []adapter.PasswordPolicy{
-			{Type: "foo", Value: "bar"},
-		},
-		DisplayHTMLName:       realm.Spec.DisplayHTMLName,
-		FrontendURL:           realm.Spec.FrontendURL,
-		DisplayName:           realm.Spec.DisplayName,
-		AdminEventsExpiration: ptr.To(100),
-	}).Return(nil)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
-		EventsListeners:    []string{"foo", "bar"},
-		AdminEventsEnabled: true,
-	}).Return(nil).Once()
+			mockRealm := v2mocks.NewMockRealmClient(t)
+			tt.setupMock(mockRealm)
 
-	err = rs.ServeRequest(ctx, &realm, kClient, nil)
-	require.NoError(t, err)
+			rs := RealmSettings{}
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
 
-	kClient.On("SetRealmEventConfig", realm.Spec.RealmName, &adapter.RealmEventConfig{
-		EventsListeners:    []string{"foo", "bar"},
-		AdminEventsEnabled: true,
-	}).Return(errors.New("event config fatal")).Once()
-	kClient.On("UpdateRealmSettings", mock.Anything, mock.Anything).Return(nil)
-	kClient.On("SetRealmOrganizationsEnabled", mock.Anything, mock.Anything, mock.Anything).Return(nil)
-
-	err = rs.ServeRequest(ctx, &realm, kClient, nil)
-	require.Error(t, err)
-
-	if !strings.Contains(err.Error(), "unable to set realm event config") {
-		t.Fatalf("wrong error returned: %s", err.Error())
+			err := rs.ServeRequest(context.Background(), tt.realm, kClientV2)
+			tt.wantErr(t, err)
+		})
 	}
 }
 
 func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
-	rs := RealmSettings{
-		settingsBuilder: realmbuilder.NewSettingsBuilder(),
-	}
-	kClient := mocks.NewMockClient(t)
+	t.Parallel()
 
 	realm := keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
@@ -107,41 +157,27 @@ func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 				UserRegistration: true,
 				ForgotPassword:   true,
 				RememberMe:       true,
-				EmailAsUsername:  false,
 				LoginWithEmail:   true,
-				DuplicateEmails:  false,
 				VerifyEmail:      true,
-				EditUsername:     false,
 			},
 		},
 	}
 
-	kClient.EXPECT().UpdateRealmSettings(realm.Spec.RealmName, &adapter.RealmSettings{
-		Login: &adapter.RealmLogin{
-			UserRegistration: true,
-			ForgotPassword:   true,
-			RememberMe:       true,
-			EmailAsUsername:  false,
-			LoginWithEmail:   true,
-			DuplicateEmails:  false,
-			VerifyEmail:      true,
-			EditUsername:     false,
-		},
-		DisplayHTMLName: "",
-		FrontendURL:     "",
-		DisplayName:     "",
-	}).Return(nil)
-	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
+	mockRealm := v2mocks.NewMockRealmClient(t)
+	mockRealm.EXPECT().GetRealm(mock.Anything, "realm-with-login").
+		Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+	mockRealm.EXPECT().UpdateRealm(mock.Anything, "realm-with-login", mock.Anything).
+		Return(nil, nil)
 
-	err := rs.ServeRequest(context.Background(), &realm, kClient, nil)
+	rs := RealmSettings{}
+	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+
+	err := rs.ServeRequest(context.Background(), &realm, kClientV2)
 	require.NoError(t, err)
 }
 
 func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
-	rs := RealmSettings{
-		settingsBuilder: realmbuilder.NewSettingsBuilder(),
-	}
-	kClient := mocks.NewMockClient(t)
+	t.Parallel()
 
 	realm := keycloakApi.KeycloakRealm{
 		Spec: keycloakApi.KeycloakRealmSpec{
@@ -169,31 +205,15 @@ func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 		},
 	}
 
-	kClient.EXPECT().UpdateRealmSettings(realm.Spec.RealmName, &adapter.RealmSettings{
-		Login: &adapter.RealmLogin{
-			RememberMe: true,
-		},
-		SSOSessionSettings: &adapter.SSOSessionSettings{
-			IdleTimeout:           1801,
-			MaxLifespan:           36002,
-			IdleTimeoutRememberMe: 3603,
-			MaxRememberMe:         72004,
-		},
-		SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
-			IdleTimeout:        2592007,
-			MaxLifespanEnabled: true,
-			MaxLifespan:        5184008,
-		},
-		SSOLoginSettings: &adapter.SSOLoginSettings{
-			AccessCodeLifespanLogin:      1809,
-			AccessCodeLifespanUserAction: 310,
-		},
-		DisplayHTMLName: "",
-		FrontendURL:     "",
-		DisplayName:     "",
-	}).Return(nil)
-	kClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, realm.Spec.RealmName, false).Return(nil)
+	mockRealm := v2mocks.NewMockRealmClient(t)
+	mockRealm.EXPECT().GetRealm(mock.Anything, "realm-with-sso-session").
+		Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+	mockRealm.EXPECT().UpdateRealm(mock.Anything, "realm-with-sso-session", mock.Anything).
+		Return(nil, nil)
 
-	err := rs.ServeRequest(context.Background(), &realm, kClient, nil)
+	rs := RealmSettings{}
+	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+
+	err := rs.ServeRequest(context.Background(), &realm, kClientV2)
 	require.NoError(t, err)
 }

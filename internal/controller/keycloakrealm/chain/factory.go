@@ -11,23 +11,19 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
 
-func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, controllerHelper Helper) handler.RealmHandler {
+func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme) handler.RealmHandler {
 	return PutRealm{
-		hlp:    controllerHelper,
 		client: k8sClient,
 		next: SetLabels{
 			client: k8sClient,
 			next: PutUsers{
 				next: PutUsersRoles{
 					next: RealmSettings{
-						settingsBuilder: realmbuilder.NewSettingsBuilder(),
 						next: AuthFlow{
 							next: UserProfile{
 								next: ConfigureEmail{
@@ -42,9 +38,9 @@ func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, controllerH
 	}
 }
 
-func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	if next != nil {
-		err := next.ServeRequest(ctx, realm, kClient, kClientV2)
+		err := next.ServeRequest(ctx, realm, kClientV2)
 		if err != nil {
 			return fmt.Errorf("chain failed %s: %w", reflect.TypeOf(next).Name(), err)
 		}

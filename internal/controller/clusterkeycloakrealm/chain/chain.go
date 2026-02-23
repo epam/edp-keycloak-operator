@@ -7,12 +7,11 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type RealmHandler interface {
-	ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error
+	ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error
 }
 
 type chain struct {
@@ -23,7 +22,7 @@ func (ch *chain) Use(handlers ...RealmHandler) {
 	ch.handlers = append(ch.handlers, handlers...)
 }
 
-func (ch *chain) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (ch *chain) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("Starting ClusterKeycloak chain")
@@ -31,7 +30,7 @@ func (ch *chain) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeyclo
 	for i := 0; i < len(ch.handlers); i++ {
 		h := ch.handlers[i]
 
-		err := h.ServeRequest(ctx, realm, kClient, kClientV2)
+		err := h.ServeRequest(ctx, realm, kClientV2)
 		if err != nil {
 			log.Info("ClusterKeycloak chain finished with error")
 

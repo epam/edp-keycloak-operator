@@ -2,39 +2,32 @@ package chain
 
 import (
 	"context"
-	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 type RealmSettings struct {
-	next            handler.RealmHandler
-	settingsBuilder *realmbuilder.SettingsBuilder
+	next handler.RealmHandler
 }
 
-func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start updating of Keycloak realm settings")
 
-	if err := h.settingsBuilder.SetRealmEventConfigFromV1(kClient, realm.Spec.RealmName, realm.Spec.RealmEventConfig); err != nil {
-		return fmt.Errorf("unable to set realm event config: %w", err)
+	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClientV2.Realms); err != nil {
+		return err
 	}
 
-	settings := h.settingsBuilder.BuildFromV1(realm)
+	overlay := realmbuilder.BuildRealmRepresentationFromV1(realm)
 
-	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
-		return fmt.Errorf("unable to update realm settings: %w", err)
-	}
-
-	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {
-		return fmt.Errorf("unable to set realm organizations enabled: %w", err)
+	if err := realmbuilder.ApplyRealmSettings(ctx, realm.Spec.RealmName, overlay, kClientV2.Realms); err != nil {
+		return err
 	}
 
 	rLog.Info("Realm settings is updating done.")
 
-	return nextServeOrNil(ctx, h.next, realm, kClient, kClientV2)
+	return nextServeOrNil(ctx, h.next, realm, kClientV2)
 }

@@ -14,9 +14,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestCreateDefChain(t *testing.T) {
@@ -49,20 +48,19 @@ func TestCreateDefChain(t *testing.T) {
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
 
-	testRealm := dto.Realm{Name: realmName}
-	kClient := mocks.NewMockClient(t)
-	kClient.On("ExistRealm", testRealm.Name).
-		Return(false, nil)
-	kClient.On(
-		"CreateRealmWithDefaultConfig", &dto.Realm{Name: realmName, Users: []dto.User{}}).
-		Return(nil)
-	kClient.On("UpdateRealmSettings", testifymock.Anything, testifymock.Anything).Return(nil)
-	kClient.On("SetRealmOrganizationsEnabled", testifymock.Anything, testifymock.Anything, testifymock.Anything).Return(nil)
+	mockRealm := v2mocks.NewMockRealmClient(t)
+	// PutRealm: realm already exists
+	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
+		Return(&keycloakv2.RealmRepresentation{}, nil, nil).Once()
+	// RealmSettings: GetRealm + UpdateRealm
+	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
+		Return(&keycloakv2.RealmRepresentation{}, nil, nil).Once()
+	mockRealm.EXPECT().UpdateRealm(testifymock.Anything, kr.Spec.RealmName, testifymock.Anything).
+		Return(nil, nil)
 
-	hm := helpermock.NewMockControllerHelper(t)
-
-	hm.On("InvalidateKeycloakClientTokenSecret", testifymock.Anything, kr.Namespace, kr.Spec.KeycloakRef.Name).Return(nil)
-	chain := CreateDefChain(client, s, hm)
-	err := chain.ServeRequest(context.Background(), &kr, kClient, nil)
+	_ = realmName // kept for local variable consistency
+	chain := CreateDefChain(client, s)
+	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+	err := chain.ServeRequest(context.Background(), &kr, kClientV2)
 	require.NoError(t, err)
 }

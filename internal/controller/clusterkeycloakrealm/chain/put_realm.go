@@ -4,12 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -22,35 +21,27 @@ func NewPutRealm(k8sClient client.Client) *PutRealm {
 	return &PutRealm{client: k8sClient}
 }
 
-func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealm) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start putting realm")
 
-	rDto := convertSpecToRealm(&realm.Spec)
-
-	exist, err := kClient.ExistRealm(realm.Spec.RealmName)
-	if err != nil {
-		return fmt.Errorf("failed to check realm existence: %w", err)
-	}
-
-	if exist {
+	_, _, err := kClientV2.Realms.GetRealm(ctx, realm.Spec.RealmName)
+	if err == nil {
 		log.Info("Realm already exists")
 
 		return nil
 	}
 
-	err = kClient.CreateRealmWithDefaultConfig(rDto)
-	if err != nil {
+	if !keycloakv2.IsNotFound(err) {
+		return fmt.Errorf("failed to check realm existence: %w", err)
+	}
+
+	realmName := realm.Spec.RealmName
+	if _, err = kClientV2.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: ptr.To(true)}); err != nil {
 		return fmt.Errorf("failed to create realm: %w", err)
 	}
 
 	log.Info("Realm has been created")
 
 	return nil
-}
-
-func convertSpecToRealm(spec *v1alpha1.ClusterKeycloakRealmSpec) *dto.Realm {
-	return &dto.Realm{
-		Name: spec.RealmName,
-	}
 }

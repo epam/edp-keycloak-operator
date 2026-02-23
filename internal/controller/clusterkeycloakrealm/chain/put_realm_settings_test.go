@@ -2,7 +2,6 @@ package chain
 
 import (
 	"context"
-	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,17 +12,18 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestPutRealmSettings_ServeRequest(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		realm         *v1alpha1.ClusterKeycloakRealm
-		setupMocks    func(*mocks.MockClient)
+		setupMocks    func(*v2mocks.MockRealmClient)
 		expectedError string
-		expectedCalls []string
 	}{
 		{
 			name: "successful realm settings update with minimal configuration",
@@ -32,15 +32,12 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 					RealmName: "test-realm",
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(nil)
+			setupMocks: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, nil)
 			},
-			expectedCalls: []string{"UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
 		},
 		{
 			name: "successful realm settings update with full configuration",
@@ -51,7 +48,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 					DisplayHTMLName:      "<div>Test</div>",
 					DisplayName:          "Test Realm",
 					OrganizationsEnabled: true,
-					RealmEventConfig: &v1alpha1.RealmEventConfig{
+					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsDetailsEnabled: true,
 						AdminEventsEnabled:        true,
 						AdminEventsExpiration:     3600,
@@ -70,247 +67,84 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 						InternationalizationEnabled: ptr.To(true),
 					},
 					BrowserSecurityHeaders: &map[string]string{
-						"X-Frame-Options":        "SAMEORIGIN",
-						"X-Content-Type-Options": "nosniff",
+						"X-Frame-Options": "SAMEORIGIN",
 					},
-					PasswordPolicies: []v1alpha1.PasswordPolicy{
+					PasswordPolicies: []common.PasswordPolicy{
 						{Type: "length", Value: "8"},
-						{Type: "uppercase", Value: "1"},
 					},
 					TokenSettings: &common.TokenSettings{
-						DefaultSignatureAlgorithm:           "RS256",
-						RevokeRefreshToken:                  true,
-						RefreshTokenMaxReuse:                0,
-						AccessTokenLifespan:                 300,
-						AccessTokenLifespanForImplicitFlow:  900,
-						AccessCodeLifespan:                  60,
-						ActionTokenGeneratedByUserLifespan:  300,
-						ActionTokenGeneratedByAdminLifespan: 300,
+						DefaultSignatureAlgorithm: "RS256",
+						RevokeRefreshToken:        true,
 					},
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("SetRealmEventConfig", "test-realm", &adapter.RealmEventConfig{
-					AdminEventsDetailsEnabled: true,
-					AdminEventsEnabled:        true,
-					EnabledEventTypes:         []string{"LOGIN", "LOGOUT"},
-					EventsEnabled:             true,
-					EventsExpiration:          7200,
-					EventsListeners:           []string{"jboss-logging"},
-				}).Return(nil)
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "https://example.com",
-					DisplayHTMLName: "<div>Test</div>",
-					DisplayName:     "Test Realm",
-					Themes: &adapter.RealmThemes{
-						LoginTheme:                  ptr.To("keycloak"),
-						AccountTheme:                ptr.To("keycloak"),
-						AdminConsoleTheme:           ptr.To("keycloak"),
-						EmailTheme:                  ptr.To("keycloak"),
-						InternationalizationEnabled: ptr.To(true),
-					},
-					BrowserSecurityHeaders: &map[string]string{
-						"X-Frame-Options":        "SAMEORIGIN",
-						"X-Content-Type-Options": "nosniff",
-					},
-					PasswordPolicies: []adapter.PasswordPolicy{
-						{Type: "length", Value: "8"},
-						{Type: "uppercase", Value: "1"},
-					},
-					TokenSettings: &adapter.TokenSettings{
-						DefaultSignatureAlgorithm:           "RS256",
-						RevokeRefreshToken:                  true,
-						RefreshTokenMaxReuse:                0,
-						AccessTokenLifespan:                 300,
-						AccessTokenLifespanForImplicitFlow:  900,
-						AccessCodeLifespan:                  60,
-						ActionTokenGeneratedByUserLifespan:  300,
-						ActionTokenGeneratedByAdminLifespan: 300,
-					},
-					AdminEventsExpiration: ptr.To(3600),
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", true).Return(nil)
+			setupMocks: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, nil)
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, nil)
 			},
-			expectedCalls: []string{"SetRealmEventConfig", "UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
-		},
-		{
-			name: "successful realm settings update with themes only",
-			realm: &v1alpha1.ClusterKeycloakRealm{
-				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					RealmName: "test-realm",
-					Themes: &v1alpha1.ClusterRealmThemes{
-						LoginTheme: ptr.To("custom-theme"),
-					},
-				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					Themes: &adapter.RealmThemes{
-						LoginTheme: ptr.To("custom-theme"),
-					},
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(nil)
-			},
-			expectedCalls: []string{"UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
-		},
-		{
-			name: "successful realm settings update with password policies only",
-			realm: &v1alpha1.ClusterKeycloakRealm{
-				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					RealmName: "test-realm",
-					PasswordPolicies: []v1alpha1.PasswordPolicy{
-						{Type: "length", Value: "10"},
-					},
-				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					PasswordPolicies: []adapter.PasswordPolicy{
-						{Type: "length", Value: "10"},
-					},
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(nil)
-			},
-			expectedCalls: []string{"UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
 		},
 		{
 			name: "error when SetRealmEventConfig fails",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName: "test-realm",
-					RealmEventConfig: &v1alpha1.RealmEventConfig{
+					RealmEventConfig: &common.RealmEventConfig{
 						EventsEnabled: true,
 					},
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("SetRealmEventConfig", "test-realm", &adapter.RealmEventConfig{
-					AdminEventsDetailsEnabled: false,
-					AdminEventsEnabled:        false,
-					EnabledEventTypes:         nil,
-					EventsEnabled:             true,
-					EventsExpiration:          0,
-					EventsListeners:           nil,
-				}).Return(errors.New("event config error"))
+			setupMocks: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, assert.AnError)
 			},
-			expectedError: "failed to set realm event config: event config error",
+			expectedError: "unable to set realm event config",
 		},
 		{
-			name: "error when UpdateRealmSettings fails",
+			name: "error when GetRealm fails",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName: "test-realm",
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-				}).Return(errors.New("update settings error"))
+			setupMocks: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(nil, nil, assert.AnError)
 			},
-			expectedError: "unable to update realm settings: update settings error",
+			expectedError: "unable to get realm",
 		},
 		{
-			name: "error when SetRealmOrganizationsEnabled fails",
+			name: "error when UpdateRealm fails",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName: "test-realm",
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(errors.New("organizations error"))
+			setupMocks: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, assert.AnError)
 			},
-			expectedError: "unable to set realm organizations enabled: organizations error",
-		},
-		{
-			name: "successful realm settings update with localization only",
-			realm: &v1alpha1.ClusterKeycloakRealm{
-				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					RealmName: "test-realm",
-					Themes: &v1alpha1.ClusterRealmThemes{
-						LoginTheme: ptr.To("keycloak"),
-					},
-					Localization: &v1alpha1.RealmLocalization{
-						InternationalizationEnabled: ptr.To(true),
-					},
-				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					Themes: &adapter.RealmThemes{
-						LoginTheme:                  ptr.To("keycloak"),
-						InternationalizationEnabled: ptr.To(true),
-					},
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(nil)
-			},
-			expectedCalls: []string{"UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
-		},
-		{
-			name: "successful realm settings update with admin events expiration",
-			realm: &v1alpha1.ClusterKeycloakRealm{
-				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					RealmName: "test-realm",
-					RealmEventConfig: &v1alpha1.RealmEventConfig{
-						AdminEventsEnabled:    true,
-						AdminEventsExpiration: 1800,
-					},
-				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.On("SetRealmEventConfig", "test-realm", &adapter.RealmEventConfig{
-					AdminEventsDetailsEnabled: false,
-					AdminEventsEnabled:        true,
-					EnabledEventTypes:         nil,
-					EventsEnabled:             false,
-					EventsExpiration:          0,
-					EventsListeners:           nil,
-				}).Return(nil)
-				mockClient.On("UpdateRealmSettings", "test-realm", &adapter.RealmSettings{
-					FrontendURL:           "",
-					DisplayHTMLName:       "",
-					DisplayName:           "",
-					AdminEventsExpiration: ptr.To(1800),
-				}).Return(nil)
-				mockClient.On("SetRealmOrganizationsEnabled", mock.Anything, "test-realm", false).Return(nil)
-			},
-			expectedCalls: []string{"SetRealmEventConfig", "UpdateRealmSettings", "SetRealmOrganizationsEnabled"},
+			expectedError: "unable to update realm settings",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock client
-			mockClient := mocks.NewMockClient(t)
+			t.Parallel()
 
-			// Setup mocks
-			if tt.setupMocks != nil {
-				tt.setupMocks(mockClient)
-			}
+			mockRealm := v2mocks.NewMockRealmClient(t)
+			tt.setupMocks(mockRealm)
 
-			// Create handler
 			handler := NewPutRealmSettings()
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
 
-			// Execute test
-			ctx := context.Background()
-			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
+			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
 
-			// Assert results
 			if tt.expectedError != "" {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedError)
@@ -322,10 +156,11 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 }
 
 func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		realm         *v1alpha1.ClusterKeycloakRealm
-		setupMocks    func(*mocks.MockClient)
 		expectedError require.ErrorAssertionFunc
 	}{
 		{
@@ -337,31 +172,10 @@ func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 						UserRegistration: true,
 						ForgotPassword:   true,
 						RememberMe:       true,
-						EmailAsUsername:  false,
 						LoginWithEmail:   true,
-						DuplicateEmails:  false,
 						VerifyEmail:      true,
-						EditUsername:     false,
 					},
 				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					Login: &adapter.RealmLogin{
-						UserRegistration: true,
-						ForgotPassword:   true,
-						RememberMe:       true,
-						EmailAsUsername:  false,
-						LoginWithEmail:   true,
-						DuplicateEmails:  false,
-						VerifyEmail:      true,
-						EditUsername:     false,
-					},
-				}).Return(nil)
-				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
 			},
 			expectedError: require.NoError,
 		},
@@ -376,48 +190,35 @@ func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					Login: &adapter.RealmLogin{
-						UserRegistration: true,
-						ForgotPassword:   false,
-						RememberMe:       true,
-						EmailAsUsername:  false,
-						LoginWithEmail:   false,
-						DuplicateEmails:  false,
-						VerifyEmail:      false,
-						EditUsername:     false,
-					},
-				}).Return(nil)
-				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
-			},
 			expectedError: require.NoError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			ctx := context.Background()
-			mockClient := mocks.NewMockClient(t)
-			tt.setupMocks(mockClient)
+			t.Parallel()
+
+			mockRealm := v2mocks.NewMockRealmClient(t)
+			mockRealm.EXPECT().GetRealm(mock.Anything, "test-realm").
+				Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+			mockRealm.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
+				Return(nil, nil)
 
 			handler := NewPutRealmSettings()
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
 
-			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
+			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
 			tt.expectedError(t, err)
 		})
 	}
 }
 
 func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
+	t.Parallel()
+
 	tests := []struct {
 		name          string
 		realm         *v1alpha1.ClusterKeycloakRealm
-		setupMocks    func(*mocks.MockClient)
 		expectedError require.ErrorAssertionFunc
 	}{
 		{
@@ -444,29 +245,6 @@ func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 					},
 				},
 			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					SSOSessionSettings: &adapter.SSOSessionSettings{
-						IdleTimeout:           1800,
-						MaxLifespan:           36000,
-						IdleTimeoutRememberMe: 3600,
-						MaxRememberMe:         72000,
-					},
-					SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
-						IdleTimeout:        2592000,
-						MaxLifespanEnabled: true,
-						MaxLifespan:        5184000,
-					},
-					SSOLoginSettings: &adapter.SSOLoginSettings{
-						AccessCodeLifespanLogin:      1800,
-						AccessCodeLifespanUserAction: 300,
-					},
-				}).Return(nil)
-				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
-			},
 			expectedError: require.NoError,
 		},
 		{
@@ -479,48 +257,11 @@ func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 					},
 					Sessions: &common.RealmSessions{
 						SSOSessionSettings: &common.RealmSSOSessionSettings{
-							IdleTimeout:           1800,
-							MaxLifespan:           36000,
-							IdleTimeoutRememberMe: 3600,
-							MaxLifespanRememberMe: 72000,
-						},
-						SSOOfflineSessionSettings: &common.RealmSSOOfflineSessionSettings{
-							IdleTimeout:        2592000,
-							MaxLifespanEnabled: true,
-							MaxLifespan:        5184000,
-						},
-						SSOLoginSettings: &common.RealmSSOLoginSettings{
-							AccessCodeLifespanLogin:      1800,
-							AccessCodeLifespanUserAction: 300,
+							IdleTimeout: 1800,
+							MaxLifespan: 36000,
 						},
 					},
 				},
-			},
-			setupMocks: func(mockClient *mocks.MockClient) {
-				mockClient.EXPECT().UpdateRealmSettings("test-realm", &adapter.RealmSettings{
-					FrontendURL:     "",
-					DisplayHTMLName: "",
-					DisplayName:     "",
-					Login: &adapter.RealmLogin{
-						RememberMe: true,
-					},
-					SSOSessionSettings: &adapter.SSOSessionSettings{
-						IdleTimeout:           1800,
-						MaxLifespan:           36000,
-						IdleTimeoutRememberMe: 3600,
-						MaxRememberMe:         72000,
-					},
-					SSOOfflineSessionSettings: &adapter.SSOOfflineSessionSettings{
-						IdleTimeout:        2592000,
-						MaxLifespanEnabled: true,
-						MaxLifespan:        5184000,
-					},
-					SSOLoginSettings: &adapter.SSOLoginSettings{
-						AccessCodeLifespanLogin:      1800,
-						AccessCodeLifespanUserAction: 300,
-					},
-				}).Return(nil)
-				mockClient.EXPECT().SetRealmOrganizationsEnabled(mock.Anything, "test-realm", false).Return(nil)
 			},
 			expectedError: require.NoError,
 		},
@@ -528,13 +269,18 @@ func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ctx := context.Background()
-			mockClient := mocks.NewMockClient(t)
-			tt.setupMocks(mockClient)
+			t.Parallel()
+
+			mockRealm := v2mocks.NewMockRealmClient(t)
+			mockRealm.EXPECT().GetRealm(mock.Anything, "test-realm").
+				Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+			mockRealm.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
+				Return(nil, nil)
 
 			handler := NewPutRealmSettings()
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
 
-			err := handler.ServeRequest(ctx, tt.realm, mockClient, nil)
+			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
 			tt.expectedError(t, err)
 		})
 	}

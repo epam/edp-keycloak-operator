@@ -11,7 +11,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -21,20 +20,20 @@ type ConfigureEmail struct {
 	client client.Client
 }
 
-func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	if realm.Spec.Smtp == nil {
-		return nextServeOrNil(ctx, s.next, realm, kClient, kClientV2)
+		return nextServeOrNil(ctx, s.next, realm, kClientV2)
 	}
 
 	l := ctrl.LoggerFrom(ctx)
 	l.Info("Configuring email for realm")
 
-	if err := ConfigureRamlEmail(
+	if err := ConfigureRealmEmail(
 		ctx,
 		realm.Spec.RealmName,
 		realm.Spec.Smtp,
 		realm.Namespace,
-		kClient,
+		kClientV2.Realms,
 		s.client,
 	); err != nil {
 		return err
@@ -42,22 +41,22 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 
 	l.Info("Email has been configured")
 
-	return nextServeOrNil(ctx, s.next, realm, kClient, kClientV2)
+	return nextServeOrNil(ctx, s.next, realm, kClientV2)
 }
 
-func ConfigureRamlEmail(
+func ConfigureRealmEmail(
 	ctx context.Context,
 	realmName string,
 	emailSpec *common.SMTP,
 	secretsNamespace string,
-	kcClient keycloak.Client,
+	realmClient keycloakv2.RealmClient,
 	k8sClient client.Client,
 ) error {
 	if emailSpec == nil {
 		return nil
 	}
 
-	realm, err := kcClient.GetRealm(ctx, realmName)
+	current, _, err := realmClient.GetRealm(ctx, realmName)
 	if err != nil {
 		return fmt.Errorf("unable to get realm %v: %w", realmName, err)
 	}
@@ -67,9 +66,9 @@ func ConfigureRamlEmail(
 		return err
 	}
 
-	realm.SMTPServer = &emailMap
+	current.SmtpServer = &emailMap
 
-	if err = kcClient.UpdateRealm(ctx, realm); err != nil {
+	if _, err = realmClient.UpdateRealm(ctx, realmName, *current); err != nil {
 		return fmt.Errorf("unable to update realm %v: %w", realmName, err)
 	}
 

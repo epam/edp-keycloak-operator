@@ -2,44 +2,34 @@ package chain
 
 import (
 	"context"
-	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
 // PutRealmSettings is responsible for updating of keycloak realm settings.
-type PutRealmSettings struct {
-	settingsBuilder *realmbuilder.SettingsBuilder
-}
+type PutRealmSettings struct{}
 
 // NewPutRealmSettings creates a new PutRealmSettings handler.
 func NewPutRealmSettings() *PutRealmSettings {
-	return &PutRealmSettings{
-		settingsBuilder: realmbuilder.NewSettingsBuilder(),
-	}
+	return &PutRealmSettings{}
 }
 
-func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating of keycloak realm settings")
 
-	if err := h.settingsBuilder.SetRealmEventConfigFromV1Alpha1(kClient, realm.Spec.RealmName, realm.Spec.RealmEventConfig); err != nil {
+	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClientV2.Realms); err != nil {
 		return err
 	}
 
-	settings := h.settingsBuilder.BuildFromV1Alpha1(realm)
+	overlay := realmbuilder.BuildRealmRepresentationFromV1Alpha1(realm)
 
-	if err := kClient.UpdateRealmSettings(realm.Spec.RealmName, &settings); err != nil {
-		return fmt.Errorf("unable to update realm settings: %w", err)
-	}
-
-	if err := kClient.SetRealmOrganizationsEnabled(ctx, realm.Spec.RealmName, realm.Spec.OrganizationsEnabled); err != nil {
-		return fmt.Errorf("unable to set realm organizations enabled: %w", err)
+	if err := realmbuilder.ApplyRealmSettings(ctx, realm.Spec.RealmName, overlay, kClientV2.Realms); err != nil {
+		return err
 	}
 
 	log.Info("Realm settings is updating done.")

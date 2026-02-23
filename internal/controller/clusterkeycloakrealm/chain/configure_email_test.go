@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -18,8 +17,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestConfigureEmail_ServeRequest(t *testing.T) {
@@ -29,11 +28,11 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(scheme))
 
 	tests := []struct {
-		name      string
-		realm     *keycloakApi.ClusterKeycloakRealm
-		kClient   func(t *testing.T) keycloak.Client
-		k8sClient func(t *testing.T) client.Client
-		wantErr   require.ErrorAssertionFunc
+		name        string
+		realm       *keycloakApi.ClusterKeycloakRealm
+		realmClient func(t *testing.T) keycloakv2.RealmClient
+		k8sClient   func(t *testing.T) client.Client
+		wantErr     require.ErrorAssertionFunc
 	}{
 		{
 			name: "realm email configured successfully",
@@ -79,41 +78,32 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 					},
 				).Build()
 			},
-			kClient: func(t *testing.T) keycloak.Client {
-				m := mocks.NewMockClient(t)
+			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
 
-				m.On("GetRealm", mock.Anything, "realm").
-					Return(&gocloak.RealmRepresentation{
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakv2.RealmRepresentation{
 						Realm: ptr.To("realm"),
-					}, nil)
+					}, nil, nil)
 
-				m.On("UpdateRealm", mock.Anything, &gocloak.RealmRepresentation{
-					Realm: ptr.To("realm"),
-					SMTPServer: &map[string]string{
-						"from":               "from@mailcom",
-						"host":               "smtp-host",
-						"auth":               "true",
-						"user":               "username",
-						"password":           "password",
-						"fromDisplayName":    "",
-						"replyTo":            "",
-						"replyToDisplayName": "",
-						"envelopeFrom":       "",
-						"port":               "0",
-						"ssl":                "false",
-						"starttls":           "false",
-					},
-				}).
-					Return(nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.MatchedBy(func(rep keycloakv2.RealmRepresentation) bool {
+					return rep.SmtpServer != nil &&
+						(*rep.SmtpServer)["from"] == "from@mailcom" &&
+						(*rep.SmtpServer)["user"] == "username" &&
+						(*rep.SmtpServer)["password"] == "password"
+				})).Return(nil, nil)
 
 				return m
 			},
 			wantErr: require.NoError,
 		},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewConfigureEmail(tt.k8sClient(t), "default")
+			mockRealm := tt.realmClient(t)
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
 
 			tt.wantErr(t,
 				s.ServeRequest(
@@ -122,8 +112,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 						logr.Discard(),
 					),
 					tt.realm,
-					tt.kClient(t),
-					nil,
+					kClientV2,
 				),
 			)
 		})

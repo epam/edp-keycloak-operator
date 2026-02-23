@@ -8,20 +8,24 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
+
+const testRole1 = "role1"
 
 func TestPutUsersRoles_ServeRequest(t *testing.T) {
 	ctx := context.Background()
+	uid := "user-uid-1"
 
 	tests := []struct {
 		name          string
 		setupRealm    func() *keycloakApi.KeycloakRealm
-		setupMocks    func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler)
+		setupMocks    func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler)
 		expectError   bool
 		errorContains string
 	}{
@@ -35,8 +39,8 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -48,13 +52,13 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 						RealmName: "test-realm",
 						Users: []keycloakApi.User{
 							{Username: "user1", RealmRoles: []string{}},
-							{Username: "user2"}, // No roles field
+							{Username: "user2"},
 						},
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -70,10 +74,13 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				roleName := testRole1
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return([]keycloakv2.RoleRepresentation{{Name: &roleName}}, nil, nil)
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -89,49 +96,22 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
-					Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				roleName := testRole1
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, "test-realm", "role1").
+					Return(&keycloakv2.RoleRepresentation{Name: &roleName}, nil, nil)
+				mockUsers.EXPECT().AddUserRealmRoles(mock.Anything, "test-realm", uid, mock.Anything).
+					Return(nil, nil)
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
 		{
-			name: "success - multiple users with multiple roles",
-			setupRealm: func() *keycloakApi.KeycloakRealm {
-				return &keycloakApi.KeycloakRealm{
-					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test-realm",
-						Users: []keycloakApi.User{
-							{Username: "user1", RealmRoles: []string{"role1", "role2"}},
-							{Username: "user2", RealmRoles: []string{"role3"}},
-						},
-					},
-				}
-			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				// User1 - role1: exists, role2: needs to be added
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role1").
-					Return(true, nil)
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role2").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role2").
-					Return(nil)
-
-				// User2 - role3: needs to be added
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user2", RealmRoles: []string{"role3"}}, "role3").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user2", "role3").
-					Return(nil)
-
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(nil)
-			},
-			expectError: false,
-		},
-		{
-			name: "error - HasUserRealmRole fails",
+			name: "error - FindUserByUsername fails",
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return &keycloakApi.KeycloakRealm{
 					Spec: keycloakApi.KeycloakRealmSpec{
@@ -142,15 +122,15 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(false, errors.New("keycloak connection error"))
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(nil, nil, errors.New("keycloak connection error"))
 			},
 			expectError:   true,
 			errorContains: "error during putRolesToUsers",
 		},
 		{
-			name: "error - AddRealmRoleToUser fails",
+			name: "error - user not found",
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return &keycloakApi.KeycloakRealm{
 					Spec: keycloakApi.KeycloakRealmSpec{
@@ -161,14 +141,82 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
-					Return(errors.New("failed to add role"))
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(nil, nil, nil)
 			},
 			expectError:   true,
-			errorContains: "error during putRolesToUsers",
+			errorContains: "user user1 not found in realm",
+		},
+		{
+			name: "error - GetUserRealmRoleMappings fails",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				return &keycloakApi.KeycloakRealm{
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "test-realm",
+						Users: []keycloakApi.User{
+							{Username: "user1", RealmRoles: []string{"role1"}},
+						},
+					},
+				}
+			},
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return(nil, nil, errors.New("role mapping error"))
+			},
+			expectError:   true,
+			errorContains: "unable to get user realm role mappings",
+		},
+		{
+			name: "error - GetRealmRole fails",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				return &keycloakApi.KeycloakRealm{
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "test-realm",
+						Users: []keycloakApi.User{
+							{Username: "user1", RealmRoles: []string{"role1"}},
+						},
+					},
+				}
+			},
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, "test-realm", "role1").
+					Return(nil, nil, errors.New("role fetch failed"))
+			},
+			expectError:   true,
+			errorContains: "unable to get realm role",
+		},
+		{
+			name: "error - AddUserRealmRoles fails",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				return &keycloakApi.KeycloakRealm{
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: "test-realm",
+						Users: []keycloakApi.User{
+							{Username: "user1", RealmRoles: []string{"role1"}},
+						},
+					},
+				}
+			},
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				roleName := testRole1
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, "test-realm", "role1").
+					Return(&keycloakv2.RoleRepresentation{Name: &roleName}, nil, nil)
+				mockUsers.EXPECT().AddUserRealmRoles(mock.Anything, "test-realm", uid, mock.Anything).
+					Return(nil, errors.New("failed to add role"))
+			},
+			expectError:   true,
+			errorContains: "unable to add realm role to user",
 		},
 		{
 			name: "error - next handler fails",
@@ -180,8 +228,9 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, mock.Anything, mock.Anything).Return(errors.New("next handler error"))
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).
+					Return(errors.New("next handler error"))
 			},
 			expectError:   true,
 			errorContains: "chain failed",
@@ -198,94 +247,43 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 					},
 				}
 			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
-					Return(nil)
-				// nextHandler is nil for this test - no setup needed
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				roleName := testRole1
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, "test-realm", uid).
+					Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, "test-realm", "role1").
+					Return(&keycloakv2.RoleRepresentation{Name: &roleName}, nil, nil)
+				mockUsers.EXPECT().AddUserRealmRoles(mock.Anything, "test-realm", uid, mock.Anything).
+					Return(nil, nil)
 			},
 			expectError: false,
-		},
-		{
-			name: "error - second user fails after first succeeds",
-			setupRealm: func() *keycloakApi.KeycloakRealm {
-				return &keycloakApi.KeycloakRealm{
-					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test-realm",
-						Users: []keycloakApi.User{
-							{Username: "user1", RealmRoles: []string{"role1"}},
-							{Username: "user2", RealmRoles: []string{"role2"}},
-						},
-					},
-				}
-			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				// First user succeeds
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1"}}, "role1").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
-					Return(nil)
-
-				// Second user fails
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user2", RealmRoles: []string{"role2"}}, "role2").
-					Return(false, errors.New("user2 check failed"))
-			},
-			expectError:   true,
-			errorContains: "error during putRolesToUsers",
-		},
-		{
-			name: "error - second role fails after first succeeds for same user",
-			setupRealm: func() *keycloakApi.KeycloakRealm {
-				return &keycloakApi.KeycloakRealm{
-					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test-realm",
-						Users: []keycloakApi.User{
-							{Username: "user1", RealmRoles: []string{"role1", "role2"}},
-						},
-					},
-				}
-			},
-			setupMocks: func(kClient *mocks.MockClient, nextHandler *handlermocks.MockRealmHandler) {
-				// First role succeeds
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role1").
-					Return(false, nil)
-				kClient.On("AddRealmRoleToUser", ctx, "test-realm", "user1", "role1").
-					Return(nil)
-
-				// Second role fails
-				kClient.On("HasUserRealmRole", "test-realm", &dto.User{Username: "user1", RealmRoles: []string{"role1", "role2"}}, "role2").
-					Return(false, errors.New("role2 add failed"))
-			},
-			expectError:   true,
-			errorContains: "error during putRolesToUsers",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			kClient := mocks.NewMockClient(t)
+			mockUsers := v2mocks.NewMockUsersClient(t)
+			mockRoles := v2mocks.NewMockRolesClient(t)
 
 			var nextHandler *handlermocks.MockRealmHandler
-			if tt.name != "success - no next handler" {
-				nextHandler = &handlermocks.MockRealmHandler{}
-			}
 
 			var putUsersRoles PutUsersRoles
-			if nextHandler != nil {
+
+			if tt.name != "success - no next handler" {
+				nextHandler = handlermocks.NewMockRealmHandler(t)
 				putUsersRoles = PutUsersRoles{next: nextHandler}
 			} else {
 				putUsersRoles = PutUsersRoles{next: nil}
 			}
 
 			realm := tt.setupRealm()
-			tt.setupMocks(kClient, nextHandler)
+			tt.setupMocks(mockUsers, mockRoles, nextHandler)
 
-			// Execute
-			err := putUsersRoles.ServeRequest(ctx, realm, kClient, nil)
+			kClientV2 := &keycloakv2.KeycloakClient{Users: mockUsers, Roles: mockRoles}
+			err := putUsersRoles.ServeRequest(ctx, realm, kClientV2)
 
-			// Assert
 			if tt.expectError {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)

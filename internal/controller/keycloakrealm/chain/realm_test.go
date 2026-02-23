@@ -10,14 +10,14 @@ import (
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
 	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestPutRealm_ServeRequest(t *testing.T) {
@@ -42,10 +42,9 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name          string
 		setupRealm    func() *keycloakApi.KeycloakRealm
-		setupMocks    func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler)
+		setupMocks    func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler)
 		expectError   bool
 		errorContains string
-		checkHelper   func(hlp *helpermock.MockControllerHelper)
 	}{
 		{
 			name: "success - realm does not exist, creates realm and roles",
@@ -57,30 +56,20 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				}
 				return realm
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				expectedRealm := &dto.Realm{
-					Name: realmName,
-					Users: []dto.User{
-						{Username: "user1", RealmRoles: []string{"role1", "role2"}},
-						{Username: "user2", RealmRoles: []string{"role2", "role3"}},
-					},
-				}
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakv2.RealmRepresentation) bool {
+					return r.Realm != nil && *r.Realm == realmName
+				})).Return(nil, nil)
 
-				kClient.On("ExistRealm", realmName).Return(false, nil)
-				kClient.On("CreateRealmWithDefaultConfig", expectedRealm).Return(nil)
+				// Role checks (3 unique roles)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(3)
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, nil).Times(3)
 
-				// Role existence checks
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, nil)
-				kClient.On("ExistRealmRole", realmName, "role2").Return(false, nil)
-				kClient.On("ExistRealmRole", realmName, "role3").Return(false, nil)
-
-				// Role creation
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role1"}).Return(nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role2"}).Return(nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role3"}).Return(nil)
-
-				hlp.On("InvalidateKeycloakClientTokenSecret", ctx, namespace, keycloakRefName).Return(nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient, mock.Anything).Return(nil)
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
 		},
@@ -89,47 +78,38 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("ExistRealm", realmName).Return(true, nil)
-				nextHandler.On("ServeRequest", mock.Anything, mock.Anything, kClient, mock.Anything).Return(nil)
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
-			checkHelper: func(hlp *helpermock.MockControllerHelper) {
-				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
-			},
 		},
 		{
-			name: "error - ExistRealm fails",
+			name: "error - GetRealm fails",
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				kClient.On("ExistRealm", realmName).Return(false, errors.New("keycloak connection error"))
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, errors.New("keycloak connection error"))
 			},
 			expectError:   true,
 			errorContains: "unable to check realm existence",
-			checkHelper: func(hlp *helpermock.MockControllerHelper) {
-				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
-			},
 		},
 		{
-			name: "error - CreateRealmWithDefaultConfig fails",
+			name: "error - CreateRealm fails",
 			setupRealm: func() *keycloakApi.KeycloakRealm {
 				return baseRealm.DeepCopy()
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				expectedRealm := &dto.Realm{
-					Name:  realmName,
-					Users: []dto.User{},
-				}
-				kClient.On("ExistRealm", realmName).Return(false, nil)
-				kClient.On("CreateRealmWithDefaultConfig", expectedRealm).Return(errors.New("realm creation failed"))
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).
+					Return(nil, errors.New("realm creation failed"))
 			},
 			expectError:   true,
 			errorContains: "unable to create realm with default config",
-			checkHelper: func(hlp *helpermock.MockControllerHelper) {
-				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
-			},
 		},
 		{
 			name: "error - role creation fails",
@@ -140,80 +120,46 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				}
 				return realm
 			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				expectedRealm := &dto.Realm{
-					Name: realmName,
-					Users: []dto.User{
-						{Username: "user1", RealmRoles: []string{"role1"}},
-					},
-				}
-				kClient.On("ExistRealm", realmName).Return(false, nil)
-				kClient.On("CreateRealmWithDefaultConfig", expectedRealm).Return(nil)
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role1"}).Return(errors.New("role creation failed"))
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).Return(nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, errors.New("role creation failed"))
 			},
 			expectError:   true,
 			errorContains: "unable to create realm roles on no sso scenario",
-			checkHelper: func(hlp *helpermock.MockControllerHelper) {
-				hlp.AssertNotCalled(t, "InvalidateKeycloakClientTokenSecret")
-			},
-		},
-		{
-			name: "error - InvalidateKeycloakClientTokenSecret fails",
-			setupRealm: func() *keycloakApi.KeycloakRealm {
-				return baseRealm.DeepCopy()
-			},
-			setupMocks: func(kClient *mocks.MockClient, hlp *helpermock.MockControllerHelper, nextHandler *handlermocks.MockRealmHandler) {
-				expectedRealm := &dto.Realm{
-					Name:  realmName,
-					Users: []dto.User{},
-				}
-				kClient.On("ExistRealm", realmName).Return(false, nil)
-				kClient.On("CreateRealmWithDefaultConfig", expectedRealm).Return(nil)
-				hlp.On("InvalidateKeycloakClientTokenSecret", ctx, namespace, keycloakRefName).Return(errors.New("token invalidation failed"))
-			},
-			expectError:   true,
-			errorContains: "unable invalidate keycloak client token",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			kClient := mocks.NewMockClient(t)
-			hlp := helpermock.NewMockControllerHelper(t)
+			mockRealms := v2mocks.NewMockRealmClient(t)
+			mockRoles := v2mocks.NewMockRolesClient(t)
 
 			var nextHandler *handlermocks.MockRealmHandler
-
-			// Only create next handler if we expect success scenarios or specific error scenarios
 			if !tt.expectError || tt.name == "success - realm already exists, skips creation" {
-				nextHandler = &handlermocks.MockRealmHandler{}
+				nextHandler = handlermocks.NewMockRealmHandler(t)
 			}
 
 			putRealm := PutRealm{
 				next:   nextHandler,
 				client: fake.NewClientBuilder().WithScheme(runtime.NewScheme()).Build(),
-				hlp:    hlp,
 			}
 
 			realm := tt.setupRealm()
-			tt.setupMocks(kClient, hlp, nextHandler)
+			tt.setupMocks(mockRealms, mockRoles, nextHandler)
 
-			// Execute
-			err := putRealm.ServeRequest(ctx, realm, kClient, nil)
+			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealms, Roles: mockRoles}
+			err := putRealm.ServeRequest(ctx, realm, kClientV2)
 
-			// Assert
 			if tt.expectError {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)
-
 			} else {
 				require.NoError(t, err)
-			}
-
-			// Additional checks
-			if tt.checkHelper != nil {
-				tt.checkHelper(hlp)
 			}
 		})
 	}
@@ -225,15 +171,14 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 	tests := []struct {
 		name          string
 		users         []keycloakApi.User
-		setupMocks    func(kClient *mocks.MockClient)
+		setupMocks    func(mockRoles *v2mocks.MockRolesClient)
 		expectError   bool
 		errorContains string
 	}{
 		{
 			name:  "success - no users",
 			users: []keycloakApi.User{},
-			setupMocks: func(kClient *mocks.MockClient) {
-				// No mocks needed for empty users
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 			},
 			expectError: false,
 		},
@@ -241,10 +186,9 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			name: "success - users with no roles",
 			users: []keycloakApi.User{
 				{Username: "user1", RealmRoles: []string{}},
-				{Username: "user2"}, // No roles field
+				{Username: "user2"},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				// No mocks needed for users without roles
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 			},
 			expectError: false,
 		},
@@ -254,14 +198,11 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 				{Username: "user1", RealmRoles: []string{"role1", "role2"}},
 				{Username: "user2", RealmRoles: []string{"role3"}},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, nil)
-				kClient.On("ExistRealmRole", realmName, "role2").Return(false, nil)
-				kClient.On("ExistRealmRole", realmName, "role3").Return(false, nil)
-
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role1"}).Return(nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role2"}).Return(nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role3"}).Return(nil)
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(3)
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, nil).Times(3)
 			},
 			expectError: false,
 		},
@@ -270,52 +211,54 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			users: []keycloakApi.User{
 				{Username: "user1", RealmRoles: []string{"role1", "role2"}},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				// role1 exists, role2 doesn't
-				kClient.On("ExistRealmRole", realmName, "role1").Return(true, nil)
-				kClient.On("ExistRealmRole", realmName, "role2").Return(false, nil)
-
-				// Only role2 should be created
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role2"}).Return(nil)
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
+				// role1 exists
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
+					Return(ptr.To(keycloakv2.RoleRepresentation{}), nil, nil)
+				// role2 doesn't
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role2").
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, nil)
 			},
 			expectError: false,
 		},
 		{
 			name: "success - duplicate roles handled correctly",
 			users: []keycloakApi.User{
-				{Username: "user1", RealmRoles: []string{"role1", "role1"}}, // Duplicate
-				{Username: "user2", RealmRoles: []string{"role1", "role2"}}, // role1 again
+				{Username: "user1", RealmRoles: []string{"role1", "role1"}},
+				{Username: "user2", RealmRoles: []string{"role1", "role2"}},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				// Each unique role should only be checked once
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, nil)
-				kClient.On("ExistRealmRole", realmName, "role2").Return(false, nil)
-
-				// Each unique role should only be created once
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role1"}).Return(nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role2"}).Return(nil)
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(2)
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, nil).Times(2)
 			},
 			expectError: false,
 		},
 		{
-			name: "error - ExistRealmRole fails",
+			name: "error - GetRealmRole fails",
 			users: []keycloakApi.User{
 				{Username: "user1", RealmRoles: []string{"role1"}},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, errors.New("role check failed"))
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
+					Return(nil, nil, errors.New("role check failed"))
 			},
 			expectError:   true,
 			errorContains: "unable to check realm role existence",
 		},
 		{
-			name: "error - CreateIncludedRealmRole fails",
+			name: "error - CreateRealmRole fails",
 			users: []keycloakApi.User{
 				{Username: "user1", RealmRoles: []string{"role1"}},
 			},
-			setupMocks: func(kClient *mocks.MockClient) {
-				kClient.On("ExistRealmRole", realmName, "role1").Return(false, nil)
-				kClient.On("CreateIncludedRealmRole", realmName, &dto.IncludedRealmRole{Name: "role1"}).Return(errors.New("role creation failed"))
+			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
+					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, errors.New("role creation failed"))
 			},
 			expectError:   true,
 			errorContains: "unable to create new realm role",
@@ -324,8 +267,7 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			kClient := mocks.NewMockClient(t)
+			mockRoles := v2mocks.NewMockRolesClient(t)
 			putRealm := PutRealm{}
 
 			realm := &keycloakApi.KeycloakRealm{
@@ -335,16 +277,14 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 				},
 			}
 
-			tt.setupMocks(kClient)
+			tt.setupMocks(mockRoles)
 
-			// Execute
-			err := putRealm.putRealmRoles(realm, kClient)
+			kClientV2 := &keycloakv2.KeycloakClient{Roles: mockRoles}
+			err := putRealm.putRealmRoles(context.Background(), realm, kClientV2)
 
-			// Assert
 			if tt.expectError {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorContains)
-
 			} else {
 				require.NoError(t, err)
 			}

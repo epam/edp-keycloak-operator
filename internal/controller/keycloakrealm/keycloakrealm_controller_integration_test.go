@@ -46,7 +46,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					Kind: keycloakApi.KeycloakKind,
 				},
 				BrowserFlow: ptr.To("browser"),
-				RealmEventConfig: &keycloakApi.RealmEventConfig{
+				RealmEventConfig: &common.RealmEventConfig{
 					AdminEventsDetailsEnabled: false,
 					AdminEventsEnabled:        true,
 					EnabledEventTypes:         []string{"UPDATE_CONSENT_ERROR", "CLIENT_LOGIN"},
@@ -55,7 +55,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					EventsListeners:           []string{"jboss-logging"},
 					AdminEventsExpiration:     100,
 				},
-				PasswordPolicies: []keycloakApi.PasswordPolicy{
+				PasswordPolicies: []common.PasswordPolicy{
 					{
 						Type:  "forceExpiredPasswordChange",
 						Value: "365",
@@ -192,24 +192,24 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm was created in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-with-full-config")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-with-full-config")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
 			// Verify basic fields
 			g.Expect(realm.DisplayName).Should(Equal(ptr.To("Test Realm")))
-			g.Expect(realm.DisplayNameHTML).Should(Equal(ptr.To("<b>Test Realm</b>")))
+			g.Expect(realm.DisplayNameHtml).Should(Equal(ptr.To("<b>Test Realm</b>")))
 			g.Expect(realm.BrowserFlow).Should(Equal(ptr.To("browser")))
 
 			// Verify token settings
 			g.Expect(realm.DefaultSignatureAlgorithm).Should(Equal(ptr.To("RS256")))
 			g.Expect(realm.RevokeRefreshToken).Should(Equal(ptr.To(true)))
-			g.Expect(realm.RefreshTokenMaxReuse).Should(Equal(ptr.To(230)))
-			g.Expect(realm.AccessTokenLifespan).Should(Equal(ptr.To(231)))
-			g.Expect(realm.AccessTokenLifespanForImplicitFlow).Should(Equal(ptr.To(232)))
-			g.Expect(realm.AccessCodeLifespan).Should(Equal(ptr.To(233)))
-			g.Expect(realm.ActionTokenGeneratedByUserLifespan).Should(Equal(ptr.To(234)))
-			g.Expect(realm.ActionTokenGeneratedByAdminLifespan).Should(Equal(ptr.To(235)))
+			g.Expect(realm.RefreshTokenMaxReuse).Should(Equal(ptr.To(int32(230))))
+			g.Expect(realm.AccessTokenLifespan).Should(Equal(ptr.To(int32(231))))
+			g.Expect(realm.AccessTokenLifespanForImplicitFlow).Should(Equal(ptr.To(int32(232))))
+			g.Expect(realm.AccessCodeLifespan).Should(Equal(ptr.To(int32(233))))
+			g.Expect(realm.ActionTokenGeneratedByUserLifespan).Should(Equal(ptr.To(int32(234))))
+			g.Expect(realm.ActionTokenGeneratedByAdminLifespan).Should(Equal(ptr.To(int32(235))))
 
 			// Verify event config
 			g.Expect(realm.AdminEventsDetailsEnabled).Should(Equal(ptr.To(false)))
@@ -218,6 +218,61 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect(realm.EventsExpiration).Should(Equal(ptr.To(int64(15000))))
 			g.Expect(*realm.EventsListeners).Should(ContainElement("jboss-logging"))
 			g.Expect(*realm.EnabledEventTypes).Should(ContainElements("UPDATE_CONSENT_ERROR", "CLIENT_LOGIN"))
+
+			// Verify adminEventsExpiration stored as realm attribute
+			g.Expect(realm.Attributes).ShouldNot(BeNil())
+			g.Expect((*realm.Attributes)["adminEventsExpiration"]).Should(Equal("100"))
+
+			// Verify frontendUrl stored as realm attribute
+			g.Expect((*realm.Attributes)["frontendUrl"]).Should(Equal("https://test.com"))
+
+			// Verify password policies
+			g.Expect(realm.PasswordPolicy).ShouldNot(BeNil())
+			g.Expect(*realm.PasswordPolicy).Should(ContainSubstring("forceExpiredPasswordChange(365)"))
+
+			// Verify SMTP settings
+			g.Expect(realm.SmtpServer).ShouldNot(BeNil())
+			g.Expect((*realm.SmtpServer)["from"]).Should(Equal("from@mailcom"))
+			g.Expect((*realm.SmtpServer)["fromDisplayName"]).Should(Equal("from test"))
+			g.Expect((*realm.SmtpServer)["replyTo"]).Should(Equal("to@mail.com"))
+			g.Expect((*realm.SmtpServer)["replyToDisplayName"]).Should(Equal("to test"))
+			g.Expect((*realm.SmtpServer)["envelopeFrom"]).Should(Equal("envelope@mail.com"))
+			g.Expect((*realm.SmtpServer)["host"]).Should(Equal("smtp-host"))
+			g.Expect((*realm.SmtpServer)["port"]).Should(Equal("25"))
+			g.Expect((*realm.SmtpServer)["ssl"]).Should(Equal("true"))
+			g.Expect((*realm.SmtpServer)["starttls"]).Should(Equal("true"))
+			g.Expect((*realm.SmtpServer)["auth"]).Should(Equal("true"))
+			g.Expect((*realm.SmtpServer)["user"]).Should(Equal("username"))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Verifying the user profile was configured in Keycloak")
+		Eventually(func(g Gomega) {
+			userProfile, _, err := keycloakApiClient.Users.GetUsersProfile(ctx, "test-realm-with-full-config")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(userProfile).ShouldNot(BeNil())
+
+			// Verify attributes
+			g.Expect(userProfile.Attributes).ShouldNot(BeNil())
+			attrNames := make([]string, 0, len(*userProfile.Attributes))
+			for _, a := range *userProfile.Attributes {
+				attrNames = append(attrNames, *a.Name)
+			}
+			g.Expect(attrNames).Should(ContainElements("attr1", "attr2"))
+
+			// Verify groups
+			g.Expect(userProfile.Groups).ShouldNot(BeNil())
+			groupNames := make([]string, 0, len(*userProfile.Groups))
+			for _, gr := range *userProfile.Groups {
+				groupNames = append(groupNames, *gr.Name)
+			}
+			g.Expect(groupNames).Should(ContainElement("test-group"))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Verifying the user was created in Keycloak")
+		Eventually(func(g Gomega) {
+			user, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, "test-realm-with-full-config", "keycloakrealm-user@mail.com")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(user).ShouldNot(BeNil())
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakRealm", func() {
@@ -240,7 +295,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm was updated in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-with-full-config")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-with-full-config")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 			g.Expect(realm.Attributes).ShouldNot(BeNil())
@@ -304,7 +359,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm login settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-login")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-login")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -380,24 +435,24 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm SSO session settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, err := keycloakClientManager.Client.GetRealm(ctx, keycloakClientManager.GetToken(), "test-realm-sso-session")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-sso-session")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
 			// Verify SSO session settings
-			g.Expect(realm.SsoSessionIdleTimeout).Should(Equal(ptr.To(1801)))
-			g.Expect(realm.SsoSessionMaxLifespan).Should(Equal(ptr.To(36002)))
-			g.Expect(realm.SsoSessionIdleTimeoutRememberMe).Should(Equal(ptr.To(3603)))
-			g.Expect(realm.SsoSessionMaxLifespanRememberMe).Should(Equal(ptr.To(72004)))
+			g.Expect(realm.SsoSessionIdleTimeout).Should(Equal(ptr.To(int32(1801))))
+			g.Expect(realm.SsoSessionMaxLifespan).Should(Equal(ptr.To(int32(36002))))
+			g.Expect(realm.SsoSessionIdleTimeoutRememberMe).Should(Equal(ptr.To(int32(3603))))
+			g.Expect(realm.SsoSessionMaxLifespanRememberMe).Should(Equal(ptr.To(int32(72004))))
 
 			// Verify Offline session settings
-			g.Expect(realm.OfflineSessionIdleTimeout).Should(Equal(ptr.To(2592007)))
+			g.Expect(realm.OfflineSessionIdleTimeout).Should(Equal(ptr.To(int32(2592007))))
 			g.Expect(realm.OfflineSessionMaxLifespanEnabled).Should(Equal(ptr.To(true)))
-			g.Expect(realm.OfflineSessionMaxLifespan).Should(Equal(ptr.To(5184008)))
+			g.Expect(realm.OfflineSessionMaxLifespan).Should(Equal(ptr.To(int32(5184008))))
 
 			// Verify Login settings
-			g.Expect(realm.AccessCodeLifespanLogin).Should(Equal(ptr.To(1809)))
-			g.Expect(realm.AccessCodeLifespanUserAction).Should(Equal(ptr.To(310)))
+			g.Expect(realm.AccessCodeLifespanLogin).Should(Equal(ptr.To(int32(1809))))
+			g.Expect(realm.AccessCodeLifespanUserAction).Should(Equal(ptr.To(int32(310))))
 		}, time.Second*10, time.Second).Should(Succeed())
 
 		By("Deleting KeycloakRealm with SSO Session settings")

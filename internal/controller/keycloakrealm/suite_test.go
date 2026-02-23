@@ -26,17 +26,17 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var (
-	cfg                   *rest.Config
-	k8sClient             client.Client
-	testEnv               *envtest.Environment
-	ctx                   context.Context
-	cancel                context.CancelFunc
-	keycloakURL           string
-	keycloakClientManager *testutils.KeycloakClientManager
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	ctx               context.Context
+	cancel            context.CancelFunc
+	keycloakApiClient *keycloakv2.KeycloakClient
 )
 
 const (
@@ -104,8 +104,6 @@ var _ = BeforeSuite(func() {
 	err = keycloakclient.NewReconcileKeycloakClient(k8sManager.GetClient(), h).
 		SetupWithManager(k8sManager, time.Second)
 
-	keycloakURL = os.Getenv("TEST_KEYCLOAK_URL")
-
 	go func() {
 		defer GinkgoRecover()
 		err = k8sManager.Start(ctx)
@@ -141,7 +139,7 @@ var _ = BeforeSuite(func() {
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakSpec{
-			Url:    keycloakURL,
+			Url:    os.Getenv("TEST_KEYCLOAK_URL"),
 			Secret: secret.Name,
 		},
 	}
@@ -154,8 +152,13 @@ var _ = BeforeSuite(func() {
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
 
-	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
-	keycloakClientManager.Initialize(ctx)
+	keycloakApiClient, err = keycloakv2.NewKeycloakClient(
+		ctx,
+		os.Getenv("TEST_KEYCLOAK_URL"),
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant("admin", "admin"),
+	)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak client")
 })
 
 var _ = AfterSuite(func() {

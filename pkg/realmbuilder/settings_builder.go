@@ -1,205 +1,341 @@
 package realmbuilder
 
 import (
+	"context"
 	"fmt"
+	"maps"
+	"strconv"
+	"strings"
+
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
-// SettingsBuilder provides common functionality for building realm settings
-// from both KeycloakRealm and ClusterKeycloakRealm specs.
-type SettingsBuilder struct{}
-
-// NewSettingsBuilder creates a new SettingsBuilder.
-func NewSettingsBuilder() *SettingsBuilder {
-	return &SettingsBuilder{}
+// commonRealmSpec holds the normalized, API-version-agnostic fields shared by
+// KeycloakRealmSpec and ClusterKeycloakRealmSpec.
+type commonRealmSpec struct {
+	DisplayName                 string
+	DisplayHTMLName             string
+	OrganizationsEnabled        bool
+	FrontendURL                 string
+	BrowserSecurityHeaders      *map[string]string
+	PasswordPolicy              string // pre-formatted "type(value) and …" string, empty if none
+	TokenSettings               *common.TokenSettings
+	RealmEventConfig            *common.RealmEventConfig
+	Login                       *keycloakApi.RealmLogin
+	Sessions                    *common.RealmSessions
+	LoginTheme                  *string
+	AccountTheme                *string
+	AdminTheme                  *string
+	EmailTheme                  *string
+	InternationalizationEnabled *bool
 }
 
-// SetRealmEventConfigFromV1 sets the realm event configuration from v1.KeycloakRealm spec.
-func (b *SettingsBuilder) SetRealmEventConfigFromV1(
-	kClient keycloak.Client,
+// ApplyRealmEventConfig sets the realm event configuration in Keycloak.
+// It is a no-op if cfg is nil.
+func ApplyRealmEventConfig(
+	ctx context.Context,
 	realmName string,
-	eventConfig *keycloakApi.RealmEventConfig,
+	cfg *common.RealmEventConfig,
+	realmClient keycloakv2.RealmClient,
 ) error {
-	if eventConfig == nil {
+	if cfg == nil {
 		return nil
 	}
 
-	if err := kClient.SetRealmEventConfig(realmName, &adapter.RealmEventConfig{
-		AdminEventsDetailsEnabled: eventConfig.AdminEventsDetailsEnabled,
-		AdminEventsEnabled:        eventConfig.AdminEventsEnabled,
-		EnabledEventTypes:         eventConfig.EnabledEventTypes,
-		EventsEnabled:             eventConfig.EventsEnabled,
-		EventsExpiration:          eventConfig.EventsExpiration,
-		EventsListeners:           eventConfig.EventsListeners,
-	}); err != nil {
-		return fmt.Errorf("failed to set realm event config: %w", err)
+	rep := keycloakv2.RealmEventsConfigRepresentation{
+		AdminEventsDetailsEnabled: ptr.To(cfg.AdminEventsDetailsEnabled),
+		AdminEventsEnabled:        ptr.To(cfg.AdminEventsEnabled),
+		EventsEnabled:             ptr.To(cfg.EventsEnabled),
+		EventsExpiration:          ptr.To(int64(cfg.EventsExpiration)),
+	}
+
+	if cfg.EnabledEventTypes != nil {
+		rep.EnabledEventTypes = &cfg.EnabledEventTypes
+	}
+
+	if cfg.EventsListeners != nil {
+		rep.EventsListeners = &cfg.EventsListeners
+	}
+
+	if _, err := realmClient.SetRealmEventConfig(ctx, realmName, rep); err != nil {
+		return fmt.Errorf("unable to set realm event config: %w", err)
 	}
 
 	return nil
 }
 
-// SetRealmEventConfigFromV1Alpha1 sets the realm event configuration from v1alpha1.ClusterKeycloakRealm spec.
-func (b *SettingsBuilder) SetRealmEventConfigFromV1Alpha1(
-	kClient keycloak.Client,
+// ApplyRealmSettings fetches the current realm from Keycloak, merges the overlay into it,
+// and writes it back.
+func ApplyRealmSettings(
+	ctx context.Context,
 	realmName string,
-	eventConfig *v1alpha1.RealmEventConfig,
+	overlay keycloakv2.RealmRepresentation,
+	realmClient keycloakv2.RealmClient,
 ) error {
-	if eventConfig == nil {
-		return nil
+	current, _, err := realmClient.GetRealm(ctx, realmName)
+	if err != nil {
+		return fmt.Errorf("unable to get realm: %w", err)
 	}
 
-	if err := kClient.SetRealmEventConfig(realmName, &adapter.RealmEventConfig{
-		AdminEventsDetailsEnabled: eventConfig.AdminEventsDetailsEnabled,
-		AdminEventsEnabled:        eventConfig.AdminEventsEnabled,
-		EnabledEventTypes:         eventConfig.EnabledEventTypes,
-		EventsEnabled:             eventConfig.EventsEnabled,
-		EventsExpiration:          eventConfig.EventsExpiration,
-		EventsListeners:           eventConfig.EventsListeners,
-	}); err != nil {
-		return fmt.Errorf("failed to set realm event config: %w", err)
+	MergeRealmRepresentation(current, &overlay)
+
+	if _, err := realmClient.UpdateRealm(ctx, realmName, *current); err != nil {
+		return fmt.Errorf("unable to update realm settings: %w", err)
 	}
 
 	return nil
 }
 
-// BuildFromV1 builds adapter.RealmSettings from v1.KeycloakRealm spec.
-func (b *SettingsBuilder) BuildFromV1(realm *keycloakApi.KeycloakRealm) adapter.RealmSettings {
-	settings := adapter.RealmSettings{
-		DisplayHTMLName: realm.Spec.DisplayHTMLName,
-		FrontendURL:     realm.Spec.FrontendURL,
-		DisplayName:     realm.Spec.DisplayName,
+// BuildRealmRepresentationFromV1 builds a keycloakv2.RealmRepresentation with only the
+// operator-managed fields populated from a v1.KeycloakRealm spec.
+func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakv2.RealmRepresentation {
+	spec := &realm.Spec
+
+	c := commonRealmSpec{
+		DisplayName:            spec.DisplayName,
+		DisplayHTMLName:        spec.DisplayHTMLName,
+		OrganizationsEnabled:   spec.OrganizationsEnabled,
+		FrontendURL:            spec.FrontendURL,
+		BrowserSecurityHeaders: spec.BrowserSecurityHeaders,
+		TokenSettings:          spec.TokenSettings,
+		RealmEventConfig:       spec.RealmEventConfig,
+		Login:                  spec.Login,
+		Sessions:               spec.Sessions,
+		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
-	if realm.Spec.Themes != nil {
-		settings.Themes = &adapter.RealmThemes{
-			InternationalizationEnabled: realm.Spec.Themes.InternationalizationEnabled,
-			EmailTheme:                  realm.Spec.Themes.EmailTheme,
-			AdminConsoleTheme:           realm.Spec.Themes.AdminConsoleTheme,
-			AccountTheme:                realm.Spec.Themes.AccountTheme,
-			LoginTheme:                  realm.Spec.Themes.LoginTheme,
-		}
+	if spec.Themes != nil {
+		c.LoginTheme = spec.Themes.LoginTheme
+		c.AccountTheme = spec.Themes.AccountTheme
+		c.AdminTheme = spec.Themes.AdminConsoleTheme
+		c.EmailTheme = spec.Themes.EmailTheme
+		c.InternationalizationEnabled = spec.Themes.InternationalizationEnabled
 	}
 
-	if realm.Spec.BrowserSecurityHeaders != nil {
-		settings.BrowserSecurityHeaders = realm.Spec.BrowserSecurityHeaders
-	}
-
-	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = makePasswordPoliciesFromV1(realm.Spec.PasswordPolicies)
-	}
-
-	settings.TokenSettings = adapter.ToRealmTokenSettings(realm.Spec.TokenSettings)
-
-	if realm.Spec.RealmEventConfig != nil && realm.Spec.RealmEventConfig.AdminEventsEnabled {
-		eventCfCopy := realm.Spec.RealmEventConfig.DeepCopy()
-		settings.AdminEventsExpiration = &eventCfCopy.AdminEventsExpiration
-	}
-
-	if realm.Spec.Login != nil {
-		settings.Login = &adapter.RealmLogin{
-			UserRegistration: realm.Spec.Login.UserRegistration,
-			ForgotPassword:   realm.Spec.Login.ForgotPassword,
-			RememberMe:       realm.Spec.Login.RememberMe,
-			EmailAsUsername:  realm.Spec.Login.EmailAsUsername,
-			LoginWithEmail:   realm.Spec.Login.LoginWithEmail,
-			DuplicateEmails:  realm.Spec.Login.DuplicateEmails,
-			VerifyEmail:      realm.Spec.Login.VerifyEmail,
-			EditUsername:     realm.Spec.Login.EditUsername,
-		}
-	}
-
-	setSessionSettings(&settings, realm.Spec.Sessions)
-
-	return settings
+	return buildRealmRepresentationFromCommon(c)
 }
 
-// BuildFromV1Alpha1 builds adapter.RealmSettings from v1alpha1.ClusterKeycloakRealm spec.
-func (b *SettingsBuilder) BuildFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) adapter.RealmSettings {
-	settings := adapter.RealmSettings{
-		FrontendURL:     realm.Spec.FrontendURL,
-		DisplayHTMLName: realm.Spec.DisplayHTMLName,
-		DisplayName:     realm.Spec.DisplayName,
+// BuildRealmRepresentationFromV1Alpha1 builds a keycloakv2.RealmRepresentation with only the
+// operator-managed fields populated from a v1alpha1.ClusterKeycloakRealm spec.
+func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) keycloakv2.RealmRepresentation {
+	spec := &realm.Spec
+
+	c := commonRealmSpec{
+		DisplayName:            spec.DisplayName,
+		DisplayHTMLName:        spec.DisplayHTMLName,
+		OrganizationsEnabled:   spec.OrganizationsEnabled,
+		FrontendURL:            spec.FrontendURL,
+		BrowserSecurityHeaders: spec.BrowserSecurityHeaders,
+		TokenSettings:          spec.TokenSettings,
+		RealmEventConfig:       spec.RealmEventConfig,
+		Login:                  spec.Login,
+		Sessions:               spec.Sessions,
+		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
-	if realm.Spec.Themes != nil {
-		settings.Themes = &adapter.RealmThemes{
-			EmailTheme:        realm.Spec.Themes.EmailTheme,
-			AdminConsoleTheme: realm.Spec.Themes.AdminConsoleTheme,
-			AccountTheme:      realm.Spec.Themes.AccountTheme,
-			LoginTheme:        realm.Spec.Themes.LoginTheme,
-		}
+	if spec.Themes != nil {
+		c.LoginTheme = spec.Themes.LoginTheme
+		c.AccountTheme = spec.Themes.AccountTheme
+		c.AdminTheme = spec.Themes.AdminConsoleTheme
+		c.EmailTheme = spec.Themes.EmailTheme
 	}
 
-	if realm.Spec.Localization != nil {
-		if settings.Themes == nil {
-			settings.Themes = &adapter.RealmThemes{}
-		}
-
-		settings.Themes.InternationalizationEnabled = realm.Spec.Localization.InternationalizationEnabled
+	if spec.Localization != nil {
+		c.InternationalizationEnabled = spec.Localization.InternationalizationEnabled
 	}
 
-	if realm.Spec.BrowserSecurityHeaders != nil {
-		settings.BrowserSecurityHeaders = realm.Spec.BrowserSecurityHeaders
-	}
-
-	if len(realm.Spec.PasswordPolicies) > 0 {
-		settings.PasswordPolicies = makePasswordPoliciesFromV1Alpha1(realm.Spec.PasswordPolicies)
-	}
-
-	settings.TokenSettings = adapter.ToRealmTokenSettings(realm.Spec.TokenSettings)
-
-	if realm.Spec.RealmEventConfig != nil && realm.Spec.RealmEventConfig.AdminEventsEnabled {
-		eventCfCopy := realm.Spec.RealmEventConfig.DeepCopy()
-		settings.AdminEventsExpiration = &eventCfCopy.AdminEventsExpiration
-	}
-
-	if realm.Spec.Login != nil {
-		settings.Login = &adapter.RealmLogin{
-			UserRegistration: realm.Spec.Login.UserRegistration,
-			ForgotPassword:   realm.Spec.Login.ForgotPassword,
-			RememberMe:       realm.Spec.Login.RememberMe,
-			EmailAsUsername:  realm.Spec.Login.EmailAsUsername,
-			LoginWithEmail:   realm.Spec.Login.LoginWithEmail,
-			DuplicateEmails:  realm.Spec.Login.DuplicateEmails,
-			VerifyEmail:      realm.Spec.Login.VerifyEmail,
-			EditUsername:     realm.Spec.Login.EditUsername,
-		}
-	}
-
-	setSessionSettings(&settings, realm.Spec.Sessions)
-
-	return settings
+	return buildRealmRepresentationFromCommon(c)
 }
 
-func setSessionSettings(settings *adapter.RealmSettings, sessions *common.RealmSessions) {
+// buildPasswordPolicy formats a slice of PasswordPolicy into the Keycloak string format,
+// e.g. "length(8) and upperCase(1)". Returns empty string if the slice is empty.
+func buildPasswordPolicy(policies []common.PasswordPolicy) string {
+	if len(policies) == 0 {
+		return ""
+	}
+
+	parts := make([]string, len(policies))
+	for i, p := range policies {
+		parts[i] = p.Type + "(" + p.Value + ")"
+	}
+
+	return strings.Join(parts, " and ")
+}
+
+// buildRealmRepresentationFromCommon constructs a RealmRepresentation from the
+// normalized common spec. All version-specific field mapping is done by the callers.
+func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakv2.RealmRepresentation {
+	rep := keycloakv2.RealmRepresentation{
+		DisplayName:                 ptr.To(spec.DisplayName),
+		DisplayNameHtml:             ptr.To(spec.DisplayHTMLName),
+		OrganizationsEnabled:        ptr.To(spec.OrganizationsEnabled),
+		LoginTheme:                  spec.LoginTheme,
+		AccountTheme:                spec.AccountTheme,
+		AdminTheme:                  spec.AdminTheme,
+		EmailTheme:                  spec.EmailTheme,
+		InternationalizationEnabled: spec.InternationalizationEnabled,
+	}
+
+	if spec.FrontendURL != "" {
+		attrs := make(map[string]string)
+		rep.Attributes = &attrs
+		(*rep.Attributes)["frontendUrl"] = spec.FrontendURL
+	}
+
+	if spec.BrowserSecurityHeaders != nil {
+		rep.BrowserSecurityHeaders = spec.BrowserSecurityHeaders
+	}
+
+	if spec.PasswordPolicy != "" {
+		rep.PasswordPolicy = ptr.To(spec.PasswordPolicy)
+	}
+
+	if ts := spec.TokenSettings; ts != nil {
+		rep.DefaultSignatureAlgorithm = ptr.To(ts.DefaultSignatureAlgorithm)
+		rep.RevokeRefreshToken = ptr.To(ts.RevokeRefreshToken)
+		rep.RefreshTokenMaxReuse = ptr.To(int32(ts.RefreshTokenMaxReuse))
+		rep.AccessTokenLifespan = ptr.To(int32(ts.AccessTokenLifespan))
+		rep.AccessTokenLifespanForImplicitFlow = ptr.To(int32(ts.AccessTokenLifespanForImplicitFlow))
+		rep.AccessCodeLifespan = ptr.To(int32(ts.AccessCodeLifespan))
+		rep.ActionTokenGeneratedByUserLifespan = ptr.To(int32(ts.ActionTokenGeneratedByUserLifespan))
+		rep.ActionTokenGeneratedByAdminLifespan = ptr.To(int32(ts.ActionTokenGeneratedByAdminLifespan))
+	}
+
+	if spec.RealmEventConfig != nil && spec.RealmEventConfig.AdminEventsEnabled {
+		if rep.Attributes == nil {
+			attrs := make(map[string]string)
+			rep.Attributes = &attrs
+		}
+
+		(*rep.Attributes)["adminEventsExpiration"] = strconv.Itoa(spec.RealmEventConfig.AdminEventsExpiration)
+	}
+
+	if l := spec.Login; l != nil {
+		rep.RegistrationAllowed = ptr.To(l.UserRegistration)
+		rep.ResetPasswordAllowed = ptr.To(l.ForgotPassword)
+		rep.RememberMe = ptr.To(l.RememberMe)
+		rep.RegistrationEmailAsUsername = ptr.To(l.EmailAsUsername)
+		rep.LoginWithEmailAllowed = ptr.To(l.LoginWithEmail)
+		rep.DuplicateEmailsAllowed = ptr.To(l.DuplicateEmails)
+		rep.VerifyEmail = ptr.To(l.VerifyEmail)
+		rep.EditUsernameAllowed = ptr.To(l.EditUsername)
+	}
+
+	setRealmRepSessionSettings(&rep, spec.Sessions)
+
+	return rep
+}
+
+// MergeRealmRepresentation copies only the operator-managed fields from overlay onto base,
+// merging map fields key-by-key to preserve live Keycloak values the operator doesn't manage.
+func MergeRealmRepresentation(base, overlay *keycloakv2.RealmRepresentation) {
+	mergeRealmAppearance(base, overlay)
+	mergeRealmTokenSettings(base, overlay)
+	mergeRealmLoginSettings(base, overlay)
+	mergeRealmSessionSettings(base, overlay)
+	mergeRealmMaps(base, overlay)
+}
+
+func mergeRealmAppearance(base, overlay *keycloakv2.RealmRepresentation) {
+	mergePtr(&base.DisplayName, &overlay.DisplayName)
+	mergePtr(&base.DisplayNameHtml, &overlay.DisplayNameHtml)
+	mergePtr(&base.OrganizationsEnabled, &overlay.OrganizationsEnabled)
+	mergePtr(&base.LoginTheme, &overlay.LoginTheme)
+	mergePtr(&base.AccountTheme, &overlay.AccountTheme)
+	mergePtr(&base.AdminTheme, &overlay.AdminTheme)
+	mergePtr(&base.EmailTheme, &overlay.EmailTheme)
+	mergePtr(&base.InternationalizationEnabled, &overlay.InternationalizationEnabled)
+	mergePtr(&base.PasswordPolicy, &overlay.PasswordPolicy)
+}
+
+func mergeRealmTokenSettings(base, overlay *keycloakv2.RealmRepresentation) {
+	mergePtr(&base.DefaultSignatureAlgorithm, &overlay.DefaultSignatureAlgorithm)
+	mergePtr(&base.RevokeRefreshToken, &overlay.RevokeRefreshToken)
+	mergePtr(&base.RefreshTokenMaxReuse, &overlay.RefreshTokenMaxReuse)
+	mergePtr(&base.AccessTokenLifespan, &overlay.AccessTokenLifespan)
+	mergePtr(&base.AccessTokenLifespanForImplicitFlow, &overlay.AccessTokenLifespanForImplicitFlow)
+	mergePtr(&base.AccessCodeLifespan, &overlay.AccessCodeLifespan)
+	mergePtr(&base.ActionTokenGeneratedByUserLifespan, &overlay.ActionTokenGeneratedByUserLifespan)
+	mergePtr(&base.ActionTokenGeneratedByAdminLifespan, &overlay.ActionTokenGeneratedByAdminLifespan)
+}
+
+func mergeRealmLoginSettings(base, overlay *keycloakv2.RealmRepresentation) {
+	mergePtr(&base.RegistrationAllowed, &overlay.RegistrationAllowed)
+	mergePtr(&base.ResetPasswordAllowed, &overlay.ResetPasswordAllowed)
+	mergePtr(&base.RememberMe, &overlay.RememberMe)
+	mergePtr(&base.RegistrationEmailAsUsername, &overlay.RegistrationEmailAsUsername)
+	mergePtr(&base.LoginWithEmailAllowed, &overlay.LoginWithEmailAllowed)
+	mergePtr(&base.DuplicateEmailsAllowed, &overlay.DuplicateEmailsAllowed)
+	mergePtr(&base.VerifyEmail, &overlay.VerifyEmail)
+	mergePtr(&base.EditUsernameAllowed, &overlay.EditUsernameAllowed)
+}
+
+func mergeRealmSessionSettings(base, overlay *keycloakv2.RealmRepresentation) {
+	mergePtr(&base.SsoSessionIdleTimeout, &overlay.SsoSessionIdleTimeout)
+	mergePtr(&base.SsoSessionMaxLifespan, &overlay.SsoSessionMaxLifespan)
+	mergePtr(&base.SsoSessionIdleTimeoutRememberMe, &overlay.SsoSessionIdleTimeoutRememberMe)
+	mergePtr(&base.SsoSessionMaxLifespanRememberMe, &overlay.SsoSessionMaxLifespanRememberMe)
+	mergePtr(&base.OfflineSessionIdleTimeout, &overlay.OfflineSessionIdleTimeout)
+	mergePtr(&base.OfflineSessionMaxLifespanEnabled, &overlay.OfflineSessionMaxLifespanEnabled)
+	mergePtr(&base.OfflineSessionMaxLifespan, &overlay.OfflineSessionMaxLifespan)
+	mergePtr(&base.AccessCodeLifespanLogin, &overlay.AccessCodeLifespanLogin)
+	mergePtr(&base.AccessCodeLifespanUserAction, &overlay.AccessCodeLifespanUserAction)
+}
+
+func mergeRealmMaps(base, overlay *keycloakv2.RealmRepresentation) {
+	// BrowserSecurityHeaders: merge keys into base map
+	if overlay.BrowserSecurityHeaders != nil {
+		if base.BrowserSecurityHeaders == nil {
+			m := make(map[string]string)
+			base.BrowserSecurityHeaders = &m
+		}
+
+		maps.Copy(*base.BrowserSecurityHeaders, *overlay.BrowserSecurityHeaders)
+	}
+
+	// Attributes: merge keys into base map
+	if overlay.Attributes != nil {
+		if base.Attributes == nil {
+			attrs := make(map[string]string)
+			base.Attributes = &attrs
+		}
+
+		maps.Copy(*base.Attributes, *overlay.Attributes)
+	}
+}
+
+func setRealmRepSessionSettings(rep *keycloakv2.RealmRepresentation, sessions *common.RealmSessions) {
 	if sessions == nil {
 		return
 	}
 
-	settings.SSOSessionSettings = adapter.ToRealmSSOSessionSettings(sessions.SSOSessionSettings)
-	settings.SSOOfflineSessionSettings = adapter.ToRealmSSOOfflineSessionSettings(sessions.SSOOfflineSessionSettings)
-	settings.SSOLoginSettings = adapter.ToRealmSSOLoginSettings(sessions.SSOLoginSettings)
-}
-
-func makePasswordPoliciesFromV1(policiesSpec []keycloakApi.PasswordPolicy) []adapter.PasswordPolicy {
-	policies := make([]adapter.PasswordPolicy, len(policiesSpec))
-	for i, v := range policiesSpec {
-		policies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
+	if s := sessions.SSOSessionSettings; s != nil {
+		rep.SsoSessionIdleTimeout = ptr.To(int32(s.IdleTimeout))
+		rep.SsoSessionMaxLifespan = ptr.To(int32(s.MaxLifespan))
+		rep.SsoSessionIdleTimeoutRememberMe = ptr.To(int32(s.IdleTimeoutRememberMe))
+		rep.SsoSessionMaxLifespanRememberMe = ptr.To(int32(s.MaxLifespanRememberMe))
 	}
 
-	return policies
-}
-
-func makePasswordPoliciesFromV1Alpha1(policiesSpec []v1alpha1.PasswordPolicy) []adapter.PasswordPolicy {
-	policies := make([]adapter.PasswordPolicy, len(policiesSpec))
-	for i, v := range policiesSpec {
-		policies[i] = adapter.PasswordPolicy{Type: v.Type, Value: v.Value}
+	if s := sessions.SSOOfflineSessionSettings; s != nil {
+		rep.OfflineSessionIdleTimeout = ptr.To(int32(s.IdleTimeout))
+		rep.OfflineSessionMaxLifespanEnabled = ptr.To(s.MaxLifespanEnabled)
+		rep.OfflineSessionMaxLifespan = ptr.To(int32(s.MaxLifespan))
 	}
 
-	return policies
+	if s := sessions.SSOLoginSettings; s != nil {
+		rep.AccessCodeLifespanLogin = ptr.To(int32(s.AccessCodeLifespanLogin))
+		rep.AccessCodeLifespanUserAction = ptr.To(int32(s.AccessCodeLifespanUserAction))
+	}
+}
+
+// mergePtr copies *overlay into *base only when *overlay is non-nil.
+func mergePtr[T any](base, overlay **T) {
+	if *overlay != nil {
+		*base = *overlay
+	}
 }

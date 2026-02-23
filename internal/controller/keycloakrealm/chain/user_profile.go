@@ -11,7 +11,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -19,13 +18,13 @@ type UserProfile struct {
 	next handler.RealmHandler
 }
 
-func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	l := ctrl.LoggerFrom(ctx)
 
 	if realm.Spec.UserProfileConfig == nil {
 		l.Info("User profile is empty, skipping configuration")
 
-		return nextServeOrNil(ctx, a.next, realm, kClient, kClientV2)
+		return nextServeOrNil(ctx, a.next, realm, kClientV2)
 	}
 
 	l.Info("Start configuring keycloak realm user profile")
@@ -37,7 +36,7 @@ func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.Keyclo
 
 	l.Info("User profile has been configured")
 
-	return nextServeOrNil(ctx, a.next, realm, kClient, kClientV2)
+	return nextServeOrNil(ctx, a.next, realm, kClientV2)
 }
 
 func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *common.UserProfileConfig, kClientV2 *keycloakv2.KeycloakClient) error {

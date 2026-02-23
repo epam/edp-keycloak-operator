@@ -13,8 +13,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
@@ -142,7 +140,6 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name      string
 		realm     *keycloakApi.KeycloakRealm
-		kClient   func(t *testing.T) keycloak.Client
 		kClientV2 func(t *testing.T) *keycloakv2.KeycloakClient
 		wantErr   require.ErrorAssertionFunc
 	}{
@@ -167,9 +164,6 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 						},
 					},
 				},
-			},
-			kClient: func(t *testing.T) keycloak.Client {
-				return mocks.NewMockClient(t)
 			},
 			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
 				mockUsers := keycloakv2mocks.NewMockUsersClient(t)
@@ -202,9 +196,6 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 		{
 			name:  "empty user profile config",
 			realm: &keycloakApi.KeycloakRealm{},
-			kClient: func(t *testing.T) keycloak.Client {
-				return mocks.NewMockClient(t)
-			},
 			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
 				return nil
 			},
@@ -218,7 +209,6 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 			tt.wantErr(t, a.ServeRequest(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				tt.realm,
-				tt.kClient(t),
 				tt.kClientV2(t),
 			))
 		})
