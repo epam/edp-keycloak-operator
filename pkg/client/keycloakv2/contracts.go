@@ -12,6 +12,10 @@ type UsersClient interface {
 		realm string,
 		userProfile UserProfileConfig,
 	) (*UserProfileConfig, *Response, error)
+	FindUserByUsername(ctx context.Context, realm, username string) (*UserRepresentation, *Response, error)
+	CreateUser(ctx context.Context, realm string, user UserRepresentation) (*Response, error)
+	GetUserRealmRoleMappings(ctx context.Context, realm, userID string) ([]RoleRepresentation, *Response, error)
+	AddUserRealmRoles(ctx context.Context, realm, userID string, roles []RoleRepresentation) (*Response, error)
 }
 
 type RealmClient interface {
@@ -19,6 +23,8 @@ type RealmClient interface {
 	CreateRealm(ctx context.Context, realmRep RealmRepresentation) (*Response, error)
 	UpdateRealm(ctx context.Context, realm string, realmRep RealmRepresentation) (*Response, error)
 	DeleteRealm(ctx context.Context, realm string) (*Response, error)
+	SetRealmEventConfig(ctx context.Context, realm string, cfg RealmEventsConfigRepresentation) (*Response, error)
+	SetRealmBrowserFlow(ctx context.Context, realm string, flowAlias string) (*Response, error)
 }
 
 type GroupsClient interface {

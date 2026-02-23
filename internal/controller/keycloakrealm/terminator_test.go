@@ -4,14 +4,14 @@ import (
 	"context"
 	"testing"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 	"github.com/stretchr/testify/assert"
-	testifymock "github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func Test_terminator_DeleteResource(t *testing.T) {
@@ -21,28 +21,47 @@ func Test_terminator_DeleteResource(t *testing.T) {
 	tests := []struct {
 		name                        string
 		realmName                   string
-		kClient                     func(t *testing.T) keycloak.Client
+		realmClient                 func(t *testing.T) keycloakv2.RealmClient
 		preserveResourcesOnDeletion bool
 		wantErr                     assert.ErrorAssertionFunc
 	}{
 		{
 			name:      "realm does not exist",
 			realmName: "realm",
-			kClient: func(t *testing.T) keycloak.Client {
-				m := mocks.NewMockClient(t)
-
-				m.On("DeleteRealm", testifymock.Anything, "realm").Return(adapter.NotFoundError("not found"))
-
+			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.On("DeleteRealm", mock.Anything, "realm").
+					Return(nil, &keycloakv2.ApiError{Code: 404})
 				return m
 			},
 			preserveResourcesOnDeletion: false,
+			wantErr:                     assert.NoError,
+		},
+		{
+			name:      "realm deleted successfully",
+			realmName: "realm",
+			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.On("DeleteRealm", mock.Anything, "realm").Return(nil, nil)
+				return m
+			},
+			preserveResourcesOnDeletion: false,
+			wantErr:                     assert.NoError,
+		},
+		{
+			name:      "preserve resources on deletion — skip",
+			realmName: "realm",
+			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+				return v2mocks.NewMockRealmClient(t)
+			},
+			preserveResourcesOnDeletion: true,
 			wantErr:                     assert.NoError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			te := makeTerminator(tt.realmName, tt.kClient(t), tt.preserveResourcesOnDeletion)
+			te := makeTerminator(tt.realmName, tt.realmClient(t), tt.preserveResourcesOnDeletion)
 			gotErr := te.DeleteResource(context.Background())
 			tt.wantErr(t, gotErr)
 		})

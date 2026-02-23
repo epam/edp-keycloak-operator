@@ -61,8 +61,7 @@ make e2e                                             # kind-based KUTTL e2e test
 
 ### Linting
 ```
-make lint        # golangci-lint (config: .golangci.yaml)
-make lint-fix    # auto-fix where possible
+make lint-fix # run golangci-lint (config: .golangci.yaml) with auto-fix where possible
 ```
 
 ### Code Generation

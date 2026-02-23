@@ -7,7 +7,6 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -18,7 +17,7 @@ func NewAuthFlow() *AuthFlow {
 	return &AuthFlow{}
 }
 
-func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start configuring authentication flow")
 
@@ -27,7 +26,7 @@ func (a AuthFlow) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKe
 		return nil
 	}
 
-	if err := kClient.SetRealmBrowserFlow(ctx, realm.Spec.RealmName, realm.Spec.AuthenticationFlow.BrowserFlow); err != nil {
+	if _, err := kClientV2.Realms.SetRealmBrowserFlow(ctx, realm.Spec.RealmName, realm.Spec.AuthenticationFlow.BrowserFlow); err != nil {
 		return fmt.Errorf("setting realm browser flow: %w", err)
 	}
 

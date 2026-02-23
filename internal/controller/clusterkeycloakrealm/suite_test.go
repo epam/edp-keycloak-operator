@@ -26,17 +26,18 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/clusterkeycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var (
-	cfg                   *rest.Config
-	k8sClient             client.Client
-	testEnv               *envtest.Environment
-	ctx                   context.Context
-	cancel                context.CancelFunc
-	keycloakURL           string
-	keycloakClientManager *testutils.KeycloakClientManager
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	ctx               context.Context
+	cancel            context.CancelFunc
+	keycloakURL       string
+	keycloakApiClient *keycloakv2.KeycloakClient
 )
 
 const (
@@ -143,8 +144,13 @@ var _ = BeforeSuite(func() {
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
 
-	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
-	keycloakClientManager.Initialize(ctx)
+	keycloakApiClient, err = keycloakv2.NewKeycloakClient(
+		ctx,
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant("admin", "admin"),
+	)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak v2 client")
 })
 
 var _ = AfterSuite(func() {

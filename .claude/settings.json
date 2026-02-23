@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run-tests)",
+      "Skill(run-tests:*)",
+      "Skill(run-golangci-lint)",
+      "Skill(run-golangci-lint:*)",
+      "Skill(generate-mocks)",
+      "Skill(generate-mocks:*)",
+      "Skill(cr-field)",
+      "Skill(cr-field:*)"
+    ]
+  }
+}

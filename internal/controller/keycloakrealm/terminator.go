@@ -6,17 +6,17 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
-type terminator struct {
+// Terminator deletes a Keycloak realm during resource cleanup.
+type Terminator struct {
 	realmName                   string
-	kClient                     keycloak.Client
+	realmClient                 keycloakv2.RealmClient
 	preserveResourcesOnDeletion bool
 }
 
-func (t *terminator) DeleteResource(ctx context.Context) error {
+func (t *Terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("keycloak_realm", t.realmName)
 	if t.preserveResourcesOnDeletion {
 		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
@@ -25,8 +25,8 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 
 	log.Info("Start deleting keycloak realm")
 
-	if err := t.kClient.DeleteRealm(ctx, t.realmName); err != nil {
-		if adapter.IsErrNotFound(err) {
+	if _, err := t.realmClient.DeleteRealm(ctx, t.realmName); err != nil {
+		if keycloakv2.IsNotFound(err) {
 			log.Info("Realm not found, skipping deletion.")
 
 			return nil
@@ -40,10 +40,15 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	return nil
 }
 
-func makeTerminator(realmName string, kClient keycloak.Client, preserveResourcesOnDeletion bool) *terminator {
-	return &terminator{
+// MakeTerminator creates a Terminator for the given realm.
+func MakeTerminator(realmName string, realmClient keycloakv2.RealmClient, preserveResourcesOnDeletion bool) *Terminator {
+	return &Terminator{
 		realmName:                   realmName,
-		kClient:                     kClient,
+		realmClient:                 realmClient,
 		preserveResourcesOnDeletion: preserveResourcesOnDeletion,
 	}
+}
+
+func makeTerminator(realmName string, realmClient keycloakv2.RealmClient, preserveResourcesOnDeletion bool) *Terminator {
+	return MakeTerminator(realmName, realmClient, preserveResourcesOnDeletion)
 }

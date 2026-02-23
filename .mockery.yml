@@ -14,6 +14,7 @@ packages:
       GoCloak: {}
   github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2:
     interfaces:
+      RealmClient: {}
       UsersClient: {}
       GroupsClient: {}
       RolesClient: {}

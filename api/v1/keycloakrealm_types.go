@@ -45,12 +45,12 @@ type KeycloakRealmSpec struct {
 	// RealmEventConfig is the configuration for events in the realm.
 	// +nullable
 	// +optional
-	RealmEventConfig *RealmEventConfig `json:"realmEventConfig,omitempty"`
+	RealmEventConfig *common.RealmEventConfig `json:"realmEventConfig,omitempty"`
 
 	// PasswordPolicies is a list of password policies to apply to the realm.
 	// +nullable
 	// +optional
-	PasswordPolicies []PasswordPolicy `json:"passwordPolicy,omitempty"`
+	PasswordPolicies []common.PasswordPolicy `json:"passwordPolicy,omitempty"`
 
 	// DisplayHTMLName name to render in the UI
 	// +optional
@@ -104,46 +104,6 @@ type User struct {
 
 	// RealmRoles is a list of roles attached to keycloak user.
 	RealmRoles []string `json:"realmRoles,omitempty"`
-}
-
-type PasswordPolicy struct {
-	// Type of password policy.
-	Type string `json:"type"`
-	// Value of password policy.
-	Value string `json:"value"`
-}
-
-type RealmEventConfig struct {
-	// AdminEventsDetailsEnabled indicates whether to enable detailed admin events.
-	// +optional
-	AdminEventsDetailsEnabled bool `json:"adminEventsDetailsEnabled,omitempty"`
-
-	// AdminEventsEnabled indicates whether to enable admin events.
-	// +optional
-	AdminEventsEnabled bool `json:"adminEventsEnabled,omitempty"`
-
-	// AdminEventsExpiration sets the expiration for events in seconds.
-	// Expired events are periodically deleted from the database.
-	// +optional
-	AdminEventsExpiration int `json:"adminEventsExpiration,omitempty"`
-
-	// EnabledEventTypes is a list of event types to enable.
-	// +optional
-	// +nullable.
-	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
-
-	// EventsEnabled indicates whether to enable events.
-	// +optional
-	EventsEnabled bool `json:"eventsEnabled,omitempty"`
-
-	// EventsExpiration is the number of seconds after which events expire.
-	// +optional
-	EventsExpiration int `json:"eventsExpiration,omitempty"`
-
-	// EventsListeners is a list of event listeners to enable.
-	// +optional
-	// +nullable.
-	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 
 type RealmThemes struct {

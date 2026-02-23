@@ -1,6 +1,15 @@
 // +kubebuilder:object:generate=true
 package common
 
+// PasswordPolicy defines a single password policy rule for a realm.
+type PasswordPolicy struct {
+	// Type of password policy.
+	Type string `json:"type"`
+
+	// Value of password policy.
+	Value string `json:"value"`
+}
+
 // TokenSettings is the configuration for tokens in the realm.
 // +kubebuilder:object:generate=true
 type TokenSettings struct {
@@ -283,6 +292,40 @@ type RealmSSOOfflineSessionSettings struct {
 	// +optional
 	// +kubebuilder:default=5184000
 	MaxLifespan int `json:"maxLifespan,omitempty"`
+}
+
+// RealmEventConfig is the configuration for events in the realm.
+type RealmEventConfig struct {
+	// AdminEventsDetailsEnabled indicates whether to enable detailed admin events.
+	// +optional
+	AdminEventsDetailsEnabled bool `json:"adminEventsDetailsEnabled,omitempty"`
+
+	// AdminEventsEnabled indicates whether to enable admin events.
+	// +optional
+	AdminEventsEnabled bool `json:"adminEventsEnabled,omitempty"`
+
+	// AdminEventsExpiration sets the expiration for events in seconds.
+	// Expired events are periodically deleted from the database.
+	// +optional
+	AdminEventsExpiration int `json:"adminEventsExpiration,omitempty"`
+
+	// EnabledEventTypes is a list of event types to enable.
+	// +optional
+	// +nullable
+	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
+
+	// EventsEnabled indicates whether to enable events.
+	// +optional
+	EventsEnabled bool `json:"eventsEnabled,omitempty"`
+
+	// EventsExpiration is the number of seconds after which events expire.
+	// +optional
+	EventsExpiration int `json:"eventsExpiration,omitempty"`
+
+	// EventsListeners is a list of event listeners to enable.
+	// +optional
+	// +nullable
+	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 
 // RealmSSOLoginSettings defines the SSO login settings for the realm.

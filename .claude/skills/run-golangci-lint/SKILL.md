@@ -14,7 +14,7 @@ Run `make lint-fix` to auto-fix linting errors across the entire project, then f
 2. Review the output — note what was auto-fixed and what errors remain
 3. Fix remaining errors manually (see guidelines below)
 4. Run `make lint-fix` to confirm zero errors
-5. Run the `run-tests` skill to confirm no regressions
+5. Run the `run-tests` skill to confirm no regressions — only if the lint fixes involved significant code changes (e.g. refactoring logic, splitting functions). Skip for trivial fixes like renaming, formatting, or comment edits.
 
 ## Fix Guidelines
 

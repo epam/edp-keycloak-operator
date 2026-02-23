@@ -8,7 +8,6 @@ import (
 	"context"
 
 	"github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	mock "github.com/stretchr/testify/mock"
 )
@@ -41,16 +40,16 @@ func (_m *MockRealmHandler) EXPECT() *MockRealmHandler_Expecter {
 }
 
 // ServeRequest provides a mock function for the type MockRealmHandler
-func (_mock *MockRealmHandler) ServeRequest(ctx context.Context, realm *v1.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
-	ret := _mock.Called(ctx, realm, kClient, kClientV2)
+func (_mock *MockRealmHandler) ServeRequest(ctx context.Context, realm *v1.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+	ret := _mock.Called(ctx, realm, kClientV2)
 
 	if len(ret) == 0 {
 		panic("no return value specified for ServeRequest")
 	}
 
 	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm, keycloak.Client, *keycloakv2.KeycloakClient) error); ok {
-		r0 = returnFunc(ctx, realm, kClient, kClientV2)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm, *keycloakv2.KeycloakClient) error); ok {
+		r0 = returnFunc(ctx, realm, kClientV2)
 	} else {
 		r0 = ret.Error(0)
 	}
@@ -65,13 +64,12 @@ type MockRealmHandler_ServeRequest_Call struct {
 // ServeRequest is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm *v1.KeycloakRealm
-//   - kClient keycloak.Client
 //   - kClientV2 *keycloakv2.KeycloakClient
-func (_e *MockRealmHandler_Expecter) ServeRequest(ctx interface{}, realm interface{}, kClient interface{}, kClientV2 interface{}) *MockRealmHandler_ServeRequest_Call {
-	return &MockRealmHandler_ServeRequest_Call{Call: _e.mock.On("ServeRequest", ctx, realm, kClient, kClientV2)}
+func (_e *MockRealmHandler_Expecter) ServeRequest(ctx interface{}, realm interface{}, kClientV2 interface{}) *MockRealmHandler_ServeRequest_Call {
+	return &MockRealmHandler_ServeRequest_Call{Call: _e.mock.On("ServeRequest", ctx, realm, kClientV2)}
 }
 
-func (_c *MockRealmHandler_ServeRequest_Call) Run(run func(ctx context.Context, realm *v1.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient)) *MockRealmHandler_ServeRequest_Call {
+func (_c *MockRealmHandler_ServeRequest_Call) Run(run func(ctx context.Context, realm *v1.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient)) *MockRealmHandler_ServeRequest_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -81,19 +79,14 @@ func (_c *MockRealmHandler_ServeRequest_Call) Run(run func(ctx context.Context, 
 		if args[1] != nil {
 			arg1 = args[1].(*v1.KeycloakRealm)
 		}
-		var arg2 keycloak.Client
+		var arg2 *keycloakv2.KeycloakClient
 		if args[2] != nil {
-			arg2 = args[2].(keycloak.Client)
-		}
-		var arg3 *keycloakv2.KeycloakClient
-		if args[3] != nil {
-			arg3 = args[3].(*keycloakv2.KeycloakClient)
+			arg2 = args[2].(*keycloakv2.KeycloakClient)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
-			arg3,
 		)
 	})
 	return _c
@@ -104,7 +97,7 @@ func (_c *MockRealmHandler_ServeRequest_Call) Return(err error) *MockRealmHandle
 	return _c
 }
 
-func (_c *MockRealmHandler_ServeRequest_Call) RunAndReturn(run func(ctx context.Context, realm *v1.KeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error) *MockRealmHandler_ServeRequest_Call {
+func (_c *MockRealmHandler_ServeRequest_Call) RunAndReturn(run func(ctx context.Context, realm *v1.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error) *MockRealmHandler_ServeRequest_Call {
 	_c.Call.Return(run)
 	return _c
 }

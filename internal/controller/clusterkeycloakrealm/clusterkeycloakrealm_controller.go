@@ -16,7 +16,7 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/clusterkeycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
@@ -24,10 +24,8 @@ import (
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
-	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error)
 	CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakv2.KeycloakClient, error)
 	SetKeycloakOwnerRef(ctx context.Context, object helper.ObjectWithKeycloakRef) error
-	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 }
 
 // ClusterKeycloakRealmReconciler reconciles a ClusterKeycloakRealm object.
@@ -75,17 +73,6 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return ctrl.Result{}, fmt.Errorf("unable to set keycloak owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientFromClusterRealm(ctx, clusterRealm)
-	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{
-				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
-			}, nil
-		}
-
-		return ctrl.Result{}, fmt.Errorf("failed to create keycloak client for realm: %w", err)
-	}
-
 	kClientV2, err := r.helper.CreateKeycloakClientV2FromClusterRealm(ctx, clusterRealm)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
@@ -100,7 +87,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	if deleted, err := r.helper.TryToDelete(
 		ctx,
 		clusterRealm,
-		makeTerminator(clusterRealm.Spec.RealmName, kClient, objectmeta.PreserveResourcesOnDeletion(clusterRealm)),
+		keycloakrealm.MakeTerminator(clusterRealm.Spec.RealmName, kClientV2.Realms, objectmeta.PreserveResourcesOnDeletion(clusterRealm)),
 		keyCloakRealmOperatorFinalizerName,
 	); err != nil {
 		return ctrl.Result{}, fmt.Errorf("failed to delete realm %w", err)
@@ -108,7 +95,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return reconcile.Result{}, nil
 	}
 
-	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient, kClientV2); err != nil {
+	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClientV2); err != nil {
 		clusterRealm.Status.Available = false
 		clusterRealm.Status.Value = err.Error()
 		requeue := r.helper.SetFailureCount(clusterRealm)

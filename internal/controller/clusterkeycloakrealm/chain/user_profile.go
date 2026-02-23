@@ -8,7 +8,6 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -19,7 +18,7 @@ func NewUserProfile() *UserProfile {
 	return &UserProfile{}
 }
 
-func (h UserProfile) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h UserProfile) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	l := ctrl.LoggerFrom(ctx)
 
 	if realm.Spec.UserProfileConfig == nil {

@@ -9,7 +9,6 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -22,7 +21,7 @@ func NewConfigureEmail(k8sClient client.Client, operatorNs string) *ConfigureEma
 	return &ConfigureEmail{client: k8sClient, operatorNs: operatorNs}
 }
 
-func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient keycloak.Client, kClientV2 *keycloakv2.KeycloakClient) error {
+func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
 	if realm.Spec.Smtp == nil {
 		return nil
 	}
@@ -30,12 +29,12 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Clu
 	l := ctrl.LoggerFrom(ctx)
 	l.Info("Configuring email for realm")
 
-	if err := keycloakrealmchain.ConfigureRamlEmail(
+	if err := keycloakrealmchain.ConfigureRealmEmail(
 		ctx,
 		realm.Spec.RealmName,
 		realm.Spec.Smtp,
 		s.operatorNs,
-		kClient,
+		kClientV2.Realms,
 		s.client,
 	); err != nil {
 		return fmt.Errorf("failed to configure email: %w", err)

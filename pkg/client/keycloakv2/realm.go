@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/generated"
 )
 
 // Type aliases for generated types
 type RealmRepresentation = generated.RealmRepresentation
+type RealmEventsConfigRepresentation = generated.RealmEventsConfigRepresentation
 
 type realmClient struct {
 	client generated.ClientWithResponsesInterface
@@ -103,6 +105,40 @@ func (c *realmClient) DeleteRealm(ctx context.Context, realm string) (*Response,
 	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
 
 	// Check for non-2xx status codes and return ApiError
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *realmClient) SetRealmBrowserFlow(ctx context.Context, realm string, flowAlias string) (*Response, error) {
+	current, resp, err := c.GetRealm(ctx, realm)
+	if err != nil {
+		return resp, fmt.Errorf("unable to get realm: %w", err)
+	}
+
+	current.BrowserFlow = &flowAlias
+
+	return c.UpdateRealm(ctx, realm, *current)
+}
+
+func (c *realmClient) SetRealmEventConfig(
+	ctx context.Context,
+	realm string,
+	cfg RealmEventsConfigRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmEventsConfigWithResponse(ctx, realm, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
 	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
 		return response, err
 	}

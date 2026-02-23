@@ -160,3 +160,136 @@ func TestRealmClient_DeleteRealm_NotFound(t *testing.T) {
 	require.NotNil(t, resp, "Response should be present even for error")
 	require.NotNil(t, resp.HTTPResponse, "HTTPResponse should be present even for error")
 }
+
+func TestRealmClient_SetRealmBrowserFlow(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-browser-flow-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	resp, err := c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// "browser" is the default flow that always exists in every Keycloak realm
+	resp, err = c.Realms.SetRealmBrowserFlow(ctx, realmName, "browser")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
+
+	// Verify the browser flow was set
+	realm, _, err := c.Realms.GetRealm(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, realm)
+	require.NotNil(t, realm.BrowserFlow)
+	require.Equal(t, "browser", *realm.BrowserFlow)
+}
+
+func TestRealmClient_SetRealmBrowserFlow_RealmNotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Realms.SetRealmBrowserFlow(context.Background(), "nonexistent-realm-12345", "browser")
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err))
+	require.NotNil(t, resp)
+}
+
+func TestRealmClient_SetRealmEventConfig(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-event-config-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	resp, err := c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	eventsEnabled := true
+	adminEventsEnabled := true
+	adminEventsDetailsEnabled := true
+
+	var eventsExpiration int64 = 3600
+
+	eventTypes := []string{"LOGIN", "LOGOUT"}
+
+	cfg := keycloakv2.RealmEventsConfigRepresentation{
+		EventsEnabled:             &eventsEnabled,
+		AdminEventsEnabled:        &adminEventsEnabled,
+		AdminEventsDetailsEnabled: &adminEventsDetailsEnabled,
+		EventsExpiration:          &eventsExpiration,
+		EnabledEventTypes:         &eventTypes,
+	}
+
+	resp, err = c.Realms.SetRealmEventConfig(ctx, realmName, cfg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
+}
+
+func TestRealmClient_SetRealmEventConfig_RealmNotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	eventsEnabled := true
+	cfg := keycloakv2.RealmEventsConfigRepresentation{
+		EventsEnabled: &eventsEnabled,
+	}
+
+	resp, err := c.Realms.SetRealmEventConfig(context.Background(), "nonexistent-realm-12345", cfg)
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err))
+	require.NotNil(t, resp)
+}
