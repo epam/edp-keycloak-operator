@@ -61,6 +61,7 @@ type ClientCredentials struct {
 	AccessToken   string `json:"access_token"`
 	RefreshToken  string `json:"refresh_token"`
 	TokenType     string `json:"token_type"`
+	ExpiresIn     int    `json:"expires_in"`
 }
 
 const (
@@ -367,7 +368,7 @@ func (keycloakClient *KeycloakClient) login(ctx context.Context) error {
 			return err
 		}
 
-		logger.V(debugVerbosityLevel).Info("Login request", "request", accessTokenData.Encode())
+		logger.V(debugVerbosityLevel).Info("Login request", "content_length", len(accessTokenData.Encode()))
 
 		accessTokenRequest, err := http.NewRequestWithContext(
 			ctx,
@@ -404,8 +405,6 @@ func (keycloakClient *KeycloakClient) login(ctx context.Context) error {
 
 		body, _ := io.ReadAll(accessTokenResponse.Body)
 
-		logger.V(debugVerbosityLevel).Info("Login response", "response", string(body))
-
 		var clientCredentials ClientCredentials
 
 		err = json.Unmarshal(body, &clientCredentials)
@@ -413,17 +412,15 @@ func (keycloakClient *KeycloakClient) login(ctx context.Context) error {
 			return err
 		}
 
+		logger.V(debugVerbosityLevel).Info("Login response", "expires_in", clientCredentials.ExpiresIn)
+
 		keycloakClient.mu.Lock()
 		keycloakClient.clientCredentials.AccessToken = clientCredentials.AccessToken
 		keycloakClient.clientCredentials.RefreshToken = clientCredentials.RefreshToken
 		keycloakClient.clientCredentials.TokenType = clientCredentials.TokenType
 		keycloakClient.mu.Unlock()
 	} else {
-		logger.V(debugVerbosityLevel).Info(
-			"Using provided access_token",
-			"access_token",
-			keycloakClient.clientCredentials.AccessToken,
-		)
+		logger.V(debugVerbosityLevel).Info("Using provided access_token")
 	}
 
 	return nil
@@ -444,7 +441,7 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 		return err
 	}
 
-	logger.V(debugVerbosityLevel).Info("Refresh request", "request", refreshTokenData.Encode())
+	logger.V(debugVerbosityLevel).Info("Refresh request", "content_length", len(refreshTokenData.Encode()))
 
 	refreshTokenRequest, err := http.NewRequestWithContext(
 		ctx,
@@ -477,8 +474,6 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 
 	body, _ := io.ReadAll(refreshTokenResponse.Body)
 
-	logger.V(debugVerbosityLevel).Info("Refresh response", "response", string(body))
-
 	// Handle 401 "User or client no longer has role permissions for client key"
 	// until I better understand why that happens in the first place
 	if refreshTokenResponse.StatusCode == http.StatusBadRequest {
@@ -493,6 +488,8 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
+
+	logger.V(debugVerbosityLevel).Info("Refresh response", "expires_in", clientCredentials.ExpiresIn)
 
 	keycloakClient.mu.Lock()
 	defer keycloakClient.mu.Unlock()
