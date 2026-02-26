@@ -171,7 +171,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 					false,
 				).Return(errors.New("keycloak api error"))
 			},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to sync user groups: keycloak api error")
 			},

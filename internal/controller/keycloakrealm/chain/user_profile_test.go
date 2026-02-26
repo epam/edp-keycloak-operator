@@ -98,10 +98,10 @@ func TestUserProfileConfigSpecToModel(t *testing.T) {
 						Selector: &keycloakv2.UserProfileAttributeSelector{
 							Scopes: &[]string{"scope"},
 						},
-						Annotations: &map[string]interface{}{
+						Annotations: &map[string]any{
 							"inputType": "text",
 						},
-						Validations: &map[string]map[string]interface{}{
+						Validations: &map[string]map[string]any{
 							"email": {
 								"max-local-length": 64,
 							},
@@ -118,7 +118,7 @@ func TestUserProfileConfigSpecToModel(t *testing.T) {
 				},
 				Groups: &[]keycloakv2.UserProfileGroup{
 					{
-						Annotations:        &map[string]interface{}{"group": "test"},
+						Annotations:        &map[string]any{"group": "test"},
 						DisplayDescription: ptr.To("Group description"),
 						DisplayHeader:      ptr.To("Group header"),
 						Name:               ptr.To("Group"),

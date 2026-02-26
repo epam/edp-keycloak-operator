@@ -318,7 +318,7 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					return m
 				},
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to put protocol mappers")
 				require.Contains(t, err.Error(), "unable to sync protocol mapper")
@@ -352,8 +352,8 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 }
 
 // mockMatchProtocolMappers is a helper function to match protocol mappers slice in mock calls
-func mockMatchProtocolMappers(expectedCount int) interface{} {
-	return mock.MatchedBy(func(mappers interface{}) bool {
+func mockMatchProtocolMappers(expectedCount int) any {
+	return mock.MatchedBy(func(mappers any) bool {
 		if mappers == nil {
 			return expectedCount == 0
 		}

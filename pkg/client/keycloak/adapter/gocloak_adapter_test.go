@@ -93,7 +93,7 @@ func (e *AdapterTestSuite) TestMakeFromServiceAccount() {
 			mockServer: fakehttp.NewServerBuilder().
 				AddStringResponderWithCode(http.StatusBadRequest, authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				require.EqualError(
 					t,
@@ -153,7 +153,7 @@ func (e *AdapterTestSuite) TestMake() {
 		{
 			name:       "should fail on unsupported protocol scheme",
 			mockServer: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unsupported protocol scheme")
 			},
@@ -163,7 +163,7 @@ func (e *AdapterTestSuite) TestMake() {
 			mockServer: fakehttp.NewServerBuilder().
 				AddStringResponderWithCode(http.StatusBadRequest, authPath+realmsEndpoint, "{}").
 				BuildAndStart(),
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "400")
 			},
@@ -579,7 +579,7 @@ func TestMakeFromToken(t *testing.T) {
 		name       string
 		token      string
 		mockServer fakehttp.Server
-		wantErr    func(require.TestingT, error, ...interface{})
+		wantErr    func(require.TestingT, error, ...any)
 	}{
 		{
 			name:  "should succeed",
@@ -587,7 +587,7 @@ func TestMakeFromToken(t *testing.T) {
 			mockServer: fakehttp.NewServerBuilder().
 				AddStringResponder("/admin/realms/", "{}").
 				BuildAndStart(),
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.NoError(t, err)
 
 				cl, ok := i[0].(*GoCloakAdapter)
@@ -608,7 +608,7 @@ func TestMakeFromToken(t *testing.T) {
 			mockServer: fakehttp.NewServerBuilder().
 				AddStringResponder("/auth/admin/realms/", "{}").
 				BuildAndStart(),
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.NoError(t, err)
 
 				cl, ok := i[0].(*GoCloakAdapter)
@@ -627,7 +627,7 @@ func TestMakeFromToken(t *testing.T) {
 			name:       "should fail on expired token",
 			token:      expiredToken,
 			mockServer: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.True(t, IsErrTokenExpired(err) || err.Error() == "token is expired")
 			},
@@ -636,7 +636,7 @@ func TestMakeFromToken(t *testing.T) {
 			name:       "should fail on wrong token structure",
 			token:      "foo.bar",
 			mockServer: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "wrong JWT token structure")
 			},
@@ -645,7 +645,7 @@ func TestMakeFromToken(t *testing.T) {
 			name:       "should fail on wrong token encoding",
 			token:      "foo.bar .baz",
 			mockServer: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "wrong JWT token base64 encoding")
 			},
@@ -654,7 +654,7 @@ func TestMakeFromToken(t *testing.T) {
 			name:       "should fail on decoding json payload",
 			token:      "foo.bar.baz",
 			mockServer: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to decode JWT payload json")
 			},
@@ -846,7 +846,7 @@ func TestGoCloakAdapter_GetUsersByNames(t *testing.T) {
 				return mockClient
 			},
 			names: []string{"user1", "user2"},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "fatal")
 			},
@@ -937,7 +937,7 @@ func TestGoCloakAdapter_CreatePrimaryRealmRole(t *testing.T) {
 				return m
 			},
 			want: "",
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get role")
 			},

@@ -342,7 +342,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to delete policy")
 			},
@@ -388,7 +388,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to update policy")
 			},
@@ -430,7 +430,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to create policy")
 			},
@@ -464,7 +464,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to convert policy")
 			},
@@ -498,7 +498,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get policies")
 			},
@@ -530,7 +530,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get client id")
 			},

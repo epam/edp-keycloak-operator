@@ -281,7 +281,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to delete permission")
 			},
@@ -340,7 +340,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to update permission")
 			},
@@ -394,7 +394,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to create permission")
 			},
@@ -439,7 +439,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get policies")
 			},
@@ -477,7 +477,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get resources")
 			},
@@ -508,7 +508,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get permissions")
 			},
@@ -537,7 +537,7 @@ func TestProcessPermissions_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get client id")
 			},

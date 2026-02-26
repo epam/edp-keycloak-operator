@@ -161,7 +161,7 @@ func TestDefaultFakeServer_Close(t *testing.T) {
 	tests := []struct {
 		name             string
 		createFakeServer func() *DefaultServer
-		wantPanic        func(t require.TestingT, f assert.PanicTestFunc, _ ...interface{})
+		wantPanic        func(t require.TestingT, f assert.PanicTestFunc, _ ...any)
 	}{
 		{
 			name: "should close",
@@ -197,7 +197,7 @@ func TestDefaultFakeServer_GetURL(t *testing.T) {
 	tests := []struct {
 		name             string
 		createFakeServer func() *DefaultServer
-		wantPanic        func(t require.TestingT, f assert.PanicTestFunc, _ ...interface{})
+		wantPanic        func(t require.TestingT, f assert.PanicTestFunc, _ ...any)
 	}{
 		{
 			name: "should return URL",
@@ -271,7 +271,7 @@ func TestServerBuilder_AddKeycloakAuthResponders(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, tokenResp.StatusCode)
 
-			var tokenBody map[string]interface{}
+			var tokenBody map[string]any
 			err = json.NewDecoder(tokenResp.Body).Decode(&tokenBody)
 			require.NoError(t, err)
 			assert.Equal(t, "test-access-token", tokenBody["access_token"])
@@ -284,7 +284,7 @@ func TestServerBuilder_AddKeycloakAuthResponders(t *testing.T) {
 			require.NoError(t, err)
 			require.Equal(t, http.StatusOK, adminResp.StatusCode)
 
-			var adminBody map[string]interface{}
+			var adminBody map[string]any
 			err = json.NewDecoder(adminResp.Body).Decode(&adminBody)
 			require.NoError(t, err)
 			assert.Empty(t, adminBody)

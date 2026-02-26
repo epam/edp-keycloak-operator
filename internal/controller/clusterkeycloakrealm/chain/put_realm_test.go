@@ -77,7 +77,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to check realm existence")
 			},
@@ -98,7 +98,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to create realm")
 			},

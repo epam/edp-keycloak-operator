@@ -138,7 +138,7 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get client service account")
 				assert.Contains(t, err.Error(), "service account not found")
@@ -165,7 +165,7 @@ func TestGoCloakAdapter_SetServiceAccountAttributes(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to update service account user: clientID1")
 				assert.Contains(t, err.Error(), "update failed")
@@ -325,7 +325,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get service account")
 			},
@@ -352,7 +352,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get role mapping")
 			},
@@ -384,7 +384,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get realm role")
 			},
@@ -416,7 +416,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get clients")
 			},
@@ -453,7 +453,7 @@ func TestGoCloakAdapter_SyncServiceAccountRoles(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get client role")
 			},

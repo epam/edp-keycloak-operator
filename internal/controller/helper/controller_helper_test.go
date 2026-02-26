@@ -484,7 +484,7 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 					},
 				},
 			},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unknown realm kind: UnknownKind")
 			},

@@ -396,7 +396,7 @@ func TestGoCloakAdapter_CreateOrUpdateUser(t *testing.T) {
 				return m
 			},
 			wantID: "",
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "connection error")
 			},
@@ -419,7 +419,7 @@ func TestGoCloakAdapter_CreateOrUpdateUser(t *testing.T) {
 				return m
 			},
 			wantID: "",
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "user already exists")
 			},
@@ -445,7 +445,7 @@ func TestGoCloakAdapter_CreateOrUpdateUser(t *testing.T) {
 				return m
 			},
 			wantID: "",
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "update failed")
 			},

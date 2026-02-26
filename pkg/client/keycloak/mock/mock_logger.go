@@ -8,7 +8,7 @@ func NewLogr() logr.Logger {
 
 type Logger struct {
 	errors       []error
-	infoMessages map[string][]interface{}
+	infoMessages map[string][]any
 }
 
 // Init implements logr.LogSink.
@@ -16,15 +16,15 @@ func (log *Logger) Init(logr.RuntimeInfo) {
 }
 
 // Info implements logr.InfoLogger.
-func (l *Logger) Info(level int, msg string, keysAndValues ...interface{}) {
+func (l *Logger) Info(level int, msg string, keysAndValues ...any) {
 	if l.infoMessages == nil {
-		l.infoMessages = make(map[string][]interface{})
+		l.infoMessages = make(map[string][]any)
 	}
 
 	l.infoMessages[msg] = keysAndValues
 }
 
-func (l *Logger) InfoMessages() map[string][]interface{} {
+func (l *Logger) InfoMessages() map[string][]any {
 	return l.infoMessages
 }
 
@@ -33,7 +33,7 @@ func (Logger) Enabled(level int) bool {
 	return true
 }
 
-func (l *Logger) Error(err error, msg string, keysAndValues ...interface{}) {
+func (l *Logger) Error(err error, msg string, keysAndValues ...any) {
 	l.errors = append(l.errors, err)
 }
 
@@ -51,6 +51,6 @@ func (log *Logger) WithName(_ string) logr.LogSink {
 }
 
 // WithValues implements logr.Logger.
-func (log *Logger) WithValues(_ ...interface{}) logr.LogSink {
+func (log *Logger) WithValues(_ ...any) logr.LogSink {
 	return log
 }

@@ -155,7 +155,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 			name:           "server returns 500 error",
 			serverResponse: `{"error":"internal server error"}`,
 			statusCode:     http.StatusInternalServerError,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 				assert.Contains(t, err.Error(), "500")
@@ -165,7 +165,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 			name:           "server returns 401 unauthorized",
 			serverResponse: `{"error":"unauthorized"}`,
 			statusCode:     http.StatusUnauthorized,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 				assert.Contains(t, err.Error(), "401")
@@ -175,7 +175,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 			name:           "server returns 403 forbidden",
 			serverResponse: `{"error":"forbidden"}`,
 			statusCode:     http.StatusForbidden,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 				assert.Contains(t, err.Error(), "403")
@@ -185,7 +185,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 			name:           "server returns invalid JSON",
 			serverResponse: `{"invalid": json}`,
 			statusCode:     http.StatusOK,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},
@@ -194,7 +194,7 @@ func TestGoCloakAdapter_GetServerInfo_ErrorScenarios(t *testing.T) {
 			name:           "server returns empty response",
 			serverResponse: ``,
 			statusCode:     http.StatusOK,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},
@@ -378,7 +378,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled_ErrorScenarios(t *testing.T) {
 			statusCode:     http.StatusInternalServerError,
 			featureFlag:    "ADMIN_FINE_GRAINED_AUTHZ",
 			expected:       false,
-			expectedErr: func(t require.TestingT, err error, i ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},
@@ -389,7 +389,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled_ErrorScenarios(t *testing.T) {
 			statusCode:     http.StatusUnauthorized,
 			featureFlag:    "ADMIN_FINE_GRAINED_AUTHZ",
 			expected:       false,
-			expectedErr: func(t require.TestingT, err error, i ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},
@@ -400,7 +400,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled_ErrorScenarios(t *testing.T) {
 			statusCode:     http.StatusOK,
 			featureFlag:    "ADMIN_FINE_GRAINED_AUTHZ",
 			expected:       false,
-			expectedErr: func(t require.TestingT, err error, i ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},
@@ -411,7 +411,7 @@ func TestGoCloakAdapter_FeatureFlagEnabled_ErrorScenarios(t *testing.T) {
 			statusCode:     http.StatusOK,
 			featureFlag:    "ADMIN_FINE_GRAINED_AUTHZ",
 			expected:       false,
-			expectedErr: func(t require.TestingT, err error, i ...interface{}) {
+			expectedErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to get server info")
 			},

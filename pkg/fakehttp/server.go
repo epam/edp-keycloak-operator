@@ -66,7 +66,7 @@ func (b *ServerBuilder) AddKeycloakAuthRespondersForRealm(realm string) *ServerB
 	}
 
 	b.fakeServer.addJsonResponder(http.StatusOK, "/realms/"+realm+"/protocol/openid-connect/token", tokenResponse)
-	b.fakeServer.addJsonResponder(http.StatusOK, "/admin/realms/"+realm, map[string]interface{}{})
+	b.fakeServer.addJsonResponder(http.StatusOK, "/admin/realms/"+realm, map[string]any{})
 
 	return b
 }
