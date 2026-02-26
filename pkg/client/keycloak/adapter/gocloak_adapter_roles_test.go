@@ -198,7 +198,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to delete composite roles")
 			},
@@ -246,7 +246,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to add composite roles")
 			},
@@ -285,7 +285,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get associated role")
 			},
@@ -324,7 +324,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get associated client role")
 			},
@@ -357,7 +357,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get client")
 			},
@@ -387,7 +387,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get current composite roles")
 			},
@@ -460,7 +460,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to update role")
 			},
@@ -486,7 +486,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to create role")
 			},
@@ -504,7 +504,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get role")
 			},
@@ -553,7 +553,7 @@ func TestGoCloakAdapter_SyncRealmRole(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to make role default")
 			},

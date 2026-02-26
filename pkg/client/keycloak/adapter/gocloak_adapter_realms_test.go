@@ -292,8 +292,8 @@ func TestGoCloakAdapter_SyncRealmIdentityProviderMappers(t *testing.T) {
 	realmName := "sso-realm-1"
 	idpAlias := "alias-1"
 
-	mappers := []interface{}{
-		map[string]interface{}{
+	mappers := []any{
+		map[string]any{
 			keycloakApiParamId: currentMapperID,
 			"name":             "mp1name",
 		},
@@ -416,7 +416,7 @@ func TestGoCloakAdapter_GetRealm(t *testing.T) {
 				return m
 			},
 			want: nil,
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "realm not found")
 			},
@@ -496,7 +496,7 @@ func setupOrganizationToggleServer(realmName string, currentOrgEnabled bool) *ht
 				"{realm}", realmName,
 			).Replace(realmEntity)
 			if r.URL.Path == expectedPath {
-				response := map[string]interface{}{
+				response := map[string]any{
 					"realm":                realmName,
 					"organizationsEnabled": currentOrgEnabled,
 				}
@@ -559,7 +559,7 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 						"{realm}", "test-realm",
 					).Replace(realmEntity)
 					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
-						response := map[string]interface{}{
+						response := map[string]any{
 							"realm":                "test-realm",
 							"organizationsEnabled": true,
 						}
@@ -583,7 +583,7 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 						"{realm}", "test-realm",
 					).Replace(realmEntity)
 					if r.Method == http.MethodGet && r.URL.Path == expectedPath {
-						response := map[string]interface{}{
+						response := map[string]any{
 							"realm":                "test-realm",
 							"organizationsEnabled": false,
 						}
@@ -628,7 +628,7 @@ func TestGoCloakAdapter_SetRealmOrganizationsEnabled(t *testing.T) {
 							"{realm}", "test-realm",
 						).Replace(realmEntity)
 						if r.URL.Path == expectedPath {
-							response := map[string]interface{}{
+							response := map[string]any{
 								"realm":                "test-realm",
 								"organizationsEnabled": false,
 							}

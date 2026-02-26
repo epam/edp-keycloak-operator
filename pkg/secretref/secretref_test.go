@@ -89,7 +89,7 @@ func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
 					},
 				).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "does not contain key")
 			},
@@ -110,7 +110,7 @@ func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
 
 				return fake.NewClientBuilder().WithScheme(s).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get secret")
 			},
@@ -131,7 +131,7 @@ func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
 
 				return fake.NewClientBuilder().WithScheme(s).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid config secret  reference")
 			},
@@ -228,7 +228,7 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 					},
 				).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "does not contain key")
 			},
@@ -249,7 +249,7 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 
 				return fake.NewClientBuilder().WithScheme(s).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get secret")
 			},
@@ -270,7 +270,7 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 
 				return fake.NewClientBuilder().WithScheme(s).Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "invalid config secret  reference")
 			},

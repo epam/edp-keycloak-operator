@@ -350,8 +350,8 @@ func (a GoCloakAdapter) SyncRealmIdentityProviderMappers(realmName string, mappe
 	return nil
 }
 
-func decodeIdentityProviderMapper(mp interface{}) (*dto.IdentityProviderMapper, bool) {
-	mapInterface, ok := mp.(map[string]interface{})
+func decodeIdentityProviderMapper(mp any) (*dto.IdentityProviderMapper, bool) {
+	mapInterface, ok := mp.(map[string]any)
 	if !ok {
 		return nil, false
 	}
@@ -385,7 +385,7 @@ func decodeIdentityProviderMapper(mp interface{}) (*dto.IdentityProviderMapper, 
 	}
 
 	if configRaw, ok := mapInterface["config"]; ok {
-		if configInterface, ok := configRaw.(map[string]interface{}); ok {
+		if configInterface, ok := configRaw.(map[string]any); ok {
 			for k, v := range configInterface {
 				if value, ok := v.(string); ok {
 					mapper.Config[k] = value

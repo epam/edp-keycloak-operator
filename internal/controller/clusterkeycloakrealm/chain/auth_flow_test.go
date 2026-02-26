@@ -68,7 +68,7 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "setting realm browser flow")
 			},

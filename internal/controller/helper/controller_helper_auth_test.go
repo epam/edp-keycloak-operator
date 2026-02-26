@@ -321,7 +321,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			k8sClient: func(t *testing.T) client.Client {
 				return fake.NewClientBuilder().Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get secret")
 			},
@@ -346,7 +346,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			k8sClient: func(t *testing.T) client.Client {
 				return fake.NewClientBuilder().Build()
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get configmap")
 			},
@@ -496,7 +496,7 @@ func TestHelper_createKeycloakClientFromLoginPassword(t *testing.T) {
 					tokenSecretLock: &sync.Mutex{},
 				}
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
@@ -530,7 +530,7 @@ func TestHelper_createKeycloakClientFromLoginPassword(t *testing.T) {
 					tokenSecretLock: &sync.Mutex{},
 				}
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to init authData client adapter")
 			},
@@ -567,7 +567,7 @@ func TestHelper_createKeycloakClientFromLoginPassword(t *testing.T) {
 					tokenSecretLock: &sync.Mutex{},
 				}
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to export authData client token")
 			},
@@ -689,7 +689,7 @@ func TestHelper_createKeycloakClientFromLoginPassword(t *testing.T) {
 					tokenSecretLock: &sync.Mutex{},
 				}
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to save authData token to secret")
 			},
@@ -1043,7 +1043,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				},
 			},
 			objects: []client.Object{},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get keycloak")
 			},
@@ -1081,7 +1081,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 					},
 				},
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.ErrorIs(t, err, ErrKeycloakIsNotAvailable)
 			},
@@ -1119,7 +1119,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 					},
 				},
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
@@ -1143,7 +1143,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				},
 			},
 			objects: []client.Object{},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get keycloak")
 			},
@@ -1541,7 +1541,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 				},
 			},
 			objects: []client.Object{},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get cluster keycloak")
 			},
@@ -1574,7 +1574,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 					},
 				},
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.ErrorIs(t, err, ErrKeycloakIsNotAvailable)
 			},
@@ -1607,7 +1607,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 					},
 				},
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},

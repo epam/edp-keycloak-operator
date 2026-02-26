@@ -166,7 +166,7 @@ func userProfileConfigGroupSpecToModel(v common.UserProfileGroup) keycloakv2.Use
 		Name:               &v.Name,
 	}
 
-	annotations := make(map[string]interface{}, len(v.Annotations))
+	annotations := make(map[string]any, len(v.Annotations))
 	for ak, av := range v.Annotations {
 		annotations[ak] = av
 	}
@@ -191,7 +191,7 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 		attr.Group = &v.Group
 	}
 
-	annotations := make(map[string]interface{}, len(v.Annotations))
+	annotations := make(map[string]any, len(v.Annotations))
 	for ak, av := range v.Annotations {
 		annotations[ak] = av
 	}
@@ -233,11 +233,11 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 	return attr
 }
 
-func userProfileConfigValidationSpecToModel(validations map[string]map[string]common.UserProfileAttributeValidation) map[string]map[string]interface{} {
-	model := make(map[string]map[string]interface{}, len(validations))
+func userProfileConfigValidationSpecToModel(validations map[string]map[string]common.UserProfileAttributeValidation) map[string]map[string]any {
+	model := make(map[string]map[string]any, len(validations))
 
 	for validatorName, validatorVal := range validations {
-		val := make(map[string]interface{}, len(validatorVal))
+		val := make(map[string]any, len(validatorVal))
 
 		for k, v := range validatorVal {
 			if v.StringVal != "" {

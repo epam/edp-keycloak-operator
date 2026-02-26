@@ -256,7 +256,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to delete resource")
 			},
@@ -299,7 +299,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to update resource")
 			},
@@ -337,7 +337,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to create resource")
 			},
@@ -369,7 +369,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get scopes")
 			},
@@ -397,7 +397,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get resources")
 			},
@@ -423,7 +423,7 @@ func TestProcessResources_Serve(t *testing.T) {
 
 				return client
 			},
-			wantErr: func(t require.TestingT, err error, i ...interface{}) {
+			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get client id")
 			},

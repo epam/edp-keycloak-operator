@@ -352,7 +352,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 				Realm: gocloak.StringP("test-realm"),
 			},
 			mockSetup: func(m *keycloakmocks.MockClient) {},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get secret")
 			},
@@ -390,7 +390,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 				},
 			},
 			mockSetup: func(m *keycloakmocks.MockClient) {},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "key wrong-key not found in secret")
 			},
@@ -439,7 +439,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				).Return(errors.New("keycloak error"))
 			},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to set user password")
 			},

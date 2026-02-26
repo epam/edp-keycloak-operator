@@ -1015,7 +1015,7 @@ func TestGoCloakAdapter_DeleteGroup(t *testing.T) {
 
 				return m
 			},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				// This test should panic due to nil pointer dereference
 				// We'll handle this in the test runner
 			},

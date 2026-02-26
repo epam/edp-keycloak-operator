@@ -164,7 +164,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 					[]string{"idp1"},
 				).Return(errors.New("keycloak api error"))
 			},
-			wantErr: func(t require.TestingT, err error, _ ...interface{}) {
+			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to sync user identity providers: keycloak api error")
 			},
