@@ -1026,6 +1026,88 @@ func (_c *MockGroupsClient_GetGroup_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// GetGroupByPath provides a mock function for the type MockGroupsClient
+func (_mock *MockGroupsClient) GetGroupByPath(ctx context.Context, realm string, path string) (*keycloakv2.GroupRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, path)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGroupByPath")
+	}
+
+	var r0 *keycloakv2.GroupRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.GroupRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, path)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.GroupRepresentation); ok {
+		r0 = returnFunc(ctx, realm, path)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.GroupRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, path)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, path)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGroupsClient_GetGroupByPath_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGroupByPath'
+type MockGroupsClient_GetGroupByPath_Call struct {
+	*mock.Call
+}
+
+// GetGroupByPath is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - path string
+func (_e *MockGroupsClient_Expecter) GetGroupByPath(ctx interface{}, realm interface{}, path interface{}) *MockGroupsClient_GetGroupByPath_Call {
+	return &MockGroupsClient_GetGroupByPath_Call{Call: _e.mock.On("GetGroupByPath", ctx, realm, path)}
+}
+
+func (_c *MockGroupsClient_GetGroupByPath_Call) Run(run func(ctx context.Context, realm string, path string)) *MockGroupsClient_GetGroupByPath_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupByPath_Call) Return(v *keycloakv2.GroupRepresentation, response *keycloakv2.Response, err error) *MockGroupsClient_GetGroupByPath_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupByPath_Call) RunAndReturn(run func(ctx context.Context, realm string, path string) (*keycloakv2.GroupRepresentation, *keycloakv2.Response, error)) *MockGroupsClient_GetGroupByPath_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGroups provides a mock function for the type MockGroupsClient
 func (_mock *MockGroupsClient) GetGroups(ctx context.Context, realm string, params *keycloakv2.GetGroupsParams) ([]keycloakv2.GroupRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, params)

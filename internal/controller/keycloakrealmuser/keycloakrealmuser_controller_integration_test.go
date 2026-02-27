@@ -49,6 +49,12 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		})
 		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
 
+		By("Creating a top-level group with the same name as the subgroup")
+		_, err = keycloakApiClient.CreateGroup(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Group{
+			Name: gocloak.StringP("test-user-group2-subgroup"),
+		})
+		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+
 		By("Creating role for user")
 		_, err = keycloakApiClient.CreateRealmRole(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Role{
 			Name: gocloak.StringP("test-user-role"),
@@ -123,7 +129,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				},
 				Groups: []string{
 					"test-user-group",
-					"test-user-group2-subgroup",
+					"/test-user-group2/test-user-group2-subgroup",
 				},
 				AttributesV2: map[string][]string{
 					"attr1": {"test-value"},
@@ -195,6 +201,23 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				}
 			}
 			g.Expect(realmManagementClientRoleNames).Should(ContainElement("create-client"))
+
+			// Verify group membership - both plain name and slash-prefixed path groups
+			userGroups, err := keycloakApiClient.GetUserGroups(ctx, getKeyCloakToken(), KeycloakRealmCR, *users[0].ID, gocloak.GetGroupsParams{})
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			groupNames := make([]string, 0)
+			for _, grp := range userGroups {
+				if grp.Path != nil {
+					groupNames = append(groupNames, *grp.Path)
+				}
+			}
+
+			g.Expect(groupNames).Should(ContainElement("/test-user-group"))
+			// Verify the slash-prefixed path resolved to the child group, not the top-level
+			// group with the same name.
+			g.Expect(groupNames).Should(ContainElement("/test-user-group2/test-user-group2-subgroup"))
+			g.Expect(groupNames).ShouldNot(ContainElement("/test-user-group2-subgroup"))
 		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should create KeycloakRealmUser with password", func() {

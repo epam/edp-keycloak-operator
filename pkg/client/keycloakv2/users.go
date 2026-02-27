@@ -168,3 +168,66 @@ func (c *usersClient) AddUserRealmRoles(
 
 	return response, nil
 }
+
+func (c *usersClient) GetUserGroups(
+	ctx context.Context, realm, userID string,
+) ([]GroupRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdGroupsWithResponse(ctx, realm, userID, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) AddUserToGroup(ctx context.Context, realm, userID, groupID string) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmUsersUserIdGroupsGroupIdWithResponse(ctx, realm, userID, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) RemoveUserFromGroup(ctx context.Context, realm, userID, groupID string) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdGroupsGroupIdWithResponse(ctx, realm, userID, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}

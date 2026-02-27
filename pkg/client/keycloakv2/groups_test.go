@@ -1151,3 +1151,144 @@ func TestGroupsClient_FindGroupByName_MultiLevel(t *testing.T) {
 		require.Equal(t, 0, len(children), "Level3 should have no children")
 	})
 }
+
+func TestGroupsClient_GetGroupByPath(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Generate unique realm name to avoid conflicts
+	realmName := fmt.Sprintf("test-realm-grp-path-%d", time.Now().UnixNano())
+	enabled := true
+
+	// Ensure cleanup happens even if test fails
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	// Create test realm
+	realm := keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	}
+	resp, err := c.Realms.CreateRealm(ctx, realm)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Build hierarchy: top-group -> mid-group -> bottom-group
+	var topGroupID, midGroupID, bottomGroupID string
+
+	t.Run("Create Top-Level Group", func(t *testing.T) {
+		groupName := "top-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateGroup(ctx, realmName, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		topGroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, topGroupID)
+	})
+
+	t.Run("Create Mid-Level Group", func(t *testing.T) {
+		groupName := "mid-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, topGroupID, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		midGroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, midGroupID)
+	})
+
+	t.Run("Create Bottom-Level Group", func(t *testing.T) {
+		groupName := "bottom-group"
+		group := keycloakv2.GroupRepresentation{
+			Name: &groupName,
+		}
+
+		resp, err := c.Groups.CreateChildGroup(ctx, realmName, midGroupID, group)
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+
+		bottomGroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, bottomGroupID)
+	})
+
+	// Test: Get top-level group by path
+	t.Run("Get Top-Level Group By Path", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/top-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group)
+		require.NotNil(t, group.Name)
+		require.Equal(t, "top-group", *group.Name)
+		require.NotNil(t, group.Id)
+		require.Equal(t, topGroupID, *group.Id)
+	})
+
+	// Test: Get nested group by path
+	t.Run("Get Nested Group By Path", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/top-group/mid-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group)
+		require.NotNil(t, group.Name)
+		require.Equal(t, "mid-group", *group.Name)
+		require.NotNil(t, group.Id)
+		require.Equal(t, midGroupID, *group.Id)
+	})
+
+	// Test: Get deeply nested group by path
+	t.Run("Get Deeply Nested Group By Path", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/top-group/mid-group/bottom-group")
+		require.NoError(t, err)
+		require.NotNil(t, resp)
+		require.NotNil(t, group)
+		require.NotNil(t, group.Name)
+		require.Equal(t, "bottom-group", *group.Name)
+		require.NotNil(t, group.Id)
+		require.Equal(t, bottomGroupID, *group.Id)
+	})
+
+	// Test: Non-existent path returns error
+	t.Run("Non-Existent Path", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/non-existent-group")
+		require.Error(t, err)
+		require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent path")
+		require.Nil(t, group)
+		require.NotNil(t, resp)
+	})
+
+	// Test: Non-existent nested path returns error
+	t.Run("Non-Existent Nested Path", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/top-group/non-existent")
+		require.Error(t, err)
+		require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent nested path")
+		require.Nil(t, group)
+		require.NotNil(t, resp)
+	})
+
+	// Test: Partial valid path with invalid leaf returns error
+	t.Run("Partial Valid Path With Invalid Leaf", func(t *testing.T) {
+		group, resp, err := c.Groups.GetGroupByPath(ctx, realmName, "/top-group/mid-group/non-existent")
+		require.Error(t, err)
+		require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for invalid leaf in path")
+		require.Nil(t, group)
+		require.NotNil(t, resp)
+	})
+}

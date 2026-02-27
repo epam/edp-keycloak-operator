@@ -19,6 +19,9 @@ spec:
     temporary: true
   requiredUserActions:
     - UPDATE_PROFILE
+  groups:
+    - developers
+    - /parent/child
   attributesV2:
     department: ["IT"]
     location: ["Winterfell"]

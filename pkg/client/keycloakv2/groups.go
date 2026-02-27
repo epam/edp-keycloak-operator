@@ -430,6 +430,27 @@ func (c *groupsClient) DeleteClientRoleMappings(
 	return response, nil
 }
 
+func (c *groupsClient) GetGroupByPath(
+	ctx context.Context, realm, path string,
+) (*GroupRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupByPathPathWithResponse(ctx, realm, path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
 // findGroupInList searches for a group by name in a list of groups.
 func findGroupInList(groups []GroupRepresentation, name string) *GroupRepresentation {
 	for i := range groups {

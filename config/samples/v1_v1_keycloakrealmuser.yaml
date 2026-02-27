@@ -22,6 +22,9 @@ spec:
   attributesV2:
     department: ["IT"]
     location: ["Winterfell"]
+  groups:
+    - developers
+    - /parent/child
 
 ---
 apiVersion: v1
