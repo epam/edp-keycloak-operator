@@ -118,6 +118,86 @@ func (_c *MockUsersClient_AddUserRealmRoles_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// AddUserToGroup provides a mock function for the type MockUsersClient
+func (_mock *MockUsersClient) AddUserToGroup(ctx context.Context, realm string, userID string, groupID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, userID, groupID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddUserToGroup")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, userID, groupID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, userID, groupID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, userID, groupID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUsersClient_AddUserToGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddUserToGroup'
+type MockUsersClient_AddUserToGroup_Call struct {
+	*mock.Call
+}
+
+// AddUserToGroup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - userID string
+//   - groupID string
+func (_e *MockUsersClient_Expecter) AddUserToGroup(ctx interface{}, realm interface{}, userID interface{}, groupID interface{}) *MockUsersClient_AddUserToGroup_Call {
+	return &MockUsersClient_AddUserToGroup_Call{Call: _e.mock.On("AddUserToGroup", ctx, realm, userID, groupID)}
+}
+
+func (_c *MockUsersClient_AddUserToGroup_Call) Run(run func(ctx context.Context, realm string, userID string, groupID string)) *MockUsersClient_AddUserToGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUsersClient_AddUserToGroup_Call) Return(response *keycloakv2.Response, err error) *MockUsersClient_AddUserToGroup_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockUsersClient_AddUserToGroup_Call) RunAndReturn(run func(ctx context.Context, realm string, userID string, groupID string) (*keycloakv2.Response, error)) *MockUsersClient_AddUserToGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateUser provides a mock function for the type MockUsersClient
 func (_mock *MockUsersClient) CreateUser(ctx context.Context, realm string, user keycloakv2.UserRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, user)
@@ -270,6 +350,88 @@ func (_c *MockUsersClient_FindUserByUsername_Call) Return(v *keycloakv2.UserRepr
 }
 
 func (_c *MockUsersClient_FindUserByUsername_Call) RunAndReturn(run func(ctx context.Context, realm string, username string) (*keycloakv2.UserRepresentation, *keycloakv2.Response, error)) *MockUsersClient_FindUserByUsername_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetUserGroups provides a mock function for the type MockUsersClient
+func (_mock *MockUsersClient) GetUserGroups(ctx context.Context, realm string, userID string) ([]keycloakv2.GroupRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetUserGroups")
+	}
+
+	var r0 []keycloakv2.GroupRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakv2.GroupRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakv2.GroupRepresentation); ok {
+		r0 = returnFunc(ctx, realm, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.GroupRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, userID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, userID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockUsersClient_GetUserGroups_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetUserGroups'
+type MockUsersClient_GetUserGroups_Call struct {
+	*mock.Call
+}
+
+// GetUserGroups is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - userID string
+func (_e *MockUsersClient_Expecter) GetUserGroups(ctx interface{}, realm interface{}, userID interface{}) *MockUsersClient_GetUserGroups_Call {
+	return &MockUsersClient_GetUserGroups_Call{Call: _e.mock.On("GetUserGroups", ctx, realm, userID)}
+}
+
+func (_c *MockUsersClient_GetUserGroups_Call) Run(run func(ctx context.Context, realm string, userID string)) *MockUsersClient_GetUserGroups_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUsersClient_GetUserGroups_Call) Return(vs []keycloakv2.GroupRepresentation, response *keycloakv2.Response, err error) *MockUsersClient_GetUserGroups_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockUsersClient_GetUserGroups_Call) RunAndReturn(run func(ctx context.Context, realm string, userID string) ([]keycloakv2.GroupRepresentation, *keycloakv2.Response, error)) *MockUsersClient_GetUserGroups_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -428,6 +590,86 @@ func (_c *MockUsersClient_GetUsersProfile_Call) Return(v *keycloakv2.UserProfile
 }
 
 func (_c *MockUsersClient_GetUsersProfile_Call) RunAndReturn(run func(ctx context.Context, realm string) (*keycloakv2.UserProfileConfig, *keycloakv2.Response, error)) *MockUsersClient_GetUsersProfile_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveUserFromGroup provides a mock function for the type MockUsersClient
+func (_mock *MockUsersClient) RemoveUserFromGroup(ctx context.Context, realm string, userID string, groupID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, userID, groupID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveUserFromGroup")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, userID, groupID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, userID, groupID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, userID, groupID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockUsersClient_RemoveUserFromGroup_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveUserFromGroup'
+type MockUsersClient_RemoveUserFromGroup_Call struct {
+	*mock.Call
+}
+
+// RemoveUserFromGroup is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - userID string
+//   - groupID string
+func (_e *MockUsersClient_Expecter) RemoveUserFromGroup(ctx interface{}, realm interface{}, userID interface{}, groupID interface{}) *MockUsersClient_RemoveUserFromGroup_Call {
+	return &MockUsersClient_RemoveUserFromGroup_Call{Call: _e.mock.On("RemoveUserFromGroup", ctx, realm, userID, groupID)}
+}
+
+func (_c *MockUsersClient_RemoveUserFromGroup_Call) Run(run func(ctx context.Context, realm string, userID string, groupID string)) *MockUsersClient_RemoveUserFromGroup_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUsersClient_RemoveUserFromGroup_Call) Return(response *keycloakv2.Response, err error) *MockUsersClient_RemoveUserFromGroup_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockUsersClient_RemoveUserFromGroup_Call) RunAndReturn(run func(ctx context.Context, realm string, userID string, groupID string) (*keycloakv2.Response, error)) *MockUsersClient_RemoveUserFromGroup_Call {
 	_c.Call.Return(run)
 	return _c
 }

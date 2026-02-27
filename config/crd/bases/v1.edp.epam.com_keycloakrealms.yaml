@@ -154,6 +154,8 @@ spec:
                 description: PasswordPolicies is a list of password policies to apply
                   to the realm.
                 items:
+                  description: PasswordPolicy defines a single password policy rule
+                    for a realm.
                   properties:
                     type:
                       description: Type of password policy.
@@ -189,6 +191,7 @@ spec:
                     description: EnabledEventTypes is a list of event types to enable.
                     items:
                       type: string
+                    nullable: true
                     type: array
                   eventsEnabled:
                     description: EventsEnabled indicates whether to enable events.
@@ -201,6 +204,7 @@ spec:
                     description: EventsListeners is a list of event listeners to enable.
                     items:
                       type: string
+                    nullable: true
                     type: array
                 type: object
               realmName:

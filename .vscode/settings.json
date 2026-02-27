@@ -2,5 +2,9 @@
     "go.testEnvVars": {
         "KUBEBUILDER_ASSETS": "${workspaceFolder}/bin/k8s/1.33.0-darwin-arm64",
         "TEST_KEYCLOAK_URL": "http://localhost:8086"
+    },
+    "chat.tools.terminal.autoApprove": {
+        "make": true,
+        "go": true
     }
 }

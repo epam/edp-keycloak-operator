@@ -16,6 +16,9 @@ type UsersClient interface {
 	CreateUser(ctx context.Context, realm string, user UserRepresentation) (*Response, error)
 	GetUserRealmRoleMappings(ctx context.Context, realm, userID string) ([]RoleRepresentation, *Response, error)
 	AddUserRealmRoles(ctx context.Context, realm, userID string, roles []RoleRepresentation) (*Response, error)
+	GetUserGroups(ctx context.Context, realm, userID string) ([]GroupRepresentation, *Response, error)
+	AddUserToGroup(ctx context.Context, realm, userID, groupID string) (*Response, error)
+	RemoveUserFromGroup(ctx context.Context, realm, userID, groupID string) (*Response, error)
 }
 
 type RealmClient interface {
@@ -41,6 +44,7 @@ type GroupsClient interface {
 	) ([]GroupRepresentation, *Response, error)
 	CreateChildGroup(ctx context.Context, realm, parentGroupID string, group GroupRepresentation) (*Response, error)
 	FindGroupByName(ctx context.Context, realm, groupName string) (*GroupRepresentation, *Response, error)
+	GetGroupByPath(ctx context.Context, realm, path string) (*GroupRepresentation, *Response, error)
 	FindChildGroupByName(
 		ctx context.Context,
 		realm string,
