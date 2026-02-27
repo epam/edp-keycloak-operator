@@ -367,7 +367,7 @@ Login settings for the realm.
 
 
 
-
+PasswordPolicy defines a single password policy rule for a realm.
 
 <table>
     <thead>
@@ -5901,7 +5901,7 @@ Login settings for the realm.
 
 
 
-
+PasswordPolicy defines a single password policy rule for a realm.
 
 <table>
     <thead>
@@ -7299,7 +7299,10 @@ Each attribute can have multiple values.<br/>
         <td><b>groups</b></td>
         <td>[]string</td>
         <td>
-          Groups is a list of groups assigned to user.<br/>
+          Groups is a list of groups assigned to user.
+Each entry is either a plain group name (e.g. "developers") or a slash-separated
+path (e.g. "/developers", "/parent/child"), where each segment represents a level
+in the group hierarchy.<br/>
         </td>
         <td>false</td>
       </tr><tr>

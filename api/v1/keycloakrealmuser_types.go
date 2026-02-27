@@ -51,8 +51,12 @@ type KeycloakRealmUserSpec struct {
 	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 
 	// Groups is a list of groups assigned to user.
+	// Each entry is either a plain group name (e.g. "developers") or a slash-separated
+	// path (e.g. "/developers", "/parent/child"), where each segment represents a level
+	// in the group hierarchy.
 	// +nullable
 	// +optional
+	// +kubebuilder:example={"developers","/parent/child"}
 	Groups []string `json:"groups,omitempty"`
 
 	// Attributes is a map of user attributes.

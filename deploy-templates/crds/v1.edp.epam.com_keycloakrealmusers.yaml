@@ -94,7 +94,14 @@ spec:
                 description: FirstName is a user first name.
                 type: string
               groups:
-                description: Groups is a list of groups assigned to user.
+                description: |-
+                  Groups is a list of groups assigned to user.
+                  Each entry is either a plain group name (e.g. "developers") or a slash-separated
+                  path (e.g. "/developers", "/parent/child"), where each segment represents a level
+                  in the group hierarchy.
+                example:
+                - developers
+                - /parent/child
                 items:
                   type: string
                 nullable: true

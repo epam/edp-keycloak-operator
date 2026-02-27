@@ -420,6 +420,273 @@ func TestUsersClient_AddUserRealmRoles_UserNotFound(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
+func TestUsersClient_GetUserGroups(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-user-groups-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	// Create a user
+	username := "user-groups-test"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// Initially user should have no groups
+	groups, resp, err := c.Users.GetUserGroups(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, groups)
+
+	// Create a group and add user to it
+	groupName := "user-test-group"
+	groupResp, err := c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{Name: &groupName})
+	require.NoError(t, err)
+	require.NotNil(t, groupResp)
+
+	groupID := keycloakv2.GetResourceIDFromResponse(groupResp)
+	require.NotEmpty(t, groupID)
+
+	_, err = c.Users.AddUserToGroup(ctx, realmName, *user.Id, groupID)
+	require.NoError(t, err)
+
+	// Now user should have one group
+	groups, resp, err = c.Users.GetUserGroups(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, groups, 1)
+	require.NotNil(t, groups[0].Name)
+	require.Equal(t, groupName, *groups[0].Name)
+}
+
+func TestUsersClient_GetUserGroups_NonExistentUser(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	_, resp, err := c.Users.GetUserGroups(context.Background(), keycloakv2.MasterRealm, "nonexistent-user-id-12345")
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_AddUserToGroup(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-add-user-group-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	// Create a user
+	username := "add-group-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// Create two groups
+	group1Name := "add-user-group-1"
+	group2Name := "add-user-group-2"
+
+	resp, err := c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{Name: &group1Name})
+	require.NoError(t, err)
+
+	group1ID := keycloakv2.GetResourceIDFromResponse(resp)
+	require.NotEmpty(t, group1ID)
+
+	resp, err = c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{Name: &group2Name})
+	require.NoError(t, err)
+
+	group2ID := keycloakv2.GetResourceIDFromResponse(resp)
+	require.NotEmpty(t, group2ID)
+
+	// Add user to first group
+	addResp, err := c.Users.AddUserToGroup(ctx, realmName, *user.Id, group1ID)
+	require.NoError(t, err)
+	require.NotNil(t, addResp)
+
+	// Add user to second group
+	addResp, err = c.Users.AddUserToGroup(ctx, realmName, *user.Id, group2ID)
+	require.NoError(t, err)
+	require.NotNil(t, addResp)
+
+	// Verify user is in both groups
+	groups, _, err := c.Users.GetUserGroups(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.Len(t, groups, 2)
+
+	groupNames := make(map[string]bool)
+
+	for _, g := range groups {
+		if g.Name != nil {
+			groupNames[*g.Name] = true
+		}
+	}
+
+	require.True(t, groupNames[group1Name], "User should be in group 1")
+	require.True(t, groupNames[group2Name], "User should be in group 2")
+
+	// Adding to the same group again should be idempotent (no error)
+	addResp, err = c.Users.AddUserToGroup(ctx, realmName, *user.Id, group1ID)
+	require.NoError(t, err)
+	require.NotNil(t, addResp)
+}
+
+func TestUsersClient_AddUserToGroup_NonExistentUser(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.AddUserToGroup(
+		context.Background(), keycloakv2.MasterRealm, "nonexistent-user-id", "nonexistent-group-id",
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_RemoveUserFromGroup(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-remove-user-group-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	// Create a user
+	username := "remove-group-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// Create a group
+	groupName := "remove-user-group"
+	resp, err := c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{Name: &groupName})
+	require.NoError(t, err)
+
+	groupID := keycloakv2.GetResourceIDFromResponse(resp)
+	require.NotEmpty(t, groupID)
+
+	// Add user to group
+	_, err = c.Users.AddUserToGroup(ctx, realmName, *user.Id, groupID)
+	require.NoError(t, err)
+
+	// Verify user is in the group
+	groups, _, err := c.Users.GetUserGroups(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.Len(t, groups, 1)
+	require.Equal(t, groupName, *groups[0].Name)
+
+	// Remove user from group
+	removeResp, err := c.Users.RemoveUserFromGroup(ctx, realmName, *user.Id, groupID)
+	require.NoError(t, err)
+	require.NotNil(t, removeResp)
+
+	// Verify user is no longer in the group
+	groups, _, err = c.Users.GetUserGroups(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.Empty(t, groups)
+}
+
+func TestUsersClient_RemoveUserFromGroup_NonExistentUser(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.RemoveUserFromGroup(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id",
+		"nonexistent-group-id",
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
 func TestUsersClient_UpdateUsersProfile_NotFound(t *testing.T) {
 	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
 	t.Parallel()
