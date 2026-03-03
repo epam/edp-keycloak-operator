@@ -4,26 +4,24 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
-func NewRemoveOrganization(keycloakClient keycloak.Client) Handler {
+func NewRemoveOrganization(kc *keycloakv2.KeycloakClient) Handler {
 	return &RemoveOrganization{
-		keycloakClient: keycloakClient,
+		keycloakClient: kc.Organizations,
 	}
 }
 
 type RemoveOrganization struct {
-	keycloakClient keycloak.Client
+	keycloakClient keycloakv2.OrganizationsClient
 }
 
-func (h *RemoveOrganization) ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realm *gocloak.RealmRepresentation) error {
+func (h *RemoveOrganization) ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	log.Info("Start removing organization")
@@ -40,9 +38,8 @@ func (h *RemoveOrganization) ServeRequest(ctx context.Context, organization *key
 		return nil
 	}
 
-	realmName := gocloak.PString(realm.Realm)
-	if err := h.keycloakClient.DeleteOrganization(ctx, realmName, organization.Status.OrganizationID); err != nil {
-		if adapter.IsErrNotFound(err) {
+	if _, err := h.keycloakClient.DeleteOrganization(ctx, realmName, organization.Status.OrganizationID); err != nil {
+		if keycloakv2.IsNotFound(err) {
 			log.Info("Organization not found, skipping")
 
 			return nil

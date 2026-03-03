@@ -4,24 +4,21 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type Chain interface {
-	Serve(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realm *gocloak.RealmRepresentation) error
+	Serve(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error
 }
 
 type chain struct {
 	handlers []Handler
 }
 
-func (c *chain) Serve(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realm *gocloak.RealmRepresentation) error {
+func (c *chain) Serve(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error {
 	for _, handler := range c.handlers {
-		if err := handler.ServeRequest(ctx, organization, realm); err != nil {
+		if err := handler.ServeRequest(ctx, organization, realmName); err != nil {
 			return fmt.Errorf("organization chain handler failed: %w", err)
 		}
 	}
@@ -30,14 +27,14 @@ func (c *chain) Serve(ctx context.Context, organization *keycloakApi.KeycloakOrg
 }
 
 type Handler interface {
-	ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realm *gocloak.RealmRepresentation) error
+	ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error
 }
 
-func MakeChain(keycloakClient keycloak.Client, k8sClient client.Client) Chain {
+func MakeChain(kc *keycloakv2.KeycloakClient) Chain {
 	return &chain{
 		handlers: []Handler{
-			NewCreateOrganization(keycloakClient),
-			NewProcessIdentityProviders(keycloakClient),
+			NewCreateOrganization(kc),
+			NewProcessIdentityProviders(kc),
 		},
 	}
 }

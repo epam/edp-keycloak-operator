@@ -5,15 +5,13 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestRemoveOrganization_ServeRequest(t *testing.T) {
@@ -22,8 +20,8 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name           string
 		organization   *keycloakApi.KeycloakOrganization
-		realm          *gocloak.RealmRepresentation
-		keycloakClient func(t *testing.T) keycloak.Client
+		realmName      string
+		keycloakClient func(t *testing.T) keycloakv2.OrganizationsClient
 		wantErr        require.ErrorAssertionFunc
 	}{
 		{
@@ -38,14 +36,12 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"test.com"},
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
-					OrganizationID: "", // Empty organization ID
+					OrganizationID: "",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				return mocks.NewMockClient(t)
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
+				return keycloakv2mocks.NewMockOrganizationsClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -67,11 +63,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				return mocks.NewMockClient(t)
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
+				return keycloakv2mocks.NewMockOrganizationsClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -90,13 +84,11 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
+				client := keycloakv2mocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return(nil).Once()
+					Return((*keycloakv2.Response)(nil), nil).Once()
 				return client
 			},
 			wantErr: require.NoError,
@@ -116,13 +108,11 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
+				client := keycloakv2mocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return(adapter.NotFoundError("organization not found")).Once()
+					Return((*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
 				return client
 			},
 			wantErr: require.NoError,
@@ -142,49 +132,25 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
+				client := keycloakv2mocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return(errors.New("network error")).Once()
+					Return((*keycloakv2.Response)(nil), errors.New("network error")).Once()
 				return client
 			},
 			wantErr: require.Error,
-		},
-		{
-			name: "organization with nil realm - should handle gracefully",
-			organization: &keycloakApi.KeycloakOrganization{
-				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-org",
-				},
-				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
-				},
-				Status: keycloakApi.KeycloakOrganizationStatus{
-					OrganizationID: "org-123",
-				},
-			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: nil, // Nil realm
-			},
-			keycloakClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("DeleteOrganization", mock.Anything, "", "org-123").
-					Return(nil).Once()
-				return client
-			},
-			wantErr: require.NoError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			handler := NewRemoveOrganization(tt.keycloakClient(t))
-			err := handler.ServeRequest(context.Background(), tt.organization, tt.realm)
+			orgClient := tt.keycloakClient(t)
+			kc := &keycloakv2.KeycloakClient{}
+			kc.Organizations = orgClient
+
+			handler := NewRemoveOrganization(kc)
+			err := handler.ServeRequest(context.Background(), tt.organization, tt.realmName)
 
 			tt.wantErr(t, err)
 		})

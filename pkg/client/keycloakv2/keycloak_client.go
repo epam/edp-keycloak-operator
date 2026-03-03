@@ -46,6 +46,8 @@ type KeycloakClient struct {
 	Groups              GroupsClient
 	Roles               RolesClient
 	Clients             ClientsClient
+	Organizations       OrganizationsClient
+	IdentityProviders   IdentityProvidersClient
 }
 
 type ClientCredentials struct {
@@ -339,6 +341,8 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	keycloakClient.Groups = &groupsClient{client: generatedClient}
 	keycloakClient.Roles = &rolesClient{client: generatedClient}
 	keycloakClient.Clients = &clientsClient{client: generatedClient}
+	keycloakClient.Organizations = &organizationsClient{client: generatedClient}
+	keycloakClient.IdentityProviders = &identityProvidersClient{client: generatedClient}
 
 	return keycloakClient, nil
 }

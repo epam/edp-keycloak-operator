@@ -19,6 +19,8 @@ packages:
       GroupsClient: {}
       RolesClient: {}
       ClientsClient: {}
+      OrganizationsClient: {}
+      IdentityProvidersClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:
       RefClient: {}

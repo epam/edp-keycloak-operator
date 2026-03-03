@@ -8,7 +8,8 @@
       "Skill(generate-mocks)",
       "Skill(generate-mocks:*)",
       "Skill(cr-field)",
-      "Skill(cr-field:*)"
+      "Skill(cr-field:*)",
+      "Bash(make mocks)"
     ]
   }
 }
