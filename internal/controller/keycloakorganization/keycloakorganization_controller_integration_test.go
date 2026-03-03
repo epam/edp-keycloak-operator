@@ -6,17 +6,16 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -26,8 +25,8 @@ var _ = Describe("Organization controller", Ordered, func() {
 	)
 
 	var (
-		keycloakClient keycloak.Client
-		h              helper.ControllerHelper
+		keycloakClientV2 *keycloakv2.KeycloakClient
+		h                helper.ControllerHelper
 	)
 
 	BeforeAll(func() {
@@ -36,22 +35,23 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 	It("Should create Organization", func() {
 		By("Creating an Identity Provider for the organization")
-		_, err := keycloakApiClient.CreateIdentityProvider(
+		_, err := keycloakAdminClient.IdentityProviders.CreateIdentityProvider(
 			ctx,
-			getKeyCloakToken(),
 			KeycloakRealmCR,
-			gocloak.IdentityProviderRepresentation{
-				Alias:       gocloak.StringP("test-org-idp"),
-				DisplayName: gocloak.StringP("Test Organization Identity Provider"),
-				ProviderID:  gocloak.StringP("github"),
-				Enabled:     gocloak.BoolP(true),
+			keycloakv2.IdentityProviderRepresentation{
+				Alias:       ptr.To("test-org-idp"),
+				DisplayName: ptr.To("Test Organization Identity Provider"),
+				ProviderId:  ptr.To("github"),
+				Enabled:     ptr.To(true),
 				Config: &map[string]string{
 					"clientId":     "test-org-client-id",
 					"clientSecret": "test-org-client-secret",
 				},
 			},
 		)
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		if !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 
 		By("Creating an Organization")
 		org := &v1alpha1.KeycloakOrganization{
@@ -89,26 +89,27 @@ var _ = Describe("Organization controller", Ordered, func() {
 			g.Expect(createdOrg.Status.Value).Should(Equal(common.StatusOK))
 			g.Expect(createdOrg.Status.OrganizationID).ShouldNot(BeEmpty())
 
-			keycloakClient, err = h.CreateKeycloakClientFromRealmRef(ctx, createdOrg)
+			keycloakClientV2, err = h.CreateKeycloakClientV2FromRealmRef(ctx, createdOrg)
 			g.Expect(err).ShouldNot(HaveOccurred())
 		}).WithTimeout(time.Second * 30).WithPolling(time.Second).Should(Succeed())
 
 		By("Verifying the organization was created in Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, err := keycloakClient.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(testOrg).ShouldNot(BeNil())
-			g.Expect(testOrg.Name).Should(Equal("Test Organization"))
-			g.Expect(testOrg.Alias).Should(Equal("test-org"))
-			g.Expect(testOrg.Domains).Should(HaveLen(2))
-			domainNames := make([]string, len(testOrg.Domains))
-			for i, domain := range testOrg.Domains {
-				domainNames[i] = domain.Name
+			g.Expect(ptr.Deref(testOrg.Name, "")).Should(Equal("Test Organization"))
+			g.Expect(ptr.Deref(testOrg.Alias, "")).Should(Equal("test-org"))
+			domains := ptr.Deref(testOrg.Domains, nil)
+			g.Expect(domains).Should(HaveLen(2))
+			domainNames := make([]string, len(domains))
+			for i, domain := range domains {
+				domainNames[i] = ptr.Deref(domain.Name, "")
 			}
 			g.Expect(domainNames).Should(ContainElements("example.com", "test.com"))
-			g.Expect(testOrg.RedirectURL).Should(Equal("https://example.com/redirect"))
-			g.Expect(testOrg.Description).Should(Equal("Test organization for integration tests"))
+			g.Expect(ptr.Deref(testOrg.RedirectUrl, "")).Should(Equal("https://example.com/redirect"))
+			g.Expect(ptr.Deref(testOrg.Description, "")).Should(Equal("Test organization for integration tests"))
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 
@@ -137,19 +138,20 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization was updated in Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, err := keycloakClient.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(testOrg).ShouldNot(BeNil())
-			g.Expect(testOrg.Name).Should(Equal("Updated Test Organization"))
-			g.Expect(testOrg.Description).Should(Equal("Updated test organization description"))
-			g.Expect(testOrg.Domains).Should(HaveLen(2))
-			domainNames := make([]string, len(testOrg.Domains))
-			for i, domain := range testOrg.Domains {
-				domainNames[i] = domain.Name
+			g.Expect(ptr.Deref(testOrg.Name, "")).Should(Equal("Updated Test Organization"))
+			g.Expect(ptr.Deref(testOrg.Description, "")).Should(Equal("Updated test organization description"))
+			domains := ptr.Deref(testOrg.Domains, nil)
+			g.Expect(domains).Should(HaveLen(2))
+			domainNames := make([]string, len(domains))
+			for i, domain := range domains {
+				domainNames[i] = ptr.Deref(domain.Name, "")
 			}
 			g.Expect(domainNames).Should(ContainElements("example.com", "updated.com"))
-			g.Expect(testOrg.RedirectURL).Should(Equal("https://updated.com/redirect"))
+			g.Expect(ptr.Deref(testOrg.RedirectUrl, "")).Should(Equal("https://updated.com/redirect"))
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 
@@ -168,7 +170,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization was deleted from Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, err := keycloakClient.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).Should(HaveOccurred())
 			g.Expect(testOrg).Should(BeNil())
 		}, time.Second*10, time.Second).Should(Succeed())
@@ -208,11 +210,11 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization still exists in Keycloak")
 		Eventually(func(g Gomega) {
-			preservedOrg, err := keycloakClient.GetOrganizationByAlias(ctx, KeycloakRealmCR, "preserve-test-org")
+			preservedOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "preserve-test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(preservedOrg).ShouldNot(BeNil())
-			g.Expect(preservedOrg.Name).Should(Equal("Preserve Test Organization"))
+			g.Expect(ptr.Deref(preservedOrg.Name, "")).Should(Equal("Preserve Test Organization"))
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 

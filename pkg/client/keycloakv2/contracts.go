@@ -94,3 +94,25 @@ type ClientsClient interface {
 	CreateClientRole(ctx context.Context, realm, clientID string, role RoleRepresentation) (*Response, error)
 	DeleteClientRole(ctx context.Context, realm, clientID, roleName string) (*Response, error)
 }
+
+type IdentityProvidersClient interface {
+	CreateIdentityProvider(ctx context.Context, realm string, idp IdentityProviderRepresentation) (*Response, error)
+}
+
+type OrganizationsClient interface {
+	GetOrganizations(
+		ctx context.Context,
+		realm string,
+		params *GetOrganizationsParams,
+	) ([]OrganizationRepresentation, *Response, error)
+	GetOrganizationByAlias(ctx context.Context, realm, alias string) (*OrganizationRepresentation, *Response, error)
+	CreateOrganization(ctx context.Context, realm string, org OrganizationRepresentation) (*Response, error)
+	UpdateOrganization(ctx context.Context, realm, orgID string, org OrganizationRepresentation) (*Response, error)
+	DeleteOrganization(ctx context.Context, realm, orgID string) (*Response, error)
+	GetOrganizationIdentityProviders(
+		ctx context.Context,
+		realm, orgID string,
+	) ([]IdentityProviderRepresentation, *Response, error)
+	LinkIdentityProviderToOrganization(ctx context.Context, realm, orgID, alias string) (*Response, error)
+	UnlinkIdentityProviderFromOrganization(ctx context.Context, realm, orgID, alias string) (*Response, error)
+}
