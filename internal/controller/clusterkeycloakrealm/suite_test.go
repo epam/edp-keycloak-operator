@@ -95,7 +95,7 @@ var _ = BeforeSuite(func() {
 
 	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), ns)
 
-	err = clusterkeycloak.NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h, ns).
+	err = clusterkeycloak.NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

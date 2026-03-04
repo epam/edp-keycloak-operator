@@ -70,6 +70,8 @@ type ControllerHelper interface {
 	CreateKeycloakClient(ctx context.Context, url, user, password, adminType, caCert string, insecureSkipVerify bool) (keycloak.Client, error)
 	CreateKeycloakClientFomAuthData(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error)
 	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
+	CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakclientv2.KeycloakClient, error)
+	CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakclientv2.KeycloakClient, error)
 	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error)
 	CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakclientv2.KeycloakClient, error)
 	CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error)

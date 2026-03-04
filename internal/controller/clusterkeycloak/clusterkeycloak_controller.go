@@ -14,35 +14,31 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type keycloakClientProvider interface {
-	CreateKeycloakClientFomAuthData(ctx context.Context, authData *helper.KeycloakAuthData) (keycloak.Client, error)
+	CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakv2.KeycloakClient, error)
 }
 
 func NewReconcile(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
 	controllerHelper keycloakClientProvider,
-	operatorNamespace string,
 ) *Reconciler {
 	return &Reconciler{
-		client:            k8sClient,
-		scheme:            scheme,
-		helper:            controllerHelper,
-		operatorNamespace: operatorNamespace,
+		client: k8sClient,
+		scheme: scheme,
+		helper: controllerHelper,
 	}
 }
 
 // Reconciler reconciles a Keycloak object.
 type Reconciler struct {
-	client            client.Client
-	scheme            *runtime.Scheme
-	helper            keycloakClientProvider
-	operatorNamespace string
+	client client.Client
+	scheme *runtime.Scheme
+	helper keycloakClientProvider
 }
 
 const (
@@ -60,7 +56,7 @@ func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Resu
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling ClusterKeycloak")
 
-	clusterKeycloak := &keycloakApi.ClusterKeycloak{}
+	clusterKeycloak := &keycloakAlpha.ClusterKeycloak{}
 	if err := r.client.Get(ctx, req.NamespacedName, clusterKeycloak); err != nil {
 		if errors.IsNotFound(err) {
 			log.Info("Instance not found")
@@ -96,7 +92,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	}
 
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&keycloakApi.ClusterKeycloak{}, builder.WithPredicates(pred)).
+		For(&keycloakAlpha.ClusterKeycloak{}, builder.WithPredicates(pred)).
 		Complete(r)
 
 	if err != nil {
@@ -106,7 +102,7 @@ func (r *Reconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return nil
 }
 
-func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.ClusterKeycloak) error {
+func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakAlpha.ClusterKeycloak) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating connection status to ClusterKeycloak")
 
@@ -137,13 +133,8 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 	return nil
 }
 
-func (r *Reconciler) createClient(ctx context.Context, instance *keycloakApi.ClusterKeycloak) error {
-	auth, err := helper.MakeKeycloakAuthDataFromClusterKeycloak(ctx, instance, r.operatorNamespace, r.client)
-	if err != nil {
-		return fmt.Errorf("failed to make Keycloak auth data: %w", err)
-	}
-
-	_, err = r.helper.CreateKeycloakClientFomAuthData(ctx, auth)
+func (r *Reconciler) createClient(ctx context.Context, instance *keycloakAlpha.ClusterKeycloak) error {
+	_, err := r.helper.CreateKeycloakClientV2FromClusterKeycloak(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create Keycloak client: %w", err)
 	}
