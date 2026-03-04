@@ -15,12 +15,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type Helper interface {
-	CreateKeycloakClientFomAuthData(ctx context.Context, authData *helper.KeycloakAuthData) (keycloak.Client, error)
+	CreateKeycloakClientV2FromKeycloak(ctx context.Context, keycloak *keycloakApi.Keycloak) (*keycloakv2.KeycloakClient, error)
 }
 
 func NewReconcileKeycloak(k8sClient client.Client, scheme *runtime.Scheme, controllerHelper Helper) *ReconcileKeycloak {
@@ -127,12 +126,7 @@ func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context
 }
 
 func (r *ReconcileKeycloak) createClient(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	auth, err := helper.MakeKeycloakAuthDataFromKeycloak(ctx, instance, r.client)
-	if err != nil {
-		return fmt.Errorf("failed to make Keycloak auth data: %w", err)
-	}
-
-	_, err = r.helper.CreateKeycloakClientFomAuthData(ctx, auth)
+	_, err := r.helper.CreateKeycloakClientV2FromKeycloak(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create Keycloak client: %w", err)
 	}

@@ -1718,3 +1718,330 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 		})
 	}
 }
+
+func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	mockServer := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStart()
+
+	t.Cleanup(func() {
+		mockServer.Close()
+	})
+
+	tests := []struct {
+		name      string
+		kc        *keycloakApi.Keycloak
+		objects   []client.Object
+		wantErr   require.ErrorAssertionFunc
+		checkFunc func(t *testing.T, cl *keycloakclientv2.KeycloakClient)
+	}{
+		{
+			name: "successfully create v2 client from keycloak",
+			kc: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-keycloak",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "keycloak-secret",
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
+		{
+			name: "successfully create v2 client with insecure skip verify",
+			kc: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-keycloak",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:                mockServer.GetURL(),
+					Secret:             "keycloak-secret",
+					InsecureSkipVerify: true,
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
+		{
+			name: "credentials secret not found",
+			kc: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-keycloak",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "non-existent-secret",
+				},
+			},
+			objects: []client.Object{},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get credentials")
+			},
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.Nil(t, cl)
+			},
+		},
+		{
+			name: "ca cert secret not found returns error",
+			kc: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-keycloak",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "keycloak-secret",
+					CACert: &common.SourceRef{
+						SecretKeyRef: &common.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "non-existent-ca-secret",
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get ca cert")
+			},
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.Nil(t, cl)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.objects...).
+				Build()
+
+			h := &Helper{
+				client: k8sClient,
+			}
+
+			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+			cl, err := h.CreateKeycloakClientV2FromKeycloak(ctx, tt.kc)
+
+			tt.wantErr(t, err)
+
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, cl)
+			}
+		})
+	}
+}
+
+func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakAlpha.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	mockServer := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStart()
+
+	t.Cleanup(func() {
+		mockServer.Close()
+	})
+
+	tests := []struct {
+		name      string
+		kc        *keycloakAlpha.ClusterKeycloak
+		objects   []client.Object
+		wantErr   require.ErrorAssertionFunc
+		checkFunc func(t *testing.T, cl *keycloakclientv2.KeycloakClient)
+	}{
+		{
+			name: "successfully create v2 client from cluster keycloak",
+			kc: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-keycloak",
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "keycloak-secret",
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
+		{
+			name: "successfully create v2 client with insecure skip verify",
+			kc: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-keycloak",
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:                mockServer.GetURL(),
+					Secret:             "keycloak-secret",
+					InsecureSkipVerify: true,
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
+		{
+			name: "credentials secret not found",
+			kc: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-keycloak",
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "non-existent-secret",
+				},
+			},
+			objects: []client.Object{},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get credentials")
+			},
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.Nil(t, cl)
+			},
+		},
+		{
+			name: "ca cert secret not found returns error",
+			kc: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-keycloak",
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:    mockServer.GetURL(),
+					Secret: "keycloak-secret",
+					CACert: &common.SourceRef{
+						SecretKeyRef: &common.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: "non-existent-ca-secret",
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "keycloak-secret",
+						Namespace: "default",
+					},
+					Data: map[string][]byte{
+						"username": []byte("admin"),
+						"password": []byte("admin123"),
+					},
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get ca cert")
+			},
+			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+				require.Nil(t, cl)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(tt.objects...).
+				Build()
+
+			h := &Helper{
+				client:            k8sClient,
+				operatorNamespace: "default",
+			}
+
+			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+			cl, err := h.CreateKeycloakClientV2FromClusterKeycloak(ctx, tt.kc)
+
+			tt.wantErr(t, err)
+
+			if tt.checkFunc != nil {
+				tt.checkFunc(t, cl)
+			}
+		})
+	}
+}

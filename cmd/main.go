@@ -322,7 +322,7 @@ func main() {
 	}
 
 	if ns == "" {
-		if err = clusterkeycloak.NewReconcile(mgr.GetClient(), mgr.GetScheme(), h, operatorNamespace).
+		if err = clusterkeycloak.NewReconcile(mgr.GetClient(), mgr.GetScheme(), h).
 			SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create clusterkeycloak controller")
 			os.Exit(1)

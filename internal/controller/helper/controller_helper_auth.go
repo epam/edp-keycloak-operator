@@ -79,6 +79,24 @@ func (h *Helper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *key
 	return h.createKeycloakClientV2FromAuthData(ctx, authData)
 }
 
+func (h *Helper) CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakclientv2.KeycloakClient, error) {
+	authData, err := MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+}
+
+func (h *Helper) CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, kc *keycloakAlpha.ClusterKeycloak) (*keycloakclientv2.KeycloakClient, error) {
+	authData, err := MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
+	if err != nil {
+		return nil, err
+	}
+
+	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+}
+
 func (h *Helper) CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error) {
 	authData, err := h.getKeycloakAuthDataFromRealmRef(ctx, object)
 	if err != nil {

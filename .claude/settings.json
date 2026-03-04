@@ -9,7 +9,8 @@
       "Skill(generate-mocks:*)",
       "Skill(cr-field)",
       "Skill(cr-field:*)",
-      "Bash(make mocks)"
+      "Bash(make mocks)",
+      "Bash(TEST_KEYCLOAK_URL=http://localhost:8086 make test)"
     ]
   }
 }
