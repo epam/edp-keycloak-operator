@@ -187,11 +187,10 @@ func TestUsersClient_FindUserByUsername(t *testing.T) {
 	require.NotNil(t, found.Username)
 	require.Equal(t, username, *found.Username)
 
-	// Partial match should return nil (exact=true)
-	notFound, resp, err := c.Users.FindUserByUsername(ctx, realmName, "test-find")
-	require.NoError(t, err)
+	// Partial match should return ErrNotFound (exact=true)
+	_, resp, err = c.Users.FindUserByUsername(ctx, realmName, "test-find")
+	require.True(t, keycloakv2.IsNotFound(err), "partial match should return ErrNotFound")
 	require.NotNil(t, resp)
-	require.Nil(t, notFound)
 }
 
 func TestUsersClient_FindUserByUsername_NotFound(t *testing.T) {
@@ -389,6 +388,22 @@ func TestUsersClient_GetUserRealmRoleMappings(t *testing.T) {
 	}
 
 	require.True(t, found, "Role should appear in user realm role mappings after adding")
+
+	// Delete the role mapping
+	deleteResp, err := c.Users.DeleteUserRealmRoles(ctx, realmName, *user.Id, []keycloakv2.RoleRepresentation{*role})
+	require.NoError(t, err)
+	require.NotNil(t, deleteResp)
+
+	// Verify role is no longer mapped
+	roles, resp, err = c.Users.GetUserRealmRoleMappings(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	for _, r := range roles {
+		if r.Name != nil && *r.Name == roleName {
+			t.Fatal("Role should no longer be mapped after deletion")
+		}
+	}
 }
 
 func TestUsersClient_AddUserRealmRoles_UserNotFound(t *testing.T) {
@@ -681,6 +696,538 @@ func TestUsersClient_RemoveUserFromGroup_NonExistentUser(t *testing.T) {
 		keycloakv2.MasterRealm,
 		"nonexistent-user-id",
 		"nonexistent-group-id",
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_UpdateAndDeleteUser(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-upd-del-user-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	username := "update-delete-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// UpdateUser — change email
+	newEmail := "updated@example.com"
+	updatedUser := *user
+	updatedUser.Email = &newEmail
+
+	resp, err := c.Users.UpdateUser(ctx, realmName, *user.Id, updatedUser)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify update
+	found, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, found)
+	require.NotNil(t, found.Email)
+	require.Equal(t, newEmail, *found.Email)
+
+	// DeleteUser
+	resp, err = c.Users.DeleteUser(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify deletion
+	_, _, err = c.Users.FindUserByUsername(ctx, realmName, username)
+	require.True(t, keycloakv2.IsNotFound(err), "user should be gone after deletion")
+}
+
+func TestUsersClient_UpdateUser_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.UpdateUser(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		keycloakv2.UserRepresentation{},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_SetUserPassword(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-set-pwd-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	username := "password-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	credType := "password"
+	credValue := "s3cret!"
+	temporary := false
+	resp, err := c.Users.SetUserPassword(ctx, realmName, *user.Id, keycloakv2.CredentialRepresentation{
+		Type:      &credType,
+		Value:     &credValue,
+		Temporary: &temporary,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestUsersClient_UserClientRoleMappings(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-user-cli-roles-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	// Create client
+	clientID := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
+	protocol := "openid-connect"
+	clientResp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
+		ClientId: &clientID,
+		Protocol: &protocol,
+	})
+	require.NoError(t, err)
+
+	clientUUID := keycloakv2.GetResourceIDFromResponse(clientResp)
+	require.NotEmpty(t, clientUUID)
+
+	// Create client role
+	roleName := "user-client-role"
+	_, err = c.Clients.CreateClientRole(ctx, realmName, clientUUID, keycloakv2.RoleRepresentation{Name: &roleName})
+	require.NoError(t, err)
+
+	role, _, err := c.Clients.GetClientRole(ctx, realmName, clientUUID, roleName)
+	require.NoError(t, err)
+	require.NotNil(t, role)
+
+	// Create user
+	username := "client-role-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// Initially no client role mappings
+	roles, resp, err := c.Users.GetUserClientRoleMappings(ctx, realmName, *user.Id, clientUUID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, roles)
+
+	// Add client role
+	addResp, err := c.Users.AddUserClientRoles(
+		ctx, realmName, *user.Id, clientUUID, []keycloakv2.RoleRepresentation{*role},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, addResp)
+
+	// Verify role is mapped
+	roles, resp, err = c.Users.GetUserClientRoleMappings(ctx, realmName, *user.Id, clientUUID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	found := false
+
+	for _, r := range roles {
+		if r.Name != nil && *r.Name == roleName {
+			found = true
+			break
+		}
+	}
+
+	require.True(t, found, "Client role should be mapped to user")
+
+	// Delete client role mapping
+	delResp, err := c.Users.DeleteUserClientRoles(
+		ctx, realmName, *user.Id, clientUUID, []keycloakv2.RoleRepresentation{*role},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, delResp)
+
+	// Verify role is no longer mapped
+	roles, resp, err = c.Users.GetUserClientRoleMappings(ctx, realmName, *user.Id, clientUUID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, roles)
+}
+
+func TestUsersClient_UserFederatedIdentities(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-fed-id-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	// Create an identity provider
+	alias := fmt.Sprintf("test-idp-%d", time.Now().UnixNano())
+	providerID := "github"
+
+	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// Create user
+	username := "federated-user"
+	_, err = c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{Username: &username, Enabled: &enabled})
+	require.NoError(t, err)
+
+	user, _, err := c.Users.FindUserByUsername(ctx, realmName, username)
+	require.NoError(t, err)
+	require.NotNil(t, user)
+	require.NotNil(t, user.Id)
+
+	// Initially no federated identities
+	identities, resp, err := c.Users.GetUserFederatedIdentities(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, identities)
+
+	// Link federated identity
+	externalUserID := "external-user-123"
+	externalUsername := "external-user"
+	linkResp, err := c.Users.CreateUserFederatedIdentity(
+		ctx, realmName, *user.Id, alias, keycloakv2.FederatedIdentityRepresentation{
+			IdentityProvider: &alias,
+			UserId:           &externalUserID,
+			UserName:         &externalUsername,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, linkResp)
+
+	// Verify federated identity is linked
+	identities, resp, err = c.Users.GetUserFederatedIdentities(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, identities, 1)
+	require.NotNil(t, identities[0].IdentityProvider)
+	require.Equal(t, alias, *identities[0].IdentityProvider)
+
+	// Unlink federated identity
+	delResp, err := c.Users.DeleteUserFederatedIdentity(ctx, realmName, *user.Id, alias)
+	require.NoError(t, err)
+	require.NotNil(t, delResp)
+
+	// Verify unlinked
+	identities, resp, err = c.Users.GetUserFederatedIdentities(ctx, realmName, *user.Id)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Empty(t, identities)
+}
+
+func TestUsersClient_SetUserPassword_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	credType := "password"
+	credValue := "s3cret!"
+	temporary := false
+	resp, err := c.Users.SetUserPassword(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		keycloakv2.CredentialRepresentation{
+			Type:      &credType,
+			Value:     &credValue,
+			Temporary: &temporary,
+		},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_DeleteUser_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.DeleteUser(context.Background(), keycloakv2.MasterRealm, "nonexistent-user-id-12345")
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_DeleteUserRealmRoles_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	roleName := "uma_authorization"
+	role, _, err := c.Roles.GetRealmRole(context.Background(), keycloakv2.MasterRealm, roleName)
+	require.NoError(t, err)
+	require.NotNil(t, role)
+
+	resp, err := c.Users.DeleteUserRealmRoles(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		[]keycloakv2.RoleRepresentation{*role},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_GetUserFederatedIdentities_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	_, resp, err := c.Users.GetUserFederatedIdentities(
+		context.Background(), keycloakv2.MasterRealm, "nonexistent-user-id-12345",
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_CreateUserFederatedIdentity_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	externalUserID := "ext-123"
+	externalUsername := "ext-user"
+	alias := "nonexistent-provider"
+
+	resp, err := c.Users.CreateUserFederatedIdentity(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		alias,
+		keycloakv2.FederatedIdentityRepresentation{
+			IdentityProvider: &alias,
+			UserId:           &externalUserID,
+			UserName:         &externalUsername,
+		},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestUsersClient_DeleteUserFederatedIdentity_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.DeleteUserFederatedIdentity(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		"nonexistent-provider",
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent user")
+}
+
+func TestUsersClient_AddUserClientRoles_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.AddUserClientRoles(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		"nonexistent-client-id",
+		[]keycloakv2.RoleRepresentation{},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestUsersClient_DeleteUserClientRoles_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Users.DeleteUserClientRoles(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		"nonexistent-client-id",
+		[]keycloakv2.RoleRepresentation{},
+	)
+	require.Error(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestUsersClient_GetUserClientRoleMappings_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	_, resp, err := c.Users.GetUserClientRoleMappings(
+		context.Background(),
+		keycloakv2.MasterRealm,
+		"nonexistent-user-id-12345",
+		"nonexistent-client-id",
 	)
 	require.Error(t, err)
 	require.NotNil(t, resp)

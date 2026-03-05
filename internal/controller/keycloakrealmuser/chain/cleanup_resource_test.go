@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -13,7 +12,6 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
 )
 
 func TestCleanupResource_Serve(t *testing.T) {
@@ -114,10 +112,7 @@ func TestCleanupResource_Serve(t *testing.T) {
 			err := handler.Serve(
 				context.Background(),
 				tt.user,
-				mocks.NewMockClient(t),
-				&gocloak.RealmRepresentation{
-					Realm: gocloak.StringP("test-realm"),
-				},
+				"",
 				&UserContext{},
 			)
 

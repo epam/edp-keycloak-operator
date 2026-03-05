@@ -15,6 +15,8 @@ type (
 	UserProfileGroup                = generated.UPGroup
 	UnmanagedAttributePolicy        = generated.UnmanagedAttributePolicy
 	UserRepresentation              = generated.UserRepresentation
+	CredentialRepresentation        = generated.CredentialRepresentation
+	FederatedIdentityRepresentation = generated.FederatedIdentityRepresentation
 )
 
 type usersClient struct {
@@ -93,7 +95,7 @@ func (c *usersClient) FindUserByUsername(
 	}
 
 	if res.JSON200 == nil || len(*res.JSON200) == 0 {
-		return nil, response, nil
+		return nil, response, ErrNotFound
 	}
 
 	user := (*res.JSON200)[0]
@@ -215,6 +217,242 @@ func (c *usersClient) AddUserToGroup(ctx context.Context, realm, userID, groupID
 
 func (c *usersClient) RemoveUserFromGroup(ctx context.Context, realm, userID, groupID string) (*Response, error) {
 	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdGroupsGroupIdWithResponse(ctx, realm, userID, groupID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) UpdateUser(
+	ctx context.Context,
+	realm, userID string,
+	user UserRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmUsersUserIdWithResponse(ctx, realm, userID, user)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) DeleteUser(ctx context.Context, realm, userID string) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) SetUserPassword(
+	ctx context.Context,
+	realm, userID string,
+	cred CredentialRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmUsersUserIdResetPasswordWithResponse(ctx, realm, userID, cred)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) DeleteUserRealmRoles(
+	ctx context.Context,
+	realm, userID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdRoleMappingsRealmWithResponse(ctx, realm, userID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) GetUserClientRoleMappings(
+	ctx context.Context,
+	realm, userID, clientID string,
+) ([]RoleRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdRoleMappingsClientsClientIdWithResponse(
+		ctx, realm, userID, clientID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) AddUserClientRoles(
+	ctx context.Context,
+	realm, userID, clientID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmUsersUserIdRoleMappingsClientsClientIdWithResponse(
+		ctx, realm, userID, clientID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) DeleteUserClientRoles(
+	ctx context.Context,
+	realm, userID, clientID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdRoleMappingsClientsClientIdWithResponse(
+		ctx, realm, userID, clientID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) GetUserFederatedIdentities(
+	ctx context.Context,
+	realm, userID string,
+) ([]FederatedIdentityRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdFederatedIdentityWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) CreateUserFederatedIdentity(
+	ctx context.Context,
+	realm, userID, provider string,
+	identity FederatedIdentityRepresentation,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmUsersUserIdFederatedIdentityProviderWithResponse(
+		ctx, realm, userID, provider, identity)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) DeleteUserFederatedIdentity(
+	ctx context.Context,
+	realm, userID, provider string,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdFederatedIdentityProviderWithResponse(
+		ctx, realm, userID, provider)
 	if err != nil {
 		return nil, err
 	}

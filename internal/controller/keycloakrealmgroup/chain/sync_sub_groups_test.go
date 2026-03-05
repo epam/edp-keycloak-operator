@@ -199,10 +199,10 @@ func TestSyncSubGroups_Serve_SubGroupNotFound(t *testing.T) {
 		context.Background(), "test-realm", "parent-group-123", (*keycloakv2.GetChildGroupsParams)(nil),
 	).Return([]keycloakv2.GroupRepresentation{}, nil, nil)
 
-	// FindGroupByName returns nil (not found)
+	// FindGroupByName returns ErrNotFound
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", "nonexistent",
-	).Return(nil, nil, nil)
+	).Return(nil, nil, keycloakv2.ErrNotFound)
 
 	h := NewSyncSubGroups()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)

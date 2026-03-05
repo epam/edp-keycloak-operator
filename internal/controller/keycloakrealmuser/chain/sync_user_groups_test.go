@@ -5,7 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -22,8 +21,6 @@ func TestNewSyncUserGroups(t *testing.T) {
 }
 
 func TestSyncUserGroups_Serve(t *testing.T) {
-	realm := &gocloak.RealmRepresentation{Realm: ptr.To("test-realm")}
-
 	tests := []struct {
 		name      string
 		user      *keycloakApi.KeycloakRealmUser
@@ -154,7 +151,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-6").
 					Return(nil, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "missing-group").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -335,8 +332,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			err := h.Serve(
 				context.Background(),
 				tt.user,
-				nil, /* legacy client unused */
-				realm,
+				"test-realm",
 				tt.userCtx,
 			)
 

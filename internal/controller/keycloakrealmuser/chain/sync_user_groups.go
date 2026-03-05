@@ -5,12 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/Nerzal/gocloak/v12"
-	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -41,8 +38,7 @@ func (g resolvedGroup) label() string {
 func (h *SyncUserGroups) Serve(
 	ctx context.Context,
 	user *keycloakApi.KeycloakRealmUser,
-	_ keycloak.Client,
-	realm *gocloak.RealmRepresentation,
+	realmName string,
 	userCtx *UserContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -52,8 +48,6 @@ func (h *SyncUserGroups) Serve(
 		log.Info("No groups specified (add-only), skipping")
 		return nil
 	}
-
-	realmName := ptr.Deref(realm.Realm, "")
 
 	currentGroups, _, err := h.kClientV2.Users.GetUserGroups(ctx, realmName, userCtx.UserID)
 	if err != nil {
@@ -77,11 +71,11 @@ func (h *SyncUserGroups) Serve(
 		} else {
 			grp, _, err := h.kClientV2.Groups.FindGroupByName(ctx, realmName, g)
 			if err != nil {
-				return fmt.Errorf("unable to find group by name %q: %w", g, err)
-			}
+				if keycloakv2.IsNotFound(err) {
+					return fmt.Errorf("group not found by name %q", g)
+				}
 
-			if grp == nil || grp.Id == nil {
-				return fmt.Errorf("group not found by name %q", g)
+				return fmt.Errorf("unable to find group by name %q: %w", g, err)
 			}
 
 			desired = append(desired, resolvedGroup{id: *grp.Id, name: g})

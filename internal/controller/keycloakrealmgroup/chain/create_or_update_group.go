@@ -39,11 +39,11 @@ func (h *CreateOrUpdateGroup) Serve(
 		existingGroup, _, err = kClient.Groups.FindGroupByName(ctx, realm, spec.Name)
 	}
 
-	if err != nil {
+	if err != nil && !keycloakv2.IsNotFound(err) {
 		return fmt.Errorf("unable to search for group %q: %w", spec.Name, err)
 	}
 
-	if existingGroup == nil {
+	if keycloakv2.IsNotFound(err) {
 		groupRep := keycloakv2.GroupRepresentation{
 			Name:        &spec.Name,
 			Description: &spec.Description,

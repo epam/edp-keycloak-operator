@@ -56,11 +56,11 @@ func (h *SyncSubGroups) Serve(
 		if _, exists := currentMap[claimed]; !exists {
 			subGroup, _, err := kClient.Groups.FindGroupByName(ctx, realm, claimed)
 			if err != nil {
-				return fmt.Errorf("unable to find subgroup %q: %w", claimed, err)
-			}
+				if keycloakv2.IsNotFound(err) {
+					return fmt.Errorf("subgroup %q not found in realm %q", claimed, realm)
+				}
 
-			if subGroup == nil {
-				return fmt.Errorf("subgroup %q not found in realm %q", claimed, realm)
+				return fmt.Errorf("unable to find subgroup %q: %w", claimed, err)
 			}
 
 			if _, err := kClient.Groups.CreateChildGroup(ctx, realm, groupID, *subGroup); err != nil {
