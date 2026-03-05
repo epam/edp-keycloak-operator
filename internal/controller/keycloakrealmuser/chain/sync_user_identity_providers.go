@@ -3,25 +3,27 @@ package chain
 import (
 	"context"
 	"fmt"
+	"slices"
 
-	"github.com/Nerzal/gocloak/v12"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
-type SyncUserIdentityProviders struct{}
+type SyncUserIdentityProviders struct {
+	kClientV2 *keycloakv2.KeycloakClient
+}
 
-func NewSyncUserIdentityProviders() *SyncUserIdentityProviders {
-	return &SyncUserIdentityProviders{}
+func NewSyncUserIdentityProviders(kClientV2 *keycloakv2.KeycloakClient) *SyncUserIdentityProviders {
+	return &SyncUserIdentityProviders{kClientV2: kClientV2}
 }
 
 func (h *SyncUserIdentityProviders) Serve(
 	ctx context.Context,
 	user *keycloakApi.KeycloakRealmUser,
-	kClient keycloak.Client,
-	realm *gocloak.RealmRepresentation,
+	realmName string,
 	userCtx *UserContext,
 ) error {
 	if user.Spec.IdentityProviders == nil {
@@ -31,14 +33,59 @@ func (h *SyncUserIdentityProviders) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing user identity providers")
 
-	if err := kClient.SyncUserIdentityProviders(
-		ctx,
-		gocloak.PString(realm.Realm),
-		userCtx.UserID,
-		user.Spec.Username,
-		*user.Spec.IdentityProviders,
-	); err != nil {
-		return fmt.Errorf("unable to sync user identity providers: %w", err)
+	providers := *user.Spec.IdentityProviders
+
+	existing, _, err := h.kClientV2.Users.GetUserFederatedIdentities(ctx, realmName, userCtx.UserID)
+	if err != nil {
+		return fmt.Errorf("unable to get user federated identities: %w", err)
+	}
+
+	existingByAlias := make(map[string]struct{}, len(existing))
+
+	for _, id := range existing {
+		if id.IdentityProvider != nil {
+			existingByAlias[*id.IdentityProvider] = struct{}{}
+		}
+	}
+
+	// Add missing providers
+	for _, provider := range providers {
+		if _, exists := existingByAlias[provider]; exists {
+			continue
+		}
+
+		// Check the identity provider exists in Keycloak before linking
+		if _, _, err := h.kClientV2.IdentityProviders.GetIdentityProvider(ctx, realmName, provider); err != nil {
+			if keycloakv2.IsNotFound(err) {
+				return fmt.Errorf("identity provider %q does not exist", provider)
+			}
+
+			return fmt.Errorf("unable to check if identity provider %q exists: %w", provider, err)
+		}
+
+		_, err := h.kClientV2.Users.CreateUserFederatedIdentity(
+			ctx,
+			realmName,
+			userCtx.UserID,
+			provider,
+			keycloakv2.FederatedIdentityRepresentation{
+				IdentityProvider: ptr.To(provider),
+				UserId:           ptr.To(userCtx.UserID),
+				UserName:         ptr.To(user.Spec.Username),
+			},
+		)
+		if err != nil {
+			return fmt.Errorf("unable to add user to identity provider %q: %w", provider, err)
+		}
+	}
+
+	// Remove providers no longer desired
+	for alias := range existingByAlias {
+		if !slices.Contains(providers, alias) {
+			if _, err := h.kClientV2.Users.DeleteUserFederatedIdentity(ctx, realmName, userCtx.UserID, alias); err != nil {
+				return fmt.Errorf("unable to remove user from identity provider %q: %w", alias, err)
+			}
+		}
 	}
 
 	log.Info("User identity providers synced successfully")

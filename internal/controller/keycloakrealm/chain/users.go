@@ -39,12 +39,12 @@ func createUsers(ctx context.Context, realmName string, users []keycloakApi.User
 }
 
 func createOneUser(ctx context.Context, realmName, username string, kClientV2 *keycloakv2.KeycloakClient) error {
-	existing, _, err := kClientV2.Users.FindUserByUsername(ctx, realmName, username)
-	if err != nil {
+	_, _, err := kClientV2.Users.FindUserByUsername(ctx, realmName, username)
+	if err != nil && !keycloakv2.IsNotFound(err) {
 		return fmt.Errorf("error during exist realm user check: %w", err)
 	}
 
-	if existing != nil {
+	if err == nil {
 		log.Info("User already exists", "user", username)
 		return nil
 	}

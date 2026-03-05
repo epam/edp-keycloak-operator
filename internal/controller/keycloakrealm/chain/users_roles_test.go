@@ -143,7 +143,7 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 			},
 			expectError:   true,
 			errorContains: "user user1 not found in realm",

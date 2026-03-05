@@ -5,18 +5,17 @@ import (
 	stderrors "errors"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	coreV1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 var (
@@ -49,24 +48,25 @@ const (
 
 // passwordResult holds the password and metadata about its source.
 type passwordResult struct {
-	Password      *adapter.KeycloakUserPassword
+	Value         string
+	Temporary     bool
 	SecretVersion string // resourceVersion of the secret, empty if password is from spec
 	FromSecret    bool   // true if password is from secret, false if from spec.password
 }
 
 type SetUserPassword struct {
 	k8sClient client.Client
+	kClientV2 *keycloakv2.KeycloakClient
 }
 
-func NewSetUserPassword(k8sClient client.Client) *SetUserPassword {
-	return &SetUserPassword{k8sClient: k8sClient}
+func NewSetUserPassword(k8sClient client.Client, kClientV2 *keycloakv2.KeycloakClient) *SetUserPassword {
+	return &SetUserPassword{k8sClient: k8sClient, kClientV2: kClientV2}
 }
 
 func (h *SetUserPassword) Serve(
 	ctx context.Context,
 	user *keycloakApi.KeycloakRealmUser,
-	kClient keycloak.Client,
-	realm *gocloak.RealmRepresentation,
+	realmName string,
 	userCtx *UserContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -79,10 +79,7 @@ func (h *SetUserPassword) Serve(
 
 	pwdResult, err := h.getPassword(ctx, user)
 	if err != nil {
-		// Set error condition before returning
-		if setCondErr := h.setPasswordErrorCondition(ctx, user, err); setCondErr != nil {
-			log.Error(setCondErr, "Failed to set password error condition", "originalError", err)
-		}
+		h.setPasswordErrorCondition(ctx, user, err)
 
 		return err
 	}
@@ -93,19 +90,19 @@ func (h *SetUserPassword) Serve(
 
 	log.Info("Setting user password")
 
-	if err := kClient.SetUserPassword(gocloak.PString(realm.Realm), userCtx.UserID, pwdResult.Password); err != nil {
-		// Set error condition for Keycloak API failure
+	_, err = h.kClientV2.Users.SetUserPassword(ctx, realmName, userCtx.UserID, keycloakv2.CredentialRepresentation{
+		Type:      ptr.To("password"),
+		Value:     ptr.To(pwdResult.Value),
+		Temporary: ptr.To(pwdResult.Temporary),
+	})
+	if err != nil {
 		wrappedErr := fmt.Errorf("unable to set user password: %w", err)
-		if setCondErr := h.setPasswordErrorCondition(ctx, user, wrappedErr); setCondErr != nil {
-			log.Error(setCondErr, "Failed to set password error condition", "originalError", wrappedErr)
-		}
+		h.setPasswordErrorCondition(ctx, user, wrappedErr)
 
 		return wrappedErr
 	}
 
-	if err := h.updatePasswordCondition(ctx, user, pwdResult); err != nil {
-		return err
-	}
+	h.updatePasswordCondition(user, pwdResult)
 
 	log.Info("User password set successfully")
 
@@ -128,7 +125,7 @@ func (h *SetUserPassword) shouldSkipPasswordSync(
 
 	// For temporary passwords: only set once, then never reset
 	// (user may have changed it after first login)
-	if pwdResult.Password.Temporary {
+	if pwdResult.Temporary {
 		if meta.IsStatusConditionTrue(user.Status.Conditions, ConditionPasswordSynced) {
 			log.Info("Temporary password already synced, skipping to preserve user changes")
 			return true
@@ -151,7 +148,7 @@ func (h *SetUserPassword) shouldSkipPasswordSync(
 }
 
 // updatePasswordCondition updates the PasswordSynced condition after successfully setting password.
-func (h *SetUserPassword) updatePasswordCondition(ctx context.Context, user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) error {
+func (h *SetUserPassword) updatePasswordCondition(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) {
 	reason := getPasswordReason(pwdResult)
 	message := getPasswordMessage(pwdResult, user.Spec.PasswordSecret)
 
@@ -169,16 +166,10 @@ func (h *SetUserPassword) updatePasswordCondition(ctx context.Context, user *key
 	} else {
 		user.Status.LastSyncedPasswordSecretVersion = ""
 	}
-
-	if err := h.k8sClient.Status().Update(ctx, user); err != nil {
-		return fmt.Errorf("failed to update password sync condition: %w", err)
-	}
-
-	return nil
 }
 
 // setPasswordErrorCondition sets the PasswordSynced condition to False with appropriate reason and message.
-func (h *SetUserPassword) setPasswordErrorCondition(ctx context.Context, user *keycloakApi.KeycloakRealmUser, err error) error {
+func (h *SetUserPassword) setPasswordErrorCondition(ctx context.Context, user *keycloakApi.KeycloakRealmUser, err error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	reason, message := h.classifyPasswordError(err, user)
@@ -192,12 +183,6 @@ func (h *SetUserPassword) setPasswordErrorCondition(ctx context.Context, user *k
 		Message:            message,
 		ObservedGeneration: user.Generation,
 	})
-
-	if updateErr := h.k8sClient.Status().Update(ctx, user); updateErr != nil {
-		return fmt.Errorf("failed to update password error condition: %w", updateErr)
-	}
-
-	return nil
 }
 
 // classifyPasswordError determines the appropriate Reason and Message for a password sync error.
@@ -246,10 +231,8 @@ func (h *SetUserPassword) getPassword(ctx context.Context, user *keycloakApi.Key
 		log.Info("Using password from secret", "secret", user.Spec.PasswordSecret.Name)
 
 		return &passwordResult{
-			Password: &adapter.KeycloakUserPassword{
-				Value:     string(passwordBytes),
-				Temporary: user.Spec.PasswordSecret.Temporary,
-			},
+			Value:         string(passwordBytes),
+			Temporary:     user.Spec.PasswordSecret.Temporary,
 			SecretVersion: secret.ResourceVersion,
 			FromSecret:    true,
 		}, nil
@@ -259,12 +242,9 @@ func (h *SetUserPassword) getPassword(ctx context.Context, user *keycloakApi.Key
 
 	// Deprecated spec.password field usage. We still support it for backward compatibility.
 	return &passwordResult{
-		Password: &adapter.KeycloakUserPassword{
-			Value:     user.Spec.Password,
-			Temporary: false,
-		},
-		SecretVersion: "",
-		FromSecret:    false,
+		Value:      user.Spec.Password,
+		Temporary:  false,
+		FromSecret: false,
 	}, nil
 }
 
@@ -274,7 +254,7 @@ func getPasswordReason(pwdResult *passwordResult) string {
 		return ReasonPasswordSetFromSpec
 	}
 
-	if pwdResult.Password.Temporary {
+	if pwdResult.Temporary {
 		return ReasonTemporaryPasswordSet
 	}
 
@@ -292,7 +272,7 @@ func getPasswordMessage(pwdResult *passwordResult, passwordSecret *keycloakApi.P
 		secretName = passwordSecret.Name
 	}
 
-	if pwdResult.Password.Temporary {
+	if pwdResult.Temporary {
 		return fmt.Sprintf("Temporary password set from secret %s (will not reset)", secretName)
 	}
 

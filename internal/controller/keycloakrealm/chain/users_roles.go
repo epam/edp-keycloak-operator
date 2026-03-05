@@ -49,11 +49,11 @@ func putRolesToOneUser(ctx context.Context, realmName, username string, realmRol
 func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role string, kClientV2 *keycloakv2.KeycloakClient) error {
 	user, _, err := kClientV2.Users.FindUserByUsername(ctx, realmName, username)
 	if err != nil {
-		return fmt.Errorf("unable to find user by username: %w", err)
-	}
+		if keycloakv2.IsNotFound(err) {
+			return fmt.Errorf("user %s not found in realm %s", username, realmName)
+		}
 
-	if user == nil {
-		return fmt.Errorf("user %s not found in realm %s", username, realmName)
+		return fmt.Errorf("unable to find user by username: %w", err)
 	}
 
 	existingRoles, _, err := kClientV2.Users.GetUserRealmRoleMappings(ctx, realmName, *user.Id)

@@ -14,11 +14,38 @@ type UsersClient interface {
 	) (*UserProfileConfig, *Response, error)
 	FindUserByUsername(ctx context.Context, realm, username string) (*UserRepresentation, *Response, error)
 	CreateUser(ctx context.Context, realm string, user UserRepresentation) (*Response, error)
+	UpdateUser(ctx context.Context, realm, userID string, user UserRepresentation) (*Response, error)
+	DeleteUser(ctx context.Context, realm, userID string) (*Response, error)
+	SetUserPassword(ctx context.Context, realm, userID string, cred CredentialRepresentation) (*Response, error)
 	GetUserRealmRoleMappings(ctx context.Context, realm, userID string) ([]RoleRepresentation, *Response, error)
 	AddUserRealmRoles(ctx context.Context, realm, userID string, roles []RoleRepresentation) (*Response, error)
+	DeleteUserRealmRoles(ctx context.Context, realm, userID string, roles []RoleRepresentation) (*Response, error)
+	GetUserClientRoleMappings(ctx context.Context, realm, userID, clientID string) ([]RoleRepresentation, *Response, error)
+	AddUserClientRoles(ctx context.Context, realm, userID, clientID string, roles []RoleRepresentation) (*Response, error)
+	DeleteUserClientRoles(
+		ctx context.Context,
+		realm, userID, clientID string,
+		roles []RoleRepresentation,
+	) (*Response, error)
 	GetUserGroups(ctx context.Context, realm, userID string) ([]GroupRepresentation, *Response, error)
 	AddUserToGroup(ctx context.Context, realm, userID, groupID string) (*Response, error)
 	RemoveUserFromGroup(ctx context.Context, realm, userID, groupID string) (*Response, error)
+	GetUserFederatedIdentities(
+		ctx context.Context,
+		realm, userID string,
+	) ([]FederatedIdentityRepresentation, *Response, error)
+	CreateUserFederatedIdentity(
+		ctx context.Context,
+		realm, userID, provider string,
+		identity FederatedIdentityRepresentation,
+	) (*Response, error)
+	DeleteUserFederatedIdentity(ctx context.Context, realm, userID, provider string) (*Response, error)
+}
+
+type IdentityProvidersClient interface {
+	GetIdentityProvider(ctx context.Context, realm, alias string) (*IdentityProviderRepresentation, *Response, error)
+	CreateIdentityProvider(ctx context.Context, realm string, idp IdentityProviderRepresentation) (*Response, error)
+	DeleteIdentityProvider(ctx context.Context, realm, alias string) (*Response, error)
 }
 
 type RealmClient interface {
@@ -93,10 +120,6 @@ type ClientsClient interface {
 	GetClientRole(ctx context.Context, realm, clientID, roleName string) (*RoleRepresentation, *Response, error)
 	CreateClientRole(ctx context.Context, realm, clientID string, role RoleRepresentation) (*Response, error)
 	DeleteClientRole(ctx context.Context, realm, clientID, roleName string) (*Response, error)
-}
-
-type IdentityProvidersClient interface {
-	CreateIdentityProvider(ctx context.Context, realm string, idp IdentityProviderRepresentation) (*Response, error)
 }
 
 type OrganizationsClient interface {

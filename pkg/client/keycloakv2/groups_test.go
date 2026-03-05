@@ -785,10 +785,9 @@ func TestGroupsClient_FindGroupByName(t *testing.T) {
 
 	// Test: Find non-existent group
 	t.Run("Find Non-Existent Group", func(t *testing.T) {
-		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "non-existent-group")
-		require.NoError(t, err)
+		_, resp, err := c.Groups.FindGroupByName(ctx, realmName, "non-existent-group")
+		require.True(t, keycloakv2.IsNotFound(err), "Should return ErrNotFound for non-existent group")
 		require.NotNil(t, resp)
-		require.Nil(t, group, "Should return nil for non-existent group")
 	})
 
 	// Create multiple groups with similar names to test exact matching
@@ -841,16 +840,12 @@ func TestGroupsClient_FindGroupByName(t *testing.T) {
 		require.Equal(t, createdGroups["test-group-prefix"], *group.Id)
 	})
 
-	// Test: Case sensitivity
+	// Test: Case sensitivity - Keycloak search is case-insensitive but our exact match is case-sensitive
 	t.Run("Case Sensitivity", func(t *testing.T) {
-		group, resp, err := c.Groups.FindGroupByName(ctx, realmName, "TEST-GROUP")
-		require.NoError(t, err)
+		_, resp, err := c.Groups.FindGroupByName(ctx, realmName, "TEST-GROUP")
+		require.True(t, keycloakv2.IsNotFound(err),
+			"Case-insensitive Keycloak search with case-sensitive exact match should return ErrNotFound")
 		require.NotNil(t, resp)
-		// Keycloak search is case-insensitive, but we check exact name match in the code
-		if group != nil {
-			// If found, name should not match (case sensitive)
-			require.NotEqual(t, "TEST-GROUP", *group.Name)
-		}
 	})
 }
 
@@ -905,10 +900,9 @@ func TestGroupsClient_FindChildGroupByName(t *testing.T) {
 
 	// Test: Find non-existent child group
 	t.Run("Find Non-Existent Child Group", func(t *testing.T) {
-		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "non-existent-child")
-		require.NoError(t, err)
+		_, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, parentGroupID, "non-existent-child")
+		require.True(t, keycloakv2.IsNotFound(err), "Should return ErrNotFound for non-existent child group")
 		require.NotNil(t, resp)
-		require.Nil(t, group, "Should return nil for non-existent child group")
 	})
 
 	// Create multiple child groups
@@ -1107,18 +1101,17 @@ func TestGroupsClient_FindGroupByName_MultiLevel(t *testing.T) {
 
 	// Test: Cannot find level 2 group directly in root group (not a direct child)
 	t.Run("Cannot Find Non-Direct Child", func(t *testing.T) {
-		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level2-group")
-		require.NoError(t, err)
+		_, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level2-group")
+		require.True(t, keycloakv2.IsNotFound(err),
+			"Should return ErrNotFound for level2-group in root group (it's a grandchild)")
 		require.NotNil(t, resp)
-		require.Nil(t, group, "Should not find level2-group in root group (it's a grandchild)")
 	})
 
 	// Test: Cannot find level 3 group directly in root group
 	t.Run("Cannot Find Grandchild In Root", func(t *testing.T) {
-		group, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level3-group")
-		require.NoError(t, err)
+		_, resp, err := c.Groups.FindChildGroupByName(ctx, realmName, rootGroupID, "level3-group")
+		require.True(t, keycloakv2.IsNotFound(err), "Should return ErrNotFound for level3-group in root group")
 		require.NotNil(t, resp)
-		require.Nil(t, group, "Should not find level3-group in root group")
 	})
 
 	// Test: Verify all groups can be retrieved at their correct levels

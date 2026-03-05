@@ -206,10 +206,15 @@ func (c *groupsClient) FindGroupByName(
 	}
 
 	if res.JSON200 == nil {
-		return nil, response, nil
+		return nil, response, ErrNotFound
 	}
 
-	return findGroupInList(*res.JSON200, groupName), response, nil
+	group := findGroupInList(*res.JSON200, groupName)
+	if group == nil {
+		return nil, response, ErrNotFound
+	}
+
+	return group, response, nil
 }
 
 func (c *groupsClient) FindChildGroupByName(
@@ -242,10 +247,15 @@ func (c *groupsClient) FindChildGroupByName(
 	}
 
 	if res.JSON200 == nil {
-		return nil, response, nil
+		return nil, response, ErrNotFound
 	}
 
-	return findGroupInList(*res.JSON200, groupName), response, nil
+	group := findGroupInList(*res.JSON200, groupName)
+	if group == nil {
+		return nil, response, ErrNotFound
+	}
+
+	return group, response, nil
 }
 
 func (c *groupsClient) GetRoleMappings(

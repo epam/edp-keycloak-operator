@@ -34,7 +34,7 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", testGroupName,
-	).Return(nil, nil, nil)
+	).Return(nil, nil, keycloakv2.ErrNotFound)
 
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
@@ -70,7 +70,7 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 
 	mockGroups.EXPECT().FindChildGroupByName(
 		context.Background(), "test-realm", "parent-id", testChildGroupName,
-	).Return(nil, nil, nil)
+	).Return(nil, nil, keycloakv2.ErrNotFound)
 
 	mockGroups.EXPECT().CreateChildGroup(
 		context.Background(), "test-realm", "parent-id",
@@ -160,7 +160,7 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", testGroupName,
-	).Return(nil, nil, nil)
+	).Return(nil, nil, keycloakv2.ErrNotFound)
 
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",

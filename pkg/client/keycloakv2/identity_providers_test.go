@@ -104,3 +104,54 @@ func TestIdentityProvidersClient_CreateIdentityProvider_Conflict(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, keycloakv2.IsConflict(err), "expected 409 conflict for duplicate alias")
 }
+
+func TestIdentityProvidersClient_GetAndDeleteIdentityProvider(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+
+	ctx := context.Background()
+
+	alias := fmt.Sprintf("test-idp-get-del-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// Get the identity provider
+	idp, resp, err := c.IdentityProviders.GetIdentityProvider(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, idp)
+	require.NotNil(t, idp.Alias)
+	require.Equal(t, alias, *idp.Alias)
+
+	// Delete the identity provider
+	delResp, err := c.IdentityProviders.DeleteIdentityProvider(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, delResp)
+
+	// Verify deletion
+	_, _, err = c.IdentityProviders.GetIdentityProvider(ctx, realmName, alias)
+	require.True(t, keycloakv2.IsNotFound(err), "identity provider should be gone after deletion")
+}
+
+func TestIdentityProvidersClient_GetIdentityProvider_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+
+	_, resp, err := c.IdentityProviders.GetIdentityProvider(context.Background(), realmName, "nonexistent-alias-12345")
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent identity provider")
+	require.NotNil(t, resp)
+}

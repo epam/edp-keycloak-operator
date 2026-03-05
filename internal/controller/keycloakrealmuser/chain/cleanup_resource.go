@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 )
 
 type CleanupResource struct {
@@ -23,9 +21,8 @@ func NewCleanupResource(k8sClient client.Client) *CleanupResource {
 func (h *CleanupResource) Serve(
 	ctx context.Context,
 	user *keycloakApi.KeycloakRealmUser,
-	kClient keycloak.Client,
-	realm *gocloak.RealmRepresentation,
-	userCtx *UserContext,
+	_ string,
+	_ *UserContext,
 ) error {
 	if user.Spec.KeepResource {
 		return nil

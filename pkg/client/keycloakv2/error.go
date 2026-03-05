@@ -11,6 +11,9 @@ import (
 // ErrNilResponse is returned when the Keycloak API returns a nil response.
 var ErrNilResponse = errors.New("nil response from Keycloak")
 
+// ErrNotFound is returned by Find* methods when the searched resource does not exist.
+var ErrNotFound = errors.New("not found")
+
 type ApiError struct {
 	Code         int
 	Message      string
@@ -99,8 +102,12 @@ func checkResponseError(httpResp *http.Response, body []byte) error {
 
 // Helper functions for error checking
 
-// IsNotFound returns true if the error is a 404 Not Found ApiError
+// IsNotFound returns true if the error is ErrNotFound or a 404 Not Found ApiError
 func IsNotFound(err error) bool {
+	if errors.Is(err, ErrNotFound) {
+		return true
+	}
+
 	var apiErr *ApiError
 	if errors.As(err, &apiErr) {
 		return apiErr.IsNotFound()

@@ -47,7 +47,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser1").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.MatchedBy(func(u keycloakv2.UserRepresentation) bool {
 					return u.Username != nil && *u.Username == "testuser1"
 				})).Return(nil, nil)
@@ -72,11 +72,11 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil).Once()
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user2").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil).Once()
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -142,7 +142,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, errors.New("user creation failed"))
 			},
@@ -160,7 +160,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
-					Return(nil, nil, nil)
+					Return(nil, nil, keycloakv2.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},

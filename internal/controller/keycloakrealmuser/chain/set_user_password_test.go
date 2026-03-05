@@ -5,22 +5,22 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestNewSetUserPassword(t *testing.T) {
-	h := NewSetUserPassword(nil)
+	h := NewSetUserPassword(nil, nil)
 	require.NotNil(t, h)
 }
 
@@ -32,9 +32,8 @@ func TestSetUserPassword_Serve(t *testing.T) {
 	tests := []struct {
 		name                    string
 		user                    *keycloakApi.KeycloakRealmUser
-		realm                   *gocloak.RealmRepresentation
 		secret                  *corev1.Secret
-		mockSetup               func(*keycloakmocks.MockClient)
+		mockSetup               func(*v2mocks.MockUsersClient)
 		wantErr                 require.ErrorAssertionFunc
 		wantCondition           bool
 		wantConditionStatus     metav1.ConditionStatus
@@ -54,10 +53,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					Username: "testuser",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			mockSetup:     func(m *keycloakmocks.MockClient) {},
+			mockSetup:     func(m *v2mocks.MockUsersClient) {},
 			wantErr:       require.NoError,
 			wantCondition: false,
 		},
@@ -78,9 +74,6 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
@@ -91,15 +84,17 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					"password": []byte("secret-password"),
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
+			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().SetUserPassword(
+					context.Background(),
 					"test-realm",
 					"user-123",
-					&adapter.KeycloakUserPassword{
-						Value:     "secret-password",
-						Temporary: false,
+					keycloakv2.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("secret-password"),
+						Temporary: ptr.To(false),
 					},
-				).Return(nil)
+				).Return(nil, nil)
 			},
 			wantErr:                 require.NoError,
 			wantCondition:           true,
@@ -125,9 +120,6 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
@@ -138,15 +130,17 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					"password": []byte("temp-password"),
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
+			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().SetUserPassword(
+					context.Background(),
 					"test-realm",
 					"user-123",
-					&adapter.KeycloakUserPassword{
-						Value:     "temp-password",
-						Temporary: true,
+					keycloakv2.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("temp-password"),
+						Temporary: ptr.To(true),
 					},
-				).Return(nil)
+				).Return(nil, nil)
 			},
 			wantErr:                 require.NoError,
 			wantCondition:           true,
@@ -180,9 +174,6 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
@@ -193,7 +184,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					"password": []byte("temp-password"),
 				},
 			},
-			mockSetup:      func(m *keycloakmocks.MockClient) {},
+			mockSetup:      func(m *v2mocks.MockUsersClient) {},
 			wantErr:        require.NoError,
 			wantSkipSetPwd: true,
 		},
@@ -213,7 +204,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakRealmUserStatus{
-					LastSyncedPasswordSecretVersion: "12345", // same resourceVersion
+					LastSyncedPasswordSecretVersion: "12345",
 					Conditions: []metav1.Condition{
 						{
 							Type:    ConditionPasswordSynced,
@@ -224,20 +215,17 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
 					Namespace:       "default",
-					ResourceVersion: "12345", // unchanged
+					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{
 					"password": []byte("secret-password"),
 				},
 			},
-			mockSetup:      func(m *keycloakmocks.MockClient) {},
+			mockSetup:      func(m *v2mocks.MockUsersClient) {},
 			wantErr:        require.NoError,
 			wantSkipSetPwd: true,
 		},
@@ -258,7 +246,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakRealmUserStatus{
-					LastSyncedPasswordSecretVersion: "12345", // old resourceVersion
+					LastSyncedPasswordSecretVersion: "12345",
 					Conditions: []metav1.Condition{
 						{
 							Type:    ConditionPasswordSynced,
@@ -269,28 +257,27 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
 					Namespace:       "default",
-					ResourceVersion: "67890", // changed!
+					ResourceVersion: "67890",
 				},
 				Data: map[string][]byte{
 					"password": []byte("new-password"),
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
+			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().SetUserPassword(
+					context.Background(),
 					"test-realm",
 					"user-123",
-					&adapter.KeycloakUserPassword{
-						Value:     "new-password",
-						Temporary: false,
+					keycloakv2.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("new-password"),
+						Temporary: ptr.To(false),
 					},
-				).Return(nil)
+				).Return(nil, nil)
 			},
 			wantErr:                 require.NoError,
 			wantCondition:           true,
@@ -312,18 +299,17 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					Password: "inline-password",
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
+			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().SetUserPassword(
+					context.Background(),
 					"test-realm",
 					"user-123",
-					&adapter.KeycloakUserPassword{
-						Value:     "inline-password",
-						Temporary: false,
+					keycloakv2.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("inline-password"),
+						Temporary: ptr.To(false),
 					},
-				).Return(nil)
+				).Return(nil, nil)
 			},
 			wantErr:                 require.NoError,
 			wantCondition:           true,
@@ -348,10 +334,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
-			mockSetup: func(m *keycloakmocks.MockClient) {},
+			mockSetup: func(m *v2mocks.MockUsersClient) {},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "failed to get secret")
@@ -377,9 +360,6 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "user-password",
@@ -389,7 +369,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					"password": []byte("secret-password"),
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {},
+			mockSetup: func(m *v2mocks.MockUsersClient) {},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "key wrong-key not found in secret")
@@ -416,9 +396,6 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					},
 				},
 			},
-			realm: &gocloak.RealmRepresentation{
-				Realm: gocloak.StringP("test-realm"),
-			},
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
@@ -429,15 +406,17 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					"password": []byte("secret-password"),
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
+			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().SetUserPassword(
+					context.Background(),
 					"test-realm",
 					"user-123",
-					&adapter.KeycloakUserPassword{
-						Value:     "secret-password",
-						Temporary: false,
+					keycloakv2.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("secret-password"),
+						Temporary: ptr.To(false),
 					},
-				).Return(errors.New("keycloak error"))
+				).Return(nil, errors.New("keycloak error"))
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -458,13 +437,18 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			}
 
 			k8sClient := builder.Build()
-			mockClient := keycloakmocks.NewMockClient(t)
-			tt.mockSetup(mockClient)
+			mockUsers := v2mocks.NewMockUsersClient(t)
+			tt.mockSetup(mockUsers)
 
-			h := NewSetUserPassword(k8sClient)
+			h := NewSetUserPassword(k8sClient, &keycloakv2.KeycloakClient{Users: mockUsers})
 			userCtx := &UserContext{UserID: "user-123"}
 
-			err := h.Serve(context.Background(), tt.user, mockClient, tt.realm, userCtx)
+			err := h.Serve(
+				context.Background(),
+				tt.user,
+				"test-realm",
+				userCtx,
+			)
 
 			tt.wantErr(t, err)
 

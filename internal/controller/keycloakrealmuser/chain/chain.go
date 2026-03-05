@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
 	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -23,8 +21,7 @@ type RealmUserHandler interface {
 	Serve(
 		ctx context.Context,
 		user *keycloakApi.KeycloakRealmUser,
-		kClient keycloak.Client,
-		realm *gocloak.RealmRepresentation,
+		realmName string,
 		userCtx *UserContext,
 	) error
 }
@@ -40,8 +37,7 @@ func (ch *Chain) Use(handlers ...RealmUserHandler) {
 func (ch *Chain) Serve(
 	ctx context.Context,
 	user *keycloakApi.KeycloakRealmUser,
-	kClient keycloak.Client,
-	realm *gocloak.RealmRepresentation,
+	realmName string,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
 
@@ -52,7 +48,7 @@ func (ch *Chain) Serve(
 	for i := 0; i < len(ch.handlers); i++ {
 		h := ch.handlers[i]
 
-		err := h.Serve(ctx, user, kClient, realm, userCtx)
+		err := h.Serve(ctx, user, realmName, userCtx)
 		if err != nil {
 			log.Info("KeycloakRealmUser chain finished with error")
 
@@ -72,11 +68,11 @@ func MakeChain(
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateUser(k8sClient),
-		NewSetUserPassword(k8sClient),
-		NewSyncUserRoles(),
+		NewCreateOrUpdateUser(k8sClient, kClientV2),
+		NewSetUserPassword(k8sClient, kClientV2),
+		NewSyncUserRoles(kClientV2),
 		NewSyncUserGroups(kClientV2),
-		NewSyncUserIdentityProviders(),
+		NewSyncUserIdentityProviders(kClientV2),
 		NewCleanupResource(k8sClient),
 	)
 
