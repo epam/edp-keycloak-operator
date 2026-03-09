@@ -6,14 +6,14 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
@@ -83,38 +83,50 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 
 	It("Should create composite KeycloakRealmRole", func() {
 		By("Creating realm role for composite role")
-		_, err := keycloakApiClient.CreateRealmRole(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Role{
-			Name: gocloak.StringP("role1"),
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+			Name: ptr.To("role1"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		if err != nil && !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 
-		_, err = keycloakApiClient.CreateRealmRole(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Role{
-			Name: gocloak.StringP("role2"),
+		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+			Name: ptr.To("role2"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		if err != nil && !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 
 		By("Creating client for composite client role")
-		_, err = keycloakApiClient.CreateClient(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.Client{
-			ClientID: gocloak.StringP("client1"),
+		_, err = keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakv2.ClientRepresentation{
+			ClientId: ptr.To("client1"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		if err != nil && !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 
 		By("Creating client role for composite role")
-		cl, err := keycloakApiClient.GetClients(ctx, getKeyCloakToken(), KeycloakRealmCR, gocloak.GetClientsParams{
-			ClientID: gocloak.StringP("client1"),
+		cl, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{
+			ClientId: ptr.To("client1"),
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(cl).Should(HaveLen(1))
 
-		_, err = keycloakApiClient.CreateClientRole(ctx, getKeyCloakToken(), KeycloakRealmCR, *cl[0].ID, gocloak.Role{
-			Name: gocloak.StringP("client-role1"),
-		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		clientUUID := *cl[0].Id
 
-		_, err = keycloakApiClient.CreateClientRole(ctx, getKeyCloakToken(), KeycloakRealmCR, *cl[0].ID, gocloak.Role{
-			Name: gocloak.StringP("client-role2"),
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakv2.RoleRepresentation{
+			Name: ptr.To("client-role1"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		if err != nil && !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakv2.RoleRepresentation{
+			Name: ptr.To("client-role2"),
+		})
+		if err != nil && !keycloakv2.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
 
 		By("Creating a KeycloakRealmRole")
 		role := &keycloakApi.KeycloakRealmRole{
@@ -157,10 +169,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 		}, timeout, interval).Should(BeTrue())
 
 		By("Checking composite role")
-		realmRole, err := keycloakApiClient.GetRealmRole(ctx, getKeyCloakToken(), KeycloakRealmCR, "test-keycloak-realm-composite-role")
-		Expect(err).ShouldNot(HaveOccurred())
-
-		roles, err := keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *realmRole.ID)
+		roles, _, err := keycloakApiClient.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-keycloak-realm-composite-role")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(roles).Should(HaveLen(4))
 
@@ -188,7 +197,7 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 		}, time.Second*3, time.Second).Should(BeTrue())
 
 		By("Checking updated composite role")
-		updatedRoles, err := keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *realmRole.ID)
+		updatedRoles, _, err := keycloakApiClient.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-keycloak-realm-composite-role")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(updatedRoles).Should(HaveLen(2))
 	})

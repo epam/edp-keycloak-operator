@@ -38,6 +38,86 @@ func (_m *MockRolesClient) EXPECT() *MockRolesClient_Expecter {
 	return &MockRolesClient_Expecter{mock: &_m.Mock}
 }
 
+// AddRealmRoleComposites provides a mock function for the type MockRolesClient
+func (_mock *MockRolesClient) AddRealmRoleComposites(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, roleName, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddRealmRoleComposites")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, roleName, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, roleName, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, roleName, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRolesClient_AddRealmRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddRealmRoleComposites'
+type MockRolesClient_AddRealmRoleComposites_Call struct {
+	*mock.Call
+}
+
+// AddRealmRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - roleName string
+//   - roles []keycloakv2.RoleRepresentation
+func (_e *MockRolesClient_Expecter) AddRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}, roles interface{}) *MockRolesClient_AddRealmRoleComposites_Call {
+	return &MockRolesClient_AddRealmRoleComposites_Call{Call: _e.mock.On("AddRealmRoleComposites", ctx, realm, roleName, roles)}
+}
+
+func (_c *MockRolesClient_AddRealmRoleComposites_Call) Run(run func(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation)) *MockRolesClient_AddRealmRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []keycloakv2.RoleRepresentation
+		if args[3] != nil {
+			arg3 = args[3].([]keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRolesClient_AddRealmRoleComposites_Call) Return(response *keycloakv2.Response, err error) *MockRolesClient_AddRealmRoleComposites_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockRolesClient_AddRealmRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockRolesClient_AddRealmRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateRealmRole provides a mock function for the type MockRolesClient
 func (_mock *MockRolesClient) CreateRealmRole(ctx context.Context, realm string, role keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, role)
@@ -186,6 +266,86 @@ func (_c *MockRolesClient_DeleteRealmRole_Call) RunAndReturn(run func(ctx contex
 	return _c
 }
 
+// DeleteRealmRoleComposites provides a mock function for the type MockRolesClient
+func (_mock *MockRolesClient) DeleteRealmRoleComposites(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, roleName, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteRealmRoleComposites")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, roleName, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, roleName, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, roleName, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRolesClient_DeleteRealmRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteRealmRoleComposites'
+type MockRolesClient_DeleteRealmRoleComposites_Call struct {
+	*mock.Call
+}
+
+// DeleteRealmRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - roleName string
+//   - roles []keycloakv2.RoleRepresentation
+func (_e *MockRolesClient_Expecter) DeleteRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}, roles interface{}) *MockRolesClient_DeleteRealmRoleComposites_Call {
+	return &MockRolesClient_DeleteRealmRoleComposites_Call{Call: _e.mock.On("DeleteRealmRoleComposites", ctx, realm, roleName, roles)}
+}
+
+func (_c *MockRolesClient_DeleteRealmRoleComposites_Call) Run(run func(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation)) *MockRolesClient_DeleteRealmRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []keycloakv2.RoleRepresentation
+		if args[3] != nil {
+			arg3 = args[3].([]keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRolesClient_DeleteRealmRoleComposites_Call) Return(response *keycloakv2.Response, err error) *MockRolesClient_DeleteRealmRoleComposites_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockRolesClient_DeleteRealmRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockRolesClient_DeleteRealmRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRealmRole provides a mock function for the type MockRolesClient
 func (_mock *MockRolesClient) GetRealmRole(ctx context.Context, realm string, roleName string) (*keycloakv2.RoleRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, roleName)
@@ -268,6 +428,88 @@ func (_c *MockRolesClient_GetRealmRole_Call) RunAndReturn(run func(ctx context.C
 	return _c
 }
 
+// GetRealmRoleComposites provides a mock function for the type MockRolesClient
+func (_mock *MockRolesClient) GetRealmRoleComposites(ctx context.Context, realm string, roleName string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, roleName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRealmRoleComposites")
+	}
+
+	var r0 []keycloakv2.RoleRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, roleName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakv2.RoleRepresentation); ok {
+		r0 = returnFunc(ctx, realm, roleName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.RoleRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, roleName)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, roleName)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockRolesClient_GetRealmRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRealmRoleComposites'
+type MockRolesClient_GetRealmRoleComposites_Call struct {
+	*mock.Call
+}
+
+// GetRealmRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - roleName string
+func (_e *MockRolesClient_Expecter) GetRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}) *MockRolesClient_GetRealmRoleComposites_Call {
+	return &MockRolesClient_GetRealmRoleComposites_Call{Call: _e.mock.On("GetRealmRoleComposites", ctx, realm, roleName)}
+}
+
+func (_c *MockRolesClient_GetRealmRoleComposites_Call) Run(run func(ctx context.Context, realm string, roleName string)) *MockRolesClient_GetRealmRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRolesClient_GetRealmRoleComposites_Call) Return(vs []keycloakv2.RoleRepresentation, response *keycloakv2.Response, err error) *MockRolesClient_GetRealmRoleComposites_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockRolesClient_GetRealmRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, roleName string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error)) *MockRolesClient_GetRealmRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRealmRoles provides a mock function for the type MockRolesClient
 func (_mock *MockRolesClient) GetRealmRoles(ctx context.Context, realm string, params *keycloakv2.GetRealmRolesParams) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, params)
@@ -346,6 +588,86 @@ func (_c *MockRolesClient_GetRealmRoles_Call) Return(vs []keycloakv2.RoleReprese
 }
 
 func (_c *MockRolesClient_GetRealmRoles_Call) RunAndReturn(run func(ctx context.Context, realm string, params *keycloakv2.GetRealmRolesParams) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error)) *MockRolesClient_GetRealmRoles_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateRealmRole provides a mock function for the type MockRolesClient
+func (_mock *MockRolesClient) UpdateRealmRole(ctx context.Context, realm string, roleName string, role keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, roleName, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateRealmRole")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, roleName, role)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, roleName, role)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, roleName, role)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRolesClient_UpdateRealmRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRealmRole'
+type MockRolesClient_UpdateRealmRole_Call struct {
+	*mock.Call
+}
+
+// UpdateRealmRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - roleName string
+//   - role keycloakv2.RoleRepresentation
+func (_e *MockRolesClient_Expecter) UpdateRealmRole(ctx interface{}, realm interface{}, roleName interface{}, role interface{}) *MockRolesClient_UpdateRealmRole_Call {
+	return &MockRolesClient_UpdateRealmRole_Call{Call: _e.mock.On("UpdateRealmRole", ctx, realm, roleName, role)}
+}
+
+func (_c *MockRolesClient_UpdateRealmRole_Call) Run(run func(ctx context.Context, realm string, roleName string, role keycloakv2.RoleRepresentation)) *MockRolesClient_UpdateRealmRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.RoleRepresentation
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRolesClient_UpdateRealmRole_Call) Return(response *keycloakv2.Response, err error) *MockRolesClient_UpdateRealmRole_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockRolesClient_UpdateRealmRole_Call) RunAndReturn(run func(ctx context.Context, realm string, roleName string, role keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockRolesClient_UpdateRealmRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

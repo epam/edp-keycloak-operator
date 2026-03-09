@@ -103,7 +103,11 @@ type RolesClient interface {
 	GetRealmRoles(ctx context.Context, realm string, params *GetRealmRolesParams) ([]RoleRepresentation, *Response, error)
 	GetRealmRole(ctx context.Context, realm, roleName string) (*RoleRepresentation, *Response, error)
 	CreateRealmRole(ctx context.Context, realm string, role RoleRepresentation) (*Response, error)
+	UpdateRealmRole(ctx context.Context, realm, roleName string, role RoleRepresentation) (*Response, error)
 	DeleteRealmRole(ctx context.Context, realm, roleName string) (*Response, error)
+	GetRealmRoleComposites(ctx context.Context, realm, roleName string) ([]RoleRepresentation, *Response, error)
+	AddRealmRoleComposites(ctx context.Context, realm, roleName string, roles []RoleRepresentation) (*Response, error)
+	DeleteRealmRoleComposites(ctx context.Context, realm, roleName string, roles []RoleRepresentation) (*Response, error)
 }
 
 type ClientsClient interface {

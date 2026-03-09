@@ -7,20 +7,19 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/event"
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrole/chain"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 const keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.finalizer.name"
@@ -28,10 +27,9 @@ const keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.fina
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
-	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
-	GetKeycloakRealmFromRef(ctx context.Context, object helper.ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
-	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (keycloak.Client, error)
+	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
+	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
 }
 
 func NewReconcileKeycloakRealmRole(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakRealmRole {
@@ -137,9 +135,8 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 		return "", fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmRole)
+	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, keycloakRealmRole)
 	if err != nil {
-		// if the realm is already deleted try to delete finalizer
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
 			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName); removeErr != nil {
 				return "", fmt.Errorf("unable to remove finalizer: %w", removeErr)
@@ -151,55 +148,37 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 		return "", fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
 	}
 
-	realm, err := r.helper.GetKeycloakRealmFromRef(ctx, keycloakRealmRole, kClient)
+	realmName, err := r.helper.GetRealmNameFromRef(ctx, keycloakRealmRole)
 	if err != nil {
-		return "", fmt.Errorf("unable to get keycloak realm from ref: %w", err)
+		return "", fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	roleID, err := r.putRole(ctx, gocloak.PString(realm.Realm), keycloakRealmRole, kClient)
-	if err != nil {
-		return "", fmt.Errorf("unable to put role: %w", err)
+	if keycloakRealmRole.GetDeletionTimestamp() != nil {
+		if controllerutil.ContainsFinalizer(keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName) {
+			if err := chain.NewRemoveRole(kClient).ServeRequest(ctx, keycloakRealmRole, realmName); err != nil {
+				return "", fmt.Errorf("failed to remove role: %w", err)
+			}
+
+			controllerutil.RemoveFinalizer(keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName)
+
+			if err := r.client.Update(ctx, keycloakRealmRole); err != nil {
+				return "", fmt.Errorf("failed to remove finalizer: %w", err)
+			}
+		}
+
+		return "", nil
 	}
 
-	if _, err := r.helper.TryToDelete(
-		ctx,
-		keycloakRealmRole,
-		makeTerminator(
-			gocloak.PString(realm.Realm),
-			keycloakRealmRole.Spec.Name,
-			kClient,
-			objectmeta.PreserveResourcesOnDeletion(keycloakRealmRole),
-		),
-		keyCloakRealmRoleOperatorFinalizerName,
-	); err != nil {
-		return "", fmt.Errorf("unable to tryToDelete realm role: %w", err)
+	if controllerutil.AddFinalizer(keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName) {
+		if err := r.client.Update(ctx, keycloakRealmRole); err != nil {
+			return "", fmt.Errorf("failed to add finalizer: %w", err)
+		}
 	}
 
-	return roleID, nil
-}
-
-func (r *ReconcileKeycloakRealmRole) putRole(
-	ctx context.Context,
-	realmName string,
-	keycloakRealmRole *keycloakApi.KeycloakRealmRole,
-	kClient keycloak.Client,
-) (string, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Start creating realm role")
-
-	role := dto.ConvertSpecToRole(keycloakRealmRole)
-
-	if err := kClient.SyncRealmRole(ctx, realmName, role); err != nil {
-		return "", fmt.Errorf("unable to sync realm role CR: %w", err)
+	roleCtx := &chain.RoleContext{}
+	if err := chain.MakeChain(kClient).Serve(ctx, keycloakRealmRole, realmName, roleCtx); err != nil {
+		return "", fmt.Errorf("error during realm role chain: %w", err)
 	}
 
-	var roleID string
-
-	if role.ID != nil {
-		roleID = *role.ID
-	}
-
-	log.Info("Realm role has been created")
-
-	return roleID, nil
+	return roleCtx.RoleID, nil
 }
