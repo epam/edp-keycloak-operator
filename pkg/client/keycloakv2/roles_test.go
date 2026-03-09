@@ -220,3 +220,145 @@ func TestRolesClient_CreateRealmRole_Conflict(t *testing.T) {
 	require.True(t, keycloakv2.IsConflict(err), "Should return 409 Conflict error for duplicate role")
 	require.NotNil(t, resp, "Response should be present even for error")
 }
+
+func TestRolesClient_UpdateAndComposites(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-role-composites-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	resp, err := c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	mainRoleName := "main-role"
+	subRole1Name := "sub-role-1"
+	subRole2Name := "sub-role-2"
+	isComposite := true
+
+	// Create main composite role
+	_, err = c.Roles.CreateRealmRole(ctx, realmName, keycloakv2.RoleRepresentation{
+		Name:      &mainRoleName,
+		Composite: &isComposite,
+	})
+	require.NoError(t, err)
+
+	// Create two sub-roles
+	_, err = c.Roles.CreateRealmRole(ctx, realmName, keycloakv2.RoleRepresentation{Name: &subRole1Name})
+	require.NoError(t, err)
+
+	_, err = c.Roles.CreateRealmRole(ctx, realmName, keycloakv2.RoleRepresentation{Name: &subRole2Name})
+	require.NoError(t, err)
+
+	subRole1, _, err := c.Roles.GetRealmRole(ctx, realmName, subRole1Name)
+	require.NoError(t, err)
+
+	subRole2, _, err := c.Roles.GetRealmRole(ctx, realmName, subRole2Name)
+	require.NoError(t, err)
+
+	// Test UpdateRealmRole
+	updatedDesc := "updated description"
+
+	mainRole, _, err := c.Roles.GetRealmRole(ctx, realmName, mainRoleName)
+	require.NoError(t, err)
+
+	mainRole.Description = &updatedDesc
+	_, err = c.Roles.UpdateRealmRole(ctx, realmName, mainRoleName, *mainRole)
+	require.NoError(t, err)
+
+	fetchedRole, _, err := c.Roles.GetRealmRole(ctx, realmName, mainRoleName)
+	require.NoError(t, err)
+	require.Equal(t, updatedDesc, *fetchedRole.Description)
+
+	// Test AddRealmRoleComposites
+	_, err = c.Roles.AddRealmRoleComposites(
+		ctx, realmName, mainRoleName, []keycloakv2.RoleRepresentation{*subRole1, *subRole2},
+	)
+	require.NoError(t, err)
+
+	// Test GetRealmRoleComposites
+	composites, _, err := c.Roles.GetRealmRoleComposites(ctx, realmName, mainRoleName)
+	require.NoError(t, err)
+	require.Len(t, composites, 2)
+
+	// Test DeleteRealmRoleComposites
+	_, err = c.Roles.DeleteRealmRoleComposites(ctx, realmName, mainRoleName, []keycloakv2.RoleRepresentation{*subRole2})
+	require.NoError(t, err)
+
+	composites, _, err = c.Roles.GetRealmRoleComposites(ctx, realmName, mainRoleName)
+	require.NoError(t, err)
+	require.Len(t, composites, 1)
+	require.Equal(t, subRole1Name, *composites[0].Name)
+}
+
+func TestRolesClient_GetRealmRoleComposites_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	_, resp, err := c.Roles.GetRealmRoleComposites(context.Background(), keycloakv2.MasterRealm, "nonexistent-role-12345")
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err))
+	require.NotNil(t, resp)
+}
+
+func TestRolesClient_AddRealmRoleComposites_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Roles.AddRealmRoleComposites(
+		context.Background(), keycloakv2.MasterRealm, "nonexistent-role-12345", []keycloakv2.RoleRepresentation{})
+	require.Error(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestRolesClient_DeleteRealmRoleComposites_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	resp, err := c.Roles.DeleteRealmRoleComposites(
+		context.Background(), keycloakv2.MasterRealm, "nonexistent-role-12345", []keycloakv2.RoleRepresentation{})
+	require.Error(t, err)
+	require.NotNil(t, resp)
+}
