@@ -276,6 +276,30 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(*groupRep.RealmRoles).ShouldNot(ContainElement("test-group-role"))
 		}, time.Minute, time.Second*5).Should(Succeed())
 
+		By("Renaming the group via spec.Name")
+		updatableGroup = &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
+		oldID := updatableGroup.Status.ID
+		updatableGroup.Spec.Name = "group-all-params-renamed"
+		updatableGroup.Spec.Path = "/group-all-params-renamed"
+		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())
+
+		By("Verifying the group was renamed in Keycloak, not recreated")
+		Eventually(func(g Gomega) {
+			// Fetch the group from Keycloak by its new name.
+			groupRep, _, err := keycloakApiClient.Groups.FindGroupByName(ctx, KeycloakRealmCR, "group-all-params-renamed")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			// Same Keycloak ID — proves it was updated in place, not deleted and recreated.
+			g.Expect(*groupRep.Id).Should(Equal(oldID))
+
+			// Verify the K8s status also reflects the same ID.
+			renamedGroup := &keycloakApi.KeycloakRealmGroup{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, renamedGroup)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(renamedGroup.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(renamedGroup.Status.ID).Should(Equal(oldID))
+		}, time.Minute, time.Second*5).Should(Succeed())
+
 		By("Cleaning up")
 		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
 	})
