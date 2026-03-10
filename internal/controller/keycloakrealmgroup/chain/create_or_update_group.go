@@ -33,17 +33,35 @@ func (h *CreateOrUpdateGroup) Serve(
 		err           error
 	)
 
-	if groupCtx.ParentGroupID != "" {
-		existingGroup, _, err = kClient.Groups.FindChildGroupByName(ctx, realm, groupCtx.ParentGroupID, spec.Name)
-	} else {
-		existingGroup, _, err = kClient.Groups.FindGroupByName(ctx, realm, spec.Name)
+	// If we already have an ID from a previous reconciliation, fetch by ID first.
+	// This handles renames: spec.Name may have changed but the ID stays the same.
+	if groupCtx.GroupID != "" {
+		existingGroup, _, err = kClient.Groups.GetGroup(ctx, realm, groupCtx.GroupID)
+		if err != nil && !keycloakv2.IsNotFound(err) {
+			return fmt.Errorf("unable to get group by ID %q: %w", groupCtx.GroupID, err)
+		}
+
+		if keycloakv2.IsNotFound(err) {
+			log.Info("Group not found by ID, will search by name", "groupID", groupCtx.GroupID)
+
+			existingGroup = nil
+		}
 	}
 
-	if err != nil && !keycloakv2.IsNotFound(err) {
-		return fmt.Errorf("unable to search for group %q: %w", spec.Name, err)
+	// If we didn't find the group by ID, search by name.
+	if existingGroup == nil {
+		if groupCtx.ParentGroupID != "" {
+			existingGroup, _, err = kClient.Groups.FindChildGroupByName(ctx, realm, groupCtx.ParentGroupID, spec.Name)
+		} else {
+			existingGroup, _, err = kClient.Groups.FindGroupByName(ctx, realm, spec.Name)
+		}
+
+		if err != nil && !keycloakv2.IsNotFound(err) {
+			return fmt.Errorf("unable to search for group %q: %w", spec.Name, err)
+		}
 	}
 
-	if keycloakv2.IsNotFound(err) {
+	if existingGroup == nil {
 		groupRep := keycloakv2.GroupRepresentation{
 			Name:        &spec.Name,
 			Description: &spec.Description,
@@ -67,6 +85,7 @@ func (h *CreateOrUpdateGroup) Serve(
 		log.Info("Group created", "groupID", groupCtx.GroupID)
 	} else {
 		groupCtx.GroupID = *existingGroup.Id
+		existingGroup.Name = &spec.Name
 		existingGroup.Description = &spec.Description
 		existingGroup.Path = &spec.Path
 		existingGroup.Attributes = &spec.Attributes

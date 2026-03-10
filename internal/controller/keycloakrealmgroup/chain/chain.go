@@ -12,7 +12,8 @@ import (
 
 // GroupContext holds data that is passed between chain handlers.
 type GroupContext struct {
-	// GroupID is the Keycloak group ID, set by CreateOrUpdateGroup handler.
+	// GroupID is the Keycloak group ID. Pre-populated from status.ID by the reconciler
+	// (to support rename detection), then overwritten by CreateOrUpdateGroup handler.
 	GroupID string
 
 	// ParentGroupID is the parent group's Keycloak ID (empty if top-level).

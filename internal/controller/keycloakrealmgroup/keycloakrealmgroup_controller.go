@@ -168,6 +168,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	groupCtx := &chain.GroupContext{
 		RealmName:     realmName,
 		ParentGroupID: parentGroupID,
+		GroupID:       keycloakRealmGroup.Status.ID,
 	}
 
 	if err := chain.MakeChain().Serve(ctx, keycloakRealmGroup, kClientV2, groupCtx); err != nil {
