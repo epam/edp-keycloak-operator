@@ -1920,7 +1920,10 @@ KeycloakOrganizationSpec defines the desired state of Organization.
         <td>string</td>
         <td>
           Alias is the unique alias for the organization.
-The alias should be unique across Organizations.<br/>
+The alias should be unique across Organizations.
+Alias is immutable after creation.<br/>
+          <br/>
+            <i>Validations</i>:<li>self == oldSelf: alias is immutable</li>
         </td>
         <td>true</td>
       </tr><tr>
