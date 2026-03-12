@@ -15,6 +15,8 @@ type KeycloakOrganizationSpec struct {
 
 	// Alias is the unique alias for the organization.
 	// The alias should be unique across Organizations.
+	// Alias is immutable after creation.
+	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="alias is immutable"
 	// +required
 	Alias string `json:"alias"`
 
