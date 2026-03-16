@@ -55,6 +55,7 @@ type RealmClient interface {
 	DeleteRealm(ctx context.Context, realm string) (*Response, error)
 	SetRealmEventConfig(ctx context.Context, realm string, cfg RealmEventsConfigRepresentation) (*Response, error)
 	SetRealmBrowserFlow(ctx context.Context, realm string, flowAlias string) (*Response, error)
+	GetAuthenticationFlows(ctx context.Context, realm string) ([]AuthenticationFlowRepresentation, *Response, error)
 }
 
 type GroupsClient interface {
@@ -114,7 +115,10 @@ type ClientsClient interface {
 	GetClients(ctx context.Context, realm string, params *GetClientsParams) ([]ClientRepresentation, *Response, error)
 	GetClient(ctx context.Context, realm, clientID string) (*ClientRepresentation, *Response, error)
 	CreateClient(ctx context.Context, realm string, client ClientRepresentation) (*Response, error)
+	UpdateClient(ctx context.Context, realm, clientUUID string, client ClientRepresentation) (*Response, error)
 	DeleteClient(ctx context.Context, realm, clientID string) (*Response, error)
+	GetClientByClientID(ctx context.Context, realm, clientID string) (*ClientRepresentation, *Response, error)
+	GetClientUUID(ctx context.Context, realm, clientID string) (string, error)
 	GetClientRoles(
 		ctx context.Context,
 		realm string,
@@ -123,7 +127,79 @@ type ClientsClient interface {
 	) ([]RoleRepresentation, *Response, error)
 	GetClientRole(ctx context.Context, realm, clientID, roleName string) (*RoleRepresentation, *Response, error)
 	CreateClientRole(ctx context.Context, realm, clientID string, role RoleRepresentation) (*Response, error)
+	UpdateClientRole(ctx context.Context, realm, clientID, roleName string, role RoleRepresentation) (*Response, error)
 	DeleteClientRole(ctx context.Context, realm, clientID, roleName string) (*Response, error)
+	GetClientRoleComposites(
+		ctx context.Context, realm, clientUUID, roleName string,
+	) ([]RoleRepresentation, *Response, error)
+	AddClientRoleComposites(
+		ctx context.Context, realm, clientUUID, roleName string, roles []RoleRepresentation,
+	) (*Response, error)
+	DeleteClientRoleComposites(
+		ctx context.Context, realm, clientUUID, roleName string, roles []RoleRepresentation,
+	) (*Response, error)
+	GetDefaultClientScopes(ctx context.Context, realm, clientUUID string) ([]ClientScopeRepresentation, *Response, error)
+	AddDefaultClientScope(ctx context.Context, realm, clientUUID, scopeID string) (*Response, error)
+	GetOptionalClientScopes(ctx context.Context, realm, clientUUID string) ([]ClientScopeRepresentation, *Response, error)
+	AddOptionalClientScope(ctx context.Context, realm, clientUUID, scopeID string) (*Response, error)
+	GetRealmClientScopes(ctx context.Context, realm string) ([]ClientScopeRepresentation, *Response, error)
+	GetServiceAccountUser(ctx context.Context, realm, clientUUID string) (*UserRepresentation, *Response, error)
+	GetClientProtocolMappers(
+		ctx context.Context, realm, clientUUID string,
+	) ([]ProtocolMapperRepresentation, *Response, error)
+	CreateClientProtocolMapper(
+		ctx context.Context, realm, clientUUID string, mapper ProtocolMapperRepresentation,
+	) (*Response, error)
+	UpdateClientProtocolMapper(
+		ctx context.Context, realm, clientUUID, mapperID string, mapper ProtocolMapperRepresentation,
+	) (*Response, error)
+	DeleteClientProtocolMapper(ctx context.Context, realm, clientUUID, mapperID string) (*Response, error)
+	GetClientManagementPermissions(
+		ctx context.Context, realm, clientUUID string,
+	) (*ManagementPermissionReference, *Response, error)
+	UpdateClientManagementPermissions(
+		ctx context.Context, realm, clientUUID string, permissions ManagementPermissionReference,
+	) (*ManagementPermissionReference, *Response, error)
+}
+
+type AuthorizationClient interface {
+	// Scopes
+	GetScopes(ctx context.Context, realm, clientUUID string) ([]ScopeRepresentation, *Response, error)
+	CreateScope(ctx context.Context, realm, clientUUID string, scope ScopeRepresentation) (*Response, error)
+	DeleteScope(ctx context.Context, realm, clientUUID, scopeID string) (*Response, error)
+	// Resources
+	GetResources(ctx context.Context, realm, clientUUID string) ([]ResourceRepresentation, *Response, error)
+	CreateResource(
+		ctx context.Context, realm, clientUUID string, resource ResourceRepresentation,
+	) (*ResourceRepresentation, *Response, error)
+	UpdateResource(
+		ctx context.Context, realm, clientUUID, resourceID string, resource ResourceRepresentation,
+	) (*Response, error)
+	DeleteResource(ctx context.Context, realm, clientUUID, resourceID string) (*Response, error)
+	// Policies
+	GetPolicies(ctx context.Context, realm, clientUUID string) ([]AbstractPolicyRepresentation, *Response, error)
+	CreatePolicy(
+		ctx context.Context, realm, clientUUID, policyType string, policy any,
+	) (*PolicyRepresentation, *Response, error)
+	UpdatePolicy(
+		ctx context.Context, realm, clientUUID, policyType, policyID string, policy any,
+	) (*Response, error)
+	GetPolicy(ctx context.Context, realm, clientUUID, policyType, policyID string) (*Response, error)
+	DeletePolicy(ctx context.Context, realm, clientUUID, policyID string) (*Response, error)
+	// Permissions
+	GetPermissions(ctx context.Context, realm, clientUUID string) ([]AbstractPolicyRepresentation, *Response, error)
+	CreatePermission(
+		ctx context.Context, realm, clientUUID, permType string, perm PolicyRepresentation,
+	) (*PolicyRepresentation, *Response, error)
+	UpdatePermission(
+		ctx context.Context, realm, clientUUID, permType, permID string, perm PolicyRepresentation,
+	) (*Response, error)
+	DeletePermission(ctx context.Context, realm, clientUUID, permID string) (*Response, error)
+}
+
+type ServerInfoClient interface {
+	GetServerInfo(ctx context.Context) (*ServerInfo, error)
+	FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error)
 }
 
 type OrganizationsClient interface {

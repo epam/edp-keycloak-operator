@@ -126,6 +126,15 @@ func IsConflict(err error) bool {
 	return false
 }
 
+// SkipConflict returns nil if the error is a 409 Conflict (already exists), otherwise returns the error.
+func SkipConflict(err error) error {
+	if IsConflict(err) {
+		return nil
+	}
+
+	return err
+}
+
 // IsClientError returns true if the error is a 4xx client error ApiError
 func IsClientError(err error) bool {
 	var apiErr *ApiError

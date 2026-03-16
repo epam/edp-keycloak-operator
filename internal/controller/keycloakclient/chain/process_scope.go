@@ -4,28 +4,27 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const scopeLogKey = "scope"
 
 type ProcessScope struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
 }
 
-func NewProcessScope(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessScope {
-	return &ProcessScope{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
+func NewProcessScope(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ProcessScope {
+	return &ProcessScope{kClient: kClient, k8sClient: k8sClient}
 }
 
-func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if keycloakClient.Spec.Authorization == nil {
@@ -33,19 +32,18 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 		return nil
 	}
 
-	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
-	if err != nil {
-		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
+	clientUUID := clientCtx.ClientUUID
 
-		return fmt.Errorf("failed to get client id: %w", err)
-	}
-
-	existingScopes, err := h.keycloakApiClient.GetScopes(ctx, realmName, clientID)
+	scopesList, _, err := h.kClient.Authorization.GetScopes(ctx, realmName, clientUUID)
 	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
 
 		return fmt.Errorf("failed to get scopes: %w", err)
 	}
+
+	existingScopes := maputil.SliceToMapSelf(scopesList, func(s keycloakv2.ScopeRepresentation) (string, bool) {
+		return *s.Name, s.Name != nil
+	})
 
 	for _, scope := range keycloakClient.Spec.Authorization.Scopes {
 		log.Info("Processing scope", scopeLogKey, scope)
@@ -58,7 +56,8 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 			continue
 		}
 
-		if _, err = h.keycloakApiClient.CreateScope(ctx, realmName, clientID, scope); err != nil {
+		scopeRep := keycloakv2.ScopeRepresentation{Name: &scope}
+		if _, err = h.kClient.Authorization.CreateScope(ctx, realmName, clientUUID, scopeRep); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
 
 			return fmt.Errorf("failed to create scope: %w", err)
@@ -70,7 +69,7 @@ func (h *ProcessScope) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 	}
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
-		if err = h.deleteScopes(ctx, existingScopes, realmName, clientID); err != nil {
+		if err = h.deleteScopes(ctx, existingScopes, realmName, clientUUID); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization scopes: %s", err.Error()))
 
 			return err
@@ -110,12 +109,17 @@ func (h *ProcessScope) setSuccessCondition(ctx context.Context, keycloakClient *
 	}
 }
 
-func (h *ProcessScope) deleteScopes(ctx context.Context, existingScopes map[string]gocloak.ScopeRepresentation, realmName string, clientID string) error {
+func (h *ProcessScope) deleteScopes(ctx context.Context, existingScopes map[string]keycloakv2.ScopeRepresentation, realmName string, clientUUID string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for name := range existingScopes {
-		if err := h.keycloakApiClient.DeleteScope(ctx, realmName, clientID, *existingScopes[name].ID); err != nil {
-			if !adapter.IsErrNotFound(err) {
+		scope := existingScopes[name]
+		if scope.Id == nil {
+			continue
+		}
+
+		if _, err := h.kClient.Authorization.DeleteScope(ctx, realmName, clientUUID, *scope.Id); err != nil {
+			if !keycloakv2.IsNotFound(err) {
 				return fmt.Errorf("failed to delete scope: %w", err)
 			}
 		}

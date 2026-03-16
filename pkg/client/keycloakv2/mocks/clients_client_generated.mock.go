@@ -38,6 +38,252 @@ func (_m *MockClientsClient) EXPECT() *MockClientsClient_Expecter {
 	return &MockClientsClient_Expecter{mock: &_m.Mock}
 }
 
+// AddClientRoleComposites provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) AddClientRoleComposites(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleName, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddClientRoleComposites")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleName, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleName, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleName, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_AddClientRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddClientRoleComposites'
+type MockClientsClient_AddClientRoleComposites_Call struct {
+	*mock.Call
+}
+
+// AddClientRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleName string
+//   - roles []keycloakv2.RoleRepresentation
+func (_e *MockClientsClient_Expecter) AddClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}, roles interface{}) *MockClientsClient_AddClientRoleComposites_Call {
+	return &MockClientsClient_AddClientRoleComposites_Call{Call: _e.mock.On("AddClientRoleComposites", ctx, realm, clientUUID, roleName, roles)}
+}
+
+func (_c *MockClientsClient_AddClientRoleComposites_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation)) *MockClientsClient_AddClientRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []keycloakv2.RoleRepresentation
+		if args[4] != nil {
+			arg4 = args[4].([]keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_AddClientRoleComposites_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_AddClientRoleComposites_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_AddClientRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_AddClientRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddDefaultClientScope provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) AddDefaultClientScope(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, scopeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddDefaultClientScope")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, scopeID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_AddDefaultClientScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddDefaultClientScope'
+type MockClientsClient_AddDefaultClientScope_Call struct {
+	*mock.Call
+}
+
+// AddDefaultClientScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - scopeID string
+func (_e *MockClientsClient_Expecter) AddDefaultClientScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockClientsClient_AddDefaultClientScope_Call {
+	return &MockClientsClient_AddDefaultClientScope_Call{Call: _e.mock.On("AddDefaultClientScope", ctx, realm, clientUUID, scopeID)}
+}
+
+func (_c *MockClientsClient_AddDefaultClientScope_Call) Run(run func(ctx context.Context, realm string, clientUUID string, scopeID string)) *MockClientsClient_AddDefaultClientScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_AddDefaultClientScope_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_AddDefaultClientScope_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_AddDefaultClientScope_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.Response, error)) *MockClientsClient_AddDefaultClientScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddOptionalClientScope provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) AddOptionalClientScope(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, scopeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddOptionalClientScope")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, scopeID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_AddOptionalClientScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddOptionalClientScope'
+type MockClientsClient_AddOptionalClientScope_Call struct {
+	*mock.Call
+}
+
+// AddOptionalClientScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - scopeID string
+func (_e *MockClientsClient_Expecter) AddOptionalClientScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockClientsClient_AddOptionalClientScope_Call {
+	return &MockClientsClient_AddOptionalClientScope_Call{Call: _e.mock.On("AddOptionalClientScope", ctx, realm, clientUUID, scopeID)}
+}
+
+func (_c *MockClientsClient_AddOptionalClientScope_Call) Run(run func(ctx context.Context, realm string, clientUUID string, scopeID string)) *MockClientsClient_AddOptionalClientScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_AddOptionalClientScope_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_AddOptionalClientScope_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_AddOptionalClientScope_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.Response, error)) *MockClientsClient_AddOptionalClientScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateClient provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) CreateClient(ctx context.Context, realm string, client keycloakv2.ClientRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, client)
@@ -108,6 +354,86 @@ func (_c *MockClientsClient_CreateClient_Call) Return(response *keycloakv2.Respo
 }
 
 func (_c *MockClientsClient_CreateClient_Call) RunAndReturn(run func(ctx context.Context, realm string, client keycloakv2.ClientRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_CreateClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateClientProtocolMapper provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) CreateClientProtocolMapper(ctx context.Context, realm string, clientUUID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, mapper)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CreateClientProtocolMapper")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, mapper)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ProtocolMapperRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, mapper)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.ProtocolMapperRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, mapper)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_CreateClientProtocolMapper_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateClientProtocolMapper'
+type MockClientsClient_CreateClientProtocolMapper_Call struct {
+	*mock.Call
+}
+
+// CreateClientProtocolMapper is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - mapper keycloakv2.ProtocolMapperRepresentation
+func (_e *MockClientsClient_Expecter) CreateClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapper interface{}) *MockClientsClient_CreateClientProtocolMapper_Call {
+	return &MockClientsClient_CreateClientProtocolMapper_Call{Call: _e.mock.On("CreateClientProtocolMapper", ctx, realm, clientUUID, mapper)}
+}
+
+func (_c *MockClientsClient_CreateClientProtocolMapper_Call) Run(run func(ctx context.Context, realm string, clientUUID string, mapper keycloakv2.ProtocolMapperRepresentation)) *MockClientsClient_CreateClientProtocolMapper_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.ProtocolMapperRepresentation
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.ProtocolMapperRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_CreateClientProtocolMapper_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_CreateClientProtocolMapper_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_CreateClientProtocolMapper_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_CreateClientProtocolMapper_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -266,6 +592,86 @@ func (_c *MockClientsClient_DeleteClient_Call) RunAndReturn(run func(ctx context
 	return _c
 }
 
+// DeleteClientProtocolMapper provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) DeleteClientProtocolMapper(ctx context.Context, realm string, clientUUID string, mapperID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, mapperID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientProtocolMapper")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, mapperID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, mapperID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, mapperID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_DeleteClientProtocolMapper_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientProtocolMapper'
+type MockClientsClient_DeleteClientProtocolMapper_Call struct {
+	*mock.Call
+}
+
+// DeleteClientProtocolMapper is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - mapperID string
+func (_e *MockClientsClient_Expecter) DeleteClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapperID interface{}) *MockClientsClient_DeleteClientProtocolMapper_Call {
+	return &MockClientsClient_DeleteClientProtocolMapper_Call{Call: _e.mock.On("DeleteClientProtocolMapper", ctx, realm, clientUUID, mapperID)}
+}
+
+func (_c *MockClientsClient_DeleteClientProtocolMapper_Call) Run(run func(ctx context.Context, realm string, clientUUID string, mapperID string)) *MockClientsClient_DeleteClientProtocolMapper_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientProtocolMapper_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_DeleteClientProtocolMapper_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientProtocolMapper_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, mapperID string) (*keycloakv2.Response, error)) *MockClientsClient_DeleteClientProtocolMapper_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteClientRole provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) DeleteClientRole(ctx context.Context, realm string, clientID string, roleName string) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, clientID, roleName)
@@ -342,6 +748,92 @@ func (_c *MockClientsClient_DeleteClientRole_Call) Return(response *keycloakv2.R
 }
 
 func (_c *MockClientsClient_DeleteClientRole_Call) RunAndReturn(run func(ctx context.Context, realm string, clientID string, roleName string) (*keycloakv2.Response, error)) *MockClientsClient_DeleteClientRole_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteClientRoleComposites provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) DeleteClientRoleComposites(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleName, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientRoleComposites")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleName, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleName, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, []keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleName, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_DeleteClientRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientRoleComposites'
+type MockClientsClient_DeleteClientRoleComposites_Call struct {
+	*mock.Call
+}
+
+// DeleteClientRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleName string
+//   - roles []keycloakv2.RoleRepresentation
+func (_e *MockClientsClient_Expecter) DeleteClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}, roles interface{}) *MockClientsClient_DeleteClientRoleComposites_Call {
+	return &MockClientsClient_DeleteClientRoleComposites_Call{Call: _e.mock.On("DeleteClientRoleComposites", ctx, realm, clientUUID, roleName, roles)}
+}
+
+func (_c *MockClientsClient_DeleteClientRoleComposites_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation)) *MockClientsClient_DeleteClientRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []keycloakv2.RoleRepresentation
+		if args[4] != nil {
+			arg4 = args[4].([]keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientRoleComposites_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_DeleteClientRoleComposites_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_DeleteClientRoleComposites_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -424,6 +916,252 @@ func (_c *MockClientsClient_GetClient_Call) Return(v *keycloakv2.ClientRepresent
 }
 
 func (_c *MockClientsClient_GetClient_Call) RunAndReturn(run func(ctx context.Context, realm string, clientID string) (*keycloakv2.ClientRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetClientByClientID provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientByClientID(ctx context.Context, realm string, clientID string) (*keycloakv2.ClientRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientByClientID")
+	}
+
+	var r0 *keycloakv2.ClientRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.ClientRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.ClientRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ClientRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetClientByClientID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientByClientID'
+type MockClientsClient_GetClientByClientID_Call struct {
+	*mock.Call
+}
+
+// GetClientByClientID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientID string
+func (_e *MockClientsClient_Expecter) GetClientByClientID(ctx interface{}, realm interface{}, clientID interface{}) *MockClientsClient_GetClientByClientID_Call {
+	return &MockClientsClient_GetClientByClientID_Call{Call: _e.mock.On("GetClientByClientID", ctx, realm, clientID)}
+}
+
+func (_c *MockClientsClient_GetClientByClientID_Call) Run(run func(ctx context.Context, realm string, clientID string)) *MockClientsClient_GetClientByClientID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientByClientID_Call) Return(v *keycloakv2.ClientRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetClientByClientID_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientByClientID_Call) RunAndReturn(run func(ctx context.Context, realm string, clientID string) (*keycloakv2.ClientRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetClientByClientID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetClientManagementPermissions provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientManagementPermissions(ctx context.Context, realm string, clientUUID string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientManagementPermissions")
+	}
+
+	var r0 *keycloakv2.ManagementPermissionReference
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.ManagementPermissionReference); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ManagementPermissionReference)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetClientManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientManagementPermissions'
+type MockClientsClient_GetClientManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// GetClientManagementPermissions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetClientManagementPermissions(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClientManagementPermissions_Call {
+	return &MockClientsClient_GetClientManagementPermissions_Call{Call: _e.mock.On("GetClientManagementPermissions", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetClientManagementPermissions_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetClientManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientManagementPermissions_Call) Return(v *keycloakv2.ManagementPermissionReference, response *keycloakv2.Response, err error) *MockClientsClient_GetClientManagementPermissions_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientManagementPermissions_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)) *MockClientsClient_GetClientManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetClientProtocolMappers provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientProtocolMappers(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ProtocolMapperRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientProtocolMappers")
+	}
+
+	var r0 []keycloakv2.ProtocolMapperRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakv2.ProtocolMapperRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakv2.ProtocolMapperRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.ProtocolMapperRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetClientProtocolMappers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientProtocolMappers'
+type MockClientsClient_GetClientProtocolMappers_Call struct {
+	*mock.Call
+}
+
+// GetClientProtocolMappers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetClientProtocolMappers(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClientProtocolMappers_Call {
+	return &MockClientsClient_GetClientProtocolMappers_Call{Call: _e.mock.On("GetClientProtocolMappers", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetClientProtocolMappers_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetClientProtocolMappers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientProtocolMappers_Call) Return(vs []keycloakv2.ProtocolMapperRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetClientProtocolMappers_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientProtocolMappers_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ProtocolMapperRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetClientProtocolMappers_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -516,6 +1254,94 @@ func (_c *MockClientsClient_GetClientRole_Call) RunAndReturn(run func(ctx contex
 	return _c
 }
 
+// GetClientRoleComposites provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientRoleComposites(ctx context.Context, realm string, clientUUID string, roleName string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientRoleComposites")
+	}
+
+	var r0 []keycloakv2.RoleRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) []keycloakv2.RoleRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.RoleRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleName)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID, roleName)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetClientRoleComposites_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientRoleComposites'
+type MockClientsClient_GetClientRoleComposites_Call struct {
+	*mock.Call
+}
+
+// GetClientRoleComposites is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleName string
+func (_e *MockClientsClient_Expecter) GetClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}) *MockClientsClient_GetClientRoleComposites_Call {
+	return &MockClientsClient_GetClientRoleComposites_Call{Call: _e.mock.On("GetClientRoleComposites", ctx, realm, clientUUID, roleName)}
+}
+
+func (_c *MockClientsClient_GetClientRoleComposites_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleName string)) *MockClientsClient_GetClientRoleComposites_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientRoleComposites_Call) Return(vs []keycloakv2.RoleRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetClientRoleComposites_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleName string) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetClientRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetClientRoles provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) GetClientRoles(ctx context.Context, realm string, clientID string, params *keycloakv2.GetClientRolesParams) ([]keycloakv2.RoleRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, clientID, params)
@@ -604,6 +1430,78 @@ func (_c *MockClientsClient_GetClientRoles_Call) RunAndReturn(run func(ctx conte
 	return _c
 }
 
+// GetClientUUID provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientUUID(ctx context.Context, realm string, clientID string) (string, error) {
+	ret := _mock.Called(ctx, realm, clientID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientUUID")
+	}
+
+	var r0 string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+		return returnFunc(ctx, realm, clientID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
+		r0 = returnFunc(ctx, realm, clientID)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, clientID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_GetClientUUID_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientUUID'
+type MockClientsClient_GetClientUUID_Call struct {
+	*mock.Call
+}
+
+// GetClientUUID is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientID string
+func (_e *MockClientsClient_Expecter) GetClientUUID(ctx interface{}, realm interface{}, clientID interface{}) *MockClientsClient_GetClientUUID_Call {
+	return &MockClientsClient_GetClientUUID_Call{Call: _e.mock.On("GetClientUUID", ctx, realm, clientID)}
+}
+
+func (_c *MockClientsClient_GetClientUUID_Call) Run(run func(ctx context.Context, realm string, clientID string)) *MockClientsClient_GetClientUUID_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientUUID_Call) Return(s string, err error) *MockClientsClient_GetClientUUID_Call {
+	_c.Call.Return(s, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientUUID_Call) RunAndReturn(run func(ctx context.Context, realm string, clientID string) (string, error)) *MockClientsClient_GetClientUUID_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetClients provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) GetClients(ctx context.Context, realm string, params *keycloakv2.GetClientsParams) ([]keycloakv2.ClientRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, params)
@@ -682,6 +1580,668 @@ func (_c *MockClientsClient_GetClients_Call) Return(vs []keycloakv2.ClientRepres
 }
 
 func (_c *MockClientsClient_GetClients_Call) RunAndReturn(run func(ctx context.Context, realm string, params *keycloakv2.GetClientsParams) ([]keycloakv2.ClientRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetClients_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetDefaultClientScopes provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetDefaultClientScopes(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetDefaultClientScopes")
+	}
+
+	var r0 []keycloakv2.ClientScopeRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakv2.ClientScopeRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.ClientScopeRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetDefaultClientScopes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetDefaultClientScopes'
+type MockClientsClient_GetDefaultClientScopes_Call struct {
+	*mock.Call
+}
+
+// GetDefaultClientScopes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetDefaultClientScopes(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetDefaultClientScopes_Call {
+	return &MockClientsClient_GetDefaultClientScopes_Call{Call: _e.mock.On("GetDefaultClientScopes", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetDefaultClientScopes_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetDefaultClientScopes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetDefaultClientScopes_Call) Return(vs []keycloakv2.ClientScopeRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetDefaultClientScopes_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetDefaultClientScopes_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetDefaultClientScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetOptionalClientScopes provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetOptionalClientScopes(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOptionalClientScopes")
+	}
+
+	var r0 []keycloakv2.ClientScopeRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakv2.ClientScopeRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.ClientScopeRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetOptionalClientScopes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOptionalClientScopes'
+type MockClientsClient_GetOptionalClientScopes_Call struct {
+	*mock.Call
+}
+
+// GetOptionalClientScopes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetOptionalClientScopes(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetOptionalClientScopes_Call {
+	return &MockClientsClient_GetOptionalClientScopes_Call{Call: _e.mock.On("GetOptionalClientScopes", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetOptionalClientScopes_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetOptionalClientScopes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetOptionalClientScopes_Call) Return(vs []keycloakv2.ClientScopeRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetOptionalClientScopes_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetOptionalClientScopes_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetOptionalClientScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetRealmClientScopes provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetRealmClientScopes(ctx context.Context, realm string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRealmClientScopes")
+	}
+
+	var r0 []keycloakv2.ClientScopeRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []keycloakv2.ClientScopeRepresentation); ok {
+		r0 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.ClientScopeRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, realm)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetRealmClientScopes_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRealmClientScopes'
+type MockClientsClient_GetRealmClientScopes_Call struct {
+	*mock.Call
+}
+
+// GetRealmClientScopes is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+func (_e *MockClientsClient_Expecter) GetRealmClientScopes(ctx interface{}, realm interface{}) *MockClientsClient_GetRealmClientScopes_Call {
+	return &MockClientsClient_GetRealmClientScopes_Call{Call: _e.mock.On("GetRealmClientScopes", ctx, realm)}
+}
+
+func (_c *MockClientsClient_GetRealmClientScopes_Call) Run(run func(ctx context.Context, realm string)) *MockClientsClient_GetRealmClientScopes_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetRealmClientScopes_Call) Return(vs []keycloakv2.ClientScopeRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetRealmClientScopes_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetRealmClientScopes_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]keycloakv2.ClientScopeRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetRealmClientScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetServiceAccountUser provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetServiceAccountUser(ctx context.Context, realm string, clientUUID string) (*keycloakv2.UserRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceAccountUser")
+	}
+
+	var r0 *keycloakv2.UserRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.UserRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.UserRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.UserRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetServiceAccountUser_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceAccountUser'
+type MockClientsClient_GetServiceAccountUser_Call struct {
+	*mock.Call
+}
+
+// GetServiceAccountUser is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetServiceAccountUser(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetServiceAccountUser_Call {
+	return &MockClientsClient_GetServiceAccountUser_Call{Call: _e.mock.On("GetServiceAccountUser", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetServiceAccountUser_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetServiceAccountUser_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetServiceAccountUser_Call) Return(v *keycloakv2.UserRepresentation, response *keycloakv2.Response, err error) *MockClientsClient_GetServiceAccountUser_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetServiceAccountUser_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) (*keycloakv2.UserRepresentation, *keycloakv2.Response, error)) *MockClientsClient_GetServiceAccountUser_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateClient provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) UpdateClient(ctx context.Context, realm string, clientUUID string, client keycloakv2.ClientRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, client)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClient")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ClientRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, client)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ClientRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, client)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.ClientRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, client)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_UpdateClient_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClient'
+type MockClientsClient_UpdateClient_Call struct {
+	*mock.Call
+}
+
+// UpdateClient is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - client keycloakv2.ClientRepresentation
+func (_e *MockClientsClient_Expecter) UpdateClient(ctx interface{}, realm interface{}, clientUUID interface{}, client interface{}) *MockClientsClient_UpdateClient_Call {
+	return &MockClientsClient_UpdateClient_Call{Call: _e.mock.On("UpdateClient", ctx, realm, clientUUID, client)}
+}
+
+func (_c *MockClientsClient_UpdateClient_Call) Run(run func(ctx context.Context, realm string, clientUUID string, client keycloakv2.ClientRepresentation)) *MockClientsClient_UpdateClient_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.ClientRepresentation
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.ClientRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClient_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_UpdateClient_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClient_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, client keycloakv2.ClientRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_UpdateClient_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateClientManagementPermissions provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) UpdateClientManagementPermissions(ctx context.Context, realm string, clientUUID string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, permissions)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClientManagementPermissions")
+	}
+
+	var r0 *keycloakv2.ManagementPermissionReference
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, permissions)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) *keycloakv2.ManagementPermissionReference); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, permissions)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ManagementPermissionReference)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, permissions)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID, permissions)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_UpdateClientManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClientManagementPermissions'
+type MockClientsClient_UpdateClientManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// UpdateClientManagementPermissions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - permissions keycloakv2.ManagementPermissionReference
+func (_e *MockClientsClient_Expecter) UpdateClientManagementPermissions(ctx interface{}, realm interface{}, clientUUID interface{}, permissions interface{}) *MockClientsClient_UpdateClientManagementPermissions_Call {
+	return &MockClientsClient_UpdateClientManagementPermissions_Call{Call: _e.mock.On("UpdateClientManagementPermissions", ctx, realm, clientUUID, permissions)}
+}
+
+func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) Run(run func(ctx context.Context, realm string, clientUUID string, permissions keycloakv2.ManagementPermissionReference)) *MockClientsClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.ManagementPermissionReference
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.ManagementPermissionReference)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) Return(v *keycloakv2.ManagementPermissionReference, response *keycloakv2.Response, err error) *MockClientsClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)) *MockClientsClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateClientProtocolMapper provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) UpdateClientProtocolMapper(ctx context.Context, realm string, clientUUID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, mapperID, mapper)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClientProtocolMapper")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, mapperID, mapper)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, mapperID, mapper)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, mapperID, mapper)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_UpdateClientProtocolMapper_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClientProtocolMapper'
+type MockClientsClient_UpdateClientProtocolMapper_Call struct {
+	*mock.Call
+}
+
+// UpdateClientProtocolMapper is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - mapperID string
+//   - mapper keycloakv2.ProtocolMapperRepresentation
+func (_e *MockClientsClient_Expecter) UpdateClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapperID interface{}, mapper interface{}) *MockClientsClient_UpdateClientProtocolMapper_Call {
+	return &MockClientsClient_UpdateClientProtocolMapper_Call{Call: _e.mock.On("UpdateClientProtocolMapper", ctx, realm, clientUUID, mapperID, mapper)}
+}
+
+func (_c *MockClientsClient_UpdateClientProtocolMapper_Call) Run(run func(ctx context.Context, realm string, clientUUID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation)) *MockClientsClient_UpdateClientProtocolMapper_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakv2.ProtocolMapperRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakv2.ProtocolMapperRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientProtocolMapper_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_UpdateClientProtocolMapper_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientProtocolMapper_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_UpdateClientProtocolMapper_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateClientRole provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) UpdateClientRole(ctx context.Context, realm string, clientID string, roleName string, role keycloakv2.RoleRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientID, roleName, role)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClientRole")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientID, roleName, role)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.RoleRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientID, roleName, role)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakv2.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientID, roleName, role)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_UpdateClientRole_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClientRole'
+type MockClientsClient_UpdateClientRole_Call struct {
+	*mock.Call
+}
+
+// UpdateClientRole is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientID string
+//   - roleName string
+//   - role keycloakv2.RoleRepresentation
+func (_e *MockClientsClient_Expecter) UpdateClientRole(ctx interface{}, realm interface{}, clientID interface{}, roleName interface{}, role interface{}) *MockClientsClient_UpdateClientRole_Call {
+	return &MockClientsClient_UpdateClientRole_Call{Call: _e.mock.On("UpdateClientRole", ctx, realm, clientID, roleName, role)}
+}
+
+func (_c *MockClientsClient_UpdateClientRole_Call) Run(run func(ctx context.Context, realm string, clientID string, roleName string, role keycloakv2.RoleRepresentation)) *MockClientsClient_UpdateClientRole_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakv2.RoleRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakv2.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientRole_Call) Return(response *keycloakv2.Response, err error) *MockClientsClient_UpdateClientRole_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_UpdateClientRole_Call) RunAndReturn(run func(ctx context.Context, realm string, clientID string, roleName string, role keycloakv2.RoleRepresentation) (*keycloakv2.Response, error)) *MockClientsClient_UpdateClientRole_Call {
 	_c.Call.Return(run)
 	return _c
 }

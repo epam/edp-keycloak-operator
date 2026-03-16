@@ -31,3 +31,27 @@ func TestKeycloakClient_GetServerInfo(t *testing.T) {
 	require.NotEmpty(t, info.ProviderTypes)
 	require.NotEmpty(t, info.Themes)
 }
+
+func TestKeycloakClient_FeatureFlagEnabled(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	// Non-existent feature flag should return false without error
+	enabled, err := c.FeatureFlagEnabled(ctx, "definitely-does-not-exist-12345")
+	require.NoError(t, err)
+	require.False(t, enabled)
+
+	// Known feature flag should return a value without error (exact value depends on Keycloak version/config)
+	_, err = c.FeatureFlagEnabled(ctx, "ORGANIZATION")
+	require.NoError(t, err)
+}

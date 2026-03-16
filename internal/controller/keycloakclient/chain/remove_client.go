@@ -1,0 +1,54 @@
+package chain
+
+import (
+	"context"
+	"fmt"
+
+	ctrl "sigs.k8s.io/controller-runtime"
+
+	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+)
+
+func NewRemoveClient(kc *keycloakv2.KeycloakClient) *RemoveClient {
+	return &RemoveClient{
+		keycloakClient: kc.Clients,
+	}
+}
+
+type RemoveClient struct {
+	keycloakClient keycloakv2.ClientsClient
+}
+
+func (h *RemoveClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+	log := ctrl.LoggerFrom(ctx).WithValues("client_id", keycloakClient.Status.ClientID)
+
+	log.Info("Start deleting keycloak client")
+
+	if objectmeta.PreserveResourcesOnDeletion(keycloakClient) {
+		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+
+		return nil
+	}
+
+	if keycloakClient.Status.ClientID == "" {
+		log.Info("Client ID is not set in status, skipping deletion.")
+
+		return nil
+	}
+
+	if _, err := h.keycloakClient.DeleteClient(ctx, realmName, keycloakClient.Status.ClientID); err != nil {
+		if keycloakv2.IsNotFound(err) {
+			log.Info("Client not found, skipping deletion.")
+
+			return nil
+		}
+
+		return fmt.Errorf("failed to delete keycloak client: %w", err)
+	}
+
+	log.Info("Keycloak client has been deleted")
+
+	return nil
+}

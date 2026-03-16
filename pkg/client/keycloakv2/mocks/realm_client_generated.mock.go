@@ -174,6 +174,82 @@ func (_c *MockRealmClient_DeleteRealm_Call) RunAndReturn(run func(ctx context.Co
 	return _c
 }
 
+// GetAuthenticationFlows provides a mock function for the type MockRealmClient
+func (_mock *MockRealmClient) GetAuthenticationFlows(ctx context.Context, realm string) ([]keycloakv2.AuthenticationFlowRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAuthenticationFlows")
+	}
+
+	var r0 []keycloakv2.AuthenticationFlowRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]keycloakv2.AuthenticationFlowRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []keycloakv2.AuthenticationFlowRepresentation); ok {
+		r0 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.AuthenticationFlowRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, realm)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockRealmClient_GetAuthenticationFlows_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAuthenticationFlows'
+type MockRealmClient_GetAuthenticationFlows_Call struct {
+	*mock.Call
+}
+
+// GetAuthenticationFlows is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+func (_e *MockRealmClient_Expecter) GetAuthenticationFlows(ctx interface{}, realm interface{}) *MockRealmClient_GetAuthenticationFlows_Call {
+	return &MockRealmClient_GetAuthenticationFlows_Call{Call: _e.mock.On("GetAuthenticationFlows", ctx, realm)}
+}
+
+func (_c *MockRealmClient_GetAuthenticationFlows_Call) Run(run func(ctx context.Context, realm string)) *MockRealmClient_GetAuthenticationFlows_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRealmClient_GetAuthenticationFlows_Call) Return(vs []keycloakv2.AuthenticationFlowRepresentation, response *keycloakv2.Response, err error) *MockRealmClient_GetAuthenticationFlows_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockRealmClient_GetAuthenticationFlows_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]keycloakv2.AuthenticationFlowRepresentation, *keycloakv2.Response, error)) *MockRealmClient_GetAuthenticationFlows_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetRealm provides a mock function for the type MockRealmClient
 func (_mock *MockRealmClient) GetRealm(ctx context.Context, realm string) (*keycloakv2.RealmRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm)

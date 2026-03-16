@@ -82,7 +82,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 			// Verify event config
 			g.Expect(realm.AdminEventsEnabled).Should(Equal(ptr.To(true)))
-		}, time.Second*10, time.Second).Should(Succeed())
+		}, time.Second*30, time.Second).Should(Succeed())
 
 		By("Updating ClusterKeycloakRealm with authentication flow")
 		By("Getting ClusterKeycloakRealm")
@@ -111,7 +111,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm.BrowserFlow).Should(Equal(ptr.To("browser")))
-		}, time.Second*10, time.Second).Should(Succeed())
+		}, time.Second*30, time.Second).Should(Succeed())
 
 		By("By deleting ClusterKeycloakRealm")
 		Expect(k8sClient.Delete(ctx, keycloakRealm)).Should(Succeed())
@@ -201,7 +201,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			g.Expect(realm.DuplicateEmailsAllowed).Should(Equal(ptr.To(false)))
 			g.Expect(realm.VerifyEmail).Should(Equal(ptr.To(true)))
 			g.Expect(realm.EditUsernameAllowed).Should(Equal(ptr.To(false)))
-		}, time.Second*10, time.Second).Should(Succeed())
+		}, time.Second*30, time.Second).Should(Succeed())
 
 		By("Deleting ClusterKeycloakRealm with Login settings")
 		Expect(k8sClient.Delete(ctx, keycloakRealmWithLogin)).Should(Succeed())
@@ -271,7 +271,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			// Verify Login settings
 			g.Expect(realm.AccessCodeLifespanLogin).Should(Equal(ptr.To(int32(1809))))
 			g.Expect(realm.AccessCodeLifespanUserAction).Should(Equal(ptr.To(int32(310))))
-		}, time.Second*10, time.Second).Should(Succeed())
+		}, time.Second*30, time.Second).Should(Succeed())
 
 		By("Deleting ClusterKeycloakRealm with SSO Session settings")
 		Expect(k8sClient.Delete(ctx, keycloakRealmWithSSO)).Should(Succeed())

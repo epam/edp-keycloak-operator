@@ -6,28 +6,27 @@ import (
 	"maps"
 	"slices"
 
-	"github.com/Nerzal/gocloak/v12"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const resourceLogKey = "resource"
 
 type ProcessResources struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
 }
 
-func NewProcessResources(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessResources {
-	return &ProcessResources{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
+func NewProcessResources(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ProcessResources {
+	return &ProcessResources{kClient: kClient, k8sClient: k8sClient}
 }
 
-func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if keycloakClient.Spec.Authorization == nil {
@@ -35,26 +34,25 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		return nil
 	}
 
-	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
-	if err != nil {
-		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
+	clientUUID := clientCtx.ClientUUID
 
-		return fmt.Errorf("failed to get client id: %w", err)
-	}
-
-	existingResources, err := h.keycloakApiClient.GetResources(ctx, realmName, clientID)
+	resourcesList, _, err := h.kClient.Authorization.GetResources(ctx, realmName, clientUUID)
 	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
 
 		return fmt.Errorf("failed to get resources: %w", err)
 	}
 
+	existingResources := maputil.SliceToMapSelf(resourcesList, func(r keycloakv2.ResourceRepresentation) (string, bool) {
+		return *r.Name, r.Name != nil
+	})
+
 	for i := 0; i < len(keycloakClient.Spec.Authorization.Resources); i++ {
 		log.Info("Processing resource", resourceLogKey, keycloakClient.Spec.Authorization.Resources[i].Name)
 
-		var resourceRepresentation *gocloak.ResourceRepresentation
+		var resourceRepresentation keycloakv2.ResourceRepresentation
 
-		if resourceRepresentation, err = h.toResourceRepresentation(ctx, &keycloakClient.Spec.Authorization.Resources[i], clientID, realmName); err != nil {
+		if resourceRepresentation, err = h.toResourceRepresentation(ctx, &keycloakClient.Spec.Authorization.Resources[i], clientUUID, realmName); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
 
 			return fmt.Errorf("failed to convert resource: %w", err)
@@ -62,8 +60,13 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 
 		existingResource, ok := existingResources[keycloakClient.Spec.Authorization.Resources[i].Name]
 		if ok {
-			resourceRepresentation.ID = existingResource.ID
-			if err = h.keycloakApiClient.UpdateResource(ctx, realmName, clientID, *resourceRepresentation); err != nil {
+			if existingResource.UnderscoreId == nil {
+				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: resource %s has no ID", keycloakClient.Spec.Authorization.Resources[i].Name))
+
+				return fmt.Errorf("existing resource %s has no ID", keycloakClient.Spec.Authorization.Resources[i].Name)
+			}
+
+			if _, err = h.kClient.Authorization.UpdateResource(ctx, realmName, clientUUID, *existingResource.UnderscoreId, resourceRepresentation); err != nil {
 				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
 
 				return fmt.Errorf("failed to update resource: %w", err)
@@ -76,7 +79,7 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 			continue
 		}
 
-		if _, err = h.keycloakApiClient.CreateResource(ctx, realmName, clientID, *resourceRepresentation); err != nil {
+		if _, _, err = h.kClient.Authorization.CreateResource(ctx, realmName, clientUUID, resourceRepresentation); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
 
 			return fmt.Errorf("failed to create resource: %w", err)
@@ -86,7 +89,7 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 	}
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
-		if err = h.deleteResources(ctx, existingResources, realmName, clientID); err != nil {
+		if err = h.deleteResources(ctx, existingResources, realmName, clientUUID); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
 
 			return err
@@ -126,7 +129,7 @@ func (h *ProcessResources) setSuccessCondition(ctx context.Context, keycloakClie
 	}
 }
 
-func (h *ProcessResources) deleteResources(ctx context.Context, existingResources map[string]gocloak.ResourceRepresentation, realmName string, clientID string) error {
+func (h *ProcessResources) deleteResources(ctx context.Context, existingResources map[string]keycloakv2.ResourceRepresentation, realmName string, clientUUID string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for name := range existingResources {
@@ -134,8 +137,13 @@ func (h *ProcessResources) deleteResources(ctx context.Context, existingResource
 			continue
 		}
 
-		if err := h.keycloakApiClient.DeleteResource(ctx, realmName, clientID, *existingResources[name].ID); err != nil {
-			if !adapter.IsErrNotFound(err) {
+		r := existingResources[name]
+		if r.UnderscoreId == nil {
+			continue
+		}
+
+		if _, err := h.kClient.Authorization.DeleteResource(ctx, realmName, clientUUID, *r.UnderscoreId); err != nil {
+			if !keycloakv2.IsNotFound(err) {
 				return fmt.Errorf("failed to delete resource: %w", err)
 			}
 		}
@@ -146,12 +154,12 @@ func (h *ProcessResources) deleteResources(ctx context.Context, existingResource
 	return nil
 }
 
-// toResourceRepresentation converts keycloakApi.Resource to gocloak.ResourceRepresentation.
-func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resource *keycloakApi.Resource, clientID, realm string) (*gocloak.ResourceRepresentation, error) {
+// toResourceRepresentation converts keycloakApi.Resource to keycloakv2.ResourceRepresentation.
+func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resource *keycloakApi.Resource, clientUUID, realm string) (keycloakv2.ResourceRepresentation, error) {
 	keycloakResource := getBaseResourceRepresentation(resource)
 
-	if err := h.mapScopes(ctx, resource, keycloakResource, realm, clientID); err != nil {
-		return nil, fmt.Errorf("failed to map scopes: %w", err)
+	if err := h.mapScopes(ctx, resource, &keycloakResource, realm, clientUUID); err != nil {
+		return keycloakv2.ResourceRepresentation{}, fmt.Errorf("failed to map scopes: %w", err)
 	}
 
 	return keycloakResource, nil
@@ -160,22 +168,27 @@ func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resourc
 func (h *ProcessResources) mapScopes(
 	ctx context.Context,
 	resource *keycloakApi.Resource,
-	keycloakResource *gocloak.ResourceRepresentation,
+	keycloakResource *keycloakv2.ResourceRepresentation,
 	realm,
-	clientID string,
+	clientUUID string,
 ) error {
 	if len(resource.Scopes) == 0 {
-		keycloakResource.Scopes = &[]gocloak.ScopeRepresentation{}
+		emptyScopes := []keycloakv2.ScopeRepresentation{}
+		keycloakResource.Scopes = &emptyScopes
 
 		return nil
 	}
 
-	existingScopes, err := h.keycloakApiClient.GetScopes(ctx, realm, clientID)
+	scopesList, _, err := h.kClient.Authorization.GetScopes(ctx, realm, clientUUID)
 	if err != nil {
 		return fmt.Errorf("failed to get scopes: %w", err)
 	}
 
-	resourceScopes := make([]gocloak.ScopeRepresentation, 0, len(resource.Scopes))
+	existingScopes := maputil.SliceToMapSelf(scopesList, func(s keycloakv2.ScopeRepresentation) (string, bool) {
+		return *s.Name, s.Name != nil
+	})
+
+	resourceScopes := make([]keycloakv2.ScopeRepresentation, 0, len(resource.Scopes))
 
 	for _, r := range resource.Scopes {
 		existingScope, ok := existingScopes[r]
@@ -183,7 +196,7 @@ func (h *ProcessResources) mapScopes(
 			return fmt.Errorf("scope %s does not exist", r)
 		}
 
-		if existingScope.ID == nil {
+		if existingScope.Id == nil {
 			return fmt.Errorf("scope %s does not have ID", r)
 		}
 
@@ -195,20 +208,24 @@ func (h *ProcessResources) mapScopes(
 	return nil
 }
 
-func getBaseResourceRepresentation(resource *keycloakApi.Resource) *gocloak.ResourceRepresentation {
-	r := &gocloak.ResourceRepresentation{
+func getBaseResourceRepresentation(resource *keycloakApi.Resource) keycloakv2.ResourceRepresentation {
+	r := keycloakv2.ResourceRepresentation{
 		Name:               &resource.Name,
 		DisplayName:        &resource.DisplayName,
 		Type:               &resource.Type,
-		IconURI:            &resource.IconURI,
+		IconUri:            &resource.IconURI,
 		OwnerManagedAccess: &resource.OwnerManagedAccess,
 	}
 
 	uris := slices.Clone(resource.URIs)
-	r.URIs = &uris
+	r.Uris = &uris
 
 	attributes := make(map[string][]string, len(resource.Attributes))
 	maps.Copy(attributes, resource.Attributes)
+
+	if len(attributes) > 0 {
+		r.Attributes = &attributes
+	}
 
 	return r
 }
