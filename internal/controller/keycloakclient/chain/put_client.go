@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"maps"
 
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -15,9 +16,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -34,35 +34,36 @@ type secretRef interface {
 }
 
 type PutClient struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
-	secretRef         secretRef
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
+	secretRef secretRef
 }
 
-func NewPutClient(keycloakApiClient keycloak.Client, k8sClient client.Client, secretRef secretRef) *PutClient {
-	return &PutClient{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient, secretRef: secretRef}
+func NewPutClient(kClient *keycloakv2.KeycloakClient, k8sClient client.Client, secretRef secretRef) *PutClient {
+	return &PutClient{kClient: kClient, k8sClient: k8sClient, secretRef: secretRef}
 }
 
-func (el *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
-	id, err := el.putKeycloakClient(ctx, keycloakClient, realmName)
+func (h *PutClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
+	id, err := h.putKeycloakClient(ctx, keycloakClient, realmName)
 	if err != nil {
-		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync client: %s", err.Error()))
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync client: %s", err.Error()))
 
 		return fmt.Errorf("unable to put keycloak client: %w", err)
 	}
 
 	keycloakClient.Status.ClientID = id
+	clientCtx.ClientUUID = id
 
-	el.setSuccessCondition(ctx, keycloakClient, "Client synchronized with Keycloak")
+	h.setSuccessCondition(ctx, keycloakClient, "Client synchronized with Keycloak")
 
 	return nil
 }
 
-func (el *PutClient) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutClient) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionClientSynced,
 		metav1.ConditionFalse,
 		ReasonKeycloakAPIError,
@@ -72,11 +73,11 @@ func (el *PutClient) setFailureCondition(ctx context.Context, keycloakClient *ke
 	}
 }
 
-func (el *PutClient) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutClient) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionClientSynced,
 		metav1.ConditionTrue,
 		ReasonClientUpdated,
@@ -86,7 +87,7 @@ func (el *PutClient) setSuccessCondition(ctx context.Context, keycloakClient *ke
 	}
 }
 
-func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (string, error) {
+func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (string, error) {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start creation of Keycloak client")
 
@@ -96,73 +97,79 @@ func (el *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keyc
 	)
 
 	if keycloakClient.Spec.AuthenticationFlowBindingOverrides != nil {
-		authFlowOverrides, err = el.getAuthFlows(keycloakClient, realmName)
+		authFlowOverrides, err = h.getAuthFlows(ctx, keycloakClient, realmName)
 		if err != nil {
 			return "", fmt.Errorf("unable to get auth flows: %w", err)
 		}
 	}
 
-	clientDto, err := el.convertCrToDto(ctx, keycloakClient, realmName, authFlowOverrides)
+	clientSecret, err := h.getClientSecret(ctx, keycloakClient)
 	if err != nil {
-		return "", fmt.Errorf("error during convertCrToDto: %w", err)
+		return "", fmt.Errorf("error getting client secret: %w", err)
 	}
 
-	clientID, err := el.keycloakApiClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
-	if err != nil && !adapter.IsErrNotFound(err) {
+	clientRep := convertSpecToClientRepresentation(&keycloakClient.Spec, clientSecret, authFlowOverrides)
+
+	existingClient, _, err := h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
+	if err != nil && !keycloakv2.IsNotFound(err) {
 		return "", fmt.Errorf("unable to check client id: %w", err)
 	}
 
-	if clientID != "" {
+	if existingClient != nil && existingClient.Id != nil {
 		log.Info("Client already exists")
 
-		clientDto.ID = clientID
-		if updErr := el.keycloakApiClient.UpdateClient(ctx, clientDto); updErr != nil {
+		clientUUID := *existingClient.Id
+		if _, updErr := h.kClient.Clients.UpdateClient(ctx, realmName, clientUUID, clientRep); updErr != nil {
 			return "", fmt.Errorf("unable to update keycloak client: %w", updErr)
 		}
 
-		return clientID, nil
+		return clientUUID, nil
 	}
 
-	err = el.keycloakApiClient.CreateClient(ctx, clientDto)
+	resp, err := h.kClient.Clients.CreateClient(ctx, realmName, clientRep)
 	if err != nil {
 		return "", fmt.Errorf("unable to create client: %w", err)
 	}
 
 	log.Info("End put keycloak client")
 
-	id, err := el.keycloakApiClient.GetClientID(clientDto.ClientId, clientDto.RealmName)
-	if err != nil {
-		return "", fmt.Errorf("unable to check client id: %w", err)
+	id := keycloakv2.GetResourceIDFromResponse(resp)
+	if id == "" {
+		// Fallback: look up the client to get the UUID
+		created, _, lookupErr := h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
+		if lookupErr != nil {
+			return "", fmt.Errorf("unable to get client id after creation: %w", lookupErr)
+		}
+
+		if created == nil || created.Id == nil {
+			return "", fmt.Errorf("created client has no ID")
+		}
+
+		id = *created.Id
 	}
 
 	return id, nil
 }
 
-func (el *PutClient) convertCrToDto(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, authflowOverrides map[string]string) (*dto.Client, error) {
+func (h *PutClient) getClientSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	if keycloakClient.Spec.Public {
-		res := dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, authflowOverrides)
-		return res, nil
+		return "", nil
 	}
 
-	secret, err := el.getSecret(ctx, keycloakClient)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get secret, err: %w", err)
-	}
-
-	return dto.ConvertSpecToClient(&keycloakClient.Spec, secret, realmName, authflowOverrides), nil
+	return h.getSecret(ctx, keycloakClient)
 }
 
-func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
+func (h *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	if keycloakClient.Spec.Secret != "" {
 		// We need to set secret in a new format for old clients for backward compatibility.
 		// TODO: This code can be removed in the future.
 		if !secretref.HasSecretRef(keycloakClient.Spec.Secret) {
-			if err := el.setSecretRef(ctx, keycloakClient); err != nil {
+			if err := h.setSecretRef(ctx, keycloakClient); err != nil {
 				return "", err
 			}
 		}
 
-		secretVal, err := el.secretRef.GetSecretFromRef(ctx, keycloakClient.Spec.Secret, keycloakClient.Namespace)
+		secretVal, err := h.secretRef.GetSecretFromRef(ctx, keycloakClient.Spec.Secret, keycloakClient.Namespace)
 		if err != nil {
 			return "", fmt.Errorf("unable to get secret from ref: %w", err)
 		}
@@ -170,15 +177,15 @@ func (el *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.
 		return secretVal, nil
 	}
 
-	return el.generateSecret(ctx, keycloakClient)
+	return h.generateSecret(ctx, keycloakClient)
 }
 
-func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
+func (h *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) (string, error) {
 	var clientSecret corev1.Secret
 
 	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
 
-	secretErr := el.k8sClient.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace,
+	secretErr := h.k8sClient.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace,
 		Name: secretName}, &clientSecret)
 	if secretErr != nil && !k8sErrors.IsNotFound(secretErr) {
 		return "", fmt.Errorf("unable to check client secret existence: %w", secretErr)
@@ -198,47 +205,49 @@ func (el *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloa
 			},
 		}
 
-		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, el.k8sClient.Scheme()); err != nil {
+		if err := controllerutil.SetControllerReference(keycloakClient, &clientSecret, h.k8sClient.Scheme()); err != nil {
 			return "", fmt.Errorf("unable to set controller ref for secret: %w", err)
 		}
 
-		if err := el.k8sClient.Create(ctx, &clientSecret); err != nil {
+		if err := h.k8sClient.Create(ctx, &clientSecret); err != nil {
 			return "", fmt.Errorf("unable to create secret %+v, err: %w", clientSecret, err)
 		}
 	}
 
 	keycloakClient.Spec.Secret = secretref.GenerateSecretRef(clientSecret.Name, keycloakApi.ClientSecretKey)
 
-	if err := el.k8sClient.Update(ctx, keycloakClient); err != nil {
+	if err := h.k8sClient.Update(ctx, keycloakClient); err != nil {
 		return "", fmt.Errorf("unable to update client with new secret: %s, err: %w", clientSecret.Name, err)
 	}
 
 	return string(clientSecret.Data[keycloakApi.ClientSecretKey]), nil
 }
 
-func (el *PutClient) setSecretRef(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) error {
+func (h *PutClient) setSecretRef(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient) error {
 	ref := secretref.GenerateSecretRef(keycloakClient.Spec.Secret, keycloakApi.ClientSecretKey)
 	keycloakClient.Spec.Secret = ref
 
-	if err := el.k8sClient.Update(ctx, keycloakClient); err != nil {
+	if err := h.k8sClient.Update(ctx, keycloakClient); err != nil {
 		return fmt.Errorf("unable to update client with secret ref %s: %w", ref, err)
 	}
 
 	return nil
 }
 
-func (el *PutClient) getAuthFlows(keycloakClient *keycloakApi.KeycloakClient, realmName string) (map[string]string, error) {
+func (h *PutClient) getAuthFlows(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) (map[string]string, error) {
 	clientAuthFlows := keycloakClient.Spec.AuthenticationFlowBindingOverrides
 
-	flows, err := el.keycloakApiClient.GetRealmAuthFlows(realmName)
+	flows, _, err := h.kClient.Realms.GetAuthenticationFlows(ctx, realmName)
 	if err != nil {
 		return nil, fmt.Errorf("unable to get realm: %w", err)
 	}
 
-	realmAuthFlows := make(map[string]string)
-	for i := range flows {
-		realmAuthFlows[flows[i].Alias] = flows[i].ID
-	}
+	realmAuthFlows := maputil.SliceToMap(flows,
+		func(f keycloakv2.AuthenticationFlowRepresentation) (string, bool) {
+			return *f.Alias, f.Alias != nil && f.Id != nil
+		},
+		func(f keycloakv2.AuthenticationFlowRepresentation) string { return *f.Id },
+	)
 
 	authFlowOverrides := make(map[string]string)
 
@@ -269,4 +278,94 @@ func generateSecureSecret() (string, error) {
 	}
 
 	return base64.URLEncoding.EncodeToString(bytes), nil
+}
+
+// convertSpecToClientRepresentation converts KeycloakClientSpec to keycloakv2.ClientRepresentation.
+func convertSpecToClientRepresentation(
+	spec *keycloakApi.KeycloakClientSpec,
+	clientSecret string,
+	authFlowOverrides map[string]string,
+) keycloakv2.ClientRepresentation {
+	serviceAccountsEnabled := spec.ServiceAccount != nil && spec.ServiceAccount.Enabled
+
+	protocol := ""
+	if spec.Protocol != nil {
+		protocol = *spec.Protocol
+	}
+
+	cr := keycloakv2.ClientRepresentation{
+		ClientId:                     &spec.ClientId,
+		Name:                         &spec.Name,
+		Description:                  &spec.Description,
+		Enabled:                      &spec.Enabled,
+		PublicClient:                 &spec.Public,
+		DirectAccessGrantsEnabled:    &spec.DirectAccess,
+		StandardFlowEnabled:          &spec.StandardFlowEnabled,
+		ImplicitFlowEnabled:          &spec.ImplicitFlowEnabled,
+		AuthorizationServicesEnabled: &spec.AuthorizationServicesEnabled,
+		BearerOnly:                   &spec.BearerOnly,
+		ConsentRequired:              &spec.ConsentRequired,
+		FullScopeAllowed:             &spec.FullScopeAllowed,
+		SurrogateAuthRequired:        &spec.SurrogateAuthRequired,
+		ServiceAccountsEnabled:       &serviceAccountsEnabled,
+		FrontchannelLogout:           &spec.FrontChannelLogout,
+		ClientAuthenticatorType:      &spec.ClientAuthenticatorType,
+	}
+
+	if protocol != "" {
+		cr.Protocol = &protocol
+	}
+
+	if spec.WebUrl != "" {
+		cr.RootUrl = &spec.WebUrl
+
+		if spec.HomeUrl == "" {
+			cr.BaseUrl = &spec.WebUrl
+		}
+	}
+
+	if spec.HomeUrl != "" {
+		cr.BaseUrl = &spec.HomeUrl
+	}
+
+	if spec.AdminUrl != "" {
+		cr.AdminUrl = &spec.AdminUrl
+	}
+
+	if clientSecret != "" {
+		cr.Secret = &clientSecret
+	}
+
+	if len(spec.Attributes) > 0 {
+		attrs := make(map[string]string, len(spec.Attributes))
+		maps.Copy(attrs, spec.Attributes)
+
+		cr.Attributes = &attrs
+	}
+
+	if len(spec.RedirectUris) > 0 {
+		uris := make([]string, len(spec.RedirectUris))
+		copy(uris, spec.RedirectUris)
+
+		cr.RedirectUris = &uris
+	} else if spec.WebUrl != "" {
+		uris := []string{spec.WebUrl + "/*"}
+		cr.RedirectUris = &uris
+	}
+
+	if len(spec.WebOrigins) > 0 {
+		origins := make([]string, len(spec.WebOrigins))
+		copy(origins, spec.WebOrigins)
+
+		cr.WebOrigins = &origins
+	} else if spec.WebUrl != "" {
+		origins := []string{spec.WebUrl}
+		cr.WebOrigins = &origins
+	}
+
+	if len(authFlowOverrides) > 0 {
+		cr.AuthenticationFlowBindingOverrides = &authFlowOverrides
+	}
+
+	return cr
 }

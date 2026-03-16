@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"errors"
-	"reflect"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -11,11 +10,13 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestPutProtocolMappers_Serve(t *testing.T) {
@@ -31,7 +32,7 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 	type args struct {
 		keycloakClient *keycloakApi.KeycloakClient
 		realmName      string
-		adapterClient  func(t *testing.T) *mocks.MockClient
+		adapterClient  func(t *testing.T) *keycloakv2.KeycloakClient
 	}
 
 	tests := []struct {
@@ -67,14 +68,14 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(1),
-						false, // not add-only (full reconciliation)
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.Anything).
+						Return((*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -113,14 +114,18 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(2),
-						false,
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.MatchedBy(func(m keycloakv2.ProtocolMapperRepresentation) bool {
+						return m.Name != nil && *m.Name == "username-mapper"
+					})).Return((*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.MatchedBy(func(m keycloakv2.ProtocolMapperRepresentation) bool {
+						return m.Name != nil && *m.Name == "role-mapper"
+					})).Return((*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -150,14 +155,15 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(1),
-						true, // add-only reconciliation
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.Anything).
+						Return((*keycloakv2.Response)(nil), nil)
+					// No DeleteClientProtocolMapper call expected (addOnly)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -177,14 +183,12 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(0), // empty slice
-						false,
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -204,14 +208,12 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(0),
-						false,
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -238,14 +240,14 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(1),
-						false,
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.Anything).
+						Return((*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -272,20 +274,179 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(1),
-						false,
-					).Return(nil)
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.Anything).
+						Return((*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
 		},
 		{
-			name: "error when SyncClientProtocolMapper fails",
+			name: "error when GetClientProtocolMappers fails",
+			args: args{
+				keycloakClient: &keycloakApi.KeycloakClient{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-client",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakClientSpec{
+						ClientId: "test-client-id",
+						RealmRef: common.RealmRef{Name: "test-realm"},
+					},
+				},
+				realmName: "test-realm",
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return(nil, (*keycloakv2.Response)(nil), errors.New("api error"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get existing protocol mappers")
+			},
+		},
+		{
+			name: "error when UpdateClientProtocolMapper fails",
+			args: args{
+				keycloakClient: &keycloakApi.KeycloakClient{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-client",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakClientSpec{
+						ClientId: "test-client-id",
+						RealmRef: common.RealmRef{Name: "test-realm"},
+						ProtocolMappers: &[]keycloakApi.ProtocolMapper{
+							{
+								Name:           "test-mapper",
+								Protocol:       "openid-connect",
+								ProtocolMapper: "oidc-usermodel-property-mapper",
+								Config:         map[string]string{"key": "val"},
+							},
+						},
+					},
+				},
+				realmName: "test-realm",
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{
+							{Name: ptr.To("test-mapper"), Id: ptr.To("mapper-id")},
+						}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("UpdateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", "mapper-id", mock.Anything).
+						Return((*keycloakv2.Response)(nil), errors.New("update failed"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to update protocol mapper test-mapper")
+			},
+		},
+		{
+			name: "error when DeleteClientProtocolMapper returns non-404 error",
+			args: args{
+				keycloakClient: &keycloakApi.KeycloakClient{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-client",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakClientSpec{
+						ClientId:        "test-client-id",
+						RealmRef:        common.RealmRef{Name: "test-realm"},
+						ProtocolMappers: &[]keycloakApi.ProtocolMapper{},
+					},
+				},
+				realmName: "test-realm",
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{
+							{Name: ptr.To("stale-mapper"), Id: ptr.To("stale-id")},
+						}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("DeleteClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", "stale-id").
+						Return((*keycloakv2.Response)(nil), errors.New("server error"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to delete protocol mapper stale-mapper")
+			},
+		},
+		{
+			name: "existing mapper with nil Id skips update",
+			args: args{
+				keycloakClient: &keycloakApi.KeycloakClient{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-client",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakClientSpec{
+						ClientId: "test-client-id",
+						RealmRef: common.RealmRef{Name: "test-realm"},
+						ProtocolMappers: &[]keycloakApi.ProtocolMapper{
+							{
+								Name:           "test-mapper",
+								Protocol:       "openid-connect",
+								ProtocolMapper: "oidc-usermodel-property-mapper",
+								Config:         map[string]string{"key": "val"},
+							},
+						},
+					},
+				},
+				realmName: "test-realm",
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{
+							{Name: ptr.To("test-mapper"), Id: nil},
+						}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "delete skips mapper with nil Id",
+			args: args{
+				keycloakClient: &keycloakApi.KeycloakClient{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-client",
+						Namespace: "default",
+					},
+					Spec: keycloakApi.KeycloakClientSpec{
+						ClientId:        "test-client-id",
+						RealmRef:        common.RealmRef{Name: "test-realm"},
+						ProtocolMappers: &[]keycloakApi.ProtocolMapper{},
+					},
+				},
+				realmName: "test-realm",
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{
+							{Name: ptr.To("orphan-mapper"), Id: nil},
+						}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "error when CreateClientProtocolMapper fails",
 			args: args{
 				keycloakClient: &keycloakApi.KeycloakClient{
 					ObjectMeta: metav1.ObjectMeta{
@@ -308,21 +469,20 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 					},
 				},
 				realmName: "test-realm",
-				adapterClient: func(t *testing.T) *mocks.MockClient {
-					m := mocks.NewMockClient(t)
-					m.On("SyncClientProtocolMapper",
-						mock.Anything,
-						mockMatchProtocolMappers(1),
-						false,
-					).Return(errors.New("sync failed"))
-					return m
+				adapterClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientProtocolMappers", mock.Anything, "test-realm", "client-uuid").
+						Return([]keycloakv2.ProtocolMapperRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("CreateClientProtocolMapper", mock.Anything, "test-realm", "client-uuid", mock.Anything).
+						Return((*keycloakv2.Response)(nil), errors.New("creation failed"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to put protocol mappers")
-				require.Contains(t, err.Error(), "unable to sync protocol mapper")
-				require.Contains(t, err.Error(), "sync failed")
+				require.Contains(t, err.Error(), "unable to create protocol mapper")
 			},
 		},
 	}
@@ -345,25 +505,8 @@ func TestPutProtocolMappers_Serve(t *testing.T) {
 				Build()
 
 			el := NewPutProtocolMappers(tt.args.adapterClient(t), k8sClient)
-			err := el.Serve(context.Background(), tt.args.keycloakClient, tt.args.realmName)
+			err := el.Serve(context.Background(), tt.args.keycloakClient, tt.args.realmName, &ClientContext{ClientUUID: "client-uuid"})
 			tt.wantErr(t, err)
 		})
 	}
-}
-
-// mockMatchProtocolMappers is a helper function to match protocol mappers slice in mock calls
-func mockMatchProtocolMappers(expectedCount int) any {
-	return mock.MatchedBy(func(mappers any) bool {
-		if mappers == nil {
-			return expectedCount == 0
-		}
-
-		// Use reflection to check slice length without importing gocloak
-		if reflect.TypeOf(mappers).Kind() == reflect.Slice {
-			sliceValue := reflect.ValueOf(mappers)
-			return sliceValue.Len() == expectedCount
-		}
-
-		return false
-	})
 }

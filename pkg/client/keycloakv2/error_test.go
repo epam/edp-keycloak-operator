@@ -165,6 +165,17 @@ func TestApiError_Helpers(t *testing.T) {
 	})
 }
 
+func TestSkipConflict(t *testing.T) {
+	assert.NoError(t, SkipConflict(nil))
+	assert.NoError(t, SkipConflict(&ApiError{Code: http.StatusConflict}))
+
+	otherErr := errors.New("other error")
+	assert.Equal(t, otherErr, SkipConflict(otherErr))
+
+	notFoundErr := &ApiError{Code: http.StatusNotFound}
+	assert.Equal(t, notFoundErr, SkipConflict(notFoundErr))
+}
+
 func TestHelperFunctions(t *testing.T) {
 	t.Run("IsNotFound", func(t *testing.T) {
 		// Test with ApiError

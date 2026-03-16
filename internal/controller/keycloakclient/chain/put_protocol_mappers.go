@@ -5,42 +5,42 @@ import (
 	"fmt"
 	"maps"
 
-	"github.com/Nerzal/gocloak/v12"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type PutProtocolMappers struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
 }
 
-func NewPutProtocolMappers(keycloakApiClient keycloak.Client, k8sClient client.Client) *PutProtocolMappers {
-	return &PutProtocolMappers{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
+func NewPutProtocolMappers(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutProtocolMappers {
+	return &PutProtocolMappers{kClient: kClient, k8sClient: k8sClient}
 }
 
-func (el *PutProtocolMappers) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
-	if err := el.putProtocolMappers(keycloakClient, realmName); err != nil {
-		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync protocol mappers: %s", err.Error()))
+func (h *PutProtocolMappers) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
+	if err := h.putProtocolMappers(ctx, keycloakClient, realmName, clientCtx.ClientUUID); err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync protocol mappers: %s", err.Error()))
 
 		return fmt.Errorf("unable to put protocol mappers: %w", err)
 	}
 
-	el.setSuccessCondition(ctx, keycloakClient, "Protocol mappers synchronized")
+	h.setSuccessCondition(ctx, keycloakClient, "Protocol mappers synchronized")
 
 	return nil
 }
 
-func (el *PutProtocolMappers) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutProtocolMappers) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionProtocolMappersSynced,
 		metav1.ConditionFalse,
 		ReasonKeycloakAPIError,
@@ -50,11 +50,11 @@ func (el *PutProtocolMappers) setFailureCondition(ctx context.Context, keycloakC
 	}
 }
 
-func (el *PutProtocolMappers) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutProtocolMappers) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionProtocolMappersSynced,
 		metav1.ConditionTrue,
 		ReasonProtocolMappersSynced,
@@ -64,30 +64,69 @@ func (el *PutProtocolMappers) setSuccessCondition(ctx context.Context, keycloakC
 	}
 }
 
-func (el *PutProtocolMappers) putProtocolMappers(keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
-	var protocolMappers []gocloak.ProtocolMapperRepresentation
+func (h *PutProtocolMappers) putProtocolMappers(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string) error {
+	addOnly := keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly
+
+	// Get existing protocol mappers
+	existingMappers, _, err := h.kClient.Clients.GetClientProtocolMappers(ctx, realmName, clientUUID)
+	if err != nil {
+		return fmt.Errorf("unable to get existing protocol mappers: %w", err)
+	}
+
+	existingMapperMap := maputil.SliceToMapSelf(existingMappers, func(m keycloakv2.ProtocolMapperRepresentation) (string, bool) {
+		return *m.Name, m.Name != nil
+	})
+
+	// Build desired mappers
+	desiredMappers := make(map[string]keycloakv2.ProtocolMapperRepresentation)
 
 	if keycloakClient.Spec.ProtocolMappers != nil {
-		protocolMappers = make([]gocloak.ProtocolMapperRepresentation, 0,
-			len(*keycloakClient.Spec.ProtocolMappers))
-
 		for _, mapper := range *keycloakClient.Spec.ProtocolMappers {
 			configCopy := make(map[string]string, len(mapper.Config))
 			maps.Copy(configCopy, mapper.Config)
 
-			protocolMappers = append(protocolMappers, gocloak.ProtocolMapperRepresentation{
-				Name:           gocloak.StringP(mapper.Name),
-				Protocol:       gocloak.StringP(mapper.Protocol),
-				ProtocolMapper: gocloak.StringP(mapper.ProtocolMapper),
+			desiredMappers[mapper.Name] = keycloakv2.ProtocolMapperRepresentation{
+				Name:           ptr.To(mapper.Name),
+				Protocol:       ptr.To(mapper.Protocol),
+				ProtocolMapper: ptr.To(mapper.ProtocolMapper),
 				Config:         &configCopy,
-			})
+			}
 		}
 	}
 
-	if err := el.keycloakApiClient.SyncClientProtocolMapper(
-		dto.ConvertSpecToClient(&keycloakClient.Spec, "", realmName, nil),
-		protocolMappers, keycloakClient.GetReconciliationStrategy() == keycloakApi.ReconciliationStrategyAddOnly); err != nil {
-		return fmt.Errorf("unable to sync protocol mapper: %w", err)
+	// Create or update mappers
+	for name, desired := range desiredMappers {
+		existing, exists := existingMapperMap[name]
+		if exists {
+			// Update: set the ID from existing mapper
+			if existing.Id != nil {
+				desired.Id = existing.Id
+
+				if _, err := h.kClient.Clients.UpdateClientProtocolMapper(ctx, realmName, clientUUID, *existing.Id, desired); err != nil {
+					return fmt.Errorf("unable to update protocol mapper %s: %w", name, err)
+				}
+			}
+
+			delete(existingMapperMap, name)
+		} else {
+			// Create
+			if _, err := h.kClient.Clients.CreateClientProtocolMapper(ctx, realmName, clientUUID, desired); err != nil {
+				return fmt.Errorf("unable to create protocol mapper %s: %w", name, err)
+			}
+		}
+	}
+
+	// Delete removed mappers (unless addOnly)
+	if !addOnly {
+		for name, mapper := range existingMapperMap {
+			if mapper.Id != nil {
+				if _, err := h.kClient.Clients.DeleteClientProtocolMapper(ctx, realmName, clientUUID, *mapper.Id); err != nil {
+					if !keycloakv2.IsNotFound(err) {
+						return fmt.Errorf("unable to delete protocol mapper %s: %w", name, err)
+					}
+				}
+			}
+		}
 	}
 
 	return nil

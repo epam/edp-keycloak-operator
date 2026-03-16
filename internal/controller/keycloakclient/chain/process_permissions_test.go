@@ -5,18 +5,18 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestProcessPermissions_Serve(t *testing.T) {
@@ -31,16 +31,16 @@ func TestProcessPermissions_Serve(t *testing.T) {
 	require.NoError(t, corev1.AddToScheme(s))
 
 	tests := []struct {
-		name              string
-		keycloakClient    *keycloakApi.KeycloakClient
-		keycloakApiClient func(t *testing.T) keycloak.Client
-		wantErr           require.ErrorAssertionFunc
+		name           string
+		keycloakClient *keycloakApi.KeycloakClient
+		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
+		wantErr        require.ErrorAssertionFunc
 	}{
 		{
 			name:           "client has no authorization settings",
 			keycloakClient: &keycloakApi.KeycloakClient{},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				return mocks.NewMockClient(t)
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				return &keycloakv2.KeycloakClient{}
 			},
 			wantErr: require.NoError,
 		},
@@ -67,69 +67,72 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{
-						"resource-permission2": {
-							ID:   gocloak.StringP("resource-permission2-id"),
-							Name: gocloak.StringP("resource-permission2"),
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("resource-permission2-id"),
+							Name: ptr.To("resource-permission2"),
 						},
-						"scope-permission": {
-							ID:   gocloak.StringP("scope-permission-id"),
-							Name: gocloak.StringP("scope permission"),
+						{
+							Id:   ptr.To("scope-permission-id"),
+							Name: ptr.To("scope-permission"),
 						},
-					}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
 						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("policy-id"),
+							Name: ptr.To("policy"),
 						},
-					}, nil).Twice()
-				client.On("GetScopes", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ScopeRepresentation{
-						"scope": {
-							ID:   gocloak.StringP("scope-id"),
-							Name: gocloak.StringP("scope"),
+					}, (*keycloakv2.Response)(nil), nil).Twice()
+				authzMock.On("GetScopes", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ScopeRepresentation{
+						{
+							Id:   ptr.To("scope-id"),
+							Name: ptr.To("scope"),
 						},
-					}, nil).Once()
-				client.On(
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"UpdatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return *p.Name == "scope-permission" && *p.ID == "scope-permission-id"
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
+						return p.Name != nil && *p.Name == "scope-permission" && p.Id != nil && *p.Id == "scope-permission-id"
 					})).
-					Return(nil).Once()
-				client.On(
+					Return((*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"CreatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
 						return p.Name != nil && *p.Name == permissionName
 					})).
-					Return(nil, nil).Once()
-				client.On(
+					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"DeletePermission",
 					mock.Anything,
 					"master",
 					"clientID",
 					"resource-permission2-id").
-					Return(nil).Once()
+					Return((*keycloakv2.Response)(nil), nil).Once()
 
-				return client
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -157,66 +160,69 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client-2", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{
-						"resource-permission2": {
-							ID:   gocloak.StringP("resource-permission2-id"),
-							Name: gocloak.StringP("resource-permission2"),
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("resource-permission2-id"),
+							Name: ptr.To("resource-permission2"),
 						},
-						"scope-permission": {
-							ID:   gocloak.StringP("scope-permission-id"),
-							Name: gocloak.StringP("scope permission"),
+						{
+							Id:   ptr.To("scope-permission-id"),
+							Name: ptr.To("scope-permission"),
 						},
-						"token-exchange": {
-							ID:   gocloak.StringP("token-exchange-id"),
-							Name: gocloak.StringP("token exchange"),
+						{
+							Id:   ptr.To("token-exchange-id"),
+							Name: ptr.To("token-exchange"),
 						},
-					}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
 						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("policy-id"),
+							Name: ptr.To("policy"),
 						},
-					}, nil).Twice()
-				client.On("GetScopes", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ScopeRepresentation{
-						"scope": {
-							ID:   gocloak.StringP("scope-id"),
-							Name: gocloak.StringP("scope"),
+					}, (*keycloakv2.Response)(nil), nil).Twice()
+				authzMock.On("GetScopes", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ScopeRepresentation{
+						{
+							Id:   ptr.To("scope-id"),
+							Name: ptr.To("scope"),
 						},
-					}, nil).Once()
-				client.On(
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"UpdatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return *p.Name == "scope-permission" && *p.ID == "scope-permission-id"
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
+						return p.Name != nil && *p.Name == "scope-permission" && p.Id != nil && *p.Id == "scope-permission-id"
 					})).
-					Return(nil).Once()
-				client.On(
+					Return((*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"CreatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
 						return p.Name != nil && *p.Name == permissionName
 					})).
-					Return(nil, nil).Once()
+					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Once()
 
-				return client
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -237,49 +243,50 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{
-						"resource-permission2": {
-							ID:   gocloak.StringP("resource-permission2-id"),
-							Name: gocloak.StringP("resource-permission2"),
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("resource-permission2-id"),
+							Name: ptr.To("resource-permission2"),
 						},
-					}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
 						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("policy-id"),
+							Name: ptr.To("policy"),
 						},
-					}, nil).Once()
-				client.On(
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"CreatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
 						return p.Name != nil && *p.Name == permissionName
 					})).
-					Return(nil, nil).Once()
-				client.On(
+					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"DeletePermission",
 					mock.Anything,
 					"master",
 					"clientID",
 					"resource-permission2-id").
-					Return(errors.New("failed to delete permission")).Once()
+					Return((*keycloakv2.Response)(nil), errors.New("failed to delete permission")).Once()
 
-				return client
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
@@ -303,42 +310,44 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{
-						permissionName: {
-							ID:   gocloak.StringP(permissionName + "-id"),
-							Name: gocloak.StringP(permissionName),
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To(permissionName + "-id"),
+							Name: ptr.To(permissionName),
 						},
-					}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
 						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("policy-id"),
+							Name: ptr.To("policy"),
 						},
-					}, nil).Once()
-				client.On(
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"UpdatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
-						return *p.Name == permissionName && *p.ID == permissionName+"-id"
+					mock.Anything,
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
+						return p.Name != nil && *p.Name == permissionName && p.Id != nil && *p.Id == permissionName+"-id"
 					})).
-					Return(errors.New("failed to update permission")).Once()
+					Return((*keycloakv2.Response)(nil), errors.New("failed to update permission")).Once()
 
-				return client
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
@@ -362,37 +371,38 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
 						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("policy-id"),
+							Name: ptr.To("policy"),
 						},
-					}, nil).Once()
-				client.On(
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On(
 					"CreatePermission",
 					mock.Anything,
 					"master",
 					"clientID",
-					mock.MatchedBy(func(p gocloak.PermissionRepresentation) bool {
+					mock.Anything,
+					mock.MatchedBy(func(p keycloakv2.PolicyRepresentation) bool {
 						return p.Name != nil && *p.Name == permissionName
 					})).
-					Return(nil, errors.New("failed to create permission")).Once()
+					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("failed to create permission")).Once()
 
-				return client
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
@@ -416,28 +426,23 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
-						},
-					}, nil).Once()
-				client.On("GetPolicies", mock.Anything, "master", "clientID").
-					Return(map[string]*gocloak.PolicyRepresentation{
-						"policy": {
-							ID:   gocloak.StringP("policy-id"),
-							Name: gocloak.StringP("policy"),
-						},
-					}, errors.New("failed to get policies"))
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
 
-				return client
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.ResourceRepresentation{
+						{
+							UnderscoreId: ptr.To("resource-id"),
+							Name:         ptr.To("resource"),
+						},
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetPolicies", mock.Anything, "master", "clientID").
+					Return(nil, (*keycloakv2.Response)(nil), errors.New("failed to get policies"))
+
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
@@ -461,21 +466,16 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.PermissionRepresentation{}, nil).Once()
-				client.On("GetResources", mock.Anything, "master", "clientID").
-					Return(map[string]gocloak.ResourceRepresentation{
-						"resource": {
-							ID:   gocloak.StringP("resource-id"),
-							Name: gocloak.StringP("resource"),
-						},
-					}, errors.New("failed to get resources"))
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
 
-				return client
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil).Once()
+				authzMock.On("GetResources", mock.Anything, "master", "clientID").
+					Return(nil, (*keycloakv2.Response)(nil), errors.New("failed to get resources"))
+
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
@@ -499,47 +499,18 @@ func TestProcessPermissions_Serve(t *testing.T) {
 					},
 				},
 			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("clientID", nil).Once()
-				client.On("GetPermissions", mock.Anything, "master", "clientID").
-					Return(nil, errors.New("failed to get permissions"))
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
 
-				return client
+				authzMock.On("GetPermissions", mock.Anything, "master", "clientID").
+					Return(nil, (*keycloakv2.Response)(nil), errors.New("failed to get permissions"))
+
+				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to get permissions")
-			},
-		},
-		{
-			name: "failed to get client id",
-			keycloakClient: &keycloakApi.KeycloakClient{
-				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "client",
-					Authorization: &keycloakApi.Authorization{
-						Permissions: []keycloakApi.Permission{
-							{
-								Name:      permissionName,
-								Type:      keycloakApi.PermissionTypeResource,
-								Policies:  []string{"policy"},
-								Resources: []string{"resource"},
-							},
-						},
-					},
-				},
-			},
-			keycloakApiClient: func(t *testing.T) keycloak.Client {
-				client := mocks.NewMockClient(t)
-				client.On("GetClientID", "client", "master").
-					Return("", errors.New("failed to get client id"))
-
-				return client
-			},
-			wantErr: func(t require.TestingT, err error, i ...any) {
-				require.Error(t, err)
-				require.Contains(t, err.Error(), "failed to get client id")
 			},
 		},
 	}
@@ -561,8 +532,8 @@ func TestProcessPermissions_Serve(t *testing.T) {
 				WithStatusSubresource(tt.keycloakClient).
 				Build()
 
-			h := NewProcessPermissions(tt.keycloakApiClient(t), k8sClient)
-			err := h.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloakClient, "master")
+			h := NewProcessPermissions(tt.kClient(t), k8sClient)
+			err := h.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloakClient, "master", &ClientContext{ClientUUID: "clientID"})
 
 			tt.wantErr(t, err)
 		})

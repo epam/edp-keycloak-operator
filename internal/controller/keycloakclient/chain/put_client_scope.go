@@ -9,35 +9,36 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type PutClientScope struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
 }
 
-func NewPutClientScope(keycloakApiClient keycloak.Client, k8sClient client.Client) *PutClientScope {
-	return &PutClientScope{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
+func NewPutClientScope(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutClientScope {
+	return &PutClientScope{kClient: kClient, k8sClient: k8sClient}
 }
 
-func (el *PutClientScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
-	if err := el.putClientScope(ctx, keycloakClient, realmName); err != nil {
-		el.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync client scopes: %s", err.Error()))
+func (h *PutClientScope) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
+	if err := h.putClientScope(ctx, keycloakClient, realmName, clientCtx.ClientUUID); err != nil {
+		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync client scopes: %s", err.Error()))
 
 		return fmt.Errorf("error during putClientScope: %w", err)
 	}
 
-	el.setSuccessCondition(ctx, keycloakClient, "Client scopes synchronized")
+	h.setSuccessCondition(ctx, keycloakClient, "Client scopes synchronized")
 
 	return nil
 }
 
-func (el *PutClientScope) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutClientScope) setFailureCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionClientScopesSynced,
 		metav1.ConditionFalse,
 		ReasonKeycloakAPIError,
@@ -47,11 +48,11 @@ func (el *PutClientScope) setFailureCondition(ctx context.Context, keycloakClien
 	}
 }
 
-func (el *PutClientScope) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
+func (h *PutClientScope) setSuccessCondition(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, message string) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if err := SetCondition(
-		ctx, el.k8sClient, keycloakClient,
+		ctx, h.k8sClient, keycloakClient,
 		ConditionClientScopesSynced,
 		metav1.ConditionTrue,
 		ReasonClientScopesSynced,
@@ -61,53 +62,112 @@ func (el *PutClientScope) setSuccessCondition(ctx context.Context, keycloakClien
 	}
 }
 
-func (el *PutClientScope) putClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
-	if err := el.putDefaultClientScope(ctx, keycloakClient, realmName); err != nil {
+func (h *PutClientScope) putClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string) error {
+	kCloakSpec := keycloakClient.Spec
+
+	if len(kCloakSpec.DefaultClientScopes) == 0 && len(kCloakSpec.OptionalClientScopes) == 0 {
+		return nil
+	}
+
+	// Get all realm client scopes once to build name->id mapping
+	realmScopes, _, err := h.kClient.Clients.GetRealmClientScopes(ctx, realmName)
+	if err != nil {
+		return fmt.Errorf("error during GetRealmClientScopes: %w", err)
+	}
+
+	scopeNameToID := maputil.SliceToMap(realmScopes,
+		func(s keycloakv2.ClientScopeRepresentation) (string, bool) {
+			return *s.Name, s.Name != nil && s.Id != nil
+		},
+		func(s keycloakv2.ClientScopeRepresentation) string { return *s.Id },
+	)
+
+	if err := h.putDefaultClientScope(ctx, keycloakClient, realmName, clientUUID, scopeNameToID); err != nil {
 		return err
 	}
 
-	if err := el.putOptionalClientScope(ctx, keycloakClient, realmName); err != nil {
+	if err := h.putOptionalClientScope(ctx, keycloakClient, realmName, clientUUID, scopeNameToID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (el *PutClientScope) putDefaultClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (h *PutClientScope) putDefaultClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string, scopeNameToID map[string]string) error {
 	kCloakSpec := keycloakClient.Spec
 
 	if len(kCloakSpec.DefaultClientScopes) == 0 {
 		return nil
 	}
 
-	defaultScopes, err := el.keycloakApiClient.GetClientScopesByNames(ctx, realmName, kCloakSpec.DefaultClientScopes)
+	// Get existing default scopes for this client
+	existingDefaults, _, err := h.kClient.Clients.GetDefaultClientScopes(ctx, realmName, clientUUID)
 	if err != nil {
-		return fmt.Errorf("error during GetClientScope: %w", err)
+		return fmt.Errorf("error getting existing default scopes: %w", err)
 	}
 
-	err = el.keycloakApiClient.AddDefaultScopeToClient(ctx, realmName, kCloakSpec.ClientId, defaultScopes)
-	if err != nil {
-		return fmt.Errorf("failed to add default scope to client %s: %w", keycloakClient.Name, err)
+	existingDefaultIDs := make(map[string]bool, len(existingDefaults))
+
+	for _, s := range existingDefaults {
+		if s.Id != nil {
+			existingDefaultIDs[*s.Id] = true
+		}
+	}
+
+	// Add missing default scopes
+	for _, scopeName := range kCloakSpec.DefaultClientScopes {
+		scopeID, ok := scopeNameToID[scopeName]
+		if !ok {
+			return fmt.Errorf("client scope %s not found in realm %s", scopeName, realmName)
+		}
+
+		if existingDefaultIDs[scopeID] {
+			continue
+		}
+
+		if _, err := h.kClient.Clients.AddDefaultClientScope(ctx, realmName, clientUUID, scopeID); err != nil {
+			return fmt.Errorf("failed to add default scope %s to client %s: %w", scopeName, keycloakClient.Name, err)
+		}
 	}
 
 	return nil
 }
 
-func (el *PutClientScope) putOptionalClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (h *PutClientScope) putOptionalClientScope(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string, scopeNameToID map[string]string) error {
 	kCloakSpec := keycloakClient.Spec
 
 	if len(kCloakSpec.OptionalClientScopes) == 0 {
 		return nil
 	}
 
-	optionalScopes, err := el.keycloakApiClient.GetClientScopesByNames(ctx, realmName, kCloakSpec.OptionalClientScopes)
+	// Get existing optional scopes for this client
+	existingOptionals, _, err := h.kClient.Clients.GetOptionalClientScopes(ctx, realmName, clientUUID)
 	if err != nil {
-		return fmt.Errorf("error during GetClientScope: %w", err)
+		return fmt.Errorf("error getting existing optional scopes: %w", err)
 	}
 
-	err = el.keycloakApiClient.AddOptionalScopeToClient(ctx, realmName, kCloakSpec.ClientId, optionalScopes)
-	if err != nil {
-		return fmt.Errorf("failed to add default scope to client %s: %w", keycloakClient.Name, err)
+	existingOptionalIDs := make(map[string]bool, len(existingOptionals))
+
+	for _, s := range existingOptionals {
+		if s.Id != nil {
+			existingOptionalIDs[*s.Id] = true
+		}
+	}
+
+	// Add missing optional scopes
+	for _, scopeName := range kCloakSpec.OptionalClientScopes {
+		scopeID, ok := scopeNameToID[scopeName]
+		if !ok {
+			return fmt.Errorf("client scope %s not found in realm %s", scopeName, realmName)
+		}
+
+		if existingOptionalIDs[scopeID] {
+			continue
+		}
+
+		if _, err := h.kClient.Clients.AddOptionalClientScope(ctx, realmName, clientUUID, scopeID); err != nil {
+			return fmt.Errorf("failed to add optional scope %s to client %s: %w", scopeName, keycloakClient.Name, err)
+		}
 	}
 
 	return nil

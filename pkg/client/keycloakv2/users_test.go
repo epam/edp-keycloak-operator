@@ -855,7 +855,7 @@ func TestUsersClient_UserClientRoleMappings(t *testing.T) {
 
 	// Create client
 	clientID := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
-	protocol := "openid-connect"
+	protocol := protocolOpenIDConnect
 	clientResp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
 		ClientId: &clientID,
 		Protocol: &protocol,

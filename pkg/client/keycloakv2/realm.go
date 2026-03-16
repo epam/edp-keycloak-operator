@@ -123,6 +123,32 @@ func (c *realmClient) SetRealmBrowserFlow(ctx context.Context, realm string, flo
 	return c.UpdateRealm(ctx, realm, *current)
 }
 
+func (c *realmClient) GetAuthenticationFlows(
+	ctx context.Context,
+	realm string,
+) ([]AuthenticationFlowRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmAuthenticationFlowsWithResponse(ctx, realm)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
 func (c *realmClient) SetRealmEventConfig(
 	ctx context.Context,
 	realm string,

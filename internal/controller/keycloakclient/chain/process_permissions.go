@@ -4,28 +4,27 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/Nerzal/gocloak/v12"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const permissionLogKey = "permission"
 
 type ProcessPermissions struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
+	kClient   *keycloakv2.KeycloakClient
+	k8sClient client.Client
 }
 
-func NewProcessPermissions(keycloakApiClient keycloak.Client, k8sClient client.Client) *ProcessPermissions {
-	return &ProcessPermissions{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient}
+func NewProcessPermissions(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ProcessPermissions {
+	return &ProcessPermissions{kClient: kClient, k8sClient: k8sClient}
 }
 
-func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
+func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	if keycloakClient.Spec.Authorization == nil {
@@ -33,35 +32,40 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 		return nil
 	}
 
-	clientID, err := h.keycloakApiClient.GetClientID(keycloakClient.Spec.ClientId, realmName)
-	if err != nil {
-		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
+	clientUUID := clientCtx.ClientUUID
 
-		return fmt.Errorf("failed to get client id: %w", err)
-	}
-
-	existingPermissions, err := h.keycloakApiClient.GetPermissions(ctx, realmName, clientID)
+	permissionsList, _, err := h.kClient.Authorization.GetPermissions(ctx, realmName, clientUUID)
 	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
 
 		return fmt.Errorf("failed to get permissions: %w", err)
 	}
 
+	existingPermissions := maputil.SliceToMapSelf(permissionsList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
+		return *p.Name, p.Name != nil
+	})
+
 	for i := 0; i < len(keycloakClient.Spec.Authorization.Permissions); i++ {
 		log.Info("Processing permission", permissionLogKey, keycloakClient.Spec.Authorization.Permissions[i].Name)
 
-		var permissionRepresentation *gocloak.PermissionRepresentation
+		var permissionRepresentation keycloakv2.PolicyRepresentation
 
-		if permissionRepresentation, err = h.toPermissionRepresentation(ctx, &keycloakClient.Spec.Authorization.Permissions[i], clientID, realmName); err != nil {
+		if permissionRepresentation, err = h.toPermissionRepresentation(ctx, &keycloakClient.Spec.Authorization.Permissions[i], clientUUID, realmName); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
 
 			return fmt.Errorf("failed to convert permission: %w", err)
 		}
 
+		permType := keycloakClient.Spec.Authorization.Permissions[i].Type
+
 		existingPermission, ok := existingPermissions[keycloakClient.Spec.Authorization.Permissions[i].Name]
 		if ok {
-			permissionRepresentation.ID = existingPermission.ID
-			if err = h.keycloakApiClient.UpdatePermission(ctx, realmName, clientID, *permissionRepresentation); err != nil {
+			if existingPermission.Id == nil {
+				return fmt.Errorf("existing permission %s does not have ID", keycloakClient.Spec.Authorization.Permissions[i].Name)
+			}
+
+			permissionRepresentation.Id = existingPermission.Id
+			if _, err = h.kClient.Authorization.UpdatePermission(ctx, realmName, clientUUID, permType, *existingPermission.Id, permissionRepresentation); err != nil {
 				h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
 
 				return fmt.Errorf("failed to update permission: %w", err)
@@ -74,7 +78,7 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 			continue
 		}
 
-		if _, err = h.keycloakApiClient.CreatePermission(ctx, realmName, clientID, *permissionRepresentation); err != nil {
+		if _, _, err = h.kClient.Authorization.CreatePermission(ctx, realmName, clientUUID, permType, permissionRepresentation); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
 
 			return fmt.Errorf("failed to create permission: %w", err)
@@ -84,7 +88,7 @@ func (h *ProcessPermissions) Serve(ctx context.Context, keycloakClient *keycloak
 	}
 
 	if keycloakClient.Spec.ReconciliationStrategy != keycloakApi.ReconciliationStrategyAddOnly {
-		if err = h.deletePermissions(ctx, existingPermissions, realmName, clientID); err != nil {
+		if err = h.deletePermissions(ctx, existingPermissions, realmName, clientUUID); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization permissions: %s", err.Error()))
 
 			return err
@@ -124,7 +128,7 @@ func (h *ProcessPermissions) setSuccessCondition(ctx context.Context, keycloakCl
 	}
 }
 
-func (h *ProcessPermissions) deletePermissions(ctx context.Context, existingPermissions map[string]gocloak.PermissionRepresentation, realmName string, clientID string) error {
+func (h *ProcessPermissions) deletePermissions(ctx context.Context, existingPermissions map[string]keycloakv2.AbstractPolicyRepresentation, realmName string, clientUUID string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for name := range existingPermissions {
@@ -132,8 +136,13 @@ func (h *ProcessPermissions) deletePermissions(ctx context.Context, existingPerm
 			continue
 		}
 
-		if err := h.keycloakApiClient.DeletePermission(ctx, realmName, clientID, *existingPermissions[name].ID); err != nil {
-			if !adapter.IsErrNotFound(err) {
+		p := existingPermissions[name]
+		if p.Id == nil {
+			continue
+		}
+
+		if _, err := h.kClient.Authorization.DeletePermission(ctx, realmName, clientUUID, *p.Id); err != nil {
+			if !keycloakv2.IsNotFound(err) {
 				return fmt.Errorf("failed to delete permission: %w", err)
 			}
 		}
@@ -144,21 +153,21 @@ func (h *ProcessPermissions) deletePermissions(ctx context.Context, existingPerm
 	return nil
 }
 
-// toPermissionRepresentation converts keycloakApi.Permission to gocloak.PermissionRepresentation.
-func (h *ProcessPermissions) toPermissionRepresentation(ctx context.Context, permission *keycloakApi.Permission, clientID, realm string) (*gocloak.PermissionRepresentation, error) {
+// toPermissionRepresentation converts keycloakApi.Permission to keycloakv2.PolicyRepresentation.
+func (h *ProcessPermissions) toPermissionRepresentation(ctx context.Context, permission *keycloakApi.Permission, clientUUID, realm string) (keycloakv2.PolicyRepresentation, error) {
 	keycloakPermission := getBasePermissionRepresentation(permission)
 
-	if err := h.mapResources(ctx, permission, keycloakPermission, realm, clientID); err != nil {
-		return nil, fmt.Errorf("failed to map resources: %w", err)
+	if err := h.mapResources(ctx, permission, &keycloakPermission, realm, clientUUID); err != nil {
+		return keycloakv2.PolicyRepresentation{}, fmt.Errorf("failed to map resources: %w", err)
 	}
 
-	if err := h.mapPolicies(ctx, permission, keycloakPermission, realm, clientID); err != nil {
-		return nil, fmt.Errorf("failed to map policies: %w", err)
+	if err := h.mapPolicies(ctx, permission, &keycloakPermission, realm, clientUUID); err != nil {
+		return keycloakv2.PolicyRepresentation{}, fmt.Errorf("failed to map policies: %w", err)
 	}
 
 	if permission.Type == keycloakApi.PermissionTypeScope {
-		if err := h.mapScopes(ctx, permission, keycloakPermission, realm, clientID); err != nil {
-			return nil, fmt.Errorf("failed to map scopes: %w", err)
+		if err := h.mapScopes(ctx, permission, &keycloakPermission, realm, clientUUID); err != nil {
+			return keycloakv2.PolicyRepresentation{}, fmt.Errorf("failed to map scopes: %w", err)
 		}
 	}
 
@@ -168,20 +177,25 @@ func (h *ProcessPermissions) toPermissionRepresentation(ctx context.Context, per
 func (h *ProcessPermissions) mapResources(
 	ctx context.Context,
 	permission *keycloakApi.Permission,
-	keycloakPermission *gocloak.PermissionRepresentation,
+	keycloakPermission *keycloakv2.PolicyRepresentation,
 	realm,
-	clientID string,
+	clientUUID string,
 ) error {
 	if len(permission.Resources) == 0 {
-		keycloakPermission.Resources = &[]string{}
+		emptyResources := []string{}
+		keycloakPermission.Resources = &emptyResources
 
 		return nil
 	}
 
-	existingResources, err := h.keycloakApiClient.GetResources(ctx, realm, clientID)
+	resourcesList, _, err := h.kClient.Authorization.GetResources(ctx, realm, clientUUID)
 	if err != nil {
 		return fmt.Errorf("failed to get resources: %w", err)
 	}
+
+	existingResources := maputil.SliceToMapSelf(resourcesList, func(r keycloakv2.ResourceRepresentation) (string, bool) {
+		return *r.Name, r.Name != nil
+	})
 
 	permissionResources := make([]string, 0, len(permission.Resources))
 
@@ -191,11 +205,11 @@ func (h *ProcessPermissions) mapResources(
 			return fmt.Errorf("resource %s does not exist", r)
 		}
 
-		if existingResource.ID == nil {
+		if existingResource.UnderscoreId == nil {
 			return fmt.Errorf("resource %s does not have ID", r)
 		}
 
-		permissionResources = append(permissionResources, *existingResource.ID)
+		permissionResources = append(permissionResources, *existingResource.UnderscoreId)
 	}
 
 	keycloakPermission.Resources = &permissionResources
@@ -206,20 +220,25 @@ func (h *ProcessPermissions) mapResources(
 func (h *ProcessPermissions) mapPolicies(
 	ctx context.Context,
 	permission *keycloakApi.Permission,
-	keycloakPermission *gocloak.PermissionRepresentation,
+	keycloakPermission *keycloakv2.PolicyRepresentation,
 	realm,
-	clientID string,
+	clientUUID string,
 ) error {
 	if len(permission.Policies) == 0 {
-		keycloakPermission.Policies = &[]string{}
+		emptyPolicies := []string{}
+		keycloakPermission.Policies = &emptyPolicies
 
 		return nil
 	}
 
-	existingPolicies, err := h.keycloakApiClient.GetPolicies(ctx, realm, clientID)
+	policiesList, _, err := h.kClient.Authorization.GetPolicies(ctx, realm, clientUUID)
 	if err != nil {
 		return fmt.Errorf("failed to get polices: %w", err)
 	}
+
+	existingPolicies := maputil.SliceToMapSelf(policiesList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
+		return *p.Name, p.Name != nil
+	})
 
 	permissionPolicies := make([]string, 0, len(permission.Policies))
 
@@ -229,11 +248,11 @@ func (h *ProcessPermissions) mapPolicies(
 			return fmt.Errorf("policy %s does not exist", r)
 		}
 
-		if existingPolicy.ID == nil {
+		if existingPolicy.Id == nil {
 			return fmt.Errorf("policy %s does not have ID", r)
 		}
 
-		permissionPolicies = append(permissionPolicies, *existingPolicy.ID)
+		permissionPolicies = append(permissionPolicies, *existingPolicy.Id)
 	}
 
 	keycloakPermission.Policies = &permissionPolicies
@@ -244,20 +263,25 @@ func (h *ProcessPermissions) mapPolicies(
 func (h *ProcessPermissions) mapScopes(
 	ctx context.Context,
 	permission *keycloakApi.Permission,
-	keycloakPermission *gocloak.PermissionRepresentation,
+	keycloakPermission *keycloakv2.PolicyRepresentation,
 	realm,
-	clientID string,
+	clientUUID string,
 ) error {
 	if len(permission.Scopes) == 0 {
-		keycloakPermission.Scopes = &[]string{}
+		emptyScopes := []string{}
+		keycloakPermission.Scopes = &emptyScopes
 
 		return nil
 	}
 
-	existingScopes, err := h.keycloakApiClient.GetScopes(ctx, realm, clientID)
+	scopesList, _, err := h.kClient.Authorization.GetScopes(ctx, realm, clientUUID)
 	if err != nil {
 		return fmt.Errorf("failed to get scopes: %w", err)
 	}
+
+	existingScopes := maputil.SliceToMapSelf(scopesList, func(s keycloakv2.ScopeRepresentation) (string, bool) {
+		return *s.Name, s.Name != nil
+	})
 
 	permissionScopes := make([]string, 0, len(permission.Scopes))
 
@@ -267,11 +291,11 @@ func (h *ProcessPermissions) mapScopes(
 			return fmt.Errorf("scope %s does not exist", r)
 		}
 
-		if existingScope.ID == nil {
+		if existingScope.Id == nil {
 			return fmt.Errorf("scope %s does not have ID", r)
 		}
 
-		permissionScopes = append(permissionScopes, *existingScope.ID)
+		permissionScopes = append(permissionScopes, *existingScope.Id)
 	}
 
 	keycloakPermission.Scopes = &permissionScopes
@@ -279,8 +303,8 @@ func (h *ProcessPermissions) mapScopes(
 	return nil
 }
 
-func getBasePermissionRepresentation(policy *keycloakApi.Permission) *gocloak.PermissionRepresentation {
-	keycloakPermission := &gocloak.PermissionRepresentation{}
+func getBasePermissionRepresentation(policy *keycloakApi.Permission) keycloakv2.PolicyRepresentation {
+	keycloakPermission := keycloakv2.PolicyRepresentation{}
 
 	name := policy.Name
 	keycloakPermission.Name = &name
@@ -289,12 +313,12 @@ func getBasePermissionRepresentation(policy *keycloakApi.Permission) *gocloak.Pe
 	keycloakPermission.Type = &pType
 
 	desc := policy.Description
-	decisionStrategy := gocloak.DecisionStrategy(policy.DecisionStrategy)
+	decisionStrategy := keycloakv2.DecisionStrategy(policy.DecisionStrategy)
 
 	keycloakPermission.DecisionStrategy = &decisionStrategy
 	keycloakPermission.Description = &desc
 
-	logic := gocloak.Logic(policy.Logic)
+	logic := keycloakv2.Logic(policy.Logic)
 	keycloakPermission.Logic = &logic
 
 	return keycloakPermission

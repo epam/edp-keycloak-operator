@@ -271,6 +271,69 @@ func TestRealmClient_SetRealmEventConfig(t *testing.T) {
 	require.NotNil(t, resp.HTTPResponse)
 }
 
+func TestRealmClient_GetAuthenticationFlows(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-auth-flows-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	flows, resp, err := c.Realms.GetAuthenticationFlows(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Greater(t, len(flows), 0, "realm should have built-in authentication flows")
+
+	// "browser" flow is always present in every Keycloak realm
+	found := false
+
+	for _, f := range flows {
+		if f.Alias != nil && *f.Alias == "browser" {
+			found = true
+			break
+		}
+	}
+
+	require.True(t, found, "browser flow should exist in every realm")
+}
+
+func TestRealmClient_GetAuthenticationFlows_RealmNotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	_, resp, err := c.Realms.GetAuthenticationFlows(context.Background(), "nonexistent-realm-12345")
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err))
+	require.NotNil(t, resp)
+}
+
 func TestRealmClient_SetRealmEventConfig_RealmNotFound(t *testing.T) {
 	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
 	t.Parallel()

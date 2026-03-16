@@ -6,17 +6,17 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -37,25 +37,8 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 	It("Should create KeycloakClient with secret reference", func() {
 		By("Checking feature flag ADMIN_FINE_GRAINED_AUTHZ")
-		By("Creating a KeycloakClient to check feature flag")
-		keycloakApiClient, err := controllerHelper.CreateKeycloakClientFromRealmRef(
-			ctx,
-			&keycloakApi.KeycloakClient{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak-client-to-check-feature-flag",
-					Namespace: ns,
-				},
-				Spec: keycloakApi.KeycloakClientSpec{
-					RealmRef: common.RealmRef{
-						Name: KeycloakRealmCR,
-						Kind: keycloakApi.KeycloakRealmKind,
-					},
-				},
-			},
-		)
-		Expect(err).ShouldNot(HaveOccurred())
 
-		featureFlagEnabled, err := keycloakApiClient.FeatureFlagEnabled(ctx, "ADMIN_FINE_GRAINED_AUTHZ")
+		featureFlagEnabled, err := keycloakAdmin.Server.FeatureFlagEnabled(ctx, "ADMIN_FINE_GRAINED_AUTHZ")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(featureFlagEnabled).Should(BeTrue(), "Feature flag ADMIN_FINE_GRAINED_AUTHZ should be enabled")
 
@@ -183,20 +166,35 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).ShouldNot(HaveOccurred())
 		Expect(createdKeycloakClient.Status.ClientID).Should(Not(BeEmpty()))
 
-		roles, err := keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
+		// Get client UUID
+		existingClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, createdKeycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(existingClient).ShouldNot(BeNil())
+		Expect(existingClient.Id).ShouldNot(BeNil())
+
+		clientUUID := *existingClient.Id
+
+		roles, _, err := keycloakAdmin.Clients.GetClientRoles(ctx, KeycloakRealmCR, clientUUID, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(roles).Should(HaveLen(2))
 
-		var indexOfRoleA int
-		for i, role := range roles {
-			if *role.Name == "roleA" {
-				indexOfRoleA = i
+		roleNames := make([]string, 0, len(roles))
+		roleDescriptions := make([]string, 0, len(roles))
+
+		for _, role := range roles {
+			if role.Name != nil {
+				roleNames = append(roleNames, *role.Name)
 			}
-			Expect(*role.Name).Should(BeElementOf([]string{"roleA", "roleB"}))
-			Expect(*role.Description).Should(BeElementOf([]string{"Role A", "Role B"}))
+
+			if role.Description != nil {
+				roleDescriptions = append(roleDescriptions, *role.Description)
+			}
 		}
 
-		compositeRoles, err := keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[indexOfRoleA].ID)
+		Expect(roleNames).Should(ConsistOf("roleA", "roleB"))
+		Expect(roleDescriptions).Should(ConsistOf("Role A", "Role B"))
+
+		compositeRoles, _, err := keycloakAdmin.Clients.GetClientRoleComposites(ctx, KeycloakRealmCR, clientUUID, "roleA")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(compositeRoles).Should(HaveLen(1))
 		Expect(*compositeRoles[0].Name).Should(Equal("roleB"))
@@ -216,27 +214,23 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}).WithTimeout(time.Second * 3).WithPolling(time.Second).Should(Succeed())
 
 		By("Checking client roles")
-		roles, err = keycloakApiClient.GetClientRoles(ctx, getKeyCloakToken(), KeycloakRealmCR, createdKeycloakClient.Status.ClientID, gocloak.GetRoleParams{})
+		roles, _, err = keycloakAdmin.Clients.GetClientRoles(ctx, KeycloakRealmCR, clientUUID, nil)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(roles).Should(HaveLen(1))
 		Expect(*roles[0].Name).Should(Equal("roleA"))
 		Expect(*roles[0].Description).Should(Equal("Role A updated"))
 
-		compositeRoles, err = keycloakApiClient.GetCompositeRolesByRoleID(ctx, getKeyCloakToken(), KeycloakRealmCR, *roles[0].ID)
+		compositeRoles, _, err = keycloakAdmin.Clients.GetClientRoleComposites(ctx, KeycloakRealmCR, clientUUID, "roleA")
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(compositeRoles).Should(BeEmpty())
 	})
 
 	It("Should create KeycloakClient with empty secret", func() {
-		By("Creating keycloak api client")
-		client := gocloak.NewClient(keycloakURL)
-		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
-		Expect(err).ShouldNot(HaveOccurred())
 		By("Creating group for service account")
-		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
-			Name: gocloak.StringP("test-group"),
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+			Name: ptr.To("test-group"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
@@ -260,16 +254,12 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
-			if err != nil {
-				return false
-			}
-
-			return createdKeycloakClient.Status.Value == common.StatusOK &&
-				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).Should(Succeed())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdKeycloakClient.Status.ClientID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed(), "KeycloakClient should be created successfully")
 	})
 	It("Should create KeycloakClient with direct secret name", func() {
 		By("Creating a client secret")
@@ -306,17 +296,433 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).Should(Succeed())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdKeycloakClient.Status.ClientID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed(), "KeycloakClient should be created successfully")
+	})
+	It("Should create KeycloakClient and verify all client fields in Keycloak", func() {
+		By("Creating a KeycloakClient with all PutClient fields")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-verify-fields",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-verify-fields",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Secret:                  secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				Public:                  true,
+				WebUrl:                  "https://test-verify-fields.example.com",
+				AdminUrl:                "https://test-verify-fields-admin.example.com",
+				HomeUrl:                 "https://test-verify-fields-home.example.com",
+				Protocol:                ptr.To("openid-connect"),
+				Name:                    "Verify Fields Client",
+				Description:             "Test all client fields",
+				Enabled:                 true,
+				FullScopeAllowed:        true,
+				StandardFlowEnabled:     true,
+				ImplicitFlowEnabled:     true,
+				FrontChannelLogout:      true,
+				ConsentRequired:         true,
+				SurrogateAuthRequired:   true,
+				ClientAuthenticatorType: "client-secret",
+				Attributes: map[string]string{
+					"post.logout.redirect.uris": "+",
+				},
+				RedirectUris: []string{"https://test-verify-fields.example.com/*"},
+				WebOrigins:   []string{"https://test-verify-fields.example.com"},
+				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+					Browser:     "browser",
+					DirectGrant: "direct grant",
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
-			if err != nil {
-				return false
-			}
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
 
-			return createdKeycloakClient.Status.Value == common.StatusOK &&
-				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+		By("Verifying all client fields in Keycloak")
+		kcClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(kcClient).ShouldNot(BeNil())
+
+		Expect(kcClient.Name).ShouldNot(BeNil())
+		Expect(*kcClient.Name).Should(Equal("Verify Fields Client"))
+
+		Expect(kcClient.Description).ShouldNot(BeNil())
+		Expect(*kcClient.Description).Should(Equal("Test all client fields"))
+
+		Expect(kcClient.Enabled).ShouldNot(BeNil())
+		Expect(*kcClient.Enabled).Should(BeTrue())
+
+		Expect(kcClient.PublicClient).ShouldNot(BeNil())
+		Expect(*kcClient.PublicClient).Should(BeTrue())
+
+		Expect(kcClient.Protocol).ShouldNot(BeNil())
+		Expect(*kcClient.Protocol).Should(Equal("openid-connect"))
+
+		Expect(kcClient.FullScopeAllowed).ShouldNot(BeNil())
+		Expect(*kcClient.FullScopeAllowed).Should(BeTrue())
+
+		Expect(kcClient.StandardFlowEnabled).ShouldNot(BeNil())
+		Expect(*kcClient.StandardFlowEnabled).Should(BeTrue())
+
+		Expect(kcClient.ImplicitFlowEnabled).ShouldNot(BeNil())
+		Expect(*kcClient.ImplicitFlowEnabled).Should(BeTrue())
+
+		Expect(kcClient.FrontchannelLogout).ShouldNot(BeNil())
+		Expect(*kcClient.FrontchannelLogout).Should(BeTrue())
+
+		Expect(kcClient.ConsentRequired).ShouldNot(BeNil())
+		Expect(*kcClient.ConsentRequired).Should(BeTrue())
+
+		Expect(kcClient.SurrogateAuthRequired).ShouldNot(BeNil())
+		Expect(*kcClient.SurrogateAuthRequired).Should(BeTrue())
+
+		Expect(kcClient.ClientAuthenticatorType).ShouldNot(BeNil())
+		Expect(*kcClient.ClientAuthenticatorType).Should(Equal("client-secret"))
+
+		// HomeUrl maps to BaseUrl
+		Expect(kcClient.BaseUrl).ShouldNot(BeNil())
+		Expect(*kcClient.BaseUrl).Should(Equal("https://test-verify-fields-home.example.com"))
+
+		// WebUrl maps to RootUrl
+		Expect(kcClient.RootUrl).ShouldNot(BeNil())
+		Expect(*kcClient.RootUrl).Should(Equal("https://test-verify-fields.example.com"))
+
+		Expect(kcClient.AdminUrl).ShouldNot(BeNil())
+		Expect(*kcClient.AdminUrl).Should(Equal("https://test-verify-fields-admin.example.com"))
+
+		Expect(kcClient.Attributes).ShouldNot(BeNil())
+		Expect((*kcClient.Attributes)["post.logout.redirect.uris"]).Should(Equal("+"))
+
+		Expect(kcClient.RedirectUris).ShouldNot(BeNil())
+		Expect(*kcClient.RedirectUris).Should(ContainElement("https://test-verify-fields.example.com/*"))
+
+		Expect(kcClient.WebOrigins).ShouldNot(BeNil())
+		Expect(*kcClient.WebOrigins).Should(ContainElement("https://test-verify-fields.example.com"))
+
+		Expect(kcClient.AuthenticationFlowBindingOverrides).ShouldNot(BeNil())
+		Expect(*kcClient.AuthenticationFlowBindingOverrides).Should(HaveLen(2))
 	})
+
+	It("Should create KeycloakClient with service account full config", func() {
+		By("Creating group for service account")
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+			Name: ptr.To("test-sa-group"),
+		})
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+
+		By("Creating a KeycloakClient with full service account config")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-sa-full",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-sa-full",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Secret: secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				ServiceAccount: &keycloakApi.ServiceAccount{
+					Enabled:    true,
+					RealmRoles: []string{"default-roles-" + KeycloakRealmCR},
+					ClientRoles: []keycloakApi.UserClientRole{
+						{
+							ClientID: "account",
+							Roles:    []string{"view-profile"},
+						},
+					},
+					Groups: []string{"test-sa-group"},
+					AttributesV2: map[string][]string{
+						"test-attr": {"val1", "val2"},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+
+			saCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionServiceAccountSynced)
+			g.Expect(saCond).ShouldNot(BeNil(), "ServiceAccountSynced condition should be set")
+			g.Expect(saCond.Status).Should(Equal(metav1.ConditionTrue), "ServiceAccountSynced condition should be True")
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying service account in Keycloak")
+		existingClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(existingClient).ShouldNot(BeNil())
+		Expect(existingClient.Id).ShouldNot(BeNil())
+
+		clientUUID := *existingClient.Id
+
+		saUser, _, err := keycloakAdmin.Clients.GetServiceAccountUser(ctx, KeycloakRealmCR, clientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(saUser).ShouldNot(BeNil())
+		Expect(saUser.Id).ShouldNot(BeNil())
+
+		saUserID := *saUser.Id
+
+		By("Checking service account groups")
+		groups, _, err := keycloakAdmin.Users.GetUserGroups(ctx, KeycloakRealmCR, saUserID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		groupNames := make([]string, 0, len(groups))
+		for _, g := range groups {
+			if g.Name != nil {
+				groupNames = append(groupNames, *g.Name)
+			}
+		}
+
+		Expect(groupNames).Should(ContainElement("test-sa-group"))
+
+		By("Checking service account realm roles")
+		realmRoles, _, err := keycloakAdmin.Users.GetUserRealmRoleMappings(ctx, KeycloakRealmCR, saUserID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		realmRoleNames := make([]string, 0, len(realmRoles))
+		for _, r := range realmRoles {
+			if r.Name != nil {
+				realmRoleNames = append(realmRoleNames, *r.Name)
+			}
+		}
+
+		Expect(realmRoleNames).Should(ContainElement("default-roles-" + KeycloakRealmCR))
+
+		By("Checking service account client roles")
+		accountClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, "account")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(accountClient).ShouldNot(BeNil())
+		Expect(accountClient.Id).ShouldNot(BeNil())
+
+		clientRoles, _, err := keycloakAdmin.Users.GetUserClientRoleMappings(ctx, KeycloakRealmCR, saUserID, *accountClient.Id)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		clientRoleNames := make([]string, 0, len(clientRoles))
+		for _, r := range clientRoles {
+			if r.Name != nil {
+				clientRoleNames = append(clientRoleNames, *r.Name)
+			}
+		}
+
+		Expect(clientRoleNames).Should(ContainElement("view-profile"))
+
+		By("Checking service account attributes")
+		Expect(saUser.Attributes).ShouldNot(BeNil())
+		Expect(*saUser.Attributes).Should(HaveKeyWithValue("test-attr", ConsistOf("val1", "val2")))
+	})
+
+	It("Should create KeycloakClient with protocol mappers", func() {
+		By("Creating a KeycloakClient with protocol mappers")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-protocol-mappers",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-protocol-mappers",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Public: true,
+				Secret: secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				ProtocolMappers: &[]keycloakApi.ProtocolMapper{
+					{
+						Name:           "test-hardcoded-claim",
+						Protocol:       "openid-connect",
+						ProtocolMapper: "oidc-hardcoded-claim-mapper",
+						Config: map[string]string{
+							"claim.name":         "test-claim",
+							"claim.value":        "test-value",
+							"access.token.claim": "true",
+							"id.token.claim":     "true",
+						},
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+
+			pmCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionProtocolMappersSynced)
+			g.Expect(pmCond).ShouldNot(BeNil(), "ProtocolMappersSynced condition should be set")
+			g.Expect(pmCond.Status).Should(Equal(metav1.ConditionTrue), "ProtocolMappersSynced condition should be True")
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying protocol mappers in Keycloak")
+		existingClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(existingClient).ShouldNot(BeNil())
+		Expect(existingClient.Id).ShouldNot(BeNil())
+
+		mappers, _, err := keycloakAdmin.Clients.GetClientProtocolMappers(ctx, KeycloakRealmCR, *existingClient.Id)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var foundMapper *keycloakv2.ProtocolMapperRepresentation
+		for i := range mappers {
+			if mappers[i].Name != nil && *mappers[i].Name == "test-hardcoded-claim" {
+				foundMapper = &mappers[i]
+
+				break
+			}
+		}
+
+		Expect(foundMapper).ShouldNot(BeNil(), "Protocol mapper 'test-hardcoded-claim' should exist")
+		Expect(foundMapper.ProtocolMapper).ShouldNot(BeNil())
+		Expect(*foundMapper.ProtocolMapper).Should(Equal("oidc-hardcoded-claim-mapper"))
+		Expect(foundMapper.Protocol).ShouldNot(BeNil())
+		Expect(*foundMapper.Protocol).Should(Equal("openid-connect"))
+		Expect(foundMapper.Config).ShouldNot(BeNil())
+		Expect((*foundMapper.Config)["claim.name"]).Should(Equal("test-claim"))
+		Expect((*foundMapper.Config)["claim.value"]).Should(Equal("test-value"))
+	})
+
+	It("Should create KeycloakClient with client scopes", func() {
+		By("Creating a KeycloakClient with default and optional client scopes")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-scopes",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-scopes",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Public:               true,
+				Secret:               secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				DefaultClientScopes:  []string{"email"},
+				OptionalClientScopes: []string{"phone"},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+
+			scopesCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionClientScopesSynced)
+			g.Expect(scopesCond).ShouldNot(BeNil(), "ClientScopesSynced condition should be set")
+			g.Expect(scopesCond.Status).Should(Equal(metav1.ConditionTrue), "ClientScopesSynced condition should be True")
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying client scopes in Keycloak")
+		existingClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(existingClient).ShouldNot(BeNil())
+		Expect(existingClient.Id).ShouldNot(BeNil())
+
+		clientUUID := *existingClient.Id
+
+		By("Checking default client scopes")
+		defaultScopes, _, err := keycloakAdmin.Clients.GetDefaultClientScopes(ctx, KeycloakRealmCR, clientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		defaultScopeNames := make([]string, 0, len(defaultScopes))
+		for _, s := range defaultScopes {
+			if s.Name != nil {
+				defaultScopeNames = append(defaultScopeNames, *s.Name)
+			}
+		}
+
+		Expect(defaultScopeNames).Should(ContainElement("email"))
+
+		By("Checking optional client scopes")
+		optionalScopes, _, err := keycloakAdmin.Clients.GetOptionalClientScopes(ctx, KeycloakRealmCR, clientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		optionalScopeNames := make([]string, 0, len(optionalScopes))
+		for _, s := range optionalScopes {
+			if s.Name != nil {
+				optionalScopeNames = append(optionalScopeNames, *s.Name)
+			}
+		}
+
+		Expect(optionalScopeNames).Should(ContainElement("phone"))
+	})
+
+	It("Should create KeycloakClient with realm roles", func() {
+		By("Creating base realm role for composite")
+		_, err := keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+			Name: ptr.To("test-composite-base"),
+		})
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+
+		By("Creating a KeycloakClient with realm roles")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-realm-roles",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-realm-roles",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				Public: true,
+				Secret: secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
+				RealmRoles: &[]keycloakApi.RealmRole{
+					{Name: "test-simple-role", Composite: ""},
+					{Name: "test-composite-role", Composite: "test-composite-base"},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+
+			realmRolesCond := meta.FindStatusCondition(createdKeycloakClient.Status.Conditions, chain.ConditionRealmRolesSynced)
+			g.Expect(realmRolesCond).ShouldNot(BeNil(), "RealmRolesSynced condition should be set")
+			g.Expect(realmRolesCond.Status).Should(Equal(metav1.ConditionTrue), "RealmRolesSynced condition should be True")
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying simple realm role in Keycloak")
+		simpleRole, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "test-simple-role")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(simpleRole).ShouldNot(BeNil())
+		Expect(simpleRole.Name).ShouldNot(BeNil())
+		Expect(*simpleRole.Name).Should(Equal("test-simple-role"))
+
+		By("Verifying composite realm role in Keycloak")
+		compositeRole, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "test-composite-role")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(compositeRole).ShouldNot(BeNil())
+		Expect(compositeRole.Composite).ShouldNot(BeNil())
+		Expect(*compositeRole.Composite).Should(BeTrue())
+
+		composites, _, err := keycloakAdmin.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-composite-role")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(composites).Should(HaveLen(1))
+		Expect(*composites[0].Name).Should(Equal("test-composite-base"))
+	})
+
 	It("Should create KeycloakClient with authorization settings", func() {
 		By("Creating a client secret")
 		clientSecret := &corev1.Secret{
@@ -329,29 +735,25 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
-		By("Creating keycloak api client")
-		client := gocloak.NewClient(keycloakURL)
-		token, err := client.LoginAdmin(ctx, "admin", "admin", "master")
-		Expect(err).ShouldNot(HaveOccurred())
 
 		By("Creating group for policy")
-		_, err = client.CreateGroup(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Group{
-			Name: gocloak.StringP("test-policy-group"),
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+			Name: ptr.To("test-policy-group"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating role for policy")
-		_, err = client.CreateRealmRole(ctx, token.AccessToken, KeycloakRealmCR, gocloak.Role{
-			Name: gocloak.StringP("test-policy-role"),
+		_, err = keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+			Name: ptr.To("test-policy-role"),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating user for policy")
-		_, err = client.CreateUser(ctx, token.AccessToken, KeycloakRealmCR, gocloak.User{
-			Username: gocloak.StringP("test-policy-user"),
-			Enabled:  gocloak.BoolP(true),
+		_, err = keycloakAdmin.Users.CreateUser(ctx, KeycloakRealmCR, keycloakv2.UserRepresentation{
+			Username: ptr.To("test-policy-user"),
+			Enabled:  ptr.To(true),
 		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
@@ -436,6 +838,15 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 								Users: []string{"test-policy-user"},
 							},
 						},
+						{
+							Name:             "aggregate-policy",
+							Type:             keycloakApi.PolicyTypeAggregate,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							AggregatedPolicy: &keycloakApi.AggregatedPolicyData{
+								Policies: []string{"client-policy"},
+							},
+						},
 					},
 					Permissions: []keycloakApi.Permission{},
 					Scopes:      []string{"test-scope"},
@@ -455,41 +866,95 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
 			createdKeycloakClient := &keycloakApi.KeycloakClient{}
-			if err = k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient); err != nil {
-				return false
-			}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).Should(Succeed())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdKeycloakClient.Status.ClientID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed(), "KeycloakClient should be created successfully")
 
-			return createdKeycloakClient.Status.Value == common.StatusOK &&
-				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be created successfully")
+		By("Verifying authorization scopes in Keycloak")
+		authClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(authClient).ShouldNot(BeNil())
+		Expect(authClient.Id).ShouldNot(BeNil())
+
+		authClientUUID := *authClient.Id
+
+		scopes, _, err := keycloakAdmin.Authorization.GetScopes(ctx, KeycloakRealmCR, authClientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		scopeNames := make([]string, 0, len(scopes))
+		for _, s := range scopes {
+			if s.Name != nil {
+				scopeNames = append(scopeNames, *s.Name)
+			}
+		}
+
+		Expect(scopeNames).Should(ContainElement("test-scope"))
+
+		By("Verifying authorization resources in Keycloak")
+		resources, _, err := keycloakAdmin.Authorization.GetResources(ctx, KeycloakRealmCR, authClientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var testResource *keycloakv2.ResourceRepresentation
+		for i := range resources {
+			if resources[i].Name != nil && *resources[i].Name == "test-resource" {
+				testResource = &resources[i]
+
+				break
+			}
+		}
+
+		Expect(testResource).ShouldNot(BeNil(), "Resource 'test-resource' should exist")
+		Expect(testResource.DisplayName).ShouldNot(BeNil())
+		Expect(*testResource.DisplayName).Should(Equal("Test resource"))
+		Expect(testResource.Type).ShouldNot(BeNil())
+		Expect(*testResource.Type).Should(Equal("test"))
+		Expect(testResource.IconUri).ShouldNot(BeNil())
+		Expect(*testResource.IconUri).Should(Equal("https://example.com/icon.png"))
+		Expect(testResource.OwnerManagedAccess).ShouldNot(BeNil())
+		Expect(*testResource.OwnerManagedAccess).Should(BeTrue())
+		Expect(testResource.Uris).ShouldNot(BeNil())
+		Expect(*testResource.Uris).Should(ContainElement("https://example.com"))
+
+		By("Verifying authorization policies in Keycloak")
+		policies, _, err := keycloakAdmin.Authorization.GetPolicies(ctx, KeycloakRealmCR, authClientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		policyNames := make([]string, 0, len(policies))
+		for _, p := range policies {
+			if p.Name != nil {
+				policyNames = append(policyNames, *p.Name)
+			}
+		}
+
+		Expect(policyNames).Should(ContainElements("client-policy", "group-policy", "role-policy", "time-policy", "user-policy", "aggregate-policy"))
 
 		By("Adding client permissions")
 
-		By("Getting Client")
-		clients, err := client.GetClients(ctx, token.AccessToken, KeycloakRealmCR, gocloak.GetClientsParams{
-			ClientID: gocloak.StringP(keycloakClient.Spec.ClientId),
-		})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
-		Expect(clients).Should(HaveLen(1))
+		By("Getting Client UUID")
+		existingClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(existingClient).ShouldNot(BeNil())
+		Expect(existingClient.Id).ShouldNot(BeNil())
 
-		cl := clients[0]
+		clientUUID := *existingClient.Id
 
 		By("Creating scope for permission")
-		_, err = client.CreateScope(ctx, token.AccessToken, KeycloakRealmCR, *cl.ID,
-			gocloak.ScopeRepresentation{
-				Name: gocloak.StringP("test-scope"),
+		_, err = keycloakAdmin.Authorization.CreateScope(ctx, KeycloakRealmCR, clientUUID,
+			keycloakv2.ScopeRepresentation{
+				Name: ptr.To("test-scope"),
 			})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating resource for permission")
-		_, err = client.CreateResource(ctx, token.AccessToken, KeycloakRealmCR, *cl.ID,
-			gocloak.ResourceRepresentation{
-				Name:               gocloak.StringP("test-resource"),
-				OwnerManagedAccess: gocloak.BoolP(false),
+		_, _, err = keycloakAdmin.Authorization.CreateResource(ctx, KeycloakRealmCR, clientUUID,
+			keycloakv2.ResourceRepresentation{
+				Name:               ptr.To("test-resource"),
+				OwnerManagedAccess: ptr.To(false),
 			})
-		Expect(adapter.SkipAlreadyExistsErr(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Getting KeycloakClient for update")
 		clientToUpdate := &keycloakApi.KeycloakClient{}
@@ -517,18 +982,15 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}
 		clientToUpdate.Spec.Authorization.Resources = []keycloakApi.Resource{}
 
-		By("Waiting for the KeycloakClient will be processed at least once")
-		time.Sleep(5 * time.Second)
-		Eventually(func() bool {
-			createdKeycloakClient := &keycloakApi.KeycloakClient{}
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)
-			if err != nil {
-				return false
-			}
+		By("Updating KeycloakClient with permissions")
+		Expect(k8sClient.Update(ctx, clientToUpdate)).Should(Succeed())
 
-			return createdKeycloakClient.Status.Value == common.StatusOK &&
-				createdKeycloakClient.Status.ClientID != ""
-		}, timeout, interval).Should(BeTrue(), "KeycloakClient should be updated successfully")
+		Eventually(func(g Gomega) {
+			updatedKeycloakClient := &keycloakApi.KeycloakClient{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, updatedKeycloakClient)).Should(Succeed())
+			g.Expect(updatedKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(updatedKeycloakClient.Status.ClientID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed(), "KeycloakClient should be updated successfully")
 	})
 
 	It("Should successfully delete KeycloakClient if ErrKeycloakRealmNotFound occurs", func() {

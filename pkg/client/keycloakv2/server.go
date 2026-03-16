@@ -3,6 +3,7 @@ package keycloakv2
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -28,11 +29,17 @@ type Theme struct {
 	Locales []string `json:"locales,omitempty"`
 }
 
+type ServerFeature struct {
+	Name    string `json:"name"`
+	Enabled bool   `json:"enabled"`
+}
+
 type ServerInfo struct {
 	SystemInfo     SystemInfo                 `json:"systemInfo"`
 	ComponentTypes map[string][]ComponentType `json:"componentTypes"`
 	ProviderTypes  map[string]ProviderType    `json:"providers"`
 	Themes         map[string][]Theme         `json:"themes"`
+	Features       []ServerFeature            `json:"features"`
 }
 
 func (keycloakClient *KeycloakClient) GetServerInfo(ctx context.Context) (*ServerInfo, error) {
@@ -52,7 +59,10 @@ func (keycloakClient *KeycloakClient) GetServerInfo(ctx context.Context) (*Serve
 		_ = resp.Body.Close()
 	}()
 
-	body, _ := io.ReadAll(resp.Body)
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		apiErr := parseKeycloakError(resp.StatusCode, body)
@@ -67,4 +77,20 @@ func (keycloakClient *KeycloakClient) GetServerInfo(ctx context.Context) (*Serve
 	}
 
 	return &serverInfo, nil
+}
+
+// FeatureFlagEnabled checks if a specific feature flag is enabled on the Keycloak server.
+func (keycloakClient *KeycloakClient) FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error) {
+	serverInfo, err := keycloakClient.GetServerInfo(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get server info: %w", err)
+	}
+
+	for _, feature := range serverInfo.Features {
+		if feature.Name == featureFlag {
+			return feature.Enabled, nil
+		}
+	}
+
+	return false, nil
 }

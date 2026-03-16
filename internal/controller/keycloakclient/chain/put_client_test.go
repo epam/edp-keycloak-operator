@@ -2,7 +2,10 @@ package chain
 
 import (
 	"context"
+	"net/http"
 	"testing"
+
+	"errors"
 
 	"github.com/go-logr/logr"
 	testifymock "github.com/stretchr/testify/mock"
@@ -11,14 +14,15 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
@@ -31,7 +35,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 	type args struct {
 		keycloakClient client.ObjectKey
-		adapterClient  func(t *testing.T) keycloak.Client
+		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
 	}
 
 	tests := []struct {
@@ -80,20 +84,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("", adapter.NotFoundError("not found")).
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
 						Once()
 
-					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{
+								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+							},
+						}, nil)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -142,20 +147,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("", adapter.NotFoundError("not found")).
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
 						Once()
 
-					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{
+								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+							},
+						}, nil)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -198,20 +204,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("", adapter.NotFoundError("not found")).
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
 						Once()
 
-					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{
+								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+							},
+						}, nil)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -260,20 +267,16 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil).
-						Once()
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("123")}, (*keycloakv2.Response)(nil), nil)
 
-					m.On("UpdateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
+					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
+						Return((*keycloakv2.Response)(nil), nil)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -317,20 +320,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("", adapter.NotFoundError("not found")).
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
 						Once()
 
-					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{
+								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+							},
+						}, nil)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -377,31 +381,34 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				adapterClient: func(t *testing.T) keycloak.Client {
-					m := keycloakmocks.NewMockClient(t)
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
 
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("", adapter.NotFoundError("not found")).
-						Once()
-
-					m.On("CreateClient", testifymock.Anything, testifymock.Anything).
-						Return(nil)
-
-					m.On("GetClientID", "test-client-id", "realm").
-						Return("123", nil)
-					m.On("GetRealmAuthFlows", "realm").
-						Return([]adapter.KeycloakAuthFlow{
+					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
+						Return([]keycloakv2.AuthenticationFlowRepresentation{
 							{
-								ID:    "A39C9C6E-430A-4891-8592-FC195AF2581B",
-								Alias: "browser",
+								Id:    ptr.To("A39C9C6E-430A-4891-8592-FC195AF2581B"),
+								Alias: ptr.To("browser"),
 							},
 							{
-								ID:    "8BF514C6-922C-44A0-8F90-488D1B9DE437",
-								Alias: "direct grant",
+								Id:    ptr.To("8BF514C6-922C-44A0-8F90-488D1B9DE437"),
+								Alias: ptr.To("direct grant"),
+							},
+						}, (*keycloakv2.Response)(nil), nil)
+
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Once()
+
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{
+								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return m
+					return &keycloakv2.KeycloakClient{Clients: clientsMock, Realms: realmsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -410,6 +417,705 @@ func TestPutClient_Serve(t *testing.T) {
 				Status: metav1.ConditionTrue,
 				Reason: ReasonClientUpdated,
 			},
+		},
+		{
+			name: "error when GetAuthenticationFlows fails",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+										Browser: "browser",
+									},
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
+					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
+						Return(nil, (*keycloakv2.Response)(nil), errors.New("realm api error"))
+
+					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get auth flows")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when browser flow not found in realm",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+										Browser: "custom-browser",
+									},
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
+					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
+						Return([]keycloakv2.AuthenticationFlowRepresentation{
+							{Id: ptr.To("id1"), Alias: ptr.To("browser")},
+						}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "auth flow custom-browser not found in realm")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when direct grant flow not found in realm",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
+										Browser:     "browser",
+										DirectGrant: "custom-grant",
+									},
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
+					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
+						Return([]keycloakv2.AuthenticationFlowRepresentation{
+							{Id: ptr.To("id1"), Alias: ptr.To("browser")},
+						}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "auth flow custom-grant not found in realm")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when GetClientByClientID returns non-NotFound error",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("connection refused"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to check client id")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when UpdateClient fails",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("123")}, (*keycloakv2.Response)(nil), nil)
+					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
+						Return((*keycloakv2.Response)(nil), errors.New("update failed"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to update keycloak client")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when CreateClient fails",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Once()
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return((*keycloakv2.Response)(nil), errors.New("create failed"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to create client")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "create client fallback when Location header missing",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Once()
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{Header: http.Header{}},
+						}, nil)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("456")}, (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: require.NoError,
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionTrue,
+				Reason: ReasonClientUpdated,
+			},
+		},
+		{
+			name: "error when fallback GetClientByClientID fails after create",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Once()
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{Header: http.Header{}},
+						}, nil)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("lookup failed"))
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get client id after creation")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when fallback returns nil client after create",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Public:   true,
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Once()
+					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+						Return(&keycloakv2.Response{
+							HTTPResponse: &http.Response{Header: http.Header{}},
+						}, nil)
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), nil)
+
+					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "created client has no ID")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when GetSecretFromRef fails",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Secret:   secretref.GenerateSecretRef("my-secret", "key"),
+								},
+							},
+						).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					m := mocks.NewMockRefClient(t)
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+						Return("", errors.New("secret not found"))
+
+					return m
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					return &keycloakv2.KeycloakClient{}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "error getting client secret")
+			},
+			wantCondition: &metav1.Condition{
+				Type:   ConditionClientSynced,
+				Status: metav1.ConditionFalse,
+				Reason: ReasonKeycloakAPIError,
+			},
+		},
+		{
+			name: "error when setSecretRef k8s Update fails",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+									Secret:   "plain-old-secret",
+								},
+							},
+						).
+						WithInterceptorFuncs(interceptor.Funcs{
+							Update: func(_ context.Context, _ client.WithWatch, _ client.Object, _ ...client.UpdateOption) error {
+								return errors.New("update conflict")
+							},
+						}).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					return &keycloakv2.KeycloakClient{}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to update client with secret ref")
+			},
+			wantCondition: nil,
+		},
+		{
+			name: "error when k8s Create fails in generateSecret",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+								},
+							},
+						).
+						WithInterceptorFuncs(interceptor.Funcs{
+							Create: func(_ context.Context, _ client.WithWatch, _ client.Object, _ ...client.CreateOption) error {
+								return errors.New("create denied")
+							},
+						}).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					return &keycloakv2.KeycloakClient{}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to create secret")
+			},
+			wantCondition: nil,
+		},
+		{
+			name: "error when k8s Update fails in generateSecret",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					s := runtime.NewScheme()
+					require.NoError(t, keycloakApi.AddToScheme(s))
+					require.NoError(t, corev1.AddToScheme(s))
+
+					return fake.NewClientBuilder().
+						WithScheme(s).
+						WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+						WithObjects(
+							&keycloakApi.KeycloakClient{
+								ObjectMeta: metav1.ObjectMeta{
+									Name:      "test-client",
+									Namespace: "default",
+								},
+								Spec: keycloakApi.KeycloakClientSpec{
+									ClientId: "test-client-id",
+								},
+							},
+						).
+						WithInterceptorFuncs(interceptor.Funcs{
+							Update: func(_ context.Context, _ client.WithWatch, _ client.Object, _ ...client.UpdateOption) error {
+								return errors.New("update failed")
+							},
+						}).
+						Build()
+				},
+				secretRef: func(t *testing.T) secretRef {
+					return mocks.NewMockRefClient(t)
+				},
+			},
+			args: args{
+				keycloakClient: client.ObjectKey{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+					return &keycloakv2.KeycloakClient{}
+				},
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to update client with new secret")
+			},
+			wantCondition: nil,
 		},
 	}
 
@@ -422,11 +1128,13 @@ func TestPutClient_Serve(t *testing.T) {
 			cl := &keycloakApi.KeycloakClient{}
 			require.NoError(t, tt.fields.client(t).Get(context.Background(), tt.args.keycloakClient, cl))
 
-			el := NewPutClient(tt.args.adapterClient(t), tt.fields.client(t), tt.fields.secretRef(t))
+			el := NewPutClient(tt.args.kClient(t), tt.fields.client(t), tt.fields.secretRef(t))
+			clientCtx := &ClientContext{}
 			err := el.Serve(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				cl,
 				"realm",
+				clientCtx,
 			)
 			tt.wantErr(t, err)
 
@@ -438,6 +1146,112 @@ func TestPutClient_Serve(t *testing.T) {
 				require.Equal(t, tt.wantCondition.Reason, cond.Reason)
 				require.Equal(t, cl.Generation, cond.ObservedGeneration)
 			}
+		})
+	}
+}
+
+func TestConvertSpecToClientRepresentation(t *testing.T) {
+	tests := []struct {
+		name              string
+		spec              keycloakApi.KeycloakClientSpec
+		clientSecret      string
+		authFlowOverrides map[string]string
+		check             func(t *testing.T, cr keycloakv2.ClientRepresentation)
+	}{
+		{
+			name: "minimal - ClientId only",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "my-client"},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, "my-client", *cr.ClientId)
+				require.Nil(t, cr.Protocol)
+				require.Nil(t, cr.RootUrl)
+				require.Nil(t, cr.BaseUrl)
+				require.Nil(t, cr.AdminUrl)
+				require.Nil(t, cr.Secret)
+				require.Nil(t, cr.Attributes)
+				require.Nil(t, cr.RedirectUris)
+				require.Nil(t, cr.WebOrigins)
+				require.Nil(t, cr.AuthenticationFlowBindingOverrides)
+			},
+		},
+		{
+			name: "with protocol",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", Protocol: ptr.To("saml")},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.NotNil(t, cr.Protocol)
+				require.Equal(t, "saml", *cr.Protocol)
+			},
+		},
+		{
+			name: "WebUrl without HomeUrl",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com"},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, "https://example.com", *cr.RootUrl)
+				require.Equal(t, "https://example.com", *cr.BaseUrl)
+				require.Equal(t, []string{"https://example.com/*"}, *cr.RedirectUris)
+				require.Equal(t, []string{"https://example.com"}, *cr.WebOrigins)
+			},
+		},
+		{
+			name: "WebUrl with HomeUrl",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", HomeUrl: "https://home.example.com"},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, "https://example.com", *cr.RootUrl)
+				require.Equal(t, "https://home.example.com", *cr.BaseUrl)
+			},
+		},
+		{
+			name: "explicit RedirectUris overrides WebUrl fallback",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", RedirectUris: []string{"https://example.com/callback"}},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, []string{"https://example.com/callback"}, *cr.RedirectUris)
+			},
+		},
+		{
+			name: "explicit WebOrigins overrides WebUrl fallback",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", WebOrigins: []string{"https://other.example.com"}},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, []string{"https://other.example.com"}, *cr.WebOrigins)
+			},
+		},
+		{
+			name: "with Attributes",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", Attributes: map[string]string{"key": "val"}},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.NotNil(t, cr.Attributes)
+				require.Equal(t, "val", (*cr.Attributes)["key"])
+			},
+		},
+		{
+			name: "with AdminUrl",
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", AdminUrl: "https://admin.example.com"},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, "https://admin.example.com", *cr.AdminUrl)
+			},
+		},
+		{
+			name:         "with clientSecret",
+			spec:         keycloakApi.KeycloakClientSpec{ClientId: "c"},
+			clientSecret: "supersecret",
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.Equal(t, "supersecret", *cr.Secret)
+			},
+		},
+		{
+			name:              "with authFlowOverrides",
+			spec:              keycloakApi.KeycloakClientSpec{ClientId: "c"},
+			authFlowOverrides: map[string]string{"browser": "flow-id-1"},
+			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+				require.NotNil(t, cr.AuthenticationFlowBindingOverrides)
+				require.Equal(t, "flow-id-1", (*cr.AuthenticationFlowBindingOverrides)["browser"])
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cr := convertSpecToClientRepresentation(&tt.spec, tt.clientSecret, tt.authFlowOverrides)
+			tt.check(t, cr)
 		})
 	}
 }

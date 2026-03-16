@@ -7,16 +7,18 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/dto"
-	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestPutRealmRole_Serve(t *testing.T) {
@@ -27,13 +29,12 @@ func TestPutRealmRole_Serve(t *testing.T) {
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
-		mockSetup      func(*keycloakmocks.MockClient)
+		mockSetup      func(*keycloakv2Mocks.MockRolesClient)
 		realmName      string
 		expectedError  string
-		expectedCalls  int
 	}{
 		{
-			name: "success - create single realm role",
+			name: "success - create single realm role with composite",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-client",
@@ -48,17 +49,20 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				expectedRole := &dto.IncludedRealmRole{
-					Name:      "test-role",
-					Composite: "composite-role",
-				}
-				m.On("ExistRealmRole", "test-realm", "test-role").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole).Return(nil)
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				// GetRealmRole returns not found → role doesn't exist
+				m.On("GetRealmRole", mock.Anything, "test-realm", "test-role").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).Once()
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
+				// Get composite role
+				m.On("GetRealmRole", mock.Anything, "test-realm", "composite-role").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("comp-id"), Name: ptr.To("composite-role")}, (*keycloakv2.Response)(nil), nil)
+				m.On("AddRealmRoleComposites", mock.Anything, "test-realm", "test-role", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 2,
 		},
 		{
 			name: "success - create multiple realm roles",
@@ -80,23 +84,29 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				expectedRole1 := &dto.IncludedRealmRole{
-					Name:      "role1",
-					Composite: "composite1",
-				}
-				expectedRole2 := &dto.IncludedRealmRole{
-					Name:      "role2",
-					Composite: "composite2",
-				}
-				m.On("ExistRealmRole", "test-realm", "role1").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole1).Return(nil)
-				m.On("ExistRealmRole", "test-realm", "role2").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole2).Return(nil)
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "role1").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).Once()
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.MatchedBy(func(r keycloakv2.RoleRepresentation) bool {
+					return r.Name != nil && *r.Name == "role1"
+				})).Return((*keycloakv2.Response)(nil), nil)
+				m.On("GetRealmRole", mock.Anything, "test-realm", "composite1").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("comp1-id"), Name: ptr.To("composite1")}, (*keycloakv2.Response)(nil), nil)
+				m.On("AddRealmRoleComposites", mock.Anything, "test-realm", "role1", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
+
+				m.On("GetRealmRole", mock.Anything, "test-realm", "role2").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).Once()
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.MatchedBy(func(r keycloakv2.RoleRepresentation) bool {
+					return r.Name != nil && *r.Name == "role2"
+				})).Return((*keycloakv2.Response)(nil), nil)
+				m.On("GetRealmRole", mock.Anything, "test-realm", "composite2").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("comp2-id"), Name: ptr.To("composite2")}, (*keycloakv2.Response)(nil), nil)
+				m.On("AddRealmRoleComposites", mock.Anything, "test-realm", "role2", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 4,
 		},
 		{
 			name: "success - no realm roles (nil)",
@@ -109,12 +119,10 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					RealmRoles: nil,
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				// No mock calls expected
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 0,
 		},
 		{
 			name: "success - no realm roles (empty slice)",
@@ -127,12 +135,10 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					RealmRoles: &[]keycloakApi.RealmRole{},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				// No mock calls expected
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 0,
 		},
 		{
 			name: "role already exists - returns early",
@@ -150,16 +156,15 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				m.On("ExistRealmRole", "test-realm", "existing-role").Return(true, nil)
-				// CreateIncludedRealmRole should not be called
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "existing-role").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("id"), Name: ptr.To("existing-role")}, (*keycloakv2.Response)(nil), nil)
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 1,
 		},
 		{
-			name: "error - ExistRealmRole fails",
+			name: "error - GetRealmRole fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-client",
@@ -174,15 +179,15 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				m.On("ExistRealmRole", "test-realm", "test-role").Return(false, errors.New("keycloak api error"))
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "test-role").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("keycloak api error"))
 			},
 			realmName:     "test-realm",
-			expectedError: "unable to put realm roles: error during ExistRealmRole: keycloak api error",
-			expectedCalls: 1,
+			expectedError: "error checking realm role test-role",
 		},
 		{
-			name: "error - CreateIncludedRealmRole fails",
+			name: "error - CreateRealmRole fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-client",
@@ -197,20 +202,17 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				expectedRole := &dto.IncludedRealmRole{
-					Name:      "test-role",
-					Composite: "composite",
-				}
-				m.On("ExistRealmRole", "test-realm", "test-role").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole).Return(errors.New("creation failed"))
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "test-role").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound)
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.Anything).
+					Return((*keycloakv2.Response)(nil), errors.New("creation failed"))
 			},
 			realmName:     "test-realm",
-			expectedError: "unable to put realm roles: error during CreateRealmRole: creation failed",
-			expectedCalls: 2,
+			expectedError: "error creating realm role test-role",
 		},
 		{
-			name: "multiple roles - first exists, second fails on existence check",
+			name: "multiple roles - first exists, second is created",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-client",
@@ -223,50 +225,32 @@ func TestPutRealmRole_Serve(t *testing.T) {
 							Composite: "composite1",
 						},
 						{
-							Name:      "failing-role",
+							Name:      "new-role",
 							Composite: "composite2",
 						},
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				// First role exists, so method returns early and second role is never checked
-				m.On("ExistRealmRole", "test-realm", "existing-role").Return(true, nil)
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				// First role exists, skip it
+				m.On("GetRealmRole", mock.Anything, "test-realm", "existing-role").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("id"), Name: ptr.To("existing-role")}, (*keycloakv2.Response)(nil), nil)
+				// Second role doesn't exist, create it
+				m.On("GetRealmRole", mock.Anything, "test-realm", "new-role").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).Once()
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.MatchedBy(func(r keycloakv2.RoleRepresentation) bool {
+					return r.Name != nil && *r.Name == "new-role"
+				})).Return((*keycloakv2.Response)(nil), nil)
+				m.On("GetRealmRole", mock.Anything, "test-realm", "composite2").
+					Return(&keycloakv2.RoleRepresentation{Id: ptr.To("comp2-id"), Name: ptr.To("composite2")}, (*keycloakv2.Response)(nil), nil)
+				m.On("AddRealmRoleComposites", mock.Anything, "test-realm", "new-role", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 1,
 		},
 		{
-			name: "empty role name",
-			keycloakClient: &keycloakApi.KeycloakClient{
-				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
-				},
-				Spec: keycloakApi.KeycloakClientSpec{
-					RealmRoles: &[]keycloakApi.RealmRole{
-						{
-							Name:      "",
-							Composite: "composite",
-						},
-					},
-				},
-			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				expectedRole := &dto.IncludedRealmRole{
-					Name:      "",
-					Composite: "composite",
-				}
-				m.On("ExistRealmRole", "test-realm", "").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole).Return(nil)
-			},
-			realmName:     "test-realm",
-			expectedError: "",
-			expectedCalls: 2,
-		},
-		{
-			name: "empty composite name",
+			name: "empty composite name - no composite added",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-client",
@@ -281,33 +265,25 @@ func TestPutRealmRole_Serve(t *testing.T) {
 					},
 				},
 			},
-			mockSetup: func(m *keycloakmocks.MockClient) {
-				expectedRole := &dto.IncludedRealmRole{
-					Name:      "test-role",
-					Composite: "",
-				}
-				m.On("ExistRealmRole", "test-realm", "test-role").Return(false, nil)
-				m.On("CreateIncludedRealmRole", "test-realm", expectedRole).Return(nil)
+			mockSetup: func(m *keycloakv2Mocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "test-role").
+					Return((*keycloakv2.RoleRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound)
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil)
+				// No AddRealmRoleComposites call since composite is empty
 			},
 			realmName:     "test-realm",
 			expectedError: "",
-			expectedCalls: 2,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create mock client
-			mockClient := keycloakmocks.NewMockClient(t)
-			tt.mockSetup(mockClient)
+			rolesMock := keycloakv2Mocks.NewMockRolesClient(t)
+			tt.mockSetup(rolesMock)
 
-			// Ensure test client has proper metadata
-			if tt.keycloakClient.Name == "" {
-				tt.keycloakClient.Name = "test-client"
-			}
-
-			if tt.keycloakClient.Namespace == "" {
-				tt.keycloakClient.Namespace = "default"
+			kClient := &keycloakv2.KeycloakClient{
+				Roles: rolesMock,
 			}
 
 			k8sClient := fake.NewClientBuilder().
@@ -316,16 +292,12 @@ func TestPutRealmRole_Serve(t *testing.T) {
 				WithStatusSubresource(tt.keycloakClient).
 				Build()
 
-			// Create the service
-			service := NewPutRealmRole(mockClient, k8sClient)
+			service := NewPutRealmRole(kClient, k8sClient)
 
-			// Set up context with logger
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
 
-			// Execute the method
-			err := service.Serve(ctx, tt.keycloakClient, tt.realmName)
+			err := service.Serve(ctx, tt.keycloakClient, tt.realmName, &ClientContext{})
 
-			// Assert the result
 			if tt.expectedError != "" {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.expectedError)
