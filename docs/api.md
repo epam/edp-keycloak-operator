@@ -1656,13 +1656,6 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>secret</b></td>
-        <td>string</td>
-        <td>
-          Secret is a secret name which contains admin credentials.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
@@ -1674,10 +1667,21 @@ ClusterKeycloakSpec defines the desired state of ClusterKeycloak.
         <td>enum</td>
         <td>
           AdminType can be user or serviceAccount, if serviceAccount was specified,
-then client_credentials grant type should be used for getting admin realm token.<br/>
+then client_credentials grant type should be used for getting admin realm token.
+Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
             <i>Default</i>: user<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth defines the authentication configuration for connecting to Keycloak.
+When set, Secret and AdminType fields are ignored.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.passwordGrant) || has(self.clientCredentials): one of passwordGrant or clientCredentials must be set</li><li>!(has(self.passwordGrant) && has(self.clientCredentials)): passwordGrant and clientCredentials are mutually exclusive</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1697,6 +1701,443 @@ Resources should be in the namespace defined in operator OPERATOR_NAMESPACE env.
 certificate chain and host name. If InsecureSkipVerify is true, api client
 accepts any certificate presented by the server and any host name in that
 certificate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>secret</b></td>
+        <td>string</td>
+        <td>
+          Secret is a secret name which contains admin credentials.
+Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth
+<sup><sup>[↩ Parent](#clusterkeycloakspec)</sup></sup>
+
+
+
+Auth defines the authentication configuration for connecting to Keycloak.
+When set, Secret and AdminType fields are ignored.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspecauthclientcredentials">clientCredentials</a></b></td>
+        <td>object</td>
+        <td>
+          ClientCredentials configures OAuth2 client credentials grant authentication.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauthpasswordgrant">passwordGrant</a></b></td>
+        <td>object</td>
+        <td>
+          PasswordGrant configures resource owner password grant authentication.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.clientCredentials
+<sup><sup>[↩ Parent](#clusterkeycloakspecauth)</sup></sup>
+
+
+
+ClientCredentials configures OAuth2 client credentials grant authentication.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspecauthclientcredentialsclientid">clientId</a></b></td>
+        <td>object</td>
+        <td>
+          ClientID is the OAuth2 client ID for authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauthclientcredentialsclientsecretref">clientSecretRef</a></b></td>
+        <td>object</td>
+        <td>
+          ClientSecretRef is a reference to a secret key containing the client secret.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.clientCredentials.clientId
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthclientcredentials)</sup></sup>
+
+
+
+ClientID is the OAuth2 client ID for authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspecauthclientcredentialsclientidconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauthclientcredentialsclientidsecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Directly specifies a value.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.clientCredentials.clientId.configMapKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthclientcredentialsclientid)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.clientCredentials.clientId.secretKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthclientcredentialsclientid)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.clientCredentials.clientSecretRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthclientcredentials)</sup></sup>
+
+
+
+ClientSecretRef is a reference to a secret key containing the client secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.passwordGrant
+<sup><sup>[↩ Parent](#clusterkeycloakspecauth)</sup></sup>
+
+
+
+PasswordGrant configures resource owner password grant authentication.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspecauthpasswordgrantpasswordref">passwordRef</a></b></td>
+        <td>object</td>
+        <td>
+          PasswordRef is a reference to a secret key containing the password.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauthpasswordgrantusername">username</a></b></td>
+        <td>object</td>
+        <td>
+          Username is the admin username for password grant authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.passwordGrant.passwordRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthpasswordgrant)</sup></sup>
+
+
+
+PasswordRef is a reference to a secret key containing the password.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.passwordGrant.username
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthpasswordgrant)</sup></sup>
+
+
+
+Username is the admin username for password grant authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#clusterkeycloakspecauthpasswordgrantusernameconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#clusterkeycloakspecauthpasswordgrantusernamesecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Directly specifies a value.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.passwordGrant.username.configMapKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthpasswordgrantusername)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloak.spec.auth.passwordGrant.username.secretKeyRef
+<sup><sup>[↩ Parent](#clusterkeycloakspecauthpasswordgrantusername)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7689,13 +8130,6 @@ KeycloakSpec defines the desired state of Keycloak.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>secret</b></td>
-        <td>string</td>
-        <td>
-          Secret is a secret name which contains admin credentials.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>url</b></td>
         <td>string</td>
         <td>
@@ -7706,9 +8140,20 @@ KeycloakSpec defines the desired state of Keycloak.
         <td><b>adminType</b></td>
         <td>enum</td>
         <td>
-          AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.<br/>
+          AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.
+Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
           <br/>
             <i>Enum</i>: serviceAccount, user<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauth">auth</a></b></td>
+        <td>object</td>
+        <td>
+          Auth defines the authentication configuration for connecting to Keycloak.
+When set, Secret and AdminType fields are ignored.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.passwordGrant) || has(self.clientCredentials): one of passwordGrant or clientCredentials must be set</li><li>!(has(self.passwordGrant) && has(self.clientCredentials)): passwordGrant and clientCredentials are mutually exclusive</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7727,6 +8172,443 @@ that api client use when verifying server certificates.<br/>
 certificate chain and host name. If InsecureSkipVerify is true, api client
 accepts any certificate presented by the server and any host name in that
 certificate.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>secret</b></td>
+        <td>string</td>
+        <td>
+          Secret is a secret name which contains admin credentials.
+Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth
+<sup><sup>[↩ Parent](#keycloakspec)</sup></sup>
+
+
+
+Auth defines the authentication configuration for connecting to Keycloak.
+When set, Secret and AdminType fields are ignored.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspecauthclientcredentials">clientCredentials</a></b></td>
+        <td>object</td>
+        <td>
+          ClientCredentials configures OAuth2 client credentials grant authentication.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauthpasswordgrant">passwordGrant</a></b></td>
+        <td>object</td>
+        <td>
+          PasswordGrant configures resource owner password grant authentication.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.clientCredentials
+<sup><sup>[↩ Parent](#keycloakspecauth)</sup></sup>
+
+
+
+ClientCredentials configures OAuth2 client credentials grant authentication.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspecauthclientcredentialsclientid">clientId</a></b></td>
+        <td>object</td>
+        <td>
+          ClientID is the OAuth2 client ID for authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauthclientcredentialsclientsecretref">clientSecretRef</a></b></td>
+        <td>object</td>
+        <td>
+          ClientSecretRef is a reference to a secret key containing the client secret.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.clientCredentials.clientId
+<sup><sup>[↩ Parent](#keycloakspecauthclientcredentials)</sup></sup>
+
+
+
+ClientID is the OAuth2 client ID for authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspecauthclientcredentialsclientidconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauthclientcredentialsclientidsecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Directly specifies a value.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.clientCredentials.clientId.configMapKeyRef
+<sup><sup>[↩ Parent](#keycloakspecauthclientcredentialsclientid)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.clientCredentials.clientId.secretKeyRef
+<sup><sup>[↩ Parent](#keycloakspecauthclientcredentialsclientid)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.clientCredentials.clientSecretRef
+<sup><sup>[↩ Parent](#keycloakspecauthclientcredentials)</sup></sup>
+
+
+
+ClientSecretRef is a reference to a secret key containing the client secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.passwordGrant
+<sup><sup>[↩ Parent](#keycloakspecauth)</sup></sup>
+
+
+
+PasswordGrant configures resource owner password grant authentication.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspecauthpasswordgrantpasswordref">passwordRef</a></b></td>
+        <td>object</td>
+        <td>
+          PasswordRef is a reference to a secret key containing the password.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauthpasswordgrantusername">username</a></b></td>
+        <td>object</td>
+        <td>
+          Username is the admin username for password grant authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.passwordGrant.passwordRef
+<sup><sup>[↩ Parent](#keycloakspecauthpasswordgrant)</sup></sup>
+
+
+
+PasswordRef is a reference to a secret key containing the password.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.passwordGrant.username
+<sup><sup>[↩ Parent](#keycloakspecauthpasswordgrant)</sup></sup>
+
+
+
+Username is the admin username for password grant authentication.
+Can be a direct value or a reference to a key in a Secret or ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakspecauthpasswordgrantusernameconfigmapkeyref">configMapKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a ConfigMap.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakspecauthpasswordgrantusernamesecretkeyref">secretKeyRef</a></b></td>
+        <td>object</td>
+        <td>
+          Selects a key of a secret.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Directly specifies a value.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.passwordGrant.username.configMapKeyRef
+<sup><sup>[↩ Parent](#keycloakspecauthpasswordgrantusername)</sup></sup>
+
+
+
+Selects a key of a ConfigMap.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key to select.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### Keycloak.spec.auth.passwordGrant.username.secretKeyRef
+<sup><sup>[↩ Parent](#keycloakspecauthpasswordgrantusername)</sup></sup>
+
+
+
+Selects a key of a secret.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>key</b></td>
+        <td>string</td>
+        <td>
+          The key of the secret to select from.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name of the referent.
+This field is effectively required, but due to backwards compatibility is
+allowed to be empty. Instances of this type with an empty value here are
+almost certainly wrong.
+More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names<br/>
+          <br/>
+            <i>Default</i>: <br/>
         </td>
         <td>false</td>
       </tr></tbody>

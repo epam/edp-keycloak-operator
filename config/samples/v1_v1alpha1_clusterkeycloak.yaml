@@ -7,3 +7,36 @@ metadata:
 spec:
   secret: keycloak-access
   url: https://keycloak.example.com
+
+
+---
+# Password grant authentication
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: clusterkeycloak-password-grant
+spec:
+  url: https://keycloak.example.com
+  auth:
+    passwordGrant:
+      username:
+        value: admin
+      passwordRef:
+        name: keycloak-access
+        key: password
+
+---
+# Client credentials authentication
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: clusterkeycloak-client-creds
+spec:
+  url: https://keycloak.example.com
+  auth:
+    clientCredentials:
+      clientId:
+        value: my-admin-client
+      clientSecretRef:
+        name: keycloak-client-secret
+        key: client-secret

@@ -68,7 +68,7 @@ type SourceRef struct {
 // +kubebuilder:object:generate=true
 type SourceRefOrVal struct {
 	// Selects a key of a ConfigMap or a Secret.
-	SourceRef *SourceRef `json:",inline,omitempty"`
+	SourceRef `json:",inline"`
 
 	// Directly specifies a value.
 	// +optional

@@ -12,6 +12,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
@@ -50,6 +51,9 @@ type KeycloakAuthData struct {
 
 	// InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name.
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+
+	// AuthSpec is the new auth configuration. When set, takes precedence over SecretName/AdminType.
+	AuthSpec *common.AuthSpec
 }
 
 func (h *Helper) CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (keycloak.Client, error) {
@@ -116,13 +120,30 @@ func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, rea
 }
 
 func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authData *KeycloakAuthData) (*keycloakclientv2.KeycloakClient, error) {
-	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get credentials: %w", err)
-	}
+	var options []keycloakclientv2.ClientOption
 
-	options := []keycloakclientv2.ClientOption{
-		keycloakclientv2.WithPasswordGrant(username, password),
+	clientID := keycloakclientv2.DefaultAdminClientID
+
+	if authData.AuthSpec != nil {
+		var err error
+
+		clientID, options, err = h.buildV2AuthOptions(ctx, authData)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get credentials: %w", err)
+		}
+
+		if authData.AdminType == keycloakApi.KeycloakAdminTypeServiceAccount {
+			clientID = username
+
+			options = append(options, keycloakclientv2.WithClientSecret(password))
+		} else {
+			options = append(options, keycloakclientv2.WithPasswordGrant(username, password))
+		}
 	}
 
 	if authData.CACert != "" {
@@ -133,12 +154,60 @@ func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authDat
 		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
 	}
 
-	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, keycloakclientv2.DefaultAdminClientID, options...)
+	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, clientID, options...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
 	}
 
 	return kcClient, nil
+}
+
+func (h *Helper) buildV2AuthOptions(
+	ctx context.Context,
+	authData *KeycloakAuthData,
+) (clientID string, options []keycloakclientv2.ClientOption, err error) {
+	switch {
+	case authData.AuthSpec.PasswordGrant != nil:
+		username, err := secretref.GetValueFromSourceRefOrVal(
+			ctx, &authData.AuthSpec.PasswordGrant.Username, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", nil, fmt.Errorf("unable to resolve username: %w", err)
+		}
+
+		password, err := secretref.GetValueFromSecretKeySelector(
+			ctx, &authData.AuthSpec.PasswordGrant.PasswordRef, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", nil, fmt.Errorf("unable to resolve password: %w", err)
+		}
+
+		return keycloakclientv2.DefaultAdminClientID,
+			[]keycloakclientv2.ClientOption{keycloakclientv2.WithPasswordGrant(username, password)},
+			nil
+
+	case authData.AuthSpec.ClientCredentials != nil:
+		clientID, err := secretref.GetValueFromSourceRefOrVal(
+			ctx, &authData.AuthSpec.ClientCredentials.ClientID, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", nil, fmt.Errorf("unable to resolve client id: %w", err)
+		}
+
+		clientSecret, err := secretref.GetValueFromSecretKeySelector(
+			ctx, &authData.AuthSpec.ClientCredentials.ClientSecretRef, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", nil, fmt.Errorf("unable to resolve client secret: %w", err)
+		}
+
+		return clientID,
+			[]keycloakclientv2.ClientOption{keycloakclientv2.WithClientSecret(clientSecret)},
+			nil
+
+	default:
+		return "", nil, errors.New("one of passwordGrant or clientCredentials must be set")
+	}
 }
 
 func (h *Helper) CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error) {
@@ -216,13 +285,27 @@ func (h *Helper) getCredentialsFromSecret(ctx context.Context, secretName, secre
 }
 
 func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error) {
-	username, password, err := h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
-	if err != nil {
-		return nil, fmt.Errorf("unable to get credentials: %w", err)
+	var (
+		username, password, adminType string
+		err                           error
+	)
+
+	if authData.AuthSpec != nil {
+		username, password, adminType, err = h.resolveLegacyAuthFromSpec(ctx, authData)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		username, password, err = h.getCredentialsFromSecret(ctx, authData.SecretName, authData.SecretNamespace)
+		if err != nil {
+			return nil, fmt.Errorf("unable to get credentials: %w", err)
+		}
+
+		adminType = authData.AdminType
 	}
 
 	clientAdapter, err := h.CreateKeycloakClient(ctx, authData.Url, username,
-		password, authData.AdminType, authData.CACert, authData.InsecureSkipVerify)
+		password, adminType, authData.CACert, authData.InsecureSkipVerify)
 	if err != nil {
 		return nil, fmt.Errorf("unable to init authData client adapter: %w", err)
 	}
@@ -232,11 +315,52 @@ func (h *Helper) createKeycloakClientFromLoginPassword(ctx context.Context, auth
 		return nil, fmt.Errorf("unable to export authData client token: %w", err)
 	}
 
-	if err := h.saveKeycloakClientTokenSecret(ctx, tokenSecretName(authData.SecretName), authData.SecretNamespace, jwtToken); err != nil {
+	if err := h.saveKeycloakClientTokenSecret(ctx, tokenSecretName(authData.KeycloakCRName), authData.SecretNamespace, jwtToken); err != nil {
 		return nil, fmt.Errorf("unable to save authData token to secret: %w", err)
 	}
 
 	return clientAdapter, nil
+}
+
+func (h *Helper) resolveLegacyAuthFromSpec(ctx context.Context, authData *KeycloakAuthData) (username, password, adminType string, err error) {
+	switch {
+	case authData.AuthSpec.PasswordGrant != nil:
+		username, err = secretref.GetValueFromSourceRefOrVal(
+			ctx, &authData.AuthSpec.PasswordGrant.Username, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", "", "", fmt.Errorf("unable to resolve username: %w", err)
+		}
+
+		password, err = secretref.GetValueFromSecretKeySelector(
+			ctx, &authData.AuthSpec.PasswordGrant.PasswordRef, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", "", "", fmt.Errorf("unable to resolve password: %w", err)
+		}
+
+		return username, password, keycloakApi.KeycloakAdminTypeUser, nil
+
+	case authData.AuthSpec.ClientCredentials != nil:
+		clientID, err := secretref.GetValueFromSourceRefOrVal(
+			ctx, &authData.AuthSpec.ClientCredentials.ClientID, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", "", "", fmt.Errorf("unable to resolve client id: %w", err)
+		}
+
+		clientSecret, err := secretref.GetValueFromSecretKeySelector(
+			ctx, &authData.AuthSpec.ClientCredentials.ClientSecretRef, authData.SecretNamespace, h.client,
+		)
+		if err != nil {
+			return "", "", "", fmt.Errorf("unable to resolve client secret: %w", err)
+		}
+
+		return clientID, clientSecret, keycloakApi.KeycloakAdminTypeServiceAccount, nil
+
+	default:
+		return "", "", "", errors.New("one of passwordGrant or clientCredentials must be set")
+	}
 }
 
 func (h *Helper) createKeycloakClientFromTokenSecret(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error) {
@@ -383,6 +507,7 @@ func MakeKeycloakAuthDataFromKeycloak(
 		AdminType:          keycloakCR.Spec.AdminType,
 		KeycloakCRName:     keycloakCR.Name,
 		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
+		AuthSpec:           keycloakCR.Spec.Auth,
 	}
 
 	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloakCR.Spec.CACert, keycloakCR.Namespace, k8sClient)
@@ -408,6 +533,7 @@ func MakeKeycloakAuthDataFromClusterKeycloak(
 		AdminType:          keycloakCR.Spec.AdminType,
 		KeycloakCRName:     keycloakCR.Name,
 		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
+		AuthSpec:           keycloakCR.Spec.Auth,
 	}
 
 	caCert, err := secretref.GetValueFromSourceRef(ctx, keycloakCR.Spec.CACert, secretNamespace, k8sClient)

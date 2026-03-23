@@ -13,14 +13,22 @@ type ClusterKeycloakSpec struct {
 	Url string `json:"url"`
 
 	// Secret is a secret name which contains admin credentials.
-	Secret string `json:"secret"`
+	// Deprecated: Use Auth instead. When Auth is set, this field is ignored.
+	// +optional
+	Secret string `json:"secret,omitempty"`
 
 	// AdminType can be user or serviceAccount, if serviceAccount was specified,
 	// then client_credentials grant type should be used for getting admin realm token.
+	// Deprecated: Use Auth instead. When Auth is set, this field is ignored.
 	// +optional
 	// +kubebuilder:validation:Enum=serviceAccount;user
 	// +kubebuilder:default=user
 	AdminType string `json:"adminType,omitempty"`
+
+	// Auth defines the authentication configuration for connecting to Keycloak.
+	// When set, Secret and AdminType fields are ignored.
+	// +optional
+	Auth *common.AuthSpec `json:"auth,omitempty"`
 
 	// CACert defines the root certificate authority
 	// that api clients use when verifying server certificates.
