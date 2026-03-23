@@ -99,6 +99,102 @@ func TestGetValueFromSourceRef(t *testing.T) {
 	}
 }
 
+func TestGetValueFromSecretKeySelector(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name      string
+		selector  *common.SecretKeySelector
+		k8sClient func(t *testing.T) client.Client
+		want      string
+		wantErr   require.ErrorAssertionFunc
+	}{
+		{
+			name: "successful resolution",
+			selector: &common.SecretKeySelector{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "my-secret",
+				},
+				Key: "password",
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithObjects(
+					&v1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "my-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"password": []byte("s3cret"),
+						},
+					}).Build()
+			},
+			want:    "s3cret",
+			wantErr: require.NoError,
+		},
+		{
+			name:     "nil selector",
+			selector: nil,
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().Build()
+			},
+			want:    "",
+			wantErr: require.NoError,
+		},
+		{
+			name: "secret not found",
+			selector: &common.SecretKeySelector{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "missing-secret",
+				},
+				Key: "password",
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().Build()
+			},
+			want:    "",
+			wantErr: require.Error,
+		},
+		{
+			name: "key not found in secret",
+			selector: &common.SecretKeySelector{
+				LocalObjectReference: v1.LocalObjectReference{
+					Name: "my-secret",
+				},
+				Key: "missing-key",
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithObjects(
+					&v1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "my-secret",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"password": []byte("s3cret"),
+						},
+					}).Build()
+			},
+			want:    "",
+			wantErr: require.Error,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := GetValueFromSecretKeySelector(
+				context.Background(),
+				tt.selector,
+				"default",
+				tt.k8sClient(t),
+			)
+
+			assert.Equal(t, tt.want, got)
+			tt.wantErr(t, err)
+		})
+	}
+}
+
 func TestGetValueFromSourceRefOrVal(t *testing.T) {
 	t.Parallel()
 
@@ -112,7 +208,7 @@ func TestGetValueFromSourceRefOrVal(t *testing.T) {
 		{
 			name: "secret ref",
 			sourceRef: &common.SourceRefOrVal{
-				SourceRef: &common.SourceRef{
+				SourceRef: common.SourceRef{
 					SecretKeyRef: &common.SecretKeySelector{
 						LocalObjectReference: v1.LocalObjectReference{
 							Name: "secret-with-value",

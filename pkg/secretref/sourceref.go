@@ -49,6 +49,33 @@ func GetValueFromSourceRef(
 	return "", nil
 }
 
+// GetValueFromSecretKeySelector retrieves a value from a Kubernetes Secret using a SecretKeySelector reference.
+func GetValueFromSecretKeySelector(
+	ctx context.Context,
+	selector *common.SecretKeySelector,
+	namespace string,
+	k8sClient client.Client,
+) (string, error) {
+	if selector == nil {
+		return "", nil
+	}
+
+	secret := &corev1.Secret{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      selector.Name,
+	}, secret); err != nil {
+		return "", fmt.Errorf("unable to get secret %s: %w", selector.Name, err)
+	}
+
+	val, ok := secret.Data[selector.Key]
+	if !ok {
+		return "", fmt.Errorf("secret %s does not contain key %s", selector.Name, selector.Key)
+	}
+
+	return string(val), nil
+}
+
 // GetValueFromSourceRefOrVal retries value from ConfigMap or Secret or directly from value.
 func GetValueFromSourceRefOrVal(
 	ctx context.Context,
@@ -60,8 +87,8 @@ func GetValueFromSourceRefOrVal(
 		return "", nil
 	}
 
-	if sourceRef.SourceRef != nil {
-		return GetValueFromSourceRef(ctx, sourceRef.SourceRef, namespace, k8sClient)
+	if sourceRef.ConfigMapKeyRef != nil || sourceRef.SecretKeyRef != nil {
+		return GetValueFromSourceRef(ctx, &sourceRef.SourceRef, namespace, k8sClient)
 	}
 
 	return sourceRef.Value, nil
