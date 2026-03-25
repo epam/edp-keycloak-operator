@@ -162,6 +162,27 @@ type ClientsClient interface {
 	) (*ManagementPermissionReference, *Response, error)
 }
 
+type ClientScopesClient interface {
+	GetClientScopes(ctx context.Context, realm string) ([]ClientScopeRepresentation, *Response, error)
+	GetClientScope(ctx context.Context, realm, scopeID string) (*ClientScopeRepresentation, *Response, error)
+	CreateClientScope(ctx context.Context, realm string, scope ClientScopeRepresentation) (*Response, error)
+	UpdateClientScope(ctx context.Context, realm, scopeID string, scope ClientScopeRepresentation) (*Response, error)
+	DeleteClientScope(ctx context.Context, realm, scopeID string) (*Response, error)
+	GetRealmDefaultClientScopes(ctx context.Context, realm string) ([]ClientScopeRepresentation, *Response, error)
+	AddRealmDefaultClientScope(ctx context.Context, realm, scopeID string) (*Response, error)
+	RemoveRealmDefaultClientScope(ctx context.Context, realm, scopeID string) (*Response, error)
+	GetRealmOptionalClientScopes(ctx context.Context, realm string) ([]ClientScopeRepresentation, *Response, error)
+	AddRealmOptionalClientScope(ctx context.Context, realm, scopeID string) (*Response, error)
+	RemoveRealmOptionalClientScope(ctx context.Context, realm, scopeID string) (*Response, error)
+	GetClientScopeProtocolMappers(
+		ctx context.Context, realm, scopeID string,
+	) ([]ProtocolMapperRepresentation, *Response, error)
+	CreateClientScopeProtocolMapper(
+		ctx context.Context, realm, scopeID string, mapper ProtocolMapperRepresentation,
+	) (*Response, error)
+	DeleteClientScopeProtocolMapper(ctx context.Context, realm, scopeID, mapperID string) (*Response, error)
+}
+
 type AuthorizationClient interface {
 	// Scopes
 	GetScopes(ctx context.Context, realm, clientUUID string) ([]ScopeRepresentation, *Response, error)
