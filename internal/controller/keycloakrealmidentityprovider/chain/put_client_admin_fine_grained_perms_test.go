@@ -5,191 +5,312 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/Nerzal/gocloak/v12"
 	"github.com/go-logr/logr"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
-	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
-	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mocks"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
 )
 
 func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name              string
-		client            func(t *testing.T) client.Client
-		keycloakIDP       client.ObjectKey
-		keycloakApiClient func(t *testing.T) *mocks.MockClient
-		wantErr           require.ErrorAssertionFunc
+		name    string
+		idp     *keycloakApi.KeycloakRealmIdentityProvider
+		kClient func(t *testing.T) *keycloakv2.KeycloakClient
+		wantErr require.ErrorAssertionFunc
 	}{
 		{
 			name: "with admin permission enabled",
-			client: func(t *testing.T) client.Client {
-				s := runtime.NewScheme()
-				require.NoError(t, keycloakApi.AddToScheme(s))
-				require.NoError(t, corev1.AddToScheme(s))
-
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakRealmIdentityProvider{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-idp",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
-							Alias:                              "test-idp",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
-									},
-								},
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+					Permission: &keycloakApi.AdminFineGrainedPermission{
+						ScopePermissions: []keycloakApi.ScopePermissions{
+							{
+								Name:     "map-role",
+								Policies: []string{"scope permission"},
 							},
 						},
-					}).Build()
+					},
+				},
 			},
-			keycloakIDP: client.ObjectKey{
-				Name:      "test-idp",
-				Namespace: "default",
-			},
-			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
-				m := mocks.NewMockClient(t)
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
 
-				scopePermissions := map[string]string{
-					"map-role": "321",
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(true)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakv2.Response)(nil), nil).Once()
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.ManagementPermissionReference{
+						Enabled:          ptr.To(true),
+						ScopePermissions: &map[string]string{"map-role": "321"},
+					}, (*keycloakv2.Response)(nil), nil)
+
+				clientsMock := keycloakv2mocks.NewMockClientsClient(t)
+				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
+					Return("567", nil).Once()
+
+				authMock := keycloakv2mocks.NewMockAuthorizationClient(t)
+				authMock.On("GetPermissions", mock.Anything, "realm", "567").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   ptr.To("scope-permission2-id"),
+							Name: ptr.To("map-role.permission.idp.12345"),
+							Type: ptr.To("scope"),
+						},
+					}, (*keycloakv2.Response)(nil), nil).Once()
+				authMock.On("UpdatePermission", mock.Anything, "realm", "567", "scope", "scope-permission2-id", mock.Anything).
+					Return((*keycloakv2.Response)(nil), nil).Once()
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+					Clients:           clientsMock,
+					Authorization:     authMock,
 				}
-
-				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), adapter.FeatureFlagAdminFineGrainedAuthz).
-					Return(true, nil).
-					Once()
-
-				m.On("GetClientID", "realm-management", "realm").
-					Return("567", nil).
-					Once()
-
-				m.On("GetIdentityProvider", ctrl.LoggerInto(context.Background(), logr.Discard()), "realm", "test-idp").
-					Return(&adapter.IdentityProvider{InternalID: "12345"}, nil).
-					Once()
-
-				m.On("UpdateIDPManagementPermissions", "realm", "test-idp", adapter.ManagementPermissionRepresentation{
-					Enabled: gocloak.BoolP(true),
-				}).
-					Return(nil)
-
-				m.On("GetIDPManagementPermissions", "realm", "test-idp").
-					Return(&adapter.ManagementPermissionRepresentation{
-						Enabled:          gocloak.BoolP(true),
-						ScopePermissions: &scopePermissions,
-					}, nil)
-
-				m.On("GetPermissions", ctrl.LoggerInto(context.Background(), logr.Discard()), "realm", "567").
-					Return(map[string]gocloak.PermissionRepresentation{
-						"token-exchange": {
-							ID:   gocloak.StringP("scope-permission-id"),
-							Name: gocloak.StringP("scope permission"),
-						},
-						"map-role": {
-							ID:   gocloak.StringP("scope-permission2-id"),
-							Name: gocloak.StringP("scope-permission2"),
-						},
-					}, nil).Once()
-
-				return m
 			},
 			wantErr: require.NoError,
 		},
 		{
 			name: "with feature flag disabled",
-			client: func(t *testing.T) client.Client {
-				s := runtime.NewScheme()
-				require.NoError(t, keycloakApi.AddToScheme(s))
-				require.NoError(t, corev1.AddToScheme(s))
-
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakRealmIdentityProvider{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-idp",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
-							Alias:                              "test-idp",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
-									},
-								},
-							},
-						},
-					}).Build()
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+				},
 			},
-			keycloakIDP: client.ObjectKey{
-				Name:      "test-idp",
-				Namespace: "default",
-			},
-			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
-				m := mocks.NewMockClient(t)
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(false, nil).Once()
 
-				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), adapter.FeatureFlagAdminFineGrainedAuthz).
-					Return(false, nil).
-					Once()
-
-				return m
+				return &keycloakv2.KeycloakClient{
+					Server: serverMock,
+				}
 			},
 			wantErr: require.NoError,
 		},
 		{
 			name: "with feature flag check error",
-			client: func(t *testing.T) client.Client {
-				s := runtime.NewScheme()
-				require.NoError(t, keycloakApi.AddToScheme(s))
-				require.NoError(t, corev1.AddToScheme(s))
-
-				return fake.NewClientBuilder().WithScheme(s).WithObjects(
-					&keycloakApi.KeycloakRealmIdentityProvider{
-						ObjectMeta: metav1.ObjectMeta{
-							Name:      "test-idp",
-							Namespace: "default",
-						},
-						Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
-							Alias:                              "test-idp",
-							AdminFineGrainedPermissionsEnabled: true,
-							Permission: &keycloakApi.AdminFineGrainedPermission{
-								ScopePermissions: []keycloakApi.ScopePermissions{
-									{
-										Name:     "map-role",
-										Policies: []string{"scope permission"},
-									},
-								},
-							},
-						},
-					}).Build()
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+				},
 			},
-			keycloakIDP: client.ObjectKey{
-				Name:      "test-idp",
-				Namespace: "default",
-			},
-			keycloakApiClient: func(t *testing.T) *mocks.MockClient {
-				m := mocks.NewMockClient(t)
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(false, fmt.Errorf("feature flag check failed")).Once()
 
-				m.On("FeatureFlagEnabled", ctrl.LoggerInto(context.Background(), logr.Discard()), adapter.FeatureFlagAdminFineGrainedAuthz).
-					Return(false, fmt.Errorf("feature flag check failed")).
-					Once()
-
-				return m
+				return &keycloakv2.KeycloakClient{
+					Server: serverMock,
+				}
 			},
 			wantErr: require.Error,
+		},
+		{
+			name: "UpdateIDPManagementPermissions fails",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+				},
+			},
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(true)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), fmt.Errorf("api error"))
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+				}
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "putKeycloakIDPAdminPermissionPolicies fails",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+					Permission: &keycloakApi.AdminFineGrainedPermission{
+						ScopePermissions: []keycloakApi.ScopePermissions{
+							{
+								Name:     "map-role",
+								Policies: []string{"scope permission"},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(true)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return((*keycloakv2.IdentityProviderRepresentation)(nil), (*keycloakv2.Response)(nil), fmt.Errorf("get idp error")).Once()
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+				}
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "feature flag enabled but permissions not enabled",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: false,
+				},
+			},
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(false)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+				}
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "nil scope permissions returns error",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+					Permission: &keycloakApi.AdminFineGrainedPermission{
+						ScopePermissions: []keycloakApi.ScopePermissions{
+							{
+								Name:     "map-role",
+								Policies: []string{"scope permission"},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(true)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakv2.Response)(nil), nil).Once()
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.ManagementPermissionReference{
+						Enabled:          ptr.To(true),
+						ScopePermissions: nil,
+					}, (*keycloakv2.Response)(nil), nil)
+
+				clientsMock := keycloakv2mocks.NewMockClientsClient(t)
+				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
+					Return("567", nil).Once()
+
+				authMock := keycloakv2mocks.NewMockAuthorizationClient(t)
+				authMock.On("GetPermissions", mock.Anything, "realm", "567").
+					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil).Once()
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+					Clients:           clientsMock,
+					Authorization:     authMock,
+				}
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "permission with nil Id is skipped",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+					Permission: &keycloakApi.AdminFineGrainedPermission{
+						ScopePermissions: []keycloakApi.ScopePermissions{
+							{
+								Name:     "map-role",
+								Policies: []string{"scope permission"},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				serverMock := keycloakv2mocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakv2.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
+					keycloakv2.ManagementPermissionReference{Enabled: ptr.To(true)}).
+					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakv2.Response)(nil), nil).Once()
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakv2.ManagementPermissionReference{
+						Enabled:          ptr.To(true),
+						ScopePermissions: &map[string]string{"map-role": "321"},
+					}, (*keycloakv2.Response)(nil), nil)
+
+				clientsMock := keycloakv2mocks.NewMockClientsClient(t)
+				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
+					Return("567", nil).Once()
+
+				authMock := keycloakv2mocks.NewMockAuthorizationClient(t)
+				authMock.On("GetPermissions", mock.Anything, "realm", "567").
+					Return([]keycloakv2.AbstractPolicyRepresentation{
+						{
+							Id:   nil,
+							Name: ptr.To("map-role.permission.idp.12345"),
+							Type: ptr.To("scope"),
+						},
+					}, (*keycloakv2.Response)(nil), nil).Once()
+
+				return &keycloakv2.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+					Clients:           clientsMock,
+					Authorization:     authMock,
+				}
+			},
+			wantErr: require.NoError,
 		},
 	}
 
@@ -197,13 +318,10 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			idp := &keycloakApi.KeycloakRealmIdentityProvider{}
-			require.NoError(t, tt.client(t).Get(context.Background(), tt.keycloakIDP, idp))
-
-			el := NewPutAdminFineGrainedPermissions(tt.keycloakApiClient(t))
-			err := el.Serve(
+			h := NewPutAdminFineGrainedPermissions(tt.kClient(t))
+			err := h.Serve(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
-				idp,
+				tt.idp,
 				"realm",
 			)
 			tt.wantErr(t, err)

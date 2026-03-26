@@ -306,5 +306,10 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Cleaning up first organization")
 		Expect(k8sClient.Delete(ctx, org1)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedOrg := &v1alpha1.KeycloakOrganization{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: org1.Name, Namespace: ns}, deletedOrg)
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 })

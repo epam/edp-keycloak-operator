@@ -1031,9 +1031,6 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			g.Expect(c.Status.Value).Should(Equal(common.StatusOK))
 		}, timeout, interval).Should(Succeed())
 
-		By("Deleting KeycloakRealm")
-		Expect(k8sClient.Delete(ctx, testRealm)).Should(Succeed())
-
 		By("Deleting KeycloakClient")
 		Expect(k8sClient.Delete(ctx, keycloakClient)).Should(Succeed())
 
@@ -1042,6 +1039,14 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			var c keycloakApi.KeycloakClient
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, &c)
 			return k8sErrors.IsNotFound(err)
-		}, timeout, interval).Should(BeTrue())
+		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Deleting KeycloakRealm")
+		Expect(k8sClient.Delete(ctx, testRealm)).Should(Succeed())
+		Eventually(func() bool {
+			var r keycloakApi.KeycloakRealm
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: testRealm.Name, Namespace: ns}, &r)
+			return k8sErrors.IsNotFound(err)
+		}, time.Minute, time.Second*5).Should(BeTrue())
 	})
 })

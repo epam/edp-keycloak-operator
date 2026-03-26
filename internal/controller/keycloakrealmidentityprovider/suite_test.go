@@ -27,17 +27,17 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var (
-	cfg                   *rest.Config
-	k8sClient             client.Client
-	testEnv               *envtest.Environment
-	ctx                   context.Context
-	cancel                context.CancelFunc
-	keycloakURL           string
-	keycloakClientManager *testutils.KeycloakClientManager
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	ctx               context.Context
+	cancel            context.CancelFunc
+	keycloakApiClient *keycloakv2.KeycloakClient
 )
 
 const (
@@ -46,7 +46,7 @@ const (
 	ns              = "test-identity-provider"
 
 	timeout  = time.Second * 10
-	interval = time.Millisecond * 250
+	interval = time.Second
 )
 
 func TestKeycloakIdentityProvider(t *testing.T) {
@@ -65,14 +65,23 @@ var _ = BeforeSuite(func() {
 	ctx, cancel = context.WithCancel(context.Background())
 	ctx = ctrl.LoggerInto(ctx, logf.Log)
 
-	By("bootstrapping test environment")
+	var err error
+
+	keycloakApiClient, err = keycloakv2.NewKeycloakClient(
+		ctx,
+		os.Getenv("TEST_KEYCLOAK_URL"),
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak client")
+
+	By("Bootstrapping test environment")
 	testEnv = &envtest.Environment{
 		CRDDirectoryPaths:     []string{filepath.Join("..", "..", "..", "config", "crd", "bases")},
 		ErrorIfCRDPathMissing: true,
 		BinaryAssetsDirectory: testutils.GetFirstFoundEnvTestBinaryDir(),
 	}
 
-	var err error
 	cfg, err = testEnv.Start()
 	Expect(err).NotTo(HaveOccurred())
 	Expect(cfg).NotTo(BeNil())
@@ -103,11 +112,9 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcile(k8sManager.GetClient(), h).
-		SetupWithManager(k8sManager, 0)
+	err = NewIdentityProviderReconciler(k8sManager.GetClient(), h).
+		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
-
-	keycloakURL = os.Getenv("TEST_KEYCLOAK_URL")
 
 	go func() {
 		defer GinkgoRecover()
@@ -115,7 +122,7 @@ var _ = BeforeSuite(func() {
 		Expect(err).ToNot(HaveOccurred(), "failed to run manager")
 	}()
 
-	By("bootstrapping Keycloak and KeycloakRealm")
+	By("Bootstrapping Keycloak and KeycloakRealm")
 	namespace := &corev1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: ns,
@@ -123,30 +130,30 @@ var _ = BeforeSuite(func() {
 	}
 	err = k8sClient.Create(ctx, namespace)
 	Expect(err).To(Not(HaveOccurred()))
-	By("By creating a Keycloak secret")
+	By("Creating a Keycloak secret")
 	secret := &corev1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "keycloak-auth-secret",
 			Namespace: ns,
 		},
 		Data: map[string][]byte{
-			"username": []byte("admin"),
-			"password": []byte("admin"),
+			"username": []byte(keycloakv2.DefaultAdminUsername),
+			"password": []byte(keycloakv2.DefaultAdminPassword),
 		},
 	}
 	Expect(k8sClient.Create(ctx, secret)).Should(Succeed())
-	By("By creating a Keycloak")
-	keycloak := &keycloakApi.Keycloak{
+	By("Creating a Keycloak")
+	keycloakCR := &keycloakApi.Keycloak{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeycloakCR,
 			Namespace: ns,
 		},
 		Spec: keycloakApi.KeycloakSpec{
-			Url:    keycloakURL,
+			Url:    os.Getenv("TEST_KEYCLOAK_URL"),
 			Secret: secret.Name,
 		},
 	}
-	Expect(k8sClient.Create(ctx, keycloak)).Should(Succeed())
+	Expect(k8sClient.Create(ctx, keycloakCR)).Should(Succeed())
 	Eventually(func() bool {
 		createdKeycloak := &keycloakApi.Keycloak{}
 		err := k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakCR, Namespace: ns}, createdKeycloak)
@@ -154,7 +161,7 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
-	By("By creating a KeycloakRealm")
+	By("Creating a KeycloakRealm")
 	keycloakRealm := &keycloakApi.KeycloakRealm{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      KeycloakRealmCR,
@@ -163,7 +170,7 @@ var _ = BeforeSuite(func() {
 		Spec: keycloakApi.KeycloakRealmSpec{
 			RealmName: KeycloakRealmCR,
 			KeycloakRef: common.KeycloakRef{
-				Name: keycloak.Name,
+				Name: keycloakCR.Name,
 				Kind: keycloakApi.KeycloakKind,
 			},
 		},
@@ -176,14 +183,19 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloakRealm.Status.Available
 	}, timeout, interval).Should(BeTrue())
-
-	keycloakClientManager = testutils.NewKeycloakClientManager(keycloakURL)
-	keycloakClientManager.Initialize(ctx)
 })
 
 var _ = AfterSuite(func() {
+	createdKeycloakRealm := &keycloakApi.KeycloakRealm{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, createdKeycloakRealm); err == nil {
+		Expect(k8sClient.Delete(ctx, createdKeycloakRealm)).To(Succeed())
+		Eventually(func() bool {
+			return k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, &keycloakApi.KeycloakRealm{}) != nil
+		}, timeout, interval).Should(BeTrue())
+	}
+
 	cancel()
-	By("tearing down the test environment")
+	By("Tearing down the test environment")
 	err := testEnv.Stop()
 	Expect(err).NotTo(HaveOccurred())
 })

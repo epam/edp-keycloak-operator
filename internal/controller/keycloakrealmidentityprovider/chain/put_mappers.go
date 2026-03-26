@@ -6,76 +6,68 @@ import (
 	"maps"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 type PutIDPMappers struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
-	secretRef         refClient
+	idpClient keycloakv2.IdentityProvidersClient
 }
 
-func NewPutIDPMappers(keycloakApiClient keycloak.Client, k8sClient client.Client, secretRef refClient) *PutIDPMappers {
-	return &PutIDPMappers{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient, secretRef: secretRef}
+func NewPutIDPMappers(idpClient keycloakv2.IdentityProvidersClient) *PutIDPMappers {
+	return &PutIDPMappers{idpClient: idpClient}
 }
 
-func (el *PutIDPMappers) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
-	err := syncIDPMappers(ctx, &keycloakRealmIDP.Spec, el.keycloakApiClient, realmName)
-	if err != nil {
-		return fmt.Errorf("unable to sync idp mappers: %w", err)
-	}
+func (h *PutIDPMappers) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Start put keycloak idp mappers")
 
-	return nil
-}
-
-func syncIDPMappers(ctx context.Context, idpSpec *keycloakApi.KeycloakRealmIdentityProviderSpec, kClient keycloak.Client, targetRealm string) error {
-	reqLog := ctrl.LoggerFrom(ctx)
-	reqLog.Info("Start put keycloak idp mappers")
-
-	if len(idpSpec.Mappers) == 0 {
+	if len(keycloakRealmIDP.Spec.Mappers) == 0 {
 		return nil
 	}
 
-	mappers, err := kClient.GetIDPMappers(ctx, targetRealm, idpSpec.Alias)
+	mappers, _, err := h.idpClient.GetIDPMappers(ctx, realmName, keycloakRealmIDP.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("unable to get idp mappers: %w", err)
 	}
 
 	for _, m := range mappers {
-		if err = kClient.DeleteIDPMapper(ctx, targetRealm, idpSpec.Alias, m.ID); err != nil {
+		if m.Id == nil {
+			continue
+		}
+
+		if _, err = h.idpClient.DeleteIDPMapper(ctx, realmName, keycloakRealmIDP.Spec.Alias, *m.Id); err != nil {
 			return fmt.Errorf("unable to delete idp mapper: %w", err)
 		}
 	}
 
-	for _, m := range idpSpec.Mappers {
-		if m.IdentityProviderAlias == "" {
-			m.IdentityProviderAlias = idpSpec.Alias
+	for _, m := range keycloakRealmIDP.Spec.Mappers {
+		alias := m.IdentityProviderAlias
+		if alias == "" {
+			alias = keycloakRealmIDP.Spec.Alias
 		}
 
-		if _, err = kClient.CreateIDPMapper(ctx, targetRealm, idpSpec.Alias,
-			createKeycloakIDPMapperFromSpec(&m)); err != nil {
+		mapperRep := specToIDPMapperRepresentation(&m, alias)
+
+		if _, err = h.idpClient.CreateIDPMapper(ctx, realmName, keycloakRealmIDP.Spec.Alias, mapperRep); err != nil {
 			return fmt.Errorf("unable to create idp mapper: %w", err)
 		}
 	}
 
-	reqLog.Info("End put keycloak idp mappers")
+	log.Info("End put keycloak idp mappers")
 
 	return nil
 }
 
-func createKeycloakIDPMapperFromSpec(spec *keycloakApi.IdentityProviderMapper) *adapter.IdentityProviderMapper {
-	m := &adapter.IdentityProviderMapper{
-		IdentityProviderMapper: spec.IdentityProviderMapper,
-		Name:                   spec.Name,
-		Config:                 make(map[string]string, len(spec.Config)),
-		IdentityProviderAlias:  spec.IdentityProviderAlias,
+func specToIDPMapperRepresentation(spec *keycloakApi.IdentityProviderMapper, alias string) keycloakv2.IdentityProviderMapperRepresentation {
+	config := make(map[string]string, len(spec.Config))
+	maps.Copy(config, spec.Config)
+
+	return keycloakv2.IdentityProviderMapperRepresentation{
+		Name:                   &spec.Name,
+		IdentityProviderAlias:  &alias,
+		IdentityProviderMapper: &spec.IdentityProviderMapper,
+		Config:                 &config,
 	}
-
-	maps.Copy(m.Config, spec.Config)
-
-	return m
 }

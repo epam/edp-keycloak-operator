@@ -45,7 +45,19 @@ type UsersClient interface {
 type IdentityProvidersClient interface {
 	GetIdentityProvider(ctx context.Context, realm, alias string) (*IdentityProviderRepresentation, *Response, error)
 	CreateIdentityProvider(ctx context.Context, realm string, idp IdentityProviderRepresentation) (*Response, error)
+	UpdateIdentityProvider(ctx context.Context, realm, alias string, idp IdentityProviderRepresentation) (*Response, error)
 	DeleteIdentityProvider(ctx context.Context, realm, alias string) (*Response, error)
+	GetIDPMappers(ctx context.Context, realm, alias string) ([]IdentityProviderMapperRepresentation, *Response, error)
+	CreateIDPMapper(
+		ctx context.Context, realm, alias string, mapper IdentityProviderMapperRepresentation,
+	) (*Response, error)
+	DeleteIDPMapper(ctx context.Context, realm, alias, mapperID string) (*Response, error)
+	GetIDPManagementPermissions(
+		ctx context.Context, realm, alias string,
+	) (*ManagementPermissionReference, *Response, error)
+	UpdateIDPManagementPermissions(
+		ctx context.Context, realm, alias string, permissions ManagementPermissionReference,
+	) (*ManagementPermissionReference, *Response, error)
 }
 
 type RealmClient interface {

@@ -7,7 +7,6 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
-	"github.com/Nerzal/gocloak/v12"
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -18,7 +17,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
-var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
+var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
 	const (
 		identityProviderCR = "test-keycloak-realm-identity-provider"
 	)
@@ -67,17 +66,66 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 
 		By("Verifying the identity provider was created in Keycloak")
 		Eventually(func(g Gomega) {
-			idp, err := keycloakClientManager.Client.GetIdentityProvider(ctx, keycloakClientManager.GetToken(), KeycloakRealmCR, "new-provider")
+			idp, _, err := keycloakApiClient.IdentityProviders.GetIdentityProvider(ctx, KeycloakRealmCR, "new-provider")
 			g.Expect(err).ShouldNot(HaveOccurred())
-
 			g.Expect(idp).ShouldNot(BeNil())
-			g.Expect(idp.Alias).Should(Equal(gocloak.StringP("new-provider")))
-			g.Expect(idp.ProviderID).Should(Equal(gocloak.StringP("github")))
-			g.Expect(idp.Enabled).Should(Equal(gocloak.BoolP(true)))
-			g.Expect(idp.DisplayName).Should(Equal(gocloak.StringP("New provider")))
-			g.Expect(idp.FirstBrokerLoginFlowAlias).Should(Equal(gocloak.StringP("first broker login")))
+			g.Expect(idp.Alias).ShouldNot(BeNil())
+			g.Expect(*idp.Alias).Should(Equal("new-provider"))
+			g.Expect(idp.ProviderId).ShouldNot(BeNil())
+			g.Expect(*idp.ProviderId).Should(Equal("github"))
+			g.Expect(idp.Enabled).ShouldNot(BeNil())
+			g.Expect(*idp.Enabled).Should(BeTrue())
+			g.Expect(idp.DisplayName).ShouldNot(BeNil())
+			g.Expect(*idp.DisplayName).Should(Equal("New provider"))
+			g.Expect(idp.FirstBrokerLoginFlowAlias).ShouldNot(BeNil())
+			g.Expect(*idp.FirstBrokerLoginFlowAlias).Should(Equal("first broker login"))
 			g.Expect(idp.Config).ShouldNot(BeNil())
 			g.Expect((*idp.Config)["clientId"]).Should(Equal("provider-client"))
+		}, time.Second*10, time.Second).Should(Succeed())
+	})
+	It("Should update KeycloakRealmIdentityProvider", func() {
+		By("By getting existing KeycloakRealmIdentityProvider")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, provider)).Should(Succeed())
+
+		By("By updating spec: change display name and add mappers")
+		provider.Spec.DisplayName = "Updated provider"
+		provider.Spec.Mappers = []keycloakApi.IdentityProviderMapper{
+			{
+				Name:                   "test-mapper",
+				IdentityProviderMapper: "hardcoded-attribute-idp-mapper",
+				Config: map[string]string{
+					"attribute":       "test-attr",
+					"attribute.value": "test-value",
+				},
+			},
+		}
+		Expect(k8sClient.Update(ctx, provider)).Should(Succeed())
+
+		By("Waiting for reconciliation to complete")
+		Eventually(func(g Gomega) {
+			updatedProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, updatedProvider)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(updatedProvider.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying identity provider was updated in Keycloak")
+		Eventually(func(g Gomega) {
+			idp, _, err := keycloakApiClient.IdentityProviders.GetIdentityProvider(ctx, KeycloakRealmCR, "new-provider")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(idp).ShouldNot(BeNil())
+			g.Expect(idp.DisplayName).ShouldNot(BeNil())
+			g.Expect(*idp.DisplayName).Should(Equal("Updated provider"))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Verifying mapper was created in Keycloak")
+		Eventually(func(g Gomega) {
+			mappers, _, err := keycloakApiClient.IdentityProviders.GetIDPMappers(ctx, KeycloakRealmCR, "new-provider")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(mappers).Should(HaveLen(1))
+			g.Expect(mappers[0].Name).ShouldNot(BeNil())
+			g.Expect(*mappers[0].Name).Should(Equal("test-mapper"))
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakRealmIdentityProvider", func() {
@@ -119,24 +167,90 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, provider)).Should(Succeed())
-		Eventually(func() bool {
+		Eventually(func(g Gomega) {
 			createdProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, createdProvider)
-			if err != nil {
-				return false
-			}
-
-			return createdProvider.Status.Value == common.StatusOK
-		}, timeout, interval).Should(BeTrue())
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdProvider.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
 		By("By deleting KeycloakRealmIdentityProvider")
 		Expect(k8sClient.Delete(ctx, provider)).Should(Succeed())
 		By("Waiting for KeycloakRealmIdentityProvider to be deleted")
-		time.Sleep(time.Second * 2)
 		Eventually(func() bool {
-			deletedProvider := &keycloakApi.KeycloakRealmComponent{}
+			deletedProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, deletedProvider)
 
 			return k8sErrors.IsNotFound(err)
-		}).Should(BeTrue(), "KeycloakRealmIdentityProvider with preserveResourcesOnDeletion annotation should be deleted")
+		}, timeout, interval).Should(BeTrue(), "KeycloakRealmIdentityProvider with preserveResourcesOnDeletion annotation should be deleted")
+	})
+	It("Should successfully delete KeycloakRealmIdentityProvider if realm is deleted first", func() {
+		By("By creating a KeycloakRealm")
+		testRealm := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-idp-realm-for-deletion",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: "test-idp-realm-for-deletion",
+				KeycloakRef: common.KeycloakRef{
+					Kind: keycloakApi.KeycloakKind,
+					Name: KeycloakCR,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, testRealm)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			createdRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: testRealm.Name, Namespace: ns}, createdRealm)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdRealm.Status.Available).Should(BeTrue())
+		}, time.Second*30, interval).Should(Succeed())
+
+		By("By creating a KeycloakRealmIdentityProvider in that realm")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "idp-for-realm-deletion-test",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+				RealmRef: common.RealmRef{
+					Name: testRealm.Name,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				ProviderID: "github",
+				Alias:      "idp-for-realm-deletion-test",
+				Enabled:    true,
+				Config: map[string]string{
+					"clientId": "idp-for-realm-deletion-test",
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, provider)).Should(Succeed())
+
+		By("Waiting for KeycloakRealmIdentityProvider to be ready")
+		Eventually(func(g Gomega) {
+			createdProvider := &keycloakApi.KeycloakRealmIdentityProvider{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, createdProvider)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(createdProvider.Status.Value).Should(Equal(common.StatusOK))
+		}, time.Second*30, interval).Should(Succeed())
+
+		By("Deleting the KeycloakRealm first")
+		Expect(k8sClient.Delete(ctx, testRealm)).Should(Succeed())
+		Eventually(func() bool {
+			var r keycloakApi.KeycloakRealm
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: testRealm.Name, Namespace: ns}, &r)
+			return k8sErrors.IsNotFound(err)
+		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Deleting the KeycloakRealmIdentityProvider after realm is gone")
+		Expect(k8sClient.Delete(ctx, provider)).Should(Succeed())
+
+		By("Waiting for KeycloakRealmIdentityProvider to be deleted via finalizer cleanup")
+		Eventually(func() bool {
+			var p keycloakApi.KeycloakRealmIdentityProvider
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: provider.Name, Namespace: ns}, &p)
+			return k8sErrors.IsNotFound(err)
+		}, time.Minute, time.Second*5).Should(BeTrue())
 	})
 })

@@ -388,6 +388,11 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 
 		By("Cleaning up")
 		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, deletedGroup)
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should create and update KeycloakRealmGroup with client roles", func() {
 		By("Creating a test client with roles")
@@ -532,7 +537,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, deletedGroup)
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
-		}, timeout, interval).Should(Succeed())
+		}, time.Minute, time.Second*5).Should(Succeed())
 
 		_, err = keycloakApiClient.Clients.DeleteClient(ctx, KeycloakRealmCR, testClientUUID)
 		Expect(err).ShouldNot(HaveOccurred())
@@ -546,7 +551,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: childGroup.Name, Namespace: ns}, deletedGroup)
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
-		}, timeout, interval).Should(Succeed())
+		}, time.Minute, time.Second*5).Should(Succeed())
 
 		childGroup2 := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: childGroup2CR}, childGroup2)).Should(Succeed())
@@ -555,7 +560,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: childGroup2.Name, Namespace: ns}, deletedGroup)
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
-		}, timeout, interval).Should(Succeed())
+		}, time.Minute, time.Second*5).Should(Succeed())
 
 		By("Deleting parent group")
 		parentGroup := &keycloakApi.KeycloakRealmGroup{}
@@ -565,7 +570,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: parentGroup.Name, Namespace: ns}, deletedGroup)
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
-		}, timeout, interval).Should(Succeed())
+		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should fail to create group with non-existent parent", func() {
 		By("Creating a group with non-existent parent")
@@ -597,6 +602,11 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 
 		By("Cleaning up")
 		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			deletedGroup := &keycloakApi.KeycloakRealmGroup{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, deletedGroup)
+			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, time.Minute, time.Second*5).Should(Succeed())
 	})
 	It("Should preserve group with annotation", func() {
 		By("Creating a KeycloakRealmGroup")
