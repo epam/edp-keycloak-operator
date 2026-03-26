@@ -4,49 +4,46 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const (
-	// RealmManagementClient built-in Keycloak client for the realm
-	// This client manages admin fine-grained permissions for other clients.
-	RealmManagementClient = "realm-management"
-
 	scopeLogKey      = "scope"
 	permissionLogKey = "permission"
 )
 
 type PutAdminFineGrainedPermissions struct {
-	keycloakApiClient keycloak.Client
+	kClient *keycloakv2.KeycloakClient
 }
 
-func NewPutAdminFineGrainedPermissions(keycloakApiClient keycloak.Client) *PutAdminFineGrainedPermissions {
-	return &PutAdminFineGrainedPermissions{keycloakApiClient: keycloakApiClient}
+func NewPutAdminFineGrainedPermissions(kClient *keycloakv2.KeycloakClient) *PutAdminFineGrainedPermissions {
+	return &PutAdminFineGrainedPermissions{kClient: kClient}
 }
 
-func (el *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
-	featureFlagEnabled, err := el.keycloakApiClient.FeatureFlagEnabled(ctx, adapter.FeatureFlagAdminFineGrainedAuthz)
+func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+	featureFlagEnabled, err := h.kClient.Server.FeatureFlagEnabled(ctx, keycloakv2.FeatureFlagAdminFineGrainedAuthz)
 	if err != nil {
 		return fmt.Errorf("failed to check feature flag ADMIN_FINE_GRAINED_AUTHZ: %w", err)
 	}
 
 	if !featureFlagEnabled {
 		log := ctrl.LoggerFrom(ctx)
-		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", adapter.FeatureFlagAdminFineGrainedAuthz)
+		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", keycloakv2.FeatureFlagAdminFineGrainedAuthz)
 
 		return nil
 	}
 
-	if err = el.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakIDP, realmName); err != nil {
+	if err = h.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakIDP, realmName); err != nil {
 		return fmt.Errorf("unable to put keycloak idp admin fine grained permissions: %w", err)
 	}
 
 	if keycloakIDP.Spec.AdminFineGrainedPermissionsEnabled && keycloakIDP.Spec.Permission != nil {
-		if err = el.putKeycloakIDPAdminPermissionPolicies(ctx, keycloakIDP, realmName); err != nil {
+		if err = h.putKeycloakIDPAdminPermissionPolicies(ctx, keycloakIDP, realmName); err != nil {
 			return fmt.Errorf("unable to put keycloak idp admin permission policies: %w", err)
 		}
 	}
@@ -54,15 +51,15 @@ func (el *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakIDP
 	return nil
 }
 
-func (el *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak idp admin fine grained permissions")
 
-	managementPermissions := adapter.ManagementPermissionRepresentation{
+	managementPermissions := keycloakv2.ManagementPermissionReference{
 		Enabled: &keycloakIDP.Spec.AdminFineGrainedPermissionsEnabled,
 	}
 
-	if err := el.keycloakApiClient.UpdateIDPManagementPermissions(realmName, keycloakIDP.Spec.Alias, managementPermissions); err != nil {
+	if _, _, err := h.kClient.IdentityProviders.UpdateIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias, managementPermissions); err != nil {
 		return fmt.Errorf("unable to update idp management permissions: %w", err)
 	}
 
@@ -71,28 +68,36 @@ func (el *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermi
 	return nil
 }
 
-func (el *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+func (h *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak idp admin permission policies")
 
-	idp, err := el.keycloakApiClient.GetIdentityProvider(ctx, realmName, keycloakIDP.Spec.Alias)
+	idp, _, err := h.kClient.IdentityProviders.GetIdentityProvider(ctx, realmName, keycloakIDP.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to get idp: %w", err)
 	}
 
-	realmManagementClientID, err := el.keycloakApiClient.GetClientID(RealmManagementClient, realmName)
+	realmManagementClientUUID, err := h.kClient.Clients.GetClientUUID(ctx, realmName, keycloakv2.RealmManagementClient)
 	if err != nil {
-		return fmt.Errorf("failed to get %s client id: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get %s client id: %w", keycloakv2.RealmManagementClient, err)
 	}
 
-	realmManagementPermissions, err := el.keycloakApiClient.GetPermissions(ctx, realmName, realmManagementClientID)
+	realmManagementPermissionsList, _, err := h.kClient.Authorization.GetPermissions(ctx, realmName, realmManagementClientUUID)
 	if err != nil {
-		return fmt.Errorf("failed to get permissions for %s client: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get permissions for %s client: %w", keycloakv2.RealmManagementClient, err)
 	}
 
-	existingIDPPermissions, err := el.keycloakApiClient.GetIDPManagementPermissions(realmName, keycloakIDP.Spec.Alias)
+	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
+		return ptr.Deref(p.Name, ""), p.Name != nil
+	})
+
+	existingIDPPermissions, _, err := h.kClient.IdentityProviders.GetIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to get idp permissions: %w", err)
+	}
+
+	if existingIDPPermissions == nil || existingIDPPermissions.ScopePermissions == nil {
+		return fmt.Errorf("idp management permissions or scope permissions are nil")
 	}
 
 	existingScopePermissions := *existingIDPPermissions.ScopePermissions
@@ -105,11 +110,24 @@ func (el *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(
 			return fmt.Errorf("scope %s not found in permissions", name)
 		}
 
-		permissionName := fmt.Sprintf("%s.permission.idp.%s", name, idp.InternalID)
+		permissionName := fmt.Sprintf("%s.permission.idp.%s", name, ptr.Deref(idp.InternalId, ""))
 
 		if permission, ok := realmManagementPermissions[permissionName]; ok {
-			permission.Policies = &keycloakIDP.Spec.Permission.ScopePermissions[i].Policies
-			if err = el.keycloakApiClient.UpdatePermission(ctx, realmName, realmManagementClientID, permission); err != nil {
+			if permission.Id == nil {
+				continue
+			}
+
+			policies := keycloakIDP.Spec.Permission.ScopePermissions[i].Policies
+			updatedPermission := keycloakv2.PolicyRepresentation{
+				Id:       permission.Id,
+				Name:     permission.Name,
+				Type:     permission.Type,
+				Policies: &policies,
+			}
+
+			permType := ptr.Deref(permission.Type, "")
+
+			if _, err = h.kClient.Authorization.UpdatePermission(ctx, realmName, realmManagementClientUUID, permType, *permission.Id, updatedPermission); err != nil {
 				return fmt.Errorf("failed to update permission %s: %w", permissionName, err)
 			}
 

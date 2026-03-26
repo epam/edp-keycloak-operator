@@ -155,3 +155,151 @@ func TestIdentityProvidersClient_GetIdentityProvider_NotFound(t *testing.T) {
 	require.True(t, keycloakv2.IsNotFound(err), "Should return 404 for non-existent identity provider")
 	require.NotNil(t, resp)
 }
+
+func TestIdentityProvidersClient_UpdateIdentityProvider(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+
+	ctx := context.Background()
+
+	alias := fmt.Sprintf("test-idp-update-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	displayName := "Updated IDP"
+	_, err = c.IdentityProviders.UpdateIdentityProvider(ctx, realmName, alias, keycloakv2.IdentityProviderRepresentation{
+		Alias:       &alias,
+		ProviderId:  &providerID,
+		Enabled:     &enabled,
+		DisplayName: &displayName,
+		Config: &map[string]string{
+			"clientId":     "updated-client-id",
+			"clientSecret": "updated-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	idp, _, err := c.IdentityProviders.GetIdentityProvider(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, idp.DisplayName)
+	require.Equal(t, "Updated IDP", *idp.DisplayName)
+}
+
+func TestIdentityProvidersClient_Mappers(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+
+	ctx := context.Background()
+
+	alias := fmt.Sprintf("test-idp-mappers-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// GetIDPMappers — empty initially
+	mappers, _, err := c.IdentityProviders.GetIDPMappers(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.Empty(t, mappers)
+
+	// CreateIDPMapper
+	mapperName := "test-mapper"
+	mapperType := "hardcoded-attribute-idp-mapper"
+	_, err = c.IdentityProviders.CreateIDPMapper(ctx, realmName, alias, keycloakv2.IdentityProviderMapperRepresentation{
+		Name:                   &mapperName,
+		IdentityProviderAlias:  &alias,
+		IdentityProviderMapper: &mapperType,
+		Config: &map[string]string{
+			"attribute":       "test-attr",
+			"attribute.value": "test-value",
+		},
+	})
+	require.NoError(t, err)
+
+	// GetIDPMappers — should have one
+	mappers, _, err = c.IdentityProviders.GetIDPMappers(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.Len(t, mappers, 1)
+	require.NotNil(t, mappers[0].Name)
+	require.Equal(t, "test-mapper", *mappers[0].Name)
+	require.NotNil(t, mappers[0].Id)
+
+	// DeleteIDPMapper
+	_, err = c.IdentityProviders.DeleteIDPMapper(ctx, realmName, alias, *mappers[0].Id)
+	require.NoError(t, err)
+
+	// Verify deletion
+	mappers, _, err = c.IdentityProviders.GetIDPMappers(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.Empty(t, mappers)
+}
+
+func TestIdentityProvidersClient_ManagementPermissions(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+
+	ctx := context.Background()
+
+	alias := fmt.Sprintf("test-idp-perms-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// GetIDPManagementPermissions — disabled by default
+	perms, _, err := c.IdentityProviders.GetIDPManagementPermissions(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, perms)
+	require.NotNil(t, perms.Enabled)
+	require.False(t, *perms.Enabled)
+
+	// UpdateIDPManagementPermissions — enable
+	enabledTrue := true
+	updated, _, err := c.IdentityProviders.UpdateIDPManagementPermissions(ctx, realmName, alias,
+		keycloakv2.ManagementPermissionReference{
+			Enabled: &enabledTrue,
+		},
+	)
+	require.NoError(t, err)
+	require.NotNil(t, updated)
+	require.NotNil(t, updated.Enabled)
+	require.True(t, *updated.Enabled)
+
+	// Verify
+	perms, _, err = c.IdentityProviders.GetIDPManagementPermissions(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, perms)
+	require.True(t, *perms.Enabled)
+}

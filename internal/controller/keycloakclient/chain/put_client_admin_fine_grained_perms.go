@@ -13,14 +13,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
-const (
-	// RealmManagementClient built-in Keycloak client for the realm
-	// This client manages admin fine-grained permissions for other clients.
-	RealmManagementClient = "realm-management"
-
-	featureFlagAdminFineGrainedAuthz = "ADMIN_FINE_GRAINED_AUTHZ"
-)
-
 type PutAdminFineGrainedPermissions struct {
 	kClient   *keycloakv2.KeycloakClient
 	k8sClient client.Client
@@ -33,7 +25,7 @@ func NewPutAdminFineGrainedPermissions(kClient *keycloakv2.KeycloakClient, k8sCl
 func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	featureFlagEnabled, err := h.kClient.Server.FeatureFlagEnabled(ctx, featureFlagAdminFineGrainedAuthz)
+	featureFlagEnabled, err := h.kClient.Server.FeatureFlagEnabled(ctx, keycloakv2.FeatureFlagAdminFineGrainedAuthz)
 	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync admin fine-grained permissions: %s", err.Error()))
 
@@ -41,7 +33,7 @@ func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClie
 	}
 
 	if !featureFlagEnabled {
-		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", featureFlagAdminFineGrainedAuthz)
+		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", keycloakv2.FeatureFlagAdminFineGrainedAuthz)
 
 		return nil
 	}
@@ -116,14 +108,14 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicie
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client admin permission policies")
 
-	realmManagementClientUUID, err := h.kClient.Clients.GetClientUUID(ctx, realmName, RealmManagementClient)
+	realmManagementClientUUID, err := h.kClient.Clients.GetClientUUID(ctx, realmName, keycloakv2.RealmManagementClient)
 	if err != nil {
-		return fmt.Errorf("failed to get %s client id: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get %s client id: %w", keycloakv2.RealmManagementClient, err)
 	}
 
 	realmManagementPermissionsList, _, err := h.kClient.Authorization.GetPermissions(ctx, realmName, realmManagementClientUUID)
 	if err != nil {
-		return fmt.Errorf("failed to get permissions for %s client: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get permissions for %s client: %w", keycloakv2.RealmManagementClient, err)
 	}
 
 	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
