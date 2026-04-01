@@ -71,6 +71,7 @@ func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentit
 		LinkOnly:                  &spec.LinkOnly,
 		StoreToken:                &spec.StoreToken,
 		TrustEmail:                &spec.TrustEmail,
+		HideOnLogin:               &spec.HideOnLogin,
 		Config:                    &config,
 	}
 }
