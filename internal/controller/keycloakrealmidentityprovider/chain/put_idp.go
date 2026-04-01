@@ -82,6 +82,7 @@ func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSp
 		LinkOnly:                  spec.LinkOnly,
 		StoreToken:                spec.StoreToken,
 		TrustEmail:                spec.TrustEmail,
+		HideOnLogin:               spec.HideOnLogin,
 	}
 
 	maps.Copy(p.Config, spec.Config)

@@ -4814,6 +4814,14 @@ Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>hideOnLogin</b></td>
+        <td>boolean</td>
+        <td>
+          HideOnLogin is a flag to hide the idp from the login page.
+If hidden, login with this provider is possible only if requested explicitly, for example using the 'kc_idp_hint' parameter.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>linkOnly</b></td>
         <td>boolean</td>
         <td>

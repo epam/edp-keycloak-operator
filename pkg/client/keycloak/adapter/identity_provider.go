@@ -20,6 +20,7 @@ type IdentityProvider struct {
 	LinkOnly                  bool              `json:"linkOnly"`
 	StoreToken                bool              `json:"storeToken"`
 	TrustEmail                bool              `json:"trustEmail"`
+	HideOnLogin               bool              `json:"hideOnLogin"`
 }
 
 type IdentityProviderMapper struct {
