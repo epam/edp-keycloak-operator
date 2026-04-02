@@ -84,8 +84,6 @@ func (r *IdentityProviderReconciler) Reconcile(ctx context.Context, request reco
 }
 
 func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakRealmIdentityProvider, *keycloakv2.KeycloakClient, string, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	instance := &keycloakApi.KeycloakRealmIdentityProvider{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -101,21 +99,13 @@ func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Contex
 
 	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
 	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
-			if instance.GetDeletionTimestamp() != nil {
-				log.Info("Keycloak realm not found, removing finalizers")
+		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
+			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, common.FinalizerName, legacyFinalizerName)
+			if removeErr != nil {
+				return nil, nil, "", removeErr
+			}
 
-				removed := controllerutil.RemoveFinalizer(instance, common.FinalizerName)
-				removed = controllerutil.RemoveFinalizer(instance, legacyFinalizerName) || removed
-
-				if removed {
-					if updateErr := r.client.Update(ctx, instance); updateErr != nil {
-						return nil, nil, "", fmt.Errorf("failed to remove finalizers: %w", updateErr)
-					}
-				}
-
-				log.Info("Finalizers removed")
-
+			if stop {
 				return nil, nil, "", nil
 			}
 		}

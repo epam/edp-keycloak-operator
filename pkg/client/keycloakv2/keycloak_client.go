@@ -50,6 +50,7 @@ type KeycloakClient struct {
 	IdentityProviders   IdentityProvidersClient
 	Authorization       AuthorizationClient
 	ClientScopes        ClientScopesClient
+	RealmComponents     RealmComponentsClient
 	Server              ServerInfoClient
 }
 
@@ -348,6 +349,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	keycloakClient.IdentityProviders = &identityProvidersClient{client: generatedClient}
 	keycloakClient.Authorization = &authorizationClient{client: generatedClient, kc: keycloakClient}
 	keycloakClient.ClientScopes = &clientScopesClient{client: generatedClient}
+	keycloakClient.RealmComponents = &realmComponentsClient{client: generatedClient}
 	keycloakClient.Server = keycloakClient // KeycloakClient implements ServerInfoClient
 
 	return keycloakClient, nil

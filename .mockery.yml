@@ -23,6 +23,7 @@ packages:
       IdentityProvidersClient: {}
       AuthorizationClient: {}
       ClientScopesClient: {}
+      RealmComponentsClient: {}
       ServerInfoClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:

@@ -508,6 +508,152 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 	}
 }
 
+func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	tests := []struct {
+		name       string
+		client     func(t *testing.T) client.Client
+		obj        func() *keycloakApi.KeycloakRealmGroup
+		finalizers []string
+		wantStop   bool
+		wantErr    require.ErrorAssertionFunc
+		want       func(t *testing.T, k8sCl client.Client)
+	}{
+		{
+			name: "removes multiple finalizers and returns stop=true",
+			client: func(t *testing.T) client.Client {
+				obj := &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "test-group",
+						Namespace:  "test",
+						Finalizers: []string{"finalizer-a", "finalizer-b"},
+					},
+				}
+
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+			},
+			obj: func() *keycloakApi.KeycloakRealmGroup {
+				return &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            "test-group",
+						Namespace:       "test",
+						ResourceVersion: "999",
+						Finalizers:      []string{"finalizer-a", "finalizer-b"},
+					},
+				}
+			},
+			finalizers: []string{"finalizer-a", "finalizer-b"},
+			wantStop:   true,
+			wantErr:    require.NoError,
+			want: func(t *testing.T, k8sCl client.Client) {
+				obj := &keycloakApi.KeycloakRealmGroup{}
+				require.NoError(t, k8sCl.Get(context.Background(), types.NamespacedName{
+					Name:      "test-group",
+					Namespace: "test",
+				}, obj))
+				assert.Empty(t, obj.Finalizers)
+			},
+		},
+		{
+			name: "removes single finalizer and returns stop=true",
+			client: func(t *testing.T) client.Client {
+				obj := &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "test-group",
+						Namespace:  "test",
+						Finalizers: []string{"finalizer-a"},
+					},
+				}
+
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+			},
+			obj: func() *keycloakApi.KeycloakRealmGroup {
+				return &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:            "test-group",
+						Namespace:       "test",
+						ResourceVersion: "999",
+						Finalizers:      []string{"finalizer-a"},
+					},
+				}
+			},
+			finalizers: []string{"finalizer-a"},
+			wantStop:   true,
+			wantErr:    require.NoError,
+			want: func(t *testing.T, k8sCl client.Client) {
+				obj := &keycloakApi.KeycloakRealmGroup{}
+				require.NoError(t, k8sCl.Get(context.Background(), types.NamespacedName{
+					Name:      "test-group",
+					Namespace: "test",
+				}, obj))
+				assert.Empty(t, obj.Finalizers)
+			},
+		},
+		{
+			name: "no finalizers present — skips update and returns stop=true",
+			client: func(t *testing.T) client.Client {
+				obj := &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-group",
+						Namespace: "test",
+					},
+				}
+
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(obj).Build()
+			},
+			obj: func() *keycloakApi.KeycloakRealmGroup {
+				return &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      "test-group",
+						Namespace: "test",
+					},
+				}
+			},
+			finalizers: []string{"finalizer-a"},
+			wantStop:   true,
+			wantErr:    require.NoError,
+			want:       func(t *testing.T, k8sCl client.Client) {},
+		},
+		{
+			name: "update fails — returns error",
+			client: func(t *testing.T) client.Client {
+				mc := &K8SClientMock{}
+				mc.On("Update", testifymock.Anything, testifymock.Anything).Return(errors.New("update failed"))
+
+				return mc
+			},
+			obj: func() *keycloakApi.KeycloakRealmGroup {
+				return &keycloakApi.KeycloakRealmGroup{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:       "test-group",
+						Namespace:  "test",
+						Finalizers: []string{"finalizer-a"},
+					},
+				}
+			},
+			finalizers: []string{"finalizer-a"},
+			wantStop:   false,
+			wantErr:    require.Error,
+			want:       func(t *testing.T, k8sCl client.Client) {},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sCl := tt.client(t)
+			obj := tt.obj()
+
+			stop, err := RemoveFinalizersOnRealmNotFound(context.Background(), k8sCl, obj, tt.finalizers...)
+
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.wantStop, stop)
+			tt.want(t, k8sCl)
+		})
+	}
+}
+
 func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(scheme))

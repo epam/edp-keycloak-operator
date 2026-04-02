@@ -88,8 +88,6 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 }
 
 func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakClient, *keycloakv2.KeycloakClient, string, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	instance := &keycloakApi.KeycloakClient{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -105,18 +103,13 @@ func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, 
 
 	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
 	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
-			if instance.GetDeletionTimestamp() != nil {
-				log.Info("Keycloak realm not found, removing finalizer")
+		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
+			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, keyCloakClientOperatorFinalizerName)
+			if removeErr != nil {
+				return nil, nil, "", removeErr
+			}
 
-				if controllerutil.RemoveFinalizer(instance, keyCloakClientOperatorFinalizerName) {
-					if updateErr := r.client.Update(ctx, instance); updateErr != nil {
-						return nil, nil, "", fmt.Errorf("failed to remove finalizer: %w", updateErr)
-					}
-				}
-
-				log.Info("Finalizer removed")
-
+			if stop {
 				return nil, nil, "", nil
 			}
 		}
