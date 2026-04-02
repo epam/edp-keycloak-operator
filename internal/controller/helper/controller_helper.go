@@ -264,6 +264,29 @@ func (h *Helper) TryRemoveFinalizer(ctx context.Context, obj client.Object, fina
 	return nil
 }
 
+// RemoveFinalizersOnRealmNotFound removes the given finalizers from obj and persists the update
+// when the realm is gone and the object is being deleted.
+// Returns true when cleanup was performed and reconciliation should stop.
+func RemoveFinalizersOnRealmNotFound(ctx context.Context, k8sClient client.Client, obj client.Object, finalizers ...string) (bool, error) {
+	log := ctrl.LoggerFrom(ctx)
+	log.Info("Keycloak realm not found, removing finalizers")
+
+	removed := false
+	for _, f := range finalizers {
+		removed = controllerutil.RemoveFinalizer(obj, f) || removed
+	}
+
+	if removed {
+		if err := k8sClient.Update(ctx, obj); err != nil {
+			return false, fmt.Errorf("failed to remove finalizers: %w", err)
+		}
+	}
+
+	log.Info("Finalizers removed")
+
+	return true, nil
+}
+
 func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error) {
 	logger := ctrl.LoggerFrom(ctx)
 

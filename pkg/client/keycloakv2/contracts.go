@@ -235,6 +235,17 @@ type ServerInfoClient interface {
 	FeatureFlagEnabled(ctx context.Context, featureFlag string) (bool, error)
 }
 
+type RealmComponentsClient interface {
+	GetComponents(
+		ctx context.Context, realm string, params *GetComponentsParams,
+	) ([]ComponentRepresentation, *Response, error)
+	GetComponent(ctx context.Context, realm, componentID string) (*ComponentRepresentation, *Response, error)
+	FindComponentByName(ctx context.Context, realm, componentName string) (*ComponentRepresentation, error)
+	CreateComponent(ctx context.Context, realm string, component ComponentRepresentation) (*Response, error)
+	UpdateComponent(ctx context.Context, realm, componentID string, component ComponentRepresentation) (*Response, error)
+	DeleteComponent(ctx context.Context, realm, componentID string) (*Response, error)
+}
+
 type OrganizationsClient interface {
 	GetOrganizations(
 		ctx context.Context,

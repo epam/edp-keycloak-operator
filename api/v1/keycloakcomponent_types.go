@@ -39,10 +39,10 @@ type KeycloakComponentSpec struct {
 // KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
 type KeycloakComponentStatus struct {
 	// +optional
-	Value string `json:"value,omitempty"`
+	ID string `json:"id,omitempty"`
 
 	// +optional
-	FailureCount int64 `json:"failureCount,omitempty"`
+	Value string `json:"value,omitempty"`
 }
 
 // ParentComponent defines the parent component of KeycloakRealmComponent.
@@ -70,14 +70,6 @@ type KeycloakRealmComponent struct {
 
 	Spec   KeycloakComponentSpec   `json:"spec,omitempty"`
 	Status KeycloakComponentStatus `json:"status,omitempty"`
-}
-
-func (in *KeycloakRealmComponent) GetFailureCount() int64 {
-	return in.Status.FailureCount
-}
-
-func (in *KeycloakRealmComponent) SetFailureCount(count int64) {
-	in.Status.FailureCount = count
 }
 
 func (in *KeycloakRealmComponent) GetStatus() string {
