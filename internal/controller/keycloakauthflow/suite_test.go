@@ -27,15 +27,17 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var (
-	cfg       *rest.Config
-	k8sClient client.Client
-	testEnv   *envtest.Environment
-	ctx       context.Context
-	cancel    context.CancelFunc
+	cfg               *rest.Config
+	k8sClient         client.Client
+	testEnv           *envtest.Environment
+	ctx               context.Context
+	cancel            context.CancelFunc
+	keycloakApiClient *keycloakv2.KeycloakClient
 )
 
 const (
@@ -172,9 +174,29 @@ var _ = BeforeSuite(func() {
 
 		return createdKeycloakRealm.Status.Available
 	}, timeout, interval).Should(BeTrue())
+
+	By("Creating a Keycloak API client for test assertions")
+
+	var err2 error
+
+	keycloakApiClient, err2 = keycloakv2.NewKeycloakClient(
+		ctx,
+		os.Getenv("TEST_KEYCLOAK_URL"),
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	Expect(err2).ShouldNot(HaveOccurred(), "failed to create keycloak client")
 })
 
 var _ = AfterSuite(func() {
+	createdKeycloakRealm := &keycloakApi.KeycloakRealm{}
+	if err := k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, createdKeycloakRealm); err == nil {
+		Expect(k8sClient.Delete(ctx, createdKeycloakRealm)).To(Succeed())
+		Eventually(func() bool {
+			return k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, &keycloakApi.KeycloakRealm{}) != nil
+		}, timeout, interval).Should(BeTrue())
+	}
+
 	cancel()
 	By("Tearing down the test environment")
 	err := testEnv.Stop()
