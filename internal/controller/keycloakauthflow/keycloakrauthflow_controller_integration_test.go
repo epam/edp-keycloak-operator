@@ -12,6 +12,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
 var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
@@ -50,7 +51,47 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: authFlow.Name, Namespace: ns}, createdAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(createdAuthFlow.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdAuthFlow.Status.ID).ShouldNot(BeEmpty())
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Verifying auth flow fields via Keycloak API")
+		Eventually(func(g Gomega) {
+			flows, _, err := keycloakApiClient.AuthFlows.GetAuthFlows(ctx, KeycloakRealmCR)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			flow := findAuthFlowByAlias(flows, "test-auth-flow")
+			g.Expect(flow).ShouldNot(BeNil())
+			g.Expect(flow.Alias).ShouldNot(BeNil())
+			g.Expect(*flow.Alias).Should(Equal("test-auth-flow"))
+			g.Expect(flow.Description).ShouldNot(BeNil())
+			g.Expect(*flow.Description).Should(Equal("Test auth flow"))
+			g.Expect(flow.ProviderId).ShouldNot(BeNil())
+			g.Expect(*flow.ProviderId).Should(Equal("basic-flow"))
+			g.Expect(flow.TopLevel).ShouldNot(BeNil())
+			g.Expect(*flow.TopLevel).Should(BeTrue())
+			g.Expect(flow.BuiltIn).ShouldNot(BeNil())
+			g.Expect(*flow.BuiltIn).Should(BeFalse())
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying auth flow executions via Keycloak API")
+		Eventually(func(g Gomega) {
+			execs, _, err := keycloakApiClient.AuthFlows.GetFlowExecutions(ctx, KeycloakRealmCR, "test-auth-flow")
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			exec := findExecutionByProviderId(execs, "identity-provider-redirector")
+			g.Expect(exec).ShouldNot(BeNil())
+			g.Expect(exec.Requirement).ShouldNot(BeNil())
+			g.Expect(*exec.Requirement).Should(Equal("REQUIRED"))
+
+			g.Expect(exec.AuthenticationConfig).ShouldNot(BeNil())
+			cfg, _, err := keycloakApiClient.AuthFlows.GetAuthenticatorConfig(ctx, KeycloakRealmCR, *exec.AuthenticationConfig)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(cfg).ShouldNot(BeNil())
+			g.Expect(cfg.Alias).ShouldNot(BeNil())
+			g.Expect(*cfg.Alias).Should(Equal("my-alias"))
+			g.Expect(cfg.Config).ShouldNot(BeNil())
+			g.Expect((*cfg.Config)["defaultProvider"]).Should(Equal("my-provider"))
+		}, timeout, interval).Should(Succeed())
 	})
 	It("Should update KeycloakAuthFlow", func() {
 		By("Getting KeycloakAuthFlow")
@@ -67,6 +108,17 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(updatedUser.Status.Value).Should(Equal(common.StatusOK))
 		}, time.Second*5, time.Second).Should(Succeed())
+
+		By("Verifying the updated description via Keycloak API")
+		Eventually(func(g Gomega) {
+			flows, _, err := keycloakApiClient.AuthFlows.GetAuthFlows(ctx, KeycloakRealmCR)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			flow := findAuthFlowByAlias(flows, "test-auth-flow")
+			g.Expect(flow).ShouldNot(BeNil())
+			g.Expect(flow.Description).ShouldNot(BeNil())
+			g.Expect(*flow.Description).Should(Equal("new-description"))
+		}, timeout, interval).Should(Succeed())
 	})
 	It("Should delete KeycloakAuthFlow", func() {
 		By("Getting KeycloakAuthFlow")
@@ -121,7 +173,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			createdAuthFlow := &keycloakApi.KeycloakAuthFlow{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: authFlow.Name, Namespace: ns}, createdAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdAuthFlow.Status.Value).Should(ContainSubstring("unable to sync auth flow"))
+			g.Expect(createdAuthFlow.Status.Value).Should(ContainSubstring("auth flow chain processing failed"))
 		}).WithTimeout(time.Second * 10).WithPolling(time.Second).Should(Succeed())
 	})
 	It("Should create child KeycloakAuthFlow", func() {
@@ -174,6 +226,56 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: childAuthFlow.Name, Namespace: ns}, createdChildAuthFlow)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(createdChildAuthFlow.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(createdChildAuthFlow.Status.ID).ShouldNot(BeEmpty())
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Verifying child flow is listed in parent's executions via Keycloak API")
+		Eventually(func(g Gomega) {
+			execs, _, err := keycloakApiClient.AuthFlows.GetFlowExecutions(ctx, KeycloakRealmCR, "test-auth-flow-parent")
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			exec := findExecutionByDisplayName(execs, "test-auth-flow-child")
+			g.Expect(exec).ShouldNot(BeNil())
+			g.Expect(exec.AuthenticationFlow).ShouldNot(BeNil())
+			g.Expect(*exec.AuthenticationFlow).Should(BeTrue())
+			g.Expect(exec.Requirement).ShouldNot(BeNil())
+			g.Expect(*exec.Requirement).Should(Equal("REQUIRED"))
+		}, timeout, interval).Should(Succeed())
 	})
 })
+
+func findAuthFlowByAlias(flows []keycloakv2.AuthFlowRepresentation, alias string) *keycloakv2.AuthFlowRepresentation {
+	for i := range flows {
+		if flows[i].Alias != nil && *flows[i].Alias == alias {
+			return &flows[i]
+		}
+	}
+
+	return nil
+}
+
+func findExecutionByProviderId(
+	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	providerID string,
+) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+	for i := range execs {
+		if execs[i].ProviderId != nil && *execs[i].ProviderId == providerID {
+			return &execs[i]
+		}
+	}
+
+	return nil
+}
+
+func findExecutionByDisplayName(
+	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	name string,
+) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+	for i := range execs {
+		if execs[i].DisplayName != nil && *execs[i].DisplayName == name {
+			return &execs[i]
+		}
+	}
+
+	return nil
+}

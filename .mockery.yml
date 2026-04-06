@@ -25,6 +25,7 @@ packages:
       ClientScopesClient: {}
       RealmComponentsClient: {}
       ServerInfoClient: {}
+      AuthFlowsClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:
       RefClient: {}

@@ -2850,12 +2850,10 @@ KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>failureCount</b></td>
-        <td>integer</td>
+        <td><b>id</b></td>
+        <td>string</td>
         <td>
-          <br/>
-          <br/>
-            <i>Format</i>: int64<br/>
+          ID is the Keycloak internal ID of the auth flow.<br/>
         </td>
         <td>false</td>
       </tr><tr>

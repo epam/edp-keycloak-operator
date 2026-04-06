@@ -17,7 +17,8 @@
       "Bash(make manifests:*)",
       "Bash(go build:*)",
       "Bash(go test:*)",
-      "Bash(make start-keycloak:*)"
+      "Bash(make start-keycloak:*)",
+      "Bash(make test:*)"
     ]
   }
 }
