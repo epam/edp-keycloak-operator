@@ -40,7 +40,7 @@ tests/e2e/       — KUTTL test suites (one directory per scenario, e.g. helm-su
 ## Development Workflow
 
 ### Prerequisites
-Go 1.24, Docker, kubectl, kind, make
+Go 1.25, Docker, kubectl, kind, make
 
 ### Build & Run
 ```
