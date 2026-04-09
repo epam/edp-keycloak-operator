@@ -3,12 +3,8 @@ package helper
 import (
 	"context"
 	"fmt"
-	"sync"
 	"time"
 
-	"github.com/Nerzal/gocloak/v12"
-	"github.com/go-logr/logr"
-	"github.com/go-resty/resty/v2"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -19,8 +15,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
 	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 )
 
@@ -48,14 +42,6 @@ type ObjectWithKeycloakRef interface {
 	client.Object
 }
 
-type adapterBuilder func(
-	ctx context.Context,
-	conf adapter.GoCloakConfig,
-	adminType string,
-	log logr.Logger,
-	restyClient *resty.Client,
-) (keycloak.Client, error)
-
 // ControllerHelper interface defines methods for working with keycloak client and owner references.
 type ControllerHelper interface {
 	SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycloakRef) error
@@ -63,13 +49,6 @@ type ControllerHelper interface {
 	SetFailureCount(fc FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error)
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
-	GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error)
-	CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (keycloak.Client, error)
-	CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (keycloak.Client, error)
-	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (keycloak.Client, error)
-	CreateKeycloakClient(ctx context.Context, url, user, password, adminType, caCert string, insecureSkipVerify bool) (keycloak.Client, error)
-	CreateKeycloakClientFomAuthData(ctx context.Context, authData *KeycloakAuthData) (keycloak.Client, error)
-	InvalidateKeycloakClientTokenSecret(ctx context.Context, namespace, rootKeycloakName string) error
 	CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakclientv2.KeycloakClient, error)
 	CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakclientv2.KeycloakClient, error)
 	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error)
@@ -81,9 +60,6 @@ type ControllerHelper interface {
 type Helper struct {
 	client            client.Client
 	scheme            *runtime.Scheme
-	restyClient       *resty.Client
-	adapterBuilder    adapterBuilder
-	tokenSecretLock   *sync.Mutex
 	operatorNamespace string
 	// enableOwnerRef is a flag to enable legacy owner reference to Keycloak and KeycloakRealm for operator objects.
 	// This is needed for backward compatibility with the old version of the operator.
@@ -92,34 +68,10 @@ type Helper struct {
 
 func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
 	helper := &Helper{
-		tokenSecretLock:   new(sync.Mutex),
 		client:            k8sClient,
 		scheme:            scheme,
 		operatorNamespace: operatorNamespace,
 		enableOwnerRef:    false,
-		adapterBuilder: func(
-			ctx context.Context,
-			conf adapter.GoCloakConfig,
-			adminType string,
-			log logr.Logger,
-			restyClient *resty.Client,
-		) (keycloak.Client, error) {
-			if adminType == keycloakApi.KeycloakAdminTypeServiceAccount {
-				goKeycloakAdapter, err := adapter.MakeFromServiceAccount(ctx, conf, "master", log, restyClient)
-				if err != nil {
-					return nil, fmt.Errorf("failed to make go keycloak adapter from service account: %w", err)
-				}
-
-				return goKeycloakAdapter, nil
-			}
-
-			goKeycloakAdapter, err := adapter.Make(ctx, conf, log, restyClient)
-			if err != nil {
-				return nil, fmt.Errorf("failed to make go keycloak adapter: %w", err)
-			}
-
-			return goKeycloakAdapter, nil
-		},
 	}
 
 	for _, option := range options {
@@ -323,47 +275,6 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 	logger.Info("terminator deleting instance done, exit")
 
 	return true, nil
-}
-
-func (h *Helper) GetKeycloakRealmFromRef(ctx context.Context, object ObjectWithRealmRef, kcClient keycloak.Client) (*gocloak.RealmRepresentation, error) {
-	kind := object.GetRealmRef().Kind
-	name := object.GetRealmRef().Name
-
-	switch kind {
-	case keycloakApi.KeycloakRealmKind:
-		realm := &keycloakApi.KeycloakRealm{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Namespace: object.GetNamespace(),
-			Name:      name,
-		}, realm); err != nil {
-			return nil, fmt.Errorf("failed to get KeycloakRealm: %w", err)
-		}
-
-		kcRealm, err := kcClient.GetRealm(ctx, realm.Spec.RealmName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get realm: %w", err)
-		}
-
-		return kcRealm, nil
-
-	case keycloakAlpha.ClusterKeycloakRealmKind:
-		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
-		if err := h.client.Get(ctx, types.NamespacedName{
-			Name: name,
-		}, clusterRealm); err != nil {
-			return nil, fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
-		}
-
-		kcRealm, err := kcClient.GetRealm(ctx, clusterRealm.Spec.RealmName)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get realm: %w", err)
-		}
-
-		return kcRealm, nil
-
-	default:
-		return nil, fmt.Errorf("unknown realm kind: %s", kind)
-	}
 }
 
 // GetRealmNameFromRef resolves the Keycloak realm name from a RealmRef without calling the Keycloak API.

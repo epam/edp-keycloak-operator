@@ -52,29 +52,22 @@ Add the new field with a meaningful example value to:
 
 This is the critical investigation step before touching any handler code.
 
-### 4a. Which client does this controller use?
+### 4a. Confirm the controller uses keycloakv2
 
-Read `internal/controller/{resource}/chain/chain.go` and the relevant handler file and check the imports:
-- `pkg/client/keycloak/` → **legacy gocloak client**
-- `pkg/client/keycloakv2/` → **new keycloakv2 client**
+All controllers use `pkg/client/keycloakv2/`. Confirm the handler imports this package.
 
 ### 4b. Find the Keycloak representation struct
 
-**keycloakv2**: Check `pkg/client/keycloakv2/contracts.go` for the relevant client interface
+Check `pkg/client/keycloakv2/contracts.go` for the relevant client interface
 (`GroupsClient`, `ClientsClient`, `RolesClient`, etc.).
 Representation types are type aliases — grep `pkg/client/keycloakv2/generated/client_generated.go`
 for the struct name (e.g. `GroupRepresentation`, `ClientRepresentation`, `RoleRepresentation`)
 to see which fields are available.
 
-**legacy gocloak**: The representation structs live in the `gocloak` package
-(`gocloak.Group`, `gocloak.Client`, etc.). Read the handler to see which struct is being built.
-
 ### 4c. Confirm the field exists — then follow this decision tree
 
-- **keycloakv2 + field exists** → proceed to Step 5.
-- **legacy gocloak + field exists in gocloak struct** → map the field in the legacy handler and proceed to Step 5. Note: this controller is also a candidate for keycloakv2 migration per project conventions.
-- **legacy gocloak + field missing from gocloak** → check if the field exists in the keycloakv2 representation. If yes, **propose migrating the controller to keycloakv2** as the path to support this field. Use the `KeycloakRealmGroup` controller migration as the reference pattern. Do not patch the legacy client.
-- **Field missing from both clients** → **stop**. Warn the user that the field is not exposed by either client. `openapi.yaml` is auto-generated and must not be edited manually. Ask the user how to proceed before making any further changes.
+- **Field exists in keycloakv2 representation** → proceed to Step 5.
+- **Field missing from keycloakv2 representation** → **stop**. Warn the user that the field is not exposed by the client. `openapi.yaml` is auto-generated and must not be edited manually. Ask the user how to proceed before making any further changes.
 
 ---
 
