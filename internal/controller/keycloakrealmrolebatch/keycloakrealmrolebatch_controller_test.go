@@ -19,11 +19,34 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/go-logr/logr"
+
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
 )
+
+type testLogger struct {
+	errors []error
+}
+
+func (l *testLogger) Init(logr.RuntimeInfo)               {}
+func (l *testLogger) Info(int, string, ...any)            {}
+func (l *testLogger) Enabled(int) bool                    { return true }
+func (l *testLogger) Error(err error, _ string, _ ...any) { l.errors = append(l.errors, err) }
+func (l *testLogger) WithName(string) logr.LogSink        { return l }
+func (l *testLogger) WithValues(...any) logr.LogSink      { return l }
+func (l *testLogger) LastError() error {
+	if len(l.errors) == 0 {
+		return nil
+	}
+
+	return l.errors[len(l.errors)-1]
+}
+
+func newTestLogr() logr.Logger {
+	return logr.New(&testLogger{})
+}
 
 func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	scheme := runtime.NewScheme()
@@ -61,7 +84,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 	}
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&batch, &realm, &keycloak, &secret).Build()
-	log := mock.NewLogr()
+	log := newTestLogr()
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
 		helper: helper.MakeHelper(client, scheme, "default"),
@@ -121,7 +144,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(sch).
 		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).WithStatusSubresource(&batch).Build()
 
-	logger := mock.NewLogr()
+	logger := newTestLogr()
 
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client:                  client,
@@ -137,7 +160,7 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	loggerSink, ok := logger.GetSink().(*mock.Logger)
+	loggerSink, ok := logger.GetSink().(*testLogger)
 	require.True(t, ok, "wrong logger type")
 	require.NoError(t, loggerSink.LastError())
 
@@ -226,7 +249,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 	client := fake.NewClientBuilder().WithScheme(scheme).
 		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).WithStatusSubresource(&batch).Build()
 
-	logger := mock.NewLogr()
+	logger := newTestLogr()
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
 		helper: helper.MakeHelper(client, scheme, "default"),
@@ -241,7 +264,7 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 
 	require.NoError(t, err)
 
-	loggerSink, ok := logger.GetSink().(*mock.Logger)
+	loggerSink, ok := logger.GetSink().(*testLogger)
 	require.True(t, ok, "wrong logger type")
 
 	require.Error(t, loggerSink.LastError())

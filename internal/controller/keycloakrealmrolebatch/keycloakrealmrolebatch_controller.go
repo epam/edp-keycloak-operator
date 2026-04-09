@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Nerzal/gocloak/v12"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -171,7 +171,7 @@ func (r *ReconcileKeycloakRealmRoleBatch) putRoles(
 			ObjectMeta: metav1.ObjectMeta{Name: roleName,
 				Namespace: batch.Namespace,
 				OwnerReferences: []metav1.OwnerReference{
-					{Name: batch.Name, Kind: batch.Kind, BlockOwnerDeletion: gocloak.BoolP(true), UID: batch.UID,
+					{Name: batch.Name, Kind: batch.Kind, BlockOwnerDeletion: ptr.To(true), UID: batch.UID,
 						APIVersion: batch.APIVersion},
 				}},
 			Spec: keycloakApi.KeycloakRealmRoleSpec{

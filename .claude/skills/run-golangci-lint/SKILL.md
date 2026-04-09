@@ -2,6 +2,7 @@
 name: run-golangci-lint
 description: "Run golangci-lint linters and fix any linting errors. Use when fixing lint issues or before committing code."
 allowed-tools: Bash(make *), Read, Grep, Glob
+context: fork
 ---
 
 ## Task

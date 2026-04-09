@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/go-resty/resty/v2"
 	"github.com/stretchr/testify/assert"
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -22,9 +21,6 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakApiAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/mock"
-	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
@@ -78,27 +74,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 }
 
 func TestMakeHelper(t *testing.T) {
-	rCl := resty.New()
-
-	mockServer := fakehttp.NewServerBuilder().
-		AddStringResponder("/auth/realms/master/protocol/openid-connect/token/", "{}").
-		BuildAndStart()
-	defer mockServer.Close()
-
-	logger := mock.NewLogr()
 	h := MakeHelper(nil, nil, "default", EnableOwnerRef(true))
-	_, err := h.adapterBuilder(
-		context.Background(),
-		adapter.GoCloakConfig{
-			Url:      mockServer.GetURL(),
-			User:     "foo",
-			Password: "bar",
-		},
-		keycloakApi.KeycloakAdminTypeServiceAccount,
-		logger,
-		rCl,
-	)
-	require.NoError(t, err)
 	assert.True(t, h.enableOwnerRef)
 }
 
@@ -115,7 +91,7 @@ func (t *testTerminator) GetLogger() logr.Logger {
 }
 
 func TestHelper_TryToDelete(t *testing.T) {
-	logger := mock.NewLogr()
+	logger := logr.Discard()
 
 	term := testTerminator{
 		log: logger,

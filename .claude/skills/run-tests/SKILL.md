@@ -3,6 +3,7 @@ name: run-tests
 description: "Run tests for the edp-keycloak-operator. By default runs unit + integration tests. Use /run-tests e2e for end-to-end tests."
 argument-hint: "[unit|integration|e2e]"
 allowed-tools: Bash(make *), Bash(docker *), Read
+context: fork
 ---
 
 ## Your task
