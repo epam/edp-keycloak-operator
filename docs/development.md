@@ -22,7 +22,7 @@ Before starting development, ensure you have the following tools installed:
 
 | Tool | Purpose |
 |------|---------|
-| Go (1.24+) | Programming language |
+| Go (1.25+) | Programming language |
 | Docker/Podman | Container runtime |
 | kubectl | Kubernetes CLI |
 | [kind](https://github.com/kubernetes-sigs/kind) | Local Kubernetes cluster |

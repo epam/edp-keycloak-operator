@@ -78,7 +78,7 @@ type KeycloakRealmIdentityProviderSpec struct {
 	// HideOnLogin is a flag to hide the idp from the login page.
 	// If hidden, login with this provider is possible only if requested explicitly, for example using the 'kc_idp_hint' parameter.
 	// +optional
-	HideOnLogin bool `json:"hideOnLogin,omitempty"`
+	HideOnLogin *bool `json:"hideOnLogin,omitempty"`
 }
 
 type IdentityProviderMapper struct {

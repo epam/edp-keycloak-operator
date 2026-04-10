@@ -33,9 +33,10 @@ func TestPutIDP_Serve(t *testing.T) {
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
-					Alias:      "test-idp",
-					ProviderID: "github",
-					Enabled:    true,
+					Alias:       "test-idp",
+					ProviderID:  "github",
+					Enabled:     true,
+					HideOnLogin: ptr.To(true),
 					Config: map[string]string{
 						"clientId":     "test-client",
 						"clientSecret": "$secret-name:secret-key",
@@ -46,8 +47,9 @@ func TestPutIDP_Serve(t *testing.T) {
 				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
 					Return((*keycloakv2.IdentityProviderRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404}).Once()
-				m.On("CreateIdentityProvider", mock.Anything, "realm", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Once()
+				m.On("CreateIdentityProvider", mock.Anything, "realm", mock.MatchedBy(func(rep keycloakv2.IdentityProviderRepresentation) bool {
+					return rep.HideOnLogin != nil && *rep.HideOnLogin == true
+				})).Return((*keycloakv2.Response)(nil), nil).Once()
 				return m
 			},
 			secretRef: func(t *testing.T) refClient {

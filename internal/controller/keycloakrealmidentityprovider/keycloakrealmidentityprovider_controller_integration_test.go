@@ -11,6 +11,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -54,6 +55,7 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
 				DisplayName:               "New provider",
 				FirstBrokerLoginFlowAlias: "first broker login",
 				PostBrokerLoginFlowAlias:  "browser",
+				HideOnLogin:               ptr.To(true),
 			},
 		}
 		Expect(k8sClient.Create(ctx, provider)).Should(Succeed())
@@ -81,6 +83,8 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
 			g.Expect(*idp.FirstBrokerLoginFlowAlias).Should(Equal("first broker login"))
 			g.Expect(idp.Config).ShouldNot(BeNil())
 			g.Expect((*idp.Config)["clientId"]).Should(Equal("provider-client"))
+			g.Expect(idp.HideOnLogin).ShouldNot(BeNil())
+			g.Expect(*idp.HideOnLogin).Should(BeTrue())
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should update KeycloakRealmIdentityProvider", func() {
