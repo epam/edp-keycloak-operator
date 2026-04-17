@@ -1113,3 +1113,89 @@ func (_c *MockClientScopesClient_UpdateClientScope_Call) RunAndReturn(run func(c
 	_c.Call.Return(run)
 	return _c
 }
+
+// UpdateClientScopeProtocolMapper provides a mock function for the type MockClientScopesClient
+func (_mock *MockClientScopesClient) UpdateClientScopeProtocolMapper(ctx context.Context, realm string, scopeID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, scopeID, mapperID, mapper)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateClientScopeProtocolMapper")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, scopeID, mapperID, mapper)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, scopeID, mapperID, mapper)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakv2.ProtocolMapperRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, scopeID, mapperID, mapper)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientScopesClient_UpdateClientScopeProtocolMapper_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateClientScopeProtocolMapper'
+type MockClientScopesClient_UpdateClientScopeProtocolMapper_Call struct {
+	*mock.Call
+}
+
+// UpdateClientScopeProtocolMapper is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - scopeID string
+//   - mapperID string
+//   - mapper keycloakv2.ProtocolMapperRepresentation
+func (_e *MockClientScopesClient_Expecter) UpdateClientScopeProtocolMapper(ctx interface{}, realm interface{}, scopeID interface{}, mapperID interface{}, mapper interface{}) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
+	return &MockClientScopesClient_UpdateClientScopeProtocolMapper_Call{Call: _e.mock.On("UpdateClientScopeProtocolMapper", ctx, realm, scopeID, mapperID, mapper)}
+}
+
+func (_c *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call) Run(run func(ctx context.Context, realm string, scopeID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation)) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakv2.ProtocolMapperRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakv2.ProtocolMapperRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call) Return(response *keycloakv2.Response, err error) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call) RunAndReturn(run func(ctx context.Context, realm string, scopeID string, mapperID string, mapper keycloakv2.ProtocolMapperRepresentation) (*keycloakv2.Response, error)) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
+	_c.Call.Return(run)
+	return _c
+}

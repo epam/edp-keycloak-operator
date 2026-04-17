@@ -258,3 +258,97 @@ func containsScope(scopes []keycloakv2.ClientScopeRepresentation, name string) b
 
 	return false
 }
+
+func TestClientScopesClient_UpdateClientScopeProtocolMapper(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-cs-updmapper-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	// Create a client scope.
+	scopeName := fmt.Sprintf("test-scope-updmapper-%d", time.Now().UnixNano())
+	protocol := "openid-connect"
+
+	resp, err := c.ClientScopes.CreateClientScope(ctx, realmName, keycloakv2.ClientScopeRepresentation{
+		Name:     &scopeName,
+		Protocol: &protocol,
+	})
+	require.NoError(t, err)
+
+	scopeID := keycloakv2.GetResourceIDFromResponse(resp)
+	require.NotEmpty(t, scopeID)
+
+	// Create a protocol mapper.
+	mapperName := "test-mapper"
+	mapperProtocol := "openid-connect"
+	mapperType := "oidc-hardcoded-claim-mapper"
+	config := map[string]string{
+		"claim.name":         "test-claim",
+		"claim.value":        "original-value",
+		"jsonType.label":     "String",
+		"id.token.claim":     "true",
+		"access.token.claim": "true",
+	}
+
+	_, err = c.ClientScopes.CreateClientScopeProtocolMapper(ctx, realmName, scopeID,
+		keycloakv2.ProtocolMapperRepresentation{
+			Name:           &mapperName,
+			Protocol:       &mapperProtocol,
+			ProtocolMapper: &mapperType,
+			Config:         &config,
+		})
+	require.NoError(t, err)
+
+	// Get the mapper to obtain its ID.
+	mappers, _, err := c.ClientScopes.GetClientScopeProtocolMappers(ctx, realmName, scopeID)
+	require.NoError(t, err)
+	require.Len(t, mappers, 1)
+
+	mapperID := *mappers[0].Id
+
+	// Update the mapper.
+	updatedConfig := map[string]string{
+		"claim.name":         "test-claim",
+		"claim.value":        "updated-value",
+		"jsonType.label":     "String",
+		"id.token.claim":     "true",
+		"access.token.claim": "true",
+	}
+
+	resp, err = c.ClientScopes.UpdateClientScopeProtocolMapper(ctx, realmName, scopeID, mapperID,
+		keycloakv2.ProtocolMapperRepresentation{
+			Id:             &mapperID,
+			Name:           &mapperName,
+			Protocol:       &mapperProtocol,
+			ProtocolMapper: &mapperType,
+			Config:         &updatedConfig,
+		})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify the update.
+	mappers, _, err = c.ClientScopes.GetClientScopeProtocolMappers(ctx, realmName, scopeID)
+	require.NoError(t, err)
+	require.Len(t, mappers, 1)
+	require.Equal(t, "updated-value", (*mappers[0].Config)["claim.value"])
+}

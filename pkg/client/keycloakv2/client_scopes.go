@@ -342,3 +342,28 @@ func (c *clientScopesClient) DeleteClientScopeProtocolMapper(
 
 	return response, nil
 }
+
+func (c *clientScopesClient) UpdateClientScopeProtocolMapper(
+	ctx context.Context,
+	realm, scopeID, mapperID string,
+	mapper ProtocolMapperRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmClientScopesClientScopeIdProtocolMappersModelsIdWithResponse(
+		ctx, realm, scopeID, mapperID, mapper,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}

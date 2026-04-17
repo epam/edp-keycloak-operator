@@ -1285,3 +1285,162 @@ func TestGroupsClient_GetGroupByPath(t *testing.T) {
 		require.NotNil(t, resp)
 	})
 }
+
+func TestGroupsClient_CountGroups(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-grp-count-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	// Create a group so count > 0.
+	groupName := fmt.Sprintf("count-group-%d", time.Now().UnixNano())
+
+	_, err = c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{
+		Name: &groupName,
+	})
+	require.NoError(t, err)
+
+	counts, resp, err := c.Groups.CountGroups(ctx, realmName, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, counts)
+
+	// The count map should have a "count" key with value >= 1.
+	count, ok := counts["count"]
+	require.True(t, ok, "count map should have 'count' key")
+	require.GreaterOrEqual(t, count, int64(1))
+}
+
+func TestGroupsClient_GetGroupMembers(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-grp-members-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	// Create a group.
+	groupName := fmt.Sprintf("members-group-%d", time.Now().UnixNano())
+
+	groupResp, err := c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{
+		Name: &groupName,
+	})
+	require.NoError(t, err)
+
+	groupID := keycloakv2.GetResourceIDFromResponse(groupResp)
+
+	// Create a user and add to the group.
+	username := fmt.Sprintf("grp-member-%d", time.Now().UnixNano())
+
+	userResp, err := c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{
+		Username: &username,
+		Enabled:  &enabled,
+	})
+	require.NoError(t, err)
+
+	userID := keycloakv2.GetResourceIDFromResponse(userResp)
+
+	_, err = c.Users.AddUserToGroup(ctx, realmName, userID, groupID)
+	require.NoError(t, err)
+
+	// GetGroupMembers.
+	members, resp, err := c.Groups.GetGroupMembers(ctx, realmName, groupID, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Len(t, members, 1)
+	require.Equal(t, username, *members[0].Username)
+}
+
+func TestGroupsClient_GroupManagementPermissions(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-grp-perms-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	groupName := fmt.Sprintf("perms-group-%d", time.Now().UnixNano())
+
+	groupResp, err := c.Groups.CreateGroup(ctx, realmName, keycloakv2.GroupRepresentation{
+		Name: &groupName,
+	})
+	require.NoError(t, err)
+
+	groupID := keycloakv2.GetResourceIDFromResponse(groupResp)
+
+	// GetGroupManagementPermissions — initially disabled.
+	perms, resp, err := c.Groups.GetGroupManagementPermissions(ctx, realmName, groupID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, perms)
+
+	// Enable management permissions.
+	perms.Enabled = &enabled
+
+	updatedPerms, resp, err := c.Groups.UpdateGroupManagementPermissions(ctx, realmName, groupID, *perms)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, updatedPerms)
+	require.True(t, *updatedPerms.Enabled)
+
+	// Verify via get.
+	fetchedPerms, _, err := c.Groups.GetGroupManagementPermissions(ctx, realmName, groupID)
+	require.NoError(t, err)
+	require.True(t, *fetchedPerms.Enabled)
+}

@@ -743,3 +743,110 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 		}
 	}
 }
+
+func TestAuthorizationClient_GetResource(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	kc, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-authz-getres-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = kc.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientUUID := createAuthzClient(t, kc, ctx, realmName)
+
+	resourceName := fmt.Sprintf("test-getresource-%d", time.Now().UnixNano())
+
+	created, _, err := kc.Authorization.CreateResource(ctx, realmName, clientUUID, keycloakv2.ResourceRepresentation{
+		Name: &resourceName,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, created.UnderscoreId)
+
+	resourceID := *created.UnderscoreId
+
+	got, resp, err := kc.Authorization.GetResource(ctx, realmName, clientUUID, resourceID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, got)
+	require.Equal(t, resourceName, *got.Name)
+}
+
+func TestAuthorizationClient_GetAndUpdateScope(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	kc, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-authz-getscope-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = kc.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientUUID := createAuthzClient(t, kc, ctx, realmName)
+
+	scopeName := fmt.Sprintf("test-getscope-%d", time.Now().UnixNano())
+
+	createResp, err := kc.Authorization.CreateScope(ctx, realmName, clientUUID, keycloakv2.ScopeRepresentation{
+		Name: &scopeName,
+	})
+	require.NoError(t, err)
+
+	var createdScope keycloakv2.ScopeRepresentation
+
+	require.NoError(t, json.Unmarshal(createResp.Body, &createdScope))
+
+	scopeID := *createdScope.Id
+
+	// GetScope.
+	got, resp, err := kc.Authorization.GetScope(ctx, realmName, clientUUID, scopeID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, got)
+	require.Equal(t, scopeName, *got.Name)
+
+	// UpdateScope.
+	updatedName := scopeName + "-updated"
+	got.Name = &updatedName
+
+	resp, err = kc.Authorization.UpdateScope(ctx, realmName, clientUUID, scopeID, *got)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify update.
+	updated, _, err := kc.Authorization.GetScope(ctx, realmName, clientUUID, scopeID)
+	require.NoError(t, err)
+	require.Equal(t, updatedName, *updated.Name)
+}

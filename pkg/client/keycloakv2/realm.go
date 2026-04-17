@@ -12,6 +12,8 @@ import (
 // Type aliases for generated types
 type RealmRepresentation = generated.RealmRepresentation
 type RealmEventsConfigRepresentation = generated.RealmEventsConfigRepresentation
+type KeysMetadataRepresentation = generated.KeysMetadataRepresentation
+type GetRealmLocalizationParams = generated.GetAdminRealmsRealmLocalizationLocaleParams
 
 type realmClient struct {
 	client generated.ClientWithResponsesInterface
@@ -170,4 +172,75 @@ func (c *realmClient) SetRealmEventConfig(
 	}
 
 	return response, nil
+}
+
+func (c *realmClient) GetRealms(ctx context.Context) ([]RealmRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsWithResponse(ctx, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *realmClient) GetRealmKeys(
+	ctx context.Context,
+	realm string,
+) (*KeysMetadataRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmKeysWithResponse(ctx, realm)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *realmClient) GetRealmLocalization(
+	ctx context.Context,
+	realm, locale string,
+) (map[string]string, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmLocalizationLocaleWithResponse(ctx, realm, locale, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
 }

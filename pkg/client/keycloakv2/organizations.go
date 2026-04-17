@@ -11,9 +11,13 @@ import (
 )
 
 type (
-	OrganizationRepresentation       = generated.OrganizationRepresentation
-	OrganizationDomainRepresentation = generated.OrganizationDomainRepresentation
-	GetOrganizationsParams           = generated.GetAdminRealmsRealmOrganizationsParams
+	OrganizationRepresentation              = generated.OrganizationRepresentation
+	OrganizationDomainRepresentation        = generated.OrganizationDomainRepresentation
+	GetOrganizationsParams                  = generated.GetAdminRealmsRealmOrganizationsParams
+	MemberRepresentation                    = generated.MemberRepresentation
+	GetOrganizationMembersParams            = generated.GetAdminRealmsRealmOrganizationsOrgIdMembersParams
+	InviteExistingOrganizationMemberRequest = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody //nolint:lll // generated type alias
+	InviteNewOrganizationMemberRequest      = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody         //nolint:lll // generated type alias
 )
 
 type organizationsClient struct {
@@ -194,6 +198,137 @@ func (c *organizationsClient) UnlinkIdentityProviderFromOrganization(
 ) (*Response, error) {
 	res, err := c.client.DeleteAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(
 		ctx, realm, orgID, alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *organizationsClient) GetOrganizationMembers(
+	ctx context.Context,
+	realm, orgID string,
+	params *GetOrganizationMembersParams,
+) ([]MemberRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmOrganizationsOrgIdMembersWithResponse(ctx, realm, orgID, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *organizationsClient) AddOrganizationMember(
+	ctx context.Context,
+	realm, orgID, userID string,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdMembersWithResponse(ctx, realm, orgID, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *organizationsClient) RemoveOrganizationMember(
+	ctx context.Context,
+	realm, orgID, memberID string,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberIdWithResponse(
+		ctx, realm, orgID, memberID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *organizationsClient) InviteExistingOrganizationMember(
+	ctx context.Context,
+	realm, orgID, userID string,
+) (*Response, error) {
+	body := InviteExistingOrganizationMemberRequest{
+		Id: &userID,
+	}
+
+	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserWithFormdataBodyWithResponse(
+		ctx, realm, orgID, body,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *organizationsClient) InviteNewOrganizationMember(
+	ctx context.Context,
+	realm, orgID, email, firstName, lastName string,
+) (*Response, error) {
+	body := InviteNewOrganizationMemberRequest{
+		Email:     &email,
+		FirstName: &firstName,
+		LastName:  &lastName,
+	}
+
+	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(
+		ctx, realm, orgID, body,
+	)
 	if err != nil {
 		return nil, err
 	}

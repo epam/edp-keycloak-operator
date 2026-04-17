@@ -192,6 +192,86 @@ func (_c *MockAuthFlowsClient_AddExecutionToFlow_Call) RunAndReturn(run func(ctx
 	return _c
 }
 
+// CopyAuthFlow provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) CopyAuthFlow(ctx context.Context, realm string, flowAlias string, newName string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, flowAlias, newName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CopyAuthFlow")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, flowAlias, newName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, flowAlias, newName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, flowAlias, newName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthFlowsClient_CopyAuthFlow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CopyAuthFlow'
+type MockAuthFlowsClient_CopyAuthFlow_Call struct {
+	*mock.Call
+}
+
+// CopyAuthFlow is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - flowAlias string
+//   - newName string
+func (_e *MockAuthFlowsClient_Expecter) CopyAuthFlow(ctx interface{}, realm interface{}, flowAlias interface{}, newName interface{}) *MockAuthFlowsClient_CopyAuthFlow_Call {
+	return &MockAuthFlowsClient_CopyAuthFlow_Call{Call: _e.mock.On("CopyAuthFlow", ctx, realm, flowAlias, newName)}
+}
+
+func (_c *MockAuthFlowsClient_CopyAuthFlow_Call) Run(run func(ctx context.Context, realm string, flowAlias string, newName string)) *MockAuthFlowsClient_CopyAuthFlow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_CopyAuthFlow_Call) Return(response *keycloakv2.Response, err error) *MockAuthFlowsClient_CopyAuthFlow_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_CopyAuthFlow_Call) RunAndReturn(run func(ctx context.Context, realm string, flowAlias string, newName string) (*keycloakv2.Response, error)) *MockAuthFlowsClient_CopyAuthFlow_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateAuthFlow provides a mock function for the type MockAuthFlowsClient
 func (_mock *MockAuthFlowsClient) CreateAuthFlow(ctx context.Context, realm string, body keycloakv2.AuthFlowRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, body)
@@ -420,6 +500,80 @@ func (_c *MockAuthFlowsClient_DeleteAuthFlow_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// DeleteAuthenticatorConfig provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) DeleteAuthenticatorConfig(ctx context.Context, realm string, configID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, configID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteAuthenticatorConfig")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, configID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, configID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, configID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthFlowsClient_DeleteAuthenticatorConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteAuthenticatorConfig'
+type MockAuthFlowsClient_DeleteAuthenticatorConfig_Call struct {
+	*mock.Call
+}
+
+// DeleteAuthenticatorConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - configID string
+func (_e *MockAuthFlowsClient_Expecter) DeleteAuthenticatorConfig(ctx interface{}, realm interface{}, configID interface{}) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
+	return &MockAuthFlowsClient_DeleteAuthenticatorConfig_Call{Call: _e.mock.On("DeleteAuthenticatorConfig", ctx, realm, configID)}
+}
+
+func (_c *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call) Run(run func(ctx context.Context, realm string, configID string)) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call) Return(response *keycloakv2.Response, err error) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call) RunAndReturn(run func(ctx context.Context, realm string, configID string) (*keycloakv2.Response, error)) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // DeleteExecution provides a mock function for the type MockAuthFlowsClient
 func (_mock *MockAuthFlowsClient) DeleteExecution(ctx context.Context, realm string, executionID string) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, executionID)
@@ -490,6 +644,88 @@ func (_c *MockAuthFlowsClient_DeleteExecution_Call) Return(response *keycloakv2.
 }
 
 func (_c *MockAuthFlowsClient_DeleteExecution_Call) RunAndReturn(run func(ctx context.Context, realm string, executionID string) (*keycloakv2.Response, error)) *MockAuthFlowsClient_DeleteExecution_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetAuthFlow provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) GetAuthFlow(ctx context.Context, realm string, flowID string) (*keycloakv2.AuthFlowRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, flowID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetAuthFlow")
+	}
+
+	var r0 *keycloakv2.AuthFlowRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.AuthFlowRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, flowID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.AuthFlowRepresentation); ok {
+		r0 = returnFunc(ctx, realm, flowID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.AuthFlowRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, flowID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, flowID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthFlowsClient_GetAuthFlow_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetAuthFlow'
+type MockAuthFlowsClient_GetAuthFlow_Call struct {
+	*mock.Call
+}
+
+// GetAuthFlow is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - flowID string
+func (_e *MockAuthFlowsClient_Expecter) GetAuthFlow(ctx interface{}, realm interface{}, flowID interface{}) *MockAuthFlowsClient_GetAuthFlow_Call {
+	return &MockAuthFlowsClient_GetAuthFlow_Call{Call: _e.mock.On("GetAuthFlow", ctx, realm, flowID)}
+}
+
+func (_c *MockAuthFlowsClient_GetAuthFlow_Call) Run(run func(ctx context.Context, realm string, flowID string)) *MockAuthFlowsClient_GetAuthFlow_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_GetAuthFlow_Call) Return(v *keycloakv2.AuthFlowRepresentation, response *keycloakv2.Response, err error) *MockAuthFlowsClient_GetAuthFlow_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_GetAuthFlow_Call) RunAndReturn(run func(ctx context.Context, realm string, flowID string) (*keycloakv2.AuthFlowRepresentation, *keycloakv2.Response, error)) *MockAuthFlowsClient_GetAuthFlow_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -734,6 +970,82 @@ func (_c *MockAuthFlowsClient_GetFlowExecutions_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// GetRequiredActions provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) GetRequiredActions(ctx context.Context, realm string) ([]keycloakv2.RequiredActionProviderRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRequiredActions")
+	}
+
+	var r0 []keycloakv2.RequiredActionProviderRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]keycloakv2.RequiredActionProviderRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []keycloakv2.RequiredActionProviderRepresentation); ok {
+		r0 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.RequiredActionProviderRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, realm)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthFlowsClient_GetRequiredActions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRequiredActions'
+type MockAuthFlowsClient_GetRequiredActions_Call struct {
+	*mock.Call
+}
+
+// GetRequiredActions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+func (_e *MockAuthFlowsClient_Expecter) GetRequiredActions(ctx interface{}, realm interface{}) *MockAuthFlowsClient_GetRequiredActions_Call {
+	return &MockAuthFlowsClient_GetRequiredActions_Call{Call: _e.mock.On("GetRequiredActions", ctx, realm)}
+}
+
+func (_c *MockAuthFlowsClient_GetRequiredActions_Call) Run(run func(ctx context.Context, realm string)) *MockAuthFlowsClient_GetRequiredActions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_GetRequiredActions_Call) Return(vs []keycloakv2.RequiredActionProviderRepresentation, response *keycloakv2.Response, err error) *MockAuthFlowsClient_GetRequiredActions_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_GetRequiredActions_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]keycloakv2.RequiredActionProviderRepresentation, *keycloakv2.Response, error)) *MockAuthFlowsClient_GetRequiredActions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateAuthFlow provides a mock function for the type MockAuthFlowsClient
 func (_mock *MockAuthFlowsClient) UpdateAuthFlow(ctx context.Context, realm string, id string, body keycloakv2.AuthFlowRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, id, body)
@@ -814,6 +1126,86 @@ func (_c *MockAuthFlowsClient_UpdateAuthFlow_Call) RunAndReturn(run func(ctx con
 	return _c
 }
 
+// UpdateAuthenticatorConfig provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) UpdateAuthenticatorConfig(ctx context.Context, realm string, configID string, body keycloakv2.AuthenticatorConfigRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, configID, body)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateAuthenticatorConfig")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.AuthenticatorConfigRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, configID, body)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.AuthenticatorConfigRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, configID, body)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.AuthenticatorConfigRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, configID, body)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthFlowsClient_UpdateAuthenticatorConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateAuthenticatorConfig'
+type MockAuthFlowsClient_UpdateAuthenticatorConfig_Call struct {
+	*mock.Call
+}
+
+// UpdateAuthenticatorConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - configID string
+//   - body keycloakv2.AuthenticatorConfigRepresentation
+func (_e *MockAuthFlowsClient_Expecter) UpdateAuthenticatorConfig(ctx interface{}, realm interface{}, configID interface{}, body interface{}) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
+	return &MockAuthFlowsClient_UpdateAuthenticatorConfig_Call{Call: _e.mock.On("UpdateAuthenticatorConfig", ctx, realm, configID, body)}
+}
+
+func (_c *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call) Run(run func(ctx context.Context, realm string, configID string, body keycloakv2.AuthenticatorConfigRepresentation)) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.AuthenticatorConfigRepresentation
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.AuthenticatorConfigRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call) Return(response *keycloakv2.Response, err error) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call) RunAndReturn(run func(ctx context.Context, realm string, configID string, body keycloakv2.AuthenticatorConfigRepresentation) (*keycloakv2.Response, error)) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateFlowExecution provides a mock function for the type MockAuthFlowsClient
 func (_mock *MockAuthFlowsClient) UpdateFlowExecution(ctx context.Context, realm string, flowAlias string, body keycloakv2.AuthenticationExecutionInfoRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, flowAlias, body)
@@ -890,6 +1282,86 @@ func (_c *MockAuthFlowsClient_UpdateFlowExecution_Call) Return(response *keycloa
 }
 
 func (_c *MockAuthFlowsClient_UpdateFlowExecution_Call) RunAndReturn(run func(ctx context.Context, realm string, flowAlias string, body keycloakv2.AuthenticationExecutionInfoRepresentation) (*keycloakv2.Response, error)) *MockAuthFlowsClient_UpdateFlowExecution_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateRequiredAction provides a mock function for the type MockAuthFlowsClient
+func (_mock *MockAuthFlowsClient) UpdateRequiredAction(ctx context.Context, realm string, alias string, action keycloakv2.RequiredActionProviderRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, alias, action)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateRequiredAction")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.RequiredActionProviderRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, alias, action)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.RequiredActionProviderRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, alias, action)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.RequiredActionProviderRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, alias, action)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthFlowsClient_UpdateRequiredAction_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateRequiredAction'
+type MockAuthFlowsClient_UpdateRequiredAction_Call struct {
+	*mock.Call
+}
+
+// UpdateRequiredAction is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - alias string
+//   - action keycloakv2.RequiredActionProviderRepresentation
+func (_e *MockAuthFlowsClient_Expecter) UpdateRequiredAction(ctx interface{}, realm interface{}, alias interface{}, action interface{}) *MockAuthFlowsClient_UpdateRequiredAction_Call {
+	return &MockAuthFlowsClient_UpdateRequiredAction_Call{Call: _e.mock.On("UpdateRequiredAction", ctx, realm, alias, action)}
+}
+
+func (_c *MockAuthFlowsClient_UpdateRequiredAction_Call) Run(run func(ctx context.Context, realm string, alias string, action keycloakv2.RequiredActionProviderRepresentation)) *MockAuthFlowsClient_UpdateRequiredAction_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.RequiredActionProviderRepresentation
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.RequiredActionProviderRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_UpdateRequiredAction_Call) Return(response *keycloakv2.Response, err error) *MockAuthFlowsClient_UpdateRequiredAction_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockAuthFlowsClient_UpdateRequiredAction_Call) RunAndReturn(run func(ctx context.Context, realm string, alias string, action keycloakv2.RequiredActionProviderRepresentation) (*keycloakv2.Response, error)) *MockAuthFlowsClient_UpdateRequiredAction_Call {
 	_c.Call.Return(run)
 	return _c
 }

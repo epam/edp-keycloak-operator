@@ -17,4 +17,23 @@ const (
 
 	// FeatureFlagAdminFineGrainedAuthz is the Keycloak server feature flag for admin fine-grained authorization.
 	FeatureFlagAdminFineGrainedAuthz = "ADMIN_FINE_GRAINED_AUTHZ"
+
+	// Protocol mapper protocol types
+	ProtocolOpenIDConnect = "openid-connect"
+	ProtocolSAML          = "saml"
+
+	// OAuth 2.0 / OIDC grant types
+	GrantTypeAuthorizationCode = "authorization_code"
+	GrantTypeImplicit          = "implicit"
+	GrantTypePassword          = "password"
+	GrantTypeClientCredentials = "client_credentials"
+	GrantTypeRefreshToken      = "refresh_token"
+	GrantTypeDeviceCode        = "urn:ietf:params:oauth:grant-type:device_code"
+	GrantTypeTokenExchange     = "urn:ietf:params:oauth:grant-type:token-exchange"
+
+	// Client authentication methods
+	ClientAuthClientSecret    = "client-secret"
+	ClientAuthClientJWT       = "client-jwt"
+	ClientAuthClientSecretJWT = "client-secret-jwt"
+	ClientAuthX509Certificate = "client-x509"
 )

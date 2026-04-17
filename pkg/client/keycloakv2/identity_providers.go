@@ -9,11 +9,40 @@ import (
 type IdentityProviderRepresentation = generated.IdentityProviderRepresentation
 type IdentityProviderMapperRepresentation = generated.IdentityProviderMapperRepresentation
 
+// GetIdentityProviderInstancesAliasExportParams is an alias for the generated export params type.
+type GetIdentityProviderInstancesAliasExportParams = generated.GetAdminRealmsRealmIdentityProviderInstancesAliasExportParams //nolint:lll // generated type alias
+
 type identityProvidersClient struct {
 	client generated.ClientWithResponsesInterface
 }
 
 var _ IdentityProvidersClient = (*identityProvidersClient)(nil)
+
+func (c *identityProvidersClient) GetIdentityProviders(
+	ctx context.Context,
+	realm string,
+) ([]IdentityProviderRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmIdentityProviderInstancesWithResponse(ctx, realm, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
 
 func (c *identityProvidersClient) GetIdentityProvider(
 	ctx context.Context,
@@ -176,6 +205,55 @@ func (c *identityProvidersClient) DeleteIDPMapper(
 	}
 
 	return response, nil
+}
+
+func (c *identityProvidersClient) UpdateIDPMapper(
+	ctx context.Context,
+	realm, alias, mapperID string,
+	mapper IdentityProviderMapperRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmIdentityProviderInstancesAliasMappersIdWithResponse(
+		ctx, realm, alias, mapperID, mapper,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *identityProvidersClient) ExportBrokerConfig(
+	ctx context.Context,
+	realm, alias, format string,
+) ([]byte, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmIdentityProviderInstancesAliasExportWithResponse(
+		ctx, realm, alias, &GetIdentityProviderInstancesAliasExportParams{Format: &format},
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.Body, response, nil
 }
 
 func (c *identityProvidersClient) GetIDPManagementPermissions(

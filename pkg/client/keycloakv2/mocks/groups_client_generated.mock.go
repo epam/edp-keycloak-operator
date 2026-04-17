@@ -204,6 +204,88 @@ func (_c *MockGroupsClient_AddRealmRoleMappings_Call) RunAndReturn(run func(ctx 
 	return _c
 }
 
+// CountGroups provides a mock function for the type MockGroupsClient
+func (_mock *MockGroupsClient) CountGroups(ctx context.Context, realm string, params *keycloakv2.CountGroupsParams) (map[string]int64, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for CountGroups")
+	}
+
+	var r0 map[string]int64
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *keycloakv2.CountGroupsParams) (map[string]int64, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, params)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, *keycloakv2.CountGroupsParams) map[string]int64); ok {
+		r0 = returnFunc(ctx, realm, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]int64)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, *keycloakv2.CountGroupsParams) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, params)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, *keycloakv2.CountGroupsParams) error); ok {
+		r2 = returnFunc(ctx, realm, params)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGroupsClient_CountGroups_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CountGroups'
+type MockGroupsClient_CountGroups_Call struct {
+	*mock.Call
+}
+
+// CountGroups is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - params *keycloakv2.CountGroupsParams
+func (_e *MockGroupsClient_Expecter) CountGroups(ctx interface{}, realm interface{}, params interface{}) *MockGroupsClient_CountGroups_Call {
+	return &MockGroupsClient_CountGroups_Call{Call: _e.mock.On("CountGroups", ctx, realm, params)}
+}
+
+func (_c *MockGroupsClient_CountGroups_Call) Run(run func(ctx context.Context, realm string, params *keycloakv2.CountGroupsParams)) *MockGroupsClient_CountGroups_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 *keycloakv2.CountGroupsParams
+		if args[2] != nil {
+			arg2 = args[2].(*keycloakv2.CountGroupsParams)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupsClient_CountGroups_Call) Return(stringToInt64 map[string]int64, response *keycloakv2.Response, err error) *MockGroupsClient_CountGroups_Call {
+	_c.Call.Return(stringToInt64, response, err)
+	return _c
+}
+
+func (_c *MockGroupsClient_CountGroups_Call) RunAndReturn(run func(ctx context.Context, realm string, params *keycloakv2.CountGroupsParams) (map[string]int64, *keycloakv2.Response, error)) *MockGroupsClient_CountGroups_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateChildGroup provides a mock function for the type MockGroupsClient
 func (_mock *MockGroupsClient) CreateChildGroup(ctx context.Context, realm string, parentGroupID string, group keycloakv2.GroupRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, parentGroupID, group)
@@ -1108,6 +1190,176 @@ func (_c *MockGroupsClient_GetGroupByPath_Call) RunAndReturn(run func(ctx contex
 	return _c
 }
 
+// GetGroupManagementPermissions provides a mock function for the type MockGroupsClient
+func (_mock *MockGroupsClient) GetGroupManagementPermissions(ctx context.Context, realm string, groupID string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, groupID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGroupManagementPermissions")
+	}
+
+	var r0 *keycloakv2.ManagementPermissionReference
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, groupID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakv2.ManagementPermissionReference); ok {
+		r0 = returnFunc(ctx, realm, groupID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ManagementPermissionReference)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, groupID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, groupID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGroupsClient_GetGroupManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGroupManagementPermissions'
+type MockGroupsClient_GetGroupManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// GetGroupManagementPermissions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - groupID string
+func (_e *MockGroupsClient_Expecter) GetGroupManagementPermissions(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_GetGroupManagementPermissions_Call {
+	return &MockGroupsClient_GetGroupManagementPermissions_Call{Call: _e.mock.On("GetGroupManagementPermissions", ctx, realm, groupID)}
+}
+
+func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) Run(run func(ctx context.Context, realm string, groupID string)) *MockGroupsClient_GetGroupManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) Return(v *keycloakv2.ManagementPermissionReference, response *keycloakv2.Response, err error) *MockGroupsClient_GetGroupManagementPermissions_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) RunAndReturn(run func(ctx context.Context, realm string, groupID string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)) *MockGroupsClient_GetGroupManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetGroupMembers provides a mock function for the type MockGroupsClient
+func (_mock *MockGroupsClient) GetGroupMembers(ctx context.Context, realm string, groupID string, params *keycloakv2.GetGroupMembersParams) ([]keycloakv2.UserRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, groupID, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetGroupMembers")
+	}
+
+	var r0 []keycloakv2.UserRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *keycloakv2.GetGroupMembersParams) ([]keycloakv2.UserRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, groupID, params)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *keycloakv2.GetGroupMembersParams) []keycloakv2.UserRepresentation); ok {
+		r0 = returnFunc(ctx, realm, groupID, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.UserRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *keycloakv2.GetGroupMembersParams) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, groupID, params)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, *keycloakv2.GetGroupMembersParams) error); ok {
+		r2 = returnFunc(ctx, realm, groupID, params)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGroupsClient_GetGroupMembers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetGroupMembers'
+type MockGroupsClient_GetGroupMembers_Call struct {
+	*mock.Call
+}
+
+// GetGroupMembers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - groupID string
+//   - params *keycloakv2.GetGroupMembersParams
+func (_e *MockGroupsClient_Expecter) GetGroupMembers(ctx interface{}, realm interface{}, groupID interface{}, params interface{}) *MockGroupsClient_GetGroupMembers_Call {
+	return &MockGroupsClient_GetGroupMembers_Call{Call: _e.mock.On("GetGroupMembers", ctx, realm, groupID, params)}
+}
+
+func (_c *MockGroupsClient_GetGroupMembers_Call) Run(run func(ctx context.Context, realm string, groupID string, params *keycloakv2.GetGroupMembersParams)) *MockGroupsClient_GetGroupMembers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 *keycloakv2.GetGroupMembersParams
+		if args[3] != nil {
+			arg3 = args[3].(*keycloakv2.GetGroupMembersParams)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupMembers_Call) Return(vs []keycloakv2.UserRepresentation, response *keycloakv2.Response, err error) *MockGroupsClient_GetGroupMembers_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockGroupsClient_GetGroupMembers_Call) RunAndReturn(run func(ctx context.Context, realm string, groupID string, params *keycloakv2.GetGroupMembersParams) ([]keycloakv2.UserRepresentation, *keycloakv2.Response, error)) *MockGroupsClient_GetGroupMembers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetGroups provides a mock function for the type MockGroupsClient
 func (_mock *MockGroupsClient) GetGroups(ctx context.Context, realm string, params *keycloakv2.GetGroupsParams) ([]keycloakv2.GroupRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, params)
@@ -1430,6 +1682,94 @@ func (_c *MockGroupsClient_UpdateGroup_Call) Return(response *keycloakv2.Respons
 }
 
 func (_c *MockGroupsClient_UpdateGroup_Call) RunAndReturn(run func(ctx context.Context, realm string, groupID string, group keycloakv2.GroupRepresentation) (*keycloakv2.Response, error)) *MockGroupsClient_UpdateGroup_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateGroupManagementPermissions provides a mock function for the type MockGroupsClient
+func (_mock *MockGroupsClient) UpdateGroupManagementPermissions(ctx context.Context, realm string, groupID string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, groupID, permissions)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateGroupManagementPermissions")
+	}
+
+	var r0 *keycloakv2.ManagementPermissionReference
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, groupID, permissions)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) *keycloakv2.ManagementPermissionReference); ok {
+		r0 = returnFunc(ctx, realm, groupID, permissions)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ManagementPermissionReference)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, groupID, permissions)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, keycloakv2.ManagementPermissionReference) error); ok {
+		r2 = returnFunc(ctx, realm, groupID, permissions)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockGroupsClient_UpdateGroupManagementPermissions_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateGroupManagementPermissions'
+type MockGroupsClient_UpdateGroupManagementPermissions_Call struct {
+	*mock.Call
+}
+
+// UpdateGroupManagementPermissions is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - groupID string
+//   - permissions keycloakv2.ManagementPermissionReference
+func (_e *MockGroupsClient_Expecter) UpdateGroupManagementPermissions(ctx interface{}, realm interface{}, groupID interface{}, permissions interface{}) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
+	return &MockGroupsClient_UpdateGroupManagementPermissions_Call{Call: _e.mock.On("UpdateGroupManagementPermissions", ctx, realm, groupID, permissions)}
+}
+
+func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) Run(run func(ctx context.Context, realm string, groupID string, permissions keycloakv2.ManagementPermissionReference)) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 keycloakv2.ManagementPermissionReference
+		if args[3] != nil {
+			arg3 = args[3].(keycloakv2.ManagementPermissionReference)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) Return(v *keycloakv2.ManagementPermissionReference, response *keycloakv2.Response, err error) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) RunAndReturn(run func(ctx context.Context, realm string, groupID string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
 	_c.Call.Return(run)
 	return _c
 }

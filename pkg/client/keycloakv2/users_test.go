@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
-	"github.com/stretchr/testify/require"
 )
 
 func TestUsersClient_UserProfile_CRUD(t *testing.T) {
@@ -1280,4 +1282,238 @@ func TestUsersClient_UpdateUsersProfile_NotFound(t *testing.T) {
 	)
 	require.Nil(t, profile, "Profile should be nil for error response")
 	require.NotNil(t, resp, "Response should be present even for error")
+}
+
+// newUsersTestRealm creates a Keycloak client and a fresh realm.
+// The realm is automatically deleted in t.Cleanup.
+func newUsersTestRealm(t *testing.T) (*keycloakv2.KeycloakClient, string) {
+	t.Helper()
+
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	realmName := fmt.Sprintf("test-realm-users-%d", time.Now().UnixNano())
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(context.Background(), keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: ptr.To(true),
+	})
+	require.NoError(t, err)
+
+	return c, realmName
+}
+
+// createTestUser creates a user in the given realm and returns its UUID.
+func createTestUser(
+	t *testing.T, c *keycloakv2.KeycloakClient, ctx context.Context, realmName string,
+) (string, string) {
+	t.Helper()
+
+	username := fmt.Sprintf("test-user-%d", time.Now().UnixNano())
+
+	resp, err := c.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{
+		Username: &username,
+		Enabled:  ptr.To(true),
+		Email:    ptr.To(fmt.Sprintf("%s@example.com", username)),
+	})
+	require.NoError(t, err)
+
+	userID := keycloakv2.GetResourceIDFromResponse(resp)
+	require.NotEmpty(t, userID)
+
+	return userID, username
+}
+
+func TestUsersClient_GetUsers(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, username := createTestUser(t, c, ctx, realmName)
+	_ = userID
+
+	users, resp, err := c.Users.GetUsers(ctx, realmName, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Greater(t, len(users), 0, "should find at least one user")
+
+	found := false
+
+	for _, u := range users {
+		if u.Username != nil && *u.Username == username {
+			found = true
+
+			break
+		}
+	}
+
+	require.True(t, found, "created user should be in list")
+}
+
+func TestUsersClient_GetUser(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, username := createTestUser(t, c, ctx, realmName)
+
+	user, resp, err := c.Users.GetUser(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, user)
+	require.Equal(t, username, *user.Username)
+}
+
+func TestUsersClient_GetUser_NotFound(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	_, _, err := c.Users.GetUser(ctx, realmName, "00000000-0000-0000-0000-000000000000")
+	require.Error(t, err)
+	require.True(t, keycloakv2.IsNotFound(err))
+}
+
+func TestUsersClient_GetUserSessions(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	sessions, resp, err := c.Users.GetUserSessions(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	// A freshly created user has no sessions.
+	require.Empty(t, sessions)
+}
+
+func TestUsersClient_LogoutUser(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	resp, err := c.Users.LogoutUser(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestUsersClient_GetUserCredentials(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	// Set a password so that we have a credential.
+	_, err := c.Users.SetUserPassword(ctx, realmName, userID, keycloakv2.CredentialRepresentation{
+		Type:      ptr.To("password"),
+		Value:     ptr.To("testPassword123!"),
+		Temporary: ptr.To(false),
+	})
+	require.NoError(t, err)
+
+	creds, resp, err := c.Users.GetUserCredentials(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Greater(t, len(creds), 0, "should have at least one credential after setting password")
+}
+
+func TestUsersClient_DeleteUserCredential(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	// Set a password.
+	_, err := c.Users.SetUserPassword(ctx, realmName, userID, keycloakv2.CredentialRepresentation{
+		Type:      ptr.To("password"),
+		Value:     ptr.To("testPassword123!"),
+		Temporary: ptr.To(false),
+	})
+	require.NoError(t, err)
+
+	// List credentials.
+	creds, _, err := c.Users.GetUserCredentials(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.Greater(t, len(creds), 0)
+
+	credID := *creds[0].Id
+
+	// Delete the credential.
+	resp, err := c.Users.DeleteUserCredential(ctx, realmName, userID, credID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify deletion.
+	creds, _, err = c.Users.GetUserCredentials(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.Empty(t, creds)
+}
+
+func TestUsersClient_ExecuteActionsEmail(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	// ExecuteActionsEmail requires SMTP to be configured. Without it Keycloak returns an error.
+	// We verify the API call is accepted; a 500 due to missing SMTP config is expected.
+	_, err := c.Users.ExecuteActionsEmail(ctx, realmName, userID, []string{"UPDATE_PASSWORD"})
+	// Either no error (SMTP configured) or a server error (SMTP not configured) is acceptable.
+	if err != nil {
+		require.True(t, keycloakv2.IsServerError(err), "expected server error when SMTP is not configured, got: %v", err)
+	}
+}
+
+func TestUsersClient_SendVerifyEmail(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	// SendVerifyEmail requires SMTP. Without it, Keycloak returns an error.
+	_, err := c.Users.SendVerifyEmail(ctx, realmName, userID)
+	if err != nil {
+		require.True(t, keycloakv2.IsServerError(err), "expected server error when SMTP is not configured, got: %v", err)
+	}
+}
+
+func TestUsersClient_ImpersonateUser(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newUsersTestRealm(t)
+	ctx := context.Background()
+
+	userID, _ := createTestUser(t, c, ctx, realmName)
+
+	result, resp, err := c.Users.ImpersonateUser(ctx, realmName, userID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, result)
 }

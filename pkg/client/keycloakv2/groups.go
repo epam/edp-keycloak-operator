@@ -14,6 +14,8 @@ type (
 	ClientMappingsRepresentation = generated.ClientMappingsRepresentation
 	GetGroupsParams              = generated.GetAdminRealmsRealmGroupsParams
 	GetChildGroupsParams         = generated.GetAdminRealmsRealmGroupsGroupIdChildrenParams
+	GetGroupMembersParams        = generated.GetAdminRealmsRealmGroupsGroupIdMembersParams
+	CountGroupsParams            = generated.GetAdminRealmsRealmGroupsCountParams
 )
 
 type groupsClient struct {
@@ -470,4 +472,105 @@ func findGroupInList(groups []GroupRepresentation, name string) *GroupRepresenta
 	}
 
 	return nil
+}
+
+func (c *groupsClient) GetGroupMembers(
+	ctx context.Context,
+	realm, groupID string,
+	params *GetGroupMembersParams,
+) ([]UserRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupsGroupIdMembersWithResponse(ctx, realm, groupID, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *groupsClient) GetGroupManagementPermissions(
+	ctx context.Context,
+	realm, groupID string,
+) (*ManagementPermissionReference, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupsGroupIdManagementPermissionsWithResponse(ctx, realm, groupID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *groupsClient) UpdateGroupManagementPermissions(
+	ctx context.Context,
+	realm, groupID string,
+	permissions ManagementPermissionReference,
+) (*ManagementPermissionReference, *Response, error) {
+	res, err := c.client.PutAdminRealmsRealmGroupsGroupIdManagementPermissionsWithResponse(
+		ctx, realm, groupID, permissions,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *groupsClient) CountGroups(
+	ctx context.Context,
+	realm string,
+	params *CountGroupsParams,
+) (map[string]int64, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmGroupsCountWithResponse(ctx, realm, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
 }
