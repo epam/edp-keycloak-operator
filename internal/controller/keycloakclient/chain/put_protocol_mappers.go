@@ -11,16 +11,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type PutProtocolMappers struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.APIClient
 	k8sClient client.Client
 }
 
-func NewPutProtocolMappers(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutProtocolMappers {
+func NewPutProtocolMappers(kClient *keycloakapi.APIClient, k8sClient client.Client) *PutProtocolMappers {
 	return &PutProtocolMappers{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -73,19 +73,19 @@ func (h *PutProtocolMappers) putProtocolMappers(ctx context.Context, keycloakCli
 		return fmt.Errorf("unable to get existing protocol mappers: %w", err)
 	}
 
-	existingMapperMap := maputil.SliceToMapSelf(existingMappers, func(m keycloakv2.ProtocolMapperRepresentation) (string, bool) {
+	existingMapperMap := maputil.SliceToMapSelf(existingMappers, func(m keycloakapi.ProtocolMapperRepresentation) (string, bool) {
 		return *m.Name, m.Name != nil
 	})
 
 	// Build desired mappers
-	desiredMappers := make(map[string]keycloakv2.ProtocolMapperRepresentation)
+	desiredMappers := make(map[string]keycloakapi.ProtocolMapperRepresentation)
 
 	if keycloakClient.Spec.ProtocolMappers != nil {
 		for _, mapper := range *keycloakClient.Spec.ProtocolMappers {
 			configCopy := make(map[string]string, len(mapper.Config))
 			maps.Copy(configCopy, mapper.Config)
 
-			desiredMappers[mapper.Name] = keycloakv2.ProtocolMapperRepresentation{
+			desiredMappers[mapper.Name] = keycloakapi.ProtocolMapperRepresentation{
 				Name:           ptr.To(mapper.Name),
 				Protocol:       ptr.To(mapper.Protocol),
 				ProtocolMapper: ptr.To(mapper.ProtocolMapper),
@@ -121,7 +121,7 @@ func (h *PutProtocolMappers) putProtocolMappers(ctx context.Context, keycloakCli
 		for name, mapper := range existingMapperMap {
 			if mapper.Id != nil {
 				if _, err := h.kClient.Clients.DeleteClientProtocolMapper(ctx, realmName, clientUUID, *mapper.Id); err != nil {
-					if !keycloakv2.IsNotFound(err) {
+					if !keycloakapi.IsNotFound(err) {
 						return fmt.Errorf("unable to delete protocol mapper %s: %w", name, err)
 					}
 				}

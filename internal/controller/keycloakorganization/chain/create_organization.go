@@ -9,14 +9,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type CreateOrganization struct {
-	keycloakClient keycloakv2.OrganizationsClient
+	keycloakClient keycloakapi.OrganizationsClient
 }
 
-func NewCreateOrganization(kc *keycloakv2.KeycloakClient) *CreateOrganization {
+func NewCreateOrganization(kc *keycloakapi.APIClient) *CreateOrganization {
 	return &CreateOrganization{
 		keycloakClient: kc.Organizations,
 	}
@@ -31,7 +31,7 @@ func (h *CreateOrganization) ServeRequest(ctx context.Context, organization *key
 
 	// Check if organization already exists by alias
 	existingOrg, _, err := h.keycloakClient.GetOrganizationByAlias(ctx, realmName, organization.Spec.Alias)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("failed to check if organization exists with alias %s: %w", organization.Spec.Alias, err)
 	}
 
@@ -68,8 +68,8 @@ func (h *CreateOrganization) ServeRequest(ctx context.Context, organization *key
 }
 
 // specToOrganizationRepresentation converts a KeycloakOrganization spec to an OrganizationRepresentation.
-func specToOrganizationRepresentation(org *keycloakApi.KeycloakOrganization) keycloakv2.OrganizationRepresentation {
-	rep := keycloakv2.OrganizationRepresentation{
+func specToOrganizationRepresentation(org *keycloakApi.KeycloakOrganization) keycloakapi.OrganizationRepresentation {
+	rep := keycloakapi.OrganizationRepresentation{
 		Name:        ptr.To(org.Spec.Name),
 		Alias:       ptr.To(org.Spec.Alias),
 		Description: ptr.To(org.Spec.Description),
@@ -84,9 +84,9 @@ func specToOrganizationRepresentation(org *keycloakApi.KeycloakOrganization) key
 	}
 
 	if len(org.Spec.Domains) > 0 {
-		domains := make([]keycloakv2.OrganizationDomainRepresentation, 0, len(org.Spec.Domains))
+		domains := make([]keycloakapi.OrganizationDomainRepresentation, 0, len(org.Spec.Domains))
 		for _, d := range org.Spec.Domains {
-			domains = append(domains, keycloakv2.OrganizationDomainRepresentation{
+			domains = append(domains, keycloakapi.OrganizationDomainRepresentation{
 				Name: ptr.To(d),
 			})
 		}

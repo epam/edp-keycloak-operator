@@ -11,8 +11,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestRealmSettings_ServeRequest(t *testing.T) {
@@ -29,7 +29,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "", mock.Anything).
 					Return(nil, nil)
 			},
@@ -55,7 +55,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "realm1").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "realm1", mock.Anything).
 					Return(nil, nil)
 			},
@@ -77,7 +77,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 				m.EXPECT().SetRealmEventConfig(mock.Anything, "realm1", mock.Anything).
 					Return(nil, nil)
 				m.EXPECT().GetRealm(mock.Anything, "realm1").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "realm1", mock.Anything).
 					Return(nil, nil)
 			},
@@ -120,7 +120,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "", mock.Anything).
 					Return(nil, assert.AnError)
 			},
@@ -139,9 +139,9 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			tt.setupMock(mockRealm)
 
 			rs := RealmSettings{}
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-			err := rs.ServeRequest(context.Background(), tt.realm, kClientV2)
+			err := rs.ServeRequest(context.Background(), tt.realm, keycloakAPIClient)
 			tt.wantErr(t, err)
 		})
 	}
@@ -165,14 +165,14 @@ func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 
 	mockRealm := v2mocks.NewMockRealmClient(t)
 	mockRealm.EXPECT().GetRealm(mock.Anything, "realm-with-login").
-		Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+		Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 	mockRealm.EXPECT().UpdateRealm(mock.Anything, "realm-with-login", mock.Anything).
 		Return(nil, nil)
 
 	rs := RealmSettings{}
-	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+	keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-	err := rs.ServeRequest(context.Background(), &realm, kClientV2)
+	err := rs.ServeRequest(context.Background(), &realm, keycloakAPIClient)
 	require.NoError(t, err)
 }
 
@@ -207,13 +207,13 @@ func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 
 	mockRealm := v2mocks.NewMockRealmClient(t)
 	mockRealm.EXPECT().GetRealm(mock.Anything, "realm-with-sso-session").
-		Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+		Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 	mockRealm.EXPECT().UpdateRealm(mock.Anything, "realm-with-sso-session", mock.Anything).
 		Return(nil, nil)
 
 	rs := RealmSettings{}
-	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+	keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-	err := rs.ServeRequest(context.Background(), &realm, kClientV2)
+	err := rs.ServeRequest(context.Background(), &realm, keycloakAPIClient)
 	require.NoError(t, err)
 }

@@ -13,8 +13,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	secretrefmocks "github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
 
@@ -24,7 +24,7 @@ func TestPutIDP_Serve(t *testing.T) {
 	tests := []struct {
 		name      string
 		idp       *keycloakApi.KeycloakRealmIdentityProvider
-		idpClient func(t *testing.T) keycloakv2.IdentityProvidersClient
+		idpClient func(t *testing.T) keycloakapi.IdentityProvidersClient
 		secretRef func(t *testing.T) refClient
 		wantErr   require.ErrorAssertionFunc
 	}{
@@ -43,13 +43,13 @@ func TestPutIDP_Serve(t *testing.T) {
 					},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakmocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return((*keycloakv2.IdentityProviderRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404}).Once()
-				m.On("CreateIdentityProvider", mock.Anything, "realm", mock.MatchedBy(func(rep keycloakv2.IdentityProviderRepresentation) bool {
+					Return((*keycloakapi.IdentityProviderRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404}).Once()
+				m.On("CreateIdentityProvider", mock.Anything, "realm", mock.MatchedBy(func(rep keycloakapi.IdentityProviderRepresentation) bool {
 					return rep.HideOnLogin != nil && *rep.HideOnLogin == true
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 				return m
 			},
 			secretRef: func(t *testing.T) refClient {
@@ -70,12 +70,12 @@ func TestPutIDP_Serve(t *testing.T) {
 					Config:     map[string]string{"clientId": "test-client"},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakmocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return(&keycloakv2.IdentityProviderRepresentation{Alias: ptr.To("test-idp")}, (*keycloakv2.Response)(nil), nil).Once()
+					Return(&keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("test-idp")}, (*keycloakapi.Response)(nil), nil).Once()
 				m.On("UpdateIdentityProvider", mock.Anything, "realm", "test-idp", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 				return m
 			},
 			secretRef: func(t *testing.T) refClient {
@@ -95,8 +95,8 @@ func TestPutIDP_Serve(t *testing.T) {
 					Config:     map[string]string{"clientSecret": "$secret:key"},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				return keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				return keycloakmocks.NewMockIdentityProvidersClient(t)
 			},
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)

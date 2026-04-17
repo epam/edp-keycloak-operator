@@ -11,8 +11,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
@@ -34,7 +34,7 @@ func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
 
 	mockScopes.EXPECT().GetClientScopes(
 		context.Background(), testRealmName,
-	).Return([]keycloakv2.ClientScopeRepresentation{}, nil, nil)
+	).Return([]keycloakapi.ClientScopeRepresentation{}, nil, nil)
 
 	desc := "Test description"
 	protocol := testProtocolOIDC
@@ -42,13 +42,13 @@ func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
 
 	mockScopes.EXPECT().CreateClientScope(
 		context.Background(), testRealmName,
-		keycloakv2.ClientScopeRepresentation{
+		keycloakapi.ClientScopeRepresentation{
 			Name:        ptr.To(testScopeName),
 			Protocol:    &protocol,
 			Description: &desc,
 			Attributes:  &attrs,
 		},
-	).Return(&keycloakv2.Response{
+	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
 			Header: http.Header{
 				"Location": []string{"http://localhost/admin/realms/test-realm/client-scopes/scope-id-123"},
@@ -64,7 +64,7 @@ func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
 
 func TestCreateOrUpdateScope_Serve_UpdateExisting(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
@@ -73,7 +73,7 @@ func TestCreateOrUpdateScope_Serve_UpdateExisting(t *testing.T) {
 
 	mockScopes.EXPECT().GetClientScopes(
 		context.Background(), testRealmName,
-	).Return([]keycloakv2.ClientScopeRepresentation{
+	).Return([]keycloakapi.ClientScopeRepresentation{
 		{
 			Id:   ptr.To(testScopeID),
 			Name: ptr.To(testScopeName),
@@ -87,7 +87,7 @@ func TestCreateOrUpdateScope_Serve_UpdateExisting(t *testing.T) {
 
 	mockScopes.EXPECT().UpdateClientScope(
 		context.Background(), testRealmName, testScopeID,
-		keycloakv2.ClientScopeRepresentation{
+		keycloakapi.ClientScopeRepresentation{
 			Name:        ptr.To(testScopeName),
 			Protocol:    &protocol,
 			Description: &desc,
@@ -103,7 +103,7 @@ func TestCreateOrUpdateScope_Serve_UpdateExisting(t *testing.T) {
 
 func TestCreateOrUpdateScope_Serve_GetScopesError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
@@ -120,7 +120,7 @@ func TestCreateOrUpdateScope_Serve_GetScopesError(t *testing.T) {
 
 func TestCreateOrUpdateScope_Serve_CreateError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
@@ -128,7 +128,7 @@ func TestCreateOrUpdateScope_Serve_CreateError(t *testing.T) {
 
 	mockScopes.EXPECT().GetClientScopes(
 		context.Background(), testRealmName,
-	).Return([]keycloakv2.ClientScopeRepresentation{}, nil, nil)
+	).Return([]keycloakapi.ClientScopeRepresentation{}, nil, nil)
 
 	var nilAttrs map[string]string
 
@@ -136,7 +136,7 @@ func TestCreateOrUpdateScope_Serve_CreateError(t *testing.T) {
 
 	mockScopes.EXPECT().CreateClientScope(
 		context.Background(), testRealmName,
-		keycloakv2.ClientScopeRepresentation{
+		keycloakapi.ClientScopeRepresentation{
 			Name:        ptr.To(testScopeName),
 			Protocol:    &protocol,
 			Description: ptr.To(""),
@@ -152,7 +152,7 @@ func TestCreateOrUpdateScope_Serve_CreateError(t *testing.T) {
 
 func TestCreateOrUpdateScope_Serve_UpdateError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
@@ -160,7 +160,7 @@ func TestCreateOrUpdateScope_Serve_UpdateError(t *testing.T) {
 
 	mockScopes.EXPECT().GetClientScopes(
 		context.Background(), testRealmName,
-	).Return([]keycloakv2.ClientScopeRepresentation{
+	).Return([]keycloakapi.ClientScopeRepresentation{
 		{
 			Id:   ptr.To(testScopeID),
 			Name: ptr.To(testScopeName),
@@ -173,7 +173,7 @@ func TestCreateOrUpdateScope_Serve_UpdateError(t *testing.T) {
 
 	mockScopes.EXPECT().UpdateClientScope(
 		context.Background(), testRealmName, testScopeID,
-		keycloakv2.ClientScopeRepresentation{
+		keycloakapi.ClientScopeRepresentation{
 			Name:        ptr.To(testScopeName),
 			Protocol:    &protocol,
 			Description: ptr.To(""),

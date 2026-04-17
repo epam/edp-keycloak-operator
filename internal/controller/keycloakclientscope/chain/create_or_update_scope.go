@@ -7,14 +7,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type CreateOrUpdateScope struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewCreateOrUpdateScope(kClientV2 *keycloakv2.KeycloakClient) *CreateOrUpdateScope {
+func NewCreateOrUpdateScope(kClientV2 *keycloakapi.APIClient) *CreateOrUpdateScope {
 	return &CreateOrUpdateScope{kClientV2: kClientV2}
 }
 
@@ -39,7 +39,7 @@ func (h *CreateOrUpdateScope) Serve(
 	protocol := spec.Protocol
 
 	if existingScope == nil {
-		resp, err := scopesClient.CreateClientScope(ctx, realmName, keycloakv2.ClientScopeRepresentation{
+		resp, err := scopesClient.CreateClientScope(ctx, realmName, keycloakapi.ClientScopeRepresentation{
 			Name:        &spec.Name,
 			Protocol:    &protocol,
 			Description: &desc,
@@ -49,13 +49,13 @@ func (h *CreateOrUpdateScope) Serve(
 			return fmt.Errorf("failed to create client scope: %w", err)
 		}
 
-		scope.Status.ID = keycloakv2.GetResourceIDFromResponse(resp)
+		scope.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
 	} else {
 		if existingScope.Id != nil {
 			scope.Status.ID = *existingScope.Id
 		}
 
-		_, err := scopesClient.UpdateClientScope(ctx, realmName, scope.Status.ID, keycloakv2.ClientScopeRepresentation{
+		_, err := scopesClient.UpdateClientScope(ctx, realmName, scope.Status.ID, keycloakapi.ClientScopeRepresentation{
 			Name:        &spec.Name,
 			Protocol:    &protocol,
 			Description: &desc,
@@ -74,7 +74,7 @@ func (h *CreateOrUpdateScope) Serve(
 func (h *CreateOrUpdateScope) findScopeByName(
 	ctx context.Context,
 	realmName, scopeName string,
-) (*keycloakv2.ClientScopeRepresentation, error) {
+) (*keycloakapi.ClientScopeRepresentation, error) {
 	scopes, _, err := h.kClientV2.ClientScopes.GetClientScopes(ctx, realmName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get client scopes: %w", err)

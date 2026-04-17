@@ -12,15 +12,15 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestUserProfile_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name      string
 		realm     *keycloakApi.ClusterKeycloakRealm
-		kClientV2 func(t *testing.T) *keycloakv2.KeycloakClient
+		kClientV2 func(t *testing.T) *keycloakapi.APIClient
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
@@ -45,19 +45,19 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
+			kClientV2: func(t *testing.T) *keycloakapi.APIClient {
 				mockUsers := keycloakv2mocks.NewMockUsersClient(t)
 
 				mockUsers.On("GetUsersProfile", mock.Anything, "realm").
-					Return(&keycloakv2.UserProfileConfig{
-						Attributes: &[]keycloakv2.UserProfileAttribute{
+					Return(&keycloakapi.UserProfileConfig{
+						Attributes: &[]keycloakapi.UserProfileAttribute{
 							{
 								DisplayName: ptr.To("Attribute 1"),
 								Group:       ptr.To("test-group"),
 								Name:        ptr.To("attr1"),
 							},
 						},
-						Groups: &[]keycloakv2.UserProfileGroup{
+						Groups: &[]keycloakapi.UserProfileGroup{
 							{
 								Name:               ptr.To("test-group"),
 								DisplayDescription: ptr.To("Group description"),
@@ -67,16 +67,16 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 					}, nil, nil)
 
 				mockUsers.On("UpdateUsersProfile", mock.Anything, "realm", mock.Anything).
-					Return(&keycloakv2.UserProfileConfig{}, nil, nil)
+					Return(&keycloakapi.UserProfileConfig{}, nil, nil)
 
-				return &keycloakv2.KeycloakClient{Users: mockUsers}
+				return &keycloakapi.APIClient{Users: mockUsers}
 			},
 			wantErr: require.NoError,
 		},
 		{
 			name:  "empty user profile config",
 			realm: &keycloakApi.ClusterKeycloakRealm{},
-			kClientV2: func(t *testing.T) *keycloakv2.KeycloakClient {
+			kClientV2: func(t *testing.T) *keycloakapi.APIClient {
 				return nil
 			},
 			wantErr: require.NoError,

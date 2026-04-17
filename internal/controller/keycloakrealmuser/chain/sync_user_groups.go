@@ -8,14 +8,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncUserGroups struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewSyncUserGroups(kClientV2 *keycloakv2.KeycloakClient) *SyncUserGroups {
+func NewSyncUserGroups(kClientV2 *keycloakapi.APIClient) *SyncUserGroups {
 	return &SyncUserGroups{kClientV2: kClientV2}
 }
 
@@ -71,7 +71,7 @@ func (h *SyncUserGroups) Serve(
 		} else {
 			grp, _, err := h.kClientV2.Groups.FindGroupByName(ctx, realmName, g)
 			if err != nil {
-				if keycloakv2.IsNotFound(err) {
+				if keycloakapi.IsNotFound(err) {
 					return fmt.Errorf("group not found by name %q", g)
 				}
 
@@ -83,7 +83,7 @@ func (h *SyncUserGroups) Serve(
 	}
 
 	// build lookup of current group IDs
-	currentByID := make(map[string]keycloakv2.GroupRepresentation, len(currentGroups))
+	currentByID := make(map[string]keycloakapi.GroupRepresentation, len(currentGroups))
 
 	for _, cg := range currentGroups {
 		if cg.Id != nil {

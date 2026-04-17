@@ -18,8 +18,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutClientScope_Serve(t *testing.T) {
@@ -27,7 +27,7 @@ func TestPutClientScope_Serve(t *testing.T) {
 		name              string
 		client            func(t *testing.T) client.Client
 		keycloakClient    client.ObjectKey
-		keycloakApiClient func(t *testing.T) *keycloakv2.KeycloakClient
+		keycloakApiClient func(t *testing.T) *keycloakapi.APIClient
 		wantErr           require.ErrorAssertionFunc
 		wantCondition     *metav1.Condition
 	}{
@@ -57,19 +57,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("default-scope-id"), Name: ptr.To("default-scope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetDefaultClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddDefaultClientScope", mock.Anything, "realm", "client-uuid", "default-scope-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.NoError,
 			wantCondition: &metav1.Condition{
@@ -104,19 +104,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("optional-scope-id"), Name: ptr.To("optional-scope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetOptionalClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddOptionalClientScope", mock.Anything, "realm", "client-uuid", "optional-scope-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -147,33 +147,33 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				// Default scopes flow
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("default-scope-1-id"), Name: ptr.To("default-scope-1")},
 						{Id: ptr.To("default-scope-2-id"), Name: ptr.To("default-scope-2")},
 						{Id: ptr.To("optional-scope-1-id"), Name: ptr.To("optional-scope-1")},
 						{Id: ptr.To("optional-scope-2-id"), Name: ptr.To("optional-scope-2")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetDefaultClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddDefaultClientScope", mock.Anything, "realm", "client-uuid", "default-scope-1-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddDefaultClientScope", mock.Anything, "realm", "client-uuid", "default-scope-2-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
 				// Optional scopes flow
 				clientsMock.On("GetOptionalClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddOptionalClientScope", mock.Anything, "realm", "client-uuid", "optional-scope-1-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddOptionalClientScope", mock.Anything, "realm", "client-uuid", "optional-scope-2-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -202,8 +202,8 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{}
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
+				return &keycloakapi.APIClient{}
 			},
 			wantErr: require.NoError,
 		},
@@ -233,19 +233,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("default-scope-id"), Name: ptr.To("default-scope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetDefaultClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddDefaultClientScope", mock.Anything, "realm", "client-uuid", "default-scope-id").
-					Return((*keycloakv2.Response)(nil), errors.New("failed to add default scope"))
+					Return((*keycloakapi.Response)(nil), errors.New("failed to add default scope"))
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.Error,
 		},
@@ -275,19 +275,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("optional-scope-id"), Name: ptr.To("optional-scope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetOptionalClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddOptionalClientScope", mock.Anything, "realm", "client-uuid", "optional-scope-id").
-					Return((*keycloakv2.Response)(nil), errors.New("failed to add optional scope"))
+					Return((*keycloakapi.Response)(nil), errors.New("failed to add optional scope"))
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.Error,
 		},
@@ -318,27 +318,27 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 				// Default scopes flow (succeeds)
 				clientsMock.On("GetRealmClientScopes", mock.Anything, "realm").
-					Return([]keycloakv2.ClientScopeRepresentation{
+					Return([]keycloakapi.ClientScopeRepresentation{
 						{Id: ptr.To("default-scope-id"), Name: ptr.To("default-scope")},
 						{Id: ptr.To("optional-scope-id"), Name: ptr.To("optional-scope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("GetDefaultClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddDefaultClientScope", mock.Anything, "realm", "client-uuid", "default-scope-id").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
 				// Optional scopes flow (fails)
 				clientsMock.On("GetOptionalClientScopes", mock.Anything, "realm", "client-uuid").
-					Return([]keycloakv2.ClientScopeRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.ClientScopeRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				clientsMock.On("AddOptionalClientScope", mock.Anything, "realm", "client-uuid", "optional-scope-id").
-					Return((*keycloakv2.Response)(nil), errors.New("failed to add optional scope"))
+					Return((*keycloakapi.Response)(nil), errors.New("failed to add optional scope"))
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.APIClient{Clients: clientsMock}
 			},
 			wantErr: require.Error,
 		},
@@ -369,8 +369,8 @@ func TestPutClientScope_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{}
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
+				return &keycloakapi.APIClient{}
 			},
 			wantErr: require.NoError,
 		},

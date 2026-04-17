@@ -7,15 +7,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 type RemoveUser struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewRemoveUser(kClientV2 *keycloakv2.KeycloakClient) *RemoveUser {
+func NewRemoveUser(kClientV2 *keycloakapi.APIClient) *RemoveUser {
 	return &RemoveUser{kClientV2: kClientV2}
 }
 
@@ -32,7 +32,7 @@ func (h *RemoveUser) ServeRequest(ctx context.Context, user *keycloakApi.Keycloa
 
 	keycloakUser, _, err := h.kClientV2.Users.FindUserByUsername(ctx, realmName, user.Spec.Username)
 	if err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("User not found, skipping")
 
 			return nil
@@ -42,7 +42,7 @@ func (h *RemoveUser) ServeRequest(ctx context.Context, user *keycloakApi.Keycloa
 	}
 
 	if _, err := h.kClientV2.Users.DeleteUser(ctx, realmName, *keycloakUser.Id); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("User not found, skipping")
 
 			return nil

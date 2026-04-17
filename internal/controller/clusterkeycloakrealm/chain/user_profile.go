@@ -8,7 +8,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type UserProfile struct {
@@ -18,7 +18,7 @@ func NewUserProfile() *UserProfile {
 	return &UserProfile{}
 }
 
-func (h UserProfile) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h UserProfile) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, keycloakAPIClient *keycloakapi.APIClient) error {
 	l := ctrl.LoggerFrom(ctx)
 
 	if realm.Spec.UserProfileConfig == nil {
@@ -29,7 +29,7 @@ func (h UserProfile) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKe
 
 	l.Info("Start configuring keycloak realm user profile")
 
-	err := keycloakrealmchain.ProcessUserProfile(ctx, realm.Spec.RealmName, realm.Spec.UserProfileConfig, kClientV2)
+	err := keycloakrealmchain.ProcessUserProfile(ctx, realm.Spec.RealmName, realm.Spec.UserProfileConfig, keycloakAPIClient)
 	if err != nil {
 		return fmt.Errorf("unable to process user profile: %w", err)
 	}

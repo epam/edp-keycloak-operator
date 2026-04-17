@@ -10,13 +10,13 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -32,7 +32,7 @@ func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
 	// Existing mapper to delete
 	mockScopes.EXPECT().GetClientScopeProtocolMappers(
 		context.Background(), testRealmName, testScopeID,
-	).Return([]keycloakv2.ProtocolMapperRepresentation{
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
 		{Id: ptr.To("old-mapper-id"), Name: ptr.To("old-mapper")},
 	}, nil, nil)
 
@@ -44,7 +44,7 @@ func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
 
 	mockScopes.EXPECT().CreateClientScopeProtocolMapper(
 		context.Background(), testRealmName, testScopeID,
-		keycloakv2.ProtocolMapperRepresentation{
+		keycloakapi.ProtocolMapperRepresentation{
 			Name:           ptr.To("groups"),
 			Protocol:       ptr.To(testProtocolOIDC),
 			ProtocolMapper: ptr.To("oidc-group-membership-mapper"),
@@ -59,7 +59,7 @@ func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
 
 func TestSyncProtocolMappers_Serve_NoMappers(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -76,7 +76,7 @@ func TestSyncProtocolMappers_Serve_NoMappers(t *testing.T) {
 
 func TestSyncProtocolMappers_Serve_GetMappersError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -93,14 +93,14 @@ func TestSyncProtocolMappers_Serve_GetMappersError(t *testing.T) {
 
 func TestSyncProtocolMappers_Serve_DeleteMapperError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
 
 	mockScopes.EXPECT().GetClientScopeProtocolMappers(
 		context.Background(), testRealmName, testScopeID,
-	).Return([]keycloakv2.ProtocolMapperRepresentation{
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
 		{Id: ptr.To("mapper-id"), Name: ptr.To("mapper")},
 	}, nil, nil)
 
@@ -116,7 +116,7 @@ func TestSyncProtocolMappers_Serve_DeleteMapperError(t *testing.T) {
 
 func TestSyncProtocolMappers_Serve_NilMapperID(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -124,7 +124,7 @@ func TestSyncProtocolMappers_Serve_NilMapperID(t *testing.T) {
 	// Existing mapper with nil ID should be skipped
 	mockScopes.EXPECT().GetClientScopeProtocolMappers(
 		context.Background(), testRealmName, testScopeID,
-	).Return([]keycloakv2.ProtocolMapperRepresentation{
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
 		{Id: nil, Name: ptr.To("mapper-without-id")},
 	}, nil, nil)
 
@@ -135,7 +135,7 @@ func TestSyncProtocolMappers_Serve_NilMapperID(t *testing.T) {
 
 func TestSyncProtocolMappers_Serve_CreateMapperError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.APIClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -156,7 +156,7 @@ func TestSyncProtocolMappers_Serve_CreateMapperError(t *testing.T) {
 
 	mockScopes.EXPECT().CreateClientScopeProtocolMapper(
 		context.Background(), testRealmName, testScopeID,
-		keycloakv2.ProtocolMapperRepresentation{
+		keycloakapi.ProtocolMapperRepresentation{
 			Name:           ptr.To("mapper"),
 			Protocol:       ptr.To(testProtocolOIDC),
 			ProtocolMapper: ptr.To("oidc-audience-mapper"),

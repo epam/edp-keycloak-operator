@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type ClientScopeHandler interface {
@@ -51,13 +51,13 @@ func (ch *Chain) Serve(
 	return nil
 }
 
-func MakeChain(kClientV2 *keycloakv2.KeycloakClient) *Chain {
+func MakeChain(keycloakAPIClient *keycloakapi.APIClient) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateScope(kClientV2),
-		NewSyncProtocolMappers(kClientV2),
-		NewSetScopeType(kClientV2),
+		NewCreateOrUpdateScope(keycloakAPIClient),
+		NewSyncProtocolMappers(keycloakAPIClient),
+		NewSetScopeType(keycloakAPIClient),
 	)
 
 	return ch

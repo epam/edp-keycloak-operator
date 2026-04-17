@@ -11,18 +11,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const resourceLogKey = "resource"
 
 type ProcessResources struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.APIClient
 	k8sClient client.Client
 }
 
-func NewProcessResources(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ProcessResources {
+func NewProcessResources(kClient *keycloakapi.APIClient, k8sClient client.Client) *ProcessResources {
 	return &ProcessResources{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -43,14 +43,14 @@ func (h *ProcessResources) Serve(ctx context.Context, keycloakClient *keycloakAp
 		return fmt.Errorf("failed to get resources: %w", err)
 	}
 
-	existingResources := maputil.SliceToMapSelf(resourcesList, func(r keycloakv2.ResourceRepresentation) (string, bool) {
+	existingResources := maputil.SliceToMapSelf(resourcesList, func(r keycloakapi.ResourceRepresentation) (string, bool) {
 		return *r.Name, r.Name != nil
 	})
 
 	for i := 0; i < len(keycloakClient.Spec.Authorization.Resources); i++ {
 		log.Info("Processing resource", resourceLogKey, keycloakClient.Spec.Authorization.Resources[i].Name)
 
-		var resourceRepresentation keycloakv2.ResourceRepresentation
+		var resourceRepresentation keycloakapi.ResourceRepresentation
 
 		if resourceRepresentation, err = h.toResourceRepresentation(ctx, &keycloakClient.Spec.Authorization.Resources[i], clientUUID, realmName); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync authorization resources: %s", err.Error()))
@@ -129,7 +129,7 @@ func (h *ProcessResources) setSuccessCondition(ctx context.Context, keycloakClie
 	}
 }
 
-func (h *ProcessResources) deleteResources(ctx context.Context, existingResources map[string]keycloakv2.ResourceRepresentation, realmName string, clientUUID string) error {
+func (h *ProcessResources) deleteResources(ctx context.Context, existingResources map[string]keycloakapi.ResourceRepresentation, realmName string, clientUUID string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for name := range existingResources {
@@ -143,7 +143,7 @@ func (h *ProcessResources) deleteResources(ctx context.Context, existingResource
 		}
 
 		if _, err := h.kClient.Authorization.DeleteResource(ctx, realmName, clientUUID, *r.UnderscoreId); err != nil {
-			if !keycloakv2.IsNotFound(err) {
+			if !keycloakapi.IsNotFound(err) {
 				return fmt.Errorf("failed to delete resource: %w", err)
 			}
 		}
@@ -154,12 +154,12 @@ func (h *ProcessResources) deleteResources(ctx context.Context, existingResource
 	return nil
 }
 
-// toResourceRepresentation converts keycloakApi.Resource to keycloakv2.ResourceRepresentation.
-func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resource *keycloakApi.Resource, clientUUID, realm string) (keycloakv2.ResourceRepresentation, error) {
+// toResourceRepresentation converts keycloakApi.Resource to keycloakapi.ResourceRepresentation.
+func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resource *keycloakApi.Resource, clientUUID, realm string) (keycloakapi.ResourceRepresentation, error) {
 	keycloakResource := getBaseResourceRepresentation(resource)
 
 	if err := h.mapScopes(ctx, resource, &keycloakResource, realm, clientUUID); err != nil {
-		return keycloakv2.ResourceRepresentation{}, fmt.Errorf("failed to map scopes: %w", err)
+		return keycloakapi.ResourceRepresentation{}, fmt.Errorf("failed to map scopes: %w", err)
 	}
 
 	return keycloakResource, nil
@@ -168,12 +168,12 @@ func (h *ProcessResources) toResourceRepresentation(ctx context.Context, resourc
 func (h *ProcessResources) mapScopes(
 	ctx context.Context,
 	resource *keycloakApi.Resource,
-	keycloakResource *keycloakv2.ResourceRepresentation,
+	keycloakResource *keycloakapi.ResourceRepresentation,
 	realm,
 	clientUUID string,
 ) error {
 	if len(resource.Scopes) == 0 {
-		emptyScopes := []keycloakv2.ScopeRepresentation{}
+		emptyScopes := []keycloakapi.ScopeRepresentation{}
 		keycloakResource.Scopes = &emptyScopes
 
 		return nil
@@ -184,11 +184,11 @@ func (h *ProcessResources) mapScopes(
 		return fmt.Errorf("failed to get scopes: %w", err)
 	}
 
-	existingScopes := maputil.SliceToMapSelf(scopesList, func(s keycloakv2.ScopeRepresentation) (string, bool) {
+	existingScopes := maputil.SliceToMapSelf(scopesList, func(s keycloakapi.ScopeRepresentation) (string, bool) {
 		return *s.Name, s.Name != nil
 	})
 
-	resourceScopes := make([]keycloakv2.ScopeRepresentation, 0, len(resource.Scopes))
+	resourceScopes := make([]keycloakapi.ScopeRepresentation, 0, len(resource.Scopes))
 
 	for _, r := range resource.Scopes {
 		existingScope, ok := existingScopes[r]
@@ -208,8 +208,8 @@ func (h *ProcessResources) mapScopes(
 	return nil
 }
 
-func getBaseResourceRepresentation(resource *keycloakApi.Resource) keycloakv2.ResourceRepresentation {
-	r := keycloakv2.ResourceRepresentation{
+func getBaseResourceRepresentation(resource *keycloakApi.Resource) keycloakapi.ResourceRepresentation {
+	r := keycloakapi.ResourceRepresentation{
 		Name:               &resource.Name,
 		DisplayName:        &resource.DisplayName,
 		Type:               &resource.Type,

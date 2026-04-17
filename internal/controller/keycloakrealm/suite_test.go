@@ -26,7 +26,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -36,7 +36,7 @@ var (
 	testEnv           *envtest.Environment
 	ctx               context.Context
 	cancel            context.CancelFunc
-	keycloakApiClient *keycloakv2.KeycloakClient
+	keycloakApiClient *keycloakapi.APIClient
 )
 
 const (
@@ -152,11 +152,11 @@ var _ = BeforeSuite(func() {
 		return createdKeycloak.Status.Connected
 	}, time.Second*30, interval).Should(BeTrue())
 
-	keycloakApiClient, err = keycloakv2.NewKeycloakClient(
+	keycloakApiClient, err = keycloakapi.NewAPIClient(
 		ctx,
 		os.Getenv("TEST_KEYCLOAK_URL"),
-		keycloakv2.DefaultAdminClientID,
-		keycloakv2.WithPasswordGrant("admin", "admin"),
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant("admin", "admin"),
 	)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak client")
 })

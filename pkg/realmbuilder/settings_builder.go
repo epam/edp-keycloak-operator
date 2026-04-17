@@ -12,7 +12,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // commonRealmSpec holds the normalized, API-version-agnostic fields shared by
@@ -41,13 +41,13 @@ func ApplyRealmEventConfig(
 	ctx context.Context,
 	realmName string,
 	cfg *common.RealmEventConfig,
-	realmClient keycloakv2.RealmClient,
+	realmClient keycloakapi.RealmClient,
 ) error {
 	if cfg == nil {
 		return nil
 	}
 
-	rep := keycloakv2.RealmEventsConfigRepresentation{
+	rep := keycloakapi.RealmEventsConfigRepresentation{
 		AdminEventsDetailsEnabled: ptr.To(cfg.AdminEventsDetailsEnabled),
 		AdminEventsEnabled:        ptr.To(cfg.AdminEventsEnabled),
 		EventsEnabled:             ptr.To(cfg.EventsEnabled),
@@ -74,8 +74,8 @@ func ApplyRealmEventConfig(
 func ApplyRealmSettings(
 	ctx context.Context,
 	realmName string,
-	overlay keycloakv2.RealmRepresentation,
-	realmClient keycloakv2.RealmClient,
+	overlay keycloakapi.RealmRepresentation,
+	realmClient keycloakapi.RealmClient,
 ) error {
 	current, _, err := realmClient.GetRealm(ctx, realmName)
 	if err != nil {
@@ -91,9 +91,9 @@ func ApplyRealmSettings(
 	return nil
 }
 
-// BuildRealmRepresentationFromV1 builds a keycloakv2.RealmRepresentation with only the
+// BuildRealmRepresentationFromV1 builds a keycloakapi.RealmRepresentation with only the
 // operator-managed fields populated from a v1.KeycloakRealm spec.
-func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakv2.RealmRepresentation {
+func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakapi.RealmRepresentation {
 	spec := &realm.Spec
 
 	c := commonRealmSpec{
@@ -120,9 +120,9 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakv2
 	return buildRealmRepresentationFromCommon(c)
 }
 
-// BuildRealmRepresentationFromV1Alpha1 builds a keycloakv2.RealmRepresentation with only the
+// BuildRealmRepresentationFromV1Alpha1 builds a keycloakapi.RealmRepresentation with only the
 // operator-managed fields populated from a v1alpha1.ClusterKeycloakRealm spec.
-func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) keycloakv2.RealmRepresentation {
+func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) keycloakapi.RealmRepresentation {
 	spec := &realm.Spec
 
 	c := commonRealmSpec{
@@ -169,8 +169,8 @@ func buildPasswordPolicy(policies []common.PasswordPolicy) string {
 
 // buildRealmRepresentationFromCommon constructs a RealmRepresentation from the
 // normalized common spec. All version-specific field mapping is done by the callers.
-func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakv2.RealmRepresentation {
-	rep := keycloakv2.RealmRepresentation{
+func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmRepresentation {
+	rep := keycloakapi.RealmRepresentation{
 		DisplayName:                 ptr.To(spec.DisplayName),
 		DisplayNameHtml:             ptr.To(spec.DisplayHTMLName),
 		OrganizationsEnabled:        ptr.To(spec.OrganizationsEnabled),
@@ -233,7 +233,7 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakv2.RealmRe
 
 // MergeRealmRepresentation copies only the operator-managed fields from overlay onto base,
 // merging map fields key-by-key to preserve live Keycloak values the operator doesn't manage.
-func MergeRealmRepresentation(base, overlay *keycloakv2.RealmRepresentation) {
+func MergeRealmRepresentation(base, overlay *keycloakapi.RealmRepresentation) {
 	mergeRealmAppearance(base, overlay)
 	mergeRealmTokenSettings(base, overlay)
 	mergeRealmLoginSettings(base, overlay)
@@ -241,7 +241,7 @@ func MergeRealmRepresentation(base, overlay *keycloakv2.RealmRepresentation) {
 	mergeRealmMaps(base, overlay)
 }
 
-func mergeRealmAppearance(base, overlay *keycloakv2.RealmRepresentation) {
+func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.DisplayName, &overlay.DisplayName)
 	mergePtr(&base.DisplayNameHtml, &overlay.DisplayNameHtml)
 	mergePtr(&base.OrganizationsEnabled, &overlay.OrganizationsEnabled)
@@ -253,7 +253,7 @@ func mergeRealmAppearance(base, overlay *keycloakv2.RealmRepresentation) {
 	mergePtr(&base.PasswordPolicy, &overlay.PasswordPolicy)
 }
 
-func mergeRealmTokenSettings(base, overlay *keycloakv2.RealmRepresentation) {
+func mergeRealmTokenSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.DefaultSignatureAlgorithm, &overlay.DefaultSignatureAlgorithm)
 	mergePtr(&base.RevokeRefreshToken, &overlay.RevokeRefreshToken)
 	mergePtr(&base.RefreshTokenMaxReuse, &overlay.RefreshTokenMaxReuse)
@@ -264,7 +264,7 @@ func mergeRealmTokenSettings(base, overlay *keycloakv2.RealmRepresentation) {
 	mergePtr(&base.ActionTokenGeneratedByAdminLifespan, &overlay.ActionTokenGeneratedByAdminLifespan)
 }
 
-func mergeRealmLoginSettings(base, overlay *keycloakv2.RealmRepresentation) {
+func mergeRealmLoginSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.RegistrationAllowed, &overlay.RegistrationAllowed)
 	mergePtr(&base.ResetPasswordAllowed, &overlay.ResetPasswordAllowed)
 	mergePtr(&base.RememberMe, &overlay.RememberMe)
@@ -275,7 +275,7 @@ func mergeRealmLoginSettings(base, overlay *keycloakv2.RealmRepresentation) {
 	mergePtr(&base.EditUsernameAllowed, &overlay.EditUsernameAllowed)
 }
 
-func mergeRealmSessionSettings(base, overlay *keycloakv2.RealmRepresentation) {
+func mergeRealmSessionSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.SsoSessionIdleTimeout, &overlay.SsoSessionIdleTimeout)
 	mergePtr(&base.SsoSessionMaxLifespan, &overlay.SsoSessionMaxLifespan)
 	mergePtr(&base.SsoSessionIdleTimeoutRememberMe, &overlay.SsoSessionIdleTimeoutRememberMe)
@@ -287,7 +287,7 @@ func mergeRealmSessionSettings(base, overlay *keycloakv2.RealmRepresentation) {
 	mergePtr(&base.AccessCodeLifespanUserAction, &overlay.AccessCodeLifespanUserAction)
 }
 
-func mergeRealmMaps(base, overlay *keycloakv2.RealmRepresentation) {
+func mergeRealmMaps(base, overlay *keycloakapi.RealmRepresentation) {
 	// BrowserSecurityHeaders: merge keys into base map
 	if overlay.BrowserSecurityHeaders != nil {
 		if base.BrowserSecurityHeaders == nil {
@@ -309,7 +309,7 @@ func mergeRealmMaps(base, overlay *keycloakv2.RealmRepresentation) {
 	}
 }
 
-func setRealmRepSessionSettings(rep *keycloakv2.RealmRepresentation, sessions *common.RealmSessions) {
+func setRealmRepSessionSettings(rep *keycloakapi.RealmRepresentation, sessions *common.RealmSessions) {
 	if sessions == nil {
 		return
 	}

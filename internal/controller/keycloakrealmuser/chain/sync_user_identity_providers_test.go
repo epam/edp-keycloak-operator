@@ -12,8 +12,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestNewSyncUserIdentityProviders(t *testing.T) {
@@ -55,7 +55,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 				u.EXPECT().GetUserFederatedIdentities(context.Background(), "test-realm", "user-2").
 					Return(nil, nil, nil)
 				idp.EXPECT().GetIdentityProvider(context.Background(), "test-realm", "google").
-					Return(&keycloakv2.IdentityProviderRepresentation{}, &keycloakv2.Response{
+					Return(&keycloakapi.IdentityProviderRepresentation{}, &keycloakapi.Response{
 						HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 					}, nil)
 				u.EXPECT().CreateUserFederatedIdentity(
@@ -63,7 +63,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 					"test-realm",
 					"user-2",
 					"google",
-					keycloakv2.FederatedIdentityRepresentation{
+					keycloakapi.FederatedIdentityRepresentation{
 						IdentityProvider: ptr.To("google"),
 						UserId:           ptr.To("user-2"),
 						UserName:         ptr.To("testuser"),
@@ -84,7 +84,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-3"},
 			mockSetup: func(u *v2mocks.MockUsersClient, idp *v2mocks.MockIdentityProvidersClient) {
 				u.EXPECT().GetUserFederatedIdentities(context.Background(), "test-realm", "user-3").
-					Return([]keycloakv2.FederatedIdentityRepresentation{
+					Return([]keycloakapi.FederatedIdentityRepresentation{
 						{IdentityProvider: ptr.To("github")},
 					}, nil, nil)
 				u.EXPECT().DeleteUserFederatedIdentity(context.Background(), "test-realm", "user-3", "github").
@@ -104,7 +104,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, idp *v2mocks.MockIdentityProvidersClient) {
 				u.EXPECT().GetUserFederatedIdentities(context.Background(), "test-realm", "user-4").
-					Return([]keycloakv2.FederatedIdentityRepresentation{
+					Return([]keycloakapi.FederatedIdentityRepresentation{
 						{IdentityProvider: ptr.To("google")},
 					}, nil, nil)
 			},
@@ -143,9 +143,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 				u.EXPECT().GetUserFederatedIdentities(context.Background(), "test-realm", "user-err2").
 					Return(nil, nil, nil)
 				idp.EXPECT().GetIdentityProvider(context.Background(), "test-realm", "nonexistent").
-					Return(nil, &keycloakv2.Response{
+					Return(nil, &keycloakapi.Response{
 						HTTPResponse: &http.Response{StatusCode: http.StatusNotFound},
-					}, &keycloakv2.ApiError{Code: 404})
+					}, &keycloakapi.ApiError{Code: 404})
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -188,7 +188,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 				u.EXPECT().GetUserFederatedIdentities(context.Background(), "test-realm", "user-err4").
 					Return(nil, nil, nil)
 				idp.EXPECT().GetIdentityProvider(context.Background(), "test-realm", "google").
-					Return(&keycloakv2.IdentityProviderRepresentation{}, &keycloakv2.Response{
+					Return(&keycloakapi.IdentityProviderRepresentation{}, &keycloakapi.Response{
 						HTTPResponse: &http.Response{StatusCode: http.StatusOK},
 					}, nil)
 				u.EXPECT().CreateUserFederatedIdentity(
@@ -196,7 +196,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 					"test-realm",
 					"user-err4",
 					"google",
-					keycloakv2.FederatedIdentityRepresentation{
+					keycloakapi.FederatedIdentityRepresentation{
 						IdentityProvider: ptr.To("google"),
 						UserId:           ptr.To("user-err4"),
 						UserName:         ptr.To("testuser"),
@@ -216,7 +216,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 			mockIDP := v2mocks.NewMockIdentityProvidersClient(t)
 			tt.mockSetup(mockUsers, mockIDP)
 
-			h := NewSyncUserIdentityProviders(&keycloakv2.KeycloakClient{
+			h := NewSyncUserIdentityProviders(&keycloakapi.APIClient{
 				Users:             mockUsers,
 				IdentityProviders: mockIDP,
 			})

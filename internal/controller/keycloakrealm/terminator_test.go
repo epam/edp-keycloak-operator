@@ -10,8 +10,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func Test_terminator_DeleteResource(t *testing.T) {
@@ -21,17 +21,17 @@ func Test_terminator_DeleteResource(t *testing.T) {
 	tests := []struct {
 		name                        string
 		realmName                   string
-		realmClient                 func(t *testing.T) keycloakv2.RealmClient
+		realmClient                 func(t *testing.T) keycloakapi.RealmClient
 		preserveResourcesOnDeletion bool
 		wantErr                     assert.ErrorAssertionFunc
 	}{
 		{
 			name:      "realm does not exist",
 			realmName: "realm",
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 				m.On("DeleteRealm", mock.Anything, "realm").
-					Return(nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, &keycloakapi.ApiError{Code: 404})
 				return m
 			},
 			preserveResourcesOnDeletion: false,
@@ -40,7 +40,7 @@ func Test_terminator_DeleteResource(t *testing.T) {
 		{
 			name:      "realm deleted successfully",
 			realmName: "realm",
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 				m.On("DeleteRealm", mock.Anything, "realm").Return(nil, nil)
 				return m
@@ -51,7 +51,7 @@ func Test_terminator_DeleteResource(t *testing.T) {
 		{
 			name:      "preserve resources on deletion — skip",
 			realmName: "realm",
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				return v2mocks.NewMockRealmClient(t)
 			},
 			preserveResourcesOnDeletion: true,

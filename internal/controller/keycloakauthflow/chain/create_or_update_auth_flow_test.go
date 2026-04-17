@@ -10,8 +10,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const (
@@ -24,7 +24,7 @@ const (
 
 func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -34,12 +34,12 @@ func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 
 	// GetAuthFlows returns empty — flow not found
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakv2.AuthFlowRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthFlowRepresentation{}, nil, nil)
 
 	// CreateAuthFlow called
 	mockFlows.EXPECT().CreateAuthFlow(
 		context.Background(), testRealmName,
-		keycloakv2.AuthFlowRepresentation{
+		keycloakapi.AuthFlowRepresentation{
 			Alias:       ptr.To(testFlowAlias),
 			Description: ptr.To("desc"),
 			ProviderId:  ptr.To(testProviderID),
@@ -57,7 +57,7 @@ func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -67,14 +67,14 @@ func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
 
 	// Flow already exists
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakv2.AuthFlowRepresentation{
+		Return([]keycloakapi.AuthFlowRepresentation{
 			{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)},
 		}, nil, nil)
 
 	// UpdateAuthFlow must be called with updated fields; CreateAuthFlow must NOT be called
 	mockFlows.EXPECT().UpdateAuthFlow(
 		context.Background(), testRealmName, testFlowID,
-		keycloakv2.AuthFlowRepresentation{
+		keycloakapi.AuthFlowRepresentation{
 			Alias:       ptr.To(testFlowAlias),
 			Description: ptr.To("updated-desc"),
 			ProviderId:  ptr.To(testProviderID),
@@ -90,7 +90,7 @@ func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_ChildFlow_Create(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testChildAlias
@@ -101,7 +101,7 @@ func TestCreateOrUpdateAuthFlow_ChildFlow_Create(t *testing.T) {
 
 	// First GetFlowExecutions — child not found
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil).Once()
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil).Once()
 
 	// AddChildFlowToFlow called
 	mockFlows.EXPECT().AddChildFlowToFlow(
@@ -116,7 +116,7 @@ func TestCreateOrUpdateAuthFlow_ChildFlow_Create(t *testing.T) {
 
 	// Re-fetch after creation
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{DisplayName: ptr.To(testChildAlias), Id: ptr.To("exec-id")},
 		}, nil, nil).Once()
 
@@ -127,14 +127,14 @@ func TestCreateOrUpdateAuthFlow_ChildFlow_Create(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_ChildFlow_UpdateRequirement(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testChildAlias
 	flow.Spec.ParentName = testParentFlow
 	flow.Spec.ChildRequirement = "REQUIRED"
 
-	execEntry := keycloakv2.AuthenticationExecutionInfoRepresentation{
+	execEntry := keycloakapi.AuthenticationExecutionInfoRepresentation{
 		DisplayName: ptr.To(testChildAlias),
 		Id:          ptr.To("exec-id"),
 		Requirement: ptr.To("DISABLED"),
@@ -142,7 +142,7 @@ func TestCreateOrUpdateAuthFlow_ChildFlow_UpdateRequirement(t *testing.T) {
 
 	// Child already exists
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{execEntry}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{execEntry}, nil, nil)
 
 	// Requirement differs — UpdateFlowExecution called
 	execEntry.Requirement = ptr.To("REQUIRED")
@@ -156,7 +156,7 @@ func TestCreateOrUpdateAuthFlow_ChildFlow_UpdateRequirement(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_ValidateChildFlows_NotAllCreated(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -167,11 +167,11 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_NotAllCreated(t *testing.T) {
 
 	// Flow exists (with ID so UpdateAuthFlow is called)
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakv2.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
+		Return([]keycloakapi.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
 
 	mockFlows.EXPECT().UpdateAuthFlow(
 		context.Background(), testRealmName, testFlowID,
-		keycloakv2.AuthFlowRepresentation{
+		keycloakapi.AuthFlowRepresentation{
 			Alias:       ptr.To(testFlowAlias),
 			Description: ptr.To(""),
 			ProviderId:  ptr.To(""),
@@ -182,7 +182,7 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_NotAllCreated(t *testing.T) {
 
 	// validateChildFlows: GetFlowExecutions returns non-flow execution only → 0 child flows
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{AuthenticationFlow: ptr.To(false), Level: ptr.To(int32(0))},
 		}, nil, nil)
 
@@ -194,7 +194,7 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_NotAllCreated(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_ValidateChildFlows_AllCreated(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -203,11 +203,11 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_AllCreated(t *testing.T) {
 	}
 
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakv2.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
+		Return([]keycloakapi.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
 
 	mockFlows.EXPECT().UpdateAuthFlow(
 		context.Background(), testRealmName, testFlowID,
-		keycloakv2.AuthFlowRepresentation{
+		keycloakapi.AuthFlowRepresentation{
 			Alias:       ptr.To(testFlowAlias),
 			Description: ptr.To(""),
 			ProviderId:  ptr.To(""),
@@ -218,7 +218,7 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_AllCreated(t *testing.T) {
 
 	// validateChildFlows: one AuthenticationFlow=true, Level=0 execution → 1 child
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{AuthenticationFlow: ptr.To(true), Level: ptr.To(int32(0))},
 		}, nil, nil)
 
@@ -229,7 +229,7 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_AllCreated(t *testing.T) {
 
 func TestCreateOrUpdateAuthFlow_GetAuthFlowsError(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.APIClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias

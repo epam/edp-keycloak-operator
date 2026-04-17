@@ -6,14 +6,14 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type PutUsersRoles struct {
 	next handler.RealmHandler
 }
 
-func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakapi.APIClient) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
 
@@ -26,7 +26,7 @@ func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	return nextServeOrNil(ctx, h.next, realm, kClientV2)
 }
 
-func putRolesToUsers(ctx context.Context, realmName string, users []keycloakApi.User, kClientV2 *keycloakv2.KeycloakClient) error {
+func putRolesToUsers(ctx context.Context, realmName string, users []keycloakApi.User, kClientV2 *keycloakapi.APIClient) error {
 	for _, user := range users {
 		if err := putRolesToOneUser(ctx, realmName, user.Username, user.RealmRoles, kClientV2); err != nil {
 			return fmt.Errorf("error during putRolesToOneUser: %w", err)
@@ -36,7 +36,7 @@ func putRolesToUsers(ctx context.Context, realmName string, users []keycloakApi.
 	return nil
 }
 
-func putRolesToOneUser(ctx context.Context, realmName, username string, realmRoles []string, kClientV2 *keycloakv2.KeycloakClient) error {
+func putRolesToOneUser(ctx context.Context, realmName, username string, realmRoles []string, kClientV2 *keycloakapi.APIClient) error {
 	for _, role := range realmRoles {
 		if err := putOneRealmRoleToOneUser(ctx, realmName, username, role, kClientV2); err != nil {
 			return fmt.Errorf("error during putOneRoleToOneUser: %w", err)
@@ -46,10 +46,10 @@ func putRolesToOneUser(ctx context.Context, realmName, username string, realmRol
 	return nil
 }
 
-func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role string, kClientV2 *keycloakv2.KeycloakClient) error {
+func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role string, kClientV2 *keycloakapi.APIClient) error {
 	user, _, err := kClientV2.Users.FindUserByUsername(ctx, realmName, username)
 	if err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("user %s not found in realm %s", username, realmName)
 		}
 
@@ -73,7 +73,7 @@ func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role str
 		return fmt.Errorf("unable to get realm role: %w", err)
 	}
 
-	if _, err := kClientV2.Users.AddUserRealmRoles(ctx, realmName, *user.Id, []keycloakv2.RoleRepresentation{*realmRole}); err != nil {
+	if _, err := kClientV2.Users.AddUserRealmRoles(ctx, realmName, *user.Id, []keycloakapi.RoleRepresentation{*realmRole}); err != nil {
 		return fmt.Errorf("unable to add realm role to user: %w", err)
 	}
 

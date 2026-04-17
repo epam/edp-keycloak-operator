@@ -11,14 +11,14 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type UserProfile struct {
 	next handler.RealmHandler
 }
 
-func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakapi.APIClient) error {
 	l := ctrl.LoggerFrom(ctx)
 
 	if realm.Spec.UserProfileConfig == nil {
@@ -39,7 +39,7 @@ func (a UserProfile) ServeRequest(ctx context.Context, realm *keycloakApi.Keyclo
 	return nextServeOrNil(ctx, a.next, realm, kClientV2)
 }
 
-func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *common.UserProfileConfig, kClientV2 *keycloakv2.KeycloakClient) error {
+func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *common.UserProfileConfig, kClientV2 *keycloakapi.APIClient) error {
 	userProfile, _, err := kClientV2.Users.GetUsersProfile(ctx, realm)
 	if err != nil {
 		return fmt.Errorf("unable to get current user profile: %w", err)
@@ -49,7 +49,7 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 	attributesToUpdate := userProfileConfigAttributeToMap(&userProfileToUpdate)
 
 	if userProfile.Attributes == nil {
-		userProfile.Attributes = &[]keycloakv2.UserProfileAttribute{}
+		userProfile.Attributes = &[]keycloakapi.UserProfileAttribute{}
 	}
 
 	for i := 0; i < len(*userProfile.Attributes); i++ {
@@ -68,7 +68,7 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 	groupsToUpdate := userProfileConfigGroupToMap(&userProfileToUpdate)
 
 	if userProfile.Groups == nil {
-		userProfile.Groups = &[]keycloakv2.UserProfileGroup{}
+		userProfile.Groups = &[]keycloakapi.UserProfileGroup{}
 	}
 
 	for i := 0; i < len(*userProfile.Groups); i++ {
@@ -97,12 +97,12 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 	return nil
 }
 
-func userProfileConfigAttributeToMap(profile *keycloakv2.UserProfileConfig) map[string]keycloakv2.UserProfileAttribute {
+func userProfileConfigAttributeToMap(profile *keycloakapi.UserProfileConfig) map[string]keycloakapi.UserProfileAttribute {
 	if profile.Attributes == nil {
-		return make(map[string]keycloakv2.UserProfileAttribute)
+		return make(map[string]keycloakapi.UserProfileAttribute)
 	}
 
-	attributes := make(map[string]keycloakv2.UserProfileAttribute, len(*profile.Attributes))
+	attributes := make(map[string]keycloakapi.UserProfileAttribute, len(*profile.Attributes))
 
 	for _, v := range *profile.Attributes {
 		attributes[*v.Name] = v
@@ -111,12 +111,12 @@ func userProfileConfigAttributeToMap(profile *keycloakv2.UserProfileConfig) map[
 	return attributes
 }
 
-func userProfileConfigGroupToMap(spec *keycloakv2.UserProfileConfig) map[string]keycloakv2.UserProfileGroup {
+func userProfileConfigGroupToMap(spec *keycloakapi.UserProfileConfig) map[string]keycloakapi.UserProfileGroup {
 	if spec.Groups == nil {
-		return make(map[string]keycloakv2.UserProfileGroup)
+		return make(map[string]keycloakapi.UserProfileGroup)
 	}
 
-	groups := make(map[string]keycloakv2.UserProfileGroup, len(*spec.Groups))
+	groups := make(map[string]keycloakapi.UserProfileGroup, len(*spec.Groups))
 
 	for _, v := range *spec.Groups {
 		groups[*v.Name] = v
@@ -125,15 +125,15 @@ func userProfileConfigGroupToMap(spec *keycloakv2.UserProfileConfig) map[string]
 	return groups
 }
 
-func userProfileConfigSpecToModel(spec *common.UserProfileConfig) keycloakv2.UserProfileConfig {
-	userProfile := keycloakv2.UserProfileConfig{}
+func userProfileConfigSpecToModel(spec *common.UserProfileConfig) keycloakapi.UserProfileConfig {
+	userProfile := keycloakapi.UserProfileConfig{}
 
 	if spec.UnmanagedAttributePolicy != "" {
-		userProfile.UnmanagedAttributePolicy = ptr.To(keycloakv2.UnmanagedAttributePolicy(spec.UnmanagedAttributePolicy))
+		userProfile.UnmanagedAttributePolicy = ptr.To(keycloakapi.UnmanagedAttributePolicy(spec.UnmanagedAttributePolicy))
 	}
 
 	if spec.Attributes != nil {
-		attributes := make([]keycloakv2.UserProfileAttribute, 0, len(spec.Attributes))
+		attributes := make([]keycloakapi.UserProfileAttribute, 0, len(spec.Attributes))
 
 		for _, v := range spec.Attributes {
 			attr := userProfileConfigAttributeSpecToModel(&v)
@@ -145,7 +145,7 @@ func userProfileConfigSpecToModel(spec *common.UserProfileConfig) keycloakv2.Use
 	}
 
 	if spec.Groups != nil {
-		groups := make([]keycloakv2.UserProfileGroup, 0, len(spec.Groups))
+		groups := make([]keycloakapi.UserProfileGroup, 0, len(spec.Groups))
 
 		for _, v := range spec.Groups {
 			group := userProfileConfigGroupSpecToModel(v)
@@ -159,8 +159,8 @@ func userProfileConfigSpecToModel(spec *common.UserProfileConfig) keycloakv2.Use
 	return userProfile
 }
 
-func userProfileConfigGroupSpecToModel(v common.UserProfileGroup) keycloakv2.UserProfileGroup {
-	group := keycloakv2.UserProfileGroup{
+func userProfileConfigGroupSpecToModel(v common.UserProfileGroup) keycloakapi.UserProfileGroup {
+	group := keycloakapi.UserProfileGroup{
 		DisplayDescription: &v.DisplayDescription,
 		DisplayHeader:      &v.DisplayHeader,
 		Name:               &v.Name,
@@ -176,12 +176,12 @@ func userProfileConfigGroupSpecToModel(v common.UserProfileGroup) keycloakv2.Use
 	return group
 }
 
-func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycloakv2.UserProfileAttribute {
+func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycloakapi.UserProfileAttribute {
 	if v == nil {
-		return keycloakv2.UserProfileAttribute{}
+		return keycloakapi.UserProfileAttribute{}
 	}
 
-	attr := keycloakv2.UserProfileAttribute{
+	attr := keycloakapi.UserProfileAttribute{
 		DisplayName: &v.DisplayName,
 		Name:        &v.Name,
 		Multivalued: &v.Multivalued,
@@ -201,7 +201,7 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 	attr.Validations = &validations
 
 	if v.Permissions != nil {
-		permissions := keycloakv2.UserProfileAttributePermissions{}
+		permissions := keycloakapi.UserProfileAttributePermissions{}
 		edit := slices.Clone(v.Permissions.Edit)
 		permissions.Edit = &edit
 
@@ -212,7 +212,7 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 	}
 
 	if v.Required != nil {
-		required := keycloakv2.UserProfileAttributeRequired{}
+		required := keycloakapi.UserProfileAttributeRequired{}
 		roles := slices.Clone(v.Required.Roles)
 		required.Roles = &roles
 
@@ -223,7 +223,7 @@ func userProfileConfigAttributeSpecToModel(v *common.UserProfileAttribute) keycl
 	}
 
 	if v.Selector != nil {
-		selector := keycloakv2.UserProfileAttributeSelector{}
+		selector := keycloakapi.UserProfileAttributeSelector{}
 		scopes := slices.Clone(v.Selector.Scopes)
 		selector.Scopes = &scopes
 

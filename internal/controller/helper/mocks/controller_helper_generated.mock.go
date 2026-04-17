@@ -11,7 +11,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	mock "github.com/stretchr/testify/mock"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -43,24 +43,24 @@ func (_m *MockControllerHelper) EXPECT() *MockControllerHelper_Expecter {
 	return &MockControllerHelper_Expecter{mock: &_m.Mock}
 }
 
-// CreateKeycloakClientV2FromClusterKeycloak provides a mock function for the type MockControllerHelper
-func (_mock *MockControllerHelper) CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak) (*keycloakv2.KeycloakClient, error) {
+// CreateKeycloakeycloakAPIClientFromClusterKeycloak provides a mock function for the type MockControllerHelper
+func (_mock *MockControllerHelper) CreateKeycloakeycloakAPIClientFromClusterKeycloak(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak) (*keycloakapi.APIClient, error) {
 	ret := _mock.Called(ctx, clusterKeycloak)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateKeycloakClientV2FromClusterKeycloak")
+		panic("no return value specified for CreateKeycloakeycloakAPIClientFromClusterKeycloak")
 	}
 
-	var r0 *keycloakv2.KeycloakClient
+	var r0 *keycloakapi.APIClient
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloak) (*keycloakv2.KeycloakClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloak) (*keycloakapi.APIClient, error)); ok {
 		return returnFunc(ctx, clusterKeycloak)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloak) *keycloakv2.KeycloakClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloak) *keycloakapi.APIClient); ok {
 		r0 = returnFunc(ctx, clusterKeycloak)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloakv2.KeycloakClient)
+			r0 = ret.Get(0).(*keycloakapi.APIClient)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1alpha1.ClusterKeycloak) error); ok {
@@ -71,19 +71,19 @@ func (_mock *MockControllerHelper) CreateKeycloakClientV2FromClusterKeycloak(ctx
 	return r0, r1
 }
 
-// MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakClientV2FromClusterKeycloak'
-type MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call struct {
+// MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakeycloakAPIClientFromClusterKeycloak'
+type MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call struct {
 	*mock.Call
 }
 
-// CreateKeycloakClientV2FromClusterKeycloak is a helper method to define mock.On call
+// CreateKeycloakeycloakAPIClientFromClusterKeycloak is a helper method to define mock.On call
 //   - ctx context.Context
 //   - clusterKeycloak *v1alpha1.ClusterKeycloak
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientV2FromClusterKeycloak(ctx interface{}, clusterKeycloak interface{}) *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call {
-	return &MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call{Call: _e.mock.On("CreateKeycloakClientV2FromClusterKeycloak", ctx, clusterKeycloak)}
+func (_e *MockControllerHelper_Expecter) CreateKeycloakeycloakAPIClientFromClusterKeycloak(ctx interface{}, clusterKeycloak interface{}) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call {
+	return &MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call{Call: _e.mock.On("CreateKeycloakeycloakAPIClientFromClusterKeycloak", ctx, clusterKeycloak)}
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call) Run(run func(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak)) *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call) Run(run func(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -101,34 +101,34 @@ func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call) R
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call) Return(keycloakClient *keycloakv2.KeycloakClient, err error) *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call {
-	_c.Call.Return(keycloakClient, err)
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call) Return(aPIClient *keycloakapi.APIClient, err error) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call {
+	_c.Call.Return(aPIClient, err)
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call) RunAndReturn(run func(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak) (*keycloakv2.KeycloakClient, error)) *MockControllerHelper_CreateKeycloakClientV2FromClusterKeycloak_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call) RunAndReturn(run func(ctx context.Context, clusterKeycloak *v1alpha1.ClusterKeycloak) (*keycloakapi.APIClient, error)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateKeycloakClientV2FromClusterRealm provides a mock function for the type MockControllerHelper
-func (_mock *MockControllerHelper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm) (*keycloakv2.KeycloakClient, error) {
+// CreateKeycloakeycloakAPIClientFromClusterRealm provides a mock function for the type MockControllerHelper
+func (_mock *MockControllerHelper) CreateKeycloakeycloakAPIClientFromClusterRealm(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm) (*keycloakapi.APIClient, error) {
 	ret := _mock.Called(ctx, realm)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateKeycloakClientV2FromClusterRealm")
+		panic("no return value specified for CreateKeycloakeycloakAPIClientFromClusterRealm")
 	}
 
-	var r0 *keycloakv2.KeycloakClient
+	var r0 *keycloakapi.APIClient
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloakRealm) (*keycloakv2.KeycloakClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloakRealm) (*keycloakapi.APIClient, error)); ok {
 		return returnFunc(ctx, realm)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloakRealm) *keycloakv2.KeycloakClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1alpha1.ClusterKeycloakRealm) *keycloakapi.APIClient); ok {
 		r0 = returnFunc(ctx, realm)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloakv2.KeycloakClient)
+			r0 = ret.Get(0).(*keycloakapi.APIClient)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1alpha1.ClusterKeycloakRealm) error); ok {
@@ -139,19 +139,19 @@ func (_mock *MockControllerHelper) CreateKeycloakClientV2FromClusterRealm(ctx co
 	return r0, r1
 }
 
-// MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakClientV2FromClusterRealm'
-type MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call struct {
+// MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakeycloakAPIClientFromClusterRealm'
+type MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call struct {
 	*mock.Call
 }
 
-// CreateKeycloakClientV2FromClusterRealm is a helper method to define mock.On call
+// CreateKeycloakeycloakAPIClientFromClusterRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm *v1alpha1.ClusterKeycloakRealm
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientV2FromClusterRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call {
-	return &MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call{Call: _e.mock.On("CreateKeycloakClientV2FromClusterRealm", ctx, realm)}
+func (_e *MockControllerHelper_Expecter) CreateKeycloakeycloakAPIClientFromClusterRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call {
+	return &MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call{Call: _e.mock.On("CreateKeycloakeycloakAPIClientFromClusterRealm", ctx, realm)}
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call) Run(run func(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm)) *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call) Run(run func(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -169,34 +169,34 @@ func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call) Run(
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call) Return(keycloakClient *keycloakv2.KeycloakClient, err error) *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call {
-	_c.Call.Return(keycloakClient, err)
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call) Return(aPIClient *keycloakapi.APIClient, err error) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call {
+	_c.Call.Return(aPIClient, err)
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call) RunAndReturn(run func(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm) (*keycloakv2.KeycloakClient, error)) *MockControllerHelper_CreateKeycloakClientV2FromClusterRealm_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call) RunAndReturn(run func(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm) (*keycloakapi.APIClient, error)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromClusterRealm_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateKeycloakClientV2FromKeycloak provides a mock function for the type MockControllerHelper
-func (_mock *MockControllerHelper) CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *v1.Keycloak) (*keycloakv2.KeycloakClient, error) {
+// CreateKeycloakeycloakAPIClientFromKeycloak provides a mock function for the type MockControllerHelper
+func (_mock *MockControllerHelper) CreateKeycloakeycloakAPIClientFromKeycloak(ctx context.Context, kc *v1.Keycloak) (*keycloakapi.APIClient, error) {
 	ret := _mock.Called(ctx, kc)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateKeycloakClientV2FromKeycloak")
+		panic("no return value specified for CreateKeycloakeycloakAPIClientFromKeycloak")
 	}
 
-	var r0 *keycloakv2.KeycloakClient
+	var r0 *keycloakapi.APIClient
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.Keycloak) (*keycloakv2.KeycloakClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.Keycloak) (*keycloakapi.APIClient, error)); ok {
 		return returnFunc(ctx, kc)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.Keycloak) *keycloakv2.KeycloakClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.Keycloak) *keycloakapi.APIClient); ok {
 		r0 = returnFunc(ctx, kc)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloakv2.KeycloakClient)
+			r0 = ret.Get(0).(*keycloakapi.APIClient)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1.Keycloak) error); ok {
@@ -207,19 +207,19 @@ func (_mock *MockControllerHelper) CreateKeycloakClientV2FromKeycloak(ctx contex
 	return r0, r1
 }
 
-// MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakClientV2FromKeycloak'
-type MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call struct {
+// MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakeycloakAPIClientFromKeycloak'
+type MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call struct {
 	*mock.Call
 }
 
-// CreateKeycloakClientV2FromKeycloak is a helper method to define mock.On call
+// CreateKeycloakeycloakAPIClientFromKeycloak is a helper method to define mock.On call
 //   - ctx context.Context
 //   - kc *v1.Keycloak
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientV2FromKeycloak(ctx interface{}, kc interface{}) *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call {
-	return &MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call{Call: _e.mock.On("CreateKeycloakClientV2FromKeycloak", ctx, kc)}
+func (_e *MockControllerHelper_Expecter) CreateKeycloakeycloakAPIClientFromKeycloak(ctx interface{}, kc interface{}) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call {
+	return &MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call{Call: _e.mock.On("CreateKeycloakeycloakAPIClientFromKeycloak", ctx, kc)}
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call) Run(run func(ctx context.Context, kc *v1.Keycloak)) *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call) Run(run func(ctx context.Context, kc *v1.Keycloak)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -237,34 +237,34 @@ func (_c *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call) Run(run 
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call) Return(keycloakClient *keycloakv2.KeycloakClient, err error) *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call {
-	_c.Call.Return(keycloakClient, err)
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call) Return(aPIClient *keycloakapi.APIClient, err error) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call {
+	_c.Call.Return(aPIClient, err)
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call) RunAndReturn(run func(ctx context.Context, kc *v1.Keycloak) (*keycloakv2.KeycloakClient, error)) *MockControllerHelper_CreateKeycloakClientV2FromKeycloak_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call) RunAndReturn(run func(ctx context.Context, kc *v1.Keycloak) (*keycloakapi.APIClient, error)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromKeycloak_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateKeycloakClientV2FromRealm provides a mock function for the type MockControllerHelper
-func (_mock *MockControllerHelper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *v1.KeycloakRealm) (*keycloakv2.KeycloakClient, error) {
+// CreateKeycloakeycloakAPIClientFromRealm provides a mock function for the type MockControllerHelper
+func (_mock *MockControllerHelper) CreateKeycloakeycloakAPIClientFromRealm(ctx context.Context, realm *v1.KeycloakRealm) (*keycloakapi.APIClient, error) {
 	ret := _mock.Called(ctx, realm)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateKeycloakClientV2FromRealm")
+		panic("no return value specified for CreateKeycloakeycloakAPIClientFromRealm")
 	}
 
-	var r0 *keycloakv2.KeycloakClient
+	var r0 *keycloakapi.APIClient
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm) (*keycloakv2.KeycloakClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm) (*keycloakapi.APIClient, error)); ok {
 		return returnFunc(ctx, realm)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm) *keycloakv2.KeycloakClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, *v1.KeycloakRealm) *keycloakapi.APIClient); ok {
 		r0 = returnFunc(ctx, realm)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloakv2.KeycloakClient)
+			r0 = ret.Get(0).(*keycloakapi.APIClient)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, *v1.KeycloakRealm) error); ok {
@@ -275,19 +275,19 @@ func (_mock *MockControllerHelper) CreateKeycloakClientV2FromRealm(ctx context.C
 	return r0, r1
 }
 
-// MockControllerHelper_CreateKeycloakClientV2FromRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakClientV2FromRealm'
-type MockControllerHelper_CreateKeycloakClientV2FromRealm_Call struct {
+// MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakeycloakAPIClientFromRealm'
+type MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call struct {
 	*mock.Call
 }
 
-// CreateKeycloakClientV2FromRealm is a helper method to define mock.On call
+// CreateKeycloakeycloakAPIClientFromRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm *v1.KeycloakRealm
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientV2FromRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call {
-	return &MockControllerHelper_CreateKeycloakClientV2FromRealm_Call{Call: _e.mock.On("CreateKeycloakClientV2FromRealm", ctx, realm)}
+func (_e *MockControllerHelper_Expecter) CreateKeycloakeycloakAPIClientFromRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call {
+	return &MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call{Call: _e.mock.On("CreateKeycloakeycloakAPIClientFromRealm", ctx, realm)}
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call) Run(run func(ctx context.Context, realm *v1.KeycloakRealm)) *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call) Run(run func(ctx context.Context, realm *v1.KeycloakRealm)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -305,34 +305,34 @@ func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call) Run(run fun
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call) Return(keycloakClient *keycloakv2.KeycloakClient, err error) *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call {
-	_c.Call.Return(keycloakClient, err)
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call) Return(aPIClient *keycloakapi.APIClient, err error) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call {
+	_c.Call.Return(aPIClient, err)
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call) RunAndReturn(run func(ctx context.Context, realm *v1.KeycloakRealm) (*keycloakv2.KeycloakClient, error)) *MockControllerHelper_CreateKeycloakClientV2FromRealm_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call) RunAndReturn(run func(ctx context.Context, realm *v1.KeycloakRealm) (*keycloakapi.APIClient, error)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealm_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
-// CreateKeycloakClientV2FromRealmRef provides a mock function for the type MockControllerHelper
-func (_mock *MockControllerHelper) CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error) {
+// CreateKeycloakeycloakAPIClientFromRealmRef provides a mock function for the type MockControllerHelper
+func (_mock *MockControllerHelper) CreateKeycloakeycloakAPIClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.APIClient, error) {
 	ret := _mock.Called(ctx, object)
 
 	if len(ret) == 0 {
-		panic("no return value specified for CreateKeycloakClientV2FromRealmRef")
+		panic("no return value specified for CreateKeycloakeycloakAPIClientFromRealmRef")
 	}
 
-	var r0 *keycloakv2.KeycloakClient
+	var r0 *keycloakapi.APIClient
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, helper.ObjectWithRealmRef) (*keycloakapi.APIClient, error)); ok {
 		return returnFunc(ctx, object)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, helper.ObjectWithRealmRef) *keycloakv2.KeycloakClient); ok {
+	if returnFunc, ok := ret.Get(0).(func(context.Context, helper.ObjectWithRealmRef) *keycloakapi.APIClient); ok {
 		r0 = returnFunc(ctx, object)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*keycloakv2.KeycloakClient)
+			r0 = ret.Get(0).(*keycloakapi.APIClient)
 		}
 	}
 	if returnFunc, ok := ret.Get(1).(func(context.Context, helper.ObjectWithRealmRef) error); ok {
@@ -343,19 +343,19 @@ func (_mock *MockControllerHelper) CreateKeycloakClientV2FromRealmRef(ctx contex
 	return r0, r1
 }
 
-// MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakClientV2FromRealmRef'
-type MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call struct {
+// MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateKeycloakeycloakAPIClientFromRealmRef'
+type MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call struct {
 	*mock.Call
 }
 
-// CreateKeycloakClientV2FromRealmRef is a helper method to define mock.On call
+// CreateKeycloakeycloakAPIClientFromRealmRef is a helper method to define mock.On call
 //   - ctx context.Context
 //   - object helper.ObjectWithRealmRef
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientV2FromRealmRef(ctx interface{}, object interface{}) *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call {
-	return &MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call{Call: _e.mock.On("CreateKeycloakClientV2FromRealmRef", ctx, object)}
+func (_e *MockControllerHelper_Expecter) CreateKeycloakeycloakAPIClientFromRealmRef(ctx interface{}, object interface{}) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call {
+	return &MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call{Call: _e.mock.On("CreateKeycloakeycloakAPIClientFromRealmRef", ctx, object)}
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call) Run(run func(ctx context.Context, object helper.ObjectWithRealmRef)) *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call) Run(run func(ctx context.Context, object helper.ObjectWithRealmRef)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
@@ -373,12 +373,12 @@ func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call) Run(run 
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call) Return(keycloakClient *keycloakv2.KeycloakClient, err error) *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call {
-	_c.Call.Return(keycloakClient, err)
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call) Return(aPIClient *keycloakapi.APIClient, err error) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call {
+	_c.Call.Return(aPIClient, err)
 	return _c
 }
 
-func (_c *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call) RunAndReturn(run func(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)) *MockControllerHelper_CreateKeycloakClientV2FromRealmRef_Call {
+func (_c *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call) RunAndReturn(run func(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.APIClient, error)) *MockControllerHelper_CreateKeycloakeycloakAPIClientFromRealmRef_Call {
 	_c.Call.Return(run)
 	return _c
 }

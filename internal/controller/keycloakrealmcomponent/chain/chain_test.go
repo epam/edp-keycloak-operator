@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 type mockHandler struct {
@@ -65,8 +65,8 @@ func TestChain_Serve_ErrorStopsChain(t *testing.T) {
 }
 
 func TestMakeChain_NotNil(t *testing.T) {
-	mockComponents := keycloakv2mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	mockComponents := keycloakmocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 
 	ch := MakeChain(nil, kClient, &mockSecretRefClient{})
 	assert.NotNil(t, ch)

@@ -14,8 +14,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestCreateDefChain(t *testing.T) {
@@ -51,16 +51,16 @@ func TestCreateDefChain(t *testing.T) {
 	mockRealm := v2mocks.NewMockRealmClient(t)
 	// PutRealm: realm already exists
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
-		Return(&keycloakv2.RealmRepresentation{}, nil, nil).Once()
+		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
 	// RealmSettings: GetRealm + UpdateRealm
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
-		Return(&keycloakv2.RealmRepresentation{}, nil, nil).Once()
+		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
 	mockRealm.EXPECT().UpdateRealm(testifymock.Anything, kr.Spec.RealmName, testifymock.Anything).
 		Return(nil, nil)
 
 	_ = realmName // kept for local variable consistency
 	chain := CreateDefChain(client, s)
-	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
-	err := chain.ServeRequest(context.Background(), &kr, kClientV2)
+	keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
+	err := chain.ServeRequest(context.Background(), &kr, keycloakAPIClient)
 	require.NoError(t, err)
 }

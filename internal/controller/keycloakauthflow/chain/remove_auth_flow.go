@@ -8,18 +8,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 // RemoveAuthFlow handles deletion of a KeycloakAuthFlow from Keycloak.
 // It ports the terminator and legacy DeleteAuthFlow + unsetBrowserFlow logic.
 type RemoveAuthFlow struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 	k8sClient client.Client
 }
 
-func NewRemoveAuthFlow(kClientV2 *keycloakv2.KeycloakClient, k8sClient client.Client) *RemoveAuthFlow {
+func NewRemoveAuthFlow(kClientV2 *keycloakapi.APIClient, k8sClient client.Client) *RemoveAuthFlow {
 	return &RemoveAuthFlow{kClientV2: kClientV2, k8sClient: k8sClient}
 }
 
@@ -69,7 +69,7 @@ func (h *RemoveAuthFlow) deleteChildFlow(ctx context.Context, flow *keycloakApi.
 
 	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
 	if err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Parent flow not found, skipping child deletion")
 
 			return nil
@@ -90,7 +90,7 @@ func (h *RemoveAuthFlow) deleteChildFlow(ctx context.Context, flow *keycloakApi.
 		log.Info("Deleting child flow execution", "alias", flow.Spec.Alias)
 
 		if _, err := h.kClientV2.AuthFlows.DeleteExecution(ctx, realmName, *execs[i].Id); err != nil {
-			if keycloakv2.IsNotFound(err) {
+			if keycloakapi.IsNotFound(err) {
 				log.Info("Child flow execution not found, skipping")
 
 				return nil
@@ -125,7 +125,7 @@ func (h *RemoveAuthFlow) deleteTopLevelFlow(ctx context.Context, flow *keycloakA
 	log.Info("Deleting top-level auth flow", "id", flowID)
 
 	if _, err := h.kClientV2.AuthFlows.DeleteAuthFlow(ctx, realmName, flowID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Auth flow not found, skipping deletion")
 
 			return nil

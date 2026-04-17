@@ -11,8 +11,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -35,17 +35,17 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", testGroupName,
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Name:        ptr.To(testGroupName),
 			Description: ptr.To(""),
 			Path:        ptr.To(testGroupPath),
 			Attributes:  &map[string][]string{"key": {"val"}},
 		},
-	).Return(&keycloakv2.Response{
+	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
 			Header: http.Header{"Location": []string{"http://localhost/admin/realms/test-realm/groups/group-id-123"}},
 		},
@@ -60,7 +60,7 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", ParentGroupID: "parent-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -71,17 +71,17 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 
 	mockGroups.EXPECT().FindChildGroupByName(
 		context.Background(), "test-realm", "parent-id", testChildGroupName,
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	mockGroups.EXPECT().CreateChildGroup(
 		context.Background(), "test-realm", "parent-id",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Name:        ptr.To(testChildGroupName),
 			Description: ptr.To("Child group description"),
 			Path:        ptr.To("/child-group"),
 			Attributes:  &map[string][]string{"a": {"b"}},
 		},
-	).Return(&keycloakv2.Response{
+	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
 			Header: http.Header{"Location": []string{"http://localhost/admin/realms/test-realm/groups/child-id-456"}},
 		},
@@ -96,7 +96,7 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -107,7 +107,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", "existing-group",
-	).Return(&keycloakv2.GroupRepresentation{
+	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
 		Name: ptr.To("existing-group"),
 		Path: ptr.To("/old-path"),
@@ -115,7 +115,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("existing-id"),
 			Name:        ptr.To("existing-group"),
 			Description: ptr.To("Updated description"),
@@ -133,7 +133,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_FindGroupError(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -151,7 +151,7 @@ func TestCreateOrUpdateGroup_Serve_FindGroupError(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -161,11 +161,11 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", testGroupName,
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Name:        ptr.To(testGroupName),
 			Description: ptr.To(""),
 			Path:        ptr.To(testGroupPath),
@@ -181,7 +181,7 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -191,7 +191,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", "existing-group",
-	).Return(&keycloakv2.GroupRepresentation{
+	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
 		Name: ptr.To("existing-group"),
 		Path: ptr.To("/old-path"),
@@ -199,7 +199,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("existing-id"),
 			Name:        ptr.To("existing-group"),
 			Description: ptr.To(""),
@@ -216,7 +216,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", ParentGroupID: "parent-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -226,7 +226,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 
 	mockGroups.EXPECT().FindChildGroupByName(
 		context.Background(), "test-realm", "parent-id", testChildGroupName,
-	).Return(&keycloakv2.GroupRepresentation{
+	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("child-id"),
 		Name: ptr.To(testChildGroupName),
 		Path: ptr.To("/old-path"),
@@ -234,7 +234,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "child-id",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("child-id"),
 			Name:        ptr.To(testChildGroupName),
 			Description: ptr.To(""),
@@ -252,7 +252,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_FindChildGroupError(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", ParentGroupID: "parent-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -270,7 +270,7 @@ func TestCreateOrUpdateGroup_Serve_FindChildGroupError(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", GroupID: "existing-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -281,7 +281,7 @@ func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 
 	mockGroups.EXPECT().GetGroup(
 		context.Background(), "test-realm", "existing-id",
-	).Return(&keycloakv2.GroupRepresentation{
+	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
 		Name: ptr.To("old-name"),
 		Path: ptr.To("/old-name"),
@@ -289,7 +289,7 @@ func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("existing-id"),
 			Name:        ptr.To("new-name"),
 			Description: ptr.To("Updated desc"),
@@ -307,7 +307,7 @@ func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", GroupID: "deleted-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -317,21 +317,21 @@ func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing
 
 	mockGroups.EXPECT().GetGroup(
 		context.Background(), "test-realm", "deleted-id",
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), "test-realm", testGroupName,
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
-		keycloakv2.GroupRepresentation{
+		keycloakapi.GroupRepresentation{
 			Name:        ptr.To(testGroupName),
 			Description: ptr.To(""),
 			Path:        ptr.To(testGroupPath),
 			Attributes:  &map[string][]string{"key": {"val"}},
 		},
-	).Return(&keycloakv2.Response{
+	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
 			Header: http.Header{"Location": []string{"http://localhost/admin/realms/test-realm/groups/new-id"}},
 		},
@@ -346,7 +346,7 @@ func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing
 func TestCreateOrUpdateGroup_Serve_GetGroupByIDError(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 
-	kClient := &keycloakv2.KeycloakClient{Groups: mockGroups}
+	kClient := &keycloakapi.APIClient{Groups: mockGroups}
 	groupCtx := &GroupContext{RealmName: "test-realm", GroupID: "existing-id"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}

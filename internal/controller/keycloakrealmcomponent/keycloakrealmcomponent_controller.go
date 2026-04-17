@@ -22,7 +22,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmcomponent/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const (
@@ -36,7 +36,7 @@ const (
 type RealmComponentHelper interface {
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakeycloakAPIClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.APIClient, error)
 }
 
 type RealmComponentReconciler struct {
@@ -79,7 +79,7 @@ func (r *RealmComponentReconciler) Reconcile(ctx context.Context, request reconc
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakRealmComponent")
 
-	instance, kClientV2, realmName, err := r.initializeReconciliation(ctx, request)
+	instance, keycloakAPIClient, realmName, err := r.initializeReconciliation(ctx, request)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
@@ -93,16 +93,16 @@ func (r *RealmComponentReconciler) Reconcile(ctx context.Context, request reconc
 	}
 
 	if instance.GetDeletionTimestamp() != nil {
-		return r.handleDeletion(ctx, instance, kClientV2, realmName)
+		return r.handleDeletion(ctx, instance, keycloakAPIClient, realmName)
 	}
 
-	return r.handleReconciliation(ctx, instance, kClientV2, realmName)
+	return r.handleReconciliation(ctx, instance, keycloakAPIClient, realmName)
 }
 
 func (r *RealmComponentReconciler) initializeReconciliation(
 	ctx context.Context,
 	request reconcile.Request,
-) (*keycloakApi.KeycloakRealmComponent, *keycloakv2.KeycloakClient, string, error) {
+) (*keycloakApi.KeycloakRealmComponent, *keycloakapi.APIClient, string, error) {
 	instance := &keycloakApi.KeycloakRealmComponent{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -122,7 +122,7 @@ func (r *RealmComponentReconciler) initializeReconciliation(
 		}
 	}
 
-	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
+	keycloakAPIClient, err := r.helper.CreateKeycloakeycloakAPIClientFromRealmRef(ctx, instance)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
 			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, common.FinalizerName, legacyFinalizerName)
@@ -143,18 +143,18 @@ func (r *RealmComponentReconciler) initializeReconciliation(
 		return nil, nil, "", fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	return instance, kClientV2, realmName, nil
+	return instance, keycloakAPIClient, realmName, nil
 }
 
 func (r *RealmComponentReconciler) handleDeletion(
 	ctx context.Context,
 	instance *keycloakApi.KeycloakRealmComponent,
-	kClientV2 *keycloakv2.KeycloakClient,
+	keycloakAPIClient *keycloakapi.APIClient,
 	realmName string,
 ) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(instance, common.FinalizerName) ||
 		controllerutil.ContainsFinalizer(instance, legacyFinalizerName) {
-		if err := chain.NewRemoveComponent(kClientV2).Serve(ctx, instance, realmName); err != nil {
+		if err := chain.NewRemoveComponent(keycloakAPIClient).Serve(ctx, instance, realmName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove realm component: %w", err)
 		}
 
@@ -172,7 +172,7 @@ func (r *RealmComponentReconciler) handleDeletion(
 func (r *RealmComponentReconciler) handleReconciliation(
 	ctx context.Context,
 	instance *keycloakApi.KeycloakRealmComponent,
-	kClientV2 *keycloakv2.KeycloakClient,
+	keycloakAPIClient *keycloakapi.APIClient,
 	realmName string,
 ) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
@@ -185,7 +185,7 @@ func (r *RealmComponentReconciler) handleReconciliation(
 
 	oldStatus := instance.Status
 
-	if err := chain.MakeChain(r.client, kClientV2, r.secretRefClient).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(r.client, keycloakAPIClient, r.secretRefClient).Serve(ctx, instance, realmName); err != nil {
 		log.Error(err, "An error has occurred while handling KeycloakRealmComponent")
 
 		resultErr := fmt.Errorf("realm component chain processing failed: %w", err)

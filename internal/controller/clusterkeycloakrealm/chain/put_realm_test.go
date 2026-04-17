@@ -13,14 +13,14 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutRealm_ServeRequest(t *testing.T) {
 	t.Parallel()
 
-	notFoundErr := &keycloakv2.ApiError{Code: http.StatusNotFound}
+	notFoundErr := &keycloakapi.ApiError{Code: http.StatusNotFound}
 
 	tests := []struct {
 		name      string
@@ -38,7 +38,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			mockRealm: func(t *testing.T) *v2mocks.MockRealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 				m.EXPECT().GetRealm(mock.Anything, "existing-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 
 				return m
 			},
@@ -55,7 +55,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 				m := v2mocks.NewMockRealmClient(t)
 				m.EXPECT().GetRealm(mock.Anything, "new-realm").
 					Return(nil, nil, notFoundErr)
-				m.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakv2.RealmRepresentation) bool {
+				m.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakapi.RealmRepresentation) bool {
 					return r.Realm != nil && *r.Realm == "new-realm"
 				})).Return(nil, nil)
 
@@ -109,13 +109,13 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: tt.mockRealm(t)}
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: tt.mockRealm(t)}
 			h := NewPutRealm(fake.NewClientBuilder().Build())
 
 			err := h.ServeRequest(
 				ctrl.LoggerInto(context.Background(), logr.Discard()),
 				tt.realm,
-				kClientV2,
+				keycloakAPIClient,
 			)
 
 			tt.wantErr(t, err)

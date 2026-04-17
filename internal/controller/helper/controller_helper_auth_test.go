@@ -17,7 +17,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
@@ -296,7 +296,7 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 	}
 }
 
-func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
+func TestHelper_CreateKeycloakeycloakAPIClientFromRealm(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, keycloakAlpha.AddToScheme(s))
@@ -312,7 +312,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 		realm     *keycloakApi.KeycloakRealm
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, client *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, client *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client from realm",
@@ -355,7 +355,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -417,7 +417,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -441,7 +441,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get keycloak")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -479,7 +479,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				require.Error(t, err)
 				require.ErrorIs(t, err, ErrKeycloakIsNotAvailable)
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -517,7 +517,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -561,7 +561,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -580,7 +580,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
-			client, err := helper.CreateKeycloakClientV2FromRealm(ctx, tt.realm)
+			client, err := helper.CreateKeycloakeycloakAPIClientFromRealm(ctx, tt.realm)
 
 			tt.wantErr(t, err)
 
@@ -591,7 +591,7 @@ func TestHelper_CreateKeycloakClientV2FromRealm(t *testing.T) {
 	}
 }
 
-func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
+func TestHelper_CreateKeycloakeycloakAPIClientFromClusterRealm(t *testing.T) {
 	t.Parallel()
 
 	s := runtime.NewScheme()
@@ -612,7 +612,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 		realm     *keycloakAlpha.ClusterKeycloakRealm
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, client *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, client *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client from cluster realm",
@@ -650,7 +650,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -670,7 +670,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get cluster keycloak")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -703,7 +703,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 				require.Error(t, err)
 				require.ErrorIs(t, err, ErrKeycloakIsNotAvailable)
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -736,7 +736,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -755,7 +755,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
-			client, err := helper.CreateKeycloakClientV2FromClusterRealm(ctx, tt.realm)
+			client, err := helper.CreateKeycloakeycloakAPIClientFromClusterRealm(ctx, tt.realm)
 
 			tt.wantErr(t, err)
 
@@ -766,7 +766,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterRealm(t *testing.T) {
 	}
 }
 
-func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
+func TestHelper_CreateKeycloakeycloakAPIClientFromKeycloak(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
@@ -784,7 +784,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 		kc        *keycloakApi.Keycloak
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, cl *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, cl *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client from keycloak",
@@ -811,7 +811,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.NotNil(t, cl)
 			},
 		},
@@ -851,7 +851,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.NotNil(t, cl)
 			},
 		},
@@ -891,7 +891,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.NotNil(t, cl)
 			},
 		},
@@ -924,7 +924,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to resolve password")
 			},
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.Nil(t, cl)
 			},
 		},
@@ -945,7 +945,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.Nil(t, cl)
 			},
 		},
@@ -985,7 +985,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get ca cert")
 			},
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.Nil(t, cl)
 			},
 		},
@@ -1003,7 +1003,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
-			cl, err := h.CreateKeycloakClientV2FromKeycloak(ctx, tt.kc)
+			cl, err := h.CreateKeycloakeycloakAPIClientFromKeycloak(ctx, tt.kc)
 
 			tt.wantErr(t, err)
 
@@ -1014,7 +1014,7 @@ func TestHelper_CreateKeycloakClientV2FromKeycloak(t *testing.T) {
 	}
 }
 
-func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
+func TestHelper_CreateKeycloakeycloakAPIClientFromClusterKeycloak(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakAlpha.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
@@ -1032,7 +1032,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
 		kc        *keycloakAlpha.ClusterKeycloak
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, cl *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, cl *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client from cluster keycloak",
@@ -1058,7 +1058,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.NotNil(t, cl)
 			},
 		},
@@ -1078,7 +1078,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get credentials")
 			},
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.Nil(t, cl)
 			},
 		},
@@ -1117,7 +1117,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get ca cert")
 			},
-			checkFunc: func(t *testing.T, cl *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, cl *keycloakapi.APIClient) {
 				require.Nil(t, cl)
 			},
 		},
@@ -1136,7 +1136,7 @@ func TestHelper_CreateKeycloakClientV2FromClusterKeycloak(t *testing.T) {
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
-			cl, err := h.CreateKeycloakClientV2FromClusterKeycloak(ctx, tt.kc)
+			cl, err := h.CreateKeycloakeycloakAPIClientFromClusterKeycloak(ctx, tt.kc)
 
 			tt.wantErr(t, err)
 
@@ -1187,7 +1187,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 					},
 				},
 			},
-			wantClientID: keycloakclientv2.DefaultAdminClientID,
+			wantClientID: keycloakapi.DefaultAdminClientID,
 			wantErr:      require.NoError,
 		},
 		{
@@ -1289,7 +1289,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 	}
 }
 
-func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing.T) {
+func TestHelper_createKeycloakeycloakAPIClientFromAuthData_withServiceAccount(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
@@ -1304,7 +1304,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 		authData  *KeycloakAuthData
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, client *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, client *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client with service account admin type",
@@ -1328,7 +1328,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -1364,7 +1364,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -1381,7 +1381,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "one of passwordGrant or clientCredentials must be set")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -1399,7 +1399,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 				operatorNamespace: "default",
 			}
 
-			client, err := helper.createKeycloakClientV2FromAuthData(context.Background(), tt.authData)
+			client, err := helper.createKeycloakeycloakAPIClientFromAuthData(context.Background(), tt.authData)
 
 			tt.wantErr(t, err)
 
@@ -1410,7 +1410,7 @@ func TestHelper_createKeycloakClientV2FromAuthData_withServiceAccount(t *testing
 	}
 }
 
-func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
+func TestHelper_CreateKeycloakeycloakAPIClientFromRealmRef(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, keycloakAlpha.AddToScheme(s))
@@ -1426,7 +1426,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 		object    ObjectWithRealmRef
 		objects   []client.Object
 		wantErr   require.ErrorAssertionFunc
-		checkFunc func(t *testing.T, client *keycloakclientv2.KeycloakClient)
+		checkFunc func(t *testing.T, client *keycloakapi.APIClient)
 	}{
 		{
 			name: "successfully create v2 client from KeycloakRealm ref",
@@ -1481,7 +1481,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -1533,7 +1533,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 				},
 			},
 			wantErr: require.NoError,
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.NotNil(t, client)
 			},
 		},
@@ -1556,7 +1556,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unable to get realm")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -1579,7 +1579,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "unknown realm kind")
 			},
-			checkFunc: func(t *testing.T, client *keycloakclientv2.KeycloakClient) {
+			checkFunc: func(t *testing.T, client *keycloakapi.APIClient) {
 				require.Nil(t, client)
 			},
 		},
@@ -1598,7 +1598,7 @@ func TestHelper_CreateKeycloakClientV2FromRealmRef(t *testing.T) {
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
-			client, err := helper.CreateKeycloakClientV2FromRealmRef(ctx, tt.object)
+			client, err := helper.CreateKeycloakeycloakAPIClientFromRealmRef(ctx, tt.object)
 
 			tt.wantErr(t, err)
 

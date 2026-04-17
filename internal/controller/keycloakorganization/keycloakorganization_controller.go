@@ -17,14 +17,14 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakorganization/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type Helper interface {
-	CreateKeycloakClientV2FromRealmRef(
+	CreateKeycloakeycloakAPIClientFromRealmRef(
 		ctx context.Context,
 		object helper.ObjectWithRealmRef,
-	) (*keycloakv2.KeycloakClient, error)
+	) (*keycloakapi.APIClient, error)
 	GetRealmNameFromRef(
 		ctx context.Context,
 		object helper.ObjectWithRealmRef,
@@ -66,7 +66,7 @@ func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling Organization")
 
-	organization, kClientV2, realmName, err := r.initializeReconciliation(ctx, request)
+	organization, keycloakAPIClient, realmName, err := r.initializeReconciliation(ctx, request)
 	if err != nil {
 		return reconcile.Result{}, err
 	}
@@ -76,13 +76,13 @@ func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile
 	}
 
 	if organization.GetDeletionTimestamp() != nil {
-		return r.handleDeletion(ctx, organization, kClientV2, realmName)
+		return r.handleDeletion(ctx, organization, keycloakAPIClient, realmName)
 	}
 
-	return r.handleReconciliation(ctx, organization, kClientV2, realmName)
+	return r.handleReconciliation(ctx, organization, keycloakAPIClient, realmName)
 }
 
-func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakOrganization, *keycloakv2.KeycloakClient, string, error) {
+func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakOrganization, *keycloakapi.APIClient, string, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	organization := &keycloakApi.KeycloakOrganization{}
@@ -94,7 +94,7 @@ func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, re
 		return nil, nil, "", fmt.Errorf("failed to get KeycloakOrganization: %w", err)
 	}
 
-	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, organization)
+	keycloakAPIClient, err := r.helper.CreateKeycloakeycloakAPIClientFromRealmRef(ctx, organization)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
 			if organization.GetDeletionTimestamp() != nil {
@@ -120,12 +120,12 @@ func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, re
 		return nil, nil, "", fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	return organization, kClientV2, realmName, nil
+	return organization, keycloakAPIClient, realmName, nil
 }
 
-func (r *ReconcileOrganization) handleDeletion(ctx context.Context, organization *keycloakApi.KeycloakOrganization, kClientV2 *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *ReconcileOrganization) handleDeletion(ctx context.Context, organization *keycloakApi.KeycloakOrganization, keycloakAPIClient *keycloakapi.APIClient, realmName string) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(organization, common.FinalizerName) {
-		if err := chain.NewRemoveOrganization(kClientV2).ServeRequest(ctx, organization, realmName); err != nil {
+		if err := chain.NewRemoveOrganization(keycloakAPIClient).ServeRequest(ctx, organization, realmName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove organization: %w", err)
 		}
 
@@ -139,7 +139,7 @@ func (r *ReconcileOrganization) handleDeletion(ctx context.Context, organization
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcileOrganization) handleReconciliation(ctx context.Context, organization *keycloakApi.KeycloakOrganization, kClientV2 *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *ReconcileOrganization) handleReconciliation(ctx context.Context, organization *keycloakApi.KeycloakOrganization, keycloakAPIClient *keycloakapi.APIClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if controllerutil.AddFinalizer(organization, common.FinalizerName) {
@@ -150,7 +150,7 @@ func (r *ReconcileOrganization) handleReconciliation(ctx context.Context, organi
 
 	oldStatus := organization.Status.DeepCopy()
 
-	if err := chain.MakeChain(kClientV2).Serve(ctx, organization, realmName); err != nil {
+	if err := chain.MakeChain(keycloakAPIClient).Serve(ctx, organization, realmName); err != nil {
 		log.Error(err, "An error has occurred while handling Organization")
 
 		organization.Status.Value = err.Error()

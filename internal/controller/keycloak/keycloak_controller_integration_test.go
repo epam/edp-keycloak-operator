@@ -14,7 +14,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var _ = Describe("Keycloak controller", Ordered, func() {
@@ -325,11 +325,11 @@ var _ = Describe("Keycloak controller", Ordered, func() {
 })
 
 func provisionServiceAccountClient(ctx context.Context, keycloakURL, clientID, clientSecret string) (cleanup func(), err error) {
-	adminKC, err := keycloakv2.NewKeycloakClient(
+	adminKC, err := keycloakapi.NewAPIClient(
 		ctx,
 		keycloakURL,
-		keycloakv2.DefaultAdminClientID,
-		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
 	)
 	if err != nil {
 		return nil, err
@@ -340,7 +340,7 @@ func provisionServiceAccountClient(ctx context.Context, keycloakURL, clientID, c
 	enabled := true
 	protocol := "openid-connect"
 
-	_, err = adminKC.Clients.CreateClient(ctx, keycloakv2.MasterRealm, keycloakv2.ClientRepresentation{
+	_, err = adminKC.Clients.CreateClient(ctx, keycloakapi.MasterRealm, keycloakapi.ClientRepresentation{
 		ClientId:               &clientID,
 		Secret:                 &clientSecret,
 		ServiceAccountsEnabled: &saEnabled,
@@ -352,28 +352,28 @@ func provisionServiceAccountClient(ctx context.Context, keycloakURL, clientID, c
 		return nil, err
 	}
 
-	clientUUID, err := adminKC.Clients.GetClientUUID(ctx, keycloakv2.MasterRealm, clientID)
+	clientUUID, err := adminKC.Clients.GetClientUUID(ctx, keycloakapi.MasterRealm, clientID)
 	if err != nil {
 		return nil, err
 	}
 
-	saUser, _, err := adminKC.Clients.GetServiceAccountUser(ctx, keycloakv2.MasterRealm, clientUUID)
+	saUser, _, err := adminKC.Clients.GetServiceAccountUser(ctx, keycloakapi.MasterRealm, clientUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	adminRole, _, err := adminKC.Roles.GetRealmRole(ctx, keycloakv2.MasterRealm, "admin")
+	adminRole, _, err := adminKC.Roles.GetRealmRole(ctx, keycloakapi.MasterRealm, "admin")
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = adminKC.Users.AddUserRealmRoles(ctx, keycloakv2.MasterRealm, *saUser.Id, []keycloakv2.RoleRepresentation{*adminRole})
+	_, err = adminKC.Users.AddUserRealmRoles(ctx, keycloakapi.MasterRealm, *saUser.Id, []keycloakapi.RoleRepresentation{*adminRole})
 	if err != nil {
 		return nil, err
 	}
 
 	cleanup = func() {
-		_, _ = adminKC.Clients.DeleteClient(ctx, keycloakv2.MasterRealm, clientUUID)
+		_, _ = adminKC.Clients.DeleteClient(ctx, keycloakapi.MasterRealm, clientUUID)
 	}
 
 	return cleanup, nil

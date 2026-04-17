@@ -12,7 +12,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var _ = Describe("KeycloakClientScope controller", Ordered, func() {
@@ -578,7 +578,7 @@ var _ = Describe("KeycloakClientScope controller", Ordered, func() {
 	})
 })
 
-func hasDefaultScope(scopes []keycloakv2.ClientScopeRepresentation, name string) bool {
+func hasDefaultScope(scopes []keycloakapi.ClientScopeRepresentation, name string) bool {
 	for _, s := range scopes {
 		if s.Name != nil && *s.Name == name {
 			return true
@@ -588,7 +588,7 @@ func hasDefaultScope(scopes []keycloakv2.ClientScopeRepresentation, name string)
 	return false
 }
 
-func findScopeByName(scopes []keycloakv2.ClientScopeRepresentation, name string) *keycloakv2.ClientScopeRepresentation {
+func findScopeByName(scopes []keycloakapi.ClientScopeRepresentation, name string) *keycloakapi.ClientScopeRepresentation {
 	for i := range scopes {
 		if scopes[i].Name != nil && *scopes[i].Name == name {
 			return &scopes[i]

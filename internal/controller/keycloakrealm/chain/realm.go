@@ -9,7 +9,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type PutRealm struct {
@@ -17,7 +17,7 @@ type PutRealm struct {
 	client client.Client
 }
 
-func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakapi.APIClient) error {
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start putting realm")
 
@@ -25,7 +25,7 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	_, _, err := kClientV2.Realms.GetRealm(ctx, realmName)
 	if err != nil {
-		if !keycloakv2.IsNotFound(err) {
+		if !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("unable to check realm existence: %w", err)
 		}
 
@@ -41,10 +41,10 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	return nextServeOrNil(ctx, h.next, realm, kClientV2)
 }
 
-func (h PutRealm) createRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealm) createRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakapi.APIClient) error {
 	realmName := realm.Spec.RealmName
 
-	if _, err := kClientV2.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+	if _, err := kClientV2.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
 		Realm:   &realmName,
 		Enabled: ptr.To(true),
 	}); err != nil {
@@ -60,7 +60,7 @@ func (h PutRealm) createRealm(ctx context.Context, realm *keycloakApi.KeycloakRe
 	return nil
 }
 
-func (h PutRealm) putRealmRoles(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealm) putRealmRoles(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakapi.APIClient) error {
 	realmName := realm.Spec.RealmName
 	allRoles := make(map[string]struct{})
 
@@ -73,12 +73,12 @@ func (h PutRealm) putRealmRoles(ctx context.Context, realm *keycloakApi.Keycloak
 	for r := range allRoles {
 		_, _, err := kClientV2.Roles.GetRealmRole(ctx, realmName, r)
 		if err != nil {
-			if !keycloakv2.IsNotFound(err) {
+			if !keycloakapi.IsNotFound(err) {
 				return fmt.Errorf("unable to check realm role existence: %w", err)
 			}
 
 			roleName := r
-			if _, err := kClientV2.Roles.CreateRealmRole(ctx, realmName, keycloakv2.RoleRepresentation{Name: &roleName}); err != nil {
+			if _, err := kClientV2.Roles.CreateRealmRole(ctx, realmName, keycloakapi.RoleRepresentation{Name: &roleName}); err != nil {
 				return fmt.Errorf("unable to create new realm role: %w", err)
 			}
 		}

@@ -87,8 +87,7 @@ edp-keycloak-operator/
 │   └── controller/              # Controller implementations
 ├── pkg/                         # Public library code
 │   ├── client/
-│   │   ├── keycloak/            # Legacy gocloak v12 adapter (most controllers still use this)
-│   │   └── keycloakv2/          # New oapi-codegen generated client (migration in progress)
+│   │   └── keycloakapi/         # oapi-codegen generated client
 │   ├── secretref/               # Secret reference utilities
 │   └── util/                    # Utility functions
 └── tests/                       # E2E test files
@@ -141,7 +140,7 @@ Unit tests run by default and don't require external dependencies:
 make test
 
 # Run tests for specific package
-go test ./pkg/client/keycloak/...
+go test ./pkg/client/keycloakapi/...
 
 # Run tests with verbose output
 go test -v ./...
@@ -380,7 +379,7 @@ make manifests # Updates CRD YAML files
 # Map your new field to the corresponding Keycloak client configuration
 
 # 4. Update Keycloak client methods (if needed)
-# Edit files in pkg/client/keycloak/
+# Edit files in pkg/client/keycloakapi/
 # Add new methods to interact with Keycloak API
 
 # 5. Generate mocks for testing
@@ -405,7 +404,7 @@ git push --force-with-lease
 #### Key Files to Modify:
 - **API Definition**: `api/v1/keycloakclient_types.go` - Add the field to the spec
 - **Controller Logic**: `internal/controller/keycloakclient/chain/` - Implement the business logic
-- **Keycloak Client**: `pkg/client/keycloak/` - Add API methods if needed
+- **Keycloak Client**: `pkg/client/keycloakapi/` - Add API methods if needed
 - **Tests**: Write both unit and integration tests
 
 ### Adding a New Custom Resource and Controller
@@ -438,7 +437,7 @@ make manifests
 # Manually update deploy-templates/templates/ to align with generated RBAC
 
 # 5. Implement Keycloak integration
-# Add methods to pkg/client/keycloak/ for your resource
+# Add methods to pkg/client/keycloakapi/ for your resource
 
 # 6. Generate mocks and write tests
 make mocks

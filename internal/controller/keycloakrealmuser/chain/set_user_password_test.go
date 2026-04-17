@@ -15,8 +15,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestNewSetUserPassword(t *testing.T) {
@@ -89,7 +89,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					context.Background(),
 					"test-realm",
 					"user-123",
-					keycloakv2.CredentialRepresentation{
+					keycloakapi.CredentialRepresentation{
 						Type:      ptr.To("password"),
 						Value:     ptr.To("secret-password"),
 						Temporary: ptr.To(false),
@@ -135,7 +135,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					context.Background(),
 					"test-realm",
 					"user-123",
-					keycloakv2.CredentialRepresentation{
+					keycloakapi.CredentialRepresentation{
 						Type:      ptr.To("password"),
 						Value:     ptr.To("temp-password"),
 						Temporary: ptr.To(true),
@@ -272,7 +272,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					context.Background(),
 					"test-realm",
 					"user-123",
-					keycloakv2.CredentialRepresentation{
+					keycloakapi.CredentialRepresentation{
 						Type:      ptr.To("password"),
 						Value:     ptr.To("new-password"),
 						Temporary: ptr.To(false),
@@ -304,7 +304,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					context.Background(),
 					"test-realm",
 					"user-123",
-					keycloakv2.CredentialRepresentation{
+					keycloakapi.CredentialRepresentation{
 						Type:      ptr.To("password"),
 						Value:     ptr.To("inline-password"),
 						Temporary: ptr.To(false),
@@ -411,7 +411,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					context.Background(),
 					"test-realm",
 					"user-123",
-					keycloakv2.CredentialRepresentation{
+					keycloakapi.CredentialRepresentation{
 						Type:      ptr.To("password"),
 						Value:     ptr.To("secret-password"),
 						Temporary: ptr.To(false),
@@ -440,7 +440,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			mockUsers := v2mocks.NewMockUsersClient(t)
 			tt.mockSetup(mockUsers)
 
-			h := NewSetUserPassword(k8sClient, &keycloakv2.KeycloakClient{Users: mockUsers})
+			h := NewSetUserPassword(k8sClient, &keycloakapi.APIClient{Users: mockUsers})
 			userCtx := &UserContext{UserID: "user-123"}
 
 			err := h.Serve(

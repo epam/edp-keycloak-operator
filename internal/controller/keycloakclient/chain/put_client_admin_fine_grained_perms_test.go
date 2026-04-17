@@ -17,8 +17,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
@@ -26,7 +26,7 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 		name              string
 		client            func(t *testing.T) client.Client
 		keycloakClient    client.ObjectKey
-		keycloakApiClient func(t *testing.T) *keycloakv2.KeycloakClient
+		keycloakApiClient func(t *testing.T) *keycloakapi.APIClient
 		wantErr           require.ErrorAssertionFunc
 	}{
 		{
@@ -63,7 +63,7 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				serverMock := keycloakv2Mocks.NewMockServerInfoClient(t)
 				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
@@ -73,10 +73,10 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Once()
 
 				// UpdateClientManagementPermissions
-				clientsMock.On("UpdateClientManagementPermissions", mock.Anything, "realm", "123", mock.MatchedBy(func(p keycloakv2.ManagementPermissionReference) bool {
+				clientsMock.On("UpdateClientManagementPermissions", mock.Anything, "realm", "123", mock.MatchedBy(func(p keycloakapi.ManagementPermissionReference) bool {
 					return p.Enabled != nil && *p.Enabled == true
 				})).
-					Return((*keycloakv2.ManagementPermissionReference)(nil), (*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
 
 				// GetClientUUID for realm-management
 				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
@@ -85,7 +85,7 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 
 				// GetPermissions for realm-management client
 				authzMock.On("GetPermissions", mock.Anything, "realm", "567").
-					Return([]keycloakv2.AbstractPolicyRepresentation{
+					Return([]keycloakapi.AbstractPolicyRepresentation{
 						{
 							Id:   ptr.To("scope-permission-id"),
 							Name: ptr.To("scope permission"),
@@ -95,23 +95,23 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 							Name: ptr.To("map-role.permission.client.123"),
 							Type: ptr.To("scope"),
 						},
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// GetClientManagementPermissions
 				scopePerms := map[string]string{
 					"map-role": "321",
 				}
 				clientsMock.On("GetClientManagementPermissions", mock.Anything, "realm", "123").
-					Return(&keycloakv2.ManagementPermissionReference{
+					Return(&keycloakapi.ManagementPermissionReference{
 						Enabled:          ptr.To(true),
 						ScopePermissions: &scopePerms,
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				// UpdatePermission
 				authzMock.On("UpdatePermission", mock.Anything, "realm", "567", "scope", "scope-permission2-id", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.APIClient{
 					Server:        serverMock,
 					Clients:       clientsMock,
 					Authorization: authzMock,
@@ -153,14 +153,14 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				serverMock := keycloakv2Mocks.NewMockServerInfoClient(t)
 
 				serverMock.On("FeatureFlagEnabled", mock.Anything, "ADMIN_FINE_GRAINED_AUTHZ").
 					Return(false, nil).
 					Once()
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.APIClient{
 					Server: serverMock,
 				}
 			},
@@ -200,14 +200,14 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				Name:      "test-client",
 				Namespace: "default",
 			},
-			keycloakApiClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+			keycloakApiClient: func(t *testing.T) *keycloakapi.APIClient {
 				serverMock := keycloakv2Mocks.NewMockServerInfoClient(t)
 
 				serverMock.On("FeatureFlagEnabled", mock.Anything, "ADMIN_FINE_GRAINED_AUTHZ").
 					Return(false, fmt.Errorf("feature flag check failed")).
 					Once()
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.APIClient{
 					Server: serverMock,
 				}
 			},

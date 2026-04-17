@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // UserContext holds data that is passed between chain handlers.
@@ -63,16 +63,16 @@ func (ch *Chain) Serve(
 
 func MakeChain(
 	k8sClient client.Client,
-	kClientV2 *keycloakv2.KeycloakClient,
+	keycloakAPIClient *keycloakapi.APIClient,
 ) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateUser(k8sClient, kClientV2),
-		NewSetUserPassword(k8sClient, kClientV2),
-		NewSyncUserRoles(kClientV2),
-		NewSyncUserGroups(kClientV2),
-		NewSyncUserIdentityProviders(kClientV2),
+		NewCreateOrUpdateUser(k8sClient, keycloakAPIClient),
+		NewSetUserPassword(k8sClient, keycloakAPIClient),
+		NewSyncUserRoles(keycloakAPIClient),
+		NewSyncUserGroups(keycloakAPIClient),
+		NewSyncUserIdentityProviders(keycloakAPIClient),
 		NewCleanupResource(k8sClient),
 	)
 

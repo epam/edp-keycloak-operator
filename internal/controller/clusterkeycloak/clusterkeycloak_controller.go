@@ -15,11 +15,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type keycloakClientProvider interface {
-	CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakeycloakAPIClientFromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakapi.APIClient, error)
 }
 
 func NewReconcile(
@@ -134,7 +134,7 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 }
 
 func (r *Reconciler) createClient(ctx context.Context, instance *keycloakAlpha.ClusterKeycloak) error {
-	_, err := r.helper.CreateKeycloakClientV2FromClusterKeycloak(ctx, instance)
+	_, err := r.helper.CreateKeycloakeycloakAPIClientFromClusterKeycloak(ctx, instance)
 	if err != nil {
 		return fmt.Errorf("failed to create Keycloak client: %w", err)
 	}

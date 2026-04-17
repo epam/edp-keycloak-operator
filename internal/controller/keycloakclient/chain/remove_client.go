@@ -7,18 +7,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
-func NewRemoveClient(kc *keycloakv2.KeycloakClient) *RemoveClient {
+func NewRemoveClient(kc *keycloakapi.APIClient) *RemoveClient {
 	return &RemoveClient{
 		keycloakClient: kc.Clients,
 	}
 }
 
 type RemoveClient struct {
-	keycloakClient keycloakv2.ClientsClient
+	keycloakClient keycloakapi.ClientsClient
 }
 
 func (h *RemoveClient) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string) error {
@@ -39,7 +39,7 @@ func (h *RemoveClient) Serve(ctx context.Context, keycloakClient *keycloakApi.Ke
 	}
 
 	if _, err := h.keycloakClient.DeleteClient(ctx, realmName, keycloakClient.Status.ClientID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Client not found, skipping deletion.")
 
 			return nil

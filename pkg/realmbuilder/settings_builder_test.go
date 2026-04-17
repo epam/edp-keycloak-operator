@@ -12,8 +12,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestBuildRealmRepresentationFromV1(t *testing.T) {
@@ -23,7 +23,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 	tests := []struct {
 		name  string
 		realm *keycloakApi.KeycloakRealm
-		check func(t *testing.T, got keycloakv2.RealmRepresentation)
+		check func(t *testing.T, got keycloakapi.RealmRepresentation)
 	}{
 		{
 			name: "minimal configuration",
@@ -33,7 +33,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					DisplayHTMLName: "<b>Test</b>",
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
@@ -53,7 +53,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, &loginTheme, got.LoginTheme)
 				assert.Equal(t, &accountTheme, got.AccountTheme)
@@ -67,7 +67,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					FrontendURL: "https://example.com",
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.Attributes)
 				assert.Equal(t, "https://example.com", (*got.Attributes)["frontendUrl"])
@@ -82,7 +82,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.BrowserSecurityHeaders)
 				assert.Equal(t, "SAMEORIGIN", (*got.BrowserSecurityHeaders)["X-Frame-Options"])
@@ -98,7 +98,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.PasswordPolicy)
 				assert.Equal(t, "length(8) and upperCase(1)", *got.PasswordPolicy)
@@ -120,7 +120,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("RS256"), got.DefaultSignatureAlgorithm)
 				assert.Equal(t, ptr.To(true), got.RevokeRefreshToken)
@@ -142,7 +142,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.Attributes)
 				assert.Equal(t, "3600", (*got.Attributes)["adminEventsExpiration"])
@@ -158,7 +158,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				if got.Attributes != nil {
 					assert.NotContains(t, *got.Attributes, "adminEventsExpiration")
@@ -181,7 +181,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To(true), got.RegistrationAllowed)
 				assert.Equal(t, ptr.To(true), got.ResetPasswordAllowed)
@@ -216,7 +216,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To(int32(1800)), got.SsoSessionIdleTimeout)
 				assert.Equal(t, ptr.To(int32(36000)), got.SsoSessionMaxLifespan)
@@ -245,7 +245,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 	tests := []struct {
 		name  string
 		realm *v1alpha1.ClusterKeycloakRealm
-		check func(t *testing.T, got keycloakv2.RealmRepresentation)
+		check func(t *testing.T, got keycloakapi.RealmRepresentation)
 	}{
 		{
 			name: "minimal configuration",
@@ -255,7 +255,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					DisplayHTMLName: "<b>Test</b>",
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
@@ -271,7 +271,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, &loginTheme, got.LoginTheme)
 				assert.Nil(t, got.InternationalizationEnabled)
@@ -286,7 +286,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To(true), got.InternationalizationEnabled)
 				assert.Nil(t, got.LoginTheme)
@@ -299,7 +299,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					FrontendURL: "https://example.com",
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.Attributes)
 				assert.Equal(t, "https://example.com", (*got.Attributes)["frontendUrl"])
@@ -315,7 +315,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.PasswordPolicy)
 				assert.Equal(t, "length(8) and digits(1)", *got.PasswordPolicy)
@@ -331,7 +331,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("ES256"), got.DefaultSignatureAlgorithm)
 				assert.Equal(t, ptr.To(int32(600)), got.AccessTokenLifespan)
@@ -347,7 +347,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				require.NotNil(t, got.Attributes)
 				assert.Equal(t, "7200", (*got.Attributes)["adminEventsExpiration"])
@@ -364,7 +364,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To(true), got.RegistrationAllowed)
 				assert.Equal(t, ptr.To(true), got.RememberMe)
@@ -383,7 +383,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 					},
 				},
 			},
-			check: func(t *testing.T, got keycloakv2.RealmRepresentation) {
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To(int32(900)), got.SsoSessionIdleTimeout)
 				assert.Equal(t, ptr.To(int32(18000)), got.SsoSessionMaxLifespan)
@@ -401,11 +401,11 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 
 func TestMergeRealmRepresentation(t *testing.T) {
 	t.Run("nil overlay pointer fields do not overwrite base", func(t *testing.T) {
-		base := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{
 			DisplayName:          ptr.To("Original"),
 			OrganizationsEnabled: ptr.To(true),
 		}
-		overlay := keycloakv2.RealmRepresentation{
+		overlay := keycloakapi.RealmRepresentation{
 			DisplayName: nil,
 		}
 
@@ -416,11 +416,11 @@ func TestMergeRealmRepresentation(t *testing.T) {
 	})
 
 	t.Run("non-nil overlay pointer fields overwrite base", func(t *testing.T) {
-		base := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{
 			DisplayName: ptr.To("Original"),
 			LoginTheme:  ptr.To("old-theme"),
 		}
-		overlay := keycloakv2.RealmRepresentation{
+		overlay := keycloakapi.RealmRepresentation{
 			DisplayName: ptr.To("Updated"),
 			LoginTheme:  ptr.To("new-theme"),
 		}
@@ -440,10 +440,10 @@ func TestMergeRealmRepresentation(t *testing.T) {
 			"X-Frame-Options":           "DENY",
 			"Strict-Transport-Security": "max-age=31536000",
 		}
-		base := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{
 			BrowserSecurityHeaders: &baseHeaders,
 		}
-		overlay := keycloakv2.RealmRepresentation{
+		overlay := keycloakapi.RealmRepresentation{
 			BrowserSecurityHeaders: &overlayHeaders,
 		}
 
@@ -460,8 +460,8 @@ func TestMergeRealmRepresentation(t *testing.T) {
 
 	t.Run("nil base BrowserSecurityHeaders initialised from overlay", func(t *testing.T) {
 		overlayHeaders := map[string]string{"X-Frame-Options": "DENY"}
-		base := keycloakv2.RealmRepresentation{}
-		overlay := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{}
+		overlay := keycloakapi.RealmRepresentation{
 			BrowserSecurityHeaders: &overlayHeaders,
 		}
 
@@ -479,8 +479,8 @@ func TestMergeRealmRepresentation(t *testing.T) {
 		overlayAttrs := map[string]string{
 			"frontendUrl": "https://new.com",
 		}
-		base := keycloakv2.RealmRepresentation{Attributes: &baseAttrs}
-		overlay := keycloakv2.RealmRepresentation{Attributes: &overlayAttrs}
+		base := keycloakapi.RealmRepresentation{Attributes: &baseAttrs}
+		overlay := keycloakapi.RealmRepresentation{Attributes: &overlayAttrs}
 
 		MergeRealmRepresentation(&base, &overlay)
 
@@ -490,10 +490,10 @@ func TestMergeRealmRepresentation(t *testing.T) {
 	})
 
 	t.Run("PasswordPolicy string replaced not merged", func(t *testing.T) {
-		base := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{
 			PasswordPolicy: ptr.To("length(6)"),
 		}
-		overlay := keycloakv2.RealmRepresentation{
+		overlay := keycloakapi.RealmRepresentation{
 			PasswordPolicy: ptr.To("length(8) and upperCase(1)"),
 		}
 
@@ -503,11 +503,11 @@ func TestMergeRealmRepresentation(t *testing.T) {
 	})
 
 	t.Run("token settings merged correctly", func(t *testing.T) {
-		base := keycloakv2.RealmRepresentation{
+		base := keycloakapi.RealmRepresentation{
 			AccessTokenLifespan: ptr.To(int32(300)),
 			RevokeRefreshToken:  ptr.To(false),
 		}
-		overlay := keycloakv2.RealmRepresentation{
+		overlay := keycloakapi.RealmRepresentation{
 			AccessTokenLifespan: ptr.To(int32(600)),
 			RevokeRefreshToken:  ptr.To(true),
 		}
@@ -546,7 +546,7 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm",
-					mock.MatchedBy(func(rep keycloakv2.RealmEventsConfigRepresentation) bool {
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
 						return rep.AdminEventsDetailsEnabled != nil && *rep.AdminEventsDetailsEnabled &&
 							rep.AdminEventsEnabled != nil && *rep.AdminEventsEnabled &&
 							rep.EventsEnabled != nil && *rep.EventsEnabled &&
@@ -565,7 +565,7 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm",
-					mock.MatchedBy(func(rep keycloakv2.RealmEventsConfigRepresentation) bool {
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
 						return rep.EnabledEventTypes == nil && rep.EventsListeners == nil
 					})).Return(nil, nil)
 			},
@@ -603,17 +603,17 @@ func TestApplyRealmSettings(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		overlay   keycloakv2.RealmRepresentation
+		overlay   keycloakapi.RealmRepresentation
 		setupMock func(*v2mocks.MockRealmClient)
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
 			name:    "successful — GetRealm, merge, UpdateRealm",
-			overlay: keycloakv2.RealmRepresentation{DisplayName: ptr.To("My Realm")},
+			overlay: keycloakapi.RealmRepresentation{DisplayName: ptr.To("My Realm")},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
-				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakv2.RealmRepresentation) bool {
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
 					return rep.DisplayName != nil && *rep.DisplayName == "My Realm"
 				})).Return(nil, nil)
 			},
@@ -621,7 +621,7 @@ func TestApplyRealmSettings(t *testing.T) {
 		},
 		{
 			name:    "GetRealm fails — error returned",
-			overlay: keycloakv2.RealmRepresentation{},
+			overlay: keycloakapi.RealmRepresentation{},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
 					Return(nil, nil, assert.AnError)
@@ -633,10 +633,10 @@ func TestApplyRealmSettings(t *testing.T) {
 		},
 		{
 			name:    "UpdateRealm fails — error returned",
-			overlay: keycloakv2.RealmRepresentation{},
+			overlay: keycloakapi.RealmRepresentation{},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, assert.AnError)
 			},

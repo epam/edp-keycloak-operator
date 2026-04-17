@@ -9,16 +9,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // CreateOrUpdateAuthFlow creates or ensures the base auth flow exists in Keycloak.
 // It ports the logic of syncBaseAuthFlow from the legacy gocloak adapter.
 type CreateOrUpdateAuthFlow struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewCreateOrUpdateAuthFlow(kClientV2 *keycloakv2.KeycloakClient) *CreateOrUpdateAuthFlow {
+func NewCreateOrUpdateAuthFlow(kClientV2 *keycloakapi.APIClient) *CreateOrUpdateAuthFlow {
 	return &CreateOrUpdateAuthFlow{kClientV2: kClientV2}
 }
 
@@ -68,7 +68,7 @@ func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *ke
 		return fmt.Errorf("failed to create auth flow: %w", err)
 	}
 
-	flow.Status.ID = keycloakv2.GetResourceIDFromResponse(resp)
+	flow.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
 	if flow.Status.ID == "" {
 		return fmt.Errorf("auth flow Location header missing or empty for alias %q", flow.Spec.Alias)
 	}
@@ -172,11 +172,11 @@ func (h *CreateOrUpdateAuthFlow) validateChildFlows(ctx context.Context, flow *k
 	return nil
 }
 
-func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakv2.AuthFlowRepresentation {
+func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakapi.AuthFlowRepresentation {
 	builtIn := spec.BuiltIn
 	topLevel := spec.TopLevel
 
-	return keycloakv2.AuthFlowRepresentation{
+	return keycloakapi.AuthFlowRepresentation{
 		Alias:       &spec.Alias,
 		Description: &spec.Description,
 		ProviderId:  &spec.ProviderID,
@@ -186,9 +186,9 @@ func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakv2.AuthF
 }
 
 func findExecByDisplayName(
-	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	execs []keycloakapi.AuthenticationExecutionInfoRepresentation,
 	displayName string,
-) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+) *keycloakapi.AuthenticationExecutionInfoRepresentation {
 	for i := range execs {
 		if execs[i].DisplayName != nil && *execs[i].DisplayName == displayName {
 			return &execs[i]

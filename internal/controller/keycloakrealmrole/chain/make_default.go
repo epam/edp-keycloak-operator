@@ -7,14 +7,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type MakeDefault struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewMakeDefault(kClientV2 *keycloakv2.KeycloakClient) *MakeDefault {
+func NewMakeDefault(kClientV2 *keycloakapi.APIClient) *MakeDefault {
 	return &MakeDefault{kClientV2: kClientV2}
 }
 
@@ -34,7 +34,7 @@ func (h *MakeDefault) Serve(
 	name := role.Spec.Name
 	defaultRoleName := "default-roles-" + realmName
 
-	if _, err := h.kClientV2.Roles.AddRealmRoleComposites(ctx, realmName, defaultRoleName, []keycloakv2.RoleRepresentation{
+	if _, err := h.kClientV2.Roles.AddRealmRoleComposites(ctx, realmName, defaultRoleName, []keycloakapi.RoleRepresentation{
 		{
 			Id:   &roleCtx.RoleID,
 			Name: &name,

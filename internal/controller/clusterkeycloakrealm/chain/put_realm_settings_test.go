@@ -12,8 +12,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutRealmSettings_ServeRequest(t *testing.T) {
@@ -34,7 +34,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},
@@ -82,7 +82,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},
@@ -125,7 +125,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, assert.AnError)
 			},
@@ -141,9 +141,9 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			tt.setupMocks(mockRealm)
 
 			handler := NewPutRealmSettings()
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
+			err := handler.ServeRequest(context.Background(), tt.realm, keycloakAPIClient)
 
 			if tt.expectedError != "" {
 				assert.Error(t, err)
@@ -200,14 +200,14 @@ func TestPutRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 
 			mockRealm := v2mocks.NewMockRealmClient(t)
 			mockRealm.EXPECT().GetRealm(mock.Anything, "test-realm").
-				Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 			mockRealm.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 				Return(nil, nil)
 
 			handler := NewPutRealmSettings()
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
+			err := handler.ServeRequest(context.Background(), tt.realm, keycloakAPIClient)
 			tt.expectedError(t, err)
 		})
 	}
@@ -273,14 +273,14 @@ func TestPutRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 
 			mockRealm := v2mocks.NewMockRealmClient(t)
 			mockRealm.EXPECT().GetRealm(mock.Anything, "test-realm").
-				Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+				Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 			mockRealm.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 				Return(nil, nil)
 
 			handler := NewPutRealmSettings()
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-			err := handler.ServeRequest(context.Background(), tt.realm, kClientV2)
+			err := handler.ServeRequest(context.Background(), tt.realm, keycloakAPIClient)
 			tt.expectedError(t, err)
 		})
 	}

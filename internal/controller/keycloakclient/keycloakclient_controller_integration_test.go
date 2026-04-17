@@ -16,7 +16,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -227,10 +227,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 	It("Should create KeycloakClient with empty secret", func() {
 		By("Creating group for service account")
-		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-group"),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
@@ -418,10 +418,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 	It("Should create KeycloakClient with service account full config", func() {
 		By("Creating group for service account")
-		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-sa-group"),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakClient with full service account config")
 		keycloakClient := &keycloakApi.KeycloakClient{
@@ -579,7 +579,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		mappers, _, err := keycloakAdmin.Clients.GetClientProtocolMappers(ctx, KeycloakRealmCR, *existingClient.Id)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var foundMapper *keycloakv2.ProtocolMapperRepresentation
+		var foundMapper *keycloakapi.ProtocolMapperRepresentation
 		for i := range mappers {
 			if mappers[i].Name != nil && *mappers[i].Name == "test-hardcoded-claim" {
 				foundMapper = &mappers[i]
@@ -666,10 +666,10 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 	It("Should create KeycloakClient with realm roles", func() {
 		By("Creating base realm role for composite")
-		_, err := keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err := keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: ptr.To("test-composite-base"),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakClient with realm roles")
 		keycloakClient := &keycloakApi.KeycloakClient{
@@ -737,23 +737,23 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		Expect(k8sClient.Create(ctx, clientSecret)).Should(Succeed())
 
 		By("Creating group for policy")
-		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err := keycloakAdmin.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-policy-group"),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating role for policy")
-		_, err = keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err = keycloakAdmin.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: ptr.To("test-policy-role"),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating user for policy")
-		_, err = keycloakAdmin.Users.CreateUser(ctx, KeycloakRealmCR, keycloakv2.UserRepresentation{
+		_, err = keycloakAdmin.Users.CreateUser(ctx, KeycloakRealmCR, keycloakapi.UserRepresentation{
 			Username: ptr.To("test-policy-user"),
 			Enabled:  ptr.To(true),
 		})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
@@ -897,7 +897,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		resources, _, err := keycloakAdmin.Authorization.GetResources(ctx, KeycloakRealmCR, authClientUUID)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		var testResource *keycloakv2.ResourceRepresentation
+		var testResource *keycloakapi.ResourceRepresentation
 		for i := range resources {
 			if resources[i].Name != nil && *resources[i].Name == "test-resource" {
 				testResource = &resources[i]
@@ -943,18 +943,18 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 		By("Creating scope for permission")
 		_, err = keycloakAdmin.Authorization.CreateScope(ctx, KeycloakRealmCR, clientUUID,
-			keycloakv2.ScopeRepresentation{
+			keycloakapi.ScopeRepresentation{
 				Name: ptr.To("test-scope"),
 			})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Creating resource for permission")
 		_, _, err = keycloakAdmin.Authorization.CreateResource(ctx, KeycloakRealmCR, clientUUID,
-			keycloakv2.ResourceRepresentation{
+			keycloakapi.ResourceRepresentation{
 				Name:               ptr.To("test-resource"),
 				OwnerManagedAccess: ptr.To(false),
 			})
-		Expect(keycloakv2.SkipConflict(err)).ShouldNot(HaveOccurred())
+		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
 		By("Getting KeycloakClient for update")
 		clientToUpdate := &keycloakApi.KeycloakClient{}

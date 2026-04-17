@@ -15,7 +15,7 @@ import (
 	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -25,7 +25,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 	)
 
 	var (
-		keycloakClientV2 *keycloakv2.KeycloakClient
+		keycloakClientV2 *keycloakapi.APIClient
 		h                helper.ControllerHelper
 	)
 
@@ -38,7 +38,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 		_, err := keycloakAdminClient.IdentityProviders.CreateIdentityProvider(
 			ctx,
 			KeycloakRealmCR,
-			keycloakv2.IdentityProviderRepresentation{
+			keycloakapi.IdentityProviderRepresentation{
 				Alias:       ptr.To("test-org-idp"),
 				DisplayName: ptr.To("Test Organization Identity Provider"),
 				ProviderId:  ptr.To("github"),
@@ -49,7 +49,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 				},
 			},
 		)
-		if !keycloakv2.IsConflict(err) {
+		if !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -89,7 +89,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 			g.Expect(createdOrg.Status.Value).Should(Equal(common.StatusOK))
 			g.Expect(createdOrg.Status.OrganizationID).ShouldNot(BeEmpty())
 
-			keycloakClientV2, err = h.CreateKeycloakClientV2FromRealmRef(ctx, createdOrg)
+			keycloakClientV2, err = h.CreateKeycloakeycloakAPIClientFromRealmRef(ctx, createdOrg)
 			g.Expect(err).ShouldNot(HaveOccurred())
 		}).WithTimeout(time.Second * 30).WithPolling(time.Second).Should(Succeed())
 

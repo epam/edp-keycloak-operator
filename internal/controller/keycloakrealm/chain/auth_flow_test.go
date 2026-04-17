@@ -11,8 +11,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestAuthFlow_ServeRequest(t *testing.T) {
@@ -34,8 +34,8 @@ func TestAuthFlow_ServeRequest(t *testing.T) {
 
 	realm.Spec.BrowserFlow = ptr.To("flow-alias-1")
 
-	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
-	err = af.ServeRequest(ctx, &realm, kClientV2)
+	keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
+	err = af.ServeRequest(ctx, &realm, keycloakAPIClient)
 	require.NoError(t, err)
 }
 
@@ -55,9 +55,9 @@ func TestAuthFlow_ServeRequest_Failure(t *testing.T) {
 
 	realm.Spec.BrowserFlow = ptr.To("flow-alias-1")
 
-	kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+	keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealm}
 
-	err := af.ServeRequest(context.Background(), &realm, kClientV2)
+	err := af.ServeRequest(context.Background(), &realm, keycloakAPIClient)
 	if err == nil {
 		t.Fatal("no error on mock fatal")
 	}

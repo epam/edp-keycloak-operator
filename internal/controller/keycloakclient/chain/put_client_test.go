@@ -21,8 +21,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
@@ -35,7 +35,7 @@ func TestPutClient_Serve(t *testing.T) {
 
 	type args struct {
 		keycloakClient client.ObjectKey
-		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
+		kClient        func(t *testing.T) *keycloakapi.APIClient
 	}
 
 	tests := []struct {
@@ -84,21 +84,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{
 								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -147,21 +147,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{
 								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -204,21 +204,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{
 								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -267,16 +267,16 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("123")}, (*keycloakv2.Response)(nil), nil)
+						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("123")}, (*keycloakapi.Response)(nil), nil)
 
 					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
-						Return((*keycloakv2.Response)(nil), nil)
+						Return((*keycloakapi.Response)(nil), nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -320,21 +320,21 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{
 								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -381,12 +381,12 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
 
 					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
-						Return([]keycloakv2.AuthenticationFlowRepresentation{
+						Return([]keycloakapi.AuthenticationFlowRepresentation{
 							{
 								Id:    ptr.To("A39C9C6E-430A-4891-8592-FC195AF2581B"),
 								Alias: ptr.To("browser"),
@@ -395,20 +395,20 @@ func TestPutClient_Serve(t *testing.T) {
 								Id:    ptr.To("8BF514C6-922C-44A0-8F90-488D1B9DE437"),
 								Alias: ptr.To("direct grant"),
 							},
-						}, (*keycloakv2.Response)(nil), nil)
+						}, (*keycloakapi.Response)(nil), nil)
 
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{
 								Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
 							},
 						}, nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock, Realms: realmsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock, Realms: realmsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -454,12 +454,12 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
 					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
-						Return(nil, (*keycloakv2.Response)(nil), errors.New("realm api error"))
+						Return(nil, (*keycloakapi.Response)(nil), errors.New("realm api error"))
 
-					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+					return &keycloakapi.APIClient{Realms: realmsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -508,14 +508,14 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
 					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
-						Return([]keycloakv2.AuthenticationFlowRepresentation{
+						Return([]keycloakapi.AuthenticationFlowRepresentation{
 							{Id: ptr.To("id1"), Alias: ptr.To("browser")},
-						}, (*keycloakv2.Response)(nil), nil)
+						}, (*keycloakapi.Response)(nil), nil)
 
-					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+					return &keycloakapi.APIClient{Realms: realmsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -565,14 +565,14 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					realmsMock := keycloakv2Mocks.NewMockRealmClient(t)
 					realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
-						Return([]keycloakv2.AuthenticationFlowRepresentation{
+						Return([]keycloakapi.AuthenticationFlowRepresentation{
 							{Id: ptr.To("id1"), Alias: ptr.To("browser")},
-						}, (*keycloakv2.Response)(nil), nil)
+						}, (*keycloakapi.Response)(nil), nil)
 
-					return &keycloakv2.KeycloakClient{Realms: realmsMock}
+					return &keycloakapi.APIClient{Realms: realmsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -619,12 +619,12 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("connection refused"))
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("connection refused"))
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -671,14 +671,14 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("123")}, (*keycloakv2.Response)(nil), nil)
+						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("123")}, (*keycloakapi.Response)(nil), nil)
 					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
-						Return((*keycloakv2.Response)(nil), errors.New("update failed"))
+						Return((*keycloakapi.Response)(nil), errors.New("update failed"))
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -725,15 +725,15 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return((*keycloakv2.Response)(nil), errors.New("create failed"))
+						Return((*keycloakapi.Response)(nil), errors.New("create failed"))
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -780,19 +780,19 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return(&keycloakv2.ClientRepresentation{Id: ptr.To("456")}, (*keycloakv2.Response)(nil), nil)
+						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("456")}, (*keycloakapi.Response)(nil), nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: require.NoError,
@@ -836,19 +836,19 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("lookup failed"))
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("lookup failed"))
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -895,19 +895,19 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
 					clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), keycloakv2.ErrNotFound).
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
-						Return(&keycloakv2.Response{
+						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
 					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
-						Return((*keycloakv2.ClientRepresentation)(nil), (*keycloakv2.Response)(nil), nil)
+						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), nil)
 
-					return &keycloakv2.KeycloakClient{Clients: clientsMock}
+					return &keycloakapi.APIClient{Clients: clientsMock}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -958,8 +958,8 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-					return &keycloakv2.KeycloakClient{}
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
+					return &keycloakapi.APIClient{}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -1011,8 +1011,8 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-					return &keycloakv2.KeycloakClient{}
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
+					return &keycloakapi.APIClient{}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -1059,8 +1059,8 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-					return &keycloakv2.KeycloakClient{}
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
+					return &keycloakapi.APIClient{}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -1107,8 +1107,8 @@ func TestPutClient_Serve(t *testing.T) {
 					Name:      "test-client",
 					Namespace: "default",
 				},
-				kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-					return &keycloakv2.KeycloakClient{}
+				kClient: func(t *testing.T) *keycloakapi.APIClient {
+					return &keycloakapi.APIClient{}
 				},
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -1156,12 +1156,12 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		spec              keycloakApi.KeycloakClientSpec
 		clientSecret      string
 		authFlowOverrides map[string]string
-		check             func(t *testing.T, cr keycloakv2.ClientRepresentation)
+		check             func(t *testing.T, cr keycloakapi.ClientRepresentation)
 	}{
 		{
 			name: "minimal - ClientId only",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "my-client"},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, "my-client", *cr.ClientId)
 				require.Nil(t, cr.Protocol)
 				require.Nil(t, cr.RootUrl)
@@ -1177,7 +1177,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		{
 			name: "with protocol",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", Protocol: ptr.To("saml")},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.NotNil(t, cr.Protocol)
 				require.Equal(t, "saml", *cr.Protocol)
 			},
@@ -1185,7 +1185,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		{
 			name: "WebUrl without HomeUrl",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com"},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, "https://example.com", *cr.RootUrl)
 				require.Equal(t, "https://example.com", *cr.BaseUrl)
 				require.Equal(t, []string{"https://example.com/*"}, *cr.RedirectUris)
@@ -1195,7 +1195,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		{
 			name: "WebUrl with HomeUrl",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", HomeUrl: "https://home.example.com"},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, "https://example.com", *cr.RootUrl)
 				require.Equal(t, "https://home.example.com", *cr.BaseUrl)
 			},
@@ -1203,21 +1203,21 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		{
 			name: "explicit RedirectUris overrides WebUrl fallback",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", RedirectUris: []string{"https://example.com/callback"}},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, []string{"https://example.com/callback"}, *cr.RedirectUris)
 			},
 		},
 		{
 			name: "explicit WebOrigins overrides WebUrl fallback",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", WebOrigins: []string{"https://other.example.com"}},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, []string{"https://other.example.com"}, *cr.WebOrigins)
 			},
 		},
 		{
 			name: "with Attributes",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", Attributes: map[string]string{"key": "val"}},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.NotNil(t, cr.Attributes)
 				require.Equal(t, "val", (*cr.Attributes)["key"])
 			},
@@ -1225,7 +1225,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		{
 			name: "with AdminUrl",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", AdminUrl: "https://admin.example.com"},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, "https://admin.example.com", *cr.AdminUrl)
 			},
 		},
@@ -1233,7 +1233,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 			name:         "with clientSecret",
 			spec:         keycloakApi.KeycloakClientSpec{ClientId: "c"},
 			clientSecret: "supersecret",
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, "supersecret", *cr.Secret)
 			},
 		},
@@ -1241,7 +1241,7 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 			name:              "with authFlowOverrides",
 			spec:              keycloakApi.KeycloakClientSpec{ClientId: "c"},
 			authFlowOverrides: map[string]string{"browser": "flow-id-1"},
-			check: func(t *testing.T, cr keycloakv2.ClientRepresentation) {
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.NotNil(t, cr.AuthenticationFlowBindingOverrides)
 				require.Equal(t, "flow-id-1", (*cr.AuthenticationFlowBindingOverrides)["browser"])
 			},

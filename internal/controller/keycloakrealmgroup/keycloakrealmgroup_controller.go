@@ -16,7 +16,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmgroup/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -27,7 +27,7 @@ type Helper interface {
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
 	TryToDelete(ctx context.Context, obj client.Object, terminator helper.Terminator, finalizer string) (isDeleted bool, resultErr error)
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakeycloakAPIClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.APIClient, error)
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
 }
 
@@ -122,7 +122,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, keycloakRealmGroup)
+	keycloakAPIClient, err := r.helper.CreateKeycloakeycloakAPIClientFromRealmRef(ctx, keycloakRealmGroup)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
 			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmGroup, keyCloakRealmGroupOperatorFinalizerName); removeErr != nil {
@@ -144,7 +144,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		ctx,
 		keycloakRealmGroup,
 		makeTerminator(
-			kClientV2,
+			keycloakAPIClient,
 			realmName,
 			keycloakRealmGroup.Status.ID,
 			keycloakRealmGroup.Spec.Name,
@@ -171,7 +171,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		GroupID:       keycloakRealmGroup.Status.ID,
 	}
 
-	if err := chain.MakeChain().Serve(ctx, keycloakRealmGroup, kClientV2, groupCtx); err != nil {
+	if err := chain.MakeChain().Serve(ctx, keycloakRealmGroup, keycloakAPIClient, groupCtx); err != nil {
 		return fmt.Errorf("error during realm group chain: %w", err)
 	}
 

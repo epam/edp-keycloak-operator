@@ -7,16 +7,16 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 // RemoveComponent deletes a realm component from Keycloak.
 type RemoveComponent struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewRemoveComponent(kClientV2 *keycloakv2.KeycloakClient) *RemoveComponent {
+func NewRemoveComponent(kClientV2 *keycloakapi.APIClient) *RemoveComponent {
 	return &RemoveComponent{kClientV2: kClientV2}
 }
 
@@ -52,7 +52,7 @@ func (h *RemoveComponent) Serve(
 	}
 
 	if _, err := h.kClientV2.RealmComponents.DeleteComponent(ctx, realmName, componentID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Realm component not found, skipping deletion")
 
 			return nil

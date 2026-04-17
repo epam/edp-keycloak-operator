@@ -11,16 +11,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type ServiceAccount struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.APIClient
 	k8sClient client.Client
 }
 
-func NewServiceAccount(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ServiceAccount {
+func NewServiceAccount(kClient *keycloakapi.APIClient, k8sClient client.Client) *ServiceAccount {
 	return &ServiceAccount{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -129,7 +129,7 @@ func (h *ServiceAccount) syncRealmRoles(
 		return fmt.Errorf("unable to get user realm role mappings: %w", err)
 	}
 
-	currentRoleMap := maputil.SliceToMapSelf(currentRoles, func(r keycloakv2.RoleRepresentation) (string, bool) {
+	currentRoleMap := maputil.SliceToMapSelf(currentRoles, func(r keycloakapi.RoleRepresentation) (string, bool) {
 		return *r.Name, r.Name != nil
 	})
 
@@ -139,7 +139,7 @@ func (h *ServiceAccount) syncRealmRoles(
 	}
 
 	// Add missing roles
-	var toAdd []keycloakv2.RoleRepresentation
+	var toAdd []keycloakapi.RoleRepresentation
 
 	for _, roleName := range desiredRoleNames {
 		if _, exists := currentRoleMap[roleName]; !exists {
@@ -160,7 +160,7 @@ func (h *ServiceAccount) syncRealmRoles(
 
 	// Remove extra roles (unless addOnly)
 	if !addOnly {
-		var toRemove []keycloakv2.RoleRepresentation
+		var toRemove []keycloakapi.RoleRepresentation
 
 		for name, role := range currentRoleMap {
 			if !desiredSet[name] {
@@ -203,7 +203,7 @@ func (h *ServiceAccount) syncClientRoles(
 			return fmt.Errorf("unable to get user client role mappings for client %s: %w", targetClientID, err)
 		}
 
-		currentRoleMap := maputil.SliceToMapSelf(currentRoles, func(r keycloakv2.RoleRepresentation) (string, bool) {
+		currentRoleMap := maputil.SliceToMapSelf(currentRoles, func(r keycloakapi.RoleRepresentation) (string, bool) {
 			return *r.Name, r.Name != nil
 		})
 
@@ -213,7 +213,7 @@ func (h *ServiceAccount) syncClientRoles(
 		}
 
 		// Add missing roles
-		var toAdd []keycloakv2.RoleRepresentation
+		var toAdd []keycloakapi.RoleRepresentation
 
 		for _, roleName := range desiredRoleNames {
 			if _, exists := currentRoleMap[roleName]; !exists {
@@ -234,7 +234,7 @@ func (h *ServiceAccount) syncClientRoles(
 
 		// Remove extra roles (unless addOnly)
 		if !addOnly {
-			var toRemove []keycloakv2.RoleRepresentation
+			var toRemove []keycloakapi.RoleRepresentation
 
 			for name, role := range currentRoleMap {
 				if !desiredSet[name] {
@@ -266,8 +266,8 @@ func (h *ServiceAccount) syncGroups(
 	}
 
 	currentGroupMap := maputil.SliceToMap(currentGroups, // name -> id
-		func(g keycloakv2.GroupRepresentation) (string, bool) { return *g.Name, g.Name != nil && g.Id != nil },
-		func(g keycloakv2.GroupRepresentation) string { return *g.Id },
+		func(g keycloakapi.GroupRepresentation) (string, bool) { return *g.Name, g.Name != nil && g.Id != nil },
+		func(g keycloakapi.GroupRepresentation) string { return *g.Id },
 	)
 
 	desiredSet := make(map[string]bool, len(desiredGroupNames))
@@ -282,8 +282,8 @@ func (h *ServiceAccount) syncGroups(
 	}
 
 	allGroupMap := maputil.SliceToMap(allGroups, // name -> id
-		func(g keycloakv2.GroupRepresentation) (string, bool) { return *g.Name, g.Name != nil && g.Id != nil },
-		func(g keycloakv2.GroupRepresentation) string { return *g.Id },
+		func(g keycloakapi.GroupRepresentation) (string, bool) { return *g.Name, g.Name != nil && g.Id != nil },
+		func(g keycloakapi.GroupRepresentation) string { return *g.Id },
 	)
 
 	// Add user to missing groups
@@ -332,7 +332,7 @@ func (h *ServiceAccount) setAttributes(
 		maps.Copy(updatedAttrs, desiredAttributes)
 	}
 
-	userUpdate := keycloakv2.UserRepresentation{
+	userUpdate := keycloakapi.UserRepresentation{
 		Attributes: &updatedAttrs,
 	}
 

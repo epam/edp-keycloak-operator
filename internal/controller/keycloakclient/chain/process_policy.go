@@ -10,18 +10,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 const policyLogKey = "policy"
 
 type ProcessPolicy struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.APIClient
 	k8sClient client.Client
 }
 
-func NewProcessPolicy(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *ProcessPolicy {
+func NewProcessPolicy(kClient *keycloakapi.APIClient, k8sClient client.Client) *ProcessPolicy {
 	return &ProcessPolicy{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -43,13 +43,13 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		return fmt.Errorf("failed to get policies: %w", err)
 	}
 
-	existingPolicies := maputil.SliceToMapSelf(policiesList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
+	existingPolicies := maputil.SliceToMapSelf(policiesList, func(p keycloakapi.AbstractPolicyRepresentation) (string, bool) {
 		return *p.Name, p.Name != nil
 	})
 
 	// policiesToDelete tracks orphaned policies for cleanup; kept separate so
 	// existingPolicies can still be used as an ID-lookup table for aggregate policies.
-	policiesToDelete := make(map[string]keycloakv2.AbstractPolicyRepresentation, len(existingPolicies))
+	policiesToDelete := make(map[string]keycloakapi.AbstractPolicyRepresentation, len(existingPolicies))
 	maps.Copy(policiesToDelete, existingPolicies)
 
 	for i := 0; i < len(keycloakClient.Spec.Authorization.Policies); i++ {
@@ -94,7 +94,7 @@ func (h *ProcessPolicy) Serve(ctx context.Context, keycloakClient *keycloakApi.K
 		log.Info("Policy created", policyLogKey, policyName)
 
 		if createdPolicy != nil && createdPolicy.Name != nil {
-			existingPolicies[*createdPolicy.Name] = keycloakv2.AbstractPolicyRepresentation{
+			existingPolicies[*createdPolicy.Name] = keycloakapi.AbstractPolicyRepresentation{
 				Id:   createdPolicy.Id,
 				Name: createdPolicy.Name,
 			}
@@ -142,7 +142,7 @@ func (h *ProcessPolicy) setSuccessCondition(ctx context.Context, keycloakClient 
 	}
 }
 
-func (h *ProcessPolicy) deletePolicies(ctx context.Context, existingPolicies map[string]keycloakv2.AbstractPolicyRepresentation, realmName string, clientUUID string) error {
+func (h *ProcessPolicy) deletePolicies(ctx context.Context, existingPolicies map[string]keycloakapi.AbstractPolicyRepresentation, realmName string, clientUUID string) error {
 	log := ctrl.LoggerFrom(ctx)
 
 	for name := range existingPolicies {
@@ -156,7 +156,7 @@ func (h *ProcessPolicy) deletePolicies(ctx context.Context, existingPolicies map
 		}
 
 		if _, err := h.kClient.Authorization.DeletePolicy(ctx, realmName, clientUUID, *p.Id); err != nil {
-			if !keycloakv2.IsNotFound(err) {
+			if !keycloakapi.IsNotFound(err) {
 				return fmt.Errorf("failed to delete policy: %w", err)
 			}
 		}
@@ -173,14 +173,14 @@ func (h *ProcessPolicy) toPolicyBody(
 	ctx context.Context,
 	policy *keycloakApi.Policy,
 	realm string,
-	existingPolicies map[string]keycloakv2.AbstractPolicyRepresentation,
+	existingPolicies map[string]keycloakapi.AbstractPolicyRepresentation,
 ) (any, error) {
-	base := keycloakv2.PolicyBodyBase{
+	base := keycloakapi.PolicyBodyBase{
 		Name:             policy.Name,
 		Type:             policy.Type,
 		Description:      policy.Description,
-		DecisionStrategy: keycloakv2.DecisionStrategy(policy.DecisionStrategy),
-		Logic:            keycloakv2.Logic(policy.Logic),
+		DecisionStrategy: keycloakapi.DecisionStrategy(policy.DecisionStrategy),
+		Logic:            keycloakapi.Logic(policy.Logic),
 	}
 
 	switch policy.Type {
@@ -203,8 +203,8 @@ func (h *ProcessPolicy) toPolicyBody(
 
 func (h *ProcessPolicy) toAggregatePolicyBody(
 	policy *keycloakApi.Policy,
-	existingPolicies map[string]keycloakv2.AbstractPolicyRepresentation,
-	base keycloakv2.PolicyBodyBase,
+	existingPolicies map[string]keycloakapi.AbstractPolicyRepresentation,
+	base keycloakapi.PolicyBodyBase,
 ) (any, error) {
 	if policy.AggregatedPolicy == nil {
 		return nil, fmt.Errorf("aggregatedPolicy spec is not specified")
@@ -225,10 +225,10 @@ func (h *ProcessPolicy) toAggregatePolicyBody(
 		policies = append(policies, *existingPolicy.Id)
 	}
 
-	return &keycloakv2.AggregatePolicyBody{PolicyBodyBase: base, Policies: policies}, nil
+	return &keycloakapi.AggregatePolicyBody{PolicyBodyBase: base, Policies: policies}, nil
 }
 
-func (h *ProcessPolicy) toClientPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakv2.PolicyBodyBase) (any, error) {
+func (h *ProcessPolicy) toClientPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakapi.PolicyBodyBase) (any, error) {
 	if policy.ClientPolicy == nil {
 		return nil, fmt.Errorf("clientPolicy spec is not specified")
 	}
@@ -238,7 +238,7 @@ func (h *ProcessPolicy) toClientPolicyBody(ctx context.Context, policy *keycloak
 		return nil, fmt.Errorf("failed to get clients: %w", err)
 	}
 
-	existingClients := maputil.SliceToMapSelf(clientsList, func(c keycloakv2.ClientRepresentation) (string, bool) {
+	existingClients := maputil.SliceToMapSelf(clientsList, func(c keycloakapi.ClientRepresentation) (string, bool) {
 		return *c.ClientId, c.ClientId != nil
 	})
 
@@ -257,10 +257,10 @@ func (h *ProcessPolicy) toClientPolicyBody(ctx context.Context, policy *keycloak
 		clients = append(clients, *existingClient.Id)
 	}
 
-	return &keycloakv2.ClientPolicyBody{PolicyBodyBase: base, Clients: clients}, nil
+	return &keycloakapi.ClientPolicyBody{PolicyBodyBase: base, Clients: clients}, nil
 }
 
-func (h *ProcessPolicy) toGroupPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakv2.PolicyBodyBase) (any, error) {
+func (h *ProcessPolicy) toGroupPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakapi.PolicyBodyBase) (any, error) {
 	if policy.GroupPolicy == nil {
 		return nil, fmt.Errorf("group spec is not specified")
 	}
@@ -270,11 +270,11 @@ func (h *ProcessPolicy) toGroupPolicyBody(ctx context.Context, policy *keycloakA
 		return nil, fmt.Errorf("failed to get groups: %w", err)
 	}
 
-	existingGroups := maputil.SliceToMapSelf(groupsList, func(g keycloakv2.GroupRepresentation) (string, bool) {
+	existingGroups := maputil.SliceToMapSelf(groupsList, func(g keycloakapi.GroupRepresentation) (string, bool) {
 		return *g.Name, g.Name != nil
 	})
 
-	groups := make([]keycloakv2.GroupDefinition, 0, len(policy.GroupPolicy.Groups))
+	groups := make([]keycloakapi.GroupDefinition, 0, len(policy.GroupPolicy.Groups))
 
 	for _, g := range policy.GroupPolicy.Groups {
 		existingGroup, ok := existingGroups[g.Name]
@@ -286,20 +286,20 @@ func (h *ProcessPolicy) toGroupPolicyBody(ctx context.Context, policy *keycloakA
 			return nil, fmt.Errorf("group %s does not have ID", g.Name)
 		}
 
-		groups = append(groups, keycloakv2.GroupDefinition{
+		groups = append(groups, keycloakapi.GroupDefinition{
 			ID:             *existingGroup.Id,
 			ExtendChildren: g.ExtendChildren,
 		})
 	}
 
-	return &keycloakv2.GroupPolicyBody{
+	return &keycloakapi.GroupPolicyBody{
 		PolicyBodyBase: base,
 		Groups:         groups,
 		GroupsClaim:    policy.GroupPolicy.GroupsClaim,
 	}, nil
 }
 
-func (h *ProcessPolicy) toRolePolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakv2.PolicyBodyBase) (any, error) {
+func (h *ProcessPolicy) toRolePolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakapi.PolicyBodyBase) (any, error) {
 	if policy.RolePolicy == nil {
 		return nil, fmt.Errorf("role spec is not specified")
 	}
@@ -309,11 +309,11 @@ func (h *ProcessPolicy) toRolePolicyBody(ctx context.Context, policy *keycloakAp
 		return nil, fmt.Errorf("failed to get realm roles: %w", err)
 	}
 
-	existingRoles := maputil.SliceToMapSelf(rolesList, func(r keycloakv2.RoleRepresentation) (string, bool) {
+	existingRoles := maputil.SliceToMapSelf(rolesList, func(r keycloakapi.RoleRepresentation) (string, bool) {
 		return *r.Name, r.Name != nil
 	})
 
-	roles := make([]keycloakv2.RoleDefinition, 0, len(policy.RolePolicy.Roles))
+	roles := make([]keycloakapi.RoleDefinition, 0, len(policy.RolePolicy.Roles))
 
 	for _, r := range policy.RolePolicy.Roles {
 		existingRole, ok := existingRoles[r.Name]
@@ -325,21 +325,21 @@ func (h *ProcessPolicy) toRolePolicyBody(ctx context.Context, policy *keycloakAp
 			return nil, fmt.Errorf("role %s does not have ID", r.Name)
 		}
 
-		roles = append(roles, keycloakv2.RoleDefinition{
+		roles = append(roles, keycloakapi.RoleDefinition{
 			ID:       *existingRole.Id,
 			Required: r.Required,
 		})
 	}
 
-	return &keycloakv2.RolePolicyBody{PolicyBodyBase: base, Roles: roles}, nil
+	return &keycloakapi.RolePolicyBody{PolicyBodyBase: base, Roles: roles}, nil
 }
 
-func (h *ProcessPolicy) toTimePolicyBody(policy *keycloakApi.Policy, base keycloakv2.PolicyBodyBase) (any, error) {
+func (h *ProcessPolicy) toTimePolicyBody(policy *keycloakApi.Policy, base keycloakapi.PolicyBodyBase) (any, error) {
 	if policy.TimePolicy == nil {
 		return nil, fmt.Errorf("time spec is not specified")
 	}
 
-	return &keycloakv2.TimePolicyBody{
+	return &keycloakapi.TimePolicyBody{
 		PolicyBodyBase: base,
 		NotBefore:      policy.TimePolicy.NotBefore,
 		NotOnOrAfter:   policy.TimePolicy.NotOnOrAfter,
@@ -354,7 +354,7 @@ func (h *ProcessPolicy) toTimePolicyBody(policy *keycloakApi.Policy, base keyclo
 	}, nil
 }
 
-func (h *ProcessPolicy) toUserPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakv2.PolicyBodyBase) (any, error) {
+func (h *ProcessPolicy) toUserPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakapi.PolicyBodyBase) (any, error) {
 	if policy.UserPolicy == nil {
 		return nil, fmt.Errorf("user spec is not specified")
 	}
@@ -374,5 +374,5 @@ func (h *ProcessPolicy) toUserPolicyBody(ctx context.Context, policy *keycloakAp
 		users = append(users, *existingUser.Id)
 	}
 
-	return &keycloakv2.UserPolicyBody{PolicyBodyBase: base, Users: users}, nil
+	return &keycloakapi.UserPolicyBody{PolicyBodyBase: base, Users: users}, nil
 }

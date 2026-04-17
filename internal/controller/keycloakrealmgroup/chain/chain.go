@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // GroupContext holds data that is passed between chain handlers.
@@ -28,7 +28,7 @@ type RealmGroupHandler interface {
 	Serve(
 		ctx context.Context,
 		group *keycloakApi.KeycloakRealmGroup,
-		kClient *keycloakv2.KeycloakClient,
+		kClient *keycloakapi.APIClient,
 		groupCtx *GroupContext,
 	) error
 }
@@ -45,7 +45,7 @@ func (ch *Chain) Use(handlers ...RealmGroupHandler) {
 func (ch *Chain) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.APIClient,
 	groupCtx *GroupContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)

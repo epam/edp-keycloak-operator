@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -54,7 +54,7 @@ func (ch *Chain) Serve(
 }
 
 func MakeChain(
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.APIClient,
 	k8sClient client.Client,
 ) *Chain {
 	c := &Chain{}

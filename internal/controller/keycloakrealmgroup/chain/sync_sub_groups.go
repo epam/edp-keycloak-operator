@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // SyncSubGroups handles the deprecated SubGroups field for backward compatibility.
@@ -21,7 +21,7 @@ func NewSyncSubGroups() *SyncSubGroups {
 func (h *SyncSubGroups) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.APIClient,
 	groupCtx *GroupContext,
 ) error {
 	if len(group.Spec.SubGroups) == 0 {
@@ -39,7 +39,7 @@ func (h *SyncSubGroups) Serve(
 		return fmt.Errorf("unable to get child groups: %w", err)
 	}
 
-	currentMap := make(map[string]keycloakv2.GroupRepresentation, len(currentChildren))
+	currentMap := make(map[string]keycloakapi.GroupRepresentation, len(currentChildren))
 
 	for i, c := range currentChildren {
 		if c.Name != nil {
@@ -56,7 +56,7 @@ func (h *SyncSubGroups) Serve(
 		if _, exists := currentMap[claimed]; !exists {
 			subGroup, _, err := kClient.Groups.FindGroupByName(ctx, realm, claimed)
 			if err != nil {
-				if keycloakv2.IsNotFound(err) {
+				if keycloakapi.IsNotFound(err) {
 					return fmt.Errorf("subgroup %q not found in realm %q", claimed, realm)
 				}
 

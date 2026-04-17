@@ -8,20 +8,20 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"k8s.io/apimachinery/pkg/types"
 )
 
 // CreateOrUpdateComponent creates or updates a realm component in Keycloak.
 type CreateOrUpdateComponent struct {
 	k8sClient       client.Client
-	kClientV2       *keycloakv2.KeycloakClient
+	kClientV2       *keycloakapi.APIClient
 	secretRefClient SecretRefClient
 }
 
 func NewCreateOrUpdateComponent(
 	k8sClient client.Client,
-	kClientV2 *keycloakv2.KeycloakClient,
+	kClientV2 *keycloakapi.APIClient,
 	secretRefClient SecretRefClient,
 ) *CreateOrUpdateComponent {
 	return &CreateOrUpdateComponent{
@@ -41,7 +41,7 @@ func (h *CreateOrUpdateComponent) Serve(
 
 	spec := component.Spec
 
-	config := make(keycloakv2.MultivaluedHashMapStringString, len(spec.Config))
+	config := make(keycloakapi.MultivaluedHashMapStringString, len(spec.Config))
 
 	for k, v := range spec.Config {
 		copied := make([]string, len(v))
@@ -58,7 +58,7 @@ func (h *CreateOrUpdateComponent) Serve(
 		return fmt.Errorf("unable to resolve parent ID: %w", err)
 	}
 
-	repr := keycloakv2.ComponentRepresentation{
+	repr := keycloakapi.ComponentRepresentation{
 		Name:         &spec.Name,
 		ProviderId:   &spec.ProviderID,
 		ProviderType: &spec.ProviderType,
@@ -80,7 +80,7 @@ func (h *CreateOrUpdateComponent) Serve(
 			return fmt.Errorf("failed to create realm component: %w", err)
 		}
 
-		component.Status.ID = keycloakv2.GetResourceIDFromResponse(resp)
+		component.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
 
 		log.Info("Realm component created")
 

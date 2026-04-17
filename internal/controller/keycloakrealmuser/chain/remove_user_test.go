@@ -10,8 +10,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestNewRemoveUser(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
 					Return(nil, nil)
 			},
@@ -58,7 +58,7 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 			},
 			wantErr: require.NoError,
 		},
@@ -75,9 +75,9 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
-					Return(nil, keycloakv2.ErrNotFound)
+					Return(nil, keycloakapi.ErrNotFound)
 			},
 			wantErr: require.NoError,
 		},
@@ -128,7 +128,7 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
 					Return(nil, errors.New("delete error"))
 			},
@@ -141,7 +141,7 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			mockUsers := v2mocks.NewMockUsersClient(t)
 			tt.mockSetup(mockUsers)
 
-			h := NewRemoveUser(&keycloakv2.KeycloakClient{
+			h := NewRemoveUser(&keycloakapi.APIClient{
 				Users: mockUsers,
 			})
 

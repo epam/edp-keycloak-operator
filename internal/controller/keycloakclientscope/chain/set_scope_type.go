@@ -7,14 +7,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SetScopeType struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewSetScopeType(kClientV2 *keycloakv2.KeycloakClient) *SetScopeType {
+func NewSetScopeType(kClientV2 *keycloakapi.APIClient) *SetScopeType {
 	return &SetScopeType{kClientV2: kClientV2}
 }
 
@@ -32,7 +32,7 @@ func (h *SetScopeType) Serve(
 
 	switch scopeType {
 	case keycloakApi.KeycloakClientScopeTypeDefault:
-		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakv2.IsNotFound(err) {
+		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("failed to remove scope from optional list: %w", err)
 		}
 
@@ -41,7 +41,7 @@ func (h *SetScopeType) Serve(
 		}
 
 	case keycloakApi.KeycloakClientScopeTypeOptional:
-		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakv2.IsNotFound(err) {
+		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("failed to remove scope from default list: %w", err)
 		}
 
@@ -50,11 +50,11 @@ func (h *SetScopeType) Serve(
 		}
 
 	case keycloakApi.KeycloakClientScopeTypeNone:
-		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakv2.IsNotFound(err) {
+		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("failed to remove scope from default list: %w", err)
 		}
 
-		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakv2.IsNotFound(err) {
+		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("failed to remove scope from optional list: %w", err)
 		}
 

@@ -16,8 +16,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutRealm_ServeRequest(t *testing.T) {
@@ -58,14 +58,14 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
-				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakv2.RealmRepresentation) bool {
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakapi.RealmRepresentation) bool {
 					return r.Realm != nil && *r.Realm == realmName
 				})).Return(nil, nil)
 
 				// Role checks (3 unique roles)
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(3)
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Times(3)
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, nil).Times(3)
 
@@ -80,7 +80,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(&keycloakv2.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectError: false,
@@ -104,7 +104,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).
 					Return(nil, errors.New("realm creation failed"))
 			},
@@ -122,10 +122,10 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).Return(nil, nil)
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, errors.New("role creation failed"))
 			},
@@ -152,8 +152,8 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			realm := tt.setupRealm()
 			tt.setupMocks(mockRealms, mockRoles, nextHandler)
 
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealms, Roles: mockRoles}
-			err := putRealm.ServeRequest(ctx, realm, kClientV2)
+			keycloakAPIClient := &keycloakapi.APIClient{Realms: mockRealms, Roles: mockRoles}
+			err := putRealm.ServeRequest(ctx, realm, keycloakAPIClient)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -200,7 +200,7 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			},
 			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(3)
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Times(3)
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, nil).Times(3)
 			},
@@ -214,10 +214,10 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 				// role1 exists
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
-					Return(ptr.To(keycloakv2.RoleRepresentation{}), nil, nil)
+					Return(ptr.To(keycloakapi.RoleRepresentation{}), nil, nil)
 				// role2 doesn't
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role2").
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, nil)
 			},
@@ -231,7 +231,7 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			},
 			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404}).Times(2)
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Times(2)
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, nil).Times(2)
 			},
@@ -256,7 +256,7 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 			},
 			setupMocks: func(mockRoles *v2mocks.MockRolesClient) {
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
-					Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
 					Return(nil, errors.New("role creation failed"))
 			},
@@ -279,8 +279,8 @@ func TestPutRealm_putRealmRoles(t *testing.T) {
 
 			tt.setupMocks(mockRoles)
 
-			kClientV2 := &keycloakv2.KeycloakClient{Roles: mockRoles}
-			err := putRealm.putRealmRoles(context.Background(), realm, kClientV2)
+			keycloakAPIClient := &keycloakapi.APIClient{Roles: mockRoles}
+			err := putRealm.putRealmRoles(context.Background(), realm, keycloakAPIClient)
 
 			if tt.expectError {
 				require.Error(t, err)

@@ -9,14 +9,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncUserIdentityProviders struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewSyncUserIdentityProviders(kClientV2 *keycloakv2.KeycloakClient) *SyncUserIdentityProviders {
+func NewSyncUserIdentityProviders(kClientV2 *keycloakapi.APIClient) *SyncUserIdentityProviders {
 	return &SyncUserIdentityProviders{kClientV2: kClientV2}
 }
 
@@ -56,7 +56,7 @@ func (h *SyncUserIdentityProviders) Serve(
 
 		// Check the identity provider exists in Keycloak before linking
 		if _, _, err := h.kClientV2.IdentityProviders.GetIdentityProvider(ctx, realmName, provider); err != nil {
-			if keycloakv2.IsNotFound(err) {
+			if keycloakapi.IsNotFound(err) {
 				return fmt.Errorf("identity provider %q does not exist", provider)
 			}
 
@@ -68,7 +68,7 @@ func (h *SyncUserIdentityProviders) Serve(
 			realmName,
 			userCtx.UserID,
 			provider,
-			keycloakv2.FederatedIdentityRepresentation{
+			keycloakapi.FederatedIdentityRepresentation{
 				IdentityProvider: ptr.To(provider),
 				UserId:           ptr.To(userCtx.UserID),
 				UserName:         ptr.To(user.Spec.Username),

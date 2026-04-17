@@ -61,6 +61,6 @@ make e2e
 ## On Failure
 
 - Do NOT retry the same failing test blindly
-- Isolate failures to a specific package: `go test -v ./pkg/client/keycloakv2/...`
+- Isolate failures to a specific package: `go test -v ./pkg/client/keycloakapi/...`
 - Investigate the root cause before making changes
 - After fixing, re-run the full suite to confirm no regressions

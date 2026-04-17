@@ -16,7 +16,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -27,47 +27,47 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 	)
 	It("Should create KeycloakRealmUser", func() {
 		By("Creating group for user")
-		_, err := keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err := keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-user-group"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Creating group and subgroup for user")
-		_, err = keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err = keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-user-group2"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
-		gr, _, err := keycloakApiClient.Groups.GetGroups(ctx, KeycloakRealmCR, &keycloakv2.GetGroupsParams{
+		gr, _, err := keycloakApiClient.Groups.GetGroups(ctx, KeycloakRealmCR, &keycloakapi.GetGroupsParams{
 			Search: ptr.To("test-user-group2"),
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(gr).Should(HaveLen(1))
 
-		_, err = keycloakApiClient.Groups.CreateChildGroup(ctx, KeycloakRealmCR, *gr[0].Id, keycloakv2.GroupRepresentation{
+		_, err = keycloakApiClient.Groups.CreateChildGroup(ctx, KeycloakRealmCR, *gr[0].Id, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-user-group2-subgroup"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Creating a top-level group with the same name as the subgroup")
-		_, err = keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakv2.GroupRepresentation{
+		_, err = keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
 			Name: ptr.To("test-user-group2-subgroup"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Creating role for user")
-		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: ptr.To("test-user-role"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -75,7 +75,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		_, err = keycloakApiClient.IdentityProviders.CreateIdentityProvider(
 			ctx,
 			KeycloakRealmCR,
-			keycloakv2.IdentityProviderRepresentation{
+			keycloakapi.IdentityProviderRepresentation{
 				Alias:                     ptr.To("test-idp"),
 				DisplayName:               ptr.To("Test Identity Provider"),
 				ProviderId:                ptr.To("oidc"),
@@ -95,7 +95,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				},
 			},
 		)
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -179,7 +179,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(realmRoleNames).Should(ContainElement("uma_authorization"))
 
 			// Check client roles for account client
-			accountClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{ClientId: ptr.To("account")})
+			accountClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{ClientId: ptr.To("account")})
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(accountClients).ShouldNot(BeEmpty())
 
@@ -196,7 +196,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(accountClientRoleNames).Should(ContainElement("view-groups"))
 
 			// Check client roles for realm-management client
-			realmMgmtClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{ClientId: ptr.To("realm-management")})
+			realmMgmtClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{ClientId: ptr.To("realm-management")})
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realmMgmtClients).ShouldNot(BeEmpty())
 
@@ -418,7 +418,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(realmRoleNames).ShouldNot(ContainElement("uma_authorization"))
 
 			// Check client roles for account client
-			accountClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{ClientId: ptr.To("account")})
+			accountClients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{ClientId: ptr.To("account")})
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(accountClients).ShouldNot(BeEmpty())
 
@@ -634,7 +634,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		By("Verifying user is deleted from Keycloak")
 		Eventually(func(g Gomega) {
 			_, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, KeycloakRealmCR, user.Spec.Username)
-			g.Expect(keycloakv2.IsNotFound(err)).Should(BeTrue())
+			g.Expect(keycloakapi.IsNotFound(err)).Should(BeTrue())
 		}, time.Minute, time.Second*5).Should(Succeed())
 
 		By("Deleting KeycloakRealmUser CR - should succeed even though user doesn't exist in Keycloak")

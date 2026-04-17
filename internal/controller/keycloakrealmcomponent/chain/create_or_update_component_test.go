@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	testComponentID   = "comp-id-123"
 	testRealmName     = "test-realm"
 	testProviderID    = "ldap"
-	testProviderType  = "org.keycloak.storage.UserStorageProvider"
+	testProviderType  = "org.keycloakapi.storage.UserStorageProvider"
 	testNamespace     = "test-ns"
 )
 
@@ -60,7 +60,7 @@ func baseComponent() *keycloakApi.KeycloakRealmComponent {
 
 func TestCreateOrUpdateComponent_Serve_CreateNew(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -70,13 +70,13 @@ func TestCreateOrUpdateComponent_Serve_CreateNew(t *testing.T) {
 		Return(nil, nil)
 
 	mockComponents.EXPECT().
-		CreateComponent(context.Background(), testRealmName, keycloakv2.ComponentRepresentation{
+		CreateComponent(context.Background(), testRealmName, keycloakapi.ComponentRepresentation{
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 		}).
-		Return(&keycloakv2.Response{
+		Return(&keycloakapi.Response{
 			HTTPResponse: &http.Response{
 				Header: http.Header{
 					"Location": []string{"http://localhost/admin/realms/test-realm/components/" + testComponentID},
@@ -92,12 +92,12 @@ func TestCreateOrUpdateComponent_Serve_CreateNew(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
 
-	existing := &keycloakv2.ComponentRepresentation{
+	existing := &keycloakapi.ComponentRepresentation{
 		Id:           ptr.To(testComponentID),
 		Name:         ptr.To(testComponentName),
 		ProviderId:   ptr.To(testProviderID),
@@ -109,12 +109,12 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 		Return(existing, nil)
 
 	mockComponents.EXPECT().
-		UpdateComponent(context.Background(), testRealmName, testComponentID, keycloakv2.ComponentRepresentation{
+		UpdateComponent(context.Background(), testRealmName, testComponentID, keycloakapi.ComponentRepresentation{
 			Id:           ptr.To(testComponentID),
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 		}).
 		Return(nil, nil)
 
@@ -126,7 +126,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_FindByNameError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -143,7 +143,7 @@ func TestCreateOrUpdateComponent_Serve_FindByNameError(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_CreateError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -153,11 +153,11 @@ func TestCreateOrUpdateComponent_Serve_CreateError(t *testing.T) {
 		Return(nil, nil)
 
 	mockComponents.EXPECT().
-		CreateComponent(context.Background(), testRealmName, keycloakv2.ComponentRepresentation{
+		CreateComponent(context.Background(), testRealmName, keycloakapi.ComponentRepresentation{
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 		}).
 		Return(nil, errors.New("create error"))
 
@@ -169,12 +169,12 @@ func TestCreateOrUpdateComponent_Serve_CreateError(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
 
-	existing := &keycloakv2.ComponentRepresentation{
+	existing := &keycloakapi.ComponentRepresentation{
 		Id:           ptr.To(testComponentID),
 		Name:         ptr.To(testComponentName),
 		ProviderId:   ptr.To(testProviderID),
@@ -186,12 +186,12 @@ func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 		Return(existing, nil)
 
 	mockComponents.EXPECT().
-		UpdateComponent(context.Background(), testRealmName, testComponentID, keycloakv2.ComponentRepresentation{
+		UpdateComponent(context.Background(), testRealmName, testComponentID, keycloakapi.ComponentRepresentation{
 			Id:           ptr.To(testComponentID),
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 		}).
 		Return(nil, errors.New("update error"))
 
@@ -203,7 +203,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_SecretRefError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -217,7 +217,7 @@ func TestCreateOrUpdateComponent_Serve_SecretRefError(t *testing.T) {
 func TestCreateOrUpdateComponent_Serve_ParentRefRealmKind(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
 	mockRealms := mocks.NewMockRealmClient(t)
-	kClient := &keycloakv2.KeycloakClient{
+	kClient := &keycloakapi.APIClient{
 		RealmComponents: mockComponents,
 		Realms:          mockRealms,
 	}
@@ -244,21 +244,21 @@ func TestCreateOrUpdateComponent_Serve_ParentRefRealmKind(t *testing.T) {
 
 	mockRealms.EXPECT().
 		GetRealm(context.Background(), "parent-realm").
-		Return(&keycloakv2.RealmRepresentation{Id: &parentRealmID}, nil, nil)
+		Return(&keycloakapi.RealmRepresentation{Id: &parentRealmID}, nil, nil)
 
 	mockComponents.EXPECT().
 		FindComponentByName(context.Background(), testRealmName, testComponentName).
 		Return(nil, nil)
 
 	mockComponents.EXPECT().
-		CreateComponent(context.Background(), testRealmName, keycloakv2.ComponentRepresentation{
+		CreateComponent(context.Background(), testRealmName, keycloakapi.ComponentRepresentation{
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 			ParentId:     &parentRealmID,
 		}).
-		Return(&keycloakv2.Response{
+		Return(&keycloakapi.Response{
 			HTTPResponse: &http.Response{
 				Header: http.Header{
 					"Location": []string{"http://localhost/admin/realms/test-realm/components/" + testComponentID},
@@ -274,7 +274,7 @@ func TestCreateOrUpdateComponent_Serve_ParentRefRealmKind(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_ParentRefComponentKind(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	parentID := "parent-comp-id-789"
@@ -286,21 +286,21 @@ func TestCreateOrUpdateComponent_Serve_ParentRefComponentKind(t *testing.T) {
 
 	mockComponents.EXPECT().
 		FindComponentByName(context.Background(), testRealmName, "parent-component").
-		Return(&keycloakv2.ComponentRepresentation{Id: &parentID}, nil)
+		Return(&keycloakapi.ComponentRepresentation{Id: &parentID}, nil)
 
 	mockComponents.EXPECT().
 		FindComponentByName(context.Background(), testRealmName, testComponentName).
 		Return(nil, nil)
 
 	mockComponents.EXPECT().
-		CreateComponent(context.Background(), testRealmName, keycloakv2.ComponentRepresentation{
+		CreateComponent(context.Background(), testRealmName, keycloakapi.ComponentRepresentation{
 			Name:         ptr.To(testComponentName),
 			ProviderId:   ptr.To(testProviderID),
 			ProviderType: ptr.To(testProviderType),
-			Config:       ptr.To(keycloakv2.MultivaluedHashMapStringString{}),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
 			ParentId:     &parentID,
 		}).
-		Return(&keycloakv2.Response{
+		Return(&keycloakapi.Response{
 			HTTPResponse: &http.Response{
 				Header: http.Header{
 					"Location": []string{"http://localhost/admin/realms/test-realm/components/" + testComponentID},
@@ -315,7 +315,7 @@ func TestCreateOrUpdateComponent_Serve_ParentRefComponentKind(t *testing.T) {
 
 func TestCreateOrUpdateComponent_Serve_ParentComponentNotFound(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -336,7 +336,7 @@ func TestCreateOrUpdateComponent_Serve_ParentComponentNotFound(t *testing.T) {
 }
 
 func TestCreateOrUpdateComponent_Serve_UnsupportedParentKind(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.APIClient{}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -352,7 +352,7 @@ func TestCreateOrUpdateComponent_Serve_UnsupportedParentKind(t *testing.T) {
 }
 
 func TestCreateOrUpdateComponent_Serve_ParentRealmKind_K8sGetError(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.APIClient{}
 	// empty fake client — realm CR is not present, so k8sClient.Get will return NotFound
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
@@ -370,7 +370,7 @@ func TestCreateOrUpdateComponent_Serve_ParentRealmKind_K8sGetError(t *testing.T)
 
 func TestCreateOrUpdateComponent_Serve_ParentComponentKind_NilID(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.APIClient{RealmComponents: mockComponents}
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
@@ -382,7 +382,7 @@ func TestCreateOrUpdateComponent_Serve_ParentComponentKind_NilID(t *testing.T) {
 	// returns a component representation with nil Id
 	mockComponents.EXPECT().
 		FindComponentByName(context.Background(), testRealmName, "parent-no-id").
-		Return(&keycloakv2.ComponentRepresentation{Name: ptr.To("parent-no-id")}, nil)
+		Return(&keycloakapi.ComponentRepresentation{Name: ptr.To("parent-no-id")}, nil)
 
 	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
 	err := h.Serve(context.Background(), component, testRealmName)

@@ -10,8 +10,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestCreateOrganization_ServeRequest(t *testing.T) {
@@ -19,7 +19,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 		name           string
 		organization   *keycloakApi.KeycloakOrganization
 		realmName      string
-		keycloakClient func(t *testing.T) keycloakv2.OrganizationsClient
+		keycloakClient func(t *testing.T) keycloakapi.OrganizationsClient
 		wantErr        require.ErrorAssertionFunc
 		expectedOrgID  string
 	}{
@@ -39,29 +39,29 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakv2.OrganizationRepresentation) bool {
+				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Test Organization" &&
 						ptr.Deref(org.Alias, "") == "test-org" &&
 						ptr.Deref(org.Description, "") == "Test organization" &&
 						ptr.Deref(org.RedirectUrl, "") == "https://example.com/redirect" &&
 						len(ptr.Deref(org.Domains, nil)) == 2 &&
 						len(ptr.Deref(org.Attributes, nil)) == 2
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias returns the created organization
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return(&keycloakv2.OrganizationRepresentation{
+					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("org-123"),
 						Alias: ptr.To("test-org"),
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -80,24 +80,24 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns existing organization
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org").
-					Return(&keycloakv2.OrganizationRepresentation{
+					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-org-456"),
 						Alias: ptr.To("existing-org"),
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// Second call: UpdateOrganization succeeds
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.MatchedBy(func(org keycloakv2.OrganizationRepresentation) bool {
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Updated Organization" &&
 						ptr.Deref(org.Alias, "") == "existing-org" &&
 						ptr.Deref(org.Description, "") == "Updated organization" &&
 						ptr.Deref(org.RedirectUrl, "") == "https://updated.com/redirect" &&
 						len(ptr.Deref(org.Domains, nil)) == 1
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -114,11 +114,11 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("network error")).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("network error")).Once()
 
 				return client
 			},
@@ -134,16 +134,16 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization fails
 				client.On("CreateOrganization", mock.Anything, "test-realm", mock.Anything).
-					Return((*keycloakv2.Response)(nil), errors.New("creation failed")).Once()
+					Return((*keycloakapi.Response)(nil), errors.New("creation failed")).Once()
 
 				return client
 			},
@@ -159,19 +159,19 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns existing organization
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org").
-					Return(&keycloakv2.OrganizationRepresentation{
+					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-org-456"),
 						Alias: ptr.To("existing-org"),
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// Second call: UpdateOrganization fails
 				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.Anything).
-					Return((*keycloakv2.Response)(nil), errors.New("update failed")).Once()
+					Return((*keycloakapi.Response)(nil), errors.New("update failed")).Once()
 
 				return client
 			},
@@ -187,20 +187,20 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
 				client.On("CreateOrganization", mock.Anything, "test-realm", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias fails after creation
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("failed to retrieve created organization")).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("failed to retrieve created organization")).Once()
 
 				return client
 			},
@@ -216,26 +216,26 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "minimal-org").
-					Return((*keycloakv2.OrganizationRepresentation)(nil), (*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakv2.OrganizationRepresentation) bool {
+				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Minimal Org" &&
 						ptr.Deref(org.Alias, "") == "minimal-org" &&
 						len(ptr.Deref(org.Domains, nil)) == 1
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias returns the created organization
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "minimal-org").
-					Return(&keycloakv2.OrganizationRepresentation{
+					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("minimal-org-789"),
 						Alias: ptr.To("minimal-org"),
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -255,21 +255,21 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns existing organization
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org-with-id").
-					Return(&keycloakv2.OrganizationRepresentation{
+					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-id-123"),
 						Alias: ptr.To("existing-org-with-id"),
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// Second call: UpdateOrganization succeeds
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-id-123", mock.MatchedBy(func(org keycloakv2.OrganizationRepresentation) bool {
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-id-123", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Existing Org" &&
 						ptr.Deref(org.Alias, "") == "existing-org-with-id"
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -281,7 +281,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			orgClient := tt.keycloakClient(t)
-			kc := &keycloakv2.KeycloakClient{}
+			kc := &keycloakapi.APIClient{}
 			kc.Organizations = orgClient
 
 			handler := NewCreateOrganization(kc)
@@ -300,7 +300,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 	tests := []struct {
 		name   string
 		org    *keycloakApi.KeycloakOrganization
-		verify func(t *testing.T, rep keycloakv2.OrganizationRepresentation)
+		verify func(t *testing.T, rep keycloakapi.OrganizationRepresentation)
 	}{
 		{
 			name: "full spec with all fields",
@@ -317,7 +317,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					},
 				},
 			},
-			verify: func(t *testing.T, rep keycloakv2.OrganizationRepresentation) {
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
 				t.Helper()
 
 				require.Equal(t, "Test Organization", ptr.Deref(rep.Name, ""))
@@ -350,7 +350,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					Domains: []string{"minimal.com"},
 				},
 			},
-			verify: func(t *testing.T, rep keycloakv2.OrganizationRepresentation) {
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
 				t.Helper()
 
 				require.Equal(t, "Minimal Org", ptr.Deref(rep.Name, ""))
@@ -372,7 +372,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					Domains: nil,
 				},
 			},
-			verify: func(t *testing.T, rep keycloakv2.OrganizationRepresentation) {
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
 				t.Helper()
 				require.Nil(t, rep.Domains)
 			},
@@ -387,7 +387,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					Attributes: nil,
 				},
 			},
-			verify: func(t *testing.T, rep keycloakv2.OrganizationRepresentation) {
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
 				t.Helper()
 				require.Nil(t, rep.Attributes)
 			},
@@ -402,7 +402,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					Attributes: map[string][]string{},
 				},
 			},
-			verify: func(t *testing.T, rep keycloakv2.OrganizationRepresentation) {
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
 				t.Helper()
 				require.Nil(t, rep.Attributes)
 			},

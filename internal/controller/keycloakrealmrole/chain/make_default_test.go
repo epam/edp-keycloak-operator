@@ -10,12 +10,12 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestMakeDefault_Serve_NotDefault(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.APIClient{}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.IsDefault = false
@@ -27,7 +27,7 @@ func TestMakeDefault_Serve_NotDefault(t *testing.T) {
 
 func TestMakeDefault_Serve_Success(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.APIClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
@@ -37,7 +37,7 @@ func TestMakeDefault_Serve_Success(t *testing.T) {
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", "default-roles-test-realm",
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{
 				Id:   ptr.To("role-id-123"),
 				Name: ptr.To(testRoleName),
@@ -52,7 +52,7 @@ func TestMakeDefault_Serve_Success(t *testing.T) {
 
 func TestMakeDefault_Serve_Error(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.APIClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
@@ -62,7 +62,7 @@ func TestMakeDefault_Serve_Error(t *testing.T) {
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", "default-roles-test-realm",
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{
 				Id:   ptr.To("role-id-123"),
 				Name: ptr.To(testRoleName),

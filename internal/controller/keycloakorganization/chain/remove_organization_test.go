@@ -10,8 +10,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakmocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestRemoveOrganization_ServeRequest(t *testing.T) {
@@ -21,7 +21,7 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 		name           string
 		organization   *keycloakApi.KeycloakOrganization
 		realmName      string
-		keycloakClient func(t *testing.T) keycloakv2.OrganizationsClient
+		keycloakClient func(t *testing.T) keycloakapi.OrganizationsClient
 		wantErr        require.ErrorAssertionFunc
 	}{
 		{
@@ -40,8 +40,8 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				return keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				return keycloakmocks.NewMockOrganizationsClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -64,8 +64,8 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				return keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				return keycloakmocks.NewMockOrganizationsClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -85,10 +85,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 				return client
 			},
 			wantErr: require.NoError,
@@ -109,10 +109,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return((*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404, Message: "organization not found"}).Once()
+					Return((*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 				return client
 			},
 			wantErr: require.NoError,
@@ -133,10 +133,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 				},
 			},
 			realmName: "test-realm",
-			keycloakClient: func(t *testing.T) keycloakv2.OrganizationsClient {
-				client := keycloakv2mocks.NewMockOrganizationsClient(t)
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakmocks.NewMockOrganizationsClient(t)
 				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
-					Return((*keycloakv2.Response)(nil), errors.New("network error")).Once()
+					Return((*keycloakapi.Response)(nil), errors.New("network error")).Once()
 				return client
 			},
 			wantErr: require.Error,
@@ -146,7 +146,7 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			orgClient := tt.keycloakClient(t)
-			kc := &keycloakv2.KeycloakClient{}
+			kc := &keycloakapi.APIClient{}
 			kc.Organizations = orgClient
 
 			handler := NewRemoveOrganization(kc)

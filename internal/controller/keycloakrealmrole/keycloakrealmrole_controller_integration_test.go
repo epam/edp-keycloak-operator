@@ -13,7 +13,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
@@ -83,30 +83,30 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 
 	It("Should create composite KeycloakRealmRole", func() {
 		By("Creating realm role for composite role")
-		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: ptr.To("role1"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
-		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: ptr.To("role2"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Creating client for composite client role")
-		_, err = keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakv2.ClientRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakapi.ClientRepresentation{
 			ClientId: ptr.To("client1"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Creating client role for composite role")
-		cl, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{
+		cl, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{
 			ClientId: ptr.To("client1"),
 		})
 		Expect(err).ShouldNot(HaveOccurred())
@@ -114,17 +114,17 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 
 		clientUUID := *cl[0].Id
 
-		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakapi.RoleRepresentation{
 			Name: ptr.To("client-role1"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
-		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakapi.RoleRepresentation{
 			Name: ptr.To("client-role2"),
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 

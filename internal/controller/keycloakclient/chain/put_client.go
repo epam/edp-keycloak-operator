@@ -16,7 +16,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -34,12 +34,12 @@ type secretRef interface {
 }
 
 type PutClient struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.APIClient
 	k8sClient client.Client
 	secretRef secretRef
 }
 
-func NewPutClient(kClient *keycloakv2.KeycloakClient, k8sClient client.Client, secretRef secretRef) *PutClient {
+func NewPutClient(kClient *keycloakapi.APIClient, k8sClient client.Client, secretRef secretRef) *PutClient {
 	return &PutClient{kClient: kClient, k8sClient: k8sClient, secretRef: secretRef}
 }
 
@@ -111,7 +111,7 @@ func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycl
 	clientRep := convertSpecToClientRepresentation(&keycloakClient.Spec, clientSecret, authFlowOverrides)
 
 	existingClient, _, err := h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return "", fmt.Errorf("unable to check client id: %w", err)
 	}
 
@@ -133,7 +133,7 @@ func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycl
 
 	log.Info("End put keycloak client")
 
-	id := keycloakv2.GetResourceIDFromResponse(resp)
+	id := keycloakapi.GetResourceIDFromResponse(resp)
 	if id == "" {
 		// Fallback: look up the client to get the UUID
 		created, _, lookupErr := h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
@@ -243,10 +243,10 @@ func (h *PutClient) getAuthFlows(ctx context.Context, keycloakClient *keycloakAp
 	}
 
 	realmAuthFlows := maputil.SliceToMap(flows,
-		func(f keycloakv2.AuthenticationFlowRepresentation) (string, bool) {
+		func(f keycloakapi.AuthenticationFlowRepresentation) (string, bool) {
 			return *f.Alias, f.Alias != nil && f.Id != nil
 		},
-		func(f keycloakv2.AuthenticationFlowRepresentation) string { return *f.Id },
+		func(f keycloakapi.AuthenticationFlowRepresentation) string { return *f.Id },
 	)
 
 	authFlowOverrides := make(map[string]string)
@@ -280,12 +280,12 @@ func generateSecureSecret() (string, error) {
 	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
-// convertSpecToClientRepresentation converts KeycloakClientSpec to keycloakv2.ClientRepresentation.
+// convertSpecToClientRepresentation converts KeycloakClientSpec to keycloakapi.ClientRepresentation.
 func convertSpecToClientRepresentation(
 	spec *keycloakApi.KeycloakClientSpec,
 	clientSecret string,
 	authFlowOverrides map[string]string,
-) keycloakv2.ClientRepresentation {
+) keycloakapi.ClientRepresentation {
 	serviceAccountsEnabled := spec.ServiceAccount != nil && spec.ServiceAccount.Enabled
 
 	protocol := ""
@@ -293,7 +293,7 @@ func convertSpecToClientRepresentation(
 		protocol = *spec.Protocol
 	}
 
-	cr := keycloakv2.ClientRepresentation{
+	cr := keycloakapi.ClientRepresentation{
 		ClientId:                     &spec.ClientId,
 		Name:                         &spec.Name,
 		Description:                  &spec.Description,

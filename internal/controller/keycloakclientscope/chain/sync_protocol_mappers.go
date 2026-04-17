@@ -8,14 +8,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakapi "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncProtocolMappers struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClientV2 *keycloakapi.APIClient
 }
 
-func NewSyncProtocolMappers(kClientV2 *keycloakv2.KeycloakClient) *SyncProtocolMappers {
+func NewSyncProtocolMappers(kClientV2 *keycloakapi.APIClient) *SyncProtocolMappers {
 	return &SyncProtocolMappers{kClientV2: kClientV2}
 }
 
@@ -58,11 +58,11 @@ func (h *SyncProtocolMappers) Serve(
 	return nil
 }
 
-func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakv2.ProtocolMapperRepresentation {
+func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakapi.ProtocolMapperRepresentation {
 	config := make(map[string]string, len(m.Config))
 	maps.Copy(config, m.Config)
 
-	return keycloakv2.ProtocolMapperRepresentation{
+	return keycloakapi.ProtocolMapperRepresentation{
 		Name:           &m.Name,
 		Protocol:       &m.Protocol,
 		ProtocolMapper: &m.ProtocolMapper,
