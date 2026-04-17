@@ -17,6 +17,8 @@ type (
 	UserRepresentation              = generated.UserRepresentation
 	CredentialRepresentation        = generated.CredentialRepresentation
 	FederatedIdentityRepresentation = generated.FederatedIdentityRepresentation
+	UserSessionRepresentation       = generated.UserSessionRepresentation
+	GetUsersParams                  = generated.GetAdminRealmsRealmUsersParams
 )
 
 type usersClient struct {
@@ -468,4 +470,216 @@ func (c *usersClient) DeleteUserFederatedIdentity(
 	}
 
 	return response, nil
+}
+
+func (c *usersClient) GetUsers(
+	ctx context.Context,
+	realm string,
+	params *GetUsersParams,
+) ([]UserRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersWithResponse(ctx, realm, params)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) GetUser(
+	ctx context.Context,
+	realm, userID string,
+) (*UserRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdWithResponse(ctx, realm, userID, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *usersClient) GetUserSessions(
+	ctx context.Context,
+	realm, userID string,
+) ([]UserSessionRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdSessionsWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) LogoutUser(ctx context.Context, realm, userID string) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmUsersUserIdLogoutWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) GetUserCredentials(
+	ctx context.Context,
+	realm, userID string,
+) ([]CredentialRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmUsersUserIdCredentialsWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *usersClient) DeleteUserCredential(
+	ctx context.Context,
+	realm, userID, credentialID string,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmUsersUserIdCredentialsCredentialIdWithResponse(
+		ctx, realm, userID, credentialID)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) ExecuteActionsEmail(
+	ctx context.Context,
+	realm, userID string,
+	actions []string,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmUsersUserIdExecuteActionsEmailWithResponse(
+		ctx, realm, userID, nil, actions)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) SendVerifyEmail(ctx context.Context, realm, userID string) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmUsersUserIdSendVerifyEmailWithResponse(ctx, realm, userID, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *usersClient) ImpersonateUser(
+	ctx context.Context,
+	realm, userID string,
+) (map[string]any, *Response, error) {
+	res, err := c.client.PostAdminRealmsRealmUsersUserIdImpersonationWithResponse(ctx, realm, userID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
 }

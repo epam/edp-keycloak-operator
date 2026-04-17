@@ -14,6 +14,7 @@ type (
 	ProtocolMapperRepresentation  = generated.ProtocolMapperRepresentation
 	ManagementPermissionReference = generated.ManagementPermissionReference
 	ClientScopeRepresentation     = generated.ClientScopeRepresentation
+	GetClientSessionsParams       = generated.GetAdminRealmsRealmClientsClientUuidUserSessionsParams
 )
 
 type clientsClient struct {
@@ -700,4 +701,101 @@ func (c *clientsClient) DeleteClientRoleComposites(
 	}
 
 	return response, nil
+}
+
+func (c *clientsClient) GetClientSecret(
+	ctx context.Context,
+	realm, clientUUID string,
+) (*CredentialRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmClientsClientUuidClientSecretWithResponse(ctx, realm, clientUUID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *clientsClient) RegenerateClientSecret(
+	ctx context.Context,
+	realm, clientUUID string,
+) (*CredentialRepresentation, *Response, error) {
+	res, err := c.client.PostAdminRealmsRealmClientsClientUuidClientSecretWithResponse(ctx, realm, clientUUID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (c *clientsClient) GetClientSessions(
+	ctx context.Context,
+	realm, clientUUID string,
+	params *GetClientSessionsParams,
+) ([]UserSessionRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmClientsClientUuidUserSessionsWithResponse(
+		ctx, realm, clientUUID, params,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *clientsClient) GetClientInstallationProvider(
+	ctx context.Context,
+	realm, clientUUID, providerID string,
+) ([]byte, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmClientsClientUuidInstallationProvidersProviderIdWithResponse(
+		ctx, realm, clientUUID, providerID,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.Body, response, nil
 }

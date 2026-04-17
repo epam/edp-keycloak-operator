@@ -1321,3 +1321,199 @@ func TestClientsClient_UpdateClientRole(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, updatedDesc, *role.Description)
 }
+
+func TestClientsClient_GetClientSecret(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-client-secret-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	// Create a confidential client.
+	clientID := fmt.Sprintf("secret-client-%d", time.Now().UnixNano())
+	protocol := protocolOpenIDConnect
+	publicClient := false
+
+	resp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
+		ClientId:     &clientID,
+		Protocol:     &protocol,
+		Enabled:      &enabled,
+		PublicClient: &publicClient,
+	})
+	require.NoError(t, err)
+
+	clientUUID := keycloakv2.GetResourceIDFromResponse(resp)
+
+	// GetClientSecret.
+	cred, resp, err := c.Clients.GetClientSecret(ctx, realmName, clientUUID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, cred)
+	require.NotNil(t, cred.Value)
+	require.NotEmpty(t, *cred.Value)
+}
+
+func TestClientsClient_RegenerateClientSecret(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-client-regen-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientID := fmt.Sprintf("regen-client-%d", time.Now().UnixNano())
+	protocol := protocolOpenIDConnect
+	publicClient := false
+
+	resp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
+		ClientId:     &clientID,
+		Protocol:     &protocol,
+		Enabled:      &enabled,
+		PublicClient: &publicClient,
+	})
+	require.NoError(t, err)
+
+	clientUUID := keycloakv2.GetResourceIDFromResponse(resp)
+
+	// Get original secret.
+	original, _, err := c.Clients.GetClientSecret(ctx, realmName, clientUUID)
+	require.NoError(t, err)
+
+	originalValue := *original.Value
+
+	// Regenerate.
+	regenerated, resp, err := c.Clients.RegenerateClientSecret(ctx, realmName, clientUUID)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, regenerated)
+	require.NotNil(t, regenerated.Value)
+	require.NotEqual(t, originalValue, *regenerated.Value, "secret should change after regeneration")
+}
+
+func TestClientsClient_GetClientSessions(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-client-sessions-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientID := fmt.Sprintf("sessions-client-%d", time.Now().UnixNano())
+	protocol := protocolOpenIDConnect
+
+	resp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
+		ClientId: &clientID,
+		Protocol: &protocol,
+		Enabled:  &enabled,
+	})
+	require.NoError(t, err)
+
+	clientUUID := keycloakv2.GetResourceIDFromResponse(resp)
+
+	sessions, resp, err := c.Clients.GetClientSessions(ctx, realmName, clientUUID, nil)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	// A fresh client has no sessions.
+	require.Empty(t, sessions)
+}
+
+func TestClientsClient_GetClientInstallationProvider(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-client-install-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientID := fmt.Sprintf("install-client-%d", time.Now().UnixNano())
+	protocol := protocolOpenIDConnect
+	publicClient := false
+
+	resp, err := c.Clients.CreateClient(ctx, realmName, keycloakv2.ClientRepresentation{
+		ClientId:     &clientID,
+		Protocol:     &protocol,
+		Enabled:      &enabled,
+		PublicClient: &publicClient,
+	})
+	require.NoError(t, err)
+
+	clientUUID := keycloakv2.GetResourceIDFromResponse(resp)
+
+	data, resp, err := c.Clients.GetClientInstallationProvider(ctx, realmName, clientUUID, "keycloak-oidc-keycloak-json")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotEmpty(t, data, "installation JSON should not be empty")
+}

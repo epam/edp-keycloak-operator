@@ -964,6 +964,94 @@ func (_c *MockAuthorizationClient_GetPolicy_Call) RunAndReturn(run func(ctx cont
 	return _c
 }
 
+// GetResource provides a mock function for the type MockAuthorizationClient
+func (_mock *MockAuthorizationClient) GetResource(ctx context.Context, realm string, clientUUID string, resourceID string) (*keycloakv2.ResourceRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, resourceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetResource")
+	}
+
+	var r0 *keycloakv2.ResourceRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.ResourceRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, resourceID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.ResourceRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, resourceID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ResourceRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, resourceID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID, resourceID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthorizationClient_GetResource_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetResource'
+type MockAuthorizationClient_GetResource_Call struct {
+	*mock.Call
+}
+
+// GetResource is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - resourceID string
+func (_e *MockAuthorizationClient_Expecter) GetResource(ctx interface{}, realm interface{}, clientUUID interface{}, resourceID interface{}) *MockAuthorizationClient_GetResource_Call {
+	return &MockAuthorizationClient_GetResource_Call{Call: _e.mock.On("GetResource", ctx, realm, clientUUID, resourceID)}
+}
+
+func (_c *MockAuthorizationClient_GetResource_Call) Run(run func(ctx context.Context, realm string, clientUUID string, resourceID string)) *MockAuthorizationClient_GetResource_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthorizationClient_GetResource_Call) Return(v *keycloakv2.ResourceRepresentation, response *keycloakv2.Response, err error) *MockAuthorizationClient_GetResource_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockAuthorizationClient_GetResource_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, resourceID string) (*keycloakv2.ResourceRepresentation, *keycloakv2.Response, error)) *MockAuthorizationClient_GetResource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetResources provides a mock function for the type MockAuthorizationClient
 func (_mock *MockAuthorizationClient) GetResources(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ResourceRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, clientUUID)
@@ -1042,6 +1130,94 @@ func (_c *MockAuthorizationClient_GetResources_Call) Return(vs []keycloakv2.Reso
 }
 
 func (_c *MockAuthorizationClient_GetResources_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) ([]keycloakv2.ResourceRepresentation, *keycloakv2.Response, error)) *MockAuthorizationClient_GetResources_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetScope provides a mock function for the type MockAuthorizationClient
+func (_mock *MockAuthorizationClient) GetScope(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.ScopeRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, scopeID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetScope")
+	}
+
+	var r0 *keycloakv2.ScopeRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.ScopeRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, scopeID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.ScopeRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.ScopeRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID, scopeID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockAuthorizationClient_GetScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetScope'
+type MockAuthorizationClient_GetScope_Call struct {
+	*mock.Call
+}
+
+// GetScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - scopeID string
+func (_e *MockAuthorizationClient_Expecter) GetScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockAuthorizationClient_GetScope_Call {
+	return &MockAuthorizationClient_GetScope_Call{Call: _e.mock.On("GetScope", ctx, realm, clientUUID, scopeID)}
+}
+
+func (_c *MockAuthorizationClient_GetScope_Call) Run(run func(ctx context.Context, realm string, clientUUID string, scopeID string)) *MockAuthorizationClient_GetScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthorizationClient_GetScope_Call) Return(v *keycloakv2.ScopeRepresentation, response *keycloakv2.Response, err error) *MockAuthorizationClient_GetScope_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockAuthorizationClient_GetScope_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakv2.ScopeRepresentation, *keycloakv2.Response, error)) *MockAuthorizationClient_GetScope_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1394,6 +1570,92 @@ func (_c *MockAuthorizationClient_UpdateResource_Call) Return(response *keycloak
 }
 
 func (_c *MockAuthorizationClient_UpdateResource_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, resourceID string, resource keycloakv2.ResourceRepresentation) (*keycloakv2.Response, error)) *MockAuthorizationClient_UpdateResource_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateScope provides a mock function for the type MockAuthorizationClient
+func (_mock *MockAuthorizationClient) UpdateScope(ctx context.Context, realm string, clientUUID string, scopeID string, scope keycloakv2.ScopeRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, scopeID, scope)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateScope")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ScopeRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, scopeID, scope)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.ScopeRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, scopeID, scope)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakv2.ScopeRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, scopeID, scope)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockAuthorizationClient_UpdateScope_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateScope'
+type MockAuthorizationClient_UpdateScope_Call struct {
+	*mock.Call
+}
+
+// UpdateScope is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - scopeID string
+//   - scope keycloakv2.ScopeRepresentation
+func (_e *MockAuthorizationClient_Expecter) UpdateScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}, scope interface{}) *MockAuthorizationClient_UpdateScope_Call {
+	return &MockAuthorizationClient_UpdateScope_Call{Call: _e.mock.On("UpdateScope", ctx, realm, clientUUID, scopeID, scope)}
+}
+
+func (_c *MockAuthorizationClient_UpdateScope_Call) Run(run func(ctx context.Context, realm string, clientUUID string, scopeID string, scope keycloakv2.ScopeRepresentation)) *MockAuthorizationClient_UpdateScope_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakv2.ScopeRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakv2.ScopeRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockAuthorizationClient_UpdateScope_Call) Return(response *keycloakv2.Response, err error) *MockAuthorizationClient_UpdateScope_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockAuthorizationClient_UpdateScope_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, scopeID string, scope keycloakv2.ScopeRepresentation) (*keycloakv2.Response, error)) *MockAuthorizationClient_UpdateScope_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -20,6 +20,9 @@ packages:
       RealmComponentsClient: {}
       ServerInfoClient: {}
       AuthFlowsClient: {}
+      EventsClient: {}
+      SessionsClient: {}
+      ClientPoliciesClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:
       RefClient: {}

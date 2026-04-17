@@ -13,6 +13,7 @@ import (
 )
 
 const testGithubProviderID = "github"
+const testMapperName = "test-mapper"
 
 // newIdentityProvidersTestRealm creates a Keycloak client and a fresh realm.
 // The realm is automatically deleted in t.Cleanup.
@@ -243,7 +244,7 @@ func TestIdentityProvidersClient_Mappers(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, mappers, 1)
 	require.NotNil(t, mappers[0].Name)
-	require.Equal(t, "test-mapper", *mappers[0].Name)
+	require.Equal(t, testMapperName, *mappers[0].Name)
 	require.NotNil(t, mappers[0].Id)
 
 	// DeleteIDPMapper
@@ -302,4 +303,140 @@ func TestIdentityProvidersClient_ManagementPermissions(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, perms)
 	require.True(t, *perms.Enabled)
+}
+
+func TestIdentityProvidersClient_GetIdentityProviders(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+	ctx := context.Background()
+
+	// Create an IDP.
+	alias := fmt.Sprintf("list-idp-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// List all IDPs.
+	idps, resp, err := c.IdentityProviders.GetIdentityProviders(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Greater(t, len(idps), 0)
+
+	found := false
+
+	for _, idp := range idps {
+		if idp.Alias != nil && *idp.Alias == alias {
+			found = true
+
+			break
+		}
+	}
+
+	require.True(t, found, "created IDP should be in the list")
+}
+
+func TestIdentityProvidersClient_UpdateIDPMapper(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+	ctx := context.Background()
+
+	// Create an IDP.
+	alias := fmt.Sprintf("mapper-idp-%d", time.Now().UnixNano())
+	providerID := testGithubProviderID
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	// Create an IDP mapper.
+	mapperName := testMapperName
+	mapperType := "hardcoded-attribute-idp-mapper"
+	mapperConfig := map[string]string{
+		"syncMode":        "INHERIT",
+		"attribute":       "test-attr",
+		"attribute.value": "original-value",
+	}
+
+	mapperResp, err := c.IdentityProviders.CreateIDPMapper(ctx, realmName, alias,
+		keycloakv2.IdentityProviderMapperRepresentation{
+			Name:                   &mapperName,
+			IdentityProviderAlias:  &alias,
+			IdentityProviderMapper: &mapperType,
+			Config:                 &mapperConfig,
+		})
+	require.NoError(t, err)
+
+	mapperID := keycloakv2.GetResourceIDFromResponse(mapperResp)
+	require.NotEmpty(t, mapperID)
+
+	// Update the mapper.
+	updatedConfig := map[string]string{
+		"syncMode":        "INHERIT",
+		"attribute":       "test-attr",
+		"attribute.value": "updated-value",
+	}
+
+	resp, err := c.IdentityProviders.UpdateIDPMapper(ctx, realmName, alias, mapperID,
+		keycloakv2.IdentityProviderMapperRepresentation{
+			Id:                     &mapperID,
+			Name:                   &mapperName,
+			IdentityProviderAlias:  &alias,
+			IdentityProviderMapper: &mapperType,
+			Config:                 &updatedConfig,
+		})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	// Verify by listing mappers.
+	mappers, _, err := c.IdentityProviders.GetIDPMappers(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.Len(t, mappers, 1)
+	require.Equal(t, "updated-value", (*mappers[0].Config)["attribute.value"])
+}
+
+func TestIdentityProvidersClient_ExportBrokerConfig(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newIdentityProvidersTestRealm(t)
+	ctx := context.Background()
+
+	// Create a SAML IDP for export testing.
+	alias := fmt.Sprintf("export-idp-%d", time.Now().UnixNano())
+	providerID := "saml"
+	enabled := true
+
+	_, err := c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakv2.IdentityProviderRepresentation{
+		Alias:      &alias,
+		ProviderId: &providerID,
+		Enabled:    &enabled,
+		Config: &map[string]string{
+			"singleSignOnServiceUrl": "https://idp.example.com/sso",
+		},
+	})
+	require.NoError(t, err)
+
+	data, resp, err := c.IdentityProviders.ExportBrokerConfig(ctx, realmName, alias, "saml-sp-descriptor")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotEmpty(t, data, "exported SAML SP descriptor should not be empty")
 }

@@ -92,6 +92,59 @@ func (a *authorizationClient) CreateScope(
 	return response, nil
 }
 
+func (a *authorizationClient) GetScope(
+	ctx context.Context,
+	realm string,
+	clientUUID string,
+	scopeID string,
+) (*ScopeRepresentation, *Response, error) {
+	res, err := a.client.GetAdminRealmsRealmClientsClientUuidAuthzResourceServerScopeScopeIdWithResponse(
+		ctx, realm, clientUUID, scopeID,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
+func (a *authorizationClient) UpdateScope(
+	ctx context.Context,
+	realm string,
+	clientUUID string,
+	scopeID string,
+	scope ScopeRepresentation,
+) (*Response, error) {
+	res, err := a.client.PutAdminRealmsRealmClientsClientUuidAuthzResourceServerScopeScopeIdWithResponse(
+		ctx, realm, clientUUID, scopeID, scope,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
 func (a *authorizationClient) DeleteScope(
 	ctx context.Context,
 	realm string,
@@ -147,6 +200,32 @@ func (a *authorizationClient) GetResources(
 	}
 
 	return *res.JSON200, response, nil
+}
+
+func (a *authorizationClient) GetResource(
+	ctx context.Context,
+	realm string,
+	clientUUID string,
+	resourceID string,
+) (*ResourceRepresentation, *Response, error) {
+	res, err := a.client.GetAdminRealmsRealmClientsClientUuidAuthzResourceServerResourceResourceIdWithResponse(
+		ctx, realm, clientUUID, resourceID, nil,
+	)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
 }
 
 func (a *authorizationClient) CreateResource(

@@ -346,6 +346,94 @@ func (_c *MockIdentityProvidersClient_DeleteIdentityProvider_Call) RunAndReturn(
 	return _c
 }
 
+// ExportBrokerConfig provides a mock function for the type MockIdentityProvidersClient
+func (_mock *MockIdentityProvidersClient) ExportBrokerConfig(ctx context.Context, realm string, alias string, format string) ([]byte, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, alias, format)
+
+	if len(ret) == 0 {
+		panic("no return value specified for ExportBrokerConfig")
+	}
+
+	var r0 []byte
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) ([]byte, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, alias, format)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) []byte); ok {
+		r0 = returnFunc(ctx, realm, alias, format)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]byte)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, alias, format)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, alias, format)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockIdentityProvidersClient_ExportBrokerConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'ExportBrokerConfig'
+type MockIdentityProvidersClient_ExportBrokerConfig_Call struct {
+	*mock.Call
+}
+
+// ExportBrokerConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - alias string
+//   - format string
+func (_e *MockIdentityProvidersClient_Expecter) ExportBrokerConfig(ctx interface{}, realm interface{}, alias interface{}, format interface{}) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
+	return &MockIdentityProvidersClient_ExportBrokerConfig_Call{Call: _e.mock.On("ExportBrokerConfig", ctx, realm, alias, format)}
+}
+
+func (_c *MockIdentityProvidersClient_ExportBrokerConfig_Call) Run(run func(ctx context.Context, realm string, alias string, format string)) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_ExportBrokerConfig_Call) Return(bytes []byte, response *keycloakv2.Response, err error) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
+	_c.Call.Return(bytes, response, err)
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_ExportBrokerConfig_Call) RunAndReturn(run func(ctx context.Context, realm string, alias string, format string) ([]byte, *keycloakv2.Response, error)) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetIDPManagementPermissions provides a mock function for the type MockIdentityProvidersClient
 func (_mock *MockIdentityProvidersClient) GetIDPManagementPermissions(ctx context.Context, realm string, alias string) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, alias)
@@ -592,6 +680,82 @@ func (_c *MockIdentityProvidersClient_GetIdentityProvider_Call) RunAndReturn(run
 	return _c
 }
 
+// GetIdentityProviders provides a mock function for the type MockIdentityProvidersClient
+func (_mock *MockIdentityProvidersClient) GetIdentityProviders(ctx context.Context, realm string) ([]keycloakv2.IdentityProviderRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetIdentityProviders")
+	}
+
+	var r0 []keycloakv2.IdentityProviderRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) ([]keycloakv2.IdentityProviderRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string) []keycloakv2.IdentityProviderRepresentation); ok {
+		r0 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.IdentityProviderRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string) error); ok {
+		r2 = returnFunc(ctx, realm)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockIdentityProvidersClient_GetIdentityProviders_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetIdentityProviders'
+type MockIdentityProvidersClient_GetIdentityProviders_Call struct {
+	*mock.Call
+}
+
+// GetIdentityProviders is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+func (_e *MockIdentityProvidersClient_Expecter) GetIdentityProviders(ctx interface{}, realm interface{}) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+	return &MockIdentityProvidersClient_GetIdentityProviders_Call{Call: _e.mock.On("GetIdentityProviders", ctx, realm)}
+}
+
+func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) Run(run func(ctx context.Context, realm string)) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		run(
+			arg0,
+			arg1,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) Return(vs []keycloakv2.IdentityProviderRepresentation, response *keycloakv2.Response, err error) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]keycloakv2.IdentityProviderRepresentation, *keycloakv2.Response, error)) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // UpdateIDPManagementPermissions provides a mock function for the type MockIdentityProvidersClient
 func (_mock *MockIdentityProvidersClient) UpdateIDPManagementPermissions(ctx context.Context, realm string, alias string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, alias, permissions)
@@ -676,6 +840,92 @@ func (_c *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call) Retur
 }
 
 func (_c *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call) RunAndReturn(run func(ctx context.Context, realm string, alias string, permissions keycloakv2.ManagementPermissionReference) (*keycloakv2.ManagementPermissionReference, *keycloakv2.Response, error)) *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// UpdateIDPMapper provides a mock function for the type MockIdentityProvidersClient
+func (_mock *MockIdentityProvidersClient) UpdateIDPMapper(ctx context.Context, realm string, alias string, mapperID string, mapper keycloakv2.IdentityProviderMapperRepresentation) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, alias, mapperID, mapper)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateIDPMapper")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.IdentityProviderMapperRepresentation) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, alias, mapperID, mapper)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakv2.IdentityProviderMapperRepresentation) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, alias, mapperID, mapper)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakv2.IdentityProviderMapperRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, alias, mapperID, mapper)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockIdentityProvidersClient_UpdateIDPMapper_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateIDPMapper'
+type MockIdentityProvidersClient_UpdateIDPMapper_Call struct {
+	*mock.Call
+}
+
+// UpdateIDPMapper is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - alias string
+//   - mapperID string
+//   - mapper keycloakv2.IdentityProviderMapperRepresentation
+func (_e *MockIdentityProvidersClient_Expecter) UpdateIDPMapper(ctx interface{}, realm interface{}, alias interface{}, mapperID interface{}, mapper interface{}) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
+	return &MockIdentityProvidersClient_UpdateIDPMapper_Call{Call: _e.mock.On("UpdateIDPMapper", ctx, realm, alias, mapperID, mapper)}
+}
+
+func (_c *MockIdentityProvidersClient_UpdateIDPMapper_Call) Run(run func(ctx context.Context, realm string, alias string, mapperID string, mapper keycloakv2.IdentityProviderMapperRepresentation)) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakv2.IdentityProviderMapperRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakv2.IdentityProviderMapperRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_UpdateIDPMapper_Call) Return(response *keycloakv2.Response, err error) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockIdentityProvidersClient_UpdateIDPMapper_Call) RunAndReturn(run func(ctx context.Context, realm string, alias string, mapperID string, mapper keycloakv2.IdentityProviderMapperRepresentation) (*keycloakv2.Response, error)) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
 	_c.Call.Return(run)
 	return _c
 }

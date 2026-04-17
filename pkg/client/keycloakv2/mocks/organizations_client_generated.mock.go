@@ -38,6 +38,86 @@ func (_m *MockOrganizationsClient) EXPECT() *MockOrganizationsClient_Expecter {
 	return &MockOrganizationsClient_Expecter{mock: &_m.Mock}
 }
 
+// AddOrganizationMember provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) AddOrganizationMember(ctx context.Context, realm string, orgID string, userID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddOrganizationMember")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, orgID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, orgID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOrganizationsClient_AddOrganizationMember_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddOrganizationMember'
+type MockOrganizationsClient_AddOrganizationMember_Call struct {
+	*mock.Call
+}
+
+// AddOrganizationMember is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - userID string
+func (_e *MockOrganizationsClient_Expecter) AddOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, userID interface{}) *MockOrganizationsClient_AddOrganizationMember_Call {
+	return &MockOrganizationsClient_AddOrganizationMember_Call{Call: _e.mock.On("AddOrganizationMember", ctx, realm, orgID, userID)}
+}
+
+func (_c *MockOrganizationsClient_AddOrganizationMember_Call) Run(run func(ctx context.Context, realm string, orgID string, userID string)) *MockOrganizationsClient_AddOrganizationMember_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_AddOrganizationMember_Call) Return(response *keycloakv2.Response, err error) *MockOrganizationsClient_AddOrganizationMember_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_AddOrganizationMember_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, userID string) (*keycloakv2.Response, error)) *MockOrganizationsClient_AddOrganizationMember_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // CreateOrganization provides a mock function for the type MockOrganizationsClient
 func (_mock *MockOrganizationsClient) CreateOrganization(ctx context.Context, realm string, org keycloakv2.OrganizationRepresentation) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, org)
@@ -350,6 +430,94 @@ func (_c *MockOrganizationsClient_GetOrganizationIdentityProviders_Call) RunAndR
 	return _c
 }
 
+// GetOrganizationMembers provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) GetOrganizationMembers(ctx context.Context, realm string, orgID string, params *keycloakv2.GetOrganizationMembersParams) ([]keycloakv2.MemberRepresentation, *keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, params)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganizationMembers")
+	}
+
+	var r0 []keycloakv2.MemberRepresentation
+	var r1 *keycloakv2.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *keycloakv2.GetOrganizationMembersParams) ([]keycloakv2.MemberRepresentation, *keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, params)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, *keycloakv2.GetOrganizationMembersParams) []keycloakv2.MemberRepresentation); ok {
+		r0 = returnFunc(ctx, realm, orgID, params)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakv2.MemberRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, *keycloakv2.GetOrganizationMembersParams) *keycloakv2.Response); ok {
+		r1 = returnFunc(ctx, realm, orgID, params)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, *keycloakv2.GetOrganizationMembersParams) error); ok {
+		r2 = returnFunc(ctx, realm, orgID, params)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockOrganizationsClient_GetOrganizationMembers_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganizationMembers'
+type MockOrganizationsClient_GetOrganizationMembers_Call struct {
+	*mock.Call
+}
+
+// GetOrganizationMembers is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - params *keycloakv2.GetOrganizationMembersParams
+func (_e *MockOrganizationsClient_Expecter) GetOrganizationMembers(ctx interface{}, realm interface{}, orgID interface{}, params interface{}) *MockOrganizationsClient_GetOrganizationMembers_Call {
+	return &MockOrganizationsClient_GetOrganizationMembers_Call{Call: _e.mock.On("GetOrganizationMembers", ctx, realm, orgID, params)}
+}
+
+func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) Run(run func(ctx context.Context, realm string, orgID string, params *keycloakv2.GetOrganizationMembersParams)) *MockOrganizationsClient_GetOrganizationMembers_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 *keycloakv2.GetOrganizationMembersParams
+		if args[3] != nil {
+			arg3 = args[3].(*keycloakv2.GetOrganizationMembersParams)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) Return(vs []keycloakv2.MemberRepresentation, response *keycloakv2.Response, err error) *MockOrganizationsClient_GetOrganizationMembers_Call {
+	_c.Call.Return(vs, response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, params *keycloakv2.GetOrganizationMembersParams) ([]keycloakv2.MemberRepresentation, *keycloakv2.Response, error)) *MockOrganizationsClient_GetOrganizationMembers_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrganizations provides a mock function for the type MockOrganizationsClient
 func (_mock *MockOrganizationsClient) GetOrganizations(ctx context.Context, realm string, params *keycloakv2.GetOrganizationsParams) ([]keycloakv2.OrganizationRepresentation, *keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, params)
@@ -432,6 +600,178 @@ func (_c *MockOrganizationsClient_GetOrganizations_Call) RunAndReturn(run func(c
 	return _c
 }
 
+// InviteExistingOrganizationMember provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) InviteExistingOrganizationMember(ctx context.Context, realm string, orgID string, userID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, userID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InviteExistingOrganizationMember")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, userID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, orgID, userID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, orgID, userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOrganizationsClient_InviteExistingOrganizationMember_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InviteExistingOrganizationMember'
+type MockOrganizationsClient_InviteExistingOrganizationMember_Call struct {
+	*mock.Call
+}
+
+// InviteExistingOrganizationMember is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - userID string
+func (_e *MockOrganizationsClient_Expecter) InviteExistingOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, userID interface{}) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
+	return &MockOrganizationsClient_InviteExistingOrganizationMember_Call{Call: _e.mock.On("InviteExistingOrganizationMember", ctx, realm, orgID, userID)}
+}
+
+func (_c *MockOrganizationsClient_InviteExistingOrganizationMember_Call) Run(run func(ctx context.Context, realm string, orgID string, userID string)) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_InviteExistingOrganizationMember_Call) Return(response *keycloakv2.Response, err error) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_InviteExistingOrganizationMember_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, userID string) (*keycloakv2.Response, error)) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// InviteNewOrganizationMember provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) InviteNewOrganizationMember(ctx context.Context, realm string, orgID string, email string, firstName string, lastName string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, email, firstName, lastName)
+
+	if len(ret) == 0 {
+		panic("no return value specified for InviteNewOrganizationMember")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, email, firstName, lastName)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, orgID, email, firstName, lastName)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, orgID, email, firstName, lastName)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOrganizationsClient_InviteNewOrganizationMember_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'InviteNewOrganizationMember'
+type MockOrganizationsClient_InviteNewOrganizationMember_Call struct {
+	*mock.Call
+}
+
+// InviteNewOrganizationMember is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - email string
+//   - firstName string
+//   - lastName string
+func (_e *MockOrganizationsClient_Expecter) InviteNewOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, email interface{}, firstName interface{}, lastName interface{}) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
+	return &MockOrganizationsClient_InviteNewOrganizationMember_Call{Call: _e.mock.On("InviteNewOrganizationMember", ctx, realm, orgID, email, firstName, lastName)}
+}
+
+func (_c *MockOrganizationsClient_InviteNewOrganizationMember_Call) Run(run func(ctx context.Context, realm string, orgID string, email string, firstName string, lastName string)) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 string
+		if args[4] != nil {
+			arg4 = args[4].(string)
+		}
+		var arg5 string
+		if args[5] != nil {
+			arg5 = args[5].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+			arg5,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_InviteNewOrganizationMember_Call) Return(response *keycloakv2.Response, err error) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_InviteNewOrganizationMember_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, email string, firstName string, lastName string) (*keycloakv2.Response, error)) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // LinkIdentityProviderToOrganization provides a mock function for the type MockOrganizationsClient
 func (_mock *MockOrganizationsClient) LinkIdentityProviderToOrganization(ctx context.Context, realm string, orgID string, alias string) (*keycloakv2.Response, error) {
 	ret := _mock.Called(ctx, realm, orgID, alias)
@@ -508,6 +848,86 @@ func (_c *MockOrganizationsClient_LinkIdentityProviderToOrganization_Call) Retur
 }
 
 func (_c *MockOrganizationsClient_LinkIdentityProviderToOrganization_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, alias string) (*keycloakv2.Response, error)) *MockOrganizationsClient_LinkIdentityProviderToOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// RemoveOrganizationMember provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) RemoveOrganizationMember(ctx context.Context, realm string, orgID string, memberID string) (*keycloakv2.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, memberID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for RemoveOrganizationMember")
+	}
+
+	var r0 *keycloakv2.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) (*keycloakv2.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, memberID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) *keycloakv2.Response); ok {
+		r0 = returnFunc(ctx, realm, orgID, memberID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakv2.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) error); ok {
+		r1 = returnFunc(ctx, realm, orgID, memberID)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOrganizationsClient_RemoveOrganizationMember_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'RemoveOrganizationMember'
+type MockOrganizationsClient_RemoveOrganizationMember_Call struct {
+	*mock.Call
+}
+
+// RemoveOrganizationMember is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - memberID string
+func (_e *MockOrganizationsClient_Expecter) RemoveOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, memberID interface{}) *MockOrganizationsClient_RemoveOrganizationMember_Call {
+	return &MockOrganizationsClient_RemoveOrganizationMember_Call{Call: _e.mock.On("RemoveOrganizationMember", ctx, realm, orgID, memberID)}
+}
+
+func (_c *MockOrganizationsClient_RemoveOrganizationMember_Call) Run(run func(ctx context.Context, realm string, orgID string, memberID string)) *MockOrganizationsClient_RemoveOrganizationMember_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_RemoveOrganizationMember_Call) Return(response *keycloakv2.Response, err error) *MockOrganizationsClient_RemoveOrganizationMember_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_RemoveOrganizationMember_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, memberID string) (*keycloakv2.Response, error)) *MockOrganizationsClient_RemoveOrganizationMember_Call {
 	_c.Call.Return(run)
 	return _c
 }

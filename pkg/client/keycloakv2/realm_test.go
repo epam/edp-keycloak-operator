@@ -6,9 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
-	"github.com/stretchr/testify/require"
 )
 
 func TestRealmClient_CRUD(t *testing.T) {
@@ -355,4 +357,104 @@ func TestRealmClient_SetRealmEventConfig_RealmNotFound(t *testing.T) {
 	require.Error(t, err)
 	require.True(t, keycloakv2.IsNotFound(err))
 	require.NotNil(t, resp)
+}
+
+func TestRealmClient_GetRealms(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realms, resp, err := c.Realms.GetRealms(ctx)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Greater(t, len(realms), 0, "at least the master realm should exist")
+
+	found := false
+
+	for _, r := range realms {
+		if r.Realm != nil && *r.Realm == keycloakv2.MasterRealm {
+			found = true
+
+			break
+		}
+	}
+
+	require.True(t, found, "master realm should be in the list")
+}
+
+func TestRealmClient_GetRealmKeys(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-keys-%d", time.Now().UnixNano())
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: ptr.To(true),
+	})
+	require.NoError(t, err)
+
+	keys, resp, err := c.Realms.GetRealmKeys(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, keys)
+	require.NotNil(t, keys.Keys)
+	require.Greater(t, len(*keys.Keys), 0, "realm should have at least one key")
+}
+
+func TestRealmClient_GetRealmLocalization(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakv2.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakv2.DefaultAdminClientID,
+		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-localization-%d", time.Now().UnixNano())
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakv2.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: ptr.To(true),
+	})
+	require.NoError(t, err)
+
+	// A fresh realm may have no localization entries for "en" — that is valid.
+	localization, resp, err := c.Realms.GetRealmLocalization(ctx, realmName, "en")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	// localization can be nil when no entries exist for the locale.
+	_ = localization
 }
