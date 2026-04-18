@@ -26,7 +26,7 @@ spec:
         {{ $key }}: {{ $value | quote }}
         {{- end }}
     spec:
-      serviceAccountName: edp-{{ .Values.name }}
+      serviceAccountName: {{ include "keycloak-operator.serviceAccountName" . }}
       {{- if .Values.securityContext }}
       securityContext: {{ toYaml .Values.securityContext | nindent 8 }}
       {{- end }}
