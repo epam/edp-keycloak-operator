@@ -8,7 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // SecretRefClient resolves secret references in component config.
@@ -48,11 +48,11 @@ func (ch *Chain) Serve(ctx context.Context, component *keycloakApi.KeycloakRealm
 }
 
 // MakeChain creates the reconciliation chain for KeycloakRealmComponent.
-func MakeChain(k8sClient client.Client, kClientV2 *keycloakv2.KeycloakClient, secretRefClient SecretRefClient) *Chain {
+func MakeChain(k8sClient client.Client, kClient *keycloakapi.KeycloakClient, secretRefClient SecretRefClient) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateComponent(k8sClient, kClientV2, secretRefClient),
+		NewCreateOrUpdateComponent(k8sClient, kClient, secretRefClient),
 	)
 
 	return ch

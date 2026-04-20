@@ -8,15 +8,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncUserRoles struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncUserRoles(kClientV2 *keycloakv2.KeycloakClient) *SyncUserRoles {
-	return &SyncUserRoles{kClientV2: kClientV2}
+func NewSyncUserRoles(kClient *keycloakapi.KeycloakClient) *SyncUserRoles {
+	return &SyncUserRoles{kClient: kClient}
 }
 
 func (h *SyncUserRoles) Serve(
@@ -49,12 +49,12 @@ func (h *SyncUserRoles) syncRealmRoles(
 	desiredRoleNames []string,
 	addOnly bool,
 ) error {
-	currentRoles, _, err := h.kClientV2.Users.GetUserRealmRoleMappings(ctx, realmName, userID)
+	currentRoles, _, err := h.kClient.Users.GetUserRealmRoleMappings(ctx, realmName, userID)
 	if err != nil {
 		return fmt.Errorf("unable to get user realm role mappings: %w", err)
 	}
 
-	currentByName := make(map[string]keycloakv2.RoleRepresentation, len(currentRoles))
+	currentByName := make(map[string]keycloakapi.RoleRepresentation, len(currentRoles))
 
 	for _, r := range currentRoles {
 		if r.Name != nil {
@@ -63,14 +63,14 @@ func (h *SyncUserRoles) syncRealmRoles(
 	}
 
 	// Add missing roles
-	toAdd := make([]keycloakv2.RoleRepresentation, 0, len(desiredRoleNames))
+	toAdd := make([]keycloakapi.RoleRepresentation, 0, len(desiredRoleNames))
 
 	for _, roleName := range desiredRoleNames {
 		if _, exists := currentByName[roleName]; exists {
 			continue
 		}
 
-		role, _, err := h.kClientV2.Roles.GetRealmRole(ctx, realmName, roleName)
+		role, _, err := h.kClient.Roles.GetRealmRole(ctx, realmName, roleName)
 		if err != nil {
 			return fmt.Errorf("unable to get realm role %q: %w", roleName, err)
 		}
@@ -79,7 +79,7 @@ func (h *SyncUserRoles) syncRealmRoles(
 	}
 
 	if len(toAdd) > 0 {
-		if _, err := h.kClientV2.Users.AddUserRealmRoles(ctx, realmName, userID, toAdd); err != nil {
+		if _, err := h.kClient.Users.AddUserRealmRoles(ctx, realmName, userID, toAdd); err != nil {
 			return fmt.Errorf("unable to add realm roles to user: %w", err)
 		}
 	}
@@ -89,7 +89,7 @@ func (h *SyncUserRoles) syncRealmRoles(
 	}
 
 	// Remove extra roles
-	var toRemove []keycloakv2.RoleRepresentation
+	var toRemove []keycloakapi.RoleRepresentation
 
 	for _, r := range currentRoles {
 		if r.Name != nil && !slices.Contains(desiredRoleNames, *r.Name) {
@@ -98,7 +98,7 @@ func (h *SyncUserRoles) syncRealmRoles(
 	}
 
 	if len(toRemove) > 0 {
-		if _, err := h.kClientV2.Users.DeleteUserRealmRoles(ctx, realmName, userID, toRemove); err != nil {
+		if _, err := h.kClient.Users.DeleteUserRealmRoles(ctx, realmName, userID, toRemove); err != nil {
 			return fmt.Errorf("unable to delete realm roles from user: %w", err)
 		}
 	}
@@ -113,7 +113,7 @@ func (h *SyncUserRoles) syncClientRoles(
 	addOnly bool,
 ) error {
 	for _, cr := range clientRoles {
-		clients, _, err := h.kClientV2.Clients.GetClients(ctx, realmName, &keycloakv2.GetClientsParams{ClientId: &cr.ClientID})
+		clients, _, err := h.kClient.Clients.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{ClientId: &cr.ClientID})
 		if err != nil {
 			return fmt.Errorf("unable to get client %q: %w", cr.ClientID, err)
 		}
@@ -124,12 +124,12 @@ func (h *SyncUserRoles) syncClientRoles(
 
 		clientUUID := *clients[0].Id
 
-		currentRoles, _, err := h.kClientV2.Users.GetUserClientRoleMappings(ctx, realmName, userID, clientUUID)
+		currentRoles, _, err := h.kClient.Users.GetUserClientRoleMappings(ctx, realmName, userID, clientUUID)
 		if err != nil {
 			return fmt.Errorf("unable to get client role mappings for client %q: %w", cr.ClientID, err)
 		}
 
-		currentByName := make(map[string]keycloakv2.RoleRepresentation, len(currentRoles))
+		currentByName := make(map[string]keycloakapi.RoleRepresentation, len(currentRoles))
 
 		for _, r := range currentRoles {
 			if r.Name != nil {
@@ -138,14 +138,14 @@ func (h *SyncUserRoles) syncClientRoles(
 		}
 
 		// Add missing roles
-		var toAdd []keycloakv2.RoleRepresentation
+		var toAdd []keycloakapi.RoleRepresentation
 
 		for _, roleName := range cr.Roles {
 			if _, exists := currentByName[roleName]; exists {
 				continue
 			}
 
-			role, _, err := h.kClientV2.Clients.GetClientRole(ctx, realmName, clientUUID, roleName)
+			role, _, err := h.kClient.Clients.GetClientRole(ctx, realmName, clientUUID, roleName)
 			if err != nil {
 				return fmt.Errorf("unable to get client role %q for client %q: %w", roleName, cr.ClientID, err)
 			}
@@ -154,7 +154,7 @@ func (h *SyncUserRoles) syncClientRoles(
 		}
 
 		if len(toAdd) > 0 {
-			if _, err := h.kClientV2.Users.AddUserClientRoles(ctx, realmName, userID, clientUUID, toAdd); err != nil {
+			if _, err := h.kClient.Users.AddUserClientRoles(ctx, realmName, userID, clientUUID, toAdd); err != nil {
 				return fmt.Errorf("unable to add client roles to user for client %q: %w", cr.ClientID, err)
 			}
 		}
@@ -164,7 +164,7 @@ func (h *SyncUserRoles) syncClientRoles(
 		}
 
 		// Remove extra roles
-		var toRemove []keycloakv2.RoleRepresentation
+		var toRemove []keycloakapi.RoleRepresentation
 
 		for _, r := range currentRoles {
 			if r.Name != nil && !slices.Contains(cr.Roles, *r.Name) {
@@ -173,7 +173,7 @@ func (h *SyncUserRoles) syncClientRoles(
 		}
 
 		if len(toRemove) > 0 {
-			if _, err := h.kClientV2.Users.DeleteUserClientRoles(ctx, realmName, userID, clientUUID, toRemove); err != nil {
+			if _, err := h.kClient.Users.DeleteUserClientRoles(ctx, realmName, userID, clientUUID, toRemove); err != nil {
 				return fmt.Errorf("unable to delete client roles from user for client %q: %w", cr.ClientID, err)
 			}
 		}

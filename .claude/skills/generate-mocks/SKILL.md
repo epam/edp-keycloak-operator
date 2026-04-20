@@ -36,7 +36,7 @@ Use Grep to find `type <InterfaceName> interface` in `pkg/` and `internal/`.
 Derive the Go import path from the file path:
 - Use the **directory** of the file (not the file itself)
 - Prepend `github.com/epam/edp-keycloak-operator/`
-- Example: `pkg/client/keycloakv2/contracts.go` → package `github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2`
+- Example: `pkg/client/keycloakapi/contracts.go` → package `github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi`
 
 ---
 
@@ -64,6 +64,6 @@ Use Glob to confirm the generated file exists at the expected path.
 
 Expected path: `<package_filesystem_dir>/mocks/<interface_name_snakecase>_generated.mock.go`
 
-Example: `UsersClient` in `pkg/client/keycloakv2/` → `pkg/client/keycloakv2/mocks/users_client_generated.mock.go`
+Example: `UsersClient` in `pkg/client/keycloakapi/` → `pkg/client/keycloakapi/mocks/users_client_generated.mock.go`
 
 Report the verified path to the user.

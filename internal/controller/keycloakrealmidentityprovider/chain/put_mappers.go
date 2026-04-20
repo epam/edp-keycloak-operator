@@ -8,14 +8,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type PutIDPMappers struct {
-	idpClient keycloakv2.IdentityProvidersClient
+	idpClient keycloakapi.IdentityProvidersClient
 }
 
-func NewPutIDPMappers(idpClient keycloakv2.IdentityProvidersClient) *PutIDPMappers {
+func NewPutIDPMappers(idpClient keycloakapi.IdentityProvidersClient) *PutIDPMappers {
 	return &PutIDPMappers{idpClient: idpClient}
 }
 
@@ -60,11 +60,11 @@ func (h *PutIDPMappers) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi
 	return nil
 }
 
-func specToIDPMapperRepresentation(spec *keycloakApi.IdentityProviderMapper, alias string) keycloakv2.IdentityProviderMapperRepresentation {
+func specToIDPMapperRepresentation(spec *keycloakApi.IdentityProviderMapper, alias string) keycloakapi.IdentityProviderMapperRepresentation {
 	config := make(map[string]string, len(spec.Config))
 	maps.Copy(config, spec.Config)
 
-	return keycloakv2.IdentityProviderMapperRepresentation{
+	return keycloakapi.IdentityProviderMapperRepresentation{
 		Name:                   &spec.Name,
 		IdentityProviderAlias:  &alias,
 		IdentityProviderMapper: &spec.IdentityProviderMapper,

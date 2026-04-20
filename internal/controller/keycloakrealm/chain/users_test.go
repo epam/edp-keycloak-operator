@@ -14,8 +14,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	handlermocks "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler/mocks"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutUsers_ServeRequest(t *testing.T) {
@@ -47,8 +47,8 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser1").
-					Return(nil, nil, keycloakv2.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.MatchedBy(func(u keycloakv2.UserRepresentation) bool {
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.MatchedBy(func(u keycloakapi.UserRepresentation) bool {
 					return u.Username != nil && *u.Username == "testuser1"
 				})).Return(nil, nil)
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -72,11 +72,11 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil).Once()
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user2").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil).Once()
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -109,7 +109,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				uid := "some-uid"
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "existinguser").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
 			expectedError: "",
@@ -142,7 +142,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, errors.New("user creation failed"))
 			},
@@ -160,7 +160,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},
@@ -185,8 +185,8 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 
 			tt.mockSetup(mockUsers, mockNext)
 
-			kClientV2 := &keycloakv2.KeycloakClient{Users: mockUsers}
-			err := putUsers.ServeRequest(context.Background(), tt.realm, kClientV2)
+			kClient := &keycloakapi.KeycloakClient{Users: mockUsers}
+			err := putUsers.ServeRequest(context.Background(), tt.realm, kClient)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)

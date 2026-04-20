@@ -11,7 +11,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -20,9 +20,9 @@ type ConfigureEmail struct {
 	client client.Client
 }
 
-func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	if realm.Spec.Smtp == nil {
-		return nextServeOrNil(ctx, s.next, realm, kClientV2)
+		return nextServeOrNil(ctx, s.next, realm, kClient)
 	}
 
 	l := ctrl.LoggerFrom(ctx)
@@ -33,7 +33,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 		realm.Spec.RealmName,
 		realm.Spec.Smtp,
 		realm.Namespace,
-		kClientV2.Realms,
+		kClient.Realms,
 		s.client,
 	); err != nil {
 		return err
@@ -41,7 +41,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 
 	l.Info("Email has been configured")
 
-	return nextServeOrNil(ctx, s.next, realm, kClientV2)
+	return nextServeOrNil(ctx, s.next, realm, kClient)
 }
 
 func ConfigureRealmEmail(
@@ -49,7 +49,7 @@ func ConfigureRealmEmail(
 	realmName string,
 	emailSpec *common.SMTP,
 	secretsNamespace string,
-	realmClient keycloakv2.RealmClient,
+	realmClient keycloakapi.RealmClient,
 	k8sClient client.Client,
 ) error {
 	if emailSpec == nil {

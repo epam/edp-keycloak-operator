@@ -8,15 +8,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncUserGroups struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncUserGroups(kClientV2 *keycloakv2.KeycloakClient) *SyncUserGroups {
-	return &SyncUserGroups{kClientV2: kClientV2}
+func NewSyncUserGroups(kClient *keycloakapi.KeycloakClient) *SyncUserGroups {
+	return &SyncUserGroups{kClient: kClient}
 }
 
 // resolvedGroup holds a Keycloak group identity resolved from a spec entry.
@@ -49,7 +49,7 @@ func (h *SyncUserGroups) Serve(
 		return nil
 	}
 
-	currentGroups, _, err := h.kClientV2.Users.GetUserGroups(ctx, realmName, userCtx.UserID)
+	currentGroups, _, err := h.kClient.Users.GetUserGroups(ctx, realmName, userCtx.UserID)
 	if err != nil {
 		return fmt.Errorf("unable to get user groups: %w", err)
 	}
@@ -58,7 +58,7 @@ func (h *SyncUserGroups) Serve(
 
 	for _, g := range user.Spec.Groups {
 		if strings.HasPrefix(g, "/") {
-			grp, _, err := h.kClientV2.Groups.GetGroupByPath(ctx, realmName, g)
+			grp, _, err := h.kClient.Groups.GetGroupByPath(ctx, realmName, g)
 			if err != nil {
 				return fmt.Errorf("unable to get group by path %q: %w", g, err)
 			}
@@ -69,9 +69,9 @@ func (h *SyncUserGroups) Serve(
 
 			desired = append(desired, resolvedGroup{id: *grp.Id, path: g})
 		} else {
-			grp, _, err := h.kClientV2.Groups.FindGroupByName(ctx, realmName, g)
+			grp, _, err := h.kClient.Groups.FindGroupByName(ctx, realmName, g)
 			if err != nil {
-				if keycloakv2.IsNotFound(err) {
+				if keycloakapi.IsNotFound(err) {
 					return fmt.Errorf("group not found by name %q", g)
 				}
 
@@ -83,7 +83,7 @@ func (h *SyncUserGroups) Serve(
 	}
 
 	// build lookup of current group IDs
-	currentByID := make(map[string]keycloakv2.GroupRepresentation, len(currentGroups))
+	currentByID := make(map[string]keycloakapi.GroupRepresentation, len(currentGroups))
 
 	for _, cg := range currentGroups {
 		if cg.Id != nil {
@@ -96,7 +96,7 @@ func (h *SyncUserGroups) Serve(
 		if _, exists := currentByID[dg.id]; !exists {
 			log.V(1).Info("Adding user to group", "group", dg.label(), "groupID", dg.id)
 
-			if _, err := h.kClientV2.Users.AddUserToGroup(ctx, realmName, userCtx.UserID, dg.id); err != nil {
+			if _, err := h.kClient.Users.AddUserToGroup(ctx, realmName, userCtx.UserID, dg.id); err != nil {
 				return fmt.Errorf("unable to add user to group %q (id %s): %w", dg.label(), dg.id, err)
 			}
 		}
@@ -123,7 +123,7 @@ func (h *SyncUserGroups) Serve(
 
 			log.V(1).Info("Removing user from group", "group", groupLabel, "groupID", id)
 
-			if _, err := h.kClientV2.Users.RemoveUserFromGroup(ctx, realmName, userCtx.UserID, id); err != nil {
+			if _, err := h.kClient.Users.RemoveUserFromGroup(ctx, realmName, userCtx.UserID, id); err != nil {
 				return fmt.Errorf("unable to remove user from group %q (id %s): %w", groupLabel, id, err)
 			}
 		}

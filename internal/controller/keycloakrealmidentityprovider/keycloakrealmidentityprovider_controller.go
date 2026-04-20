@@ -17,7 +17,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmidentityprovider/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const successRequeueTime = time.Minute * 10
@@ -29,7 +29,7 @@ const legacyFinalizerName = "keycloak.realmidp.operator.finalizer.name"
 type IdentityProviderReconcilerCtrlHelper interface {
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.KeycloakClient, error)
 }
 
 type IdentityProviderReconciler struct {
@@ -83,7 +83,7 @@ func (r *IdentityProviderReconciler) Reconcile(ctx context.Context, request reco
 	return r.handleReconciliation(ctx, instance, kClient, realmName)
 }
 
-func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakRealmIdentityProvider, *keycloakv2.KeycloakClient, string, error) {
+func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakRealmIdentityProvider, *keycloakapi.KeycloakClient, string, error) {
 	instance := &keycloakApi.KeycloakRealmIdentityProvider{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -97,7 +97,7 @@ func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Contex
 		return nil, nil, "", fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
 			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, common.FinalizerName, legacyFinalizerName)
@@ -121,7 +121,7 @@ func (r *IdentityProviderReconciler) initializeReconciliation(ctx context.Contex
 	return instance, kClient, realmName, nil
 }
 
-func (r *IdentityProviderReconciler) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider, kClient *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *IdentityProviderReconciler) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(instance, common.FinalizerName) || controllerutil.ContainsFinalizer(instance, legacyFinalizerName) {
 		if err := chain.NewRemoveIDP(kClient).Serve(ctx, instance, realmName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove identity provider: %w", err)
@@ -138,7 +138,7 @@ func (r *IdentityProviderReconciler) handleDeletion(ctx context.Context, instanc
 	return ctrl.Result{}, nil
 }
 
-func (r *IdentityProviderReconciler) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider, kClient *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *IdentityProviderReconciler) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {

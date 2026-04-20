@@ -11,14 +11,14 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const testExecID = "exec-id-456"
 
-func locationResponse(id string) *keycloakv2.Response {
-	return &keycloakv2.Response{
+func locationResponse(id string) *keycloakapi.Response {
+	return &keycloakapi.Response{
 		HTTPResponse: &http.Response{
 			Header: http.Header{
 				"Location": []string{"http://localhost/admin/realms/test-realm/authentication/executions/" + id},
@@ -29,14 +29,14 @@ func locationResponse(id string) *keycloakv2.Response {
 
 func TestSyncAuthFlowExecutions_Serve_NoExistingNoSpec(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
 
 	// clearNonFlowExecutions: nothing to delete
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
 
 	// adjustChildFlowsPriority: no child flow specs → returns immediately
 
@@ -47,14 +47,14 @@ func TestSyncAuthFlowExecutions_Serve_NoExistingNoSpec(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_ClearExistingNonFlowExec(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
 
 	// clearNonFlowExecutions: one non-flow top-level exec to delete
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{Id: ptr.To("old-exec"), AuthenticationFlow: ptr.To(false), Level: ptr.To(int32(0))},
 		}, nil, nil)
 
@@ -68,14 +68,14 @@ func TestSyncAuthFlowExecutions_Serve_ClearExistingNonFlowExec(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_SkipFlowTypeExec(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
 
 	// clearNonFlowExecutions: one flow-type exec — must NOT be deleted
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{Id: ptr.To("flow-exec"), AuthenticationFlow: ptr.To(true), Level: ptr.To(int32(0))},
 		}, nil, nil)
 
@@ -88,7 +88,7 @@ func TestSyncAuthFlowExecutions_Serve_SkipFlowTypeExec(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_AddExecution(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -99,12 +99,12 @@ func TestSyncAuthFlowExecutions_Serve_AddExecution(t *testing.T) {
 
 	// clearNonFlowExecutions: empty
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
 
 	// addExecution
 	mockFlows.EXPECT().AddExecutionToFlow(
 		context.Background(), testRealmName,
-		keycloakv2.AuthenticationExecutionRepresentation{
+		keycloakapi.AuthenticationExecutionRepresentation{
 			Authenticator: ptr.To("basic-auth"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
@@ -120,7 +120,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecution(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_AddExecutionWithConfig(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -137,11 +137,11 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionWithConfig(t *testing.T) {
 	}
 
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
 
 	mockFlows.EXPECT().AddExecutionToFlow(
 		context.Background(), testRealmName,
-		keycloakv2.AuthenticationExecutionRepresentation{
+		keycloakapi.AuthenticationExecutionRepresentation{
 			Authenticator: ptr.To("identity-provider-redirector"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
@@ -151,7 +151,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionWithConfig(t *testing.T) {
 	cfg := map[string]string{"defaultProvider": "github"}
 	mockFlows.EXPECT().CreateExecutionConfig(
 		context.Background(), testRealmName, testExecID,
-		keycloakv2.AuthenticatorConfigRepresentation{
+		keycloakapi.AuthenticatorConfigRepresentation{
 			Alias:  ptr.To("idp-config"),
 			Config: &cfg,
 		},
@@ -164,7 +164,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionWithConfig(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_AdjustChildFlowPriority(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -174,7 +174,7 @@ func TestSyncAuthFlowExecutions_Serve_AdjustChildFlowPriority(t *testing.T) {
 
 	// clearNonFlowExecutions: one flow exec (not deleted)
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{
 				DisplayName:        ptr.To("sub-flow"),
 				AuthenticationFlow: ptr.To(true),
@@ -185,7 +185,7 @@ func TestSyncAuthFlowExecutions_Serve_AdjustChildFlowPriority(t *testing.T) {
 		}, nil, nil).Once()
 
 	// adjustChildFlowsPriority re-fetches executions
-	updatedExec := keycloakv2.AuthenticationExecutionInfoRepresentation{
+	updatedExec := keycloakapi.AuthenticationExecutionInfoRepresentation{
 		DisplayName:        ptr.To("sub-flow"),
 		AuthenticationFlow: ptr.To(true),
 		Level:              ptr.To(int32(0)),
@@ -194,7 +194,7 @@ func TestSyncAuthFlowExecutions_Serve_AdjustChildFlowPriority(t *testing.T) {
 	}
 
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{
 				DisplayName:        ptr.To("sub-flow"),
 				AuthenticationFlow: ptr.To(true),
@@ -214,7 +214,7 @@ func TestSyncAuthFlowExecutions_Serve_AdjustChildFlowPriority(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_GetFlowExecutionsError(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -230,13 +230,13 @@ func TestSyncAuthFlowExecutions_Serve_GetFlowExecutionsError(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_DeleteExecutionError(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
 
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{Id: ptr.To("bad-exec"), AuthenticationFlow: ptr.To(false), Level: ptr.To(int32(0))},
 		}, nil, nil)
 
@@ -251,7 +251,7 @@ func TestSyncAuthFlowExecutions_Serve_DeleteExecutionError(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_AddExecutionError(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -261,11 +261,11 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionError(t *testing.T) {
 	}
 
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
 
 	mockFlows.EXPECT().AddExecutionToFlow(
 		context.Background(), testRealmName,
-		keycloakv2.AuthenticationExecutionRepresentation{
+		keycloakapi.AuthenticationExecutionRepresentation{
 			Authenticator: ptr.To("basic-auth"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
@@ -280,7 +280,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionError(t *testing.T) {
 
 func TestSyncAuthFlowExecutions_Serve_EmptyFlowID(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
@@ -290,7 +290,7 @@ func TestSyncAuthFlowExecutions_Serve_EmptyFlowID(t *testing.T) {
 	}
 
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
 
 	h := NewSyncAuthFlowExecutions(kc)
 	err := h.Serve(context.Background(), flow, testRealmName)

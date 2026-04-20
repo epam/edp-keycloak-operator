@@ -10,14 +10,14 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 func TestRemoveComponent_Serve_SuccessWithStatusID(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
@@ -35,7 +35,7 @@ func TestRemoveComponent_Serve_SuccessWithStatusID(t *testing.T) {
 
 func TestRemoveComponent_Serve_SuccessFallbackByName(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
@@ -44,7 +44,7 @@ func TestRemoveComponent_Serve_SuccessFallbackByName(t *testing.T) {
 
 	mockComponents.EXPECT().
 		FindComponentByName(context.Background(), testRealmName, testComponentName).
-		Return(&keycloakv2.ComponentRepresentation{Id: ptr.To(testComponentID)}, nil)
+		Return(&keycloakapi.ComponentRepresentation{Id: ptr.To(testComponentID)}, nil)
 
 	mockComponents.EXPECT().
 		DeleteComponent(context.Background(), testRealmName, testComponentID).
@@ -57,7 +57,7 @@ func TestRemoveComponent_Serve_SuccessFallbackByName(t *testing.T) {
 
 func TestRemoveComponent_Serve_ComponentNotFoundByName(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
@@ -75,7 +75,7 @@ func TestRemoveComponent_Serve_ComponentNotFoundByName(t *testing.T) {
 
 func TestRemoveComponent_Serve_DeleteNotFound(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
@@ -84,7 +84,7 @@ func TestRemoveComponent_Serve_DeleteNotFound(t *testing.T) {
 
 	mockComponents.EXPECT().
 		DeleteComponent(context.Background(), testRealmName, testComponentID).
-		Return(nil, &keycloakv2.ApiError{Code: 404, Message: "Not Found"})
+		Return(nil, &keycloakapi.ApiError{Code: 404, Message: "Not Found"})
 
 	h := NewRemoveComponent(kClient)
 	err := h.Serve(context.Background(), component, testRealmName)
@@ -92,7 +92,7 @@ func TestRemoveComponent_Serve_DeleteNotFound(t *testing.T) {
 }
 
 func TestRemoveComponent_Serve_PreserveAnnotation(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.KeycloakClient{}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{
@@ -112,7 +112,7 @@ func TestRemoveComponent_Serve_PreserveAnnotation(t *testing.T) {
 
 func TestRemoveComponent_Serve_FindByNameError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
@@ -131,7 +131,7 @@ func TestRemoveComponent_Serve_FindByNameError(t *testing.T) {
 
 func TestRemoveComponent_Serve_DeleteError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakv2.KeycloakClient{RealmComponents: mockComponents}
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
 	component := &keycloakApi.KeycloakRealmComponent{
 		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},

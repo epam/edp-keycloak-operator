@@ -10,8 +10,8 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const (
@@ -20,7 +20,7 @@ const (
 )
 
 func TestSyncComposites_Serve_NotComposite(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.KeycloakClient{}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Composite = false
@@ -32,7 +32,7 @@ func TestSyncComposites_Serve_NotComposite(t *testing.T) {
 
 func TestSyncComposites_Serve_AddRealmComposites(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -45,25 +45,25 @@ func TestSyncComposites_Serve_AddRealmComposites(t *testing.T) {
 	// No existing composites
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "child-role-1",
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("child-1-id"),
 		Name: ptr.To("child-role-1"),
 	}, nil, nil)
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "child-role-2",
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("child-2-id"),
 		Name: ptr.To("child-role-2"),
 	}, nil, nil)
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("child-1-id"), Name: ptr.To("child-role-1")},
 			{Id: ptr.To("child-2-id"), Name: ptr.To("child-role-2")},
 		},
@@ -76,7 +76,7 @@ func TestSyncComposites_Serve_AddRealmComposites(t *testing.T) {
 
 func TestSyncComposites_Serve_RemoveStaleComposites(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -85,13 +85,13 @@ func TestSyncComposites_Serve_RemoveStaleComposites(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{
+	).Return([]keycloakapi.RoleRepresentation{
 		{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 	}, nil, nil)
 
 	mockRoles.EXPECT().DeleteRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 		},
 	).Return(nil, nil)
@@ -104,7 +104,7 @@ func TestSyncComposites_Serve_RemoveStaleComposites(t *testing.T) {
 func TestSyncComposites_Serve_AddClientComposites(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
 
 	clientName := testClientName
 
@@ -117,25 +117,25 @@ func TestSyncComposites_Serve_AddClientComposites(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
 		context.Background(), "test-realm",
-		&keycloakv2.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakv2.ClientRepresentation{
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid-1")},
 	}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
 		context.Background(), "test-realm", "client-uuid-1", "client-role-1",
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("client-role-1-id"),
 		Name: ptr.To("client-role-1"),
 	}, nil, nil)
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("client-role-1-id"), Name: ptr.To("client-role-1")},
 		},
 	).Return(nil, nil)
@@ -147,7 +147,7 @@ func TestSyncComposites_Serve_AddClientComposites(t *testing.T) {
 
 func TestSyncComposites_Serve_GetCompositesError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -166,7 +166,7 @@ func TestSyncComposites_Serve_GetCompositesError(t *testing.T) {
 func TestSyncComposites_Serve_ClientNotFound(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
 
 	clientName := "missing-client"
 
@@ -179,12 +179,12 @@ func TestSyncComposites_Serve_ClientNotFound(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
 		context.Background(), "test-realm",
-		&keycloakv2.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakv2.ClientRepresentation{}, nil, nil)
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{}, nil, nil)
 
 	h := NewSyncComposites(kClient)
 	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
@@ -194,7 +194,7 @@ func TestSyncComposites_Serve_ClientNotFound(t *testing.T) {
 
 func TestSyncComposites_Serve_GetRealmRoleError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -205,7 +205,7 @@ func TestSyncComposites_Serve_GetRealmRoleError(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "child-role",
@@ -220,7 +220,7 @@ func TestSyncComposites_Serve_GetRealmRoleError(t *testing.T) {
 func TestSyncComposites_Serve_GetClientRoleError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
 
 	clientName := testClientName
 
@@ -233,12 +233,12 @@ func TestSyncComposites_Serve_GetClientRoleError(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
 		context.Background(), "test-realm",
-		&keycloakv2.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakv2.ClientRepresentation{
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid-1")},
 	}, nil, nil)
 
@@ -254,7 +254,7 @@ func TestSyncComposites_Serve_GetClientRoleError(t *testing.T) {
 
 func TestSyncComposites_Serve_NoChanges(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -266,7 +266,7 @@ func TestSyncComposites_Serve_NoChanges(t *testing.T) {
 	// Current composites match desired — nothing to add or remove.
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{
+	).Return([]keycloakapi.RoleRepresentation{
 		{Id: ptr.To("existing-id"), Name: ptr.To("existing-role")},
 	}, nil, nil)
 
@@ -277,7 +277,7 @@ func TestSyncComposites_Serve_NoChanges(t *testing.T) {
 
 func TestSyncComposites_Serve_AddRealmCompositesError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -288,18 +288,18 @@ func TestSyncComposites_Serve_AddRealmCompositesError(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "new-role",
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("new-role-id"),
 		Name: ptr.To("new-role"),
 	}, nil, nil)
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("new-role-id"), Name: ptr.To("new-role")},
 		},
 	).Return(nil, errors.New("api error"))
@@ -312,7 +312,7 @@ func TestSyncComposites_Serve_AddRealmCompositesError(t *testing.T) {
 
 func TestSyncComposites_Serve_DeleteStaleError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -321,13 +321,13 @@ func TestSyncComposites_Serve_DeleteStaleError(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{
+	).Return([]keycloakapi.RoleRepresentation{
 		{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 	}, nil, nil)
 
 	mockRoles.EXPECT().DeleteRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 		},
 	).Return(nil, errors.New("api error"))
@@ -341,7 +341,7 @@ func TestSyncComposites_Serve_DeleteStaleError(t *testing.T) {
 func TestSyncComposites_Serve_GetClientsError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
 
 	clientName := testClientName
 
@@ -354,11 +354,11 @@ func TestSyncComposites_Serve_GetClientsError(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{}, nil, nil)
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
 		context.Background(), "test-realm",
-		&keycloakv2.GetClientsParams{ClientId: &clientName},
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncComposites(kClient)
@@ -370,7 +370,7 @@ func TestSyncComposites_Serve_GetClientsError(t *testing.T) {
 func TestSyncComposites_Serve_ClientCompositeAlreadyPresent(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
 
 	clientName := testClientName
 	clientUUID := "client-uuid-1"
@@ -387,7 +387,7 @@ func TestSyncComposites_Serve_ClientCompositeAlreadyPresent(t *testing.T) {
 	// Current composites already contain the client role — key = clientUUID-roleName.
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{
+	).Return([]keycloakapi.RoleRepresentation{
 		{
 			Id:          ptr.To("existing-client-role-id"),
 			Name:        ptr.To("existing-client-role"),
@@ -398,8 +398,8 @@ func TestSyncComposites_Serve_ClientCompositeAlreadyPresent(t *testing.T) {
 
 	mockClients.EXPECT().GetClients(
 		context.Background(), "test-realm",
-		&keycloakv2.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakv2.ClientRepresentation{
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To(clientUUID)},
 	}, nil, nil)
 
@@ -411,7 +411,7 @@ func TestSyncComposites_Serve_ClientCompositeAlreadyPresent(t *testing.T) {
 
 func TestSyncComposites_Serve_Mixed(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testParentRoleName
@@ -424,28 +424,28 @@ func TestSyncComposites_Serve_Mixed(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-	).Return([]keycloakv2.RoleRepresentation{
+	).Return([]keycloakapi.RoleRepresentation{
 		{Id: ptr.To("kept-id"), Name: ptr.To("kept-role")},
 		{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 	}, nil, nil)
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "new-role",
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("new-id"),
 		Name: ptr.To("new-role"),
 	}, nil, nil)
 
 	mockRoles.EXPECT().AddRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("new-id"), Name: ptr.To("new-role")},
 		},
 	).Return(nil, nil)
 
 	mockRoles.EXPECT().DeleteRealmRoleComposites(
 		context.Background(), "test-realm", testParentRoleName,
-		[]keycloakv2.RoleRepresentation{
+		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("stale-id"), Name: ptr.To("stale-role")},
 		},
 	).Return(nil, nil)

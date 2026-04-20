@@ -15,7 +15,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var (
@@ -56,11 +56,11 @@ type passwordResult struct {
 
 type SetUserPassword struct {
 	k8sClient client.Client
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 }
 
-func NewSetUserPassword(k8sClient client.Client, kClientV2 *keycloakv2.KeycloakClient) *SetUserPassword {
-	return &SetUserPassword{k8sClient: k8sClient, kClientV2: kClientV2}
+func NewSetUserPassword(k8sClient client.Client, kClient *keycloakapi.KeycloakClient) *SetUserPassword {
+	return &SetUserPassword{k8sClient: k8sClient, kClient: kClient}
 }
 
 func (h *SetUserPassword) Serve(
@@ -90,7 +90,7 @@ func (h *SetUserPassword) Serve(
 
 	log.Info("Setting user password")
 
-	_, err = h.kClientV2.Users.SetUserPassword(ctx, realmName, userCtx.UserID, keycloakv2.CredentialRepresentation{
+	_, err = h.kClient.Users.SetUserPassword(ctx, realmName, userCtx.UserID, keycloakapi.CredentialRepresentation{
 		Type:      ptr.To("password"),
 		Value:     ptr.To(pwdResult.Value),
 		Temporary: ptr.To(pwdResult.Temporary),

@@ -12,8 +12,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"k8s.io/utils/ptr"
 )
 
@@ -27,7 +27,7 @@ func newScheme(t *testing.T) *runtime.Scheme {
 }
 
 func TestRemoveAuthFlow_Serve_PreserveOnDeletion(t *testing.T) {
-	kc := &keycloakv2.KeycloakClient{}
+	kc := &keycloakapi.KeycloakClient{}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{
@@ -47,7 +47,7 @@ func TestRemoveAuthFlow_Serve_PreserveOnDeletion(t *testing.T) {
 func TestRemoveAuthFlow_Serve_TopLevel_Success(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
 	mockRealms := mocks.NewMockRealmClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows, Realms: mockRealms}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows, Realms: mockRealms}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -56,7 +56,7 @@ func TestRemoveAuthFlow_Serve_TopLevel_Success(t *testing.T) {
 
 	// unsetBrowserFlow: realm.BrowserFlow != alias → no update
 	mockRealms.EXPECT().GetRealm(context.Background(), testRealmName).
-		Return(&keycloakv2.RealmRepresentation{BrowserFlow: ptr.To("other-flow")}, nil, nil)
+		Return(&keycloakapi.RealmRepresentation{BrowserFlow: ptr.To("other-flow")}, nil, nil)
 
 	// DeleteAuthFlow
 	mockFlows.EXPECT().DeleteAuthFlow(context.Background(), testRealmName, testFlowID).
@@ -70,7 +70,7 @@ func TestRemoveAuthFlow_Serve_TopLevel_Success(t *testing.T) {
 func TestRemoveAuthFlow_Serve_TopLevel_BrowserFlowUnset(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
 	mockRealms := mocks.NewMockRealmClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows, Realms: mockRealms}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows, Realms: mockRealms}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -79,17 +79,17 @@ func TestRemoveAuthFlow_Serve_TopLevel_BrowserFlowUnset(t *testing.T) {
 
 	// unsetBrowserFlow: realm.BrowserFlow == alias → must replace
 	mockRealms.EXPECT().GetRealm(context.Background(), testRealmName).
-		Return(&keycloakv2.RealmRepresentation{BrowserFlow: ptr.To(testFlowAlias)}, nil, nil)
+		Return(&keycloakapi.RealmRepresentation{BrowserFlow: ptr.To(testFlowAlias)}, nil, nil)
 
 	// GetAuthFlows called inside unsetBrowserFlow
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakv2.AuthFlowRepresentation{
+		Return([]keycloakapi.AuthFlowRepresentation{
 			{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)},
 			{Alias: ptr.To("other-flow"), Id: ptr.To("other-id")},
 		}, nil, nil)
 
 	mockRealms.EXPECT().UpdateRealm(context.Background(), testRealmName,
-		keycloakv2.RealmRepresentation{BrowserFlow: ptr.To("other-flow")},
+		keycloakapi.RealmRepresentation{BrowserFlow: ptr.To("other-flow")},
 	).Return(nil, nil)
 
 	// DeleteAuthFlow
@@ -102,7 +102,7 @@ func TestRemoveAuthFlow_Serve_TopLevel_BrowserFlowUnset(t *testing.T) {
 }
 
 func TestRemoveAuthFlow_Serve_TopLevel_EmptyStatusID(t *testing.T) {
-	kc := &keycloakv2.KeycloakClient{}
+	kc := &keycloakapi.KeycloakClient{}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -116,7 +116,7 @@ func TestRemoveAuthFlow_Serve_TopLevel_EmptyStatusID(t *testing.T) {
 
 func TestRemoveAuthFlow_Serve_ChildFlow_Success(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -125,7 +125,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_Success(t *testing.T) {
 
 	// GetFlowExecutions: finds execution matching alias
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{DisplayName: ptr.To(testChildAlias), Id: ptr.To("child-exec-id")},
 		}, nil, nil)
 
@@ -139,7 +139,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_Success(t *testing.T) {
 
 func TestRemoveAuthFlow_Serve_ChildFlow_ParentNotFound(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -148,7 +148,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_ParentNotFound(t *testing.T) {
 
 	// Parent flow returns 404 → graceful skip
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return(nil, nil, &keycloakv2.ApiError{Code: 404})
+		Return(nil, nil, &keycloakapi.ApiError{Code: 404})
 
 	h := NewRemoveAuthFlow(kc, k8sClient)
 	err := h.Serve(context.Background(), flow, testRealmName)
@@ -157,7 +157,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_ParentNotFound(t *testing.T) {
 
 func TestRemoveAuthFlow_Serve_ChildFlow_NotInParent(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
@@ -166,7 +166,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_NotInParent(t *testing.T) {
 
 	// Parent exists but child alias not present → graceful skip
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testParentFlow).
-		Return([]keycloakv2.AuthenticationExecutionInfoRepresentation{
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{
 			{DisplayName: ptr.To("other-child"), Id: ptr.To("other-id")},
 		}, nil, nil)
 
@@ -176,7 +176,7 @@ func TestRemoveAuthFlow_Serve_ChildFlow_NotInParent(t *testing.T) {
 }
 
 func TestRemoveAuthFlow_Serve_ChildK8sFlowExists(t *testing.T) {
-	kc := &keycloakv2.KeycloakClient{}
+	kc := &keycloakapi.KeycloakClient{}
 
 	childFlow := keycloakApi.KeycloakAuthFlow{}
 	childFlow.Spec.Alias = "dependent-child"
@@ -200,7 +200,7 @@ func TestRemoveAuthFlow_Serve_ChildK8sFlowExists(t *testing.T) {
 
 func TestRemoveAuthFlow_Serve_GetFlowExecutionsError(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
-	kc := &keycloakv2.KeycloakClient{AuthFlows: mockFlows}
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	flow := &keycloakApi.KeycloakAuthFlow{}

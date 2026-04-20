@@ -10,13 +10,13 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestCreateOrUpdateRole_Serve_CreateNew(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 	roleCtx := &RoleContext{}
 
 	role := &keycloakApi.KeycloakRealmRole{}
@@ -27,7 +27,7 @@ func TestCreateOrUpdateRole_Serve_CreateNew(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", testRoleName,
-	).Return(nil, nil, keycloakv2.ErrNotFound).Once()
+	).Return(nil, nil, keycloakapi.ErrNotFound).Once()
 
 	desc := "Test description"
 	composite := false
@@ -35,7 +35,7 @@ func TestCreateOrUpdateRole_Serve_CreateNew(t *testing.T) {
 
 	mockRoles.EXPECT().CreateRealmRole(
 		context.Background(), "test-realm",
-		keycloakv2.RoleRepresentation{
+		keycloakapi.RoleRepresentation{
 			Name:        ptr.To(testRoleName),
 			Description: &desc,
 			Composite:   &composite,
@@ -45,7 +45,7 @@ func TestCreateOrUpdateRole_Serve_CreateNew(t *testing.T) {
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", testRoleName,
-	).Return(&keycloakv2.RoleRepresentation{
+	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role-id-123"),
 		Name: ptr.To(testRoleName),
 	}, nil, nil).Once()
@@ -58,7 +58,7 @@ func TestCreateOrUpdateRole_Serve_CreateNew(t *testing.T) {
 
 func TestCreateOrUpdateRole_Serve_UpdateExisting(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 	roleCtx := &RoleContext{}
 
 	role := &keycloakApi.KeycloakRealmRole{}
@@ -67,7 +67,7 @@ func TestCreateOrUpdateRole_Serve_UpdateExisting(t *testing.T) {
 	role.Spec.Composite = true
 	role.Spec.Attributes = map[string][]string{"key": {"new-val"}}
 
-	existingRole := &keycloakv2.RoleRepresentation{
+	existingRole := &keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role-id-123"),
 		Name: ptr.To(testRoleName),
 	}
@@ -82,7 +82,7 @@ func TestCreateOrUpdateRole_Serve_UpdateExisting(t *testing.T) {
 
 	mockRoles.EXPECT().UpdateRealmRole(
 		context.Background(), "test-realm", testRoleName,
-		keycloakv2.RoleRepresentation{
+		keycloakapi.RoleRepresentation{
 			Id:          ptr.To("role-id-123"),
 			Name:        ptr.To(testRoleName),
 			Description: &desc,
@@ -99,7 +99,7 @@ func TestCreateOrUpdateRole_Serve_UpdateExisting(t *testing.T) {
 
 func TestCreateOrUpdateRole_Serve_GetRealmRoleError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
@@ -116,20 +116,20 @@ func TestCreateOrUpdateRole_Serve_GetRealmRoleError(t *testing.T) {
 
 func TestCreateOrUpdateRole_Serve_CreateError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
 
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", testRoleName,
-	).Return(nil, nil, keycloakv2.ErrNotFound)
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	var nilAttrs map[string][]string
 
 	mockRoles.EXPECT().CreateRealmRole(
 		context.Background(), "test-realm",
-		keycloakv2.RoleRepresentation{
+		keycloakapi.RoleRepresentation{
 			Name:        ptr.To(testRoleName),
 			Description: ptr.To(""),
 			Composite:   ptr.To(false),
@@ -145,12 +145,12 @@ func TestCreateOrUpdateRole_Serve_CreateError(t *testing.T) {
 
 func TestCreateOrUpdateRole_Serve_UpdateError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
 
-	existingRole := &keycloakv2.RoleRepresentation{
+	existingRole := &keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role-id-123"),
 		Name: ptr.To(testRoleName),
 	}
@@ -163,7 +163,7 @@ func TestCreateOrUpdateRole_Serve_UpdateError(t *testing.T) {
 
 	mockRoles.EXPECT().UpdateRealmRole(
 		context.Background(), "test-realm", testRoleName,
-		keycloakv2.RoleRepresentation{
+		keycloakapi.RoleRepresentation{
 			Id:          ptr.To("role-id-123"),
 			Name:        ptr.To(testRoleName),
 			Description: ptr.To(""),

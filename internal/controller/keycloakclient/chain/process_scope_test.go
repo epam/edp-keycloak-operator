@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapiMocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestProcessScope_Serve(t *testing.T) {
@@ -31,14 +31,14 @@ func TestProcessScope_Serve(t *testing.T) {
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
-		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
+		kClient        func(t *testing.T) *keycloakapi.KeycloakClient
 		wantErr        require.ErrorAssertionFunc
 	}{
 		{
 			name:           "client has no authorization settings",
 			keycloakClient: &keycloakApi.KeycloakClient{},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{}
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				return &keycloakapi.KeycloakClient{}
 			},
 			wantErr: require.NoError,
 		},
@@ -52,20 +52,20 @@ func TestProcessScope_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetScopes", mock.Anything, "master", "clientUUID").
-					Return([]keycloakv2.ScopeRepresentation{
+					Return([]keycloakapi.ScopeRepresentation{
 						{Id: ptr.To("oldScopeID"), Name: ptr.To("oldScope")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				authzMock.On("CreateScope", mock.Anything, "master", "clientUUID", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 				authzMock.On("DeleteScope", mock.Anything, "master", "clientUUID", "oldScopeID").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -79,16 +79,16 @@ func TestProcessScope_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetScopes", mock.Anything, "master", "clientUUID").
-					Return([]keycloakv2.ScopeRepresentation{
+					Return([]keycloakapi.ScopeRepresentation{
 						{Id: ptr.To("scopeID"), Name: ptr.To("token-exchange")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: require.NoError,
 		},
@@ -102,18 +102,18 @@ func TestProcessScope_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetScopes", mock.Anything, "master", "clientUUID").
-					Return([]keycloakv2.ScopeRepresentation{
+					Return([]keycloakapi.ScopeRepresentation{
 						{Id: ptr.To("scopeID"), Name: ptr.To("token-exchange")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 				authzMock.On("DeleteScope", mock.Anything, "master", "clientUUID", "scopeID").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock, Authorization: authzMock}
 			},
 			wantErr: require.NoError,
 		},

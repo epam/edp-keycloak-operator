@@ -10,16 +10,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type PutClientRole struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 	k8sClient client.Client
 }
 
-func NewPutClientRole(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutClientRole {
+func NewPutClientRole(kClient *keycloakapi.KeycloakClient, k8sClient client.Client) *PutClientRole {
 	return &PutClientRole{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -78,7 +78,7 @@ func (h *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClien
 		return fmt.Errorf("unable to get existing client roles: %w", err)
 	}
 
-	existingRoleMap := maputil.SliceToMapSelf(existingRoles, func(r keycloakv2.RoleRepresentation) (string, bool) {
+	existingRoleMap := maputil.SliceToMapSelf(existingRoles, func(r keycloakapi.RoleRepresentation) (string, bool) {
 		return *r.Name, r.Name != nil
 	})
 
@@ -91,7 +91,7 @@ func (h *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClien
 
 	// Create missing roles or update existing ones
 	for name, role := range desiredRoles {
-		roleRep := keycloakv2.RoleRepresentation{
+		roleRep := keycloakapi.RoleRepresentation{
 			Name:        ptr.To(name),
 			Description: ptr.To(role.Description),
 		}
@@ -117,7 +117,7 @@ func (h *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClien
 		for name := range existingRoleMap {
 			if _, desired := desiredRoles[name]; !desired {
 				if _, err := h.kClient.Clients.DeleteClientRole(ctx, realmName, clientUUID, name); err != nil {
-					if !keycloakv2.IsNotFound(err) {
+					if !keycloakapi.IsNotFound(err) {
 						return fmt.Errorf("unable to delete client role %s: %w", name, err)
 					}
 				}
@@ -154,7 +154,7 @@ func (h *PutClientRole) syncRoleComposites(
 		return fmt.Errorf("unable to get composites for role %s: %w", role.Name, err)
 	}
 
-	existingCompositeMap := maputil.SliceToMapSelf(existingComposites, func(c keycloakv2.RoleRepresentation) (string, bool) {
+	existingCompositeMap := maputil.SliceToMapSelf(existingComposites, func(c keycloakapi.RoleRepresentation) (string, bool) {
 		return *c.Name, c.Name != nil
 	})
 
@@ -164,7 +164,7 @@ func (h *PutClientRole) syncRoleComposites(
 	}
 
 	// Add missing composites
-	var toAdd []keycloakv2.RoleRepresentation
+	var toAdd []keycloakapi.RoleRepresentation
 
 	for _, compositeName := range role.AssociatedClientRoles {
 		if _, exists := existingCompositeMap[compositeName]; !exists {
@@ -184,7 +184,7 @@ func (h *PutClientRole) syncRoleComposites(
 	}
 
 	// Remove extra composites
-	var toRemove []keycloakv2.RoleRepresentation
+	var toRemove []keycloakapi.RoleRepresentation
 
 	for name, compositeRole := range existingCompositeMap {
 		if !desiredComposites[name] {

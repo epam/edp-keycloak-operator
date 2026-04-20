@@ -9,17 +9,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // CreateOrUpdateAuthFlow creates or ensures the base auth flow exists in Keycloak.
 // It ports the logic of syncBaseAuthFlow from the legacy gocloak adapter.
 type CreateOrUpdateAuthFlow struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewCreateOrUpdateAuthFlow(kClientV2 *keycloakv2.KeycloakClient) *CreateOrUpdateAuthFlow {
-	return &CreateOrUpdateAuthFlow{kClientV2: kClientV2}
+func NewCreateOrUpdateAuthFlow(kClient *keycloakapi.KeycloakClient) *CreateOrUpdateAuthFlow {
+	return &CreateOrUpdateAuthFlow{kClient: kClient}
 }
 
 func (h *CreateOrUpdateAuthFlow) Serve(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
@@ -38,7 +38,7 @@ func (h *CreateOrUpdateAuthFlow) Serve(ctx context.Context, flow *keycloakApi.Ke
 func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	flows, _, err := h.kClientV2.AuthFlows.GetAuthFlows(ctx, realmName)
+	flows, _, err := h.kClient.AuthFlows.GetAuthFlows(ctx, realmName)
 	if err != nil {
 		return fmt.Errorf("failed to get auth flows: %w", err)
 	}
@@ -53,7 +53,7 @@ func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *ke
 
 			flow.Status.ID = *flows[i].Id
 
-			if _, err = h.kClientV2.AuthFlows.UpdateAuthFlow(ctx, realmName, *flows[i].Id, authFlowRepFromSpec(flow.Spec)); err != nil {
+			if _, err = h.kClient.AuthFlows.UpdateAuthFlow(ctx, realmName, *flows[i].Id, authFlowRepFromSpec(flow.Spec)); err != nil {
 				return fmt.Errorf("failed to update auth flow: %w", err)
 			}
 
@@ -63,12 +63,12 @@ func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *ke
 
 	log.Info("Creating top-level auth flow", "alias", flow.Spec.Alias)
 
-	resp, err := h.kClientV2.AuthFlows.CreateAuthFlow(ctx, realmName, authFlowRepFromSpec(flow.Spec))
+	resp, err := h.kClient.AuthFlows.CreateAuthFlow(ctx, realmName, authFlowRepFromSpec(flow.Spec))
 	if err != nil {
 		return fmt.Errorf("failed to create auth flow: %w", err)
 	}
 
-	flow.Status.ID = keycloakv2.GetResourceIDFromResponse(resp)
+	flow.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
 	if flow.Status.ID == "" {
 		return fmt.Errorf("auth flow Location header missing or empty for alias %q", flow.Spec.Alias)
 	}
@@ -81,7 +81,7 @@ func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *ke
 func (h *CreateOrUpdateAuthFlow) serveChildFlow(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
+	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
 	if err != nil {
 		return fmt.Errorf("failed to get parent flow executions: %w", err)
 	}
@@ -91,7 +91,7 @@ func (h *CreateOrUpdateAuthFlow) serveChildFlow(ctx context.Context, flow *keycl
 	if existing == nil {
 		log.Info("Creating child auth flow", "alias", flow.Spec.Alias, "parent", flow.Spec.ParentName)
 
-		_, err = h.kClientV2.AuthFlows.AddChildFlowToFlow(ctx, realmName, flow.Spec.ParentName, map[string]any{
+		_, err = h.kClient.AuthFlows.AddChildFlowToFlow(ctx, realmName, flow.Spec.ParentName, map[string]any{
 			"alias":       flow.Spec.Alias,
 			"description": flow.Spec.Description,
 			"provider":    flow.Spec.ProviderID,
@@ -102,7 +102,7 @@ func (h *CreateOrUpdateAuthFlow) serveChildFlow(ctx context.Context, flow *keycl
 		}
 
 		// Re-fetch executions to get the newly created child flow entry
-		execs, _, err = h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
+		execs, _, err = h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
 		if err != nil {
 			return fmt.Errorf("failed to get parent flow executions after child creation: %w", err)
 		}
@@ -127,7 +127,7 @@ func (h *CreateOrUpdateAuthFlow) serveChildFlow(ctx context.Context, flow *keycl
 
 			existing.Requirement = ptr.To(flow.Spec.ChildRequirement)
 
-			if _, err := h.kClientV2.AuthFlows.UpdateFlowExecution(ctx, realmName, flow.Spec.ParentName, *existing); err != nil {
+			if _, err := h.kClient.AuthFlows.UpdateFlowExecution(ctx, realmName, flow.Spec.ParentName, *existing); err != nil {
 				return fmt.Errorf("failed to update child flow requirement: %w", err)
 			}
 		}
@@ -151,7 +151,7 @@ func (h *CreateOrUpdateAuthFlow) validateChildFlows(ctx context.Context, flow *k
 		return nil
 	}
 
-	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.Alias)
+	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to get flow executions for validation: %w", err)
 	}
@@ -172,11 +172,11 @@ func (h *CreateOrUpdateAuthFlow) validateChildFlows(ctx context.Context, flow *k
 	return nil
 }
 
-func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakv2.AuthFlowRepresentation {
+func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakapi.AuthFlowRepresentation {
 	builtIn := spec.BuiltIn
 	topLevel := spec.TopLevel
 
-	return keycloakv2.AuthFlowRepresentation{
+	return keycloakapi.AuthFlowRepresentation{
 		Alias:       &spec.Alias,
 		Description: &spec.Description,
 		ProviderId:  &spec.ProviderID,
@@ -186,9 +186,9 @@ func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakv2.AuthF
 }
 
 func findExecByDisplayName(
-	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	execs []keycloakapi.AuthenticationExecutionInfoRepresentation,
 	displayName string,
-) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+) *keycloakapi.AuthenticationExecutionInfoRepresentation {
 	for i := range execs {
 		if execs[i].DisplayName != nil && *execs[i].DisplayName == displayName {
 			return &execs[i]

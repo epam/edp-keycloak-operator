@@ -12,8 +12,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapiMocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -21,7 +21,7 @@ func TestRemoveClient_Serve(t *testing.T) {
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
-		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
+		kClient        func(t *testing.T) *keycloakapi.KeycloakClient
 		realmName      string
 		wantErr        require.ErrorAssertionFunc
 	}{
@@ -39,9 +39,9 @@ func TestRemoveClient_Serve(t *testing.T) {
 					ClientID: "client-uuid",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{
-					Clients: keycloakv2Mocks.NewMockClientsClient(t),
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				return &keycloakapi.KeycloakClient{
+					Clients: keycloakapiMocks.NewMockClientsClient(t),
 				}
 			},
 			realmName: "test-realm",
@@ -58,9 +58,9 @@ func TestRemoveClient_Serve(t *testing.T) {
 					ClientID: "",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{
-					Clients: keycloakv2Mocks.NewMockClientsClient(t),
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				return &keycloakapi.KeycloakClient{
+					Clients: keycloakapiMocks.NewMockClientsClient(t),
 				}
 			},
 			realmName: "test-realm",
@@ -77,12 +77,12 @@ func TestRemoveClient_Serve(t *testing.T) {
 					ClientID: "client-uuid",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
-					Return((*keycloakv2.Response)(nil), nil)
+					Return((*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
 			realmName: "test-realm",
 			wantErr:   require.NoError,
@@ -98,12 +98,12 @@ func TestRemoveClient_Serve(t *testing.T) {
 					ClientID: "client-uuid",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
-					Return((*keycloakv2.Response)(nil), keycloakv2.ErrNotFound)
+					Return((*keycloakapi.Response)(nil), keycloakapi.ErrNotFound)
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
 			realmName: "test-realm",
 			wantErr:   require.NoError,
@@ -119,12 +119,12 @@ func TestRemoveClient_Serve(t *testing.T) {
 					ClientID: "client-uuid",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
-					Return((*keycloakv2.Response)(nil), errors.New("connection refused"))
+					Return((*keycloakapi.Response)(nil), errors.New("connection refused"))
 
-				return &keycloakv2.KeycloakClient{Clients: clientsMock}
+				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
 			realmName: "test-realm",
 			wantErr:   require.Error,

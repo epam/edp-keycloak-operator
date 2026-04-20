@@ -6,11 +6,11 @@ import (
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type terminator struct {
-	kClient                     *keycloakv2.KeycloakClient
+	kClient                     *keycloakapi.KeycloakClient
 	realmName                   string
 	groupID                     string
 	groupName                   string
@@ -33,7 +33,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 	log.Info("Start deleting group")
 
 	if _, err := t.kClient.Groups.DeleteGroup(ctx, t.realmName, t.groupID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Group not found, skipping deletion")
 
 			return nil
@@ -48,7 +48,7 @@ func (t *terminator) DeleteResource(ctx context.Context) error {
 }
 
 func makeTerminator(
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	realmName, groupID, groupName string,
 	preserveResourcesOnDeletion bool,
 ) *terminator {

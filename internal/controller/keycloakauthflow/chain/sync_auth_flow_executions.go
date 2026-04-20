@@ -8,18 +8,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // SyncAuthFlowExecutions syncs authentication executions for an auth flow.
 // It clears all existing non-flow executions and recreates them from the spec.
 // This ports the execution-sync logic from the legacy gocloak adapter.
 type SyncAuthFlowExecutions struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncAuthFlowExecutions(kClientV2 *keycloakv2.KeycloakClient) *SyncAuthFlowExecutions {
-	return &SyncAuthFlowExecutions{kClientV2: kClientV2}
+func NewSyncAuthFlowExecutions(kClient *keycloakapi.KeycloakClient) *SyncAuthFlowExecutions {
+	return &SyncAuthFlowExecutions{kClient: kClient}
 }
 
 func (h *SyncAuthFlowExecutions) Serve(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
@@ -77,7 +77,7 @@ func (h *SyncAuthFlowExecutions) Serve(ctx context.Context, flow *keycloakApi.Ke
 
 // clearNonFlowExecutions deletes all top-level non-flow executions from the flow.
 func (h *SyncAuthFlowExecutions) clearNonFlowExecutions(ctx context.Context, flowAlias, realmName string) error {
-	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flowAlias)
+	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flowAlias)
 	if err != nil {
 		return fmt.Errorf("failed to get flow executions: %w", err)
 	}
@@ -101,7 +101,7 @@ func (h *SyncAuthFlowExecutions) clearNonFlowExecutions(ctx context.Context, flo
 			continue
 		}
 
-		if _, err := h.kClientV2.AuthFlows.DeleteExecution(ctx, realmName, execID); err != nil {
+		if _, err := h.kClient.AuthFlows.DeleteExecution(ctx, realmName, execID); err != nil {
 			return fmt.Errorf("failed to delete execution %q: %w", execID, err)
 		}
 	}
@@ -111,7 +111,7 @@ func (h *SyncAuthFlowExecutions) clearNonFlowExecutions(ctx context.Context, flo
 
 // addExecution posts a new execution to the flow and returns the new execution ID from the Location header.
 func (h *SyncAuthFlowExecutions) addExecution(ctx context.Context, realmName, flowID, authenticator, requirement string) (string, error) {
-	resp, err := h.kClientV2.AuthFlows.AddExecutionToFlow(ctx, realmName, keycloakv2.AuthenticationExecutionRepresentation{
+	resp, err := h.kClient.AuthFlows.AddExecutionToFlow(ctx, realmName, keycloakapi.AuthenticationExecutionRepresentation{
 		Authenticator: &authenticator,
 		ParentFlow:    &flowID,
 		Requirement:   &requirement,
@@ -120,7 +120,7 @@ func (h *SyncAuthFlowExecutions) addExecution(ctx context.Context, realmName, fl
 		return "", fmt.Errorf("failed to post execution: %w", err)
 	}
 
-	execID := keycloakv2.GetResourceIDFromResponse(resp)
+	execID := keycloakapi.GetResourceIDFromResponse(resp)
 	if execID == "" {
 		return "", fmt.Errorf("execution Location header missing or empty for authenticator %q", authenticator)
 	}
@@ -133,7 +133,7 @@ func (h *SyncAuthFlowExecutions) createExecutionConfig(
 	realmName, execID string,
 	cfg *keycloakApi.AuthenticatorConfig,
 ) error {
-	_, err := h.kClientV2.AuthFlows.CreateExecutionConfig(ctx, realmName, execID, keycloakv2.AuthenticatorConfigRepresentation{
+	_, err := h.kClient.AuthFlows.CreateExecutionConfig(ctx, realmName, execID, keycloakapi.AuthenticatorConfigRepresentation{
 		Alias:  &cfg.Alias,
 		Config: &cfg.Config,
 	})
@@ -160,7 +160,7 @@ func (h *SyncAuthFlowExecutions) adjustChildFlowsPriority(ctx context.Context, f
 		return nil
 	}
 
-	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.Alias)
+	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to get flow executions for priority adjustment: %w", err)
 	}
@@ -198,7 +198,7 @@ func (h *SyncAuthFlowExecutions) adjustChildFlowsPriority(ctx context.Context, f
 		}
 
 		if needsUpdate {
-			if _, err := h.kClientV2.AuthFlows.UpdateFlowExecution(ctx, realmName, flow.Spec.Alias, *e); err != nil {
+			if _, err := h.kClient.AuthFlows.UpdateFlowExecution(ctx, realmName, flow.Spec.Alias, *e); err != nil {
 				return fmt.Errorf("failed to update priority for child flow %q: %w", *e.DisplayName, err)
 			}
 		}

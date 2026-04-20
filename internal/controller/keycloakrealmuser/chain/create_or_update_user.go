@@ -9,18 +9,18 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const updatePasswordAction = "UPDATE_PASSWORD"
 
 type CreateOrUpdateUser struct {
 	k8sClient client.Client
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 }
 
-func NewCreateOrUpdateUser(k8sClient client.Client, kClientV2 *keycloakv2.KeycloakClient) *CreateOrUpdateUser {
-	return &CreateOrUpdateUser{k8sClient: k8sClient, kClientV2: kClientV2}
+func NewCreateOrUpdateUser(k8sClient client.Client, kClient *keycloakapi.KeycloakClient) *CreateOrUpdateUser {
+	return &CreateOrUpdateUser{k8sClient: k8sClient, kClient: kClient}
 }
 
 func (h *CreateOrUpdateUser) Serve(
@@ -35,14 +35,14 @@ func (h *CreateOrUpdateUser) Serve(
 	userSpec := user.Spec.DeepCopy()
 	addOnly := user.IsReconciliationStrategyAddOnly()
 
-	existing, _, err := h.kClientV2.Users.FindUserByUsername(ctx, realmName, userSpec.Username)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+	existing, _, err := h.kClient.Users.FindUserByUsername(ctx, realmName, userSpec.Username)
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("unable to find user by username: %w", err)
 	}
 
-	if keycloakv2.IsNotFound(err) {
+	if keycloakapi.IsNotFound(err) {
 		// User does not exist — create
-		newUser := keycloakv2.UserRepresentation{
+		newUser := keycloakapi.UserRepresentation{
 			Username:        &userSpec.Username,
 			Enabled:         &userSpec.Enabled,
 			EmailVerified:   &userSpec.EmailVerified,
@@ -56,12 +56,12 @@ func (h *CreateOrUpdateUser) Serve(
 			newUser.Attributes = makeUserAttributes(nil, userSpec.AttributesV2, addOnly)
 		}
 
-		resp, err := h.kClientV2.Users.CreateUser(ctx, realmName, newUser)
+		resp, err := h.kClient.Users.CreateUser(ctx, realmName, newUser)
 		if err != nil {
 			return fmt.Errorf("unable to create user: %w", err)
 		}
 
-		userID := keycloakv2.GetResourceIDFromResponse(resp)
+		userID := keycloakapi.GetResourceIDFromResponse(resp)
 		if userID == "" {
 			return fmt.Errorf("unable to get user ID from response")
 		}
@@ -87,7 +87,7 @@ func (h *CreateOrUpdateUser) Serve(
 		existing.Attributes = makeUserAttributes(existing.Attributes, userSpec.AttributesV2, addOnly)
 	}
 
-	if _, err := h.kClientV2.Users.UpdateUser(ctx, realmName, *existing.Id, *existing); err != nil {
+	if _, err := h.kClient.Users.UpdateUser(ctx, realmName, *existing.Id, *existing); err != nil {
 		return fmt.Errorf("unable to update user: %w", err)
 	}
 

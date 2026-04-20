@@ -15,7 +15,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakClient "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const (
@@ -49,11 +49,11 @@ type ControllerHelper interface {
 	SetFailureCount(fc FailureCountable) time.Duration
 	TryToDelete(ctx context.Context, obj client.Object, terminator Terminator, finalizer string) (isDeleted bool, resultErr error)
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
-	CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakclientv2.KeycloakClient, error)
-	CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakclientv2.KeycloakClient, error)
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error)
-	CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakclientv2.KeycloakClient, error)
-	CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error)
+	CreateKeycloakClientFromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakClient.KeycloakClient, error)
+	CreateKeycloakClientFromClusterKeycloak(ctx context.Context, clusterKeycloak *keycloakAlpha.ClusterKeycloak) (*keycloakClient.KeycloakClient, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakClient.KeycloakClient, error)
+	CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakClient.KeycloakClient, error)
+	CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakClient.KeycloakClient, error)
 	GetRealmNameFromRef(ctx context.Context, object ObjectWithRealmRef) (string, error)
 }
 

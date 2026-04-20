@@ -15,7 +15,7 @@ import (
 	v1 "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -25,8 +25,8 @@ var _ = Describe("Organization controller", Ordered, func() {
 	)
 
 	var (
-		keycloakClientV2 *keycloakv2.KeycloakClient
-		h                helper.ControllerHelper
+		keycloakClient *keycloakapi.KeycloakClient
+		h              helper.ControllerHelper
 	)
 
 	BeforeAll(func() {
@@ -38,7 +38,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 		_, err := keycloakAdminClient.IdentityProviders.CreateIdentityProvider(
 			ctx,
 			KeycloakRealmCR,
-			keycloakv2.IdentityProviderRepresentation{
+			keycloakapi.IdentityProviderRepresentation{
 				Alias:       ptr.To("test-org-idp"),
 				DisplayName: ptr.To("Test Organization Identity Provider"),
 				ProviderId:  ptr.To("github"),
@@ -49,7 +49,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 				},
 			},
 		)
-		if !keycloakv2.IsConflict(err) {
+		if !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -89,13 +89,13 @@ var _ = Describe("Organization controller", Ordered, func() {
 			g.Expect(createdOrg.Status.Value).Should(Equal(common.StatusOK))
 			g.Expect(createdOrg.Status.OrganizationID).ShouldNot(BeEmpty())
 
-			keycloakClientV2, err = h.CreateKeycloakClientV2FromRealmRef(ctx, createdOrg)
+			keycloakClient, err = h.CreateKeycloakClientFromRealmRef(ctx, createdOrg)
 			g.Expect(err).ShouldNot(HaveOccurred())
 		}).WithTimeout(time.Second * 30).WithPolling(time.Second).Should(Succeed())
 
 		By("Verifying the organization was created in Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClient.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(testOrg).ShouldNot(BeNil())
@@ -138,7 +138,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization was updated in Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClient.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(testOrg).ShouldNot(BeNil())
@@ -170,7 +170,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization was deleted from Keycloak")
 		Eventually(func(g Gomega) {
-			testOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
+			testOrg, _, err := keycloakClient.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "test-org")
 			g.Expect(err).Should(HaveOccurred())
 			g.Expect(testOrg).Should(BeNil())
 		}, time.Second*10, time.Second).Should(Succeed())
@@ -210,7 +210,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 
 		By("Verifying the organization still exists in Keycloak")
 		Eventually(func(g Gomega) {
-			preservedOrg, _, err := keycloakClientV2.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "preserve-test-org")
+			preservedOrg, _, err := keycloakClient.Organizations.GetOrganizationByAlias(ctx, KeycloakRealmCR, "preserve-test-org")
 			g.Expect(err).ShouldNot(HaveOccurred())
 
 			g.Expect(preservedOrg).ShouldNot(BeNil())

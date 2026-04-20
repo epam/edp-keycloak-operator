@@ -12,8 +12,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapimocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestPutIDPMappers_Serve(t *testing.T) {
@@ -22,7 +22,7 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 	tests := []struct {
 		name      string
 		idp       *keycloakApi.KeycloakRealmIdentityProvider
-		idpClient func(t *testing.T) keycloakv2.IdentityProvidersClient
+		idpClient func(t *testing.T) keycloakapi.IdentityProvidersClient
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
@@ -32,8 +32,8 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 					Alias: "test-idp",
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				return keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				return keycloakapimocks.NewMockIdentityProvidersClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -51,16 +51,16 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 					},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIDPMappers", mock.Anything, "realm", "test-idp").
-					Return([]keycloakv2.IdentityProviderMapperRepresentation{
+					Return([]keycloakapi.IdentityProviderMapperRepresentation{
 						{Id: ptr.To("old-mapper-id"), Name: ptr.To("old-mapper")},
-					}, (*keycloakv2.Response)(nil), nil).Once()
+					}, (*keycloakapi.Response)(nil), nil).Once()
 				m.On("DeleteIDPMapper", mock.Anything, "realm", "test-idp", "old-mapper-id").
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 				m.On("CreateIDPMapper", mock.Anything, "realm", "test-idp", mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 				return m
 			},
 			wantErr: require.NoError,
@@ -75,10 +75,10 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 					},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIDPMappers", mock.Anything, "realm", "test-idp").
-					Return([]keycloakv2.IdentityProviderMapperRepresentation(nil), (*keycloakv2.Response)(nil), fmt.Errorf("api error")).Once()
+					Return([]keycloakapi.IdentityProviderMapperRepresentation(nil), (*keycloakapi.Response)(nil), fmt.Errorf("api error")).Once()
 				return m
 			},
 			wantErr: require.Error,
@@ -96,13 +96,13 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 					},
 				},
 			},
-			idpClient: func(t *testing.T) keycloakv2.IdentityProvidersClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("GetIDPMappers", mock.Anything, "realm", "test-idp").
-					Return([]keycloakv2.IdentityProviderMapperRepresentation{}, (*keycloakv2.Response)(nil), nil).Once()
-				m.On("CreateIDPMapper", mock.Anything, "realm", "test-idp", mock.MatchedBy(func(mapper keycloakv2.IdentityProviderMapperRepresentation) bool {
+					Return([]keycloakapi.IdentityProviderMapperRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+				m.On("CreateIDPMapper", mock.Anything, "realm", "test-idp", mock.MatchedBy(func(mapper keycloakapi.IdentityProviderMapperRepresentation) bool {
 					return mapper.IdentityProviderAlias != nil && *mapper.IdentityProviderAlias == "test-idp"
-				})).Return((*keycloakv2.Response)(nil), nil).Once()
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
 				return m
 			},
 			wantErr: require.NoError,
