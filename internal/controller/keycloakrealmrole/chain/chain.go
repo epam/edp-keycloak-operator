@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // RoleContext holds data that is passed between chain handlers.
@@ -59,13 +59,13 @@ func (ch *Chain) Serve(
 	return nil
 }
 
-func MakeChain(kClientV2 *keycloakv2.KeycloakClient) *Chain {
+func MakeChain(kClient *keycloakapi.KeycloakClient) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateRole(kClientV2),
-		NewSyncComposites(kClientV2),
-		NewMakeDefault(kClientV2),
+		NewCreateOrUpdateRole(kClient),
+		NewSyncComposites(kClient),
+		NewMakeDefault(kClient),
 	)
 
 	return ch

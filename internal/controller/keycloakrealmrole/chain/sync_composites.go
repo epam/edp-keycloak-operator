@@ -9,15 +9,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncComposites struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncComposites(kClientV2 *keycloakv2.KeycloakClient) *SyncComposites {
-	return &SyncComposites{kClientV2: kClientV2}
+func NewSyncComposites(kClient *keycloakapi.KeycloakClient) *SyncComposites {
+	return &SyncComposites{kClient: kClient}
 }
 
 func (h *SyncComposites) Serve(
@@ -34,15 +34,15 @@ func (h *SyncComposites) Serve(
 	log.Info("Syncing composite roles")
 
 	spec := role.Spec
-	rolesClient := h.kClientV2.Roles
-	clientsClient := h.kClientV2.Clients
+	rolesClient := h.kClient.Roles
+	clientsClient := h.kClient.Clients
 
 	currentComposites, _, err := rolesClient.GetRealmRoleComposites(ctx, realmName, spec.Name)
 	if err != nil {
 		return fmt.Errorf("failed to get current composites: %w", err)
 	}
 
-	stale := make(map[string]keycloakv2.RoleRepresentation, len(currentComposites))
+	stale := make(map[string]keycloakapi.RoleRepresentation, len(currentComposites))
 
 	for _, cr := range currentComposites {
 		key := *cr.Name
@@ -53,7 +53,7 @@ func (h *SyncComposites) Serve(
 		stale[key] = cr
 	}
 
-	rolesToAdd := make([]keycloakv2.RoleRepresentation, 0, len(spec.Composites))
+	rolesToAdd := make([]keycloakapi.RoleRepresentation, 0, len(spec.Composites))
 
 	for _, composite := range spec.Composites {
 		name := composite.Name
@@ -71,7 +71,7 @@ func (h *SyncComposites) Serve(
 	}
 
 	for clientName, composites := range spec.CompositesClientRoles {
-		clients, _, err := clientsClient.GetClients(ctx, realmName, &keycloakv2.GetClientsParams{
+		clients, _, err := clientsClient.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{
 			ClientId: &clientName,
 		})
 		if err != nil {

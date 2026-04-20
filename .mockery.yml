@@ -6,7 +6,7 @@ filename: "{{ .InterfaceName | snakecase }}_generated.mock.go"
 template-data:
   unroll-variadic: true
 packages:
-  github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2:
+  github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi:
     interfaces:
       RealmClient: {}
       UsersClient: {}

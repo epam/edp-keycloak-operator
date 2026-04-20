@@ -12,7 +12,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
@@ -244,7 +244,7 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 	})
 })
 
-func findAuthFlowByAlias(flows []keycloakv2.AuthFlowRepresentation, alias string) *keycloakv2.AuthFlowRepresentation {
+func findAuthFlowByAlias(flows []keycloakapi.AuthFlowRepresentation, alias string) *keycloakapi.AuthFlowRepresentation {
 	for i := range flows {
 		if flows[i].Alias != nil && *flows[i].Alias == alias {
 			return &flows[i]
@@ -255,9 +255,9 @@ func findAuthFlowByAlias(flows []keycloakv2.AuthFlowRepresentation, alias string
 }
 
 func findExecutionByProviderId(
-	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	execs []keycloakapi.AuthenticationExecutionInfoRepresentation,
 	providerID string,
-) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+) *keycloakapi.AuthenticationExecutionInfoRepresentation {
 	for i := range execs {
 		if execs[i].ProviderId != nil && *execs[i].ProviderId == providerID {
 			return &execs[i]
@@ -268,9 +268,9 @@ func findExecutionByProviderId(
 }
 
 func findExecutionByDisplayName(
-	execs []keycloakv2.AuthenticationExecutionInfoRepresentation,
+	execs []keycloakapi.AuthenticationExecutionInfoRepresentation,
 	name string,
-) *keycloakv2.AuthenticationExecutionInfoRepresentation {
+) *keycloakapi.AuthenticationExecutionInfoRepresentation {
 	for i := range execs {
 		if execs[i].DisplayName != nil && *execs[i].DisplayName == name {
 			return &execs[i]

@@ -13,7 +13,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -26,10 +26,10 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 	It("Should create KeycloakRealmGroup with parent-child hierarchy", func() {
 		By("Creating role for the group")
 		roleName := "test-group-role"
-		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: &roleName,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -224,10 +224,10 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 
 		By("Creating additional role for update test")
 		role2Name := "test-group-role-2"
-		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: &role2Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -306,18 +306,18 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 	It("Should update KeycloakRealmGroup realm roles", func() {
 		By("Creating additional roles for testing")
 		role2Name := "test-group-role-2"
-		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: &role2Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		role3Name := "test-group-role-3"
-		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
 			Name: &role3Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -398,18 +398,18 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		By("Creating a test client with roles")
 		clientID := "test-client-for-group-roles"
 		clientName := "Test Client for Group Roles"
-		_, err := keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakv2.ClientRepresentation{
+		_, err := keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakapi.ClientRepresentation{
 			ClientId: &clientID,
 			Name:     &clientName,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
 		By("Getting client UUID")
 		var testClientUUID string
 		Eventually(func(g Gomega) {
-			clients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakv2.GetClientsParams{
+			clients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{
 				ClientId: &clientID,
 			})
 			g.Expect(err).ShouldNot(HaveOccurred())
@@ -422,22 +422,22 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		role1Name := "group-client-role-1"
 		role2Name := "group-client-role-2"
 		role3Name := "group-client-role-3"
-		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakapi.RoleRepresentation{
 			Name: &role1Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
-		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakapi.RoleRepresentation{
 			Name: &role2Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
-		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakv2.RoleRepresentation{
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, testClientUUID, keycloakapi.RoleRepresentation{
 			Name: &role3Name,
 		})
-		if err != nil && !keycloakv2.IsConflict(err) {
+		if err != nil && !keycloakapi.IsConflict(err) {
 			Expect(err).ShouldNot(HaveOccurred())
 		}
 
@@ -638,7 +638,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		Expect(k8sClient.Delete(ctx, group)).Should(Succeed())
 		Eventually(func(g Gomega) {
 			searchString := "test-group-preserve"
-			groups, _, err := keycloakApiClient.Groups.GetGroups(ctx, KeycloakRealmCR, &keycloakv2.GetGroupsParams{
+			groups, _, err := keycloakApiClient.Groups.GetGroups(ctx, KeycloakRealmCR, &keycloakapi.GetGroupsParams{
 				Search: &searchString,
 			})
 			g.Expect(err).ShouldNot(HaveOccurred())

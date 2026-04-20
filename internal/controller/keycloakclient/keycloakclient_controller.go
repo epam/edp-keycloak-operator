@@ -19,13 +19,13 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type Helper interface {
 	SetFailureCount(fc helper.FailureCountable) time.Duration
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.KeycloakClient, error)
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
 }
 
@@ -87,7 +87,7 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	return r.handleReconciliation(ctx, instance, kClient, realmName)
 }
 
-func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakClient, *keycloakv2.KeycloakClient, string, error) {
+func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakClient, *keycloakapi.KeycloakClient, string, error) {
 	instance := &keycloakApi.KeycloakClient{}
 	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -101,7 +101,7 @@ func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, 
 		return nil, nil, "", fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
 			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, keyCloakClientOperatorFinalizerName)
@@ -125,7 +125,7 @@ func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, 
 	return instance, kClient, realmName, nil
 }
 
-func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(instance, keyCloakClientOperatorFinalizerName) {
 		if err := chain.NewRemoveClient(kClient).Serve(ctx, instance, realmName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove keycloak client: %w", err)
@@ -141,7 +141,7 @@ func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *
 	return ctrl.Result{}, nil
 }
 
-func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakv2.KeycloakClient, realmName string) (reconcile.Result, error) {
+func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if controllerutil.AddFinalizer(instance, keyCloakClientOperatorFinalizerName) {

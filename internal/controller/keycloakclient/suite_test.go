@@ -27,7 +27,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -39,7 +39,7 @@ var (
 	cancel           context.CancelFunc
 	keycloakURL      string
 	controllerHelper *helper.Helper
-	keycloakAdmin    *keycloakv2.KeycloakClient
+	keycloakAdmin    *keycloakapi.KeycloakClient
 )
 
 const (
@@ -71,11 +71,11 @@ var _ = BeforeSuite(func() {
 
 	var err error
 
-	keycloakAdmin, err = keycloakv2.NewKeycloakClient(
+	keycloakAdmin, err = keycloakapi.NewKeycloakClient(
 		ctx,
 		keycloakURL,
-		keycloakv2.DefaultAdminClientID,
-		keycloakv2.WithPasswordGrant(keycloakv2.DefaultAdminUsername, keycloakv2.DefaultAdminPassword),
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
 	)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak admin client")
 
@@ -141,8 +141,8 @@ var _ = BeforeSuite(func() {
 			Namespace: ns,
 		},
 		Data: map[string][]byte{
-			"username": []byte(keycloakv2.DefaultAdminUsername),
-			"password": []byte(keycloakv2.DefaultAdminPassword),
+			"username": []byte(keycloakapi.DefaultAdminUsername),
+			"password": []byte(keycloakapi.DefaultAdminPassword),
 		},
 	}
 	Expect(k8sClient.Create(ctx, secret)).Should(Succeed())

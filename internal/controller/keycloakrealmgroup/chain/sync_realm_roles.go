@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncRealmRoles struct{}
@@ -19,7 +19,7 @@ func NewSyncRealmRoles() *SyncRealmRoles {
 func (h *SyncRealmRoles) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	groupCtx *GroupContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -33,7 +33,7 @@ func (h *SyncRealmRoles) Serve(
 		return fmt.Errorf("unable to get realm role mappings for group %s: %w", groupID, err)
 	}
 
-	currentMap := make(map[string]keycloakv2.RoleRepresentation, len(currentRoles))
+	currentMap := make(map[string]keycloakapi.RoleRepresentation, len(currentRoles))
 
 	for i, r := range currentRoles {
 		if r.Name != nil {
@@ -46,7 +46,7 @@ func (h *SyncRealmRoles) Serve(
 		claimedSet[r] = struct{}{}
 	}
 
-	var rolesToAdd []keycloakv2.RoleRepresentation
+	var rolesToAdd []keycloakapi.RoleRepresentation
 
 	for _, claimedName := range group.Spec.RealmRoles {
 		if _, exists := currentMap[claimedName]; !exists {
@@ -69,7 +69,7 @@ func (h *SyncRealmRoles) Serve(
 		}
 	}
 
-	var rolesToRemove []keycloakv2.RoleRepresentation
+	var rolesToRemove []keycloakapi.RoleRepresentation
 
 	for name, role := range currentMap {
 		if _, claimed := claimedSet[name]; !claimed {

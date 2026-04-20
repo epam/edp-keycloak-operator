@@ -52,22 +52,22 @@ Add the new field with a meaningful example value to:
 
 This is the critical investigation step before touching any handler code.
 
-### 4a. Confirm the controller uses keycloakv2
+### 4a. Confirm the controller uses keycloakapi
 
-All controllers use `pkg/client/keycloakv2/`. Confirm the handler imports this package.
+All controllers use `pkg/client/keycloakapi/`. Confirm the handler imports this package.
 
 ### 4b. Find the Keycloak representation struct
 
-Check `pkg/client/keycloakv2/contracts.go` for the relevant client interface
+Check `pkg/client/keycloakapi/contracts.go` for the relevant client interface
 (`GroupsClient`, `ClientsClient`, `RolesClient`, etc.).
-Representation types are type aliases — grep `pkg/client/keycloakv2/generated/client_generated.go`
+Representation types are type aliases — grep `pkg/client/keycloakapi/generated/client_generated.go`
 for the struct name (e.g. `GroupRepresentation`, `ClientRepresentation`, `RoleRepresentation`)
 to see which fields are available.
 
 ### 4c. Confirm the field exists — then follow this decision tree
 
-- **Field exists in keycloakv2 representation** → proceed to Step 5.
-- **Field missing from keycloakv2 representation** → **stop**. Warn the user that the field is not exposed by the client. `openapi.yaml` is auto-generated and must not be edited manually. Ask the user how to proceed before making any further changes.
+- **Field exists in keycloakapi representation** → proceed to Step 5.
+- **Field missing from keycloakapi representation** → **stop**. Warn the user that the field is not exposed by the client. `openapi.yaml` is auto-generated and must not be edited manually. Ask the user how to proceed before making any further changes.
 
 ---
 

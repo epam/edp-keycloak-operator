@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // AuthFlowHandler is a single step in the KeycloakAuthFlow reconciliation chain.
@@ -45,12 +45,12 @@ func (ch *Chain) Serve(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, 
 }
 
 // MakeChain creates the default reconciliation chain for KeycloakAuthFlow.
-func MakeChain(kClientV2 *keycloakv2.KeycloakClient) *Chain {
+func MakeChain(kClient *keycloakapi.KeycloakClient) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateAuthFlow(kClientV2),
-		NewSyncAuthFlowExecutions(kClientV2),
+		NewCreateOrUpdateAuthFlow(kClient),
+		NewSyncAuthFlowExecutions(kClient),
 	)
 
 	return ch

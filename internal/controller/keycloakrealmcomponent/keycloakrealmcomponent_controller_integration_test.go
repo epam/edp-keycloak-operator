@@ -13,7 +13,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -633,7 +633,7 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 	It("Should adopt an existing Keycloak component when spec.Name matches", func() {
 		By("By pre-creating a component directly in Keycloak")
 		name := "component-precreated"
-		resp, err := keycloakApiClient.RealmComponents.CreateComponent(ctx, KeycloakRealmCR, keycloakv2.ComponentRepresentation{
+		resp, err := keycloakApiClient.RealmComponents.CreateComponent(ctx, KeycloakRealmCR, keycloakapi.ComponentRepresentation{
 			Name:         &name,
 			ProviderId:   func() *string { s := scopeProviderID; return &s }(),
 			ProviderType: func() *string { s := scopeProviderType; return &s }(),

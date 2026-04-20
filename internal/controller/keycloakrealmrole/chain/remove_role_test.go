@@ -10,15 +10,15 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const testRoleName = "test-role"
 
 func TestRemoveRole_ServeRequest_Success(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
@@ -34,14 +34,14 @@ func TestRemoveRole_ServeRequest_Success(t *testing.T) {
 
 func TestRemoveRole_ServeRequest_NotFound(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
 
 	mockRoles.EXPECT().DeleteRealmRole(
 		context.Background(), "test-realm", testRoleName,
-	).Return(nil, keycloakv2.ErrNotFound)
+	).Return(nil, keycloakapi.ErrNotFound)
 
 	h := NewRemoveRole(kClient)
 	err := h.ServeRequest(context.Background(), role, "test-realm")
@@ -49,7 +49,7 @@ func TestRemoveRole_ServeRequest_NotFound(t *testing.T) {
 }
 
 func TestRemoveRole_ServeRequest_PreserveOnDeletion(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.KeycloakClient{}
 
 	role := &keycloakApi.KeycloakRealmRole{
 		ObjectMeta: metav1.ObjectMeta{
@@ -67,7 +67,7 @@ func TestRemoveRole_ServeRequest_PreserveOnDeletion(t *testing.T) {
 
 func TestRemoveRole_ServeRequest_DeleteError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
-	kClient := &keycloakv2.KeycloakClient{Roles: mockRoles}
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName

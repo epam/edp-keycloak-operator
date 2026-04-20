@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 const testRealmName = "test-realm"
@@ -68,7 +68,7 @@ func TestChain_Serve_ErrorStopsChain(t *testing.T) {
 }
 
 func TestMakeChain_Creates2Handlers(t *testing.T) {
-	kc := &keycloakv2.KeycloakClient{
+	kc := &keycloakapi.KeycloakClient{
 		AuthFlows: mocks.NewMockAuthFlowsClient(t),
 	}
 

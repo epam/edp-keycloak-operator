@@ -11,12 +11,12 @@ import (
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestNewSyncUserGroups(t *testing.T) {
-	h := NewSyncUserGroups(&keycloakv2.KeycloakClient{})
+	h := NewSyncUserGroups(&keycloakapi.KeycloakClient{})
 	require.NotNil(t, h)
 }
 
@@ -39,7 +39,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-1").
 					Return(nil, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 				u.EXPECT().AddUserToGroup(context.Background(), "test-realm", "user-1", "grp-1").
 					Return(nil, nil)
 			},
@@ -56,7 +56,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-2").
 					Return(nil, nil, nil)
 				g.EXPECT().GetGroupByPath(context.Background(), "test-realm", "/system/data_admin").
-					Return(&keycloakv2.GroupRepresentation{
+					Return(&keycloakapi.GroupRepresentation{
 						Id:   ptr.To("grp-nested"),
 						Path: ptr.To("/system/data_admin"),
 					}, nil, nil)
@@ -74,11 +74,11 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-3"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-3").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-1"), Name: ptr.To("developers")},
 					}, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 			},
 			wantErr: require.NoError,
 		},
@@ -91,11 +91,11 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-4").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-root"), Name: ptr.To("data_admin"), Path: ptr.To("/data_admin")},
 					}, nil, nil)
 				g.EXPECT().GetGroupByPath(context.Background(), "test-realm", "/system/data_admin").
-					Return(&keycloakv2.GroupRepresentation{
+					Return(&keycloakapi.GroupRepresentation{
 						Id:   ptr.To("grp-nested"),
 						Path: ptr.To("/system/data_admin"),
 					}, nil, nil)
@@ -118,12 +118,12 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-5"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-5").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-1"), Name: ptr.To("developers")},
 						{Id: ptr.To("grp-extra"), Name: ptr.To("ops")},
 					}, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 			},
 			wantErr: require.NoError,
 		},
@@ -151,7 +151,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-6").
 					Return(nil, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "missing-group").
-					Return(nil, nil, keycloakv2.ErrNotFound)
+					Return(nil, nil, keycloakapi.ErrNotFound)
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -203,7 +203,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-10").
 					Return(nil, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 				u.EXPECT().AddUserToGroup(context.Background(), "test-realm", "user-10", "grp-1").
 					Return(nil, errors.New("keycloak error"))
 			},
@@ -221,12 +221,12 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-11"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-11").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-1"), Name: ptr.To("developers")},
 						{Id: ptr.To("grp-extra"), Name: ptr.To("ops")},
 					}, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 				u.EXPECT().RemoveUserFromGroup(context.Background(), "test-realm", "user-11", "grp-extra").
 					Return(nil, errors.New("keycloak error"))
 			},
@@ -262,12 +262,12 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-13"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-13").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-1"), Name: ptr.To("developers")},
 						{Id: ptr.To("grp-2"), Name: ptr.To("ops")},
 					}, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 				u.EXPECT().RemoveUserFromGroup(context.Background(), "test-realm", "user-13", "grp-2").
 					Return(nil, nil)
 			},
@@ -282,7 +282,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-14"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-14").
-					Return([]keycloakv2.GroupRepresentation{
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("grp-1"), Name: ptr.To("developers")},
 						{Id: ptr.To("grp-2"), Name: ptr.To("ops")},
 					}, nil, nil)
@@ -304,9 +304,9 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-15").
 					Return(nil, nil, nil)
 				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
-					Return(&keycloakv2.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
+					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("grp-1"), Name: ptr.To("developers")}, nil, nil)
 				g.EXPECT().GetGroupByPath(context.Background(), "test-realm", "/system/admins").
-					Return(&keycloakv2.GroupRepresentation{
+					Return(&keycloakapi.GroupRepresentation{
 						Id:   ptr.To("grp-2"),
 						Path: ptr.To("/system/admins"),
 					}, nil, nil)
@@ -325,7 +325,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			mockGroups := v2mocks.NewMockGroupsClient(t)
 			tt.mockSetup(mockUsers, mockGroups)
 
-			h := NewSyncUserGroups(&keycloakv2.KeycloakClient{
+			h := NewSyncUserGroups(&keycloakapi.KeycloakClient{
 				Users:  mockUsers,
 				Groups: mockGroups,
 			})

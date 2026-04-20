@@ -9,7 +9,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type refClient interface {
@@ -17,11 +17,11 @@ type refClient interface {
 }
 
 type PutIDP struct {
-	idpClient keycloakv2.IdentityProvidersClient
+	idpClient keycloakapi.IdentityProvidersClient
 	secretRef refClient
 }
 
-func NewPutIDP(idpClient keycloakv2.IdentityProvidersClient, secretRef refClient) *PutIDP {
+func NewPutIDP(idpClient keycloakapi.IdentityProvidersClient, secretRef refClient) *PutIDP {
 	return &PutIDP{idpClient: idpClient, secretRef: secretRef}
 }
 
@@ -39,7 +39,7 @@ func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.Keyclo
 	idpRep := specToIdentityProviderRepresentation(&keycloakRealmIDP.Spec, config)
 
 	existingIDP, _, err := h.idpClient.GetIdentityProvider(ctx, realmName, keycloakRealmIDP.Spec.Alias)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
 	}
 
@@ -58,8 +58,8 @@ func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.Keyclo
 	return nil
 }
 
-func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentityProviderSpec, config map[string]string) keycloakv2.IdentityProviderRepresentation {
-	return keycloakv2.IdentityProviderRepresentation{
+func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentityProviderSpec, config map[string]string) keycloakapi.IdentityProviderRepresentation {
+	return keycloakapi.IdentityProviderRepresentation{
 		Alias:                     &spec.Alias,
 		ProviderId:                &spec.ProviderID,
 		Enabled:                   &spec.Enabled,

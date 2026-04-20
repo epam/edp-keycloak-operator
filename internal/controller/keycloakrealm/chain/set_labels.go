@@ -8,7 +8,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const TargetRealmLabel = "targetRealm"
@@ -18,7 +18,7 @@ type SetLabels struct {
 	client client.Client
 }
 
-func (s SetLabels) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (s SetLabels) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	if realm.Labels == nil {
 		realm.Labels = make(map[string]string)
 	}
@@ -31,5 +31,5 @@ func (s SetLabels) ServeRequest(ctx context.Context, realm *keycloakApi.Keycloak
 		return fmt.Errorf("unable to update realm with new labels, realm: %+v: %w", realm, err)
 	}
 
-	return nextServeOrNil(ctx, s.next, realm, kClientV2)
+	return nextServeOrNil(ctx, s.next, realm, kClient)
 }

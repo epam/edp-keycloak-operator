@@ -6,7 +6,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/realmbuilder"
 )
 
@@ -18,17 +18,17 @@ func NewPutRealmSettings() *PutRealmSettings {
 	return &PutRealmSettings{}
 }
 
-func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.ClusterKeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating of keycloak realm settings")
 
-	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClientV2.Realms); err != nil {
+	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClient.Realms); err != nil {
 		return err
 	}
 
 	overlay := realmbuilder.BuildRealmRepresentationFromV1Alpha1(realm)
 
-	if err := realmbuilder.ApplyRealmSettings(ctx, realm.Spec.RealmName, overlay, kClientV2.Realms); err != nil {
+	if err := realmbuilder.ApplyRealmSettings(ctx, realm.Spec.RealmName, overlay, kClient.Realms); err != nil {
 		return err
 	}
 

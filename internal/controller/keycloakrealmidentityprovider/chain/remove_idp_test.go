@@ -12,8 +12,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapimocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -23,7 +23,7 @@ func TestRemoveIDP_Serve(t *testing.T) {
 	tests := []struct {
 		name    string
 		idp     *keycloakApi.KeycloakRealmIdentityProvider
-		kClient func(t *testing.T) *keycloakv2.KeycloakClient
+		kClient func(t *testing.T) *keycloakapi.KeycloakClient
 		wantErr require.ErrorAssertionFunc
 	}{
 		{
@@ -33,11 +33,11 @@ func TestRemoveIDP_Serve(t *testing.T) {
 					Alias: "test-idp",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("DeleteIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return((*keycloakv2.Response)(nil), nil).Once()
-				return &keycloakv2.KeycloakClient{IdentityProviders: m}
+					Return((*keycloakapi.Response)(nil), nil).Once()
+				return &keycloakapi.KeycloakClient{IdentityProviders: m}
 			},
 			wantErr: require.NoError,
 		},
@@ -48,11 +48,11 @@ func TestRemoveIDP_Serve(t *testing.T) {
 					Alias: "test-idp",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("DeleteIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return((*keycloakv2.Response)(nil), &keycloakv2.ApiError{Code: 404}).Once()
-				return &keycloakv2.KeycloakClient{IdentityProviders: m}
+					Return((*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404}).Once()
+				return &keycloakapi.KeycloakClient{IdentityProviders: m}
 			},
 			wantErr: require.NoError,
 		},
@@ -63,11 +63,11 @@ func TestRemoveIDP_Serve(t *testing.T) {
 					Alias: "test-idp",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				m := keycloakv2mocks.NewMockIdentityProvidersClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
 				m.On("DeleteIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return((*keycloakv2.Response)(nil), fmt.Errorf("api error")).Once()
-				return &keycloakv2.KeycloakClient{IdentityProviders: m}
+					Return((*keycloakapi.Response)(nil), fmt.Errorf("api error")).Once()
+				return &keycloakapi.KeycloakClient{IdentityProviders: m}
 			},
 			wantErr: require.Error,
 		},
@@ -83,9 +83,9 @@ func TestRemoveIDP_Serve(t *testing.T) {
 					Alias: "test-idp",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{
-					IdentityProviders: keycloakv2mocks.NewMockIdentityProvidersClient(t),
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				return &keycloakapi.KeycloakClient{
+					IdentityProviders: keycloakapimocks.NewMockIdentityProvidersClient(t),
 				}
 			},
 			wantErr: require.NoError,

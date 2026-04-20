@@ -13,7 +13,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakclientv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	keycloakClient "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -47,55 +47,55 @@ type KeycloakAuthData struct {
 	AuthSpec *common.AuthSpec
 }
 
-func (h *Helper) CreateKeycloakClientV2FromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakclientv2.KeycloakClient, error) {
+func (h *Helper) CreateKeycloakClientFromRealm(ctx context.Context, realm *keycloakApi.KeycloakRealm) (*keycloakClient.KeycloakClient, error) {
 	authData, err := h.getKeycloakAuthDataFromRealm(ctx, realm)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+	return h.createKeycloakClientFromAuthData(ctx, authData)
 }
 
-func (h *Helper) CreateKeycloakClientV2FromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakclientv2.KeycloakClient, error) {
+func (h *Helper) CreateKeycloakClientFromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakClient.KeycloakClient, error) {
 	authData, err := MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+	return h.createKeycloakClientFromAuthData(ctx, authData)
 }
 
-func (h *Helper) CreateKeycloakClientV2FromClusterKeycloak(ctx context.Context, kc *keycloakAlpha.ClusterKeycloak) (*keycloakclientv2.KeycloakClient, error) {
+func (h *Helper) CreateKeycloakClientFromClusterKeycloak(ctx context.Context, kc *keycloakAlpha.ClusterKeycloak) (*keycloakClient.KeycloakClient, error) {
 	authData, err := MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+	return h.createKeycloakClientFromAuthData(ctx, authData)
 }
 
-func (h *Helper) CreateKeycloakClientV2FromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakclientv2.KeycloakClient, error) {
+func (h *Helper) CreateKeycloakClientFromRealmRef(ctx context.Context, object ObjectWithRealmRef) (*keycloakClient.KeycloakClient, error) {
 	authData, err := h.getKeycloakAuthDataFromRealmRef(ctx, object)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+	return h.createKeycloakClientFromAuthData(ctx, authData)
 }
 
-func (h *Helper) CreateKeycloakClientV2FromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakclientv2.KeycloakClient, error) {
+func (h *Helper) CreateKeycloakClientFromClusterRealm(ctx context.Context, realm *keycloakAlpha.ClusterKeycloakRealm) (*keycloakClient.KeycloakClient, error) {
 	authData, err := h.getKeycloakAuthDataFromClusterRealm(ctx, realm)
 	if err != nil {
 		return nil, err
 	}
 
-	return h.createKeycloakClientV2FromAuthData(ctx, authData)
+	return h.createKeycloakClientFromAuthData(ctx, authData)
 }
 
-func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authData *KeycloakAuthData) (*keycloakclientv2.KeycloakClient, error) {
-	var options []keycloakclientv2.ClientOption
+func (h *Helper) createKeycloakClientFromAuthData(ctx context.Context, authData *KeycloakAuthData) (*keycloakClient.KeycloakClient, error) {
+	var options []keycloakClient.ClientOption
 
-	clientID := keycloakclientv2.DefaultAdminClientID
+	clientID := keycloakClient.DefaultAdminClientID
 
 	if authData.AuthSpec != nil {
 		var err error
@@ -113,21 +113,21 @@ func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authDat
 		if authData.AdminType == keycloakApi.KeycloakAdminTypeServiceAccount {
 			clientID = username
 
-			options = append(options, keycloakclientv2.WithClientSecret(password))
+			options = append(options, keycloakClient.WithClientSecret(password))
 		} else {
-			options = append(options, keycloakclientv2.WithPasswordGrant(username, password))
+			options = append(options, keycloakClient.WithPasswordGrant(username, password))
 		}
 	}
 
 	if authData.CACert != "" {
-		options = append(options, keycloakclientv2.WithCACert(authData.CACert))
+		options = append(options, keycloakClient.WithCACert(authData.CACert))
 	}
 
 	if authData.InsecureSkipVerify {
-		options = append(options, keycloakclientv2.WithTLSInsecureSkipVerify(true))
+		options = append(options, keycloakClient.WithTLSInsecureSkipVerify(true))
 	}
 
-	kcClient, err := keycloakclientv2.NewKeycloakClient(ctx, authData.Url, clientID, options...)
+	kcClient, err := keycloakClient.NewKeycloakClient(ctx, authData.Url, clientID, options...)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create keycloak v2 client: %w", err)
 	}
@@ -138,7 +138,7 @@ func (h *Helper) createKeycloakClientV2FromAuthData(ctx context.Context, authDat
 func (h *Helper) buildV2AuthOptions(
 	ctx context.Context,
 	authData *KeycloakAuthData,
-) (clientID string, options []keycloakclientv2.ClientOption, err error) {
+) (clientID string, options []keycloakClient.ClientOption, err error) {
 	switch {
 	case authData.AuthSpec.PasswordGrant != nil:
 		username, err := secretref.GetValueFromSourceRefOrVal(
@@ -155,8 +155,8 @@ func (h *Helper) buildV2AuthOptions(
 			return "", nil, fmt.Errorf("unable to resolve password: %w", err)
 		}
 
-		return keycloakclientv2.DefaultAdminClientID,
-			[]keycloakclientv2.ClientOption{keycloakclientv2.WithPasswordGrant(username, password)},
+		return keycloakClient.DefaultAdminClientID,
+			[]keycloakClient.ClientOption{keycloakClient.WithPasswordGrant(username, password)},
 			nil
 
 	case authData.AuthSpec.ClientCredentials != nil:
@@ -175,7 +175,7 @@ func (h *Helper) buildV2AuthOptions(
 		}
 
 		return clientID,
-			[]keycloakclientv2.ClientOption{keycloakclientv2.WithClientSecret(clientSecret)},
+			[]keycloakClient.ClientOption{keycloakClient.WithClientSecret(clientSecret)},
 			nil
 
 	default:

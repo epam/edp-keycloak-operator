@@ -8,19 +8,19 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 // RemoveAuthFlow handles deletion of a KeycloakAuthFlow from Keycloak.
 // It ports the terminator and legacy DeleteAuthFlow + unsetBrowserFlow logic.
 type RemoveAuthFlow struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 	k8sClient client.Client
 }
 
-func NewRemoveAuthFlow(kClientV2 *keycloakv2.KeycloakClient, k8sClient client.Client) *RemoveAuthFlow {
-	return &RemoveAuthFlow{kClientV2: kClientV2, k8sClient: k8sClient}
+func NewRemoveAuthFlow(kClient *keycloakapi.KeycloakClient, k8sClient client.Client) *RemoveAuthFlow {
+	return &RemoveAuthFlow{kClient: kClient, k8sClient: k8sClient}
 }
 
 func (h *RemoveAuthFlow) Serve(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
@@ -67,9 +67,9 @@ func (h *RemoveAuthFlow) checkNoChildFlows(ctx context.Context, flow *keycloakAp
 func (h *RemoveAuthFlow) deleteChildFlow(ctx context.Context, flow *keycloakApi.KeycloakAuthFlow, realmName string) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	execs, _, err := h.kClientV2.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
+	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.ParentName)
 	if err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Parent flow not found, skipping child deletion")
 
 			return nil
@@ -89,8 +89,8 @@ func (h *RemoveAuthFlow) deleteChildFlow(ctx context.Context, flow *keycloakApi.
 
 		log.Info("Deleting child flow execution", "alias", flow.Spec.Alias)
 
-		if _, err := h.kClientV2.AuthFlows.DeleteExecution(ctx, realmName, *execs[i].Id); err != nil {
-			if keycloakv2.IsNotFound(err) {
+		if _, err := h.kClient.AuthFlows.DeleteExecution(ctx, realmName, *execs[i].Id); err != nil {
+			if keycloakapi.IsNotFound(err) {
 				log.Info("Child flow execution not found, skipping")
 
 				return nil
@@ -124,8 +124,8 @@ func (h *RemoveAuthFlow) deleteTopLevelFlow(ctx context.Context, flow *keycloakA
 
 	log.Info("Deleting top-level auth flow", "id", flowID)
 
-	if _, err := h.kClientV2.AuthFlows.DeleteAuthFlow(ctx, realmName, flowID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+	if _, err := h.kClient.AuthFlows.DeleteAuthFlow(ctx, realmName, flowID); err != nil {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Auth flow not found, skipping deletion")
 
 			return nil
@@ -140,7 +140,7 @@ func (h *RemoveAuthFlow) deleteTopLevelFlow(ctx context.Context, flow *keycloakA
 // unsetBrowserFlow replaces the realm browser flow with another flow if it currently
 // points to the flow being deleted. Ports legacy unsetBrowserFlow from the gocloak adapter.
 func (h *RemoveAuthFlow) unsetBrowserFlow(ctx context.Context, realmName, flowAlias string) error {
-	realm, _, err := h.kClientV2.Realms.GetRealm(ctx, realmName)
+	realm, _, err := h.kClient.Realms.GetRealm(ctx, realmName)
 	if err != nil {
 		return fmt.Errorf("failed to get realm: %w", err)
 	}
@@ -149,7 +149,7 @@ func (h *RemoveAuthFlow) unsetBrowserFlow(ctx context.Context, realmName, flowAl
 		return nil
 	}
 
-	flows, _, err := h.kClientV2.AuthFlows.GetAuthFlows(ctx, realmName)
+	flows, _, err := h.kClient.AuthFlows.GetAuthFlows(ctx, realmName)
 	if err != nil {
 		return fmt.Errorf("failed to get auth flows: %w", err)
 	}
@@ -170,7 +170,7 @@ func (h *RemoveAuthFlow) unsetBrowserFlow(ctx context.Context, realmName, flowAl
 
 	realm.BrowserFlow = &replaceAlias
 
-	if _, err := h.kClientV2.Realms.UpdateRealm(ctx, realmName, *realm); err != nil {
+	if _, err := h.kClient.Realms.UpdateRealm(ctx, realmName, *realm); err != nil {
 		return fmt.Errorf("failed to update realm browser flow: %w", err)
 	}
 

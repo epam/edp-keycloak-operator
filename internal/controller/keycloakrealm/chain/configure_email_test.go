@@ -18,8 +18,8 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestConfigureEmail_ServeRequest(t *testing.T) {
@@ -31,7 +31,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name        string
 		realm       *keycloakApi.KeycloakRealm
-		realmClient func(t *testing.T) keycloakv2.RealmClient
+		realmClient func(t *testing.T) keycloakapi.RealmClient
 		k8sClient   func(t *testing.T) client.Client
 		wantErr     require.ErrorAssertionFunc
 	}{
@@ -87,15 +87,15 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 					},
 				).Build()
 			},
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 
 				m.EXPECT().GetRealm(mock.Anything, "realm").
-					Return(&keycloakv2.RealmRepresentation{
+					Return(&keycloakapi.RealmRepresentation{
 						Realm: ptr.To("realm"),
 					}, nil, nil)
 
-				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.MatchedBy(func(rep keycloakv2.RealmRepresentation) bool {
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
 					return rep.SmtpServer != nil &&
 						(*rep.SmtpServer)["from"] == "from@mailcom" &&
 						(*rep.SmtpServer)["user"] == "username" &&
@@ -141,11 +141,11 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 			k8sClient: func(t *testing.T) client.Client {
 				return fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build()
 			},
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 
 				m.EXPECT().GetRealm(mock.Anything, "realm").
-					Return(&keycloakv2.RealmRepresentation{
+					Return(&keycloakapi.RealmRepresentation{
 						Realm: ptr.To("realm"),
 					}, nil, nil)
 
@@ -178,7 +178,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 			k8sClient: func(t *testing.T) client.Client {
 				return fake.NewClientBuilder().WithScheme(scheme).WithObjects().Build()
 			},
-			realmClient: func(t *testing.T) keycloakv2.RealmClient {
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
 				m := v2mocks.NewMockRealmClient(t)
 
 				m.EXPECT().GetRealm(mock.Anything, "realm").
@@ -199,7 +199,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 				client: tt.k8sClient(t),
 			}
 			mockRealm := tt.realmClient(t)
-			kClientV2 := &keycloakv2.KeycloakClient{Realms: mockRealm}
+			kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
 
 			tt.wantErr(t,
 				s.ServeRequest(
@@ -208,7 +208,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 						logr.Discard(),
 					),
 					tt.realm,
-					kClientV2,
+					kClient,
 				),
 			)
 		})

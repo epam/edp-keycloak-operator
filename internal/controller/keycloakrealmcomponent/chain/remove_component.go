@@ -7,17 +7,17 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
 // RemoveComponent deletes a realm component from Keycloak.
 type RemoveComponent struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewRemoveComponent(kClientV2 *keycloakv2.KeycloakClient) *RemoveComponent {
-	return &RemoveComponent{kClientV2: kClientV2}
+func NewRemoveComponent(kClient *keycloakapi.KeycloakClient) *RemoveComponent {
+	return &RemoveComponent{kClient: kClient}
 }
 
 func (h *RemoveComponent) Serve(
@@ -37,7 +37,7 @@ func (h *RemoveComponent) Serve(
 	componentID := component.Status.ID
 
 	if componentID == "" {
-		existing, err := h.kClientV2.RealmComponents.FindComponentByName(ctx, realmName, component.Spec.Name)
+		existing, err := h.kClient.RealmComponents.FindComponentByName(ctx, realmName, component.Spec.Name)
 		if err != nil {
 			return fmt.Errorf("failed to find component for deletion: %w", err)
 		}
@@ -51,8 +51,8 @@ func (h *RemoveComponent) Serve(
 		componentID = *existing.Id
 	}
 
-	if _, err := h.kClientV2.RealmComponents.DeleteComponent(ctx, realmName, componentID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+	if _, err := h.kClient.RealmComponents.DeleteComponent(ctx, realmName, componentID); err != nil {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Realm component not found, skipping deletion")
 
 			return nil
