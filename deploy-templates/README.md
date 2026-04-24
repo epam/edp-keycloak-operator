@@ -147,4 +147,9 @@ Development versions are also available from the [snapshot helm chart repository
 | podLabels | object | `{}` | Labels to be added to the pod |
 | resources | object | `{"limits":{"memory":"192Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource limits and requests for the pod |
 | securityContext | object | `{"runAsNonRoot":true}` | Deployment Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
+| serviceAccount | object | `{"annotations":{},"create":true,"labels":{},"name":"edp-keycloak-operator"}` | ServiceAccount configuration |
+| serviceAccount.annotations | object | `{}` | Annotations to add to the ServiceAccount (e.g. for AWS IAM role association) |
+| serviceAccount.create | bool | `true` | If true, a ServiceAccount will be created |
+| serviceAccount.labels | object | `{}` | Additional labels to add to the ServiceAccount |
+| serviceAccount.name | string | `"edp-keycloak-operator"` | The name of the ServiceAccount to use. Defaults to "edp-keycloak-operator" |
 | tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints |
