@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type Chain interface {
@@ -30,7 +30,7 @@ type Handler interface {
 	ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error
 }
 
-func MakeChain(kc *keycloakv2.KeycloakClient) Chain {
+func MakeChain(kc *keycloakapi.KeycloakClient) Chain {
 	return &chain{
 		handlers: []Handler{
 			NewCreateOrganization(kc),

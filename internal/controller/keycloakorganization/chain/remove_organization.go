@@ -7,18 +7,18 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
-func NewRemoveOrganization(kc *keycloakv2.KeycloakClient) Handler {
+func NewRemoveOrganization(kc *keycloakapi.KeycloakClient) Handler {
 	return &RemoveOrganization{
 		keycloakClient: kc.Organizations,
 	}
 }
 
 type RemoveOrganization struct {
-	keycloakClient keycloakv2.OrganizationsClient
+	keycloakClient keycloakapi.OrganizationsClient
 }
 
 func (h *RemoveOrganization) ServeRequest(ctx context.Context, organization *keycloakApi.KeycloakOrganization, realmName string) error {
@@ -39,7 +39,7 @@ func (h *RemoveOrganization) ServeRequest(ctx context.Context, organization *key
 	}
 
 	if _, err := h.keycloakClient.DeleteOrganization(ctx, realmName, organization.Status.OrganizationID); err != nil {
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Organization not found, skipping")
 
 			return nil

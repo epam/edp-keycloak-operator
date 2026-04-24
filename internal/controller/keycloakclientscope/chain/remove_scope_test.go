@@ -10,13 +10,13 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestRemoveScope_Serve_Success(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -40,22 +40,22 @@ func TestRemoveScope_Serve_Success(t *testing.T) {
 
 func TestRemoveScope_Serve_NotFound(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
 
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
-	).Return(nil, keycloakv2.ErrNotFound)
+	).Return(nil, keycloakapi.ErrNotFound)
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
-	).Return(nil, keycloakv2.ErrNotFound)
+	).Return(nil, keycloakapi.ErrNotFound)
 
 	mockScopes.EXPECT().DeleteClientScope(
 		context.Background(), testRealmName, testScopeID,
-	).Return(nil, keycloakv2.ErrNotFound)
+	).Return(nil, keycloakapi.ErrNotFound)
 
 	h := NewRemoveScope(kClient)
 	err := h.Serve(context.Background(), scope, testRealmName)
@@ -63,7 +63,7 @@ func TestRemoveScope_Serve_NotFound(t *testing.T) {
 }
 
 func TestRemoveScope_Serve_PreserveOnDeletion(t *testing.T) {
-	kClient := &keycloakv2.KeycloakClient{}
+	kClient := &keycloakapi.KeycloakClient{}
 
 	scope := &keycloakApi.KeycloakClientScope{
 		ObjectMeta: metav1.ObjectMeta{
@@ -81,7 +81,7 @@ func TestRemoveScope_Serve_PreserveOnDeletion(t *testing.T) {
 
 func TestRemoveScope_Serve_DeleteError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -106,7 +106,7 @@ func TestRemoveScope_Serve_DeleteError(t *testing.T) {
 
 func TestRemoveScope_Serve_RemoveDefaultError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
@@ -123,7 +123,7 @@ func TestRemoveScope_Serve_RemoveDefaultError(t *testing.T) {
 
 func TestRemoveScope_Serve_RemoveOptionalError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakv2.KeycloakClient{ClientScopes: mockScopes}
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
 
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID

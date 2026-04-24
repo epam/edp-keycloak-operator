@@ -9,15 +9,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncUserIdentityProviders struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncUserIdentityProviders(kClientV2 *keycloakv2.KeycloakClient) *SyncUserIdentityProviders {
-	return &SyncUserIdentityProviders{kClientV2: kClientV2}
+func NewSyncUserIdentityProviders(kClient *keycloakapi.KeycloakClient) *SyncUserIdentityProviders {
+	return &SyncUserIdentityProviders{kClient: kClient}
 }
 
 func (h *SyncUserIdentityProviders) Serve(
@@ -35,7 +35,7 @@ func (h *SyncUserIdentityProviders) Serve(
 
 	providers := *user.Spec.IdentityProviders
 
-	existing, _, err := h.kClientV2.Users.GetUserFederatedIdentities(ctx, realmName, userCtx.UserID)
+	existing, _, err := h.kClient.Users.GetUserFederatedIdentities(ctx, realmName, userCtx.UserID)
 	if err != nil {
 		return fmt.Errorf("unable to get user federated identities: %w", err)
 	}
@@ -55,20 +55,20 @@ func (h *SyncUserIdentityProviders) Serve(
 		}
 
 		// Check the identity provider exists in Keycloak before linking
-		if _, _, err := h.kClientV2.IdentityProviders.GetIdentityProvider(ctx, realmName, provider); err != nil {
-			if keycloakv2.IsNotFound(err) {
+		if _, _, err := h.kClient.IdentityProviders.GetIdentityProvider(ctx, realmName, provider); err != nil {
+			if keycloakapi.IsNotFound(err) {
 				return fmt.Errorf("identity provider %q does not exist", provider)
 			}
 
 			return fmt.Errorf("unable to check if identity provider %q exists: %w", provider, err)
 		}
 
-		_, err := h.kClientV2.Users.CreateUserFederatedIdentity(
+		_, err := h.kClient.Users.CreateUserFederatedIdentity(
 			ctx,
 			realmName,
 			userCtx.UserID,
 			provider,
-			keycloakv2.FederatedIdentityRepresentation{
+			keycloakapi.FederatedIdentityRepresentation{
 				IdentityProvider: ptr.To(provider),
 				UserId:           ptr.To(userCtx.UserID),
 				UserName:         ptr.To(user.Spec.Username),
@@ -82,7 +82,7 @@ func (h *SyncUserIdentityProviders) Serve(
 	// Remove providers no longer desired
 	for alias := range existingByAlias {
 		if !slices.Contains(providers, alias) {
-			if _, err := h.kClientV2.Users.DeleteUserFederatedIdentity(ctx, realmName, userCtx.UserID, alias); err != nil {
+			if _, err := h.kClient.Users.DeleteUserFederatedIdentity(ctx, realmName, userCtx.UserID, alias); err != nil {
 				return fmt.Errorf("unable to remove user from identity provider %q: %w", alias, err)
 			}
 		}

@@ -19,7 +19,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrole/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const keyCloakRealmRoleOperatorFinalizerName = "keycloak.realmrole.operator.finalizer.name"
@@ -29,7 +29,7 @@ type Helper interface {
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.KeycloakClient, error)
 }
 
 func NewReconcileKeycloakRealmRole(k8sClient client.Client, controllerHelper Helper) *ReconcileKeycloakRealmRole {
@@ -135,7 +135,7 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 		return "", fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, keycloakRealmRole)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmRole)
 	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
 			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName); removeErr != nil {

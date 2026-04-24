@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncClientRoles struct{}
@@ -19,7 +19,7 @@ func NewSyncClientRoles() *SyncClientRoles {
 func (h *SyncClientRoles) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	groupCtx *GroupContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -39,7 +39,7 @@ func (h *SyncClientRoles) Serve(
 	}
 
 	// Extract client mappings to avoid redundant API calls in syncOneClientRoles.
-	var clientMappings map[string]keycloakv2.ClientMappingsRepresentation
+	var clientMappings map[string]keycloakapi.ClientMappingsRepresentation
 	if roleMappings != nil && roleMappings.ClientMappings != nil {
 		clientMappings = *roleMappings.ClientMappings
 	}
@@ -76,15 +76,15 @@ func (h *SyncClientRoles) Serve(
 
 func (h *SyncClientRoles) syncOneClientRoles(
 	ctx context.Context,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	realm, groupID, clientIDStr string,
 	claimedRoleNames []string,
-	clientMappings map[string]keycloakv2.ClientMappingsRepresentation,
+	clientMappings map[string]keycloakapi.ClientMappingsRepresentation,
 ) error {
 	// Try to get client UUID and current roles from the cached clientMappings.
 	var clientUUID string
 
-	var currentRoles []keycloakv2.RoleRepresentation
+	var currentRoles []keycloakapi.RoleRepresentation
 
 	if clientMapping, found := clientMappings[clientIDStr]; found {
 		// Use cached data from GetRoleMappings call.
@@ -106,7 +106,7 @@ func (h *SyncClientRoles) syncOneClientRoles(
 		// currentRoles remains empty (no roles currently assigned).
 	}
 
-	currentMap := make(map[string]keycloakv2.RoleRepresentation, len(currentRoles))
+	currentMap := make(map[string]keycloakapi.RoleRepresentation, len(currentRoles))
 
 	for i, r := range currentRoles {
 		if r.Name != nil {
@@ -119,7 +119,7 @@ func (h *SyncClientRoles) syncOneClientRoles(
 		claimedSet[rn] = struct{}{}
 	}
 
-	var rolesToAdd []keycloakv2.RoleRepresentation
+	var rolesToAdd []keycloakapi.RoleRepresentation
 
 	for _, rn := range claimedRoleNames {
 		if _, exists := currentMap[rn]; !exists {
@@ -142,7 +142,7 @@ func (h *SyncClientRoles) syncOneClientRoles(
 		}
 	}
 
-	var rolesToRemove []keycloakv2.RoleRepresentation
+	var rolesToRemove []keycloakapi.RoleRepresentation
 
 	for name, role := range currentMap {
 		if _, claimed := claimedSet[name]; !claimed {
@@ -162,10 +162,10 @@ func (h *SyncClientRoles) syncOneClientRoles(
 // resolveClientUUID resolves a Keycloak client_id string to its internal UUID.
 func resolveClientUUID(
 	ctx context.Context,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	realm, clientIDStr string,
 ) (string, error) {
-	clients, _, err := kClient.Clients.GetClients(ctx, realm, &keycloakv2.GetClientsParams{
+	clients, _, err := kClient.Clients.GetClients(ctx, realm, &keycloakapi.GetClientsParams{
 		ClientId: &clientIDStr,
 	})
 	if err != nil {

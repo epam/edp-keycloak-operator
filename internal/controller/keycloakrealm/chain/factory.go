@@ -11,7 +11,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
@@ -38,9 +38,9 @@ func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme) handler.Rea
 	}
 }
 
-func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func nextServeOrNil(ctx context.Context, next handler.RealmHandler, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	if next != nil {
-		err := next.ServeRequest(ctx, realm, kClientV2)
+		err := next.ServeRequest(ctx, realm, kClient)
 		if err != nil {
 			return fmt.Errorf("chain failed %s: %w", reflect.TypeOf(next).Name(), err)
 		}

@@ -10,15 +10,15 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type PutRealmRole struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 	k8sClient client.Client
 }
 
-func NewPutRealmRole(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutRealmRole {
+func NewPutRealmRole(kClient *keycloakapi.KeycloakClient, k8sClient client.Client) *PutRealmRole {
 	return &PutRealmRole{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -78,13 +78,13 @@ func (h *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keyclo
 			continue
 		}
 
-		if !keycloakv2.IsNotFound(err) {
+		if !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("error checking realm role %s: %w", role.Name, err)
 		}
 
 		// Role doesn't exist, create it
 		composite := role.Composite != ""
-		newRole := keycloakv2.RoleRepresentation{
+		newRole := keycloakapi.RoleRepresentation{
 			Name:      ptr.To(role.Name),
 			Composite: &composite,
 		}
@@ -100,7 +100,7 @@ func (h *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keyclo
 				return fmt.Errorf("error getting composite realm role %s: %w", role.Composite, err)
 			}
 
-			if _, err := h.kClient.Roles.AddRealmRoleComposites(ctx, realmName, role.Name, []keycloakv2.RoleRepresentation{*compositeRole}); err != nil {
+			if _, err := h.kClient.Roles.AddRealmRoleComposites(ctx, realmName, role.Name, []keycloakapi.RoleRepresentation{*compositeRole}); err != nil {
 				return fmt.Errorf("error adding composite to realm role %s: %w", role.Name, err)
 			}
 		}

@@ -8,15 +8,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type SyncProtocolMappers struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewSyncProtocolMappers(kClientV2 *keycloakv2.KeycloakClient) *SyncProtocolMappers {
-	return &SyncProtocolMappers{kClientV2: kClientV2}
+func NewSyncProtocolMappers(kClient *keycloakapi.KeycloakClient) *SyncProtocolMappers {
+	return &SyncProtocolMappers{kClient: kClient}
 }
 
 func (h *SyncProtocolMappers) Serve(
@@ -27,7 +27,7 @@ func (h *SyncProtocolMappers) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing protocol mappers for client scope")
 
-	scopesClient := h.kClientV2.ClientScopes
+	scopesClient := h.kClient.ClientScopes
 	scopeID := scope.Status.ID
 
 	existingMappers, _, err := scopesClient.GetClientScopeProtocolMappers(ctx, realmName, scopeID)
@@ -58,11 +58,11 @@ func (h *SyncProtocolMappers) Serve(
 	return nil
 }
 
-func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakv2.ProtocolMapperRepresentation {
+func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakapi.ProtocolMapperRepresentation {
 	config := make(map[string]string, len(m.Config))
 	maps.Copy(config, m.Config)
 
-	return keycloakv2.ProtocolMapperRepresentation{
+	return keycloakapi.ProtocolMapperRepresentation{
 		Name:           &m.Name,
 		Protocol:       &m.Protocol,
 		ProtocolMapper: &m.ProtocolMapper,

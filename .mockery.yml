@@ -6,13 +6,7 @@ filename: "{{ .InterfaceName | snakecase }}_generated.mock.go"
 template-data:
   unroll-variadic: true
 packages:
-  github.com/epam/edp-keycloak-operator/pkg/client/keycloak:
-    interfaces:
-      Client: {}
-  github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter:
-    interfaces:
-      GoCloak: {}
-  github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2:
+  github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi:
     interfaces:
       RealmClient: {}
       UsersClient: {}
@@ -23,7 +17,12 @@ packages:
       IdentityProvidersClient: {}
       AuthorizationClient: {}
       ClientScopesClient: {}
+      RealmComponentsClient: {}
       ServerInfoClient: {}
+      AuthFlowsClient: {}
+      EventsClient: {}
+      SessionsClient: {}
+      ClientPoliciesClient: {}
   github.com/epam/edp-keycloak-operator/pkg/secretref:
     interfaces:
       RefClient: {}

@@ -111,7 +111,7 @@ fix: update client role logic (#456)
 docs: improve development guide (#789)
 ```
 
-**Scope** is optional and describes the section of the codebase affected, e.g. `feat(webhook): ...` or `fix(keycloakv2): ...`.
+**Scope** is optional and describes the section of the codebase affected, e.g. `feat(webhook): ...` or `fix(keycloakapi): ...`.
 
 **Common commit types:**
 - `feat:` - New features

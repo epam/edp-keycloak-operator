@@ -90,8 +90,9 @@ type KeycloakAuthFlowStatus struct {
 	// +optional
 	Value string `json:"value,omitempty"`
 
+	// ID is the Keycloak internal ID of the auth flow.
 	// +optional
-	FailureCount int64 `json:"failureCount,omitempty"`
+	ID string `json:"id,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -110,14 +111,6 @@ type KeycloakAuthFlow struct {
 
 func (in *KeycloakAuthFlow) GetRealmRef() common.RealmRef {
 	return in.Spec.RealmRef
-}
-
-func (in *KeycloakAuthFlow) GetFailureCount() int64 {
-	return in.Status.FailureCount
-}
-
-func (in *KeycloakAuthFlow) SetFailureCount(count int64) {
-	in.Status.FailureCount = count
 }
 
 func (in *KeycloakAuthFlow) GetStatus() string {

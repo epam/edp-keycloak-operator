@@ -19,7 +19,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser/chain"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 const finalizerName = "keycloak.realmuser.operator.finalizer.name"
@@ -28,7 +28,7 @@ type Helper interface {
 	TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error
 	SetRealmOwnerRef(ctx context.Context, object helper.ObjectWithRealmRef) error
 	GetRealmNameFromRef(ctx context.Context, object helper.ObjectWithRealmRef) (string, error)
-	CreateKeycloakClientV2FromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakv2.KeycloakClient, error)
+	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.KeycloakClient, error)
 }
 
 type Reconcile struct {
@@ -136,7 +136,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		return fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
-	kClientV2, err := r.helper.CreateKeycloakClientV2FromRealmRef(ctx, instance)
+	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
 	if err != nil {
 		// if the realm is already deleted try to delete finalizer
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
@@ -158,7 +158,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 	if instance.Spec.KeepResource {
 		if instance.GetDeletionTimestamp() != nil {
 			if controllerutil.ContainsFinalizer(instance, finalizerName) {
-				if err := chain.NewRemoveUser(kClientV2).ServeRequest(ctx, instance, realmName); err != nil {
+				if err := chain.NewRemoveUser(kClient).ServeRequest(ctx, instance, realmName); err != nil {
 					return fmt.Errorf("failed to remove user: %w", err)
 				}
 
@@ -179,7 +179,7 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 		}
 	}
 
-	if err := chain.MakeChain(r.client, kClientV2).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(r.client, kClient).Serve(ctx, instance, realmName); err != nil {
 		return fmt.Errorf("error during realm user chain: %w", err)
 	}
 

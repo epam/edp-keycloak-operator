@@ -8,29 +8,29 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type PutUsers struct {
 	next handler.RealmHandler
 }
 
-func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClientV2 *keycloakv2.KeycloakClient) error {
+func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")
 
-	if err := createUsers(ctx, realm.Spec.RealmName, realm.Spec.Users, kClientV2); err != nil {
+	if err := createUsers(ctx, realm.Spec.RealmName, realm.Spec.Users, kClient); err != nil {
 		return fmt.Errorf("error during createUsers: %w", err)
 	}
 
 	rLog.Info("End put users to realm")
 
-	return nextServeOrNil(ctx, h.next, realm, kClientV2)
+	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
 
-func createUsers(ctx context.Context, realmName string, users []keycloakApi.User, kClientV2 *keycloakv2.KeycloakClient) error {
+func createUsers(ctx context.Context, realmName string, users []keycloakApi.User, kClient *keycloakapi.KeycloakClient) error {
 	for _, user := range users {
-		if err := createOneUser(ctx, realmName, user.Username, kClientV2); err != nil {
+		if err := createOneUser(ctx, realmName, user.Username, kClient); err != nil {
 			return fmt.Errorf("error during createOneUser: %w", err)
 		}
 	}
@@ -38,9 +38,9 @@ func createUsers(ctx context.Context, realmName string, users []keycloakApi.User
 	return nil
 }
 
-func createOneUser(ctx context.Context, realmName, username string, kClientV2 *keycloakv2.KeycloakClient) error {
-	_, _, err := kClientV2.Users.FindUserByUsername(ctx, realmName, username)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+func createOneUser(ctx context.Context, realmName, username string, kClient *keycloakapi.KeycloakClient) error {
+	_, _, err := kClient.Users.FindUserByUsername(ctx, realmName, username)
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("error during exist realm user check: %w", err)
 	}
 
@@ -49,7 +49,7 @@ func createOneUser(ctx context.Context, realmName, username string, kClientV2 *k
 		return nil
 	}
 
-	if _, err := kClientV2.Users.CreateUser(ctx, realmName, keycloakv2.UserRepresentation{
+	if _, err := kClient.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,
 		Email:    &username,
 		Enabled:  ptr.To(true),

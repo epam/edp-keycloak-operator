@@ -9,7 +9,7 @@ commands:
     namespaced: true
   - command: kubectl delete keycloakrealmidentityprovider keycloakrealmidentityprovider-sample keycloakrealmidentityprovider-sample-with-pass
     namespaced: true
-  - command: kubectl delete keycloakrealmcomponent component-sample
+  - command: kubectl delete keycloakrealmcomponent component-sample-child component-sample
     namespaced: true
   - command: kubectl delete keycloakrealmuser keycloakrealmuser-sample
     namespaced: true

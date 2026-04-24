@@ -7,7 +7,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type CreateOrUpdateGroup struct{}
@@ -19,7 +19,7 @@ func NewCreateOrUpdateGroup() *CreateOrUpdateGroup {
 func (h *CreateOrUpdateGroup) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
-	kClient *keycloakv2.KeycloakClient,
+	kClient *keycloakapi.KeycloakClient,
 	groupCtx *GroupContext,
 ) error {
 	log := ctrl.LoggerFrom(ctx)
@@ -29,7 +29,7 @@ func (h *CreateOrUpdateGroup) Serve(
 	realm := groupCtx.RealmName
 
 	var (
-		existingGroup *keycloakv2.GroupRepresentation
+		existingGroup *keycloakapi.GroupRepresentation
 		err           error
 	)
 
@@ -37,11 +37,11 @@ func (h *CreateOrUpdateGroup) Serve(
 	// This handles renames: spec.Name may have changed but the ID stays the same.
 	if groupCtx.GroupID != "" {
 		existingGroup, _, err = kClient.Groups.GetGroup(ctx, realm, groupCtx.GroupID)
-		if err != nil && !keycloakv2.IsNotFound(err) {
+		if err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("unable to get group by ID %q: %w", groupCtx.GroupID, err)
 		}
 
-		if keycloakv2.IsNotFound(err) {
+		if keycloakapi.IsNotFound(err) {
 			log.Info("Group not found by ID, will search by name", "groupID", groupCtx.GroupID)
 
 			existingGroup = nil
@@ -56,20 +56,20 @@ func (h *CreateOrUpdateGroup) Serve(
 			existingGroup, _, err = kClient.Groups.FindGroupByName(ctx, realm, spec.Name)
 		}
 
-		if err != nil && !keycloakv2.IsNotFound(err) {
+		if err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("unable to search for group %q: %w", spec.Name, err)
 		}
 	}
 
 	if existingGroup == nil {
-		groupRep := keycloakv2.GroupRepresentation{
+		groupRep := keycloakapi.GroupRepresentation{
 			Name:        &spec.Name,
 			Description: &spec.Description,
 			Path:        &spec.Path,
 			Attributes:  &spec.Attributes,
 		}
 
-		var resp *keycloakv2.Response
+		var resp *keycloakapi.Response
 
 		if groupCtx.ParentGroupID != "" {
 			resp, err = kClient.Groups.CreateChildGroup(ctx, realm, groupCtx.ParentGroupID, groupRep)
@@ -81,7 +81,7 @@ func (h *CreateOrUpdateGroup) Serve(
 			return fmt.Errorf("unable to create group %q: %w", spec.Name, err)
 		}
 
-		groupCtx.GroupID = keycloakv2.GetResourceIDFromResponse(resp)
+		groupCtx.GroupID = keycloakapi.GetResourceIDFromResponse(resp)
 		log.Info("Group created", "groupID", groupCtx.GroupID)
 	} else {
 		groupCtx.GroupID = *existingGroup.Id

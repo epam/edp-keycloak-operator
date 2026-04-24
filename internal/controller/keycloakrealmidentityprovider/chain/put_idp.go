@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"maps"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak"
-	"github.com/epam/edp-keycloak-operator/pkg/client/keycloak/adapter"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type refClient interface {
@@ -18,47 +17,38 @@ type refClient interface {
 }
 
 type PutIDP struct {
-	keycloakApiClient keycloak.Client
-	k8sClient         client.Client
-	secretRef         refClient
+	idpClient keycloakapi.IdentityProvidersClient
+	secretRef refClient
 }
 
-func NewPutIDP(keycloakApiClient keycloak.Client, k8sClient client.Client, secretRef refClient) *PutIDP {
-	return &PutIDP{keycloakApiClient: keycloakApiClient, k8sClient: k8sClient, secretRef: secretRef}
+func NewPutIDP(idpClient keycloakapi.IdentityProvidersClient, secretRef refClient) *PutIDP {
+	return &PutIDP{idpClient: idpClient, secretRef: secretRef}
 }
 
-func (el *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
-	err := el.putKeycloakIDP(ctx, keycloakRealmIDP, realmName)
-	if err != nil {
-		return fmt.Errorf("unable to put keycloak idp: %w", err)
-	}
-
-	return nil
-}
-
-func (el *PutIDP) putKeycloakIDP(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start creation of Keycloak idp")
 
-	var err error
+	config := make(map[string]string, len(keycloakRealmIDP.Spec.Config))
+	maps.Copy(config, keycloakRealmIDP.Spec.Config)
 
-	keycloakIDP := createKeycloakIDPFromSpec(&keycloakRealmIDP.Spec)
-
-	if err = el.secretRef.MapConfigSecretsRefs(ctx, keycloakIDP.Config, keycloakRealmIDP.Namespace); err != nil {
+	if err := h.secretRef.MapConfigSecretsRefs(ctx, config, keycloakRealmIDP.Namespace); err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}
 
-	providerExists, err := el.keycloakApiClient.IdentityProviderExists(ctx, realmName, keycloakRealmIDP.Spec.Alias)
-	if err != nil {
+	idpRep := specToIdentityProviderRepresentation(&keycloakRealmIDP.Spec, config)
+
+	existingIDP, _, err := h.idpClient.GetIdentityProvider(ctx, realmName, keycloakRealmIDP.Spec.Alias)
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("failed to check if the identity provider exists: %w", err)
 	}
 
-	if providerExists {
-		if err = el.keycloakApiClient.UpdateIdentityProvider(ctx, realmName, keycloakIDP); err != nil {
+	if existingIDP != nil {
+		if _, err = h.idpClient.UpdateIdentityProvider(ctx, realmName, keycloakRealmIDP.Spec.Alias, idpRep); err != nil {
 			return fmt.Errorf("unable to update idp: %w", err)
 		}
 	} else {
-		if err = el.keycloakApiClient.CreateIdentityProvider(ctx, realmName, keycloakIDP); err != nil {
+		if _, err = h.idpClient.CreateIdentityProvider(ctx, realmName, idpRep); err != nil {
 			return fmt.Errorf("unable to create idp: %w", err)
 		}
 	}
@@ -68,23 +58,20 @@ func (el *PutIDP) putKeycloakIDP(ctx context.Context, keycloakRealmIDP *keycloak
 	return nil
 }
 
-func createKeycloakIDPFromSpec(spec *keycloakApi.KeycloakRealmIdentityProviderSpec) *adapter.IdentityProvider {
-	p := &adapter.IdentityProvider{
-		Config:                    make(map[string]string, len(spec.Config)),
-		ProviderID:                spec.ProviderID,
-		Alias:                     spec.Alias,
-		Enabled:                   spec.Enabled,
-		AddReadTokenRoleOnCreate:  spec.AddReadTokenRoleOnCreate,
-		AuthenticateByDefault:     spec.AuthenticateByDefault,
-		DisplayName:               spec.DisplayName,
-		FirstBrokerLoginFlowAlias: spec.FirstBrokerLoginFlowAlias,
-		PostBrokerLoginFlowAlias:  spec.PostBrokerLoginFlowAlias,
-		LinkOnly:                  spec.LinkOnly,
-		StoreToken:                spec.StoreToken,
-		TrustEmail:                spec.TrustEmail,
+func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentityProviderSpec, config map[string]string) keycloakapi.IdentityProviderRepresentation {
+	return keycloakapi.IdentityProviderRepresentation{
+		Alias:                     &spec.Alias,
+		ProviderId:                &spec.ProviderID,
+		Enabled:                   &spec.Enabled,
+		AddReadTokenRoleOnCreate:  &spec.AddReadTokenRoleOnCreate,
+		AuthenticateByDefault:     &spec.AuthenticateByDefault,
+		DisplayName:               &spec.DisplayName,
+		FirstBrokerLoginFlowAlias: ptr.To(spec.FirstBrokerLoginFlowAlias),
+		PostBrokerLoginFlowAlias:  ptr.To(spec.PostBrokerLoginFlowAlias),
+		LinkOnly:                  &spec.LinkOnly,
+		StoreToken:                &spec.StoreToken,
+		TrustEmail:                &spec.TrustEmail,
+		HideOnLogin:               spec.HideOnLogin,
+		Config:                    &config,
 	}
-
-	maps.Copy(p.Config, spec.Config)
-
-	return p
 }

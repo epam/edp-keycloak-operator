@@ -9,31 +9,23 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
-const (
-	// RealmManagementClient built-in Keycloak client for the realm
-	// This client manages admin fine-grained permissions for other clients.
-	RealmManagementClient = "realm-management"
-
-	featureFlagAdminFineGrainedAuthz = "ADMIN_FINE_GRAINED_AUTHZ"
-)
-
 type PutAdminFineGrainedPermissions struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 	k8sClient client.Client
 }
 
-func NewPutAdminFineGrainedPermissions(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutAdminFineGrainedPermissions {
+func NewPutAdminFineGrainedPermissions(kClient *keycloakapi.KeycloakClient, k8sClient client.Client) *PutAdminFineGrainedPermissions {
 	return &PutAdminFineGrainedPermissions{kClient: kClient, k8sClient: k8sClient}
 }
 
 func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName string, clientCtx *ClientContext) error {
 	log := ctrl.LoggerFrom(ctx)
 
-	featureFlagEnabled, err := h.kClient.Server.FeatureFlagEnabled(ctx, featureFlagAdminFineGrainedAuthz)
+	featureFlagEnabled, err := h.kClient.Server.FeatureFlagEnabled(ctx, keycloakapi.FeatureFlagAdminFineGrainedAuthz)
 	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync admin fine-grained permissions: %s", err.Error()))
 
@@ -41,7 +33,7 @@ func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClie
 	}
 
 	if !featureFlagEnabled {
-		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", featureFlagAdminFineGrainedAuthz)
+		log.Info("Feature flag is not enabled, skipping admin fine grained permissions", "featureFlag", keycloakapi.FeatureFlagAdminFineGrainedAuthz)
 
 		return nil
 	}
@@ -99,7 +91,7 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermis
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client admin fine grained permissions")
 
-	managementPermissions := keycloakv2.ManagementPermissionReference{
+	managementPermissions := keycloakapi.ManagementPermissionReference{
 		Enabled: &keycloakClient.Spec.AdminFineGrainedPermissionsEnabled,
 	}
 
@@ -116,17 +108,17 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicie
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client admin permission policies")
 
-	realmManagementClientUUID, err := h.kClient.Clients.GetClientUUID(ctx, realmName, RealmManagementClient)
+	realmManagementClientUUID, err := h.kClient.Clients.GetClientUUID(ctx, realmName, keycloakapi.RealmManagementClient)
 	if err != nil {
-		return fmt.Errorf("failed to get %s client id: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get %s client id: %w", keycloakapi.RealmManagementClient, err)
 	}
 
 	realmManagementPermissionsList, _, err := h.kClient.Authorization.GetPermissions(ctx, realmName, realmManagementClientUUID)
 	if err != nil {
-		return fmt.Errorf("failed to get permissions for %s client: %w", RealmManagementClient, err)
+		return fmt.Errorf("failed to get permissions for %s client: %w", keycloakapi.RealmManagementClient, err)
 	}
 
-	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakv2.AbstractPolicyRepresentation) (string, bool) {
+	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakapi.AbstractPolicyRepresentation) (string, bool) {
 		return *p.Name, p.Name != nil
 	})
 
@@ -158,7 +150,7 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicie
 
 			// Build the updated permission with policies
 			policies := keycloakClient.Spec.Permission.ScopePermissions[i].Policies
-			updatedPermission := keycloakv2.PolicyRepresentation{
+			updatedPermission := keycloakapi.PolicyRepresentation{
 				Id:       permission.Id,
 				Name:     permission.Name,
 				Type:     permission.Type,

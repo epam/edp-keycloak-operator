@@ -9,16 +9,16 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type PutClientScope struct {
-	kClient   *keycloakv2.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
 	k8sClient client.Client
 }
 
-func NewPutClientScope(kClient *keycloakv2.KeycloakClient, k8sClient client.Client) *PutClientScope {
+func NewPutClientScope(kClient *keycloakapi.KeycloakClient, k8sClient client.Client) *PutClientScope {
 	return &PutClientScope{kClient: kClient, k8sClient: k8sClient}
 }
 
@@ -76,10 +76,10 @@ func (h *PutClientScope) putClientScope(ctx context.Context, keycloakClient *key
 	}
 
 	scopeNameToID := maputil.SliceToMap(realmScopes,
-		func(s keycloakv2.ClientScopeRepresentation) (string, bool) {
+		func(s keycloakapi.ClientScopeRepresentation) (string, bool) {
 			return *s.Name, s.Name != nil && s.Id != nil
 		},
-		func(s keycloakv2.ClientScopeRepresentation) string { return *s.Id },
+		func(s keycloakapi.ClientScopeRepresentation) string { return *s.Id },
 	)
 
 	if err := h.putDefaultClientScope(ctx, keycloakClient, realmName, clientUUID, scopeNameToID); err != nil {

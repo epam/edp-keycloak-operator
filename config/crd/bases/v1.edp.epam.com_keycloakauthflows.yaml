@@ -138,9 +138,9 @@ spec:
           status:
             description: KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
             properties:
-              failureCount:
-                format: int64
-                type: integer
+              id:
+                description: ID is the Keycloak internal ID of the auth flow.
+                type: string
               value:
                 type: string
             type: object

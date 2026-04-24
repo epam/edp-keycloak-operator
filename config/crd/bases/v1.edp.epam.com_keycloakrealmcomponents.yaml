@@ -115,9 +115,8 @@ spec:
           status:
             description: KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
             properties:
-              failureCount:
-                format: int64
-                type: integer
+              id:
+                type: string
               value:
                 type: string
             type: object

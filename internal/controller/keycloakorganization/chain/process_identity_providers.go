@@ -7,14 +7,14 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type ProcessIdentityProviders struct {
-	keycloakClient keycloakv2.OrganizationsClient
+	keycloakClient keycloakapi.OrganizationsClient
 }
 
-func NewProcessIdentityProviders(kc *keycloakv2.KeycloakClient) *ProcessIdentityProviders {
+func NewProcessIdentityProviders(kc *keycloakapi.KeycloakClient) *ProcessIdentityProviders {
 	return &ProcessIdentityProviders{
 		keycloakClient: kc.Organizations,
 	}

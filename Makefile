@@ -179,8 +179,8 @@ KEYCLOAK_VERSION ?= 26.5.2
 generate-keycloak-go-client: oapi-codegen
 # Currently, the OpenApi spec is manually edited due to the issue https://github.com/keycloak/keycloak/issues/46015
 # Once the issue is resolved, the spec can be downloaded directly from the Keycloak documentation.
-# 	curl -o pkg/client/keycloakv2/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
-	$(OAPICODEGEN) -config pkg/client/keycloakv2/oapicfg.yaml pkg/client/keycloakv2/openapi.yaml
+# 	curl -o pkg/client/keycloakapi/openapi/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
+	$(OAPICODEGEN) -config pkg/client/keycloakapi/openapi/oapicfg.yaml pkg/client/keycloakapi/openapi/openapi.yaml
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
 	$(KUSTOMIZE) build config/crd | kubectl apply -f -
@@ -266,6 +266,7 @@ setup-envtest: envtest ## Download the binaries required for ENVTEST in the loca
 		echo "Error: Failed to set up envtest binaries for version $(ENVTEST_K8S_VERSION)."; \
 		exit 1; \
 	}
+	@chmod -R u+w $(LOCALBIN)/k8s 2>/dev/null || true
 
 ENVTEST ?= $(LOCALBIN)/setup-envtest
 .PHONY: envtest

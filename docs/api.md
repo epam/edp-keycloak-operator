@@ -2850,12 +2850,10 @@ KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>failureCount</b></td>
-        <td>integer</td>
+        <td><b>id</b></td>
+        <td>string</td>
         <td>
-          <br/>
-          <br/>
-            <i>Format</i>: int64<br/>
+          ID is the Keycloak internal ID of the auth flow.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4813,12 +4811,10 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
         </tr>
     </thead>
     <tbody><tr>
-        <td><b>failureCount</b></td>
-        <td>integer</td>
+        <td><b>id</b></td>
+        <td>string</td>
         <td>
           <br/>
-          <br/>
-            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5262,6 +5258,14 @@ Important: FGAP:V1 Keycloak feature remains in preview and may be deprecated and
         <td>string</td>
         <td>
           FirstBrokerLoginFlowAlias is a first broker login flow alias.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>hideOnLogin</b></td>
+        <td>boolean</td>
+        <td>
+          HideOnLogin is a flag to hide the idp from the login page.
+If hidden, login with this provider is possible only if requested explicitly, for example using the 'kc_idp_hint' parameter.<br/>
         </td>
         <td>false</td>
       </tr><tr>

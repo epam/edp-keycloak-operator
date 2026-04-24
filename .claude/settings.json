@@ -11,7 +11,14 @@
       "Skill(cr-field:*)",
       "Bash(make mocks)",
       "Bash(TEST_KEYCLOAK_URL=http://localhost:8086 make test)",
-      "Bash(docker ps --filter name=keycloak-test --format '{{.Names}}')"
+      "Bash(docker ps --filter name=keycloak-test --format '{{.Names}}')",
+      "Bash(make lint-fix 2>&1)",
+      "Bash(make generate:*)",
+      "Bash(make manifests:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(make start-keycloak:*)",
+      "Bash(make test:*)"
     ]
   }
 }

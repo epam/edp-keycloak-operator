@@ -7,15 +7,15 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 type CreateOrUpdateRole struct {
-	kClientV2 *keycloakv2.KeycloakClient
+	kClient *keycloakapi.KeycloakClient
 }
 
-func NewCreateOrUpdateRole(kClientV2 *keycloakv2.KeycloakClient) *CreateOrUpdateRole {
-	return &CreateOrUpdateRole{kClientV2: kClientV2}
+func NewCreateOrUpdateRole(kClient *keycloakapi.KeycloakClient) *CreateOrUpdateRole {
+	return &CreateOrUpdateRole{kClient: kClient}
 }
 
 func (h *CreateOrUpdateRole) Serve(
@@ -28,10 +28,10 @@ func (h *CreateOrUpdateRole) Serve(
 	log.Info("Creating or updating realm role")
 
 	spec := role.Spec
-	rolesClient := h.kClientV2.Roles
+	rolesClient := h.kClient.Roles
 
 	existingRole, _, err := rolesClient.GetRealmRole(ctx, realmName, spec.Name)
-	if err != nil && !keycloakv2.IsNotFound(err) {
+	if err != nil && !keycloakapi.IsNotFound(err) {
 		return fmt.Errorf("failed to get realm role: %w", err)
 	}
 
@@ -40,7 +40,7 @@ func (h *CreateOrUpdateRole) Serve(
 	desc := spec.Description
 
 	if existingRole == nil {
-		if _, err = rolesClient.CreateRealmRole(ctx, realmName, keycloakv2.RoleRepresentation{
+		if _, err = rolesClient.CreateRealmRole(ctx, realmName, keycloakapi.RoleRepresentation{
 			Name:        &spec.Name,
 			Description: &desc,
 			Composite:   &isComposite,

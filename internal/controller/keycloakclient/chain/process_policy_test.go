@@ -15,8 +15,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
-	keycloakv2 "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2"
-	keycloakv2Mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakv2/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapiMocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
 func TestProcessPolicy_Serve(t *testing.T) {
@@ -32,7 +32,7 @@ func TestProcessPolicy_Serve(t *testing.T) {
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
-		kClient        func(t *testing.T) *keycloakv2.KeycloakClient
+		kClient        func(t *testing.T) *keycloakapi.KeycloakClient
 		wantErr        require.ErrorAssertionFunc
 	}{
 		{
@@ -42,8 +42,8 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					ClientId: "test-client",
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				return &keycloakv2.KeycloakClient{}
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				return &keycloakapi.KeycloakClient{}
 			},
 			wantErr: require.NoError,
 		},
@@ -116,49 +116,49 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
-				groupsMock := keycloakv2Mocks.NewMockGroupsClient(t)
-				rolesMock := keycloakv2Mocks.NewMockRolesClient(t)
-				usersMock := keycloakv2Mocks.NewMockUsersClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+				groupsMock := keycloakapiMocks.NewMockGroupsClient(t)
+				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
+				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{
+					Return([]keycloakapi.AbstractPolicyRepresentation{
 						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
 						{Id: ptr.To("user-policy-id"), Name: ptr.To("user-policy")},
 						{Id: ptr.To("role-policy-id"), Name: ptr.To("role-policy")},
 						{Id: ptr.To("user-policy2-id"), Name: ptr.To("user-policy2")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				groupsMock.On("GetGroups", mock.Anything, "master", (*keycloakv2.GetGroupsParams)(nil)).
-					Return([]keycloakv2.GroupRepresentation{
+				groupsMock.On("GetGroups", mock.Anything, "master", (*keycloakapi.GetGroupsParams)(nil)).
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("test-group-id"), Name: ptr.To("test-group")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				rolesMock.On("GetRealmRoles", mock.Anything, "master", (*keycloakv2.GetRealmRolesParams)(nil)).
-					Return([]keycloakv2.RoleRepresentation{
+				rolesMock.On("GetRealmRoles", mock.Anything, "master", (*keycloakapi.GetRealmRolesParams)(nil)).
+					Return([]keycloakapi.RoleRepresentation{
 						{Id: ptr.To("test-role-id"), Name: ptr.To("test-role")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				usersMock.On("FindUserByUsername", mock.Anything, "master", "test-user").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To("test-user-id")}, (*keycloakv2.Response)(nil), nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("test-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				authzMock.On("CreatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything).
-					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Times(4)
+					Return((*keycloakapi.PolicyRepresentation)(nil), (*keycloakapi.Response)(nil), nil).Times(4)
 
 				authzMock.On("UpdatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything, mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Times(2)
+					Return((*keycloakapi.Response)(nil), nil).Times(2)
 
 				authzMock.On("DeletePolicy", mock.Anything, "master", "test-client-id", "user-policy2-id").
-					Return((*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.Response)(nil), nil).Once()
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 					Groups:        groupsMock,
@@ -238,47 +238,47 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
-				groupsMock := keycloakv2Mocks.NewMockGroupsClient(t)
-				rolesMock := keycloakv2Mocks.NewMockRolesClient(t)
-				usersMock := keycloakv2Mocks.NewMockUsersClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+				groupsMock := keycloakapiMocks.NewMockGroupsClient(t)
+				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
+				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{
+					Return([]keycloakapi.AbstractPolicyRepresentation{
 						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
 						{Id: ptr.To("user-policy-id"), Name: ptr.To("user-policy")},
 						{Id: ptr.To("role-policy-id"), Name: ptr.To("role-policy")},
 						{Id: ptr.To("user-policy2-id"), Name: ptr.To("user-policy2")},
 						{Id: ptr.To("existing-policy-id"), Name: ptr.To("existing-policy")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client-2")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				groupsMock.On("GetGroups", mock.Anything, "master", (*keycloakv2.GetGroupsParams)(nil)).
-					Return([]keycloakv2.GroupRepresentation{
+				groupsMock.On("GetGroups", mock.Anything, "master", (*keycloakapi.GetGroupsParams)(nil)).
+					Return([]keycloakapi.GroupRepresentation{
 						{Id: ptr.To("test-group-id"), Name: ptr.To("test-group")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				rolesMock.On("GetRealmRoles", mock.Anything, "master", (*keycloakv2.GetRealmRolesParams)(nil)).
-					Return([]keycloakv2.RoleRepresentation{
+				rolesMock.On("GetRealmRoles", mock.Anything, "master", (*keycloakapi.GetRealmRolesParams)(nil)).
+					Return([]keycloakapi.RoleRepresentation{
 						{Id: ptr.To("test-role-id"), Name: ptr.To("test-role")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				usersMock.On("FindUserByUsername", mock.Anything, "master", "test-user").
-					Return(&keycloakv2.UserRepresentation{Id: ptr.To("test-user-id")}, (*keycloakv2.Response)(nil), nil)
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("test-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				authzMock.On("CreatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything).
-					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Times(4)
+					Return((*keycloakapi.PolicyRepresentation)(nil), (*keycloakapi.Response)(nil), nil).Times(4)
 
 				authzMock.On("UpdatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything, mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Times(2)
+					Return((*keycloakapi.Response)(nil), nil).Times(2)
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 					Groups:        groupsMock,
@@ -313,26 +313,26 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.AbstractPolicyRepresentation{}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				// CreatePolicy for client-policy returns the policy with an ID so aggregate-policy can reference it.
 				authzMock.On("CreatePolicy", mock.Anything, "master", "test-client-id", keycloakApi.PolicyTypeClient, mock.Anything).
-					Return(&keycloakv2.PolicyRepresentation{Id: ptr.To("client-policy-id"), Name: ptr.To("client-policy")}, (*keycloakv2.Response)(nil), nil).Once()
+					Return(&keycloakapi.PolicyRepresentation{Id: ptr.To("client-policy-id"), Name: ptr.To("client-policy")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				authzMock.On("CreatePolicy", mock.Anything, "master", "test-client-id", keycloakApi.PolicyTypeAggregate, mock.Anything).
-					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), nil).Once()
+					Return((*keycloakapi.PolicyRepresentation)(nil), (*keycloakapi.Response)(nil), nil).Once()
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
@@ -358,28 +358,28 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{
+					Return([]keycloakapi.AbstractPolicyRepresentation{
 						{Id: ptr.To("user-policy-id"), Name: ptr.To("user-policy")},
 						{Id: ptr.To("client-policy-id"), Name: ptr.To("client-policy")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				authzMock.On("UpdatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything, mock.Anything).
-					Return((*keycloakv2.Response)(nil), nil).Times(1)
+					Return((*keycloakapi.Response)(nil), nil).Times(1)
 
 				authzMock.On("DeletePolicy", mock.Anything, "master", "test-client-id", "user-policy-id").
-					Return((*keycloakv2.Response)(nil), errors.New("failed to delete policy")).Once()
+					Return((*keycloakapi.Response)(nil), errors.New("failed to delete policy")).Once()
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
@@ -408,24 +408,24 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{
+					Return([]keycloakapi.AbstractPolicyRepresentation{
 						{Id: ptr.To("client-policy-id"), Name: ptr.To("client-policy")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				authzMock.On("UpdatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything, mock.Anything).
-					Return((*keycloakv2.Response)(nil), errors.New("failed to update policy")).Times(1)
+					Return((*keycloakapi.Response)(nil), errors.New("failed to update policy")).Times(1)
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
@@ -454,22 +454,22 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.AbstractPolicyRepresentation{}, (*keycloakapi.Response)(nil), nil)
 
-				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakv2.GetClientsParams)(nil)).
-					Return([]keycloakv2.ClientRepresentation{
+				clientsMock.On("GetClients", mock.Anything, "master", (*keycloakapi.GetClientsParams)(nil)).
+					Return([]keycloakapi.ClientRepresentation{
 						{Id: ptr.To("test-client-id"), ClientId: ptr.To("test-client")},
-					}, (*keycloakv2.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil)
 
 				authzMock.On("CreatePolicy", mock.Anything, "master", "test-client-id", mock.Anything, mock.Anything).
-					Return((*keycloakv2.PolicyRepresentation)(nil), (*keycloakv2.Response)(nil), errors.New("failed to crate policy")).Times(1)
+					Return((*keycloakapi.PolicyRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("failed to crate policy")).Times(1)
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
@@ -498,14 +498,14 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return([]keycloakv2.AbstractPolicyRepresentation{}, (*keycloakv2.Response)(nil), nil)
+					Return([]keycloakapi.AbstractPolicyRepresentation{}, (*keycloakapi.Response)(nil), nil)
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
@@ -534,14 +534,14 @@ func TestProcessPolicy_Serve(t *testing.T) {
 					},
 				},
 			},
-			kClient: func(t *testing.T) *keycloakv2.KeycloakClient {
-				clientsMock := keycloakv2Mocks.NewMockClientsClient(t)
-				authzMock := keycloakv2Mocks.NewMockAuthorizationClient(t)
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
 
 				authzMock.On("GetPolicies", mock.Anything, "master", "test-client-id").
-					Return(nil, (*keycloakv2.Response)(nil), errors.New("failed to get policies"))
+					Return(nil, (*keycloakapi.Response)(nil), errors.New("failed to get policies"))
 
-				return &keycloakv2.KeycloakClient{
+				return &keycloakapi.KeycloakClient{
 					Clients:       clientsMock,
 					Authorization: authzMock,
 				}
