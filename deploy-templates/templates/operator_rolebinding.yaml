@@ -10,4 +10,4 @@ roleRef:
   name: edp-{{ .Values.name }}-role
 subjects:
   - kind: ServiceAccount
-    name: edp-{{ .Values.name }}
+    name: {{ include "keycloak-operator.serviceAccountName" . }}

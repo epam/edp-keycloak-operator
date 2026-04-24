@@ -11,6 +11,6 @@ roleRef:
   name: edp-{{ .Release.Namespace }}-clusterrole
 subjects:
   - kind: ServiceAccount
-    name: edp-{{ .Values.name }}
+    name: {{ include "keycloak-operator.serviceAccountName" . }}
     namespace: {{ .Release.Namespace }}
 {{- end}}
