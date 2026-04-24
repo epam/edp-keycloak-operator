@@ -68,3 +68,7 @@ enableOwnerRef: true
 # -- If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate).
 # Webhooks require cert-manager to be installed in the cluster.
 enableWebhooks: true
+
+serviceAccount:
+  create: true
+  name: "edp-keycloak-operator"
