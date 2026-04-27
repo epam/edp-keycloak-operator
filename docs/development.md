@@ -99,7 +99,7 @@ edp-keycloak-operator/
 
 ```bash
 # 1. Create feature branch
-git checkout -b feature/new-feature
+git switch -c feature/new-feature
 
 # 2. Make changes
 # Edit code files

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"maps"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
@@ -336,10 +337,14 @@ func convertSpecToClientRepresentation(
 		cr.Secret = &clientSecret
 	}
 
-	if len(spec.Attributes) > 0 {
-		attrs := make(map[string]string, len(spec.Attributes))
-		maps.Copy(attrs, spec.Attributes)
+	attrs := make(map[string]string, len(spec.Attributes))
+	maps.Copy(attrs, spec.Attributes)
 
+	if spec.AdvancedSettings != nil && spec.AdvancedSettings.AccessTokenLifespan != nil {
+		attrs["access.token.lifespan"] = strconv.Itoa(*spec.AdvancedSettings.AccessTokenLifespan)
+	}
+
+	if len(attrs) > 0 {
 		cr.Attributes = &attrs
 	}
 

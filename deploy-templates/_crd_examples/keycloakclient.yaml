@@ -17,6 +17,8 @@ spec:
   redirectUris:
     - /url1/*
     - /url2/*
+  advancedSettings:
+    accessTokenLifespan: 300  # Override realm default (seconds)
   clientRolesV2:
     - name: roleA
       description: "Role A"

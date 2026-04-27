@@ -1223,6 +1223,30 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 			},
 		},
 		{
+			name: "with AccessTokenLifespan",
+			spec: keycloakApi.KeycloakClientSpec{
+				ClientId:         "c",
+				AdvancedSettings: &keycloakApi.KeycloakClientAdvancedSettings{AccessTokenLifespan: ptr.To(300)},
+			},
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
+				require.NotNil(t, cr.Attributes)
+				require.Equal(t, "300", (*cr.Attributes)["access.token.lifespan"])
+			},
+		},
+		{
+			name: "AccessTokenLifespan merges with Attributes",
+			spec: keycloakApi.KeycloakClientSpec{
+				ClientId:         "c",
+				Attributes:       map[string]string{"other": "val"},
+				AdvancedSettings: &keycloakApi.KeycloakClientAdvancedSettings{AccessTokenLifespan: ptr.To(600)},
+			},
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
+				require.NotNil(t, cr.Attributes)
+				require.Equal(t, "600", (*cr.Attributes)["access.token.lifespan"])
+				require.Equal(t, "val", (*cr.Attributes)["other"])
+			},
+		},
+		{
 			name: "with AdminUrl",
 			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", AdminUrl: "https://admin.example.com"},
 			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {

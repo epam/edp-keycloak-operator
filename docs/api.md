@@ -2975,6 +2975,13 @@ If empty - WebUrl will be used.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecadvancedsettings">advancedSettings</a></b></td>
+        <td>object</td>
+        <td>
+          AdvancedSettings contains advanced client configuration.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>attributes</b></td>
         <td>map[string]string</td>
         <td>
@@ -3255,6 +3262,37 @@ RealmRef is reference to Realm custom resource.
           <br/>
             <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
             <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.advancedSettings
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+AdvancedSettings contains advanced client configuration.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>accessTokenLifespan</b></td>
+        <td>integer</td>
+        <td>
+          AccessTokenLifespan is the access token lifespan in seconds for this client.
+Overrides the realm-level access token lifespan.
+If not set, the realm default is used.<br/>
+          <br/>
+            <i>Minimum</i>: 0<br/>
         </td>
         <td>false</td>
       </tr></tbody>
