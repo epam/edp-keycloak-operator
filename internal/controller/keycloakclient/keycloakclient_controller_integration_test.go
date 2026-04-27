@@ -993,6 +993,39 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		}, timeout, interval).Should(Succeed(), "KeycloakClient should be updated successfully")
 	})
 
+	It("Should create KeycloakClient with advancedSettings", func() {
+		By("Creating a KeycloakClient with advancedSettings")
+		keycloakClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-client-access-token-lifespan",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: "test-keycloak-client-access-token-lifespan",
+				RealmRef: common.RealmRef{
+					Name: KeycloakRealmCR,
+					Kind: keycloakApi.KeycloakRealmKind,
+				},
+				AdvancedSettings: &keycloakApi.KeycloakClientAdvancedSettings{
+					AccessTokenLifespan: ptr.To(300),
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			createdKeycloakClient := &keycloakApi.KeycloakClient{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakClient.Name, Namespace: ns}, createdKeycloakClient)).Should(Succeed())
+			g.Expect(createdKeycloakClient.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying access.token.lifespan attribute in Keycloak")
+		kcClient, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, KeycloakRealmCR, keycloakClient.Spec.ClientId)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(kcClient.Attributes).ShouldNot(BeNil())
+		Expect((*kcClient.Attributes)["access.token.lifespan"]).Should(Equal("300"))
+	})
+
 	It("Should successfully delete KeycloakClient if ErrKeycloakRealmNotFound occurs", func() {
 		By("By creating a KeycloakRealm")
 		testRealm := &keycloakApi.KeycloakRealm{

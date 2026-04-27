@@ -13,6 +13,16 @@ const (
 	ClientSecretKey = "clientSecret"
 )
 
+// KeycloakClientAdvancedSettings contains advanced client configuration options.
+type KeycloakClientAdvancedSettings struct {
+	// AccessTokenLifespan is the access token lifespan in seconds for this client.
+	// Overrides the realm-level access token lifespan.
+	// If not set, the realm default is used.
+	// +optional
+	// +kubebuilder:validation:Minimum=0
+	AccessTokenLifespan *int `json:"accessTokenLifespan,omitempty"`
+}
+
 // KeycloakClientSpec defines the desired state of KeycloakClient.
 type KeycloakClientSpec struct {
 	// ClientId is a unique keycloak client ID referenced in URI and tokens.
@@ -195,6 +205,10 @@ type KeycloakClientSpec struct {
 	// AuthenticationFlowBindingOverrides client auth flow overrides
 	// +optional
 	AuthenticationFlowBindingOverrides *AuthenticationFlowBindingOverrides `json:"authenticationFlowBindingOverrides,omitempty"`
+
+	// AdvancedSettings contains advanced client configuration.
+	// +optional
+	AdvancedSettings *KeycloakClientAdvancedSettings `json:"advancedSettings,omitempty"`
 }
 
 type ServiceAccount struct {

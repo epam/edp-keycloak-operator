@@ -59,6 +59,17 @@ spec:
                 description: AdvancedProtocolMappers is a flag to enable advanced
                   protocol mappers.
                 type: boolean
+              advancedSettings:
+                description: AdvancedSettings contains advanced client configuration.
+                properties:
+                  accessTokenLifespan:
+                    description: |-
+                      AccessTokenLifespan is the access token lifespan in seconds for this client.
+                      Overrides the realm-level access token lifespan.
+                      If not set, the realm default is used.
+                    minimum: 0
+                    type: integer
+                type: object
               attributes:
                 additionalProperties:
                   type: string

@@ -845,8 +845,14 @@ func TestAuthorizationClient_GetAndUpdateScope(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
-	// Verify update.
-	updated, _, err := kc.Authorization.GetScope(ctx, realmName, clientUUID, scopeID)
-	require.NoError(t, err)
+	// Verify update. Keycloak's authorization service may transiently return unknown_error
+	// while rebuilding its internal state after an update, so retry a few times.
+	var updated *keycloakapi.ScopeRepresentation
+
+	require.Eventually(t, func() bool {
+		updated, _, err = kc.Authorization.GetScope(ctx, realmName, clientUUID, scopeID)
+		return err == nil && updated != nil
+	}, 10*time.Second, time.Second)
+
 	require.Equal(t, updatedName, *updated.Name)
 }
