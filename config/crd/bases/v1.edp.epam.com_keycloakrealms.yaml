@@ -99,6 +99,36 @@ spec:
                 required:
                 - name
                 type: object
+              localization:
+                description: |-
+                  Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
+                  When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.
+                nullable: true
+                properties:
+                  defaultLocale:
+                    description: DefaultLocale is the realm default locale tag.
+                    type: string
+                  internationalizationEnabled:
+                    description: |-
+                      InternationalizationEnabled enables the realm internationalization feature.
+                      If set, it overrides spec.themes.internationalizationEnabled.
+                    type: boolean
+                  localizationTexts:
+                    additionalProperties:
+                      additionalProperties:
+                        type: string
+                      type: object
+                    description: LocalizationTexts maps locale code to message key
+                      → translated text (same shape as Keycloak `localizationTexts`
+                      in a realm export).
+                    type: object
+                  supportedLocales:
+                    description: SupportedLocales lists locale tags offered to users
+                      (BCP 47).
+                    items:
+                      type: string
+                    type: array
+                type: object
               login:
                 description: Login settings for the realm.
                 nullable: true

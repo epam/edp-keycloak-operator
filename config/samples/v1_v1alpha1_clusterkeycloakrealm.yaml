@@ -8,6 +8,17 @@ spec:
   clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample
   organizationsEnabled: false
+  localization:
+    internationalizationEnabled: true
+    supportedLocales:
+      - en
+      - fr
+    defaultLocale: fr
+    localizationTexts:
+      en:
+        greeting: "Hello"
+      fr:
+        greeting: "Bonjour"
   authenticationFlows:
     browserFlow: browserFlow-sample
   sessions:

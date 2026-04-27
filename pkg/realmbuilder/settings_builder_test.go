@@ -229,6 +229,35 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				assert.Equal(t, ptr.To(int32(300)), got.AccessCodeLifespanUserAction)
 			},
 		},
+		{
+			name: "with localization texts and locales",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Themes: &keycloakApi.RealmThemes{
+						InternationalizationEnabled: ptr.To(false),
+					},
+					Localization: &keycloakApi.RealmLocalization{
+						InternationalizationEnabled: ptr.To(true),
+						SupportedLocales:            []string{"en", "nl"},
+						DefaultLocale:               ptr.To("nl"),
+						LocalizationTexts: map[string]map[string]string{
+							"en": {"test": "this is a test"},
+							"nl": {"test": "dit is een test"},
+						},
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(true), got.InternationalizationEnabled)
+				require.NotNil(t, got.SupportedLocales)
+				assert.Equal(t, []string{"en", "nl"}, *got.SupportedLocales)
+				assert.Equal(t, ptr.To("nl"), got.DefaultLocale)
+				require.NotNil(t, got.LocalizationTexts)
+				assert.Equal(t, "this is a test", (*got.LocalizationTexts)["en"]["test"])
+				assert.Equal(t, "dit is een test", (*got.LocalizationTexts)["nl"]["test"])
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -290,6 +319,28 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 				t.Helper()
 				assert.Equal(t, ptr.To(true), got.InternationalizationEnabled)
 				assert.Nil(t, got.LoginTheme)
+			},
+		},
+		{
+			name: "with localization texts",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					Localization: &v1alpha1.RealmLocalization{
+						SupportedLocales: []string{"fr"},
+						DefaultLocale:    ptr.To("fr"),
+						LocalizationTexts: map[string]map[string]string{
+							"fr": {"greeting": "bonjour"},
+						},
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				require.NotNil(t, got.SupportedLocales)
+				assert.Equal(t, []string{"fr"}, *got.SupportedLocales)
+				assert.Equal(t, ptr.To("fr"), got.DefaultLocale)
+				require.NotNil(t, got.LocalizationTexts)
+				assert.Equal(t, "bonjour", (*got.LocalizationTexts)["fr"]["greeting"])
 			},
 		},
 		{
@@ -516,6 +567,41 @@ func TestMergeRealmRepresentation(t *testing.T) {
 
 		assert.Equal(t, ptr.To(int32(600)), base.AccessTokenLifespan)
 		assert.Equal(t, ptr.To(true), base.RevokeRefreshToken)
+	})
+
+	t.Run("LocalizationTexts merged per locale and key preserving base-only entries", func(t *testing.T) {
+		baseTexts := map[string]map[string]string{
+			"en": {"keep": "yes", "overwrite": "old"},
+			"de": {"only": "base"},
+		}
+		overlayTexts := map[string]map[string]string{
+			"en": {"overwrite": "new", "added": "ok"},
+			"nl": {"nieuw": "waarde"},
+		}
+		base := keycloakapi.RealmRepresentation{LocalizationTexts: &baseTexts}
+		overlay := keycloakapi.RealmRepresentation{LocalizationTexts: &overlayTexts}
+
+		MergeRealmRepresentation(&base, &overlay)
+
+		require.NotNil(t, base.LocalizationTexts)
+		assert.Equal(t, "yes", (*base.LocalizationTexts)["en"]["keep"])
+		assert.Equal(t, "new", (*base.LocalizationTexts)["en"]["overwrite"])
+		assert.Equal(t, "ok", (*base.LocalizationTexts)["en"]["added"])
+		assert.Equal(t, "base", (*base.LocalizationTexts)["de"]["only"])
+		assert.Equal(t, "waarde", (*base.LocalizationTexts)["nl"]["nieuw"])
+	})
+
+	t.Run("nil base LocalizationTexts initialised from overlay", func(t *testing.T) {
+		overlayTexts := map[string]map[string]string{
+			"en": {"k": "v"},
+		}
+		base := keycloakapi.RealmRepresentation{}
+		overlay := keycloakapi.RealmRepresentation{LocalizationTexts: &overlayTexts}
+
+		MergeRealmRepresentation(&base, &overlay)
+
+		require.NotNil(t, base.LocalizationTexts)
+		assert.Equal(t, "v", (*base.LocalizationTexts)["en"]["k"])
 	})
 }
 

@@ -33,6 +33,9 @@ type commonRealmSpec struct {
 	AdminTheme                  *string
 	EmailTheme                  *string
 	InternationalizationEnabled *bool
+	SupportedLocales            []string
+	DefaultLocale               *string
+	LocalizationTexts           map[string]map[string]string
 }
 
 // ApplyRealmEventConfig sets the realm event configuration in Keycloak.
@@ -117,6 +120,25 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakap
 		c.InternationalizationEnabled = spec.Themes.InternationalizationEnabled
 	}
 
+	if spec.Localization != nil {
+		loc := spec.Localization
+		if loc.InternationalizationEnabled != nil {
+			c.InternationalizationEnabled = loc.InternationalizationEnabled
+		}
+
+		if len(loc.SupportedLocales) > 0 {
+			c.SupportedLocales = loc.SupportedLocales
+		}
+
+		if loc.DefaultLocale != nil {
+			c.DefaultLocale = loc.DefaultLocale
+		}
+
+		if len(loc.LocalizationTexts) > 0 {
+			c.LocalizationTexts = loc.LocalizationTexts
+		}
+	}
+
 	return buildRealmRepresentationFromCommon(c)
 }
 
@@ -146,7 +168,20 @@ func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) 
 	}
 
 	if spec.Localization != nil {
-		c.InternationalizationEnabled = spec.Localization.InternationalizationEnabled
+		loc := spec.Localization
+		c.InternationalizationEnabled = loc.InternationalizationEnabled
+
+		if len(loc.SupportedLocales) > 0 {
+			c.SupportedLocales = loc.SupportedLocales
+		}
+
+		if loc.DefaultLocale != nil {
+			c.DefaultLocale = loc.DefaultLocale
+		}
+
+		if len(loc.LocalizationTexts) > 0 {
+			c.LocalizationTexts = loc.LocalizationTexts
+		}
 	}
 
 	return buildRealmRepresentationFromCommon(c)
@@ -179,6 +214,19 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 		AdminTheme:                  spec.AdminTheme,
 		EmailTheme:                  spec.EmailTheme,
 		InternationalizationEnabled: spec.InternationalizationEnabled,
+	}
+
+	if len(spec.SupportedLocales) > 0 {
+		sl := spec.SupportedLocales
+		rep.SupportedLocales = &sl
+	}
+
+	if spec.DefaultLocale != nil {
+		rep.DefaultLocale = spec.DefaultLocale
+	}
+
+	if len(spec.LocalizationTexts) > 0 {
+		rep.LocalizationTexts = cloneLocalizationTexts(spec.LocalizationTexts)
 	}
 
 	if spec.FrontendURL != "" {
@@ -239,6 +287,7 @@ func MergeRealmRepresentation(base, overlay *keycloakapi.RealmRepresentation) {
 	mergeRealmLoginSettings(base, overlay)
 	mergeRealmSessionSettings(base, overlay)
 	mergeRealmMaps(base, overlay)
+	mergeLocalizationTexts(base, overlay)
 }
 
 func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
@@ -251,6 +300,8 @@ func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.EmailTheme, &overlay.EmailTheme)
 	mergePtr(&base.InternationalizationEnabled, &overlay.InternationalizationEnabled)
 	mergePtr(&base.PasswordPolicy, &overlay.PasswordPolicy)
+	mergePtr(&base.SupportedLocales, &overlay.SupportedLocales)
+	mergePtr(&base.DefaultLocale, &overlay.DefaultLocale)
 }
 
 func mergeRealmTokenSettings(base, overlay *keycloakapi.RealmRepresentation) {
@@ -285,6 +336,39 @@ func mergeRealmSessionSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.OfflineSessionMaxLifespan, &overlay.OfflineSessionMaxLifespan)
 	mergePtr(&base.AccessCodeLifespanLogin, &overlay.AccessCodeLifespanLogin)
 	mergePtr(&base.AccessCodeLifespanUserAction, &overlay.AccessCodeLifespanUserAction)
+}
+
+func mergeLocalizationTexts(base, overlay *keycloakapi.RealmRepresentation) {
+	if overlay.LocalizationTexts == nil {
+		return
+	}
+
+	if base.LocalizationTexts == nil {
+		cloned := cloneLocalizationTexts(*overlay.LocalizationTexts)
+		base.LocalizationTexts = cloned
+
+		return
+	}
+
+	for locale, texts := range *overlay.LocalizationTexts {
+		if (*base.LocalizationTexts)[locale] == nil {
+			(*base.LocalizationTexts)[locale] = make(map[string]string)
+		}
+
+		maps.Copy((*base.LocalizationTexts)[locale], texts)
+	}
+}
+
+func cloneLocalizationTexts(m map[string]map[string]string) *map[string]map[string]string {
+	out := make(map[string]map[string]string, len(m))
+
+	for locale, texts := range m {
+		inner := make(map[string]string, len(texts))
+		maps.Copy(inner, texts)
+		out[locale] = inner
+	}
+
+	return &out
 }
 
 func mergeRealmMaps(base, overlay *keycloakapi.RealmRepresentation) {

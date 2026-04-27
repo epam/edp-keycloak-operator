@@ -68,6 +68,17 @@ spec:
         displayHeader: "Test Group"
         annotations:
           groupAnnotation: "groupAnnotation"
+  localization:
+    internationalizationEnabled: true
+    supportedLocales:
+      - en
+      - nl
+    defaultLocale: nl
+    localizationTexts:
+      en:
+        test: "this is a test"
+      nl:
+        test: "dit is een test"
   sessions:
     ssoLoginSettings:
       accessCodeLifespanLogin: 1800      # 30 minutes

@@ -260,10 +260,31 @@ Localization is the configuration for localization in the realm.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>defaultLocale</b></td>
+        <td>string</td>
+        <td>
+          DefaultLocale is the realm default locale tag.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>internationalizationEnabled</b></td>
         <td>boolean</td>
         <td>
           InternationalizationEnabled indicates whether to enable internationalization.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>localizationTexts</b></td>
+        <td>map[string]map[string]string</td>
+        <td>
+          LocalizationTexts maps locale code to message key → translated text (Keycloak realm export field `localizationTexts`).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>supportedLocales</b></td>
+        <td>[]string</td>
+        <td>
+          SupportedLocales lists locale tags offered to users (BCP 47).<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6174,6 +6195,14 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmspeclocalization">localization</a></b></td>
+        <td>object</td>
+        <td>
+          Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
+When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#keycloakrealmspeclogin">login</a></b></td>
         <td>object</td>
         <td>
@@ -6284,6 +6313,56 @@ KeycloakRef is reference to Keycloak custom resource.
           <br/>
             <i>Enum</i>: Keycloak, ClusterKeycloak<br/>
             <i>Default</i>: Keycloak<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.localization
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
+When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>defaultLocale</b></td>
+        <td>string</td>
+        <td>
+          DefaultLocale is the realm default locale tag.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>internationalizationEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          InternationalizationEnabled enables the realm internationalization feature.
+If set, it overrides spec.themes.internationalizationEnabled.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>localizationTexts</b></td>
+        <td>map[string]map[string]string</td>
+        <td>
+          LocalizationTexts maps locale code to message key → translated text (same shape as Keycloak `localizationTexts` in a realm export).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>supportedLocales</b></td>
+        <td>[]string</td>
+        <td>
+          SupportedLocales lists locale tags offered to users (BCP 47).<br/>
         </td>
         <td>false</td>
       </tr></tbody>
