@@ -175,6 +175,15 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 						},
 					},
 				},
+				Localization: &keycloakApi.RealmLocalization{
+					InternationalizationEnabled: ptr.To(true),
+					SupportedLocales:            []string{"en", "nl"},
+					DefaultLocale:               ptr.To("nl"),
+					LocalizationTexts: map[string]map[string]string{
+						"en": {"test.key": "this is a test"},
+						"nl": {"test.key": "dit is een test"},
+					},
+				},
 			},
 		}
 		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())
@@ -243,6 +252,20 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect((*realm.SmtpServer)["starttls"]).Should(Equal("true"))
 			g.Expect((*realm.SmtpServer)["auth"]).Should(Equal("true"))
 			g.Expect((*realm.SmtpServer)["user"]).Should(Equal("username"))
+
+			// Localization (realm representation)
+			g.Expect(realm.InternationalizationEnabled).Should(Equal(ptr.To(true)))
+			g.Expect(realm.SupportedLocales).ShouldNot(BeNil())
+			g.Expect(*realm.SupportedLocales).Should(ConsistOf("en", "nl"))
+			g.Expect(realm.DefaultLocale).Should(Equal(ptr.To("nl")))
+
+			// localizationTexts must be verified via /localization/{locale}, not from realm representation
+			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "en")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(enTexts["test.key"]).Should(Equal("this is a test"))
+			nlTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "nl")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(nlTexts["test.key"]).Should(Equal("dit is een test"))
 		}, time.Second*10, time.Second).Should(Succeed())
 
 		By("Verifying the user profile was configured in Keycloak")
@@ -283,6 +306,9 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Updating KeycloakRealm")
 		keycloakRealm.Spec.FrontendURL = "https://test-updated.com"
+		Expect(keycloakRealm.Spec.Localization).ShouldNot(BeNil())
+		keycloakRealm.Spec.Localization.DefaultLocale = ptr.To("en")
+		keycloakRealm.Spec.Localization.LocalizationTexts["en"]["new.key"] = "new value"
 		Expect(k8sClient.Update(ctx, keycloakRealm)).Should(Succeed())
 
 		Eventually(func() bool {
@@ -300,6 +326,12 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect(realm).ShouldNot(BeNil())
 			g.Expect(realm.Attributes).ShouldNot(BeNil())
 			g.Expect((*realm.Attributes)["frontendUrl"]).Should(Equal("https://test-updated.com"))
+			g.Expect(realm.DefaultLocale).Should(Equal(ptr.To("en")))
+
+			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "en")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(enTexts["new.key"]).Should(Equal("new value"))
+			g.Expect(enTexts["test.key"]).Should(Equal("this is a test"))
 		}, time.Second*10, time.Second).Should(Succeed())
 	})
 	It("Should delete KeycloakRealm", func() {
