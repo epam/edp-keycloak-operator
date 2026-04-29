@@ -102,7 +102,6 @@ spec:
               localization:
                 description: |-
                   Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
-                  When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.
                 nullable: true
                 properties:
                   defaultLocale:
@@ -111,7 +110,6 @@ spec:
                   internationalizationEnabled:
                     description: |-
                       InternationalizationEnabled enables the realm internationalization feature.
-                      If set, it overrides spec.themes.internationalizationEnabled.
                     type: boolean
                   localizationTexts:
                     additionalProperties:
@@ -483,8 +481,12 @@ spec:
                     nullable: true
                     type: string
                   internationalizationEnabled:
-                    description: InternationalizationEnabled indicates whether to
+                    description: |-
+                      InternationalizationEnabled indicates whether to
                       enable internationalization.
+
+                      Deprecated: use spec.localization.internationalizationEnabled instead. This field duplicates
+                      that setting and will be removed in a future API version. If both are set, spec.localization wins.
                     nullable: true
                     type: boolean
                   loginTheme:

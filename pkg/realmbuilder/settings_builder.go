@@ -163,6 +163,7 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakap
 		c.AccountTheme = spec.Themes.AccountTheme
 		c.AdminTheme = spec.Themes.AdminConsoleTheme
 		c.EmailTheme = spec.Themes.EmailTheme
+		//nolint:staticcheck // deprecated field still merged for backward compatibility; spec.localization overrides below
 		c.InternationalizationEnabled = spec.Themes.InternationalizationEnabled
 	}
 

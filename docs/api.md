@@ -248,7 +248,8 @@ AuthenticationFlow is the configuration for authentication flows in the realm.
 
 
 
-Localization is the configuration for localization in the realm.
+Localization is the canonical place for internationalization (i18n): locales, default locale,
+message bundles, and internationalization toggle (ClusterKeycloakRealm has no duplicate under themes).
 
 <table>
     <thead>
@@ -6198,8 +6199,7 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b><a href="#keycloakrealmspeclocalization">localization</a></b></td>
         <td>object</td>
         <td>
-          Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
-When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.<br/>
+          Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6325,7 +6325,6 @@ KeycloakRef is reference to Keycloak custom resource.
 
 
 Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
-When internationalizationEnabled is set here, it overrides spec.themes.internationalizationEnabled.
 
 <table>
     <thead>
@@ -6347,8 +6346,7 @@ When internationalizationEnabled is set here, it overrides spec.themes.internati
         <td><b>internationalizationEnabled</b></td>
         <td>boolean</td>
         <td>
-          InternationalizationEnabled enables the realm internationalization feature.
-If set, it overrides spec.themes.internationalizationEnabled.<br/>
+          InternationalizationEnabled enables the realm internationalization feature.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -7210,7 +7208,10 @@ Themes is a map of themes to apply to the realm.
         <td><b>internationalizationEnabled</b></td>
         <td>boolean</td>
         <td>
-          InternationalizationEnabled indicates whether to enable internationalization.<br/>
+          InternationalizationEnabled indicates whether to enable internationalization.
+
+Deprecated: use spec.localization.internationalizationEnabled instead. This field duplicates
+that setting and will be removed in a future API version. If both are set, spec.localization wins.<br/>
         </td>
         <td>false</td>
       </tr><tr>
