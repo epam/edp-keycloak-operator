@@ -554,6 +554,86 @@ func (_c *MockRealmClient_GetRealms_Call) RunAndReturn(run func(ctx context.Cont
 	return _c
 }
 
+// PostRealmLocalization provides a mock function for the type MockRealmClient
+func (_mock *MockRealmClient) PostRealmLocalization(ctx context.Context, realm string, locale string, texts map[string]string) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, locale, texts)
+
+	if len(ret) == 0 {
+		panic("no return value specified for PostRealmLocalization")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, map[string]string) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, locale, texts)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, map[string]string) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, locale, texts)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, map[string]string) error); ok {
+		r1 = returnFunc(ctx, realm, locale, texts)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockRealmClient_PostRealmLocalization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'PostRealmLocalization'
+type MockRealmClient_PostRealmLocalization_Call struct {
+	*mock.Call
+}
+
+// PostRealmLocalization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - locale string
+//   - texts map[string]string
+func (_e *MockRealmClient_Expecter) PostRealmLocalization(ctx interface{}, realm interface{}, locale interface{}, texts interface{}) *MockRealmClient_PostRealmLocalization_Call {
+	return &MockRealmClient_PostRealmLocalization_Call{Call: _e.mock.On("PostRealmLocalization", ctx, realm, locale, texts)}
+}
+
+func (_c *MockRealmClient_PostRealmLocalization_Call) Run(run func(ctx context.Context, realm string, locale string, texts map[string]string)) *MockRealmClient_PostRealmLocalization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 map[string]string
+		if args[3] != nil {
+			arg3 = args[3].(map[string]string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockRealmClient_PostRealmLocalization_Call) Return(response *keycloakapi.Response, err error) *MockRealmClient_PostRealmLocalization_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockRealmClient_PostRealmLocalization_Call) RunAndReturn(run func(ctx context.Context, realm string, locale string, texts map[string]string) (*keycloakapi.Response, error)) *MockRealmClient_PostRealmLocalization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // SetRealmBrowserFlow provides a mock function for the type MockRealmClient
 func (_mock *MockRealmClient) SetRealmBrowserFlow(ctx context.Context, realm string, flowAlias string) (*keycloakapi.Response, error) {
 	ret := _mock.Called(ctx, realm, flowAlias)

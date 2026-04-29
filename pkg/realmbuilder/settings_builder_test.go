@@ -568,41 +568,6 @@ func TestMergeRealmRepresentation(t *testing.T) {
 		assert.Equal(t, ptr.To(int32(600)), base.AccessTokenLifespan)
 		assert.Equal(t, ptr.To(true), base.RevokeRefreshToken)
 	})
-
-	t.Run("LocalizationTexts merged per locale and key preserving base-only entries", func(t *testing.T) {
-		baseTexts := map[string]map[string]string{
-			"en": {"keep": "yes", "overwrite": "old"},
-			"de": {"only": "base"},
-		}
-		overlayTexts := map[string]map[string]string{
-			"en": {"overwrite": "new", "added": "ok"},
-			"nl": {"nieuw": "waarde"},
-		}
-		base := keycloakapi.RealmRepresentation{LocalizationTexts: &baseTexts}
-		overlay := keycloakapi.RealmRepresentation{LocalizationTexts: &overlayTexts}
-
-		MergeRealmRepresentation(&base, &overlay)
-
-		require.NotNil(t, base.LocalizationTexts)
-		assert.Equal(t, "yes", (*base.LocalizationTexts)["en"]["keep"])
-		assert.Equal(t, "new", (*base.LocalizationTexts)["en"]["overwrite"])
-		assert.Equal(t, "ok", (*base.LocalizationTexts)["en"]["added"])
-		assert.Equal(t, "base", (*base.LocalizationTexts)["de"]["only"])
-		assert.Equal(t, "waarde", (*base.LocalizationTexts)["nl"]["nieuw"])
-	})
-
-	t.Run("nil base LocalizationTexts initialised from overlay", func(t *testing.T) {
-		overlayTexts := map[string]map[string]string{
-			"en": {"k": "v"},
-		}
-		base := keycloakapi.RealmRepresentation{}
-		overlay := keycloakapi.RealmRepresentation{LocalizationTexts: &overlayTexts}
-
-		MergeRealmRepresentation(&base, &overlay)
-
-		require.NotNil(t, base.LocalizationTexts)
-		assert.Equal(t, "v", (*base.LocalizationTexts)["en"]["k"])
-	})
 }
 
 func TestApplyRealmEventConfig(t *testing.T) {
@@ -731,6 +696,47 @@ func TestApplyRealmSettings(t *testing.T) {
 				assert.Contains(t, err.Error(), "unable to update realm settings")
 			},
 		},
+		{
+			name: "localizationTexts — UpdateRealm without localizationTexts field, then PostRealmLocalization per locale",
+			overlay: keycloakapi.RealmRepresentation{
+				DisplayName: ptr.To("Localized"),
+				LocalizationTexts: ptr.To(map[string]map[string]string{
+					"en": {"msg": "hello"},
+					"fr": {"msg": "bonjour"},
+				}),
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+					return rep.DisplayName != nil && *rep.DisplayName == "Localized" && rep.LocalizationTexts == nil
+				})).Return(nil, nil)
+				m.EXPECT().PostRealmLocalization(mock.Anything, "test-realm", "en", map[string]string{"msg": "hello"}).
+					Return(nil, nil)
+				m.EXPECT().PostRealmLocalization(mock.Anything, "test-realm", "fr", map[string]string{"msg": "bonjour"}).
+					Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "PostRealmLocalization fails — error returned",
+			overlay: keycloakapi.RealmRepresentation{
+				LocalizationTexts: ptr.To(map[string]map[string]string{
+					"en": {"k": "v"},
+				}),
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).Return(nil, nil)
+				m.EXPECT().PostRealmLocalization(mock.Anything, "test-realm", "en", mock.Anything).
+					Return(nil, assert.AnError)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to apply realm localization texts")
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -744,4 +750,34 @@ func TestApplyRealmSettings(t *testing.T) {
 			tt.wantErr(t, err)
 		})
 	}
+}
+
+func TestApplyRealmLocalizationTexts(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty map — no PostRealmLocalization", func(t *testing.T) {
+		t.Parallel()
+
+		m := v2mocks.NewMockRealmClient(t)
+
+		err := ApplyRealmLocalizationTexts(context.Background(), "r", map[string]map[string]string{}, m)
+		require.NoError(t, err)
+	})
+
+	t.Run("two locales — PostRealmLocalization per non-empty locale", func(t *testing.T) {
+		t.Parallel()
+
+		m := v2mocks.NewMockRealmClient(t)
+		m.EXPECT().PostRealmLocalization(mock.Anything, "realm-a", "de", map[string]string{"a": "b"}).
+			Return(nil, nil).Once()
+		m.EXPECT().PostRealmLocalization(mock.Anything, "realm-a", "en", map[string]string{"x": "y"}).
+			Return(nil, nil).Once()
+
+		err := ApplyRealmLocalizationTexts(context.Background(), "realm-a", map[string]map[string]string{
+			"en": {"x": "y"},
+			"de": {"a": "b"},
+			"zz": {}, // skipped
+		}, m)
+		require.NoError(t, err)
+	})
 }

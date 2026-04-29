@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -85,10 +86,55 @@ func ApplyRealmSettings(
 		return fmt.Errorf("unable to get realm: %w", err)
 	}
 
+	var localizationTexts map[string]map[string]string
+	if overlay.LocalizationTexts != nil && len(*overlay.LocalizationTexts) > 0 {
+		localizationTexts = *cloneLocalizationTexts(*overlay.LocalizationTexts)
+	}
+
+	// Keycloak ignores localizationTexts on PUT /admin/realms/{realm}; apply via Admin API per locale after update.
+	overlay.LocalizationTexts = nil
+	current.LocalizationTexts = nil
+
 	MergeRealmRepresentation(current, &overlay)
 
 	if _, err := realmClient.UpdateRealm(ctx, realmName, *current); err != nil {
 		return fmt.Errorf("unable to update realm settings: %w", err)
+	}
+
+	if len(localizationTexts) > 0 {
+		if err := ApplyRealmLocalizationTexts(ctx, realmName, localizationTexts, realmClient); err != nil {
+			return fmt.Errorf("unable to apply realm localization texts: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// ApplyRealmLocalizationTexts uploads message bundles via POST /admin/realms/{realm}/localization/{locale}
+// for each locale. Keycloak does not apply localizationTexts from realm update (PUT); see keycloak/keycloak#31856.
+func ApplyRealmLocalizationTexts(
+	ctx context.Context,
+	realmName string,
+	texts map[string]map[string]string,
+	realmClient keycloakapi.RealmClient,
+) error {
+	if len(texts) == 0 {
+		return nil
+	}
+
+	locales := slices.Sorted(maps.Keys(texts))
+
+	for _, locale := range locales {
+		kv := texts[locale]
+		if len(kv) == 0 {
+			continue
+		}
+
+		payload := maps.Clone(kv)
+
+		if _, err := realmClient.PostRealmLocalization(ctx, realmName, locale, payload); err != nil {
+			return fmt.Errorf("unable to set realm localization for locale %q: %w", locale, err)
+		}
 	}
 
 	return nil
@@ -287,7 +333,6 @@ func MergeRealmRepresentation(base, overlay *keycloakapi.RealmRepresentation) {
 	mergeRealmLoginSettings(base, overlay)
 	mergeRealmSessionSettings(base, overlay)
 	mergeRealmMaps(base, overlay)
-	mergeLocalizationTexts(base, overlay)
 }
 
 func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
@@ -336,27 +381,6 @@ func mergeRealmSessionSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.OfflineSessionMaxLifespan, &overlay.OfflineSessionMaxLifespan)
 	mergePtr(&base.AccessCodeLifespanLogin, &overlay.AccessCodeLifespanLogin)
 	mergePtr(&base.AccessCodeLifespanUserAction, &overlay.AccessCodeLifespanUserAction)
-}
-
-func mergeLocalizationTexts(base, overlay *keycloakapi.RealmRepresentation) {
-	if overlay.LocalizationTexts == nil {
-		return
-	}
-
-	if base.LocalizationTexts == nil {
-		cloned := cloneLocalizationTexts(*overlay.LocalizationTexts)
-		base.LocalizationTexts = cloned
-
-		return
-	}
-
-	for locale, texts := range *overlay.LocalizationTexts {
-		if (*base.LocalizationTexts)[locale] == nil {
-			(*base.LocalizationTexts)[locale] = make(map[string]string)
-		}
-
-		maps.Copy((*base.LocalizationTexts)[locale], texts)
-	}
 }
 
 func cloneLocalizationTexts(m map[string]map[string]string) *map[string]map[string]string {
