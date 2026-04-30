@@ -482,8 +482,7 @@ spec:
                     type: string
                   internationalizationEnabled:
                     description: |-
-                      InternationalizationEnabled indicates whether to
-                      enable internationalization.
+                      InternationalizationEnabled indicates whether to enable internationalization.
 
                       Deprecated: use spec.localization.internationalizationEnabled instead. This field duplicates
                       that setting and will be removed in a future API version. If both are set, spec.localization wins.

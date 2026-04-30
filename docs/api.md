@@ -248,8 +248,7 @@ AuthenticationFlow is the configuration for authentication flows in the realm.
 
 
 
-Localization is the canonical place for internationalization (i18n): locales, default locale,
-message bundles, and internationalization toggle (ClusterKeycloakRealm has no duplicate under themes).
+Localization is the configuration for localization in the realm.
 
 <table>
     <thead>
