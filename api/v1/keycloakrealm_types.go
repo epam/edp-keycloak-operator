@@ -32,6 +32,11 @@ type KeycloakRealmSpec struct {
 	// +optional
 	Themes *RealmThemes `json:"themes,omitempty"`
 
+	// Localization configures supported/default locales and custom message bundles (realm export field `localizationTexts`).
+	// +nullable
+	// +optional
+	Localization *RealmLocalization `json:"localization,omitempty"`
+
 	// BrowserSecurityHeaders is a map of security headers to apply to HTTP responses from the realm's browser clients.
 	// +nullable
 	// +optional
@@ -128,9 +133,32 @@ type RealmThemes struct {
 	EmailTheme *string `json:"emailTheme"`
 
 	// InternationalizationEnabled indicates whether to enable internationalization.
+	//
+	// Deprecated: use spec.localization.internationalizationEnabled instead. This field duplicates
+	// that setting and will be removed in a future API version. If both are set, spec.localization wins.
 	// +nullable
 	// +optional
 	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
+}
+
+// RealmLocalization configures realm locales and custom translations (Keycloak Admin API / realm export).
+type RealmLocalization struct {
+	// InternationalizationEnabled enables the realm internationalization feature.
+	// +nullable
+	// +optional
+	InternationalizationEnabled *bool `json:"internationalizationEnabled,omitempty"`
+
+	// SupportedLocales lists locale tags offered to users (BCP 47).
+	// +optional
+	SupportedLocales []string `json:"supportedLocales,omitempty"`
+
+	// DefaultLocale is the realm default locale tag.
+	// +optional
+	DefaultLocale *string `json:"defaultLocale,omitempty"`
+
+	// LocalizationTexts maps locale code to message key → translated text (same shape as Keycloak `localizationTexts` in a realm export).
+	// +optional
+	LocalizationTexts map[string]map[string]string `json:"localizationTexts,omitempty"`
 }
 
 func (in *KeycloakRealm) GetKeycloakRef() common.KeycloakRef {

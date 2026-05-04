@@ -142,6 +142,9 @@ type RealmClient interface {
 	GetRealmKeys(ctx context.Context, realm string) (*KeysMetadataRepresentation, *Response, error)
 	// GetRealmLocalization returns localization strings for a realm and locale as a key-value map.
 	GetRealmLocalization(ctx context.Context, realm, locale string) (map[string]string, *Response, error)
+	// PostRealmLocalization sets or merges localization strings for a realm locale (POST /admin/realms/{realm}/localization/{locale}).
+	// Keycloak ignores localizationTexts on realm update; runtime message bundles must use this API per locale.
+	PostRealmLocalization(ctx context.Context, realm, locale string, texts map[string]string) (*Response, error)
 }
 
 // GroupsClient defines operations for managing Keycloak groups including CRUD,

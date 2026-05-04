@@ -229,6 +229,29 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				assert.Equal(t, ptr.To(int32(300)), got.AccessCodeLifespanUserAction)
 			},
 		},
+		{
+			name: "with localization — spec.localization overrides themes.internationalizationEnabled",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Themes: &keycloakApi.RealmThemes{
+						InternationalizationEnabled: ptr.To(false),
+					},
+					Localization: &keycloakApi.RealmLocalization{
+						InternationalizationEnabled: ptr.To(true),
+						SupportedLocales:            []string{"en", "nl"},
+						DefaultLocale:               ptr.To("nl"),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(true), got.InternationalizationEnabled)
+				require.NotNil(t, got.SupportedLocales)
+				assert.Equal(t, []string{"en", "nl"}, *got.SupportedLocales)
+				assert.Equal(t, ptr.To("nl"), got.DefaultLocale)
+				assert.Nil(t, got.LocalizationTexts)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -290,6 +313,24 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 				t.Helper()
 				assert.Equal(t, ptr.To(true), got.InternationalizationEnabled)
 				assert.Nil(t, got.LoginTheme)
+			},
+		},
+		{
+			name: "with localization — supportedLocales and defaultLocale mapped, localizationTexts excluded from PUT overlay",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					Localization: &v1alpha1.RealmLocalization{
+						SupportedLocales: []string{"fr"},
+						DefaultLocale:    ptr.To("fr"),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				require.NotNil(t, got.SupportedLocales)
+				assert.Equal(t, []string{"fr"}, *got.SupportedLocales)
+				assert.Equal(t, ptr.To("fr"), got.DefaultLocale)
+				assert.Nil(t, got.LocalizationTexts)
 			},
 		},
 		{

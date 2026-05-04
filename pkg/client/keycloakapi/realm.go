@@ -244,3 +244,26 @@ func (c *realmClient) GetRealmLocalization(
 
 	return *res.JSON200, response, nil
 }
+
+func (c *realmClient) PostRealmLocalization(
+	ctx context.Context,
+	realm, locale string,
+	texts map[string]string,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmLocalizationLocaleWithResponse(ctx, realm, locale, texts)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}

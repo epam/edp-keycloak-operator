@@ -124,7 +124,19 @@ type RealmLocalization struct {
 	// InternationalizationEnabled indicates whether to enable internationalization.
 	// +nullable
 	// +optional
-	InternationalizationEnabled *bool `json:"internationalizationEnabled"`
+	InternationalizationEnabled *bool `json:"internationalizationEnabled,omitempty"`
+
+	// SupportedLocales lists locale tags offered to users (BCP 47).
+	// +optional
+	SupportedLocales []string `json:"supportedLocales,omitempty"`
+
+	// DefaultLocale is the realm default locale tag.
+	// +optional
+	DefaultLocale *string `json:"defaultLocale,omitempty"`
+
+	// LocalizationTexts maps locale code to message key → translated text (Keycloak realm export field `localizationTexts`).
+	// +optional
+	LocalizationTexts map[string]map[string]string `json:"localizationTexts,omitempty"`
 }
 
 // ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.

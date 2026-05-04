@@ -33,6 +33,8 @@ type commonRealmSpec struct {
 	AdminTheme                  *string
 	EmailTheme                  *string
 	InternationalizationEnabled *bool
+	SupportedLocales            []string
+	DefaultLocale               *string
 }
 
 // ApplyRealmEventConfig sets the realm event configuration in Keycloak.
@@ -114,7 +116,24 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakap
 		c.AccountTheme = spec.Themes.AccountTheme
 		c.AdminTheme = spec.Themes.AdminConsoleTheme
 		c.EmailTheme = spec.Themes.EmailTheme
+		//nolint:staticcheck // deprecated field still merged for backward compatibility; spec.localization overrides below
 		c.InternationalizationEnabled = spec.Themes.InternationalizationEnabled
+	}
+
+	if spec.Localization != nil {
+		loc := spec.Localization
+		if loc.InternationalizationEnabled != nil {
+			c.InternationalizationEnabled = loc.InternationalizationEnabled
+		}
+
+		if len(loc.SupportedLocales) > 0 {
+			c.SupportedLocales = loc.SupportedLocales
+		}
+
+		if loc.DefaultLocale != nil {
+			c.DefaultLocale = loc.DefaultLocale
+		}
+
 	}
 
 	return buildRealmRepresentationFromCommon(c)
@@ -146,7 +165,19 @@ func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) 
 	}
 
 	if spec.Localization != nil {
-		c.InternationalizationEnabled = spec.Localization.InternationalizationEnabled
+		loc := spec.Localization
+		if loc.InternationalizationEnabled != nil {
+			c.InternationalizationEnabled = loc.InternationalizationEnabled
+		}
+
+		if len(loc.SupportedLocales) > 0 {
+			c.SupportedLocales = loc.SupportedLocales
+		}
+
+		if loc.DefaultLocale != nil {
+			c.DefaultLocale = loc.DefaultLocale
+		}
+
 	}
 
 	return buildRealmRepresentationFromCommon(c)
@@ -179,6 +210,15 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 		AdminTheme:                  spec.AdminTheme,
 		EmailTheme:                  spec.EmailTheme,
 		InternationalizationEnabled: spec.InternationalizationEnabled,
+	}
+
+	if len(spec.SupportedLocales) > 0 {
+		sl := spec.SupportedLocales
+		rep.SupportedLocales = &sl
+	}
+
+	if spec.DefaultLocale != nil {
+		rep.DefaultLocale = spec.DefaultLocale
 	}
 
 	if spec.FrontendURL != "" {
@@ -251,6 +291,8 @@ func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.EmailTheme, &overlay.EmailTheme)
 	mergePtr(&base.InternationalizationEnabled, &overlay.InternationalizationEnabled)
 	mergePtr(&base.PasswordPolicy, &overlay.PasswordPolicy)
+	mergePtr(&base.SupportedLocales, &overlay.SupportedLocales)
+	mergePtr(&base.DefaultLocale, &overlay.DefaultLocale)
 }
 
 func mergeRealmTokenSettings(base, overlay *keycloakapi.RealmRepresentation) {

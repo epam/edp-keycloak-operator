@@ -7,6 +7,17 @@ spec:
   keycloakRef:
     name: keycloak-sample
     kind: Keycloak
+  localization:
+    internationalizationEnabled: true
+    supportedLocales:
+      - en
+      - nl
+    defaultLocale: nl
+    localizationTexts:
+      en:
+        test: "this is a test"
+      nl:
+        test: "dit is een test"
   passwordPolicy:
     - type: "forceExpiredPasswordChange"
       value: "365"
