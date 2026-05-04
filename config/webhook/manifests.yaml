@@ -46,6 +46,7 @@ webhooks:
     - v1
     operations:
     - CREATE
+    - UPDATE
     resources:
     - keycloakrealms
   sideEffects: None

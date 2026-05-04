@@ -1,9 +1,12 @@
 package v1
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -90,6 +93,63 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 
 			err := k8sClient.Create(ctx, objInNs2)
 			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with same RealmName for the same Keycloak in a different namespace")
+		})
+	})
+
+	Context("Internationalization duplicate fields (admission warning)", func() {
+		It("returns a warning from ValidateCreate when both themes and localization toggles are set", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			t := true
+			realm := &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Themes: &keycloakApi.RealmThemes{
+						InternationalizationEnabled: &t,
+					},
+					Localization: &keycloakApi.RealmLocalization{
+						InternationalizationEnabled: &t,
+					},
+				},
+			}
+			warnings, err := v.ValidateCreate(context.Background(), realm)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(1))
+			Expect(warnings[0]).To(ContainSubstring("deprecated"))
+			Expect(warnings[0]).To(ContainSubstring("spec.localization wins"))
+		})
+
+		It("returns no warning when only localization internationalizationEnabled is set", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			t := true
+			realm := &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Themes: &keycloakApi.RealmThemes{},
+					Localization: &keycloakApi.RealmLocalization{
+						InternationalizationEnabled: &t,
+					},
+				},
+			}
+			warnings, err := v.ValidateCreate(context.Background(), realm)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(BeEmpty())
+		})
+
+		It("returns a warning from ValidateUpdate when both toggles are set on the new object", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			t := true
+			oldRealm := &keycloakApi.KeycloakRealm{}
+			newRealm := &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Themes: &keycloakApi.RealmThemes{
+						InternationalizationEnabled: &t,
+					},
+					Localization: &keycloakApi.RealmLocalization{
+						InternationalizationEnabled: &t,
+					},
+				},
+			}
+			warnings, err := v.ValidateUpdate(context.Background(), oldRealm, newRealm)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(1))
 		})
 	})
 })

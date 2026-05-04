@@ -24,10 +24,12 @@ func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme) handler.Rea
 			next: PutUsers{
 				next: PutUsersRoles{
 					next: RealmSettings{
-						next: AuthFlow{
-							next: UserProfile{
-								next: ConfigureEmail{
-									client: k8sClient,
+						next: RealmLocalizationTexts{
+							next: AuthFlow{
+								next: UserProfile{
+									next: ConfigureEmail{
+										client: k8sClient,
+									},
 								},
 							},
 						},

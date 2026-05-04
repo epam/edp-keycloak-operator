@@ -24,7 +24,7 @@ func SetupKeycloakRealmWebhookWithManager(mgr ctrl.Manager, k8sClient client.Cli
 		Complete()
 }
 
-// +kubebuilder:webhook:path=/validate-v1-edp-epam-com-v1-keycloakrealm,mutating=false,failurePolicy=fail,sideEffects=None,groups=v1.edp.epam.com,resources=keycloakrealms,verbs=create,versions=v1,name=vkeycloakrealm-v1.kb.io,admissionReviewVersions=v1
+// +kubebuilder:webhook:path=/validate-v1-edp-epam-com-v1-keycloakrealm,mutating=false,failurePolicy=fail,sideEffects=None,groups=v1.edp.epam.com,resources=keycloakrealms,verbs=create;update,versions=v1,name=vkeycloakrealm-v1.kb.io,admissionReviewVersions=v1
 
 // KeycloakRealmCustomValidator struct is responsible for validating the KeycloakRealm resource
 // when it is created, updated, or deleted.
@@ -35,6 +35,28 @@ type KeycloakRealmCustomValidator struct {
 func NewKeycloakRealmCustomValidator(k8sclient client.Client) *KeycloakRealmCustomValidator {
 	return &KeycloakRealmCustomValidator{
 		k8sclient: k8sclient,
+	}
+}
+
+// duplicateInternationalizationWarning returns an admission warning when both deprecated
+// spec.themes.internationalizationEnabled and canonical spec.localization.internationalizationEnabled are set.
+//
+//nolint:staticcheck // intentional comparison with deprecated themes.internationalizationEnabled for this warning
+func duplicateInternationalizationWarning(realm *keycloakApi.KeycloakRealm) admission.Warnings {
+	t := realm.Spec.Themes
+	l := realm.Spec.Localization
+
+	if t == nil || l == nil {
+		return nil
+	}
+
+	if t.InternationalizationEnabled == nil || l.InternationalizationEnabled == nil {
+		return nil
+	}
+
+	return admission.Warnings{
+		"Both spec.themes.internationalizationEnabled and spec.localization.internationalizationEnabled are set; " +
+			"spec.localization wins (canonical). spec.themes.internationalizationEnabled is deprecated — remove it.",
 	}
 }
 
@@ -73,12 +95,17 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 		}
 	}
 
-	return nil, nil
+	return duplicateInternationalizationWarning(keycloakrealm), nil
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type KeycloakRealm.
 func (v *KeycloakRealmCustomValidator) ValidateUpdate(_ context.Context, oldObj, newObj runtime.Object) (admission.Warnings, error) {
-	return nil, nil
+	keycloakrealm, ok := newObj.(*keycloakApi.KeycloakRealm)
+	if !ok {
+		return nil, fmt.Errorf("expected a KeycloakRealm object but got %T", newObj)
+	}
+
+	return duplicateInternationalizationWarning(keycloakrealm), nil
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type KeycloakRealm.

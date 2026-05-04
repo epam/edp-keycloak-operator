@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
@@ -457,4 +458,42 @@ func TestRealmClient_GetRealmLocalization(t *testing.T) {
 	require.NotNil(t, resp)
 	// localization can be nil when no entries exist for the locale.
 	_ = localization
+}
+
+func TestRealmClient_PostRealmLocalization(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := fmt.Sprintf("test-realm-localization-post-%d", time.Now().UnixNano())
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: ptr.To(true),
+	})
+	require.NoError(t, err)
+
+	_, err = c.Realms.PostRealmLocalization(ctx, realmName, "en", map[string]string{
+		"customTestKey": "customTestValue",
+	})
+	require.NoError(t, err)
+
+	got, resp, err := c.Realms.GetRealmLocalization(ctx, realmName, "en")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, got)
+	assert.Equal(t, "customTestValue", got["customTestKey"])
 }
