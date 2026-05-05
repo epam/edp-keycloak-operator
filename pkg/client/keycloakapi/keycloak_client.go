@@ -34,7 +34,7 @@ type KeycloakClient struct {
 	authUrl             string
 	realm               string
 	clientCredentials   *ClientCredentials
-	httpClient          *http.Client
+	restyClient         *resty.Client
 	initialLogin        bool
 	userAgent           string
 	additionalHeaders   map[string]string
@@ -94,6 +94,8 @@ type clientConfig struct {
 	tlsClientCert         string
 	tlsClientPrivateKey   string
 	logger                logr.Logger
+	retryWaitTime         time.Duration
+	retryMaxWaitTime      time.Duration
 }
 
 // ClientOption is a function that configures a KeycloakClient
@@ -169,6 +171,21 @@ func WithInitialLogin(initialLogin bool) ClientOption {
 func WithClientTimeout(timeout int) ClientOption {
 	return func(c *KeycloakClient, cfg *clientConfig) {
 		cfg.clientTimeout = timeout
+	}
+}
+
+// WithRetryWaitTime sets the initial wait time between retries (default: 1s).
+// Resty uses exponential back-off; the actual delay is capped by WithRetryMaxWaitTime.
+func WithRetryWaitTime(d time.Duration) ClientOption {
+	return func(c *KeycloakClient, cfg *clientConfig) {
+		cfg.retryWaitTime = d
+	}
+}
+
+// WithRetryMaxWaitTime sets the maximum wait time between retries (default: 10s).
+func WithRetryMaxWaitTime(d time.Duration) ClientOption {
+	return func(c *KeycloakClient, cfg *clientConfig) {
+		cfg.retryMaxWaitTime = d
 	}
 }
 
@@ -259,6 +276,8 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	config := &clientConfig{
 		clientTimeout:         60, // default timeout in seconds
 		tlsInsecureSkipVerify: false,
+		retryWaitTime:         time.Second,
+		retryMaxWaitTime:      10 * time.Second,
 	}
 
 	// Initialize client with defaults
@@ -315,18 +334,20 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 		)
 	}
 
-	httpClient, err := newHttpClient(
+	restyClient, err := newRestyClient(
 		config.tlsInsecureSkipVerify,
 		config.clientTimeout,
 		config.caCert,
 		config.tlsClientCert,
 		config.tlsClientPrivateKey,
+		config.retryWaitTime,
+		config.retryMaxWaitTime,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create http client: %v", err)
 	}
 
-	keycloakClient.httpClient = httpClient
+	keycloakClient.restyClient = restyClient
 
 	if keycloakClient.clientCredentials.AccessToken == "" && keycloakClient.initialLogin {
 		err = keycloakClient.login(ctx)
@@ -390,46 +411,26 @@ func (keycloakClient *KeycloakClient) login(ctx context.Context) error {
 
 		logger.V(debugVerbosityLevel).Info("Login request", "content_length", len(accessTokenData.Encode()))
 
-		accessTokenRequest, err := http.NewRequestWithContext(
-			ctx,
-			http.MethodPost,
-			accessTokenUrl,
-			strings.NewReader(accessTokenData.Encode()),
-		)
-		if err != nil {
-			return err
-		}
-
-		for header, value := range keycloakClient.additionalHeaders {
-			accessTokenRequest.Header.Set(header, value)
-		}
-
-		accessTokenRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		if keycloakClient.userAgent != "" {
-			accessTokenRequest.Header.Set("User-Agent", keycloakClient.userAgent)
-		}
-
-		accessTokenResponse, err := keycloakClient.httpClient.Do(accessTokenRequest)
-		if err != nil {
-			return err
-		}
-
-		if accessTokenResponse.StatusCode != http.StatusOK {
-			return fmt.Errorf("error sending POST request to %s: %s", accessTokenUrl, accessTokenResponse.Status)
-		}
-
-		defer func() {
-			_ = accessTokenResponse.Body.Close()
-		}()
-
-		body, _ := io.ReadAll(accessTokenResponse.Body)
-
 		var clientCredentials ClientCredentials
 
-		err = json.Unmarshal(body, &clientCredentials)
+		req := keycloakClient.restyClient.R().
+			SetContext(ctx).
+			SetFormDataFromValues(accessTokenData).
+			SetHeaders(keycloakClient.additionalHeaders).
+			SetHeader("Content-Type", "application/x-www-form-urlencoded").
+			SetResult(&clientCredentials)
+
+		if keycloakClient.userAgent != "" {
+			req.SetHeader("User-Agent", keycloakClient.userAgent)
+		}
+
+		resp, err := req.Post(accessTokenUrl)
 		if err != nil {
 			return err
+		}
+
+		if resp.IsError() {
+			return fmt.Errorf("error sending POST request to %s: %s", accessTokenUrl, resp.Status())
 		}
 
 		logger.V(debugVerbosityLevel).Info("Login response", "expires_in", clientCredentials.ExpiresIn)
@@ -463,40 +464,24 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 
 	logger.V(debugVerbosityLevel).Info("Refresh request", "content_length", len(refreshTokenData.Encode()))
 
-	refreshTokenRequest, err := http.NewRequestWithContext(
-		ctx,
-		http.MethodPost,
-		refreshTokenUrl,
-		strings.NewReader(refreshTokenData.Encode()),
-	)
-	if err != nil {
-		return err
-	}
-
-	for header, value := range keycloakClient.additionalHeaders {
-		refreshTokenRequest.Header.Set(header, value)
-	}
-
-	refreshTokenRequest.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	req := keycloakClient.restyClient.R().
+		SetContext(ctx).
+		SetFormDataFromValues(refreshTokenData).
+		SetHeaders(keycloakClient.additionalHeaders).
+		SetHeader("Content-Type", "application/x-www-form-urlencoded")
 
 	if keycloakClient.userAgent != "" {
-		refreshTokenRequest.Header.Set("User-Agent", keycloakClient.userAgent)
+		req.SetHeader("User-Agent", keycloakClient.userAgent)
 	}
 
-	refreshTokenResponse, err := keycloakClient.httpClient.Do(refreshTokenRequest)
+	resp, err := req.Post(refreshTokenUrl)
 	if err != nil {
 		return err
 	}
-
-	defer func() {
-		_ = refreshTokenResponse.Body.Close()
-	}()
-
-	body, _ := io.ReadAll(refreshTokenResponse.Body)
 
 	// Handle 401 "User or client no longer has role permissions for client key"
 	// until I better understand why that happens in the first place
-	if refreshTokenResponse.StatusCode == http.StatusBadRequest {
+	if resp.StatusCode() == http.StatusBadRequest {
 		logger.V(debugVerbosityLevel).Info("Unexpected 400, attempting to log in again")
 
 		return keycloakClient.login(ctx)
@@ -504,7 +489,7 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 
 	var clientCredentials ClientCredentials
 
-	err = json.Unmarshal(body, &clientCredentials)
+	err = json.Unmarshal(resp.Body(), &clientCredentials)
 	if err != nil {
 		return err
 	}
@@ -642,7 +627,7 @@ func (d *keycloakDoer) Do(req *http.Request) (*http.Response, error) {
 
 	d.kc.addRequestHeaders(req)
 
-	resp, err := d.kc.httpClient.Do(req)
+	resp, err := d.executeViaResty(req)
 	if err != nil {
 		return nil, err
 	}
@@ -677,13 +662,55 @@ func (d *keycloakDoer) Do(req *http.Request) (*http.Response, error) {
 
 		d.kc.addRequestHeaders(req)
 
-		resp, err = d.kc.httpClient.Do(req)
+		resp, err = d.executeViaResty(req)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return resp, nil
+}
+
+// executeViaResty forwards an *http.Request through the configured resty.Client
+// so that resty's retry middleware (SetRetryCount + RetryPolicy) is actually
+// invoked. Calling restyClient.GetClient().Do bypasses retries entirely.
+func (d *keycloakDoer) executeViaResty(req *http.Request) (*http.Response, error) {
+	var bodyBytes []byte
+
+	if req.Body != nil {
+		b, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, fmt.Errorf("reading request body: %w", err)
+		}
+
+		_ = req.Body.Close()
+		bodyBytes = b
+	}
+
+	rr := d.kc.restyClient.R().
+		SetContext(req.Context()).
+		SetDoNotParseResponse(true)
+
+	for k, vs := range req.Header {
+		for _, v := range vs {
+			rr.SetHeader(k, v)
+		}
+	}
+
+	if bodyBytes != nil {
+		rr.SetBody(bodyBytes)
+	}
+
+	resp, err := rr.Execute(req.Method, req.URL.String())
+	if err != nil {
+		if resp != nil && resp.RawResponse != nil {
+			return resp.RawResponse, err
+		}
+
+		return nil, err
+	}
+
+	return resp.RawResponse, nil
 }
 
 func RetryPolicy(resp *resty.Response, err error) bool {
@@ -711,13 +738,15 @@ func RetryPolicy(resp *resty.Response, err error) bool {
 	return false
 }
 
-func newHttpClient(
+func newRestyClient(
 	tlsInsecureSkipVerify bool,
 	clientTimeout int,
 	caCert string,
 	tlsClientCert string,
 	tlsClientPrivateKey string,
-) (*http.Client, error) {
+	retryWaitTime time.Duration,
+	retryMaxWaitTime time.Duration,
+) (*resty.Client, error) {
 	cookieJar, err := cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	})
@@ -751,13 +780,11 @@ func newHttpClient(
 		SetTimeout(time.Second * time.Duration(clientTimeout)).
 		SetCookieJar(cookieJar).
 		SetRetryCount(5).
-		SetRetryWaitTime(time.Second).
-		SetRetryMaxWaitTime(time.Second * 60).
+		SetRetryWaitTime(retryWaitTime).
+		SetRetryMaxWaitTime(retryMaxWaitTime).
 		AddRetryCondition(RetryPolicy)
 
-	httpClient := restyClient.GetClient()
-
-	return httpClient, nil
+	return restyClient, nil
 }
 
 func (keycloakClient *KeycloakClient) newSignedJWT(
