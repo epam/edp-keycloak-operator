@@ -82,3 +82,7 @@ Edit `pkg/client/keycloakapi/openapi.yaml` then re-run `make generate-keycloak-g
 
 ## Further Reading
 - `docs/development.md` — local setup, debugging, VS Code config
+
+
+## Commit Messages
+- Do not append `Co-Authored-By: Claude <noreply@anthropic.com>` (or any Claude co-author trailer) to git commit messages.

@@ -292,7 +292,7 @@ func TestNewKeycloakClient(t *testing.T) {
 				t.Error("realm should have default value")
 			}
 
-			assert.NotNil(t, client.httpClient)
+			assert.NotNil(t, client.restyClient)
 			assert.NotNil(t, client.Users)
 			assert.NotNil(t, client.Realms)
 		})
@@ -1321,7 +1321,7 @@ func TestRetryPolicy(t *testing.T) {
 	}
 }
 
-func TestNewHttpClient(t *testing.T) {
+func TestNewRestyClient(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
@@ -1333,16 +1333,16 @@ func TestNewHttpClient(t *testing.T) {
 		tlsClientPrivateKey   string
 		setupCerts            func(t *testing.T) (string, string)
 		wantErr               bool
-		validate              func(t *testing.T, client *http.Client)
+		validate              func(t *testing.T, client *resty.Client)
 	}{
 		{
 			name:                  "default configuration",
 			tlsInsecureSkipVerify: false,
 			clientTimeout:         60,
 			wantErr:               false,
-			validate: func(t *testing.T, client *http.Client) {
+			validate: func(t *testing.T, client *resty.Client) {
 				assert.NotNil(t, client)
-				assert.Equal(t, 60*time.Second, client.Timeout)
+				assert.Equal(t, 60*time.Second, client.GetClient().Timeout)
 			},
 		},
 		{
@@ -1350,8 +1350,8 @@ func TestNewHttpClient(t *testing.T) {
 			tlsInsecureSkipVerify: true,
 			clientTimeout:         30,
 			wantErr:               false,
-			validate: func(t *testing.T, client *http.Client) {
-				transport := client.Transport.(*http.Transport)
+			validate: func(t *testing.T, client *resty.Client) {
+				transport := client.GetClient().Transport.(*http.Transport)
 				assert.True(t, transport.TLSClientConfig.InsecureSkipVerify)
 			},
 		},
@@ -1363,8 +1363,8 @@ func TestNewHttpClient(t *testing.T) {
 				return caCert
 			}(),
 			wantErr: false,
-			validate: func(t *testing.T, client *http.Client) {
-				transport := client.Transport.(*http.Transport)
+			validate: func(t *testing.T, client *resty.Client) {
+				transport := client.GetClient().Transport.(*http.Transport)
 				assert.NotNil(t, transport.TLSClientConfig.RootCAs)
 			},
 		},
@@ -1378,8 +1378,8 @@ func TestNewHttpClient(t *testing.T) {
 				return clientCert, clientKey
 			},
 			wantErr: false,
-			validate: func(t *testing.T, client *http.Client) {
-				transport := client.Transport.(*http.Transport)
+			validate: func(t *testing.T, client *resty.Client) {
+				transport := client.GetClient().Transport.(*http.Transport)
 				assert.NotEmpty(t, transport.TLSClientConfig.Certificates)
 			},
 		},
@@ -1396,12 +1396,14 @@ func TestNewHttpClient(t *testing.T) {
 				clientCert, privateKey = tt.setupCerts(t)
 			}
 
-			client, err := newHttpClient(
+			client, err := newRestyClient(
 				tt.tlsInsecureSkipVerify,
 				tt.clientTimeout,
 				tt.caCert,
 				clientCert,
 				privateKey,
+				time.Second,
+				10*time.Second,
 			)
 
 			if tt.wantErr {
@@ -1708,6 +1710,8 @@ func TestClientOptions_AllOptions(t *testing.T) {
 		WithAdditionalHeaders(customHeaders),
 		WithRedHatSSO(true),
 		WithClientTimeout(30),
+		WithRetryWaitTime(2*time.Second),
+		WithRetryMaxWaitTime(20*time.Second),
 		WithTLSInsecureSkipVerify(true),
 		WithCACert(caCertPEM),
 		WithLogger(logr.Discard()),
@@ -1723,7 +1727,7 @@ func TestClientOptions_AllOptions(t *testing.T) {
 	assert.Equal(t, testUserAgent, client.userAgent)
 	assert.Equal(t, "test-value", client.additionalHeaders["X-Test-Header"])
 	assert.True(t, client.redHatSSO)
-	assert.Equal(t, 30*time.Second, client.httpClient.Timeout)
+	assert.Equal(t, 30*time.Second, client.restyClient.GetClient().Timeout)
 }
 
 func TestNewSignedJWT_Deprecated(t *testing.T) {
@@ -1785,7 +1789,7 @@ func TestClientOptions_WithTLSClientCert(t *testing.T) {
 	require.NotNil(t, client)
 
 	// Verify TLS config has certificates
-	transport := client.httpClient.Transport.(*http.Transport)
+	transport := client.restyClient.GetClient().Transport.(*http.Transport)
 	assert.NotEmpty(t, transport.TLSClientConfig.Certificates)
 }
 
@@ -2013,16 +2017,18 @@ func TestKeycloakClient_GetAuthenticationFormData_JWTFromFile_Error(t *testing.T
 	assert.Contains(t, err.Error(), "failed to read JWT token from file")
 }
 
-func TestNewHttpClient_InvalidCert(t *testing.T) {
+func TestNewRestyClient_InvalidCert(t *testing.T) {
 	t.Parallel()
 
 	// Test with invalid client certificate
-	_, err := newHttpClient(
+	_, err := newRestyClient(
 		false,
 		60,
 		"",
 		"invalid-cert",
 		"invalid-key",
+		time.Second,
+		10*time.Second,
 	)
 
 	require.Error(t, err)
@@ -2135,6 +2141,61 @@ func TestKeycloakDoer_ConcurrentRefresh(t *testing.T) {
 	finalRefreshCount := atomic.LoadInt32(&refreshCount)
 	assert.Greater(t, finalRefreshCount, int32(0))
 	assert.LessOrEqual(t, finalRefreshCount, int32(numRequests))
+}
+
+// TestKeycloakDoer_5xxRetriesFireViaResty proves that transient 5xx responses
+// are retried by resty's middleware (via executeViaResty) and that the caller
+// ultimately receives a successful response once the server recovers.
+func TestKeycloakDoer_5xxRetriesFireViaResty(t *testing.T) {
+	t.Parallel()
+
+	const failCount = 2 // server returns 500 for the first two attempts
+
+	var callCount atomic.Int32
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.Contains(r.URL.Path, "/token") {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte(createMockTokenResponseJSON()))
+
+			return
+		}
+
+		n := callCount.Add(1)
+		if n <= failCount {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"result":"ok"}`))
+	}))
+	defer server.Close()
+
+	client, err := NewKeycloakClient(
+		context.Background(),
+		server.URL,
+		testClientID,
+		WithAccessToken(testAccessToken),
+		// Use minimal wait times so the test completes quickly.
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(5*time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	req, _ := http.NewRequest(http.MethodGet, server.URL+"/admin/realms", nil)
+	doer := &keycloakDoer{kc: client}
+	resp, err := doer.Do(req)
+
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	defer func() { _ = resp.Body.Close() }()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	// failCount failures + 1 success = failCount+1 total admin calls
+	assert.Equal(t, int32(failCount+1), callCount.Load())
 }
 
 func TestKeycloakClient_Login_ContextLogger(t *testing.T) {
