@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
@@ -28,15 +27,7 @@ func TestSessionsClient_GetRealmSessionStats(t *testing.T) {
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-sessions-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	stats, resp, err := c.Sessions.GetRealmSessionStats(ctx, realmName)
 	require.NoError(t, err)
@@ -60,15 +51,7 @@ func TestSessionsClient_LogoutAllSessions(t *testing.T) {
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-logout-all-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	resp, err := c.Sessions.LogoutAllSessions(ctx, realmName)
 	require.NoError(t, err)

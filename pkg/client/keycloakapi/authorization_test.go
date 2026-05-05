@@ -62,17 +62,7 @@ func TestAuthorizationClient_ScopeCRUD(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-scope-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -139,17 +129,7 @@ func TestAuthorizationClient_ResourceCRUD(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-res-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -239,17 +219,7 @@ func TestAuthorizationClient_PolicyCRUD(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-policy-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -350,17 +320,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-policy-types-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -676,17 +636,7 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-perm-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -758,17 +708,7 @@ func TestAuthorizationClient_GetResource(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-getres-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
@@ -803,17 +743,7 @@ func TestAuthorizationClient_GetAndUpdateScope(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-authz-getscope-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, kc, realmName)
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 

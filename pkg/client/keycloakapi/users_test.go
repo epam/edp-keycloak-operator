@@ -30,22 +30,7 @@ func TestUsersClient_UserProfile_CRUD(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-user-profile-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// 1. Get default user profile configuration
 	originalProfile, resp, err := c.Users.GetUsersProfile(ctx, realmName)
@@ -154,19 +139,9 @@ func TestUsersClient_FindUserByUsername(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-find-user-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
 
 	username := "test-find-user"
 	email := "test-find-user@example.com"
@@ -177,7 +152,7 @@ func TestUsersClient_FindUserByUsername(t *testing.T) {
 	}
 
 	// Create a user
-	resp, err = c.Users.CreateUser(ctx, realmName, user)
+	resp, err := c.Users.CreateUser(ctx, realmName, user)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -236,19 +211,9 @@ func TestUsersClient_CreateUser(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-create-user-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
 
 	username := "new-test-user"
 	email := "new-test-user@example.com"
@@ -258,7 +223,7 @@ func TestUsersClient_CreateUser(t *testing.T) {
 		Enabled:  &enabled,
 	}
 
-	resp, err = c.Users.CreateUser(ctx, realmName, user)
+	resp, err := c.Users.CreateUser(ctx, realmName, user)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -285,18 +250,9 @@ func TestUsersClient_CreateUser_Conflict(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-create-user-conflict-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	_, err = c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
 
 	username := "duplicate-user"
 	user := keycloakapi.UserRepresentation{
@@ -330,14 +286,9 @@ func TestUsersClient_GetUserRealmRoleMappings(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-user-role-mappings-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create a role
 	roleName := "mapping-test-role"
@@ -452,14 +403,9 @@ func TestUsersClient_GetUserGroups(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-user-groups-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create a user
 	username := "user-groups-test"
@@ -531,14 +477,9 @@ func TestUsersClient_AddUserToGroup(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-add-user-group-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create a user
 	username := "add-group-user"
@@ -633,14 +574,9 @@ func TestUsersClient_RemoveUserFromGroup(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-remove-user-group-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create a user
 	username := "remove-group-user"
@@ -719,14 +655,9 @@ func TestUsersClient_UpdateAndDeleteUser(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-upd-del-user-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	username := "update-delete-user"
 	_, err = c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{Username: &username, Enabled: &enabled})
@@ -801,14 +732,9 @@ func TestUsersClient_SetUserPassword(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-set-pwd-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	username := "password-user"
 	_, err = c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{Username: &username, Enabled: &enabled})
@@ -846,14 +772,9 @@ func TestUsersClient_UserClientRoleMappings(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-user-cli-roles-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create client
 	clientID := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
@@ -944,14 +865,9 @@ func TestUsersClient_UserFederatedIdentities(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-fed-id-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
-	require.NoError(t, err)
 
 	// Create an identity provider
 	alias := fmt.Sprintf("test-idp-%d", time.Now().UnixNano())
@@ -1301,15 +1217,7 @@ func newUsersTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, string) {
 
 	realmName := fmt.Sprintf("test-realm-users-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	return c, realmName
 }

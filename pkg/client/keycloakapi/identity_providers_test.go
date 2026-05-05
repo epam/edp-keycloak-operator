@@ -31,17 +31,7 @@ func newIdentityProvidersTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, s
 	require.NoError(t, err)
 
 	realmName := fmt.Sprintf("test-realm-idp-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	return c, realmName
 }

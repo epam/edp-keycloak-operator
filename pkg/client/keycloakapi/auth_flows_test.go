@@ -29,17 +29,7 @@ func TestAuthFlowsClient_CRUD(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	flowAlias := fmt.Sprintf("test-flow-%d", time.Now().UnixNano())
 	topLevel := true
@@ -132,17 +122,7 @@ func TestAuthFlowsClient_Executions(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-exec-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a custom flow to add executions to
 	flowAlias := fmt.Sprintf("test-flow-exec-%d", time.Now().UnixNano())
@@ -243,17 +223,7 @@ func TestAuthFlowsClient_ChildFlow(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-child-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create parent flow
 	flowAlias := fmt.Sprintf("test-parent-flow-%d", time.Now().UnixNano())
@@ -315,17 +285,7 @@ func TestAuthFlowsClient_ExecutionConfig(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-cfg-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a flow
 	flowAlias := fmt.Sprintf("test-flow-cfg-%d", time.Now().UnixNano())
@@ -403,17 +363,7 @@ func TestAuthFlowsClient_GetAuthenticatorConfig(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-getcfg-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a flow and add a configurable execution.
 	flowAlias := fmt.Sprintf("test-flow-getcfg-%d", time.Now().UnixNano())
@@ -495,17 +445,7 @@ func TestAuthFlowsClient_GetAuthFlow(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-getflow-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a flow and then fetch it by ID.
 	flowAlias := fmt.Sprintf("test-get-flow-%d", time.Now().UnixNano())
@@ -550,17 +490,7 @@ func TestAuthFlowsClient_CopyAuthFlow(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-copy-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	newFlowAlias := fmt.Sprintf("copy-of-browser-%d", time.Now().UnixNano())
 
@@ -599,17 +529,7 @@ func TestAuthFlowsClient_UpdateAndDeleteAuthenticatorConfig(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-updcfg-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a flow with an execution that supports config (conditional-otp).
 	flowAlias := fmt.Sprintf("cfg-flow-%d", time.Now().UnixNano())
@@ -716,17 +636,7 @@ func TestAuthFlowsClient_RequiredActions(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-af-reqaction-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Get required actions — every realm has built-in required actions.
 	actions, resp, err := c.AuthFlows.GetRequiredActions(ctx, realmName)

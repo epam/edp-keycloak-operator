@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
@@ -28,15 +27,7 @@ func newClientPoliciesTestRealm(t *testing.T, suffix string) (*keycloakapi.Keycl
 
 	realmName := fmt.Sprintf("test-realm-cp-%s-%d", suffix, time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	return c, realmName
 }

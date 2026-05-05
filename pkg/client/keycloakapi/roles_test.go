@@ -27,22 +27,7 @@ func TestRolesClient_CRUD(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-role-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	roleName := "test-role"
 	roleDescription := "Test role for CRUD operations"
@@ -53,7 +38,7 @@ func TestRolesClient_CRUD(t *testing.T) {
 		Description: &roleDescription,
 	}
 
-	resp, err = c.Roles.CreateRealmRole(ctx, realmName, role)
+	resp, err := c.Roles.CreateRealmRole(ctx, realmName, role)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -188,21 +173,7 @@ func TestRolesClient_CreateRealmRole_Conflict(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-role-conflict-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	roleName := "duplicate-role"
 	role := keycloakapi.RoleRepresentation{
@@ -210,7 +181,7 @@ func TestRolesClient_CreateRealmRole_Conflict(t *testing.T) {
 	}
 
 	// Create the role
-	resp, err = c.Roles.CreateRealmRole(ctx, realmName, role)
+	resp, err := c.Roles.CreateRealmRole(ctx, realmName, role)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -236,18 +207,7 @@ func TestRolesClient_UpdateAndComposites(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-role-composites-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	resp, err := c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	mainRoleName := "main-role"
 	subRole1Name := "sub-role-1"

@@ -1,8 +1,14 @@
 package testutils
 
 import (
+	"context"
 	"os"
 	"testing"
+	"time"
+
+	"github.com/stretchr/testify/require"
+
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 // GetKeycloakURLOrSkip returns the TEST_KEYCLOAK_URL environment variable value.
@@ -17,4 +23,26 @@ func GetKeycloakURLOrSkip(t *testing.T) string {
 	}
 
 	return url
+}
+
+// CreateRealmWithRetry creates a fresh enabled realm and registers t.Cleanup
+// to delete it. Keycloak transiently returns "unknown_error" under parallel
+// test load, so realm creation is retried for up to 10s.
+func CreateRealmWithRetry(t *testing.T, c *keycloakapi.KeycloakClient, realmName string) {
+	t.Helper()
+
+	enabled := true
+
+	require.Eventually(t, func() bool {
+		_, err := c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
+			Realm:   &realmName,
+			Enabled: &enabled,
+		})
+
+		return err == nil
+	}, 10*time.Second, time.Second, "creating realm %s", realmName)
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
 }

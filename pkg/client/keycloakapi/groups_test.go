@@ -31,22 +31,7 @@ func TestGroupsClient_CRUD(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// 1. Create a top-level group
 	groupName := "test-group"
@@ -54,7 +39,7 @@ func TestGroupsClient_CRUD(t *testing.T) {
 		Name: &groupName,
 	}
 
-	resp, err = c.Groups.CreateGroup(ctx, realmName, group)
+	resp, err := c.Groups.CreateGroup(ctx, realmName, group)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -142,21 +127,7 @@ func TestGroupsClient_ChildGroups(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-child-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	var parentGroupID *string
 
@@ -347,21 +318,7 @@ func TestGroupsClient_GetGroups_WithParams(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-params-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create multiple groups for testing
 	groupNames := []string{"alpha-group", "beta-group", "gamma-group"}
@@ -440,21 +397,7 @@ func TestGroupsClient_RealmRoleMappings(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-realm-roles-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	var groupID *string
 
@@ -586,21 +529,7 @@ func TestGroupsClient_ClientRoleMappings(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-client-roles-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	var groupID *string
 
@@ -767,21 +696,7 @@ func TestGroupsClient_FindGroupByName(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-find-grp-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Test: Find non-existent group
 	t.Run("Find Non-Existent Group", func(t *testing.T) {
@@ -865,21 +780,7 @@ func TestGroupsClient_FindChildGroupByName(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-find-child-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	var parentGroupID string
 
@@ -980,21 +881,7 @@ func TestGroupsClient_FindGroupByName_MultiLevel(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-multilevel-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a hierarchy: root-group -> level1-group -> level2-group -> level3-group
 	var rootGroupID, level1GroupID, level2GroupID, level3GroupID string
@@ -1161,21 +1048,7 @@ func TestGroupsClient_GetGroupByPath(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-grp-path-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Build hierarchy: top-group -> mid-group -> bottom-group
 	var topGroupID, midGroupID, bottomGroupID string
@@ -1300,17 +1173,7 @@ func TestGroupsClient_CountGroups(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-grp-count-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a group so count > 0.
 	groupName := fmt.Sprintf("count-group-%d", time.Now().UnixNano())
@@ -1345,17 +1208,9 @@ func TestGroupsClient_GetGroupMembers(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-grp-members-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	// Create a group.
 	groupName := fmt.Sprintf("members-group-%d", time.Now().UnixNano())
@@ -1403,17 +1258,9 @@ func TestGroupsClient_GroupManagementPermissions(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-grp-perms-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	groupName := fmt.Sprintf("perms-group-%d", time.Now().UnixNano())
 

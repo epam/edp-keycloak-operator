@@ -8,7 +8,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
@@ -179,21 +178,10 @@ func TestRealmClient_SetRealmBrowserFlow(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-browser-flow-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	resp, err := c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// "browser" is the default flow that always exists in every Keycloak realm
-	resp, err = c.Realms.SetRealmBrowserFlow(ctx, realmName, "browser")
+	resp, err := c.Realms.SetRealmBrowserFlow(ctx, realmName, "browser")
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -239,18 +227,7 @@ func TestRealmClient_SetRealmEventConfig(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-event-config-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	resp, err := c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	eventsEnabled := true
 	adminEventsEnabled := true
@@ -268,7 +245,7 @@ func TestRealmClient_SetRealmEventConfig(t *testing.T) {
 		EnabledEventTypes:         &eventTypes,
 	}
 
-	resp, err = c.Realms.SetRealmEventConfig(ctx, realmName, cfg)
+	resp, err := c.Realms.SetRealmEventConfig(ctx, realmName, cfg)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -289,17 +266,7 @@ func TestRealmClient_GetAuthenticationFlows(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-auth-flows-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	flows, resp, err := c.Realms.GetAuthenticationFlows(ctx, realmName)
 	require.NoError(t, err)
@@ -408,15 +375,7 @@ func TestRealmClient_GetRealmKeys(t *testing.T) {
 
 	realmName := fmt.Sprintf("test-realm-keys-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	keys, resp, err := c.Realms.GetRealmKeys(ctx, realmName)
 	require.NoError(t, err)
@@ -442,15 +401,7 @@ func TestRealmClient_GetRealmLocalization(t *testing.T) {
 
 	realmName := fmt.Sprintf("test-realm-localization-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// A fresh realm may have no localization entries for "en" — that is valid.
 	localization, resp, err := c.Realms.GetRealmLocalization(ctx, realmName, "en")
@@ -476,15 +427,7 @@ func TestRealmClient_PostRealmLocalization(t *testing.T) {
 
 	realmName := fmt.Sprintf("test-realm-localization-post-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	_, err = c.Realms.PostRealmLocalization(ctx, realmName, "en", map[string]string{
 		"customTestKey": "customTestValue",

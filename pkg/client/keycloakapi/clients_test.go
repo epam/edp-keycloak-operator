@@ -32,22 +32,7 @@ func TestClientsClient_ClientCRUD(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-cli-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
 	clientName := "Test Client for CRUD"
@@ -174,20 +159,7 @@ func TestClientsClient_GetClient_NotFound(t *testing.T) {
 
 	// Generate unique realm name
 	realmName := fmt.Sprintf("test-realm-cli-get-nf-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Test getting a non-existent client
 	client, resp, err := c.Clients.GetClient(ctx, realmName, "nonexistent-client-uuid-12345")
@@ -213,23 +185,10 @@ func TestClientsClient_DeleteClient_NotFound(t *testing.T) {
 
 	// Generate unique realm name
 	realmName := fmt.Sprintf("test-realm-cli-del-nf-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Test deleting a non-existent client
-	resp, err = c.Clients.DeleteClient(ctx, realmName, "nonexistent-client-uuid-12345")
+	resp, err := c.Clients.DeleteClient(ctx, realmName, "nonexistent-client-uuid-12345")
 	require.Error(t, err)
 	require.True(t, keycloakapi.IsNotFound(err), "Should return 404 error for non-existent client")
 	require.NotNil(t, resp, "Response should be present even for error")
@@ -251,21 +210,7 @@ func TestClientsClient_CreateClient_Conflict(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-cli-conflict-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := "duplicate-client"
 	protocol := protocolOpenIDConnect
@@ -275,7 +220,7 @@ func TestClientsClient_CreateClient_Conflict(t *testing.T) {
 	}
 
 	// Create the client
-	resp, err = c.Clients.CreateClient(ctx, realmName, client)
+	resp, err := c.Clients.CreateClient(ctx, realmName, client)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -302,22 +247,7 @@ func TestClientsClient_ClientRoleCRUD(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-cli-role-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm first
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create test client
 	clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
@@ -327,7 +257,7 @@ func TestClientsClient_ClientRoleCRUD(t *testing.T) {
 		Protocol: &protocol,
 	}
 
-	resp, err = c.Clients.CreateClient(ctx, realmName, client)
+	resp, err := c.Clients.CreateClient(ctx, realmName, client)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.NotNil(t, resp.HTTPResponse)
@@ -448,20 +378,7 @@ func TestClientsClient_GetClientRole_NotFound(t *testing.T) {
 
 	// Generate unique realm name
 	realmName := fmt.Sprintf("test-realm-cli-role-get-nf-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create test client
 	clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
@@ -471,7 +388,7 @@ func TestClientsClient_GetClientRole_NotFound(t *testing.T) {
 		Protocol: &protocol,
 	}
 
-	resp, err = c.Clients.CreateClient(ctx, realmName, client)
+	resp, err := c.Clients.CreateClient(ctx, realmName, client)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -503,20 +420,7 @@ func TestClientsClient_DeleteClientRole_NotFound(t *testing.T) {
 
 	// Generate unique realm name
 	realmName := fmt.Sprintf("test-realm-cli-role-del-nf-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create test client
 	clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
@@ -526,7 +430,7 @@ func TestClientsClient_DeleteClientRole_NotFound(t *testing.T) {
 		Protocol: &protocol,
 	}
 
-	resp, err = c.Clients.CreateClient(ctx, realmName, client)
+	resp, err := c.Clients.CreateClient(ctx, realmName, client)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -556,17 +460,7 @@ func TestClientsClient_GetClientByClientID(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-by-id-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-by-id-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -605,17 +499,7 @@ func TestClientsClient_GetClientUUID(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-uuid-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-uuid-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -655,17 +539,7 @@ func TestClientsClient_UpdateAndScopeMethods(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-update-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-update-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -732,17 +606,7 @@ func TestClientsClient_ServiceAccount(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-svc-acc-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-svc-acc-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -782,17 +646,7 @@ func TestClientsClient_ProtocolMapperCRUD(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-mapper-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-mapper-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -892,17 +746,7 @@ func TestClientsClient_ManagementPermissions(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-mgmt-perm-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-mgmt-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -956,17 +800,7 @@ func TestClientsClient_RoleComposites(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-role-comp-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-comp-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1045,17 +879,7 @@ func TestClientsClient_AddDefaultClientScope(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-scope-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-scope-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1122,17 +946,7 @@ func TestClientsClient_AddOptionalClientScope(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-optscope-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-optscope-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1212,21 +1026,7 @@ func TestClientsClient_CreateClientRole_Conflict(t *testing.T) {
 
 	// Generate unique realm name to avoid conflicts
 	realmName := fmt.Sprintf("test-realm-cli-role-conflict-%d", time.Now().UnixNano())
-	enabled := true
-
-	// Ensure cleanup happens even if test fails
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	// Create test realm
-	realm := keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	}
-	resp, err := c.Realms.CreateRealm(ctx, realm)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create test client
 	clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
@@ -1236,7 +1036,7 @@ func TestClientsClient_CreateClientRole_Conflict(t *testing.T) {
 		Protocol: &protocol,
 	}
 
-	resp, err = c.Clients.CreateClient(ctx, realmName, client)
+	resp, err := c.Clients.CreateClient(ctx, realmName, client)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
@@ -1276,17 +1076,7 @@ func TestClientsClient_UpdateClientRole(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cli-role-update-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	clientId := fmt.Sprintf("test-client-role-update-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1336,17 +1126,9 @@ func TestClientsClient_GetClientSecret(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-client-secret-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	// Create a confidential client.
 	clientID := fmt.Sprintf("secret-client-%d", time.Now().UnixNano())
@@ -1386,17 +1168,9 @@ func TestClientsClient_RegenerateClientSecret(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-client-regen-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	clientID := fmt.Sprintf("regen-client-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1441,17 +1215,9 @@ func TestClientsClient_GetClientSessions(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-client-sessions-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	clientID := fmt.Sprintf("sessions-client-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect
@@ -1486,17 +1252,9 @@ func TestClientsClient_GetClientInstallationProvider(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-client-install-%d", time.Now().UnixNano())
+	testutils.CreateRealmWithRetry(t, c, realmName)
+
 	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
 
 	clientID := fmt.Sprintf("install-client-%d", time.Now().UnixNano())
 	protocol := protocolOpenIDConnect

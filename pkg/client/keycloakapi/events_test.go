@@ -30,15 +30,7 @@ func newEventsTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, string) {
 
 	realmName := fmt.Sprintf("test-realm-events-%d", time.Now().UnixNano())
 
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Enable events so that queries work.
 	_, err = c.Realms.SetRealmEventConfig(context.Background(), realmName, keycloakapi.RealmEventsConfigRepresentation{

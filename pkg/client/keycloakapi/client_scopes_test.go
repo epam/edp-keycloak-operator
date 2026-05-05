@@ -27,17 +27,7 @@ func TestClientScopesClient_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cs-crud-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	scopeName := "test-scope"
 	protocol := protocolOpenIDConnect
@@ -115,17 +105,7 @@ func TestClientScopesClient_RealmScopeType(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cs-type-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	scopeName := "test-type-scope"
 	protocol := protocolOpenIDConnect
@@ -188,17 +168,7 @@ func TestClientScopesClient_ProtocolMappers(t *testing.T) {
 	ctx := context.Background()
 
 	realmName := fmt.Sprintf("test-realm-cs-mappers-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	scopeName := "test-mapper-scope"
 	protocol := protocolOpenIDConnect
@@ -273,17 +243,7 @@ func TestClientScopesClient_UpdateClientScopeProtocolMapper(t *testing.T) {
 
 	ctx := context.Background()
 	realmName := fmt.Sprintf("test-realm-cs-updmapper-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
+	testutils.CreateRealmWithRetry(t, c, realmName)
 
 	// Create a client scope.
 	scopeName := fmt.Sprintf("test-scope-updmapper-%d", time.Now().UnixNano())

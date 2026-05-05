@@ -29,18 +29,20 @@ func newOrganizationsTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, strin
 	require.NoError(t, err)
 
 	realmName := fmt.Sprintf("test-realm-org-%d", time.Now().UnixNano())
-	enabled := true
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
 	})
 
-	_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
-		Realm:                &realmName,
-		Enabled:              &enabled,
-		OrganizationsEnabled: ptr.To(true),
-	})
-	require.NoError(t, err)
+	require.Eventually(t, func() bool {
+		_, err = c.Realms.CreateRealm(context.Background(), keycloakapi.RealmRepresentation{
+			Realm:                &realmName,
+			Enabled:              ptr.To(true),
+			OrganizationsEnabled: ptr.To(true),
+		})
+
+		return err == nil
+	}, 10*time.Second, time.Second, "creating realm %s", realmName)
 
 	return c, realmName
 }
@@ -170,17 +172,22 @@ func TestOrganizationsClient_GetOrganizationByAlias(t *testing.T) {
 	orgID := ptr.Deref(org.Id, "")
 	require.NotEmpty(t, orgID)
 
-	// Rename the organization (name changes, alias stays the same)
+	// Rename the organization (name changes, alias stays the same).
+	// Keycloak transiently returns "unknown_error" under parallel test load, so retry.
 	updatedName := "Alias Test Organization Renamed"
-	_, err = c.Organizations.UpdateOrganization(ctx, realmName, orgID, keycloakapi.OrganizationRepresentation{
-		Id:    &orgID,
-		Name:  &updatedName,
-		Alias: &alias,
-		Domains: &[]keycloakapi.OrganizationDomainRepresentation{
-			{Name: ptr.To("alias-test.com")},
-		},
-	})
-	require.NoError(t, err)
+
+	require.Eventually(t, func() bool {
+		_, err = c.Organizations.UpdateOrganization(ctx, realmName, orgID, keycloakapi.OrganizationRepresentation{
+			Id:    &orgID,
+			Name:  &updatedName,
+			Alias: &alias,
+			Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("alias-test.com")},
+			},
+		})
+
+		return err == nil
+	}, 10*time.Second, time.Second, "renaming organization %s", orgID)
 
 	// GetOrganizationByAlias still finds the org by the original alias despite name change
 	renamedOrg, _, err := c.Organizations.GetOrganizationByAlias(ctx, realmName, alias)
