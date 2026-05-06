@@ -87,7 +87,7 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).NotTo(HaveOccurred())
 
-	err = SetupKeycloakRealmWebhookWithManager(mgr, mgr.GetClient())
+	err = SetupKeycloakRealmWebhookWithManager(mgr, k8sClient)
 	Expect(err).NotTo(HaveOccurred())
 
 	err = SetupKeycloakClientWebhookWithManager(mgr)
