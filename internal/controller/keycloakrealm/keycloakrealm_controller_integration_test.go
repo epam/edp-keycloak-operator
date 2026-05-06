@@ -52,7 +52,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					EnabledEventTypes:         []string{"UPDATE_CONSENT_ERROR", "CLIENT_LOGIN"},
 					EventsEnabled:             true,
 					EventsExpiration:          15000,
-					EventsListeners:           []string{"jboss-logging"},
+					EventsListeners:           []string{"jboss-logging", "email"},
 					AdminEventsExpiration:     100,
 				},
 				PasswordPolicies: []common.PasswordPolicy{
@@ -225,7 +225,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect(realm.AdminEventsEnabled).Should(Equal(ptr.To(true)))
 			g.Expect(realm.EventsEnabled).Should(Equal(ptr.To(true)))
 			g.Expect(realm.EventsExpiration).Should(Equal(ptr.To(int64(15000))))
-			g.Expect(*realm.EventsListeners).Should(ContainElement("jboss-logging"))
+			g.Expect(*realm.EventsListeners).Should(ContainElements("jboss-logging", "email"))
 			g.Expect(*realm.EnabledEventTypes).Should(ContainElements("UPDATE_CONSENT_ERROR", "CLIENT_LOGIN"))
 
 			// Verify adminEventsExpiration stored as realm attribute

@@ -152,6 +152,10 @@ For comprehensive local development setup, testing, debugging, and common develo
 
 Development versions are also available from the [snapshot Helm Chart repository](https://epam.github.io/edp-helm-charts/snapshot/) page.
 
+## Using the Keycloak Client as a Library
+
+The [`pkg/client/keycloakapi`](pkg/client/keycloakapi/) package is a standalone Go client for the Keycloak Admin REST API (Keycloak 25+, including Red Hat build of Keycloak) and can be imported independently of the operator. See the [package documentation on pkg.go.dev](https://pkg.go.dev/github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi) for usage, supported authentication options, and the available sub-clients.
+
 ### Related Articles
 
 * [Install KubeRocketCI](https://docs.kuberocketci.io/docs/operator-guide/install-kuberocketci)
