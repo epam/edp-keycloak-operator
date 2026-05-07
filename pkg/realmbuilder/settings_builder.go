@@ -21,6 +21,7 @@ type commonRealmSpec struct {
 	DisplayName                 string
 	DisplayHTMLName             string
 	OrganizationsEnabled        bool
+	AdminPermissionsEnabled     bool
 	FrontendURL                 string
 	BrowserSecurityHeaders      *map[string]string
 	PasswordPolicy              string // pre-formatted "type(value) and …" string, empty if none
@@ -99,16 +100,17 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakap
 	spec := &realm.Spec
 
 	c := commonRealmSpec{
-		DisplayName:            spec.DisplayName,
-		DisplayHTMLName:        spec.DisplayHTMLName,
-		OrganizationsEnabled:   spec.OrganizationsEnabled,
-		FrontendURL:            spec.FrontendURL,
-		BrowserSecurityHeaders: spec.BrowserSecurityHeaders,
-		TokenSettings:          spec.TokenSettings,
-		RealmEventConfig:       spec.RealmEventConfig,
-		Login:                  spec.Login,
-		Sessions:               spec.Sessions,
-		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
+		DisplayName:             spec.DisplayName,
+		DisplayHTMLName:         spec.DisplayHTMLName,
+		OrganizationsEnabled:    spec.OrganizationsEnabled,
+		AdminPermissionsEnabled: spec.AdminPermissionsEnabled,
+		FrontendURL:             spec.FrontendURL,
+		BrowserSecurityHeaders:  spec.BrowserSecurityHeaders,
+		TokenSettings:           spec.TokenSettings,
+		RealmEventConfig:        spec.RealmEventConfig,
+		Login:                   spec.Login,
+		Sessions:                spec.Sessions,
+		PasswordPolicy:          buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
 	if spec.Themes != nil {
@@ -145,16 +147,17 @@ func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) 
 	spec := &realm.Spec
 
 	c := commonRealmSpec{
-		DisplayName:            spec.DisplayName,
-		DisplayHTMLName:        spec.DisplayHTMLName,
-		OrganizationsEnabled:   spec.OrganizationsEnabled,
-		FrontendURL:            spec.FrontendURL,
-		BrowserSecurityHeaders: spec.BrowserSecurityHeaders,
-		TokenSettings:          spec.TokenSettings,
-		RealmEventConfig:       spec.RealmEventConfig,
-		Login:                  spec.Login,
-		Sessions:               spec.Sessions,
-		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
+		DisplayName:             spec.DisplayName,
+		DisplayHTMLName:         spec.DisplayHTMLName,
+		OrganizationsEnabled:    spec.OrganizationsEnabled,
+		AdminPermissionsEnabled: spec.AdminPermissionsEnabled,
+		FrontendURL:             spec.FrontendURL,
+		BrowserSecurityHeaders:  spec.BrowserSecurityHeaders,
+		TokenSettings:           spec.TokenSettings,
+		RealmEventConfig:        spec.RealmEventConfig,
+		Login:                   spec.Login,
+		Sessions:                spec.Sessions,
+		PasswordPolicy:          buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
 	if spec.Themes != nil {
@@ -205,6 +208,7 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 		DisplayName:                 ptr.To(spec.DisplayName),
 		DisplayNameHtml:             ptr.To(spec.DisplayHTMLName),
 		OrganizationsEnabled:        ptr.To(spec.OrganizationsEnabled),
+		AdminPermissionsEnabled:     ptr.To(spec.AdminPermissionsEnabled),
 		LoginTheme:                  spec.LoginTheme,
 		AccountTheme:                spec.AccountTheme,
 		AdminTheme:                  spec.AdminTheme,
@@ -285,6 +289,7 @@ func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.DisplayName, &overlay.DisplayName)
 	mergePtr(&base.DisplayNameHtml, &overlay.DisplayNameHtml)
 	mergePtr(&base.OrganizationsEnabled, &overlay.OrganizationsEnabled)
+	mergePtr(&base.AdminPermissionsEnabled, &overlay.AdminPermissionsEnabled)
 	mergePtr(&base.LoginTheme, &overlay.LoginTheme)
 	mergePtr(&base.AccountTheme, &overlay.AccountTheme)
 	mergePtr(&base.AdminTheme, &overlay.AdminTheme)

@@ -79,6 +79,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				},
 				DisplayName:     "Test Realm",
 				DisplayHTMLName: "<b>Test Realm</b>",
+				AdminPermissionsEnabled: true,
 				UserProfileConfig: &common.UserProfileConfig{
 					Attributes: []common.UserProfileAttribute{
 						{
@@ -209,6 +210,8 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect(realm.DisplayName).Should(Equal(ptr.To("Test Realm")))
 			g.Expect(realm.DisplayNameHtml).Should(Equal(ptr.To("<b>Test Realm</b>")))
 			g.Expect(realm.BrowserFlow).Should(Equal(ptr.To("browser")))
+			g.Expect(realm.AdminPermissionsEnabled).ShouldNot(BeNil())
+			g.Expect(*realm.AdminPermissionsEnabled).Should(BeTrue())
 
 			// Verify token settings
 			g.Expect(realm.DefaultSignatureAlgorithm).Should(Equal(ptr.To("RS256")))

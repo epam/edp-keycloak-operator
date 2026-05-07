@@ -329,7 +329,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: start-keycloak
 start-keycloak: ## Start Keycloak instance for testing
-	docker run -d -p 8086:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin -e KC_FEATURES=admin-fine-grained-authz:v1 --name keycloak-test quay.io/keycloak/keycloak:latest start-dev
+	docker run -d -p 8086:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin --name keycloak-test quay.io/keycloak/keycloak:latest start-dev
 
 .PHONY: delete-keycloak
 delete-keycloak: ## Stop Keycloak test instance
