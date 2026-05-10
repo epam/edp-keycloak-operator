@@ -2,6 +2,26 @@
 ## [Unreleased]
 
 
+<a name="v1.33.0"></a>
+## [v1.33.0] - 2026-05-10
+### Features
+- Add hideOnLogin support for KeycloakRealmIdentityProvider
+- support hierarchical group paths in user groups
+- add description field to KeycloakRealmGroup ([#276](https://github.com/epam/edp-keycloak-operator/issues/276))
+- Introduce generated Keycloak client to replace gocloak
+
+### Code Refactoring
+- update keycloak client package references from keycloakv2 to keycloakapi
+- remove legacy gocloak adapter package
+- add golangci-lint gofmt rewrite rule to enforce the use of `any`
+
+### Routine
+- Update current development version ([#285](https://github.com/epam/edp-keycloak-operator/issues/285))
+
+### Documentation
+- add shared AI assistant context and reusable dev workflow skills
+
+
 <a name="v1.32.0"></a>
 ## [v1.32.0] - 2026-02-04
 ### Features
@@ -326,7 +346,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.33.0...HEAD
+[v1.33.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...v1.33.0
 [v1.32.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...v1.32.0
 [v1.31.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...v1.31.1
 [v1.31.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.30.0...v1.31.0
