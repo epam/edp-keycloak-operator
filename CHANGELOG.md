@@ -3,7 +3,7 @@
 
 
 <a name="v1.33.0"></a>
-## v1.33.0 - 2026-05-06
+## v1.33.0 - 2026-05-10
 ### Features
 - Add hideOnLogin support for KeycloakRealmIdentityProvider
 - support hierarchical group paths in user groups
