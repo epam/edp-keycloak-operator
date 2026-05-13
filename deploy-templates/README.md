@@ -145,6 +145,7 @@ Development versions are also available from the [snapshot helm chart repository
 | name | string | `"keycloak-operator"` | Application name string |
 | nodeSelector | object | `{}` | Node labels for pod assignment |
 | podLabels | object | `{}` | Labels to be added to the pod |
+| replicaCount | int | `1` | Number of operator replicas. |
 | resources | object | `{"limits":{"memory":"192Mi"},"requests":{"cpu":"50m","memory":"64Mi"}}` | Resource limits and requests for the pod |
 | securityContext | object | `{"runAsNonRoot":true}` | Deployment Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | serviceAccount | object | `{"annotations":{},"create":true,"labels":{},"name":"edp-keycloak-operator"}` | ServiceAccount configuration |
