@@ -9,7 +9,7 @@ metadata:
   {{- end }}
   name: {{ .Values.name }}
 spec:
-  replicas: 1
+  replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       name: {{ .Values.name }}

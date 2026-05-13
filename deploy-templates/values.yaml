@@ -1,5 +1,7 @@
 # -- Application name string
 name: keycloak-operator
+# -- Number of operator replicas.
+replicaCount: 1
 # -- Annotations to be added to the Deployment
 annotations: {}
 # -- Cluster domain for constructing service DNS names
