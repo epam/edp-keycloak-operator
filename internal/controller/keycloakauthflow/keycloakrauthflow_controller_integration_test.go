@@ -242,6 +242,107 @@ var _ = Describe("KeycloakAuthFlow controller", Ordered, func() {
 			g.Expect(*exec.Requirement).Should(Equal("REQUIRED"))
 		}, timeout, interval).Should(Succeed())
 	})
+	It("Should preserve priority ordering when parent mixes non-flow execs and a child sub-flow", func() {
+		By("Creating a parent KeycloakAuthFlow with two non-flow execs and a child sub-flow reference")
+		parentAuthFlow := &keycloakApi.KeycloakAuthFlow{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-auth-flow-priority-parent",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakAuthFlowSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Alias:       "test-auth-flow-priority-parent",
+				Description: "test-auth-flow-priority-parent",
+				ProviderID:  "basic-flow",
+				TopLevel:    true,
+				AuthenticationExecutions: []keycloakApi.AuthenticationExecution{
+					{
+						Authenticator: "auth-cookie",
+						Requirement:   "ALTERNATIVE",
+						Priority:      0,
+					},
+					{
+						Authenticator: "identity-provider-redirector",
+						Requirement:   "ALTERNATIVE",
+						Priority:      1,
+					},
+					{
+						Alias:             "test-auth-flow-priority-child",
+						Authenticator:     "basic-flow",
+						AuthenticatorFlow: true,
+						Requirement:       "ALTERNATIVE",
+						Priority:          2,
+					},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, parentAuthFlow)).Should(Succeed())
+
+		By("Creating the child KeycloakAuthFlow referenced by the parent")
+		childAuthFlow := &keycloakApi.KeycloakAuthFlow{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-auth-flow-priority-child",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakAuthFlowSpec{
+				RealmRef: common.RealmRef{
+					Kind: keycloakApi.KeycloakRealmKind,
+					Name: KeycloakRealmCR,
+				},
+				Alias:            "test-auth-flow-priority-child",
+				Description:      "test-auth-flow-priority-child",
+				ParentName:       parentAuthFlow.Name,
+				ChildType:        "basic-flow",
+				ProviderID:       "registration-page-form",
+				ChildRequirement: "ALTERNATIVE",
+			},
+		}
+		Expect(k8sClient.Create(ctx, childAuthFlow)).Should(Succeed())
+
+		By("Waiting for both parent and child to reach StatusOK")
+		Eventually(func(g Gomega) {
+			gotParent := &keycloakApi.KeycloakAuthFlow{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: parentAuthFlow.Name, Namespace: ns}, gotParent)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(gotParent.Status.Value).Should(Equal(common.StatusOK))
+
+			gotChild := &keycloakApi.KeycloakAuthFlow{}
+			err = k8sClient.Get(ctx, types.NamespacedName{Name: childAuthFlow.Name, Namespace: ns}, gotChild)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(gotChild.Status.Value).Should(Equal(common.StatusOK))
+		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
+
+		By("Verifying executions priority and ordering via Keycloak API")
+		Eventually(func(g Gomega) {
+			execs, _, err := keycloakApiClient.AuthFlows.GetFlowExecutions(ctx, KeycloakRealmCR, "test-auth-flow-priority-parent")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(execs).Should(HaveLen(3))
+
+			cookie := findExecutionByProviderId(execs, "auth-cookie")
+			g.Expect(cookie).ShouldNot(BeNil())
+			g.Expect(cookie.Priority).ShouldNot(BeNil())
+			g.Expect(*cookie.Priority).Should(Equal(int32(0)))
+			g.Expect(cookie.Index).ShouldNot(BeNil())
+			g.Expect(*cookie.Index).Should(Equal(int32(0)))
+
+			idp := findExecutionByProviderId(execs, "identity-provider-redirector")
+			g.Expect(idp).ShouldNot(BeNil())
+			g.Expect(idp.Priority).ShouldNot(BeNil())
+			g.Expect(*idp.Priority).Should(Equal(int32(1)))
+			g.Expect(idp.Index).ShouldNot(BeNil())
+			g.Expect(*idp.Index).Should(Equal(int32(1)))
+
+			subFlow := findExecutionByDisplayName(execs, "test-auth-flow-priority-child")
+			g.Expect(subFlow).ShouldNot(BeNil())
+			g.Expect(subFlow.Priority).ShouldNot(BeNil())
+			g.Expect(*subFlow.Priority).Should(Equal(int32(2)))
+			g.Expect(subFlow.Index).ShouldNot(BeNil())
+			g.Expect(*subFlow.Index).Should(Equal(int32(2)))
+		}, timeout, interval).Should(Succeed())
+	})
 })
 
 func findAuthFlowByAlias(flows []keycloakapi.AuthFlowRepresentation, alias string) *keycloakapi.AuthFlowRepresentation {
