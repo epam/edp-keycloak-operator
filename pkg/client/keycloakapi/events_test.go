@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
@@ -41,7 +42,7 @@ func newEventsTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, string) {
 	require.NoError(t, err)
 
 	// Enable events so that queries work.
-	_, err = c.Realms.SetRealmEventConfig(context.Background(), realmName, keycloakapi.RealmEventsConfigRepresentation{
+	_, err = c.Events.SetEventsConfig(context.Background(), realmName, keycloakapi.RealmEventsConfigRepresentation{
 		EventsEnabled:      ptr.To(true),
 		AdminEventsEnabled: ptr.To(true),
 	})
@@ -153,5 +154,102 @@ func TestEventsClient_BruteForce(t *testing.T) {
 	// ClearAllBruteForce — should succeed.
 	resp, err = c.Events.ClearAllBruteForce(ctx, realmName)
 	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestEventsClient_SetEventsConfig(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newEventsTestRealm(t)
+	ctx := context.Background()
+
+	var eventsExpiration int64 = 3600
+
+	eventTypes := []string{"LOGIN", "LOGOUT"}
+
+	cfg := keycloakapi.RealmEventsConfigRepresentation{
+		EventsEnabled:             ptr.To(true),
+		AdminEventsEnabled:        ptr.To(true),
+		AdminEventsDetailsEnabled: ptr.To(true),
+		EventsExpiration:          &eventsExpiration,
+		EnabledEventTypes:         &eventTypes,
+	}
+
+	resp, err := c.Events.SetEventsConfig(ctx, realmName, cfg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, resp.HTTPResponse)
+}
+
+func TestEventsClient_SetEventsConfig_RealmNotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	cfg := keycloakapi.RealmEventsConfigRepresentation{
+		EventsEnabled: ptr.To(true),
+	}
+
+	resp, err := c.Events.SetEventsConfig(context.Background(), "nonexistent-realm-12345", cfg)
+	require.Error(t, err)
+	require.True(t, keycloakapi.IsNotFound(err))
+	require.NotNil(t, resp)
+}
+
+func TestEventsClient_GetEventsConfig_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newEventsTestRealm(t)
+	ctx := context.Background()
+
+	var expiration int64 = 7200
+
+	eventTypes := []string{"LOGIN", "LOGOUT"}
+
+	_, err := c.Events.SetEventsConfig(ctx, realmName, keycloakapi.RealmEventsConfigRepresentation{
+		EventsEnabled:             ptr.To(true),
+		AdminEventsEnabled:        ptr.To(true),
+		AdminEventsDetailsEnabled: ptr.To(false),
+		EventsExpiration:          &expiration,
+		EnabledEventTypes:         &eventTypes,
+	})
+	require.NoError(t, err)
+
+	got, resp, err := c.Events.GetEventsConfig(ctx, realmName)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, got)
+
+	assert.Equal(t, ptr.To(true), got.EventsEnabled)
+	assert.Equal(t, ptr.To(true), got.AdminEventsEnabled)
+	assert.Equal(t, ptr.To(false), got.AdminEventsDetailsEnabled)
+	assert.Equal(t, ptr.To(expiration), got.EventsExpiration)
+	require.NotNil(t, got.EnabledEventTypes)
+	assert.ElementsMatch(t, eventTypes, *got.EnabledEventTypes)
+}
+
+func TestEventsClient_GetEventsConfig_RealmNotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	cfg, resp, err := c.Events.GetEventsConfig(context.Background(), "nonexistent-realm-12345")
+	require.Error(t, err)
+	require.True(t, keycloakapi.IsNotFound(err))
+	require.Nil(t, cfg)
 	require.NotNil(t, resp)
 }

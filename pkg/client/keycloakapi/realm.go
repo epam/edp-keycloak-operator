@@ -151,29 +151,6 @@ func (c *realmClient) GetAuthenticationFlows(
 	return *res.JSON200, response, nil
 }
 
-func (c *realmClient) SetRealmEventConfig(
-	ctx context.Context,
-	realm string,
-	cfg RealmEventsConfigRepresentation,
-) (*Response, error) {
-	res, err := c.client.PutAdminRealmsRealmEventsConfigWithResponse(ctx, realm, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	if res == nil {
-		return nil, ErrNilResponse
-	}
-
-	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
-
-	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
-		return response, err
-	}
-
-	return response, nil
-}
-
 func (c *realmClient) GetRealms(ctx context.Context) ([]RealmRepresentation, *Response, error) {
 	res, err := c.client.GetAdminRealmsWithResponse(ctx, nil)
 	if err != nil {

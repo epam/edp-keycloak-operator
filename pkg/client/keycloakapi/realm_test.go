@@ -224,56 +224,6 @@ func TestRealmClient_SetRealmBrowserFlow_RealmNotFound(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
-func TestRealmClient_SetRealmEventConfig(t *testing.T) {
-	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
-	t.Parallel()
-
-	c, err := keycloakapi.NewKeycloakClient(
-		context.Background(),
-		keycloakURL,
-		keycloakapi.DefaultAdminClientID,
-		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
-	)
-	require.NoError(t, err)
-
-	ctx := context.Background()
-
-	realmName := fmt.Sprintf("test-realm-event-config-%d", time.Now().UnixNano())
-	enabled := true
-
-	t.Cleanup(func() {
-		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
-	})
-
-	resp, err := c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
-		Realm:   &realmName,
-		Enabled: &enabled,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-
-	eventsEnabled := true
-	adminEventsEnabled := true
-	adminEventsDetailsEnabled := true
-
-	var eventsExpiration int64 = 3600
-
-	eventTypes := []string{"LOGIN", "LOGOUT"}
-
-	cfg := keycloakapi.RealmEventsConfigRepresentation{
-		EventsEnabled:             &eventsEnabled,
-		AdminEventsEnabled:        &adminEventsEnabled,
-		AdminEventsDetailsEnabled: &adminEventsDetailsEnabled,
-		EventsExpiration:          &eventsExpiration,
-		EnabledEventTypes:         &eventTypes,
-	}
-
-	resp, err = c.Realms.SetRealmEventConfig(ctx, realmName, cfg)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.NotNil(t, resp.HTTPResponse)
-}
-
 func TestRealmClient_GetAuthenticationFlows(t *testing.T) {
 	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
 	t.Parallel()
@@ -332,29 +282,6 @@ func TestRealmClient_GetAuthenticationFlows_RealmNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	_, resp, err := c.Realms.GetAuthenticationFlows(context.Background(), "nonexistent-realm-12345")
-	require.Error(t, err)
-	require.True(t, keycloakapi.IsNotFound(err))
-	require.NotNil(t, resp)
-}
-
-func TestRealmClient_SetRealmEventConfig_RealmNotFound(t *testing.T) {
-	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
-	t.Parallel()
-
-	c, err := keycloakapi.NewKeycloakClient(
-		context.Background(),
-		keycloakURL,
-		keycloakapi.DefaultAdminClientID,
-		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
-	)
-	require.NoError(t, err)
-
-	eventsEnabled := true
-	cfg := keycloakapi.RealmEventsConfigRepresentation{
-		EventsEnabled: &eventsEnabled,
-	}
-
-	resp, err := c.Realms.SetRealmEventConfig(context.Background(), "nonexistent-realm-12345", cfg)
 	require.Error(t, err)
 	require.True(t, keycloakapi.IsNotFound(err))
 	require.NotNil(t, resp)

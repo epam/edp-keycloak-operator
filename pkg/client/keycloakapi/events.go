@@ -28,6 +28,8 @@ type EventsClient interface {
 	DeleteAdminEvents(ctx context.Context, realm string) (*Response, error)
 	// GetEventsConfig returns the events configuration for a realm.
 	GetEventsConfig(ctx context.Context, realm string) (*RealmEventsConfigRepresentation, *Response, error)
+	// SetEventsConfig updates the events configuration for a realm.
+	SetEventsConfig(ctx context.Context, realm string, cfg RealmEventsConfigRepresentation) (*Response, error)
 	// GetBruteForceStatus returns the brute-force detection status for a user.
 	GetBruteForceStatus(ctx context.Context, realm, userID string) (map[string]any, *Response, error)
 	// ClearBruteForceForUser clears brute-force lockout for a specific user.
@@ -154,6 +156,29 @@ func (c *eventsClient) GetEventsConfig(
 	}
 
 	return res.JSON200, response, nil
+}
+
+func (c *eventsClient) SetEventsConfig(
+	ctx context.Context,
+	realm string,
+	cfg RealmEventsConfigRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmEventsConfigWithResponse(ctx, realm, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
 }
 
 func (c *eventsClient) GetBruteForceStatus(

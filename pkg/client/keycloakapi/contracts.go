@@ -132,8 +132,6 @@ type RealmClient interface {
 	UpdateRealm(ctx context.Context, realm string, realmRep RealmRepresentation) (*Response, error)
 	// DeleteRealm deletes a realm by name.
 	DeleteRealm(ctx context.Context, realm string) (*Response, error)
-	// SetRealmEventConfig updates the events configuration for a realm.
-	SetRealmEventConfig(ctx context.Context, realm string, cfg RealmEventsConfigRepresentation) (*Response, error)
 	// SetRealmBrowserFlow sets the browser authentication flow for a realm.
 	SetRealmBrowserFlow(ctx context.Context, realm string, flowAlias string) (*Response, error)
 	// GetAuthenticationFlows returns all authentication flows for a realm.

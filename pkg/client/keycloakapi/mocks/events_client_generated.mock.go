@@ -637,3 +637,77 @@ func (_c *MockEventsClient_GetEventsConfig_Call) RunAndReturn(run func(ctx conte
 	_c.Call.Return(run)
 	return _c
 }
+
+// SetEventsConfig provides a mock function for the type MockEventsClient
+func (_mock *MockEventsClient) SetEventsConfig(ctx context.Context, realm string, cfg keycloakapi.RealmEventsConfigRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, cfg)
+
+	if len(ret) == 0 {
+		panic("no return value specified for SetEventsConfig")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, keycloakapi.RealmEventsConfigRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, cfg)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, keycloakapi.RealmEventsConfigRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, cfg)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, keycloakapi.RealmEventsConfigRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, cfg)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockEventsClient_SetEventsConfig_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'SetEventsConfig'
+type MockEventsClient_SetEventsConfig_Call struct {
+	*mock.Call
+}
+
+// SetEventsConfig is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - cfg keycloakapi.RealmEventsConfigRepresentation
+func (_e *MockEventsClient_Expecter) SetEventsConfig(ctx interface{}, realm interface{}, cfg interface{}) *MockEventsClient_SetEventsConfig_Call {
+	return &MockEventsClient_SetEventsConfig_Call{Call: _e.mock.On("SetEventsConfig", ctx, realm, cfg)}
+}
+
+func (_c *MockEventsClient_SetEventsConfig_Call) Run(run func(ctx context.Context, realm string, cfg keycloakapi.RealmEventsConfigRepresentation)) *MockEventsClient_SetEventsConfig_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 keycloakapi.RealmEventsConfigRepresentation
+		if args[2] != nil {
+			arg2 = args[2].(keycloakapi.RealmEventsConfigRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockEventsClient_SetEventsConfig_Call) Return(response *keycloakapi.Response, err error) *MockEventsClient_SetEventsConfig_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockEventsClient_SetEventsConfig_Call) RunAndReturn(run func(ctx context.Context, realm string, cfg keycloakapi.RealmEventsConfigRepresentation) (*keycloakapi.Response, error)) *MockEventsClient_SetEventsConfig_Call {
+	_c.Call.Return(run)
+	return _c
+}

@@ -297,12 +297,14 @@ type RealmSSOOfflineSessionSettings struct {
 // RealmEventConfig is the configuration for events in the realm.
 type RealmEventConfig struct {
 	// AdminEventsDetailsEnabled indicates whether to enable detailed admin events.
+	// +nullable
 	// +optional
-	AdminEventsDetailsEnabled bool `json:"adminEventsDetailsEnabled,omitempty"`
+	AdminEventsDetailsEnabled *bool `json:"adminEventsDetailsEnabled,omitempty"`
 
 	// AdminEventsEnabled indicates whether to enable admin events.
+	// +nullable
 	// +optional
-	AdminEventsEnabled bool `json:"adminEventsEnabled,omitempty"`
+	AdminEventsEnabled *bool `json:"adminEventsEnabled,omitempty"`
 
 	// AdminEventsExpiration sets the expiration for events in seconds.
 	// Expired events are periodically deleted from the database.
@@ -315,12 +317,14 @@ type RealmEventConfig struct {
 	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
 
 	// EventsEnabled indicates whether to enable events.
+	// +nullable
 	// +optional
-	EventsEnabled bool `json:"eventsEnabled,omitempty"`
+	EventsEnabled *bool `json:"eventsEnabled,omitempty"`
 
 	// EventsExpiration is the number of seconds after which events expire.
+	// +nullable
 	// +optional
-	EventsExpiration int `json:"eventsExpiration,omitempty"`
+	EventsExpiration *int `json:"eventsExpiration,omitempty"`
 
 	// EventsListeners is a list of event listeners to enable.
 	// +optional

@@ -206,10 +206,12 @@ spec:
                   adminEventsDetailsEnabled:
                     description: AdminEventsDetailsEnabled indicates whether to enable
                       detailed admin events.
+                    nullable: true
                     type: boolean
                   adminEventsEnabled:
                     description: AdminEventsEnabled indicates whether to enable admin
                       events.
+                    nullable: true
                     type: boolean
                   adminEventsExpiration:
                     description: |-
@@ -224,10 +226,12 @@ spec:
                     type: array
                   eventsEnabled:
                     description: EventsEnabled indicates whether to enable events.
+                    nullable: true
                     type: boolean
                   eventsExpiration:
                     description: EventsExpiration is the number of seconds after which
                       events expire.
+                    nullable: true
                     type: integer
                   eventsListeners:
                     description: EventsListeners is a list of event listeners to enable.

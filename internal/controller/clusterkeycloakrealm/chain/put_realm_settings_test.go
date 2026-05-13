@@ -20,10 +20,11 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name          string
-		realm         *v1alpha1.ClusterKeycloakRealm
-		setupMocks    func(*v2mocks.MockRealmClient)
-		expectedError string
+		name            string
+		realm           *v1alpha1.ClusterKeycloakRealm
+		setupMocks      func(*v2mocks.MockRealmClient)
+		setupEventsMock func(*v2mocks.MockEventsClient)
+		expectedError   string
 	}{
 		{
 			name: "successful realm settings update with minimal configuration",
@@ -38,6 +39,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},
+			setupEventsMock: func(_ *v2mocks.MockEventsClient) {},
 		},
 		{
 			name: "successful realm settings update with full configuration",
@@ -49,12 +51,12 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 					DisplayName:          "Test Realm",
 					OrganizationsEnabled: true,
 					RealmEventConfig: &common.RealmEventConfig{
-						AdminEventsDetailsEnabled: true,
-						AdminEventsEnabled:        true,
+						AdminEventsDetailsEnabled: ptr.To(true),
+						AdminEventsEnabled:        ptr.To(true),
 						AdminEventsExpiration:     3600,
 						EnabledEventTypes:         []string{"LOGIN", "LOGOUT"},
-						EventsEnabled:             true,
-						EventsExpiration:          7200,
+						EventsEnabled:             ptr.To(true),
+						EventsExpiration:          ptr.To(7200),
 						EventsListeners:           []string{"jboss-logging"},
 					},
 					Themes: &v1alpha1.ClusterRealmThemes{
@@ -79,26 +81,33 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				},
 			},
 			setupMocks: func(m *v2mocks.MockRealmClient) {
-				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
-					Return(nil, nil)
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, nil)
 			},
+			setupEventsMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm", mock.Anything).
+					Return(nil, nil)
+			},
 		},
 		{
-			name: "error when SetRealmEventConfig fails",
+			name: "error when SetEventsConfig fails",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName: "test-realm",
 					RealmEventConfig: &common.RealmEventConfig{
-						EventsEnabled: true,
+						EventsEnabled: ptr.To(true),
 					},
 				},
 			},
-			setupMocks: func(m *v2mocks.MockRealmClient) {
-				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
+			setupMocks: func(_ *v2mocks.MockRealmClient) {},
+			setupEventsMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, assert.AnError)
 			},
 			expectedError: "unable to set realm event config",
@@ -114,7 +123,8 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
 					Return(nil, nil, assert.AnError)
 			},
-			expectedError: "unable to get realm",
+			setupEventsMock: func(_ *v2mocks.MockEventsClient) {},
+			expectedError:   "unable to get realm",
 		},
 		{
 			name: "error when UpdateRealm fails",
@@ -129,7 +139,8 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, assert.AnError)
 			},
-			expectedError: "unable to update realm settings",
+			setupEventsMock: func(_ *v2mocks.MockEventsClient) {},
+			expectedError:   "unable to update realm settings",
 		},
 	}
 
@@ -140,8 +151,11 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			mockRealm := v2mocks.NewMockRealmClient(t)
 			tt.setupMocks(mockRealm)
 
+			mockEvents := v2mocks.NewMockEventsClient(t)
+			tt.setupEventsMock(mockEvents)
+
 			handler := NewPutRealmSettings()
-			kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
+			kClient := &keycloakapi.KeycloakClient{Realms: mockRealm, Events: mockEvents}
 
 			err := handler.ServeRequest(context.Background(), tt.realm, kClient)
 
