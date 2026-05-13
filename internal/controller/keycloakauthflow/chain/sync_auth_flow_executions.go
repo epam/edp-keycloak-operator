@@ -60,7 +60,7 @@ func (h *SyncAuthFlowExecutions) Serve(ctx context.Context, flow *keycloakApi.Ke
 	for i := range execsToAdd {
 		e := &execsToAdd[i]
 
-		execID, err := h.addExecution(ctx, realmName, flowID, e.Authenticator, e.Requirement)
+		execID, err := h.addExecution(ctx, realmName, flowID, e.Authenticator, e.Requirement, e.Priority)
 		if err != nil {
 			return fmt.Errorf("failed to add execution %q: %w", e.Authenticator, err)
 		}
@@ -110,11 +110,19 @@ func (h *SyncAuthFlowExecutions) clearNonFlowExecutions(ctx context.Context, flo
 }
 
 // addExecution posts a new execution to the flow and returns the new execution ID from the Location header.
-func (h *SyncAuthFlowExecutions) addExecution(ctx context.Context, realmName, flowID, authenticator, requirement string) (string, error) {
+// Priority is always serialized (even when zero) so that Keycloak does not auto-assign it sequentially —
+// auto-assigned priorities collide with later adjustChildFlowsPriority updates when a parent flow mixes
+// non-flow executions with a child sub-flow.
+func (h *SyncAuthFlowExecutions) addExecution(
+	ctx context.Context, realmName, flowID, authenticator, requirement string, priority int,
+) (string, error) {
+	p := int32(priority)
+
 	resp, err := h.kClient.AuthFlows.AddExecutionToFlow(ctx, realmName, keycloakapi.AuthenticationExecutionRepresentation{
 		Authenticator: &authenticator,
 		ParentFlow:    &flowID,
 		Requirement:   &requirement,
+		Priority:      &p,
 	})
 	if err != nil {
 		return "", fmt.Errorf("failed to post execution: %w", err)

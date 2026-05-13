@@ -108,6 +108,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecution(t *testing.T) {
 			Authenticator: ptr.To("basic-auth"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
+			Priority:      ptr.To(int32(0)),
 		},
 	).Return(locationResponse(testExecID), nil)
 
@@ -145,6 +146,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionWithConfig(t *testing.T) {
 			Authenticator: ptr.To("identity-provider-redirector"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
+			Priority:      ptr.To(int32(0)),
 		},
 	).Return(locationResponse(testExecID), nil)
 
@@ -269,6 +271,7 @@ func TestSyncAuthFlowExecutions_Serve_AddExecutionError(t *testing.T) {
 			Authenticator: ptr.To("basic-auth"),
 			ParentFlow:    ptr.To(testFlowID),
 			Requirement:   ptr.To(""),
+			Priority:      ptr.To(int32(0)),
 		},
 	).Return(nil, errors.New("add failed"))
 
@@ -296,4 +299,33 @@ func TestSyncAuthFlowExecutions_Serve_EmptyFlowID(t *testing.T) {
 	err := h.Serve(context.Background(), flow, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "flow ID is empty")
+}
+
+func TestSyncAuthFlowExecutions_Serve_AddExecutionPropagatesPriority(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	flow.Spec.Alias = testFlowAlias
+	flow.Status.ID = testFlowID
+	flow.Spec.AuthenticationExecutions = []keycloakApi.AuthenticationExecution{
+		{Authenticator: "basic-auth", AuthenticatorFlow: false, Priority: 5, Requirement: "REQUIRED"},
+	}
+
+	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{}, nil, nil)
+
+	mockFlows.EXPECT().AddExecutionToFlow(
+		context.Background(), testRealmName,
+		keycloakapi.AuthenticationExecutionRepresentation{
+			Authenticator: ptr.To("basic-auth"),
+			ParentFlow:    ptr.To(testFlowID),
+			Requirement:   ptr.To("REQUIRED"),
+			Priority:      ptr.To(int32(5)),
+		},
+	).Return(locationResponse(testExecID), nil)
+
+	h := NewSyncAuthFlowExecutions(kc)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.NoError(t, err)
 }
