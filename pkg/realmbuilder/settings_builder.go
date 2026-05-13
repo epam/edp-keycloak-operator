@@ -38,33 +38,55 @@ type commonRealmSpec struct {
 }
 
 // ApplyRealmEventConfig sets the realm event configuration in Keycloak.
+// It fetches the current config first, overlays only the fields the user explicitly
+// set (non-nil pointer fields), and writes the result back. This ensures that omitting
+// a boolean field in the CR means "preserve current Keycloak value" rather than
+// silently resetting it to false.
 // It is a no-op if cfg is nil.
 func ApplyRealmEventConfig(
 	ctx context.Context,
 	realmName string,
 	cfg *common.RealmEventConfig,
-	realmClient keycloakapi.RealmClient,
+	eventsClient keycloakapi.EventsClient,
 ) error {
 	if cfg == nil {
 		return nil
 	}
 
-	rep := keycloakapi.RealmEventsConfigRepresentation{
-		AdminEventsDetailsEnabled: ptr.To(cfg.AdminEventsDetailsEnabled),
-		AdminEventsEnabled:        ptr.To(cfg.AdminEventsEnabled),
-		EventsEnabled:             ptr.To(cfg.EventsEnabled),
-		EventsExpiration:          ptr.To(int64(cfg.EventsExpiration)),
+	current, _, err := eventsClient.GetEventsConfig(ctx, realmName)
+	if err != nil {
+		return fmt.Errorf("unable to get current realm event config: %w", err)
+	}
+
+	if current == nil {
+		current = &keycloakapi.RealmEventsConfigRepresentation{}
+	}
+
+	if cfg.AdminEventsDetailsEnabled != nil {
+		current.AdminEventsDetailsEnabled = cfg.AdminEventsDetailsEnabled
+	}
+
+	if cfg.AdminEventsEnabled != nil {
+		current.AdminEventsEnabled = cfg.AdminEventsEnabled
+	}
+
+	if cfg.EventsEnabled != nil {
+		current.EventsEnabled = cfg.EventsEnabled
+	}
+
+	if cfg.EventsExpiration != nil {
+		current.EventsExpiration = ptr.To(int64(*cfg.EventsExpiration))
 	}
 
 	if cfg.EnabledEventTypes != nil {
-		rep.EnabledEventTypes = &cfg.EnabledEventTypes
+		current.EnabledEventTypes = &cfg.EnabledEventTypes
 	}
 
 	if cfg.EventsListeners != nil {
-		rep.EventsListeners = &cfg.EventsListeners
+		current.EventsListeners = &cfg.EventsListeners
 	}
 
-	if _, err := realmClient.SetRealmEventConfig(ctx, realmName, rep); err != nil {
+	if _, err := eventsClient.SetEventsConfig(ctx, realmName, *current); err != nil {
 		return fmt.Errorf("unable to set realm event config: %w", err)
 	}
 
@@ -246,13 +268,14 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 		rep.ActionTokenGeneratedByAdminLifespan = ptr.To(int32(ts.ActionTokenGeneratedByAdminLifespan))
 	}
 
-	if spec.RealmEventConfig != nil && spec.RealmEventConfig.AdminEventsEnabled {
+	eventCfg := spec.RealmEventConfig
+	if eventCfg != nil && eventCfg.AdminEventsEnabled != nil && *eventCfg.AdminEventsEnabled {
 		if rep.Attributes == nil {
 			attrs := make(map[string]string)
 			rep.Attributes = &attrs
 		}
 
-		(*rep.Attributes)["adminEventsExpiration"] = strconv.Itoa(spec.RealmEventConfig.AdminEventsExpiration)
+		(*rep.Attributes)["adminEventsExpiration"] = strconv.Itoa(eventCfg.AdminEventsExpiration)
 	}
 
 	if l := spec.Login; l != nil {

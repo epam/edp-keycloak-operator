@@ -17,7 +17,7 @@ func (h RealmSettings) ServeRequest(ctx context.Context, realm *keycloakApi.Keyc
 	rLog := log.WithValues("realm name", realm.Spec.RealmName)
 	rLog.Info("Start updating of Keycloak realm settings")
 
-	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClient.Realms); err != nil {
+	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClient.Events); err != nil {
 		return err
 	}
 

@@ -137,7 +137,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
-						AdminEventsEnabled:    true,
+						AdminEventsEnabled:    ptr.To(true),
 						AdminEventsExpiration: 3600,
 					},
 				},
@@ -153,7 +153,23 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
-						AdminEventsEnabled:    false,
+						AdminEventsEnabled:    ptr.To(false),
+						AdminEventsExpiration: 3600,
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				if got.Attributes != nil {
+					assert.NotContains(t, *got.Attributes, "adminEventsExpiration")
+				}
+			},
+		},
+		{
+			name: "admin events expiration not set when admin events nil (omitted)",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsExpiration: 3600,
 					},
 				},
@@ -383,7 +399,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
-						AdminEventsEnabled:    true,
+						AdminEventsEnabled:    ptr.To(true),
 						AdminEventsExpiration: 7200,
 					},
 				},
@@ -563,30 +579,38 @@ func TestMergeRealmRepresentation(t *testing.T) {
 func TestApplyRealmEventConfig(t *testing.T) {
 	t.Parallel()
 
+	baseConfig := &keycloakapi.RealmEventsConfigRepresentation{
+		AdminEventsDetailsEnabled: ptr.To(true),
+		AdminEventsEnabled:        ptr.To(true),
+		EventsEnabled:             ptr.To(true),
+	}
+
 	tests := []struct {
 		name      string
 		cfg       *common.RealmEventConfig
-		setupMock func(*v2mocks.MockRealmClient)
+		setupMock func(*v2mocks.MockEventsClient)
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
 			name:      "nil config — no-op",
 			cfg:       nil,
-			setupMock: func(_ *v2mocks.MockRealmClient) {},
+			setupMock: func(_ *v2mocks.MockEventsClient) {},
 			wantErr:   require.NoError,
 		},
 		{
-			name: "full config — SetRealmEventConfig called",
+			name: "full config — all booleans propagated",
 			cfg: &common.RealmEventConfig{
-				AdminEventsDetailsEnabled: true,
-				AdminEventsEnabled:        true,
-				EventsEnabled:             true,
-				EventsExpiration:          3600,
+				AdminEventsDetailsEnabled: ptr.To(true),
+				AdminEventsEnabled:        ptr.To(true),
+				EventsEnabled:             ptr.To(true),
+				EventsExpiration:          ptr.To(3600),
 				EnabledEventTypes:         []string{"LOGIN", "LOGOUT"},
 				EventsListeners:           []string{"jboss-logging"},
 			},
-			setupMock: func(m *v2mocks.MockRealmClient) {
-				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm",
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
 					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
 						return rep.AdminEventsDetailsEnabled != nil && *rep.AdminEventsDetailsEnabled &&
 							rep.AdminEventsEnabled != nil && *rep.AdminEventsEnabled &&
@@ -599,13 +623,78 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
-			name: "config without optional slices — SetRealmEventConfig called without slice fields",
+			name: "explicit false propagated for all boolean fields",
 			cfg: &common.RealmEventConfig{
-				EventsEnabled:    true,
-				EventsExpiration: 600,
+				AdminEventsDetailsEnabled: ptr.To(false),
+				AdminEventsEnabled:        ptr.To(false),
+				EventsEnabled:             ptr.To(false),
 			},
-			setupMock: func(m *v2mocks.MockRealmClient) {
-				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm",
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						AdminEventsDetailsEnabled: ptr.To(true),
+						AdminEventsEnabled:        ptr.To(true),
+						EventsEnabled:             ptr.To(true),
+					}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
+						return rep.AdminEventsDetailsEnabled != nil && !*rep.AdminEventsDetailsEnabled &&
+							rep.AdminEventsEnabled != nil && !*rep.AdminEventsEnabled &&
+							rep.EventsEnabled != nil && !*rep.EventsEnabled
+					})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "nil booleans preserve current Keycloak values",
+			cfg: &common.RealmEventConfig{
+				EventsExpiration: ptr.To(3600),
+				// all three boolean fields omitted (nil)
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(baseConfig, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
+						// booleans must stay as returned by GetEventsConfig (all true)
+						return rep.AdminEventsDetailsEnabled != nil && *rep.AdminEventsDetailsEnabled &&
+							rep.AdminEventsEnabled != nil && *rep.AdminEventsEnabled &&
+							rep.EventsEnabled != nil && *rep.EventsEnabled &&
+							// expiration overwritten
+							rep.EventsExpiration != nil && *rep.EventsExpiration == 3600
+					})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "nil expiration preserves current Keycloak value",
+			cfg: &common.RealmEventConfig{
+				EventsEnabled: ptr.To(true),
+				// EventsExpiration omitted (nil)
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EventsExpiration: ptr.To(int64(9000)),
+					}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
+						// expiration must stay as returned by GetEventsConfig
+						return rep.EventsExpiration != nil && *rep.EventsExpiration == 9000
+					})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "config without optional slices — slices not overwritten",
+			cfg: &common.RealmEventConfig{
+				EventsEnabled:    ptr.To(true),
+				EventsExpiration: ptr.To(600),
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
 					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
 						return rep.EnabledEventTypes == nil && rep.EventsListeners == nil
 					})).Return(nil, nil)
@@ -613,10 +702,24 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
-			name: "SetRealmEventConfig fails — error returned",
-			cfg:  &common.RealmEventConfig{EventsEnabled: true},
-			setupMock: func(m *v2mocks.MockRealmClient) {
-				m.EXPECT().SetRealmEventConfig(mock.Anything, "test-realm", mock.Anything).
+			name: "GetEventsConfig fails — error returned",
+			cfg:  &common.RealmEventConfig{EventsEnabled: ptr.To(true)},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(nil, nil, assert.AnError)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to get current realm event config")
+			},
+		},
+		{
+			name: "SetEventsConfig fails — error returned",
+			cfg:  &common.RealmEventConfig{EventsEnabled: ptr.To(true)},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm", mock.Anything).
 					Return(nil, assert.AnError)
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -630,7 +733,7 @@ func TestApplyRealmEventConfig(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			m := v2mocks.NewMockRealmClient(t)
+			m := v2mocks.NewMockEventsClient(t)
 			tt.setupMock(m)
 
 			err := ApplyRealmEventConfig(context.Background(), "test-realm", tt.cfg, m)

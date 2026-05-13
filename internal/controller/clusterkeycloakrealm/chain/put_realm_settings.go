@@ -22,7 +22,7 @@ func (h PutRealmSettings) ServeRequest(ctx context.Context, realm *v1alpha1.Clus
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Start updating of keycloak realm settings")
 
-	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClient.Realms); err != nil {
+	if err := realmbuilder.ApplyRealmEventConfig(ctx, realm.Spec.RealmName, realm.Spec.RealmEventConfig, kClient.Events); err != nil {
 		return err
 	}
 

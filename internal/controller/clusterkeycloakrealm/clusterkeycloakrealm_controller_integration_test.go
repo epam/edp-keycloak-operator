@@ -44,7 +44,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 				DisplayName:     "Test Realm",
 				DisplayHTMLName: "<b>Test Realm</b>",
 				RealmEventConfig: &common.RealmEventConfig{
-					AdminEventsEnabled:    true,
+					AdminEventsEnabled:    ptr.To(true),
 					AdminEventsExpiration: 100,
 				},
 			},
