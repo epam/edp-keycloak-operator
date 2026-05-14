@@ -53,6 +53,10 @@ spec:
           spec:
             description: ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
             properties:
+              adminPermissionsEnabled:
+                description: AdminPermissionsEnabled enables Keycloak fine-grained v2
+                  admin permissions for this realm.
+                type: boolean
               authenticationFlows:
                 description: AuthenticationFlow is the configuration for authentication
                   flows in the realm.

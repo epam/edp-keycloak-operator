@@ -5,6 +5,7 @@ metadata:
 spec:
   clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample1234
+  adminPermissionsEnabled: true
   authenticationFlows:
     browserFlow: browserFlow-sample
   login:

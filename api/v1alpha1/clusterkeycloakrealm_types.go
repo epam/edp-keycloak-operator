@@ -71,6 +71,10 @@ type ClusterKeycloakRealmSpec struct {
 	// +kubebuilder:default=false
 	OrganizationsEnabled bool `json:"organizationsEnabled,omitempty"`
 
+	// AdminPermissionsEnabled enables Keycloak fine-grained v2 admin permissions for this realm.
+	// +optional
+	AdminPermissionsEnabled bool `json:"adminPermissionsEnabled,omitempty"`
+
 	// UserProfileConfig is the configuration for user profiles in the realm.
 	// +nullable
 	// +optional
