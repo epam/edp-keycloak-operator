@@ -1,6 +1,6 @@
 # keycloak-operator
 
-![Version: 1.34.0-SNAPSHOT](https://img.shields.io/badge/Version-1.34.0--SNAPSHOT-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.34.0-SNAPSHOT](https://img.shields.io/badge/AppVersion-1.34.0--SNAPSHOT-informational?style=flat-square)
+![Version: 1.35.0-SNAPSHOT](https://img.shields.io/badge/Version-1.35.0--SNAPSHOT-informational?style=flat-square) ![Type: application](https://img.shields.io/badge/Type-application-informational?style=flat-square) ![AppVersion: 1.35.0-SNAPSHOT](https://img.shields.io/badge/AppVersion-1.35.0--SNAPSHOT-informational?style=flat-square)
 
 A Helm chart for KubeRocketCI Keycloak Operator
 
@@ -85,10 +85,12 @@ To install the Keycloak Operator, follow the steps below:
    apiVersion: v1.edp.epam.com/v1
    kind: KeycloakRealm
    metadata:
-    name: keycloakrealm-sample
+     name: keycloakrealm-sample
    spec:
-    realmName: realm-sample
-    keycloakOwner: keycloak-sample   # the name of `kind: Keycloak`
+     realmName: realm-sample
+     keycloakRef:
+       name: keycloak-sample   # the name of `kind: Keycloak`
+       kind: Keycloak
     ```
 
     ```yaml
@@ -98,7 +100,9 @@ To install the Keycloak Operator, follow the steps below:
       name: argocd-admins
     spec:
       name: ArgoCDAdmins
-      realm: keycloakrealm-sample   # the name of `kind: KeycloakRealm`
+      realmRef:
+        name: keycloakrealm-sample   # the name of `kind: KeycloakRealm`
+        kind: KeycloakRealm
     ```
 
     Inspect [available custom resource](./docs/arch.md) and [CR templates folder](./deploy-templates/_crd_examples/) for more examples
