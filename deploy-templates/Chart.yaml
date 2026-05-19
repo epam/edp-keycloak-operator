@@ -3,8 +3,8 @@ description: A Helm chart for KubeRocketCI Keycloak Operator
 home: https://docs.kuberocketci.io/
 name: keycloak-operator
 type: application
-version: 1.34.0-SNAPSHOT
-appVersion: 1.34.0-SNAPSHOT
+version: 1.35.0-SNAPSHOT
+appVersion: 1.35.0-SNAPSHOT
 icon: https://docs.kuberocketci.io/img/logo.svg
 keywords:
   - authentication
@@ -29,8 +29,8 @@ annotations:
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "true"
   artifacthub.io/images: |
-    - name: keycloak-operator:1.33.0
-      image: epamedp/keycloak-operator:1.33.0
+    - name: keycloak-operator:1.34.0
+      image: epamedp/keycloak-operator:1.34.0
   artifacthub.io/operatorCapabilities: Deep Insights
   artifacthub.io/crds: |
     - kind: Keycloak
@@ -43,6 +43,16 @@ annotations:
       name: clusterkeycloak
       displayName: clusterkeycloak
       description: Keycloak instance baseline configuration
+    - kind: ClusterKeycloakRealm
+      version: v1.edp.epam.com/v1alpha1
+      name: clusterkeycloakrealm
+      displayName: ClusterKeycloakRealm
+      description: Cluster-scoped Keycloak Realm Management
+    - kind: KeycloakOrganization
+      version: v1.edp.epam.com/v1alpha1
+      name: keycloakorganization
+      displayName: KeycloakOrganization
+      description: Keycloak Organization Management
     - kind: KeycloakAuthFlow
       version: v1.edp.epam.com/v1
       name: keycloakauthflows
@@ -95,13 +105,72 @@ annotations:
       description: Keycloak Realm User Management
   artifacthub.io/crdsExamples: |
     - apiVersion: v1.edp.epam.com/v1
+      kind: Keycloak
+      metadata:
+        name: keycloak-sample
+      spec:
+        secret: keycloak-access
+        url: https://keycloak.example.com
+    - apiVersion: v1.edp.epam.com/v1
+      kind: KeycloakRealm
+      metadata:
+        name: keycloakrealm-sample
+      spec:
+        realmName: realm-sample
+        keycloakRef:
+          name: keycloak-sample
+          kind: Keycloak
+        passwordPolicy:
+          - type: "forceExpiredPasswordChange"
+            value: "365"
+          - type: "length"
+            value: "8"
+        realmEventConfig:
+          adminEventsDetailsEnabled: false
+          adminEventsEnabled: true
+          enabledEventTypes:
+            - UPDATE_CONSENT_ERROR
+            - CLIENT_LOGIN
+          eventsEnabled: true
+          eventsExpiration: 15000
+          eventsListeners:
+            - jboss-logging
+        login:
+          userRegistration: true
+          forgotPassword: true
+          rememberMe: true
+          emailAsUsername: false
+          loginWithEmail: true
+          duplicateEmails: false
+          verifyEmail: true
+          editUsername: false
+    - apiVersion: v1.edp.epam.com/v1
+      kind: KeycloakClient
+      metadata:
+        name: keycloakclient-sample
+      spec:
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
+        advancedProtocolMappers: true
+        clientId: argocd
+        directAccess: true
+        public: false
+        secret: $client-secret-name:client-secret-key
+        webUrl: https://argocd.example.com
+        defaultClientScopes:
+          - argocd_groups
+    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakClientScope
       metadata:
-        name: groups
+        name: keycloakclientscope-sample
       spec:
         name: groups
-        realm: main
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         description: "Group Membership"
+        type: default
         protocol: openid-connect
         protocolMappers:
           - name: groups
@@ -114,33 +183,22 @@ annotations:
               "id.token.claim": "true"
               "userinfo.token.claim": "true"
     - apiVersion: v1.edp.epam.com/v1
-      kind: KeycloakClient
-      metadata:
-        name: argocd
-      spec:
-        advancedProtocolMappers: true
-        clientId: agocd
-        directAccess: true
-        public: false
-        secret: ''
-        targetRealm: edp-delivery-main
-        webUrl: https://argocd.example.com
-        defaultClientScopes:
-          - argocd_groups
-    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmGroup
       metadata:
-        name: argocd-admins
+        name: keycloakrealmgroup-sample
       spec:
-        clientRoles: null
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         name: ArgoCDAdmins
-        realm: main
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakAuthFlow
       metadata:
-        name: d1-auth-flow
+        name: keycloakauthflow-sample
       spec:
-        realm: d2-id-k8s-realm-name
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         alias: MyBrowser
         description: browser with idp
         providerId: basic-flow
@@ -152,7 +210,7 @@ annotations:
             requirement: "ALTERNATIVE"
           - authenticator: "identity-provider-redirector"
             priority: 1
-            requirement: "REQUIRED"
+            requirement: "ALTERNATIVE"
             authenticatorConfig:
               alias: my-alias
               config:
@@ -160,9 +218,11 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmComponent
       metadata:
-        name: kerberos-test
+        name: component-sample
       spec:
-        realm: d1-id-k8s-realm-name
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         name: cr-kerb-test
         providerId: kerberos
         providerType: "org.keycloak.storage.UserStorageProvider"
@@ -183,9 +243,11 @@ annotations:
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmIdentityProvider
       metadata:
-        name: github-test
+        name: keycloakrealmidentityprovider-sample
       spec:
-        realm: d2-id-k8s-realm-name
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         alias: github
         authenticateByDefault: false
         enabled: true
@@ -193,7 +255,7 @@ annotations:
         providerId: "github"
         config:
           clientId: "foo"
-          clientSecret: "bar"
+          clientSecret: "$idp-secret:secret"
           syncMode: "IMPORT"
           useJwksUrl: "true"
         mappers:
@@ -211,91 +273,78 @@ annotations:
               "attribute.value": "bar"
               syncMode: "IMPORT"
     - apiVersion: v1.edp.epam.com/v1
-      kind: KeycloakRealm
-      metadata:
-        name: d2-id-k8s-realm-name
-      spec:
-        id: d1-id-kc-realm-name
-        realmName: d2-id-kc-realm-name
-        keycloakOwner: main
-        passwordPolicy:
-          - type: "forceExpiredPasswordChange"
-            value: "365"
-          - type: "length"
-            value: "8"
-        realmEventConfig:
-          adminEventsDetailsEnabled: false
-          adminEventsEnabled: true
-          enabledEventTypes:
-            - UPDATE_CONSENT_ERROR
-            - CLIENT_LOGIN
-          eventsEnabled: true
-          eventsExpiration: 15000
-          eventsListeners:
-            - jboss-logging
-    - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmUser
       metadata:
-        name: d1-user-test1
+        name: keycloakrealmuser-sample
       spec:
-        realm: d1-id-k8s-realm-name
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         username: "john.snow13"
         firstName: "John"
         lastName: "Snow"
         email: "john.snow13@example.com"
         enabled: true
         emailVerified: true
-        password: "12345678"
         keepResource: true
+        passwordSecret:
+          name: keycloakrealmuser-sample-password
+          key: password
         requiredUserActions:
           - UPDATE_PASSWORD
         attributes:
           foo: "bar"
           baz: "jazz"
     - apiVersion: v1.edp.epam.com/v1
-      kind: Keycloak
+      kind: KeycloakRealmRole
       metadata:
-        name: my-keycloak
+        name: keycloakrealmrole-sample
       spec:
-        secret: my-keycloak-secret
-        url: https://example.com
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
+        name: developer
+        description: default developer role
+        composite: true
+        composites:
+          - name: offline_access
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakRealmRoleBatch
       metadata:
-        name: myrole
+        name: keycloakrealmrolebatch-sample
       spec:
-        realm: main
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
         roles:
-          - attributes: null
-            composite: true
-            composites: null
+          - name: developer
             description: default developer role
-            isDefault: false
-            name: developer
-          - attributes: null
             composite: true
-            composites: null
-            description: default administrator role
             isDefault: false
-            name: administrator
-    - apiVersion: v1.edp.epam.com/v1
-      kind: KeycloakRealmRole
-      metadata:
-        name: realmrole
-      spec:
-        attributes: null
-        composite: true
-        composites: null
-        description: default developer role
-        name: developer
-        realm: main
+          - name: administrator
+            description: default administrator role
+            composite: true
+            isDefault: false
     - apiVersion: v1.edp.epam.com/v1alpha1
       kind: ClusterKeycloak
       metadata:
-        name: keycloak-sample
+        name: clusterkeycloak-sample
       spec:
-        secret: secret-name-in-operator-ns
+        secret: keycloak-access
         url: https://keycloak.example.com
+    - apiVersion: v1.edp.epam.com/v1alpha1
+      kind: ClusterKeycloakRealm
+      metadata:
+        name: clusterkeycloakrealm-sample
+      spec:
+        clusterKeycloakRef: clusterkeycloak-sample
+        realmName: realm-sample
+        login:
+          userRegistration: true
+          forgotPassword: true
+          rememberMe: true
+          loginWithEmail: true
+          verifyEmail: true
   artifacthub.io/links: |
     - name: KubeRocketCI Documentation
       url: https://docs.kuberocketci.io/

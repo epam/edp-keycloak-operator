@@ -1,6 +1,9 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Routine
+- **ci:** Publish 1.34 on operatorhub
+
 
 <a name="v1.34.0"></a>
 ## [v1.34.0] - 2026-05-19
