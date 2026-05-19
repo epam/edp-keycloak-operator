@@ -11,6 +11,8 @@ BUILD_DATE=$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT=$(shell git rev-parse HEAD)
 GIT_TAG=$(shell if [ -z "`git status --porcelain`" ]; then git describe --exact-match --tags HEAD 2>/dev/null; fi)
 KUBECTL_VERSION=$(shell go list -m all | grep k8s.io/client-go| cut -d' ' -f2)
+CHANNELS=stable,alpha
+DEFAULT_CHANNEL=stable
 ## Location to install dependencies to
 LOCALBIN ?= ${CURRENT_DIR}/bin
 $(LOCALBIN):

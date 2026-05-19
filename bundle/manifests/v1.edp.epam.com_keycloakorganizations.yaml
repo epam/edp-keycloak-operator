@@ -60,7 +60,11 @@ spec:
                 description: |-
                   Alias is the unique alias for the organization.
                   The alias should be unique across Organizations.
+                  Alias is immutable after creation.
                 type: string
+                x-kubernetes-validations:
+                - message: alias is immutable
+                  rule: self == oldSelf
               attributes:
                 additionalProperties:
                   items:

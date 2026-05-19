@@ -8,6 +8,48 @@ metadata:
           "apiVersion": "v1.edp.epam.com/v1",
           "kind": "Keycloak",
           "metadata": {
+            "name": "keycloak-client-creds"
+          },
+          "spec": {
+            "auth": {
+              "clientCredentials": {
+                "clientId": {
+                  "value": "my-admin-client"
+                },
+                "clientSecretRef": {
+                  "key": "client-secret",
+                  "name": "keycloak-client-secret"
+                }
+              }
+            },
+            "url": "https://keycloak.example.com"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1",
+          "kind": "Keycloak",
+          "metadata": {
+            "name": "keycloak-password-grant"
+          },
+          "spec": {
+            "auth": {
+              "passwordGrant": {
+                "passwordRef": {
+                  "key": "password",
+                  "name": "keycloak-access"
+                },
+                "username": {
+                  "value": "admin"
+                }
+              }
+            },
+            "url": "https://keycloak.example.com"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1",
+          "kind": "Keycloak",
+          "metadata": {
             "name": "keycloak-sample"
           },
           "spec": {
@@ -281,6 +323,22 @@ metadata:
               "kind": "Keycloak",
               "name": "keycloak-sample"
             },
+            "localization": {
+              "defaultLocale": "nl",
+              "internationalizationEnabled": true,
+              "localizationTexts": {
+                "en": {
+                  "test": "this is a test"
+                },
+                "nl": {
+                  "test": "dit is een test"
+                }
+              },
+              "supportedLocales": [
+                "en",
+                "nl"
+              ]
+            },
             "organizationsEnabled": true,
             "passwordPolicy": [
               {
@@ -306,6 +364,23 @@ metadata:
               ]
             },
             "realmName": "d2-id-kc-realm-name",
+            "sessions": {
+              "ssoLoginSettings": {
+                "accessCodeLifespanLogin": 1800,
+                "accessCodeLifespanUserAction": 300
+              },
+              "ssoOfflineSessionSettings": {
+                "idleTimeout": 2592000,
+                "maxLifespan": 5184000,
+                "maxLifespanEnabled": true
+              },
+              "ssoSessionSettings": {
+                "idleTimeout": 1800,
+                "idleTimeoutRememberMe": 604800,
+                "maxLifespan": 36000,
+                "maxLifespanRememberMe": 2592000
+              }
+            },
             "userProfileConfig": {
               "attributes": [
                 {
@@ -459,6 +534,7 @@ metadata:
             "name": "keycloakrealmgroup-sample"
           },
           "spec": {
+            "description": "This group is for ArgoCD administrators.",
             "name": "ArgoCDAdmins",
             "realmRef": {
               "kind": "KeycloakRealm",
@@ -596,6 +672,10 @@ metadata:
             "emailVerified": true,
             "enabled": true,
             "firstName": "John",
+            "groups": [
+              "developers",
+              "/parent/child"
+            ],
             "keepResource": true,
             "lastName": "Snow",
             "passwordSecret": {
@@ -611,6 +691,48 @@ metadata:
               "UPDATE_PROFILE"
             ],
             "username": "john.snow13"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1alpha1",
+          "kind": "ClusterKeycloak",
+          "metadata": {
+            "name": "clusterkeycloak-client-creds"
+          },
+          "spec": {
+            "auth": {
+              "clientCredentials": {
+                "clientId": {
+                  "value": "my-admin-client"
+                },
+                "clientSecretRef": {
+                  "key": "client-secret",
+                  "name": "keycloak-client-secret"
+                }
+              }
+            },
+            "url": "https://keycloak.example.com"
+          }
+        },
+        {
+          "apiVersion": "v1.edp.epam.com/v1alpha1",
+          "kind": "ClusterKeycloak",
+          "metadata": {
+            "name": "clusterkeycloak-password-grant"
+          },
+          "spec": {
+            "auth": {
+              "passwordGrant": {
+                "passwordRef": {
+                  "key": "password",
+                  "name": "keycloak-access"
+                },
+                "username": {
+                  "value": "admin"
+                }
+              }
+            },
+            "url": "https://keycloak.example.com"
           }
         },
         {
@@ -641,8 +763,41 @@ metadata:
               "browserFlow": "browserFlow-sample"
             },
             "clusterKeycloakRef": "clusterkeycloak-sample",
+            "localization": {
+              "defaultLocale": "fr",
+              "internationalizationEnabled": true,
+              "localizationTexts": {
+                "en": {
+                  "greeting": "Hello"
+                },
+                "fr": {
+                  "greeting": "Bonjour"
+                }
+              },
+              "supportedLocales": [
+                "en",
+                "fr"
+              ]
+            },
             "organizationsEnabled": false,
-            "realmName": "realm-sample"
+            "realmName": "realm-sample",
+            "sessions": {
+              "ssoLoginSettings": {
+                "accessCodeLifespanLogin": 1800,
+                "accessCodeLifespanUserAction": 300
+              },
+              "ssoOfflineSessionSettings": {
+                "idleTimeout": 2592000,
+                "maxLifespan": 5184000,
+                "maxLifespanEnabled": true
+              },
+              "ssoSessionSettings": {
+                "idleTimeout": 1800,
+                "idleTimeoutRememberMe": 604800,
+                "maxLifespan": 36000,
+                "maxLifespanRememberMe": 2592000
+              }
+            }
           }
         },
         {
@@ -684,14 +839,14 @@ metadata:
       ]
     capabilities: Deep Insights
     categories: Security
-    containerImage: docker.io/epamedp/keycloak-operator:1.31.0
-    createdAt: "2026-01-12T14:01:12Z"
+    containerImage: docker.io/epamedp/keycloak-operator:1.34.0
+    createdAt: "2026-05-19T14:39:48Z"
     description: An Operator for managing Keycloak
-    operators.operatorframework.io/builder: operator-sdk-v1.42.0
+    operators.operatorframework.io/builder: operator-sdk-v1.42.2
     operators.operatorframework.io/project_layout: go.kubebuilder.io/v4
     repository: https://github.com/epam/edp-keycloak-operator
     support: KubeRocketCI
-  name: edp-keycloak-operator.v1.31.0
+  name: edp-keycloak-operator.v1.34.0
   namespace: placeholder
 spec:
   apiservicedefinitions: {}
@@ -932,7 +1087,7 @@ spec:
                   valueFrom:
                     fieldRef:
                       fieldPath: metadata.namespace
-                image: docker.io/epamedp/keycloak-operator:1.31.0
+                image: docker.io/epamedp/keycloak-operator:1.34.0
                 livenessProbe:
                   httpGet:
                     path: /healthz
@@ -1114,7 +1269,7 @@ spec:
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/
-  version: 1.31.0
+  version: 1.34.0
   webhookdefinitions:
   - admissionReviewVersions:
     - v1
@@ -1149,6 +1304,7 @@ spec:
       - v1
       operations:
       - CREATE
+      - UPDATE
       resources:
       - keycloakrealms
     sideEffects: None
