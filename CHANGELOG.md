@@ -2,13 +2,50 @@
 ## [Unreleased]
 
 
+<a name="v1.34.0"></a>
+## [v1.34.0] - 2026-05-19
+### Features
+- **helm:** make operator replica count configurable
+
+### Bug Fixes
+- **KeycloakAuthFlow:** preserve execution priority on creation
+- **realm:** use *bool and *int for RealmEventConfig nullable flags
+
+### Routine
+- **release:** Update current development version
+
+
 <a name="v1.33.0"></a>
 ## [v1.33.0] - 2026-05-10
 ### Features
 - Add hideOnLogin support for KeycloakRealmIdentityProvider
-- support hierarchical group paths in user groups
 - add description field to KeycloakRealmGroup ([#276](https://github.com/epam/edp-keycloak-operator/issues/276))
 - Introduce generated Keycloak client to replace gocloak
+- support hierarchical group paths in user groups
+- **KeycloakAuthFlow:** migrate controller to keycloakv2 client
+- **KeycloakClient:** add accessTokenLifespan to advancedSettings
+- **KeycloakClient:** migrate controller to keycloakv2 client
+- **KeycloakClientScope:** migrate controller to keycloakv2 client
+- **KeycloakRealm:** add localization support with customizable locales and message bundles
+- **KeycloakRealmComponent:** migrate controller to keycloakv2 client
+- **KeycloakRealmIdentityProvider:** migrate controller to keycloakv2 client
+- **KeycloakRealmIdentityProvider:** change HideOnLogin to *bool
+- **helm:** add configurable serviceAccountName to operator chart
+- **keycloak:** add extensible auth spec to Keycloak and ClusterKeycloak
+- **keycloak:** migrate Keycloak and ClusterKeycloak controllers to keycloakv2 client
+- **keycloakorganization:** migrate controller to keycloakv2 client
+- **keycloakrealm:** migrate realm controllers to keycloakv2 client
+- **keycloakrealmrole:** migrate controller to keycloakv2 client
+- **keycloakrealmuser:** migrate controller to keycloakv2 client
+- **keycloakv2:** add groups, roles, and clients resource management
+- **keycloakv2:** expand API coverage, add docs, and new resource domains
+- **organization:** make alias field immutable
+
+### Bug Fixes
+- **keycloakapi:** route admin requests through resty.Request to enable retries
+- **keycloakrealmgroup:** use status ID to detect group renames
+- **keycloakv2:** redact credentials from debug log output
+- **webhook:** scope realm uniqueness to KeycloakRef
 
 ### Code Refactoring
 - update keycloak client package references from keycloakv2 to keycloakapi
@@ -17,9 +54,15 @@
 
 ### Routine
 - Update current development version ([#285](https://github.com/epam/edp-keycloak-operator/issues/285))
+- **KeycloakRealmGroup:** migrate controller to keycloakv2 client with chain pattern
+- **ci:** fix release action to make sure changelog available ([#280](https://github.com/epam/edp-keycloak-operator/issues/280))
+- **deps:** Bump go.opentelemetry.io/otel/sdk from 1.40.0 to 1.43.0
+- **deps:** Bump google.golang.org/grpc from 1.75.1 to 1.79.3
+- **deps:** Bump go.opentelemetry.io/otel/sdk from 1.37.0 to 1.40.0
 
 ### Documentation
 - add shared AI assistant context and reusable dev workflow skills
+- **README:** add note about keycloakapi as standalone library
 
 
 <a name="v1.32.0"></a>
@@ -35,6 +78,10 @@
 - Update current development version ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
 - Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
 - Update current development version ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
+- **ci:** fix release action to make sure changelog available ([#280](https://github.com/epam/edp-keycloak-operator/issues/280))
+- **ci:** update GitHub Actions workflows and testing infrastructure ([#280](https://github.com/epam/edp-keycloak-operator/issues/280))
+- **ci:** update codecov configuration ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
+- **ci:** align codecov configuration and enhance README badges ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
 
 
 <a name="v1.31.1"></a>
@@ -116,6 +163,7 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 - Update Operator SDK from v1.39.2 to v1.41.1 ([#199](https://github.com/epam/edp-keycloak-operator/issues/199))
 - Publish 1.28.0 on the OperatorHub ([#185](https://github.com/epam/edp-keycloak-operator/issues/185))
 - Update current development version ([#185](https://github.com/epam/edp-keycloak-operator/issues/185))
+- **deps:** Bump golang.org/x/oauth2 from 0.21.0 to 0.27.0
 
 
 <a name="v1.28.0"></a>
@@ -155,6 +203,7 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 - Remove deprecated properties from CRs ([#154](https://github.com/epam/edp-keycloak-operator/issues/154))
 - Bump GitHub Actions runner image to 22.04([#150](https://github.com/epam/edp-keycloak-operator/issues/150))
 - Update current development version ([#146](https://github.com/epam/edp-keycloak-operator/issues/146))
+- **deps:** Bump golang.org/x/net from 0.37.0 to 0.38.0
 
 
 <a name="v1.26.0"></a>
@@ -163,6 +212,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 - Make securityContext configurable via values.yaml ([#141](https://github.com/epam/edp-keycloak-operator/issues/141))
 - Publish on OperatorHub ([#132](https://github.com/epam/edp-keycloak-operator/issues/132))
 - Update current development version ([#132](https://github.com/epam/edp-keycloak-operator/issues/132))
+- **deps:** Bump github.com/golang-jwt/jwt/v4 from 4.5.1 to 4.5.2
+- **deps:** Upgrade operator-sdk to v1.39.2 ([#139](https://github.com/epam/edp-keycloak-operator/issues/139))
 
 
 <a name="v1.25.0"></a>
@@ -198,6 +249,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 ### Routine
 - Update current development version ([#102](https://github.com/epam/edp-keycloak-operator/issues/102))
 - Update current development version ([#102](https://github.com/epam/edp-keycloak-operator/issues/102))
+- **deps:** Bump golang.org/x/net to v.0.33.0 ([#120](https://github.com/epam/edp-keycloak-operator/issues/120))
+- **deps:** Bump github.com/golang-jwt/jwt/v4 from 4.4.3 to 4.5.1
 
 
 <a name="v1.23.0"></a>
@@ -271,6 +324,7 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 - Implement cache in github workflow ([#34](https://github.com/epam/edp-keycloak-operator/issues/34))
 - Generate OperatorHub bundle for the version 1.20.0 ([#27](https://github.com/epam/edp-keycloak-operator/issues/27))
 - Update current development version ([#27](https://github.com/epam/edp-keycloak-operator/issues/27))
+- **deps:** Bump golang.org/x/net from 0.17.0 to 0.23.0
 
 ### Documentation
 - Update README md file ([#132](https://github.com/epam/edp-keycloak-operator/issues/132))
@@ -346,7 +400,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.33.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.34.0...HEAD
+[v1.34.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.33.0...v1.34.0
 [v1.33.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...v1.33.0
 [v1.32.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...v1.32.0
 [v1.31.1]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.0...v1.31.1

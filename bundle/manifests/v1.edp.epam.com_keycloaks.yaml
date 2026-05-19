@@ -45,13 +45,174 @@ spec:
             description: KeycloakSpec defines the desired state of Keycloak.
             properties:
               adminType:
-                description: AdminType can be user or serviceAccount, if serviceAccount
-                  was specified, then client_credentials grant type should be used
-                  for getting admin realm token.
+                description: |-
+                  AdminType can be user or serviceAccount, if serviceAccount was specified, then client_credentials grant type should be used for getting admin realm token.
+                  Deprecated: Use Auth instead. When Auth is set, this field is ignored.
                 enum:
                 - serviceAccount
                 - user
                 type: string
+              auth:
+                description: |-
+                  Auth defines the authentication configuration for connecting to Keycloak.
+                  When set, Secret and AdminType fields are ignored.
+                properties:
+                  clientCredentials:
+                    description: ClientCredentials configures OAuth2 client credentials
+                      grant authentication.
+                    properties:
+                      clientId:
+                        description: |-
+                          ClientID is the OAuth2 client ID for authentication.
+                          Can be a direct value or a reference to a key in a Secret or ConfigMap.
+                        properties:
+                          configMapKeyRef:
+                            description: Selects a key of a ConfigMap.
+                            properties:
+                              key:
+                                description: The key to select.
+                                type: string
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          secretKeyRef:
+                            description: Selects a key of a secret.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.
+                                type: string
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          value:
+                            description: Directly specifies a value.
+                            type: string
+                        type: object
+                      clientSecretRef:
+                        description: ClientSecretRef is a reference to a secret key
+                          containing the client secret.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                    - clientId
+                    - clientSecretRef
+                    type: object
+                  passwordGrant:
+                    description: PasswordGrant configures resource owner password
+                      grant authentication.
+                    properties:
+                      passwordRef:
+                        description: PasswordRef is a reference to a secret key containing
+                          the password.
+                        properties:
+                          key:
+                            description: The key of the secret to select from.
+                            type: string
+                          name:
+                            default: ""
+                            description: |-
+                              Name of the referent.
+                              This field is effectively required, but due to backwards compatibility is
+                              allowed to be empty. Instances of this type with an empty value here are
+                              almost certainly wrong.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                        required:
+                        - key
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      username:
+                        description: |-
+                          Username is the admin username for password grant authentication.
+                          Can be a direct value or a reference to a key in a Secret or ConfigMap.
+                        properties:
+                          configMapKeyRef:
+                            description: Selects a key of a ConfigMap.
+                            properties:
+                              key:
+                                description: The key to select.
+                                type: string
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          secretKeyRef:
+                            description: Selects a key of a secret.
+                            properties:
+                              key:
+                                description: The key of the secret to select from.
+                                type: string
+                              name:
+                                default: ""
+                                description: |-
+                                  Name of the referent.
+                                  This field is effectively required, but due to backwards compatibility is
+                                  allowed to be empty. Instances of this type with an empty value here are
+                                  almost certainly wrong.
+                                  More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                                type: string
+                            required:
+                            - key
+                            type: object
+                            x-kubernetes-map-type: atomic
+                          value:
+                            description: Directly specifies a value.
+                            type: string
+                        type: object
+                    required:
+                    - passwordRef
+                    - username
+                    type: object
+                type: object
+                x-kubernetes-validations:
+                - message: one of passwordGrant or clientCredentials must be set
+                  rule: has(self.passwordGrant) || has(self.clientCredentials)
+                - message: passwordGrant and clientCredentials are mutually exclusive
+                  rule: '!(has(self.passwordGrant) && has(self.clientCredentials))'
               caCert:
                 description: |-
                   CACert defines the root certificate authority
@@ -104,13 +265,14 @@ spec:
                   certificate.
                 type: boolean
               secret:
-                description: Secret is a secret name which contains admin credentials.
+                description: |-
+                  Secret is a secret name which contains admin credentials.
+                  Deprecated: Use Auth instead. When Auth is set, this field is ignored.
                 type: string
               url:
                 description: URL of keycloak service.
                 type: string
             required:
-            - secret
             - url
             type: object
           status:

@@ -83,6 +83,11 @@ spec:
                 description: FirstBrokerLoginFlowAlias is a first broker login flow
                   alias.
                 type: string
+              hideOnLogin:
+                description: |-
+                  HideOnLogin is a flag to hide the idp from the login page.
+                  If hidden, login with this provider is possible only if requested explicitly, for example using the 'kc_idp_hint' parameter.
+                type: boolean
               linkOnly:
                 description: LinkOnly is a flag to link only.
                 type: boolean

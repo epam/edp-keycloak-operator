@@ -11,11 +11,15 @@ options:
   commits:
     filters:
       Type:
+        - build
         - chore
+        - ci
         - docs
         - feat
         - fix
+        - perf
         - refactor
+        - revert
         - style
         - test
 
@@ -25,24 +29,33 @@ options:
     title_order:
       - feat
       - fix
+      - perf
       - refactor
       - style
       - test
+      - build
+      - ci
       - chore
       - docs
+      - revert
     title_maps:
+      build: Build
       chore: Routine
+      ci: Continuous Integration
       docs: Documentation
       feat: Features
       fix: Bug Fixes
+      perf: Performance Improvements
       refactor: Code Refactoring
+      revert: Reverts
       style: Formatting
       test: Testing
 
   header:
-    pattern: "^(feat|fix|docs|style|refactor|test|chore)+!?:\\s(.*)$"
+    pattern: "^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(?:\\(([^)]+)\\))?!?:\\s+(.*)$"
     pattern_maps:
       - Type
+      - Scope
       - Subject
 
   notes:
