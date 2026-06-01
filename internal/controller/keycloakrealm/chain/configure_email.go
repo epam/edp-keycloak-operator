@@ -116,6 +116,14 @@ func convertEmailSpecToMap(
 			return nil, fmt.Errorf("unable to get password: %w", err)
 		}
 
+		if username == "" {
+			return nil, fmt.Errorf("smtp authentication username is empty after resolving references")
+		}
+
+		if password == "" {
+			return nil, fmt.Errorf("smtp authentication password is empty after resolving references")
+		}
+
 		emailMap["password"] = password
 	}
 

@@ -82,6 +82,63 @@ func TestGetValueFromSourceRef(t *testing.T) {
 			want:    "",
 			wantErr: require.NoError,
 		},
+		{
+			name: "secret key missing in secret",
+			sourceRef: &common.SourceRef{
+				SecretKeyRef: &common.SecretKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "mailjet",
+					},
+					Key: "smtp-username",
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithObjects(
+					&v1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mailjet",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"smtp-password": []byte("secretkey"),
+						},
+					},
+				).Build()
+			},
+			want: "",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "does not contain key smtp-username")
+			},
+		},
+		{
+			name: "configmap key missing",
+			sourceRef: &common.SourceRef{
+				ConfigMapKeyRef: &common.ConfigMapKeySelector{
+					LocalObjectReference: v1.LocalObjectReference{
+						Name: "configmap-with-secret",
+					},
+					Key: "missing",
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithObjects(
+					&v1.ConfigMap{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "configmap-with-secret",
+							Namespace: "default",
+						},
+						Data: map[string]string{
+							"key": "value",
+						},
+					}).Build()
+			},
+			want: "",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "does not contain key missing")
+			},
+		},
 	}
 
 	for _, tt := range tests {

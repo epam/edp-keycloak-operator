@@ -157,6 +157,144 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 			},
 		},
 		{
+			name: "smtp username secret key missing",
+			realm: &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "realm",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm",
+					Smtp: &common.SMTP{
+						Template: common.EmailTemplate{
+							From: "from@mailcom",
+						},
+						Connection: common.EmailConnection{
+							Host: "smtp-host",
+							Authentication: &common.EmailAuthentication{
+								Username: common.SourceRefOrVal{
+									SourceRef: common.SourceRef{
+										SecretKeyRef: &common.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "mailjet",
+											},
+											Key: "smtp-username",
+										},
+									},
+								},
+								Password: common.SourceRef{
+									SecretKeyRef: &common.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "mailjet",
+										},
+										Key: "smtp-password",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mailjet",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"smtp-password": []byte("secretkey"),
+						},
+					},
+				).Build()
+			},
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{
+						Realm: ptr.To("realm"),
+					}, nil, nil)
+
+				return m
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "unable to get username")
+			},
+		},
+		{
+			name: "smtp username and password from secret",
+			realm: &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "realm",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm",
+					Smtp: &common.SMTP{
+						Template: common.EmailTemplate{
+							From: "from@mailcom",
+						},
+						Connection: common.EmailConnection{
+							Host: "smtp-host",
+							Authentication: &common.EmailAuthentication{
+								Username: common.SourceRefOrVal{
+									SourceRef: common.SourceRef{
+										SecretKeyRef: &common.SecretKeySelector{
+											LocalObjectReference: corev1.LocalObjectReference{
+												Name: "mailjet",
+											},
+											Key: "smtp-username",
+										},
+									},
+								},
+								Password: common.SourceRef{
+									SecretKeyRef: &common.SecretKeySelector{
+										LocalObjectReference: corev1.LocalObjectReference{
+											Name: "mailjet",
+										},
+										Key: "smtp-password",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+					&corev1.Secret{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      "mailjet",
+							Namespace: "default",
+						},
+						Data: map[string][]byte{
+							"smtp-username": []byte("apikey"),
+							"smtp-password": []byte("secretkey"),
+						},
+					},
+				).Build()
+			},
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{
+						Realm: ptr.To("realm"),
+					}, nil, nil)
+
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+					return rep.SmtpServer != nil &&
+						(*rep.SmtpServer)["user"] == "apikey" &&
+						(*rep.SmtpServer)["password"] == "secretkey"
+				})).Return(nil, nil)
+
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "failed to get realm",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{

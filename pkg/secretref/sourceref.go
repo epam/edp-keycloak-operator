@@ -31,7 +31,12 @@ func GetValueFromSourceRef(
 			return "", fmt.Errorf("unable to get configmap: %w", err)
 		}
 
-		return configMap.Data[sourceRef.ConfigMapKeyRef.Key], nil
+		val, ok := configMap.Data[sourceRef.ConfigMapKeyRef.Key]
+		if !ok {
+			return "", fmt.Errorf("configmap %s does not contain key %s", sourceRef.ConfigMapKeyRef.Name, sourceRef.ConfigMapKeyRef.Key)
+		}
+
+		return val, nil
 	}
 
 	if sourceRef.SecretKeyRef != nil {
@@ -43,7 +48,12 @@ func GetValueFromSourceRef(
 			return "", fmt.Errorf("unable to get secret: %w", err)
 		}
 
-		return string(secret.Data[sourceRef.SecretKeyRef.Key]), nil
+		val, ok := secret.Data[sourceRef.SecretKeyRef.Key]
+		if !ok {
+			return "", fmt.Errorf("secret %s does not contain key %s", sourceRef.SecretKeyRef.Name, sourceRef.SecretKeyRef.Key)
+		}
+
+		return string(val), nil
 	}
 
 	return "", nil
