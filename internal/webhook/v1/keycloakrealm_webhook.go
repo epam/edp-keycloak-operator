@@ -71,7 +71,9 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 
 	keycloakrealmlog.Info("Validation for KeycloakRealm upon creation", "name", keycloakrealm.GetName())
 
-	// Check if the combination of RealmName and KeycloakRef is unique across all KeycloakRealm resources in the cluster.
+	// Check that the combination of RealmName and the resolved Keycloak instance is
+	// unique across KeycloakRealm resources. Uniqueness must be enforced per target
+	// Keycloak instance, not per KeycloakRef name string.
 	existingKeycloakRealms := &keycloakApi.KeycloakRealmList{}
 	if err := v.k8sclient.List(ctx, existingKeycloakRealms); err != nil {
 		return nil, fmt.Errorf("failed to list KeycloakRealm resources: %w", err)
@@ -80,22 +82,52 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 	for _, existingRealm := range existingKeycloakRealms.Items {
 		isSameResource := existingRealm.Namespace == keycloakrealm.Namespace && existingRealm.Name == keycloakrealm.Name
 
-		isSameKeycloakInstance := existingRealm.Spec.KeycloakRef.Kind == keycloakrealm.Spec.KeycloakRef.Kind &&
-			existingRealm.Spec.KeycloakRef.Name == keycloakrealm.Spec.KeycloakRef.Name
-
-		if existingRealm.Spec.RealmName == keycloakrealm.Spec.RealmName && isSameKeycloakInstance && !isSameResource {
+		if existingRealm.Spec.RealmName == keycloakrealm.Spec.RealmName &&
+			sameKeycloakInstance(&existingRealm, keycloakrealm) && !isSameResource {
 			return nil, fmt.Errorf(
-				"realm name %s is already in use by another KeycloakRealm resource (%s/%s) for Keycloak instance %s/%s",
+				"realm name %q is already used by KeycloakRealm %s/%s targeting %s",
 				keycloakrealm.Spec.RealmName,
 				existingRealm.Namespace,
 				existingRealm.Name,
-				keycloakrealm.Spec.KeycloakRef.Kind,
-				keycloakrealm.Spec.KeycloakRef.Name,
+				formatResolvedKeycloakInstance(keycloakrealm),
 			)
 		}
 	}
 
 	return duplicateInternationalizationWarning(keycloakrealm), nil
+}
+
+// formatResolvedKeycloakInstance returns a human-readable identity for the Keycloak
+// instance resolved from a KeycloakRealm reference. For the namespaced Keycloak kind
+// this includes the realm namespace (Kind/namespace/name); for ClusterKeycloak it is
+// cluster-scoped (Kind/name).
+func formatResolvedKeycloakInstance(realm *keycloakApi.KeycloakRealm) string {
+	ref := realm.Spec.KeycloakRef
+	if ref.Kind == keycloakApi.KeycloakKind {
+		return fmt.Sprintf("%s/%s/%s", ref.Kind, realm.Namespace, ref.Name)
+	}
+
+	return fmt.Sprintf("%s/%s", ref.Kind, ref.Name)
+}
+
+// sameKeycloakInstance reports whether two KeycloakRealm resources target the same
+// Keycloak instance.
+//
+// The namespaced Keycloak kind is resolved within the realm's own namespace, so its
+// instance identity is (namespace, name): the same KeycloakRef name in two different
+// namespaces refers to two distinct Keycloak instances. The cluster-scoped
+// ClusterKeycloak kind is resolved cluster-wide, so its identity is the name alone.
+func sameKeycloakInstance(a, b *keycloakApi.KeycloakRealm) bool {
+	if a.Spec.KeycloakRef.Kind != b.Spec.KeycloakRef.Kind ||
+		a.Spec.KeycloakRef.Name != b.Spec.KeycloakRef.Name {
+		return false
+	}
+
+	if b.Spec.KeycloakRef.Kind == keycloakApi.KeycloakKind {
+		return a.Namespace == b.Namespace
+	}
+
+	return true
 }
 
 // ValidateUpdate implements webhook.CustomValidator so a webhook will be registered for the type KeycloakRealm.

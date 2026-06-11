@@ -10,6 +10,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -54,6 +55,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 
 			err := k8sClient.Create(ctx, duplicateObj)
 			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with duplicate RealmName in the same namespace")
+			Expect(err.Error()).To(ContainSubstring(`realm name "test-realm" is already used by KeycloakRealm ns1/test-realm targeting Keycloak/ns1/test-keycloak`))
 		})
 
 		It("Should allow creation with the same RealmName for a different Keycloak in another namespace", func() {
@@ -76,23 +78,66 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, objInNs2))).Should(Succeed(), "failed to delete KeycloakRealm in ns2")
 		})
 
-		It("Should deny creation with the same RealmName for the same Keycloak across namespaces", func() {
+		It("Should allow creation with the same RealmName and same Keycloak name in another namespace (namespaced kind)", func() {
+			// The namespaced Keycloak kind resolves in the realm's own namespace, so
+			// "test-keycloak" in ns2 is a different instance than "test-keycloak" in ns1.
 			objInNs2 := &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "test-realm-ns2",
 					Namespace: "ns2",
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm", // Same RealmName as the existing one but in a different namespace
+					RealmName: "test-realm",
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: "test-keycloak", // Same KeycloakRef name, but resolved in ns2
 					},
 				},
 			}
 
 			err := k8sClient.Create(ctx, objInNs2)
-			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with same RealmName for the same Keycloak in a different namespace")
+			Expect(err).ShouldNot(HaveOccurred(), "unexpected error when creating KeycloakRealm referencing a namespaced Keycloak with the same name in a different namespace")
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, objInNs2))).Should(Succeed(), "failed to delete KeycloakRealm in ns2")
+		})
+
+		It("Should deny creation with the same RealmName for the same ClusterKeycloak across namespaces", func() {
+			// ClusterKeycloak is cluster-scoped, so the same ref name across namespaces
+			// targets the same instance and must conflict.
+			clusterRealmNs1 := &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster-realm-ns1",
+					Namespace: "ns1",
+				},
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "shared-realm",
+					KeycloakRef: common.KeycloakRef{
+						Kind: keycloakAlpha.ClusterKeycloakKind,
+						Name: "shared-keycloak",
+					},
+				},
+			}
+			Expect(k8sClient.Create(ctx, clusterRealmNs1)).Should(Succeed(), "failed to create cluster-scoped KeycloakRealm in ns1")
+			defer func() {
+				Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, clusterRealmNs1))).Should(Succeed())
+			}()
+
+			clusterRealmNs2 := &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "cluster-realm-ns2",
+					Namespace: "ns2",
+				},
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "shared-realm",
+					KeycloakRef: common.KeycloakRef{
+						Kind: keycloakAlpha.ClusterKeycloakKind,
+						Name: "shared-keycloak",
+					},
+				},
+			}
+
+			err := k8sClient.Create(ctx, clusterRealmNs2)
+			Expect(err).Should(HaveOccurred(), "expected error when creating KeycloakRealm with same RealmName for the same ClusterKeycloak in a different namespace")
+			Expect(err.Error()).To(ContainSubstring(`realm name "shared-realm" is already used by KeycloakRealm ns1/cluster-realm-ns1 targeting ClusterKeycloak/shared-keycloak`))
 		})
 	})
 
