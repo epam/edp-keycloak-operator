@@ -20,4 +20,4 @@ COPY bundle/manifests /manifests/
 COPY bundle/metadata /metadata/
 COPY bundle/tests/scorecard /tests/scorecard/
 
-LABEL com.redhat.openshift.versions=v4.7-v4.20
+LABEL com.redhat.openshift.versions=v4.7
