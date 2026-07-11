@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -296,4 +297,143 @@ func TestSyncSubGroups_Serve_ErrorDetachingSubGroup(t *testing.T) {
 	h := NewSyncSubGroups()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to detach subgroup")
+}
+
+func TestSyncSubGroups_Serve_ClaimsTopLevelGroupOwnedByAnotherCR(t *testing.T) {
+	// Claiming a top-level group that is itself managed by another KeycloakRealmGroup CR
+	// is the documented behavior of the deprecated SubGroups field: the move keeps the
+	// group ID, so the owning CR still resolves it via status.ID afterwards.
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().CreateChildGroup(
+		context.Background(), "test-realm", "parent-group-123",
+		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
+	).Return(nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.NoError(t, err)
+}
+
+func TestSyncSubGroups_Serve_RefusesToStealSubGroupFromDifferentParent(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	// subgroup1 is already nested under a different parent ("other-parent-id").
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("other-parent-id"),
+	}, nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "already nested under a different parent group")
+	assert.ErrorContains(t, err, "spec.parentGroup")
+}
+
+func TestSyncSubGroups_Serve_ClaimsUnownedTopLevelGroup(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	// subgroup1 is top-level (no ParentId) and unowned - claiming it is still allowed.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().CreateChildGroup(
+		context.Background(), "test-realm", "parent-group-123",
+		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
+	).Return(nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
+func TestSyncSubGroups_Serve_ClaimsAlreadyOwnChild(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	// subgroup1 is already a child of this exact parent (e.g. pagination missed it above) -
+	// re-claiming it is a no-op move and must still be allowed.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("parent-group-123"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().CreateChildGroup(
+		context.Background(), "test-realm", "parent-group-123",
+		keycloakapi.GroupRepresentation{
+			Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("parent-group-123"),
+		},
+	).Return(nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
 }

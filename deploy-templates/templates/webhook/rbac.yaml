@@ -10,6 +10,7 @@ rules:
   - v1.edp.epam.com
   resources:
   - keycloakrealms
+  - keycloakrealmgroups
   verbs:
   - get
   - list

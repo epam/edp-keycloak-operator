@@ -76,4 +76,33 @@ webhooks:
     resources:
     - keycloakrealms
   sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ .Values.name }}-webhook-service
+      namespace: {{ .Release.Namespace }}
+      path: /validate-v1-edp-epam-com-v1-keycloakrealmgroup
+  failurePolicy: Fail
+  name: vkeycloakrealmgroup-v1.kb.io
+  {{- /* Namespace-scoped webhook validation to prevent cross-namespace conflicts. */ -}}
+  {{- if not .Values.clusterReconciliationEnabled }}
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values:
+      - {{ .Release.Namespace }}
+  {{- end }}
+  rules:
+  - apiGroups:
+    - v1.edp.epam.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - keycloakrealmgroups
+  sideEffects: None
 {{- end }}

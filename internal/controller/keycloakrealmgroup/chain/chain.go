@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
@@ -68,11 +69,11 @@ func (ch *Chain) Serve(
 	return nil
 }
 
-func MakeChain() *Chain {
+func MakeChain(k8sClient client.Client) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateGroup(),
+		NewCreateOrUpdateGroup(k8sClient),
 		NewSyncRealmRoles(),
 		NewSyncClientRoles(),
 		NewSyncSubGroups(),

@@ -8,7 +8,11 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
@@ -20,7 +24,22 @@ const (
 	testGroupPath      = "/test-group"
 	testChildGroupName = "child-group"
 	testUpdatedPath    = "/updated-path"
+	testNamespace      = "ns1"
+	testCRNameA        = "cr-a"
+	testExistingGroup  = "existing-group"
+	testCRNameB        = "cr-b"
 )
+
+// newFakeK8sClient builds a fake controller-runtime client with the keycloakApi scheme
+// registered, pre-populated with the given KeycloakRealmGroup objects.
+func newFakeK8sClient(t *testing.T, objs ...client.Object) client.Client {
+	t.Helper()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+}
 
 func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
@@ -51,7 +70,7 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 		},
 	}, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "group-id-123", groupCtx.GroupID)
@@ -87,7 +106,7 @@ func TestCreateOrUpdateGroup_Serve_CreateChildGroup(t *testing.T) {
 		},
 	}, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "child-id-456", groupCtx.GroupID)
@@ -100,16 +119,16 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.Name = "existing-group"
+	group.Spec.Name = testExistingGroup
 	group.Spec.Description = "Updated description"
 	group.Spec.Path = testUpdatedPath
 	group.Spec.Attributes = map[string][]string{"new-key": {"new-val"}}
 
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "existing-group",
+		context.Background(), "test-realm", testExistingGroup,
 	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
-		Name: ptr.To("existing-group"),
+		Name: ptr.To(testExistingGroup),
 		Path: ptr.To("/old-path"),
 	}, nil, nil)
 
@@ -117,14 +136,14 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("existing-id"),
-			Name:        ptr.To("existing-group"),
+			Name:        ptr.To(testExistingGroup),
 			Description: ptr.To("Updated description"),
 			Path:        ptr.To(testUpdatedPath),
 			Attributes:  &map[string][]string{"new-key": {"new-val"}},
 		},
 	).Return(nil, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "existing-id", groupCtx.GroupID)
@@ -143,7 +162,7 @@ func TestCreateOrUpdateGroup_Serve_FindGroupError(t *testing.T) {
 		context.Background(), "test-realm", testGroupName,
 	).Return(nil, nil, errors.New("api error"))
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to search for group")
 }
@@ -173,7 +192,7 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 		},
 	).Return(nil, errors.New("create failed"))
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to create group")
 }
@@ -185,15 +204,15 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 	groupCtx := &GroupContext{RealmName: "test-realm"}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.Name = "existing-group"
+	group.Spec.Name = testExistingGroup
 	group.Spec.Path = testUpdatedPath
 	group.Spec.Attributes = map[string][]string{"key": {"val"}}
 
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "existing-group",
+		context.Background(), "test-realm", testExistingGroup,
 	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
-		Name: ptr.To("existing-group"),
+		Name: ptr.To(testExistingGroup),
 		Path: ptr.To("/old-path"),
 	}, nil, nil)
 
@@ -201,14 +220,14 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
 			Id:          ptr.To("existing-id"),
-			Name:        ptr.To("existing-group"),
+			Name:        ptr.To(testExistingGroup),
 			Description: ptr.To(""),
 			Path:        ptr.To(testUpdatedPath),
 			Attributes:  &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, errors.New("update failed"))
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to update group")
 }
@@ -243,7 +262,7 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 		},
 	).Return(nil, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "child-id", groupCtx.GroupID)
@@ -262,7 +281,7 @@ func TestCreateOrUpdateGroup_Serve_FindChildGroupError(t *testing.T) {
 		context.Background(), "test-realm", "parent-id", testChildGroupName,
 	).Return(nil, nil, errors.New("api error"))
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to search for group")
 }
@@ -298,7 +317,7 @@ func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 		},
 	).Return(nil, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "existing-id", groupCtx.GroupID)
@@ -337,7 +356,7 @@ func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing
 		},
 	}, nil)
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "new-id", groupCtx.GroupID)
@@ -356,7 +375,120 @@ func TestCreateOrUpdateGroup_Serve_GetGroupByIDError(t *testing.T) {
 		context.Background(), "test-realm", "existing-id",
 	).Return(nil, nil, errors.New("connection error"))
 
-	h := NewCreateOrUpdateGroup()
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to get group by ID")
+}
+
+func TestCreateOrUpdateGroup_Serve_AdoptUnownedGroupByName(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+	group.Spec.Path = testUpdatedPath
+	group.Spec.Attributes = map[string][]string{"key": {"val"}}
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().UpdateGroup(
+		context.Background(), "test-realm", "existing-id",
+		keycloakapi.GroupRepresentation{
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To(testExistingGroup),
+			Description: ptr.To(""),
+			Path:        ptr.To(testUpdatedPath),
+			Attributes:  &map[string][]string{"key": {"val"}},
+		},
+	).Return(nil, nil)
+
+	// No other KeycloakRealmGroup CR owns "existing-id" - the group is up for adoption.
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "existing-id", groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_RefusesToAdoptGroupOwnedByAnotherCR(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: testNamespace},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+	}, nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, owner))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "already managed by KeycloakRealmGroup "+testNamespace+"/"+testCRNameA)
+	assert.Empty(t, groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_ByIDPathSkipsOwnershipCheck(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	// This CR's own status.ID is already "existing-id" - the by-ID rename path must not
+	// treat that as a conflict, since it is comparing the group against itself.
+	groupCtx := &GroupContext{RealmName: "test-realm", GroupID: "existing-id"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: testNamespace},
+	}
+	group.Spec.Name = "new-name"
+	group.Spec.Path = "/new-name"
+	group.Spec.Attributes = map[string][]string{"key": {"val"}}
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), "test-realm", "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To("old-name"),
+		Path: ptr.To("/old-name"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().UpdateGroup(
+		context.Background(), "test-realm", "existing-id",
+		keycloakapi.GroupRepresentation{
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To("new-name"),
+			Description: ptr.To(""),
+			Path:        ptr.To("/new-name"),
+			Attributes:  &map[string][]string{"key": {"val"}},
+		},
+	).Return(nil, nil)
+
+	self := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: testNamespace},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, self))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "existing-id", groupCtx.GroupID)
 }

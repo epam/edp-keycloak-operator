@@ -171,7 +171,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		GroupID:       keycloakRealmGroup.Status.ID,
 	}
 
-	if err := chain.MakeChain().Serve(ctx, keycloakRealmGroup, kClient, groupCtx); err != nil {
+	if err := chain.MakeChain(r.client).Serve(ctx, keycloakRealmGroup, kClient, groupCtx); err != nil {
 		return fmt.Errorf("error during realm group chain: %w", err)
 	}
 

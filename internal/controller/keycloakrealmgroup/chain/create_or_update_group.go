@@ -5,15 +5,18 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
-type CreateOrUpdateGroup struct{}
+type CreateOrUpdateGroup struct {
+	k8sClient client.Client
+}
 
-func NewCreateOrUpdateGroup() *CreateOrUpdateGroup {
-	return &CreateOrUpdateGroup{}
+func NewCreateOrUpdateGroup(k8sClient client.Client) *CreateOrUpdateGroup {
+	return &CreateOrUpdateGroup{k8sClient: k8sClient}
 }
 
 func (h *CreateOrUpdateGroup) Serve(
@@ -49,6 +52,8 @@ func (h *CreateOrUpdateGroup) Serve(
 	}
 
 	// If we didn't find the group by ID, search by name.
+	foundByName := false
+
 	if existingGroup == nil {
 		if groupCtx.ParentGroupID != "" {
 			existingGroup, _, err = kClient.Groups.FindChildGroupByName(ctx, realm, groupCtx.ParentGroupID, spec.Name)
@@ -58,6 +63,27 @@ func (h *CreateOrUpdateGroup) Serve(
 
 		if err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("unable to search for group %q: %w", spec.Name, err)
+		}
+
+		foundByName = existingGroup != nil
+	}
+
+	// A group found by name search (as opposed to by our own status.ID) may already be
+	// managed by a different KeycloakRealmGroup resource, e.g. another CR using the same
+	// spec.name/parentGroup combination. Adopting it would make two CRs share one Keycloak
+	// group ID and fight over its children on every reconcile. Refuse instead of adopting.
+	if foundByName && existingGroup.Id != nil {
+		owner, ownerErr := findOwnerCR(ctx, h.k8sClient, group, *existingGroup.Id)
+		if ownerErr != nil {
+			return fmt.Errorf("unable to check group ownership for %q: %w", spec.Name, ownerErr)
+		}
+
+		if owner != nil {
+			return fmt.Errorf(
+				"group %q (id %s) is already managed by KeycloakRealmGroup %s/%s; "+
+					"refusing to adopt it - check for a duplicate spec.name/parentGroup combination",
+				spec.Name, *existingGroup.Id, owner.Namespace, owner.Name,
+			)
 		}
 	}
 

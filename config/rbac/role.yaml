@@ -44,6 +44,7 @@ rules:
 - apiGroups:
   - v1.edp.epam.com
   resources:
+  - keycloakrealmgroups
   - keycloakrealms
   verbs:
   - get
