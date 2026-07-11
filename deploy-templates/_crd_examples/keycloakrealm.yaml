@@ -4,6 +4,7 @@ metadata:
   name: keycloakrealm-sample
 spec:
   realmName: realm-sample
+  adminPermissionsEnabled: true
   keycloakRef:
     name: keycloak-sample
     kind: Keycloak

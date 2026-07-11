@@ -56,6 +56,10 @@ spec:
           spec:
             description: KeycloakRealmSpec defines the desired state of KeycloakRealm.
             properties:
+              adminPermissionsEnabled:
+                description: AdminPermissionsEnabled enables Keycloak fine-grained v2
+                  admin permissions for this realm.
+                type: boolean
               browserFlow:
                 description: BrowserFlow specifies the authentication flow to use
                   for the realm's browser clients.

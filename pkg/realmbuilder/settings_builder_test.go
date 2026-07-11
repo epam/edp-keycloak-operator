@@ -38,6 +38,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
 				assert.Equal(t, ptr.To(false), got.OrganizationsEnabled)
+				assert.Equal(t, ptr.To(false), got.AdminPermissionsEnabled)
 				assert.Nil(t, got.LoginTheme)
 				assert.Nil(t, got.Attributes)
 			},
@@ -268,6 +269,18 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				assert.Nil(t, got.LocalizationTexts)
 			},
 		},
+		{
+			name: "with admin permissions enabled",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					AdminPermissionsEnabled: true,
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(true), got.AdminPermissionsEnabled)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -299,6 +312,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
 				assert.Equal(t, ptr.To(false), got.OrganizationsEnabled)
+				assert.Equal(t, ptr.To(false), got.AdminPermissionsEnabled)
 			},
 		},
 		{
@@ -470,6 +484,19 @@ func TestMergeRealmRepresentation(t *testing.T) {
 
 		assert.Equal(t, ptr.To("Original"), base.DisplayName)
 		assert.Equal(t, ptr.To(true), base.OrganizationsEnabled)
+	})
+
+	t.Run("AdminPermissionsEnabled merged from overlay", func(t *testing.T) {
+		base := keycloakapi.RealmRepresentation{
+			AdminPermissionsEnabled: ptr.To(false),
+		}
+		overlay := keycloakapi.RealmRepresentation{
+			AdminPermissionsEnabled: ptr.To(true),
+		}
+
+		MergeRealmRepresentation(&base, &overlay)
+
+		assert.Equal(t, ptr.To(true), base.AdminPermissionsEnabled)
 	})
 
 	t.Run("non-nil overlay pointer fields overwrite base", func(t *testing.T) {

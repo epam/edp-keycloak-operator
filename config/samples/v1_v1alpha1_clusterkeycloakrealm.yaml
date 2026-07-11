@@ -7,6 +7,7 @@ metadata:
 spec:
   clusterKeycloakRef: clusterkeycloak-sample
   realmName: realm-sample
+  adminPermissionsEnabled: true
   organizationsEnabled: false
   localization:
     internationalizationEnabled: true

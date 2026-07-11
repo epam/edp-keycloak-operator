@@ -103,6 +103,13 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         </td>
         <td>true</td>
       </tr><tr>
+        <td><b>adminPermissionsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminPermissionsEnabled enables Keycloak fine-grained v2 admin permissions for this realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b><a href="#clusterkeycloakrealmspecauthenticationflows">authenticationFlows</a></b></td>
         <td>object</td>
         <td>
@@ -6152,6 +6159,13 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
             <i>Validations</i>:<li>self == oldSelf: Value is immutable</li>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>adminPermissionsEnabled</b></td>
+        <td>boolean</td>
+        <td>
+          AdminPermissionsEnabled enables Keycloak fine-grained v2 admin permissions for this realm.<br/>
+        </td>
+        <td>false</td>
       </tr><tr>
         <td><b>browserFlow</b></td>
         <td>string</td>
