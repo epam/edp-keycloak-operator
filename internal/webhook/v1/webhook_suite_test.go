@@ -93,6 +93,9 @@ var _ = BeforeSuite(func() {
 	err = SetupKeycloakClientWebhookWithManager(mgr)
 	Expect(err).NotTo(HaveOccurred())
 
+	err = SetupKeycloakRealmGroupWebhookWithManager(mgr, k8sClient)
+	Expect(err).NotTo(HaveOccurred())
+
 	// +kubebuilder:scaffold:webhook
 
 	go func() {

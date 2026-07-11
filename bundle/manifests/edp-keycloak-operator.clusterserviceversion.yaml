@@ -1043,6 +1043,7 @@ spec:
         - apiGroups:
           - v1.edp.epam.com
           resources:
+          - keycloakrealmgroups
           - keycloakrealms
           verbs:
           - get
@@ -1322,3 +1323,23 @@ spec:
     targetPort: 9443
     type: ValidatingAdmissionWebhook
     webhookPath: /validate-v1-edp-epam-com-v1-keycloakrealm
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: keycloak-operator-controller-manager
+    failurePolicy: Fail
+    generateName: vkeycloakrealmgroup-v1.kb.io
+    rules:
+    - apiGroups:
+      - v1.edp.epam.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - keycloakrealmgroups
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-v1-edp-epam-com-v1-keycloakrealmgroup
