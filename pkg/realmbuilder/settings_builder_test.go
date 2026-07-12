@@ -268,6 +268,57 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				assert.Nil(t, got.LocalizationTexts)
 			},
 		},
+		{
+			name: "with brute force detection",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					BruteForceDetection: &common.BruteForceDetection{
+						BruteForceProtected:          ptr.To(true),
+						BruteForceStrategy:           string(keycloakapi.BruteForceStrategyMultiple),
+						PermanentLockout:             ptr.To(false),
+						MaxFailureWaitSeconds:        ptr.To(900),
+						MinimumQuickLoginWaitSeconds: ptr.To(60),
+						WaitIncrementSeconds:         ptr.To(60),
+						QuickLoginCheckMilliSeconds:  ptr.To(int64(1000)),
+						MaxDeltaTimeSeconds:          ptr.To(43200),
+						FailureFactor:                ptr.To(30),
+						MaxTemporaryLockouts:         ptr.To(1),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(true), got.BruteForceProtected)
+				assert.Equal(t, ptr.To(keycloakapi.BruteForceStrategyMultiple), got.BruteForceStrategy)
+				assert.Equal(t, ptr.To(false), got.PermanentLockout)
+				assert.Equal(t, ptr.To(int32(900)), got.MaxFailureWaitSeconds)
+				assert.Equal(t, ptr.To(int32(60)), got.MinimumQuickLoginWaitSeconds)
+				assert.Equal(t, ptr.To(int32(60)), got.WaitIncrementSeconds)
+				assert.Equal(t, ptr.To(int64(1000)), got.QuickLoginCheckMilliSeconds)
+				assert.Equal(t, ptr.To(int32(43200)), got.MaxDeltaTimeSeconds)
+				assert.Equal(t, ptr.To(int32(30)), got.FailureFactor)
+				assert.Equal(t, ptr.To(int32(1)), got.MaxTemporaryLockouts)
+			},
+		},
+		{
+			name: "brute force detection nil fields left unset",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					BruteForceDetection: &common.BruteForceDetection{
+						FailureFactor: ptr.To(5),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(int32(5)), got.FailureFactor)
+				assert.Nil(t, got.BruteForceProtected)
+				assert.Nil(t, got.BruteForceStrategy)
+				assert.Nil(t, got.MaxTemporaryLockouts)
+				assert.Nil(t, got.PermanentLockout)
+				assert.Nil(t, got.MaxFailureWaitSeconds)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -446,6 +497,24 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 				assert.Equal(t, ptr.To(int32(18000)), got.SsoSessionMaxLifespan)
 			},
 		},
+		{
+			name: "with brute force detection",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{
+					BruteForceDetection: &common.BruteForceDetection{
+						BruteForceProtected:  ptr.To(true),
+						FailureFactor:        ptr.To(10),
+						MaxTemporaryLockouts: ptr.To(2),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(true), got.BruteForceProtected)
+				assert.Equal(t, ptr.To(int32(10)), got.FailureFactor)
+				assert.Equal(t, ptr.To(int32(2)), got.MaxTemporaryLockouts)
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -573,6 +642,30 @@ func TestMergeRealmRepresentation(t *testing.T) {
 
 		assert.Equal(t, ptr.To(int32(600)), base.AccessTokenLifespan)
 		assert.Equal(t, ptr.To(true), base.RevokeRefreshToken)
+	})
+
+	t.Run("brute force settings merged correctly", func(t *testing.T) {
+		base := keycloakapi.RealmRepresentation{
+			BruteForceProtected:   ptr.To(true),
+			BruteForceStrategy:    ptr.To(keycloakapi.BruteForceStrategyMultiple),
+			FailureFactor:         ptr.To(int32(30)),
+			MaxFailureWaitSeconds: ptr.To(int32(900)),
+			MaxTemporaryLockouts:  ptr.To(int32(1)),
+		}
+		overlay := keycloakapi.RealmRepresentation{
+			// Only FailureFactor is explicitly overridden; every other field is left nil.
+			FailureFactor: ptr.To(int32(5)),
+		}
+
+		MergeRealmRepresentation(&base, &overlay)
+
+		// overlay-set field overwrites base
+		assert.Equal(t, ptr.To(int32(5)), base.FailureFactor)
+		// overlay-nil fields preserve the existing base value instead of being reset to zero/false
+		assert.Equal(t, ptr.To(true), base.BruteForceProtected)
+		assert.Equal(t, ptr.To(keycloakapi.BruteForceStrategyMultiple), base.BruteForceStrategy)
+		assert.Equal(t, ptr.To(int32(900)), base.MaxFailureWaitSeconds)
+		assert.Equal(t, ptr.To(int32(1)), base.MaxTemporaryLockouts)
 	})
 }
 

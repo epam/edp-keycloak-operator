@@ -28,6 +28,7 @@ type commonRealmSpec struct {
 	RealmEventConfig            *common.RealmEventConfig
 	Login                       *keycloakApi.RealmLogin
 	Sessions                    *common.RealmSessions
+	BruteForceDetection         *common.BruteForceDetection
 	LoginTheme                  *string
 	AccountTheme                *string
 	AdminTheme                  *string
@@ -130,6 +131,7 @@ func BuildRealmRepresentationFromV1(realm *keycloakApi.KeycloakRealm) keycloakap
 		RealmEventConfig:       spec.RealmEventConfig,
 		Login:                  spec.Login,
 		Sessions:               spec.Sessions,
+		BruteForceDetection:    spec.BruteForceDetection,
 		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
@@ -176,6 +178,7 @@ func BuildRealmRepresentationFromV1Alpha1(realm *v1alpha1.ClusterKeycloakRealm) 
 		RealmEventConfig:       spec.RealmEventConfig,
 		Login:                  spec.Login,
 		Sessions:               spec.Sessions,
+		BruteForceDetection:    spec.BruteForceDetection,
 		PasswordPolicy:         buildPasswordPolicy(spec.PasswordPolicies),
 	}
 
@@ -290,6 +293,7 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 	}
 
 	setRealmRepSessionSettings(&rep, spec.Sessions)
+	setRealmRepBruteForceSettings(&rep, spec.BruteForceDetection)
 
 	return rep
 }
@@ -301,6 +305,7 @@ func MergeRealmRepresentation(base, overlay *keycloakapi.RealmRepresentation) {
 	mergeRealmTokenSettings(base, overlay)
 	mergeRealmLoginSettings(base, overlay)
 	mergeRealmSessionSettings(base, overlay)
+	mergeRealmBruteForceSettings(base, overlay)
 	mergeRealmMaps(base, overlay)
 }
 
@@ -352,6 +357,19 @@ func mergeRealmSessionSettings(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.AccessCodeLifespanUserAction, &overlay.AccessCodeLifespanUserAction)
 }
 
+func mergeRealmBruteForceSettings(base, overlay *keycloakapi.RealmRepresentation) {
+	mergePtr(&base.BruteForceProtected, &overlay.BruteForceProtected)
+	mergePtr(&base.BruteForceStrategy, &overlay.BruteForceStrategy)
+	mergePtr(&base.PermanentLockout, &overlay.PermanentLockout)
+	mergePtr(&base.MaxFailureWaitSeconds, &overlay.MaxFailureWaitSeconds)
+	mergePtr(&base.MinimumQuickLoginWaitSeconds, &overlay.MinimumQuickLoginWaitSeconds)
+	mergePtr(&base.WaitIncrementSeconds, &overlay.WaitIncrementSeconds)
+	mergePtr(&base.QuickLoginCheckMilliSeconds, &overlay.QuickLoginCheckMilliSeconds)
+	mergePtr(&base.MaxDeltaTimeSeconds, &overlay.MaxDeltaTimeSeconds)
+	mergePtr(&base.FailureFactor, &overlay.FailureFactor)
+	mergePtr(&base.MaxTemporaryLockouts, &overlay.MaxTemporaryLockouts)
+}
+
 func mergeRealmMaps(base, overlay *keycloakapi.RealmRepresentation) {
 	// BrowserSecurityHeaders: merge keys into base map
 	if overlay.BrowserSecurityHeaders != nil {
@@ -395,6 +413,52 @@ func setRealmRepSessionSettings(rep *keycloakapi.RealmRepresentation, sessions *
 	if s := sessions.SSOLoginSettings; s != nil {
 		rep.AccessCodeLifespanLogin = ptr.To(int32(s.AccessCodeLifespanLogin))
 		rep.AccessCodeLifespanUserAction = ptr.To(int32(s.AccessCodeLifespanUserAction))
+	}
+}
+
+func setRealmRepBruteForceSettings(rep *keycloakapi.RealmRepresentation, bf *common.BruteForceDetection) {
+	if bf == nil {
+		return
+	}
+
+	if bf.BruteForceProtected != nil {
+		rep.BruteForceProtected = bf.BruteForceProtected
+	}
+
+	if bf.BruteForceStrategy != "" {
+		rep.BruteForceStrategy = ptr.To(keycloakapi.BruteForceStrategy(bf.BruteForceStrategy))
+	}
+
+	if bf.PermanentLockout != nil {
+		rep.PermanentLockout = bf.PermanentLockout
+	}
+
+	if bf.MaxFailureWaitSeconds != nil {
+		rep.MaxFailureWaitSeconds = ptr.To(int32(*bf.MaxFailureWaitSeconds))
+	}
+
+	if bf.MinimumQuickLoginWaitSeconds != nil {
+		rep.MinimumQuickLoginWaitSeconds = ptr.To(int32(*bf.MinimumQuickLoginWaitSeconds))
+	}
+
+	if bf.WaitIncrementSeconds != nil {
+		rep.WaitIncrementSeconds = ptr.To(int32(*bf.WaitIncrementSeconds))
+	}
+
+	if bf.QuickLoginCheckMilliSeconds != nil {
+		rep.QuickLoginCheckMilliSeconds = bf.QuickLoginCheckMilliSeconds
+	}
+
+	if bf.MaxDeltaTimeSeconds != nil {
+		rep.MaxDeltaTimeSeconds = ptr.To(int32(*bf.MaxDeltaTimeSeconds))
+	}
+
+	if bf.FailureFactor != nil {
+		rep.FailureFactor = ptr.To(int32(*bf.FailureFactor))
+	}
+
+	if bf.MaxTemporaryLockouts != nil {
+		rep.MaxTemporaryLockouts = ptr.To(int32(*bf.MaxTemporaryLockouts))
 	}
 }
 

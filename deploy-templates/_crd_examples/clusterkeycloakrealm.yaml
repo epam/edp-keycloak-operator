@@ -29,3 +29,14 @@ spec:
       idleTimeout: 2592000               # 30 days
       maxLifespan: 5184000               # 60 days
       maxLifespanEnabled: true
+  bruteForceDetection:
+    bruteForceProtected: true
+    bruteForceStrategy: MULTIPLE
+    permanentLockout: false
+    maxFailureWaitSeconds: 900
+    minimumQuickLoginWaitSeconds: 60
+    waitIncrementSeconds: 60
+    quickLoginCheckMilliSeconds: 1000
+    maxDeltaTimeSeconds: 43200
+    failureFactor: 30
+    maxTemporaryLockouts: 1

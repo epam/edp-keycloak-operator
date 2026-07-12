@@ -117,6 +117,18 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#clusterkeycloakrealmspecbruteforcedetection">bruteForceDetection</a></b></td>
+        <td>object</td>
+        <td>
+          BruteForceDetection configures brute force attack detection for the realm.
+The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+Disabled - BruteForceProtected is false.
+Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>displayHtmlName</b></td>
         <td>string</td>
         <td>
@@ -237,6 +249,106 @@ AuthenticationFlow is the configuration for authentication flows in the realm.
         <td>string</td>
         <td>
           BrowserFlow specifies the authentication flow to use for the realm's browser clients.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### ClusterKeycloakRealm.spec.bruteForceDetection
+<sup><sup>[↩ Parent](#clusterkeycloakrealmspec)</sup></sup>
+
+
+
+BruteForceDetection configures brute force attack detection for the realm.
+The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+Disabled - BruteForceProtected is false.
+Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>bruteForceProtected</b></td>
+        <td>boolean</td>
+        <td>
+          BruteForceProtected enables/disables brute force detection for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>bruteForceStrategy</b></td>
+        <td>enum</td>
+        <td>
+          BruteForceStrategy determines how the failure count and wait time are calculated once detection triggers.<br/>
+          <br/>
+            <i>Enum</i>: LINEAR, MULTIPLE<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>failureFactor</b></td>
+        <td>integer</td>
+        <td>
+          FailureFactor is the number of login failures before an account is locked out.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxDeltaTimeSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MaxDeltaTimeSeconds is the time period, in seconds, over which failures are tracked before the counter resets.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxFailureWaitSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MaxFailureWaitSeconds is the max time, in seconds, a user is locked out for.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxTemporaryLockouts</b></td>
+        <td>integer</td>
+        <td>
+          MaxTemporaryLockouts is the number of temporary lockouts allowed before the account is locked out permanently.
+A value of 0 disables permanent lockout after temporary lockouts.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minimumQuickLoginWaitSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MinimumQuickLoginWaitSeconds is the wait time applied when a "quick" failure occurs (a failure soon after the previous one).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>permanentLockout</b></td>
+        <td>boolean</td>
+        <td>
+          PermanentLockout locks a user out permanently once the failure threshold is exceeded, requiring admin intervention to unlock.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>quickLoginCheckMilliSeconds</b></td>
+        <td>integer</td>
+        <td>
+          QuickLoginCheckMilliSeconds is the time window, in milliseconds, within which a login failure is considered a "quick" failure.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>waitIncrementSeconds</b></td>
+        <td>integer</td>
+        <td>
+          WaitIncrementSeconds is the amount of time added to the lockout wait for each subsequent failure.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -6167,6 +6279,18 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakrealmspecbruteforcedetection">bruteForceDetection</a></b></td>
+        <td>object</td>
+        <td>
+          BruteForceDetection configures brute force attack detection for the realm.
+The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+Disabled - BruteForceProtected is false.
+Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>displayHtmlName</b></td>
         <td>string</td>
         <td>
@@ -6312,6 +6436,106 @@ KeycloakRef is reference to Keycloak custom resource.
           <br/>
             <i>Enum</i>: Keycloak, ClusterKeycloak<br/>
             <i>Default</i>: Keycloak<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealm.spec.bruteForceDetection
+<sup><sup>[↩ Parent](#keycloakrealmspec)</sup></sup>
+
+
+
+BruteForceDetection configures brute force attack detection for the realm.
+The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+Disabled - BruteForceProtected is false.
+Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>bruteForceProtected</b></td>
+        <td>boolean</td>
+        <td>
+          BruteForceProtected enables/disables brute force detection for the realm.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>bruteForceStrategy</b></td>
+        <td>enum</td>
+        <td>
+          BruteForceStrategy determines how the failure count and wait time are calculated once detection triggers.<br/>
+          <br/>
+            <i>Enum</i>: LINEAR, MULTIPLE<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>failureFactor</b></td>
+        <td>integer</td>
+        <td>
+          FailureFactor is the number of login failures before an account is locked out.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxDeltaTimeSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MaxDeltaTimeSeconds is the time period, in seconds, over which failures are tracked before the counter resets.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxFailureWaitSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MaxFailureWaitSeconds is the max time, in seconds, a user is locked out for.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>maxTemporaryLockouts</b></td>
+        <td>integer</td>
+        <td>
+          MaxTemporaryLockouts is the number of temporary lockouts allowed before the account is locked out permanently.
+A value of 0 disables permanent lockout after temporary lockouts.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>minimumQuickLoginWaitSeconds</b></td>
+        <td>integer</td>
+        <td>
+          MinimumQuickLoginWaitSeconds is the wait time applied when a "quick" failure occurs (a failure soon after the previous one).<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>permanentLockout</b></td>
+        <td>boolean</td>
+        <td>
+          PermanentLockout locks a user out permanently once the failure threshold is exceeded, requiring admin intervention to unlock.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>quickLoginCheckMilliSeconds</b></td>
+        <td>integer</td>
+        <td>
+          QuickLoginCheckMilliSeconds is the time window, in milliseconds, within which a login failure is considered a "quick" failure.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>waitIncrementSeconds</b></td>
+        <td>integer</td>
+        <td>
+          WaitIncrementSeconds is the amount of time added to the lockout wait for each subsequent failure.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
