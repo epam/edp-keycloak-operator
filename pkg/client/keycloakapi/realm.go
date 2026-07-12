@@ -14,6 +14,13 @@ type RealmRepresentation = generated.RealmRepresentation
 type RealmEventsConfigRepresentation = generated.RealmEventsConfigRepresentation
 type KeysMetadataRepresentation = generated.KeysMetadataRepresentation
 type GetRealmLocalizationParams = generated.GetAdminRealmsRealmLocalizationLocaleParams
+type BruteForceStrategy = generated.BruteForceStrategy
+
+// Values for BruteForceStrategy
+const (
+	BruteForceStrategyLinear   = generated.LINEAR
+	BruteForceStrategyMultiple = generated.MULTIPLE
+)
 
 type realmClient struct {
 	client generated.ClientWithResponsesInterface

@@ -14,6 +14,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
 var _ = Describe("KeycloakRealm controller", Ordered, func() {
@@ -495,5 +496,104 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 			return k8sErrors.IsNotFound(err)
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealm with SSO Session should be deleted")
+	})
+	It("Should create KeycloakRealm with BruteForceDetection settings", func() {
+		By("Creating KeycloakRealm with BruteForceDetection settings")
+		keycloakRealmWithBruteForce := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "test-keycloak-realm-brute-force",
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: "test-realm-brute-force",
+				KeycloakRef: common.KeycloakRef{
+					Name: keycloakCR,
+					Kind: keycloakApi.KeycloakKind,
+				},
+				BruteForceDetection: &common.BruteForceDetection{
+					BruteForceProtected:          ptr.To(true),
+					BruteForceStrategy:           string(keycloakapi.BruteForceStrategyMultiple),
+					PermanentLockout:             ptr.To(false),
+					MaxFailureWaitSeconds:        ptr.To(900),
+					MinimumQuickLoginWaitSeconds: ptr.To(60),
+					WaitIncrementSeconds:         ptr.To(60),
+					QuickLoginCheckMilliSeconds:  ptr.To(int64(1000)),
+					MaxDeltaTimeSeconds:          ptr.To(43200),
+					FailureFactor:                ptr.To(30),
+					MaxTemporaryLockouts:         ptr.To(1),
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakRealmWithBruteForce)).Should(Succeed())
+
+		By("Waiting for KeycloakRealm to be available")
+		Eventually(func() bool {
+			createdKeycloakRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-keycloak-realm-brute-force", Namespace: ns}, createdKeycloakRealm)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			if !createdKeycloakRealm.Status.Available {
+				GinkgoWriter.Println("KeycloakRealm status error: ", createdKeycloakRealm.Status.Value)
+			}
+
+			return createdKeycloakRealm.Status.Available
+		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Verifying the realm brute force detection settings in Keycloak")
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			g.Expect(realm.BruteForceProtected).Should(Equal(ptr.To(true)))
+			g.Expect(realm.BruteForceStrategy).ShouldNot(BeNil())
+			g.Expect(*realm.BruteForceStrategy).Should(Equal(keycloakapi.BruteForceStrategyMultiple))
+			g.Expect(realm.PermanentLockout).Should(Equal(ptr.To(false)))
+			g.Expect(realm.MaxFailureWaitSeconds).Should(Equal(ptr.To(int32(900))))
+			g.Expect(realm.MinimumQuickLoginWaitSeconds).Should(Equal(ptr.To(int32(60))))
+			g.Expect(realm.WaitIncrementSeconds).Should(Equal(ptr.To(int32(60))))
+			g.Expect(realm.QuickLoginCheckMilliSeconds).Should(Equal(ptr.To(int64(1000))))
+			g.Expect(realm.MaxDeltaTimeSeconds).Should(Equal(ptr.To(int32(43200))))
+			g.Expect(realm.FailureFactor).Should(Equal(ptr.To(int32(30))))
+			g.Expect(realm.MaxTemporaryLockouts).Should(Equal(ptr.To(int32(1))))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Updating only FailureFactor and leaving other brute force fields unset")
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: "test-keycloak-realm-brute-force", Namespace: ns}, keycloakRealmWithBruteForce)).Should(Succeed())
+		keycloakRealmWithBruteForce.Spec.BruteForceDetection = &common.BruteForceDetection{
+			FailureFactor: ptr.To(5),
+		}
+		Expect(k8sClient.Update(ctx, keycloakRealmWithBruteForce)).Should(Succeed())
+
+		By("Verifying only FailureFactor changed while other brute force fields were preserved")
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(realm).ShouldNot(BeNil())
+
+			g.Expect(realm.FailureFactor).Should(Equal(ptr.To(int32(5))))
+
+			// Fields omitted from the update must retain their previously-set Keycloak values,
+			// not be silently reset to zero/false.
+			g.Expect(realm.BruteForceProtected).Should(Equal(ptr.To(true)))
+			g.Expect(realm.BruteForceStrategy).ShouldNot(BeNil())
+			g.Expect(*realm.BruteForceStrategy).Should(Equal(keycloakapi.BruteForceStrategyMultiple))
+			g.Expect(realm.PermanentLockout).Should(Equal(ptr.To(false)))
+			g.Expect(realm.MaxFailureWaitSeconds).Should(Equal(ptr.To(int32(900))))
+			g.Expect(realm.MinimumQuickLoginWaitSeconds).Should(Equal(ptr.To(int32(60))))
+			g.Expect(realm.WaitIncrementSeconds).Should(Equal(ptr.To(int32(60))))
+			g.Expect(realm.QuickLoginCheckMilliSeconds).Should(Equal(ptr.To(int64(1000))))
+			g.Expect(realm.MaxDeltaTimeSeconds).Should(Equal(ptr.To(int32(43200))))
+			g.Expect(realm.MaxTemporaryLockouts).Should(Equal(ptr.To(int32(1))))
+		}, time.Second*10, time.Second).Should(Succeed())
+
+		By("Deleting KeycloakRealm with BruteForceDetection settings")
+		Expect(k8sClient.Delete(ctx, keycloakRealmWithBruteForce)).Should(Succeed())
+		Eventually(func() bool {
+			deletedRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: "test-keycloak-realm-brute-force", Namespace: ns}, deletedRealm)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "KeycloakRealm with BruteForceDetection should be deleted")
 	})
 })

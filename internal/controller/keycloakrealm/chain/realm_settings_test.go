@@ -191,6 +191,50 @@ func TestRealmSettings_ServeRequest_WithLogin(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRealmSettings_ServeRequest_WithBruteForceDetection(t *testing.T) {
+	t.Parallel()
+
+	realm := keycloakApi.KeycloakRealm{
+		Spec: keycloakApi.KeycloakRealmSpec{
+			RealmName: "realm-with-brute-force",
+			BruteForceDetection: &common.BruteForceDetection{
+				BruteForceProtected:          ptr.To(true),
+				BruteForceStrategy:           string(keycloakapi.BruteForceStrategyMultiple),
+				PermanentLockout:             ptr.To(false),
+				MaxFailureWaitSeconds:        ptr.To(900),
+				MinimumQuickLoginWaitSeconds: ptr.To(60),
+				WaitIncrementSeconds:         ptr.To(60),
+				QuickLoginCheckMilliSeconds:  ptr.To(int64(1000)),
+				MaxDeltaTimeSeconds:          ptr.To(43200),
+				FailureFactor:                ptr.To(30),
+				MaxTemporaryLockouts:         ptr.To(1),
+			},
+		},
+	}
+
+	mockRealm := v2mocks.NewMockRealmClient(t)
+	mockRealm.EXPECT().GetRealm(mock.Anything, "realm-with-brute-force").
+		Return(&keycloakapi.RealmRepresentation{}, nil, nil)
+	mockRealm.EXPECT().UpdateRealm(mock.Anything, "realm-with-brute-force", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+		return assert.Equal(t, ptr.To(true), rep.BruteForceProtected) &&
+			assert.Equal(t, ptr.To(keycloakapi.BruteForceStrategyMultiple), rep.BruteForceStrategy) &&
+			assert.Equal(t, ptr.To(false), rep.PermanentLockout) &&
+			assert.Equal(t, ptr.To(int32(900)), rep.MaxFailureWaitSeconds) &&
+			assert.Equal(t, ptr.To(int32(60)), rep.MinimumQuickLoginWaitSeconds) &&
+			assert.Equal(t, ptr.To(int32(60)), rep.WaitIncrementSeconds) &&
+			assert.Equal(t, ptr.To(int64(1000)), rep.QuickLoginCheckMilliSeconds) &&
+			assert.Equal(t, ptr.To(int32(43200)), rep.MaxDeltaTimeSeconds) &&
+			assert.Equal(t, ptr.To(int32(30)), rep.FailureFactor) &&
+			assert.Equal(t, ptr.To(int32(1)), rep.MaxTemporaryLockouts)
+	})).Return(nil, nil)
+
+	rs := RealmSettings{}
+	kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
+
+	err := rs.ServeRequest(context.Background(), &realm, kClient)
+	require.NoError(t, err)
+}
+
 func TestRealmSettings_ServeRequest_WithSSOSessionSettings(t *testing.T) {
 	t.Parallel()
 

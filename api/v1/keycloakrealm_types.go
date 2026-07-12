@@ -101,6 +101,16 @@ type KeycloakRealmSpec struct {
 	// Sessions defines the session settings for the realm.
 	// +optional
 	Sessions *common.RealmSessions `json:"sessions,omitempty"`
+
+	// BruteForceDetection configures brute force attack detection for the realm.
+	// The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+	// Disabled - BruteForceProtected is false.
+	// Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+	// Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+	// Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.
+	// +nullable
+	// +optional
+	BruteForceDetection *common.BruteForceDetection `json:"bruteForceDetection,omitempty"`
 }
 
 type User struct {

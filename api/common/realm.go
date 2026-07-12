@@ -332,6 +332,60 @@ type RealmEventConfig struct {
 	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 
+// BruteForceDetection is the configuration for brute force attack detection in the realm.
+type BruteForceDetection struct {
+	// BruteForceProtected enables/disables brute force detection for the realm.
+	// +nullable
+	// +optional
+	BruteForceProtected *bool `json:"bruteForceProtected,omitempty"`
+
+	// BruteForceStrategy determines how the failure count and wait time are calculated once detection triggers.
+	// +optional
+	// +kubebuilder:validation:Enum=LINEAR;MULTIPLE
+	BruteForceStrategy string `json:"bruteForceStrategy,omitempty"`
+
+	// PermanentLockout locks a user out permanently once the failure threshold is exceeded, requiring admin intervention to unlock.
+	// +nullable
+	// +optional
+	PermanentLockout *bool `json:"permanentLockout,omitempty"`
+
+	// MaxFailureWaitSeconds is the max time, in seconds, a user is locked out for.
+	// +nullable
+	// +optional
+	MaxFailureWaitSeconds *int `json:"maxFailureWaitSeconds,omitempty"`
+
+	// MinimumQuickLoginWaitSeconds is the wait time applied when a "quick" failure occurs (a failure soon after the previous one).
+	// +nullable
+	// +optional
+	MinimumQuickLoginWaitSeconds *int `json:"minimumQuickLoginWaitSeconds,omitempty"`
+
+	// WaitIncrementSeconds is the amount of time added to the lockout wait for each subsequent failure.
+	// +nullable
+	// +optional
+	WaitIncrementSeconds *int `json:"waitIncrementSeconds,omitempty"`
+
+	// QuickLoginCheckMilliSeconds is the time window, in milliseconds, within which a login failure is considered a "quick" failure.
+	// +nullable
+	// +optional
+	QuickLoginCheckMilliSeconds *int64 `json:"quickLoginCheckMilliSeconds,omitempty"`
+
+	// MaxDeltaTimeSeconds is the time period, in seconds, over which failures are tracked before the counter resets.
+	// +nullable
+	// +optional
+	MaxDeltaTimeSeconds *int `json:"maxDeltaTimeSeconds,omitempty"`
+
+	// FailureFactor is the number of login failures before an account is locked out.
+	// +nullable
+	// +optional
+	FailureFactor *int `json:"failureFactor,omitempty"`
+
+	// MaxTemporaryLockouts is the number of temporary lockouts allowed before the account is locked out permanently.
+	// A value of 0 disables permanent lockout after temporary lockouts.
+	// +nullable
+	// +optional
+	MaxTemporaryLockouts *int `json:"maxTemporaryLockouts,omitempty"`
+}
+
 // RealmSSOLoginSettings defines the SSO login settings for the realm.
 type RealmSSOLoginSettings struct {
 	// AccessCodeLifespanLogin represents the max time a user has to complete a login. This is recommended to be relatively long, such as 30 minutes or more.

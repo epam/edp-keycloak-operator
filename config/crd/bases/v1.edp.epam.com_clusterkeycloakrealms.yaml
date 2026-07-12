@@ -71,6 +71,74 @@ spec:
                   apply to HTTP responses from the realm's browser clients.
                 nullable: true
                 type: object
+              bruteForceDetection:
+                description: |-
+                  BruteForceDetection configures brute force attack detection for the realm.
+                  The realm's "Brute Force Mode" is derived from a combination of fields on this struct rather than being a single value:
+                  Disabled - BruteForceProtected is false.
+                  Lockout permanently - BruteForceProtected is true and PermanentLockout is true.
+                  Lockout temporarily - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is 0 or unset.
+                  Lockout permanently after temporary lockout - BruteForceProtected is true, PermanentLockout is false, and MaxTemporaryLockouts is greater than 0.
+                nullable: true
+                properties:
+                  bruteForceProtected:
+                    description: BruteForceProtected enables/disables brute force
+                      detection for the realm.
+                    nullable: true
+                    type: boolean
+                  bruteForceStrategy:
+                    description: BruteForceStrategy determines how the failure count
+                      and wait time are calculated once detection triggers.
+                    enum:
+                    - LINEAR
+                    - MULTIPLE
+                    type: string
+                  failureFactor:
+                    description: FailureFactor is the number of login failures before
+                      an account is locked out.
+                    nullable: true
+                    type: integer
+                  maxDeltaTimeSeconds:
+                    description: MaxDeltaTimeSeconds is the time period, in seconds,
+                      over which failures are tracked before the counter resets.
+                    nullable: true
+                    type: integer
+                  maxFailureWaitSeconds:
+                    description: MaxFailureWaitSeconds is the max time, in seconds,
+                      a user is locked out for.
+                    nullable: true
+                    type: integer
+                  maxTemporaryLockouts:
+                    description: |-
+                      MaxTemporaryLockouts is the number of temporary lockouts allowed before the account is locked out permanently.
+                      A value of 0 disables permanent lockout after temporary lockouts.
+                    nullable: true
+                    type: integer
+                  minimumQuickLoginWaitSeconds:
+                    description: MinimumQuickLoginWaitSeconds is the wait time applied
+                      when a "quick" failure occurs (a failure soon after the previous
+                      one).
+                    nullable: true
+                    type: integer
+                  permanentLockout:
+                    description: PermanentLockout locks a user out permanently once
+                      the failure threshold is exceeded, requiring admin intervention
+                      to unlock.
+                    nullable: true
+                    type: boolean
+                  quickLoginCheckMilliSeconds:
+                    description: QuickLoginCheckMilliSeconds is the time window, in
+                      milliseconds, within which a login failure is considered a "quick"
+                      failure.
+                    format: int64
+                    nullable: true
+                    type: integer
+                  waitIncrementSeconds:
+                    description: WaitIncrementSeconds is the amount of time added
+                      to the lockout wait for each subsequent failure.
+                    nullable: true
+                    type: integer
+                type: object
               clusterKeycloakRef:
                 description: ClusterKeycloakRef is a name of the ClusterKeycloak instance
                   that owns the realm.
