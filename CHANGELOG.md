@@ -1,8 +1,21 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+
+<a name="v1.35.0"></a>
+## [v1.35.0] - 2026-07-13
+### Features
+- **realm:** add brute force detection support
+
+### Bug Fixes
+- **KeycloakRealmGroup:** prevent same-named groups from sharing one Keycloak group ID ([#362](https://github.com/epam/edp-keycloak-operator/issues/362))
+- **bundle:** publish to all current and future OpenShift versions
+- **webhook:** scope realm uniqueness to the resolved Keycloak instance ([#360](https://github.com/epam/edp-keycloak-operator/issues/360))
+
 ### Routine
+- **ci:** Update development version
 - **ci:** Publish 1.34 on operatorhub
+- **deps:** Bump golang.org/x/net from 0.48.0 to 0.55.0
 
 
 <a name="v1.34.0"></a>
@@ -403,7 +416,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.34.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.35.0...HEAD
+[v1.35.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.34.0...v1.35.0
 [v1.34.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.33.0...v1.34.0
 [v1.33.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...v1.33.0
 [v1.32.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.31.1...v1.32.0
