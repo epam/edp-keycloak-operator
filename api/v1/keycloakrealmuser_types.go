@@ -40,12 +40,16 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	RequiredUserActions []string `json:"requiredUserActions,omitempty"`
 
-	// Roles is a list of roles assigned to user.
+	// Roles is a list of realm roles assigned to user.
+	// Omitting the field, or setting it to null, leaves the realm roles the user already has untouched,
+	// including the defaults Keycloak grants on creation.
+	// An explicit empty list removes every realm role from the user.
 	// +nullable
 	// +optional
 	Roles []string `json:"roles"` // no omitempty: an empty list has to stay distinguishable from an omitted one
 
 	// ClientRoles is a list of client roles assigned to user.
+	// The same rule as for Roles applies per client: omitting an entry's roles list leaves that client's roles untouched, an empty list removes all of them.
 	// +nullable
 	// +optional
 	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`

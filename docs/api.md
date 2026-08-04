@@ -8053,7 +8053,8 @@ Each attribute can have multiple values.<br/>
         <td><b><a href="#keycloakrealmuserspecclientrolesindex">clientRoles</a></b></td>
         <td>[]object</td>
         <td>
-          ClientRoles is a list of client roles assigned to user.<br/>
+          ClientRoles is a list of client roles assigned to user.
+The same rule as for Roles applies per client: omitting an entry's roles list leaves that client's roles untouched, an empty list removes all of them.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8154,7 +8155,10 @@ If set to full, user will be created if it does not exist, or updated if it exis
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of roles assigned to user.<br/>
+          Roles is a list of realm roles assigned to user.
+Omitting the field, or setting it to null, leaves the realm roles the user already has untouched,
+including the defaults Keycloak grants on creation.
+An explicit empty list removes every realm role from the user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
