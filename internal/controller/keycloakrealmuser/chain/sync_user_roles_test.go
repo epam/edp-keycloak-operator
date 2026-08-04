@@ -98,6 +98,87 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "success - unset roles keep existing realm roles (full strategy)",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{},
+			},
+			userCtx: &UserContext{UserID: "user-unset"},
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, _ *v2mocks.MockClientsClient) {
+				// Keycloak must not be touched at all: spec.roles is unset, so realm roles
+				// (including the default-roles-<realm> Keycloak grants on creation) are unmanaged.
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "success - empty roles remove every realm role (full strategy)",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Roles: []string{},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-empty"},
+			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-empty").
+					Return([]keycloakapi.RoleRepresentation{
+						{Id: ptr.To("id1"), Name: ptr.To("role1")},
+					}, nil, nil)
+				u.EXPECT().DeleteUserRealmRoles(context.Background(), "test-realm", "user-empty", []keycloakapi.RoleRepresentation{
+					{Id: ptr.To("id1"), Name: ptr.To("role1")},
+				}).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "success - unset client roles keep existing client roles (full strategy)",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client-unset"},
+						{ClientID: "client-managed", Roles: []string{"crole1"}},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-unset-client"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				// client-unset is skipped whole: not even looked up, so a stale or misspelled
+				// clientId in an unmanaged entry cannot fail the reconciliation.
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client-managed")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-2")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-unset-client", "client-uuid-2").
+					Return([]keycloakapi.RoleRepresentation{
+						{Id: ptr.To("crid1"), Name: ptr.To("crole1")},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "success - empty client roles remove every client role (full strategy)",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client-empty", Roles: []string{}},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-empty-client"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client-empty")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-empty-client", "client-uuid-1").
+					Return([]keycloakapi.RoleRepresentation{
+						{Id: ptr.To("crid1"), Name: ptr.To("crole1")},
+					}, nil, nil)
+				u.EXPECT().DeleteUserClientRoles(context.Background(), "test-realm", "user-empty-client", "client-uuid-1", []keycloakapi.RoleRepresentation{
+					{Id: ptr.To("crid1"), Name: ptr.To("crole1")},
+				}).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "success - sync client roles",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
@@ -109,9 +190,6 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				// no realm roles
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-4").
-					Return(nil, nil, nil)
 				// client lookup
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
 					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
@@ -141,8 +219,6 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-5"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-5").
-					Return(nil, nil, nil)
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
 					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-5", "client-uuid-1").
@@ -206,9 +282,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 				},
 			},
 			userCtx: &UserContext{UserID: "user-err3"},
-			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-err3").
-					Return(nil, nil, nil)
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("no-such-client")}).
 					Return(nil, nil, nil)
 			},

@@ -43,7 +43,7 @@ type KeycloakRealmUserSpec struct {
 	// Roles is a list of roles assigned to user.
 	// +nullable
 	// +optional
-	Roles []string `json:"roles,omitempty"`
+	Roles []string `json:"roles"` // no omitempty: an empty list has to stay distinguishable from an omitted one
 
 	// ClientRoles is a list of client roles assigned to user.
 	// +nullable
