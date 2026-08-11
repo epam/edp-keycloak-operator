@@ -15,6 +15,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/client-go/rest"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/envtest"
@@ -166,7 +167,7 @@ var _ = BeforeSuite(func() {
 				Kind: keycloakApi.KeycloakKind,
 				Name: keycloak.Name,
 			},
-			OrganizationsEnabled: true,
+			OrganizationsEnabled: ptr.To(true),
 		},
 	}
 	Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

@@ -42,8 +42,8 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 					ActionTokenGeneratedByUserLifespan:  234,
 					ActionTokenGeneratedByAdminLifespan: 235,
 				},
-				DisplayName:     "Test Realm",
-				DisplayHTMLName: "<b>Test Realm</b>",
+				DisplayName:     ptr.To("Test Realm"),
+				DisplayHTMLName: ptr.To("<b>Test Realm</b>"),
 				RealmEventConfig: &common.RealmEventConfig{
 					AdminEventsEnabled:    ptr.To(true),
 					AdminEventsExpiration: 100,

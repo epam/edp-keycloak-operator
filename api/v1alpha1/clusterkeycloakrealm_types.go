@@ -57,19 +57,23 @@ type ClusterKeycloakRealmSpec struct {
 	AuthenticationFlow *AuthenticationFlow `json:"authenticationFlows,omitempty"`
 
 	// DisplayHTMLName name to render in the UI.
+	// Set to an empty string to clear the value in Keycloak.
+	// +nullable
 	// +optional
-	DisplayHTMLName string `json:"displayHtmlName,omitempty"`
+	DisplayHTMLName *string `json:"displayHtmlName,omitempty"`
 
 	// DisplayName is the display name of the realm.
+	// Set to an empty string to clear the value in Keycloak.
+	// +nullable
 	// +optional
-	DisplayName string `json:"displayName,omitempty"`
+	DisplayName *string `json:"displayName,omitempty"`
 
 	// OrganizationsEnabled enables Keycloak Organizations feature for this realm.
 	// When enabled, this realm can support Organization resources for multi-tenant scenarios,
 	// identity provider groupings, and domain-based user routing.
+	// +nullable
 	// +optional
-	// +kubebuilder:default=false
-	OrganizationsEnabled bool `json:"organizationsEnabled,omitempty"`
+	OrganizationsEnabled *bool `json:"organizationsEnabled,omitempty"`
 
 	// UserProfileConfig is the configuration for user profiles in the realm.
 	// +nullable

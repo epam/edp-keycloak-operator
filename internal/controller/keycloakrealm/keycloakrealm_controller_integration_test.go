@@ -78,8 +78,8 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					ActionTokenGeneratedByUserLifespan:  234,
 					ActionTokenGeneratedByAdminLifespan: 235,
 				},
-				DisplayName:     "Test Realm",
-				DisplayHTMLName: "<b>Test Realm</b>",
+				DisplayName:     ptr.To("Test Realm"),
+				DisplayHTMLName: ptr.To("<b>Test Realm</b>"),
 				UserProfileConfig: &common.UserProfileConfig{
 					Attributes: []common.UserProfileAttribute{
 						{

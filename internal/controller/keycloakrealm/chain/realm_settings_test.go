@@ -51,7 +51,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 					PasswordPolicies: []common.PasswordPolicy{
 						{Type: "foo", Value: "bar"},
 					},
-					DisplayHTMLName: "<div class=\"kc-logo-text\"><span>Example</span></div>",
+					DisplayHTMLName: ptr.To("<div class=\"kc-logo-text\"><span>Example</span></div>"),
 					FrontendURL:     "http://example.com",
 				},
 			},

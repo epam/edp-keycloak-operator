@@ -187,6 +187,21 @@ func (in *ClusterKeycloakRealmSpec) DeepCopyInto(out *ClusterKeycloakRealmSpec) 
 		*out = new(AuthenticationFlow)
 		**out = **in
 	}
+	if in.DisplayHTMLName != nil {
+		in, out := &in.DisplayHTMLName, &out.DisplayHTMLName
+		*out = new(string)
+		**out = **in
+	}
+	if in.DisplayName != nil {
+		in, out := &in.DisplayName, &out.DisplayName
+		*out = new(string)
+		**out = **in
+	}
+	if in.OrganizationsEnabled != nil {
+		in, out := &in.OrganizationsEnabled, &out.OrganizationsEnabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.UserProfileConfig != nil {
 		in, out := &in.UserProfileConfig, &out.UserProfileConfig
 		*out = new(common.UserProfileConfig)

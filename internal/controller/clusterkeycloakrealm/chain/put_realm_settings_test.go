@@ -47,9 +47,9 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName:            "test-realm",
 					FrontendURL:          "https://example.com",
-					DisplayHTMLName:      "<div>Test</div>",
-					DisplayName:          "Test Realm",
-					OrganizationsEnabled: true,
+					DisplayHTMLName:      ptr.To("<div>Test</div>"),
+					DisplayName:          ptr.To("Test Realm"),
+					OrganizationsEnabled: ptr.To(true),
 					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsDetailsEnabled: ptr.To(true),
 						AdminEventsEnabled:        ptr.To(true),

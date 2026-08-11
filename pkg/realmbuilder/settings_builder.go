@@ -18,9 +18,9 @@ import (
 // commonRealmSpec holds the normalized, API-version-agnostic fields shared by
 // KeycloakRealmSpec and ClusterKeycloakRealmSpec.
 type commonRealmSpec struct {
-	DisplayName                 string
-	DisplayHTMLName             string
-	OrganizationsEnabled        bool
+	DisplayName                 *string
+	DisplayHTMLName             *string
+	OrganizationsEnabled        *bool
 	FrontendURL                 string
 	BrowserSecurityHeaders      *map[string]string
 	PasswordPolicy              string // pre-formatted "type(value) and …" string, empty if none
@@ -227,9 +227,9 @@ func buildPasswordPolicy(policies []common.PasswordPolicy) string {
 // normalized common spec. All version-specific field mapping is done by the callers.
 func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmRepresentation {
 	rep := keycloakapi.RealmRepresentation{
-		DisplayName:                 ptr.To(spec.DisplayName),
-		DisplayNameHtml:             ptr.To(spec.DisplayHTMLName),
-		OrganizationsEnabled:        ptr.To(spec.OrganizationsEnabled),
+		DisplayName:                 spec.DisplayName,
+		DisplayNameHtml:             spec.DisplayHTMLName,
+		OrganizationsEnabled:        spec.OrganizationsEnabled,
 		LoginTheme:                  spec.LoginTheme,
 		AccountTheme:                spec.AccountTheme,
 		AdminTheme:                  spec.AdminTheme,
