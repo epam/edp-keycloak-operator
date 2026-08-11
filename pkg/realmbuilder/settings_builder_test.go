@@ -29,17 +29,45 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			name: "minimal configuration",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					DisplayName:     "Test Realm",
-					DisplayHTMLName: "<b>Test</b>",
+					DisplayName:     ptr.To("Test Realm"),
+					DisplayHTMLName: ptr.To("<b>Test</b>"),
 				},
 			},
 			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
-				assert.Equal(t, ptr.To(false), got.OrganizationsEnabled)
+				assert.Nil(t, got.OrganizationsEnabled)
 				assert.Nil(t, got.LoginTheme)
 				assert.Nil(t, got.Attributes)
+			},
+		},
+		{
+			name: "unset display fields stay nil to preserve live Keycloak values",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{RealmName: "test"},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Nil(t, got.DisplayName)
+				assert.Nil(t, got.DisplayNameHtml)
+				assert.Nil(t, got.OrganizationsEnabled)
+			},
+		},
+		{
+			name: "empty display values explicitly clear the fields",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					DisplayName:          ptr.To(""),
+					DisplayHTMLName:      ptr.To(""),
+					OrganizationsEnabled: ptr.To(false),
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Equal(t, ptr.To(""), got.DisplayName)
+				assert.Equal(t, ptr.To(""), got.DisplayNameHtml)
+				assert.Equal(t, ptr.To(false), got.OrganizationsEnabled)
 			},
 		},
 		{
@@ -341,15 +369,27 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 			name: "minimal configuration",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					DisplayName:     "Test Realm",
-					DisplayHTMLName: "<b>Test</b>",
+					DisplayName:     ptr.To("Test Realm"),
+					DisplayHTMLName: ptr.To("<b>Test</b>"),
 				},
 			},
 			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
 				t.Helper()
 				assert.Equal(t, ptr.To("Test Realm"), got.DisplayName)
 				assert.Equal(t, ptr.To("<b>Test</b>"), got.DisplayNameHtml)
-				assert.Equal(t, ptr.To(false), got.OrganizationsEnabled)
+				assert.Nil(t, got.OrganizationsEnabled)
+			},
+		},
+		{
+			name: "unset display fields stay nil to preserve live Keycloak values",
+			realm: &v1alpha1.ClusterKeycloakRealm{
+				Spec: v1alpha1.ClusterKeycloakRealmSpec{RealmName: "test"},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				assert.Nil(t, got.DisplayName)
+				assert.Nil(t, got.DisplayNameHtml)
+				assert.Nil(t, got.OrganizationsEnabled)
 			},
 		},
 		{
@@ -852,6 +892,26 @@ func TestApplyRealmSettings(t *testing.T) {
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
 					return rep.DisplayName != nil && *rep.DisplayName == "My Realm"
+				})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "unset fields in overlay preserve externally-set Keycloak values",
+			overlay: BuildRealmRepresentationFromV1(&keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{RealmName: "test-realm"},
+			}),
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{
+						DisplayName:          ptr.To("Externally Set"),
+						DisplayNameHtml:      ptr.To("<b>Externally Set</b>"),
+						OrganizationsEnabled: ptr.To(true),
+					}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+					return rep.DisplayName != nil && *rep.DisplayName == "Externally Set" &&
+						rep.DisplayNameHtml != nil && *rep.DisplayNameHtml == "<b>Externally Set</b>" &&
+						rep.OrganizationsEnabled != nil && *rep.OrganizationsEnabled
 				})).Return(nil, nil)
 			},
 			wantErr: require.NoError,

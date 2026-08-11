@@ -132,14 +132,16 @@ Lockout permanently after temporary lockout - BruteForceProtected is true, Perma
         <td><b>displayHtmlName</b></td>
         <td>string</td>
         <td>
-          DisplayHTMLName name to render in the UI.<br/>
+          DisplayHTMLName name to render in the UI.
+Set to an empty string to clear the value in Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>displayName</b></td>
         <td>string</td>
         <td>
-          DisplayName is the display name of the realm.<br/>
+          DisplayName is the display name of the realm.
+Set to an empty string to clear the value in Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -171,8 +173,6 @@ Use in combination with the default hostname provider to override the base URL f
           OrganizationsEnabled enables Keycloak Organizations feature for this realm.
 When enabled, this realm can support Organization resources for multi-tenant scenarios,
 identity provider groupings, and domain-based user routing.<br/>
-          <br/>
-            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6294,14 +6294,16 @@ Lockout permanently after temporary lockout - BruteForceProtected is true, Perma
         <td><b>displayHtmlName</b></td>
         <td>string</td>
         <td>
-          DisplayHTMLName name to render in the UI<br/>
+          DisplayHTMLName name to render in the UI.
+Set to an empty string to clear the value in Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>displayName</b></td>
         <td>string</td>
         <td>
-          DisplayName is the display name of the realm.<br/>
+          DisplayName is the display name of the realm.
+Set to an empty string to clear the value in Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -6339,8 +6341,6 @@ Lockout permanently after temporary lockout - BruteForceProtected is true, Perma
           OrganizationsEnabled enables Keycloak Organizations feature for this realm.
 When enabled, this realm can support Organization resources for multi-tenant scenarios,
 identity provider groupings, and domain-based user routing.<br/>
-          <br/>
-            <i>Default</i>: false<br/>
         </td>
         <td>false</td>
       </tr><tr>
