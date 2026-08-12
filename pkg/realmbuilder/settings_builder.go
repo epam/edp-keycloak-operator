@@ -272,13 +272,14 @@ func buildRealmRepresentationFromCommon(spec commonRealmSpec) keycloakapi.RealmR
 	}
 
 	eventCfg := spec.RealmEventConfig
-	if eventCfg != nil && eventCfg.AdminEventsEnabled != nil && *eventCfg.AdminEventsEnabled {
+	if eventCfg != nil && eventCfg.AdminEventsEnabled != nil && *eventCfg.AdminEventsEnabled &&
+		eventCfg.AdminEventsExpiration != nil {
 		if rep.Attributes == nil {
 			attrs := make(map[string]string)
 			rep.Attributes = &attrs
 		}
 
-		(*rep.Attributes)["adminEventsExpiration"] = strconv.Itoa(eventCfg.AdminEventsExpiration)
+		(*rep.Attributes)["adminEventsExpiration"] = strconv.Itoa(*eventCfg.AdminEventsExpiration)
 	}
 
 	if l := spec.Login; l != nil {

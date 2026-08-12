@@ -251,6 +251,11 @@ func (in *RealmEventConfig) DeepCopyInto(out *RealmEventConfig) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.AdminEventsExpiration != nil {
+		in, out := &in.AdminEventsExpiration, &out.AdminEventsExpiration
+		*out = new(int)
+		**out = **in
+	}
 	if in.EnabledEventTypes != nil {
 		in, out := &in.EnabledEventTypes, &out.EnabledEventTypes
 		*out = make([]string, len(*in))

@@ -53,7 +53,7 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsDetailsEnabled: ptr.To(true),
 						AdminEventsEnabled:        ptr.To(true),
-						AdminEventsExpiration:     3600,
+						AdminEventsExpiration:     ptr.To(3600),
 						EnabledEventTypes:         []string{"LOGIN", "LOGOUT"},
 						EventsEnabled:             ptr.To(true),
 						EventsExpiration:          ptr.To(7200),

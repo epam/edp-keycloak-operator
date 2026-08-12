@@ -15,6 +15,84 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 )
 
+var _ = Describe("KeycloakRealm admin events expiration", Ordered, func() {
+	const (
+		crName    = "test-keycloak-realm-admin-events"
+		realmName = "test-realm-admin-events"
+	)
+
+	It("Should preserve externally-set adminEventsExpiration when the CR omits it", func() {
+		By("Creating a KeycloakRealm without realmEventConfig")
+		keycloakRealm := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      crName,
+				Namespace: ns,
+			},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: realmName,
+				KeycloakRef: common.KeycloakRef{
+					Name: keycloakCR,
+					Kind: keycloakApi.KeycloakKind,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())
+
+		Eventually(func() bool {
+			createdRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, createdRealm)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			return createdRealm.Status.Available
+		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Setting adminEventsExpiration directly in Keycloak (external tooling)")
+		realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmName)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		if realm.Attributes == nil {
+			realm.Attributes = &map[string]string{}
+		}
+
+		(*realm.Attributes)["adminEventsExpiration"] = "3600"
+		_, err = keycloakApiClient.Realms.UpdateRealm(ctx, realmName, *realm)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("Enabling admin events via the CR without setting adminEventsExpiration")
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, keycloakRealm)).Should(Succeed())
+		keycloakRealm.Spec.RealmEventConfig = &common.RealmEventConfig{
+			AdminEventsEnabled: ptr.To(true),
+		}
+		Expect(k8sClient.Update(ctx, keycloakRealm)).Should(Succeed())
+
+		By("Verifying the externally-set expiration survives reconciliation")
+		Eventually(func(g Gomega) {
+			eventsConfig, _, err := keycloakApiClient.Events.GetEventsConfig(ctx, realmName)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			// Proves the reconcile loop applied the managed part of the config.
+			g.Expect(eventsConfig.AdminEventsEnabled).Should(Equal(ptr.To(true)))
+
+			updatedRealm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmName)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(updatedRealm.Attributes).ShouldNot(BeNil())
+			g.Expect((*updatedRealm.Attributes)["adminEventsExpiration"]).Should(Equal("3600"))
+		}, time.Second*30, time.Second).Should(Succeed())
+	})
+
+	It("Should clean up the admin events test realm", func() {
+		keycloakRealm := &keycloakApi.KeycloakRealm{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, keycloakRealm)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, keycloakRealm)).Should(Succeed())
+		Eventually(func() bool {
+			deletedRealm := &keycloakApi.KeycloakRealm{}
+			err := k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, deletedRealm)
+
+			return k8sErrors.IsNotFound(err)
+		}, timeout, interval).Should(BeTrue(), "KeycloakRealm should be deleted")
+	})
+})
+
 var _ = Describe("KeycloakRealm externally-managed settings", Ordered, func() {
 	const (
 		crName    = "test-keycloak-realm-external"

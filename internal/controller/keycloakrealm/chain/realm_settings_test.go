@@ -72,7 +72,7 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 					RealmEventConfig: &common.RealmEventConfig{
 						EventsListeners:       []string{"foo", "bar"},
 						AdminEventsEnabled:    ptr.To(true),
-						AdminEventsExpiration: 100,
+						AdminEventsExpiration: ptr.To(100),
 					},
 				},
 			},

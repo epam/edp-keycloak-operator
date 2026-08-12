@@ -308,8 +308,9 @@ type RealmEventConfig struct {
 
 	// AdminEventsExpiration sets the expiration for events in seconds.
 	// Expired events are periodically deleted from the database.
+	// +nullable
 	// +optional
-	AdminEventsExpiration int `json:"adminEventsExpiration,omitempty"`
+	AdminEventsExpiration *int `json:"adminEventsExpiration,omitempty"`
 
 	// EnabledEventTypes is a list of event types to enable.
 	// +optional
