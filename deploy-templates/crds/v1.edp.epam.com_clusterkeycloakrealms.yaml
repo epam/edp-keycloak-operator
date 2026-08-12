@@ -277,6 +277,7 @@ spec:
                     description: |-
                       AdminEventsExpiration sets the expiration for events in seconds.
                       Expired events are periodically deleted from the database.
+                    nullable: true
                     type: integer
                   enabledEventTypes:
                     description: EnabledEventTypes is a list of event types to enable.

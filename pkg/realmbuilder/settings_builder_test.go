@@ -166,7 +166,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsEnabled:    ptr.To(true),
-						AdminEventsExpiration: 3600,
+						AdminEventsExpiration: ptr.To(3600),
 					},
 				},
 			},
@@ -177,12 +177,28 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			},
 		},
 		{
+			name: "unset admin events expiration is not written when admin events enabled",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmEventConfig: &common.RealmEventConfig{
+						AdminEventsEnabled: ptr.To(true),
+					},
+				},
+			},
+			check: func(t *testing.T, got keycloakapi.RealmRepresentation) {
+				t.Helper()
+				if got.Attributes != nil {
+					assert.NotContains(t, *got.Attributes, "adminEventsExpiration")
+				}
+			},
+		},
+		{
 			name: "admin events expiration not set when admin events disabled",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsEnabled:    ptr.To(false),
-						AdminEventsExpiration: 3600,
+						AdminEventsExpiration: ptr.To(3600),
 					},
 				},
 			},
@@ -198,7 +214,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
-						AdminEventsExpiration: 3600,
+						AdminEventsExpiration: ptr.To(3600),
 					},
 				},
 			},
@@ -491,7 +507,7 @@ func TestBuildRealmRepresentationFromV1Alpha1(t *testing.T) {
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmEventConfig: &common.RealmEventConfig{
 						AdminEventsEnabled:    ptr.To(true),
-						AdminEventsExpiration: 7200,
+						AdminEventsExpiration: ptr.To(7200),
 					},
 				},
 			},
