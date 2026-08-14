@@ -251,7 +251,7 @@ type UserClientRole struct {
 	// Roles is a list of client roles names assigned to user.
 	// +nullable
 	// +optional
-	Roles []string `json:"roles,omitempty"`
+	Roles []string `json:"roles"` // no omitempty: an empty list has to stay distinguishable from an omitted one
 }
 
 type ClientRole struct {

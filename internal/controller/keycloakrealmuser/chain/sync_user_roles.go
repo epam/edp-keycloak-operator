@@ -49,6 +49,14 @@ func (h *SyncUserRoles) syncRealmRoles(
 	desiredRoleNames []string,
 	addOnly bool,
 ) error {
+	// A nil desired list means the field was omitted, so the resource does not manage realm roles
+	// at all and Keycloak is left alone. An empty but non-nil list still means "no roles" and
+	// clears every mapping. Normalising the field anywhere upstream would silently turn
+	// "not managed" into "delete everything".
+	if desiredRoleNames == nil {
+		return nil
+	}
+
 	currentRoles, _, err := h.kClient.Users.GetUserRealmRoleMappings(ctx, realmName, userID)
 	if err != nil {
 		return fmt.Errorf("unable to get user realm role mappings: %w", err)
@@ -113,6 +121,12 @@ func (h *SyncUserRoles) syncClientRoles(
 	addOnly bool,
 ) error {
 	for _, cr := range clientRoles {
+		// As in syncRealmRoles, an omitted role list means this client's roles are not managed,
+		// which leaves nothing to do for the entry at all.
+		if cr.Roles == nil {
+			continue
+		}
+
 		clients, _, err := h.kClient.Clients.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{ClientId: &cr.ClientID})
 		if err != nil {
 			return fmt.Errorf("unable to get client %q: %w", cr.ClientID, err)

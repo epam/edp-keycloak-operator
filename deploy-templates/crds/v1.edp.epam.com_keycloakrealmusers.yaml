@@ -63,7 +63,9 @@ spec:
                 nullable: true
                 type: object
               clientRoles:
-                description: ClientRoles is a list of client roles assigned to user.
+                description: |-
+                  ClientRoles is a list of client roles assigned to user.
+                  The same rule as for Roles applies per client: omitting an entry's roles list leaves that client's roles untouched, an empty list removes all of them.
                 items:
                   properties:
                     clientId:
@@ -177,7 +179,11 @@ spec:
                 nullable: true
                 type: array
               roles:
-                description: Roles is a list of roles assigned to user.
+                description: |-
+                  Roles is a list of realm roles assigned to user.
+                  Omitting the field, or setting it to null, leaves the realm roles the user already has untouched,
+                  including the defaults Keycloak grants on creation.
+                  An explicit empty list removes every realm role from the user.
                 items:
                   type: string
                 nullable: true
