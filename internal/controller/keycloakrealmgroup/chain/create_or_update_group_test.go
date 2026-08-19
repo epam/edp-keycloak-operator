@@ -14,7 +14,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
@@ -28,17 +30,38 @@ const (
 	testCRNameA        = "cr-a"
 	testExistingGroup  = "existing-group"
 	testCRNameB        = "cr-b"
+	testRealmRefName   = "test"
 )
 
-// newFakeK8sClient builds a fake controller-runtime client with the keycloakApi scheme
-// registered, pre-populated with the given KeycloakRealmGroup objects.
+// newFakeK8sClient builds a fake controller-runtime client with the keycloak
+// schemes registered, pre-populated with the given objects.
 func newFakeK8sClient(t *testing.T, objs ...client.Object) client.Client {
 	t.Helper()
 
 	scheme := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(scheme))
+	require.NoError(t, keycloakAlpha.AddToScheme(scheme))
 
 	return fake.NewClientBuilder().WithScheme(scheme).WithObjects(objs...).Build()
+}
+
+func namespacedKeycloakStack(ns, realmName, url string) []client.Object {
+	return []client.Object{
+		&keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: ns},
+			Spec:       keycloakApi.KeycloakSpec{Url: url},
+		},
+		&keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: testRealmRefName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: realmName,
+				KeycloakRef: common.KeycloakRef{
+					Kind: keycloakApi.KeycloakKind,
+					Name: "keycloak",
+				},
+			},
+		},
+	}
 }
 
 func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
@@ -445,6 +468,162 @@ func TestCreateOrUpdateGroup_Serve_RefusesToAdoptGroupOwnedByAnotherCR(t *testin
 	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, owner))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "already managed by KeycloakRealmGroup "+testNamespace+"/"+testCRNameA)
+	assert.Empty(t, groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_AllowsSameGroupIDOnNamespacedRealmInAnotherNamespace(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+	group.Spec.Path = testUpdatedPath
+	group.Spec.Attributes = map[string][]string{"key": {"val"}}
+	group.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	group.Spec.RealmRef.Name = testRealmRefName
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: "other-ns"},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+	owner.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	owner.Spec.RealmRef.Name = testRealmRefName
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().UpdateGroup(
+		context.Background(), "test-realm", "existing-id",
+		keycloakapi.GroupRepresentation{
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To(testExistingGroup),
+			Description: ptr.To(""),
+			Path:        ptr.To(testUpdatedPath),
+			Attributes:  &map[string][]string{"key": {"val"}},
+		},
+	).Return(nil, nil)
+
+	objs := make([]client.Object, 0, 5)
+	objs = append(objs, owner)
+	objs = append(objs, namespacedKeycloakStack(testNamespace, "test-realm", "http://kc-a.example")...)
+	objs = append(objs, namespacedKeycloakStack("other-ns", "test-realm", "http://kc-b.example")...)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, objs...))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "existing-id", groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_RefusesSameGroupIDOnClusterRealmAcrossNamespaces(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+	group.Spec.RealmRef.Kind = keycloakAlpha.ClusterKeycloakRealmKind
+	group.Spec.RealmRef.Name = "shared-realm"
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: "other-ns"},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+	owner.Spec.RealmRef.Kind = keycloakAlpha.ClusterKeycloakRealmKind
+	owner.Spec.RealmRef.Name = "shared-realm"
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+	}, nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, owner))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "already managed by KeycloakRealmGroup other-ns/"+testCRNameA)
+	assert.Empty(t, groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_RefusesSameGroupIDOnSharedKeycloakURLAcrossNamespaces(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+	group.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	group.Spec.RealmRef.Name = testRealmRefName
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: "other-ns"},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+	owner.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	owner.Spec.RealmRef.Name = testRealmRefName
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+	}, nil, nil)
+
+	objs := make([]client.Object, 0, 5)
+	objs = append(objs, owner)
+	objs = append(objs, namespacedKeycloakStack(testNamespace, "test-realm", "http://shared.example")...)
+	objs = append(objs, namespacedKeycloakStack("other-ns", "test-realm", "http://shared.example/")...)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, objs...))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "already managed by KeycloakRealmGroup other-ns/"+testCRNameA)
+	assert.Empty(t, groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_FailsClosedWhenRealmTargetCannotBeResolved(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: testNamespace},
+	}
+	group.Spec.Name = testExistingGroup
+	group.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	group.Spec.RealmRef.Name = testRealmRefName
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: "other-ns"},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "existing-id"},
+	}
+	owner.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	owner.Spec.RealmRef.Name = testRealmRefName
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+	}, nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t, owner))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "unable to resolve realm target for ownership check")
 	assert.Empty(t, groupCtx.GroupID)
 }
 
