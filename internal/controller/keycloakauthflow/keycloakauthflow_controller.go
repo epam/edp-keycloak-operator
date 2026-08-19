@@ -129,10 +129,11 @@ func (r *Reconcile) handleDeletion(ctx context.Context, instance *keycloakApi.Ke
 			return ctrl.Result{}, fmt.Errorf("failed to remove auth flow: %w", err)
 		}
 
+		original := instance.DeepCopy()
 		controllerutil.RemoveFinalizer(instance, common.FinalizerName)
 		controllerutil.RemoveFinalizer(instance, legacyFinalizerName)
 
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update KeycloakAuthFlow after finalizer removal: %w", err)
 		}
 	}
@@ -143,8 +144,9 @@ func (r *Reconcile) handleDeletion(ctx context.Context, instance *keycloakApi.Ke
 func (r *Reconcile) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakAuthFlow, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to KeycloakAuthFlow: %w", err)
 		}
 	}

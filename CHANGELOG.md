@@ -1,6 +1,8 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
+### Bug Fixes
+- preserve optional spec zero values when patching finalizers (GitOps / Argo CD)
 
 <a name="v1.35.0"></a>
 ## [v1.35.0] - 2026-07-13

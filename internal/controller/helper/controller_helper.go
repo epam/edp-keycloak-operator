@@ -113,11 +113,13 @@ func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycl
 			return fmt.Errorf("failed to get Keycloak: %w", err)
 		}
 
+		original := deepCopyObject(object)
+
 		if err := controllerutil.SetControllerReference(kc, object, h.scheme); err != nil {
 			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		if err := h.client.Update(ctx, object); err != nil {
+		if err := PatchObject(ctx, h.client, original, object); err != nil {
 			return fmt.Errorf("failed to update keycloak owner reference %s: %w", kc.GetName(), err)
 		}
 
@@ -131,11 +133,13 @@ func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycl
 			return fmt.Errorf("failed to get ClusterKeycloak: %w", err)
 		}
 
+		original := deepCopyObject(object)
+
 		if err := controllerutil.SetControllerReference(clusterKc, object, h.scheme); err != nil {
 			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		if err := h.client.Update(ctx, object); err != nil {
+		if err := PatchObject(ctx, h.client, original, object); err != nil {
 			return fmt.Errorf("failed to update keycloak owner reference %s: %w", clusterKc.GetName(), err)
 		}
 
@@ -171,11 +175,13 @@ func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef
 			return fmt.Errorf("failed to get KeycloakRealm: %w", err)
 		}
 
+		original := deepCopyObject(object)
+
 		if err := controllerutil.SetControllerReference(realm, object, h.scheme); err != nil {
 			return fmt.Errorf("failed to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		if err := h.client.Update(ctx, object); err != nil {
+		if err := PatchObject(ctx, h.client, original, object); err != nil {
 			return fmt.Errorf("failed to update realm owner reference %s: %w", realm.GetName(), err)
 		}
 
@@ -189,11 +195,13 @@ func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef
 			return fmt.Errorf("failed to get ClusterKeycloakRealm: %w", err)
 		}
 
+		original := deepCopyObject(object)
+
 		if err := controllerutil.SetControllerReference(clusterRealm, object, h.scheme); err != nil {
 			return fmt.Errorf("unable to set controller reference for %s: %w", object.GetName(), err)
 		}
 
-		if err := h.client.Update(ctx, object); err != nil {
+		if err := PatchObject(ctx, h.client, original, object); err != nil {
 			return fmt.Errorf("failed to update realm owner reference %s: %w", clusterRealm.GetName(), err)
 		}
 
@@ -206,8 +214,9 @@ func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef
 
 func (h *Helper) TryRemoveFinalizer(ctx context.Context, obj client.Object, finalizer string) error {
 	if !obj.GetDeletionTimestamp().IsZero() {
+		original := deepCopyObject(obj)
 		if controllerutil.RemoveFinalizer(obj, finalizer) {
-			if err := h.client.Update(ctx, obj); err != nil {
+			if err := PatchObject(ctx, h.client, original, obj); err != nil {
 				return fmt.Errorf("unable to update instance: %w", err)
 			}
 		}
@@ -223,13 +232,15 @@ func RemoveFinalizersOnRealmNotFound(ctx context.Context, k8sClient client.Clien
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Keycloak realm not found, removing finalizers")
 
+	original := deepCopyObject(obj)
+
 	removed := false
 	for _, f := range finalizers {
 		removed = controllerutil.RemoveFinalizer(obj, f) || removed
 	}
 
 	if removed {
-		if err := k8sClient.Update(ctx, obj); err != nil {
+		if err := PatchObject(ctx, k8sClient, original, obj); err != nil {
 			return false, fmt.Errorf("failed to remove finalizers: %w", err)
 		}
 	}
@@ -245,10 +256,12 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 	if obj.GetDeletionTimestamp().IsZero() {
 		logger.Info("instance timestamp is zero")
 
+		original := deepCopyObject(obj)
+
 		if controllerutil.AddFinalizer(obj, finalizer) {
 			logger.Info("Adding finalizer to instance")
 
-			if err := h.client.Update(ctx, obj); err != nil {
+			if err := PatchObject(ctx, h.client, original, obj); err != nil {
 				return false, fmt.Errorf("unable to update deletable object: %w", err)
 			}
 		}
@@ -266,8 +279,9 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 
 	logger.Info("terminator removing finalizers")
 
+	original := deepCopyObject(obj)
 	if controllerutil.RemoveFinalizer(obj, finalizer) {
-		if err := h.client.Update(ctx, obj); err != nil {
+		if err := PatchObject(ctx, h.client, original, obj); err != nil {
 			return false, fmt.Errorf("unable to update instance: %w", err)
 		}
 	}
@@ -306,4 +320,24 @@ func (h *Helper) GetRealmNameFromRef(ctx context.Context, object ObjectWithRealm
 	default:
 		return "", fmt.Errorf("unknown realm kind: %s", kind)
 	}
+}
+
+// PatchObject persists obj using a merge patch against original.
+// Use this instead of Update when only metadata (finalizers, owner refs) changed,
+// so omitempty zero values in spec are not dropped from the live object.
+func PatchObject(ctx context.Context, c client.Client, original, obj client.Object) error {
+	if err := c.Patch(ctx, obj, client.MergeFrom(original)); err != nil {
+		return fmt.Errorf("unable to patch object: %w", err)
+	}
+
+	return nil
+}
+
+func deepCopyObject(obj client.Object) client.Object {
+	copied, ok := obj.DeepCopyObject().(client.Object)
+	if !ok {
+		return obj
+	}
+
+	return copied
 }
