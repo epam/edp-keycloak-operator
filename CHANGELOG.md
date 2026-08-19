@@ -1,5 +1,7 @@
 <a name="unreleased"></a>
 ## [Unreleased]
+### Bug Fixes
+- **KeycloakRealmGroup:** scope group ownership to the resolved realm instance
 
 
 <a name="v1.35.0"></a>
