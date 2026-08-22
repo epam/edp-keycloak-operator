@@ -325,8 +325,10 @@ func (h *Helper) GetRealmNameFromRef(ctx context.Context, object ObjectWithRealm
 // PatchObject persists obj using a merge patch against original.
 // Use this instead of Update when only metadata (finalizers, owner refs) changed,
 // so omitempty zero values in spec are not dropped from the live object.
+// MergeFromWithOptimisticLock includes resourceVersion so concurrent writers get a 409,
+// as Update would, instead of silently replacing the whole finalizers list.
 func PatchObject(ctx context.Context, c client.Client, original, obj client.Object) error {
-	if err := c.Patch(ctx, obj, client.MergeFrom(original)); err != nil {
+	if err := c.Patch(ctx, obj, client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{})); err != nil {
 		return fmt.Errorf("unable to patch object: %w", err)
 	}
 

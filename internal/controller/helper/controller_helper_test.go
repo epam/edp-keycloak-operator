@@ -636,8 +636,9 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 	t.Run("KeycloakRealmRole", func(t *testing.T) {
 		role := &keycloakApi.KeycloakRealmRole{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-role",
-				Namespace: "test",
+				Name:            "test-role",
+				Namespace:       "test",
+				ResourceVersion: "1",
 			},
 			Spec: keycloakApi.KeycloakRealmRoleSpec{
 				Name:        "test-role",
@@ -650,7 +651,7 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		original := role.DeepCopy()
 		require.True(t, controllerutil.AddFinalizer(role, common.FinalizerName))
 
-		data, err := client.MergeFrom(original).Data(role)
+		data, err := client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}).Data(role)
 		require.NoError(t, err)
 
 		var patch map[string]any
@@ -658,13 +659,17 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		require.NoError(t, json.Unmarshal(data, &patch))
 		_, hasSpec := patch["spec"]
 		assert.False(t, hasSpec, "merge patch must not rewrite spec when only finalizers change")
+		metadata, ok := patch["metadata"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "1", metadata["resourceVersion"])
 	})
 
 	t.Run("KeycloakAuthFlow", func(t *testing.T) {
 		flow := &keycloakApi.KeycloakAuthFlow{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-flow",
-				Namespace: "test",
+				Name:            "test-flow",
+				Namespace:       "test",
+				ResourceVersion: "1",
 			},
 			Spec: keycloakApi.KeycloakAuthFlowSpec{
 				Alias:       "test-flow",
@@ -682,7 +687,7 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		original := flow.DeepCopy()
 		require.True(t, controllerutil.AddFinalizer(flow, common.FinalizerName))
 
-		data, err := client.MergeFrom(original).Data(flow)
+		data, err := client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}).Data(flow)
 		require.NoError(t, err)
 
 		var patch map[string]any
@@ -690,6 +695,9 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		require.NoError(t, json.Unmarshal(data, &patch))
 		_, hasSpec := patch["spec"]
 		assert.False(t, hasSpec, "merge patch must not rewrite spec when only finalizers change")
+		metadata, ok := patch["metadata"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "1", metadata["resourceVersion"])
 	})
 }
 
