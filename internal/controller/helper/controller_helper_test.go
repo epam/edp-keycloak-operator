@@ -2,6 +2,7 @@ package helper
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"testing"
 	"time"
@@ -17,6 +18,7 @@ import (
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -593,10 +595,10 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			want:       func(t *testing.T, k8sCl client.Client) {},
 		},
 		{
-			name: "update fails — returns error",
+			name: "patch fails — returns error",
 			client: func(t *testing.T) client.Client {
 				mc := &K8SClientMock{}
-				mc.On("Update", testifymock.Anything, testifymock.Anything).Return(errors.New("update failed"))
+				mc.On("Patch", testifymock.Anything, testifymock.Anything, testifymock.Anything).Return(errors.New("patch failed"))
 
 				return mc
 			},
@@ -628,6 +630,116 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			tt.want(t, k8sCl)
 		})
 	}
+}
+
+func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
+	t.Run("KeycloakRealmRole", func(t *testing.T) {
+		role := &keycloakApi.KeycloakRealmRole{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "test-role",
+				Namespace:       "test",
+				ResourceVersion: "1",
+			},
+			Spec: keycloakApi.KeycloakRealmRoleSpec{
+				Name:        "test-role",
+				Description: "",
+				Attributes:  map[string][]string{},
+				Composite:   false,
+			},
+		}
+
+		original := role.DeepCopy()
+		require.True(t, controllerutil.AddFinalizer(role, common.FinalizerName))
+
+		data, err := client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}).Data(role)
+		require.NoError(t, err)
+
+		var patch map[string]any
+
+		require.NoError(t, json.Unmarshal(data, &patch))
+		_, hasSpec := patch["spec"]
+		assert.False(t, hasSpec, "merge patch must not rewrite spec when only finalizers change")
+		metadata, ok := patch["metadata"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "1", metadata["resourceVersion"])
+	})
+
+	t.Run("KeycloakAuthFlow", func(t *testing.T) {
+		flow := &keycloakApi.KeycloakAuthFlow{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "test-flow",
+				Namespace:       "test",
+				ResourceVersion: "1",
+			},
+			Spec: keycloakApi.KeycloakAuthFlowSpec{
+				Alias:       "test-flow",
+				Description: "",
+				AuthenticationExecutions: []keycloakApi.AuthenticationExecution{
+					{
+						Authenticator:     "auth-cookie",
+						AuthenticatorFlow: false,
+						Priority:          0,
+					},
+				},
+			},
+		}
+
+		original := flow.DeepCopy()
+		require.True(t, controllerutil.AddFinalizer(flow, common.FinalizerName))
+
+		data, err := client.MergeFromWithOptions(original, client.MergeFromWithOptimisticLock{}).Data(flow)
+		require.NoError(t, err)
+
+		var patch map[string]any
+
+		require.NoError(t, json.Unmarshal(data, &patch))
+		_, hasSpec := patch["spec"]
+		assert.False(t, hasSpec, "merge patch must not rewrite spec when only finalizers change")
+		metadata, ok := patch["metadata"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "1", metadata["resourceVersion"])
+	})
+}
+
+func TestTryToDelete_preservesZeroValuedSpecFields(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	role := &keycloakApi.KeycloakRealmRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      "test-role",
+			Namespace: "test",
+		},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{
+			Name:        "test-role",
+			Description: "",
+			Attributes:  map[string][]string{},
+			Composite:   false,
+		},
+	}
+
+	fakeClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(role).Build()
+	h := Helper{client: fakeClient}
+
+	stored := &keycloakApi.KeycloakRealmRole{}
+	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
+		Name:      "test-role",
+		Namespace: "test",
+	}, stored))
+
+	deleted, err := h.TryToDelete(context.Background(), stored, &testTerminator{log: logr.Discard()}, common.FinalizerName)
+	require.NoError(t, err)
+	assert.False(t, deleted)
+
+	got := &keycloakApi.KeycloakRealmRole{}
+	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
+		Name:      "test-role",
+		Namespace: "test",
+	}, got))
+	assert.Contains(t, got.Finalizers, common.FinalizerName)
+	assert.Empty(t, got.Spec.Description)
+	assert.Empty(t, got.Spec.Attributes)
+	assert.False(t, got.Spec.Composite)
 }
 
 func TestHelper_SetKeycloakOwnerRef(t *testing.T) {

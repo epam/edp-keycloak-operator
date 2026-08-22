@@ -131,9 +131,10 @@ func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *
 			return ctrl.Result{}, fmt.Errorf("failed to remove keycloak client: %w", err)
 		}
 
+		original := instance.DeepCopy()
 		controllerutil.RemoveFinalizer(instance, keyCloakClientOperatorFinalizerName)
 
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update keycloak client after finalizer removal: %w", err)
 		}
 	}
@@ -144,8 +145,9 @@ func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *
 func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, keyCloakClientOperatorFinalizerName) {
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to keycloak client: %w", err)
 		}
 	}

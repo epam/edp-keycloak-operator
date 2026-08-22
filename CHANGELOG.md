@@ -1,7 +1,6 @@
 <a name="unreleased"></a>
 ## [Unreleased]
 
-
 <a name="v1.35.0"></a>
 ## [v1.35.0] - 2026-07-13
 ### Features

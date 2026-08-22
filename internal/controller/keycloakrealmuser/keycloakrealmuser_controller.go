@@ -162,9 +162,10 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 					return fmt.Errorf("failed to remove user: %w", err)
 				}
 
+				original := instance.DeepCopy()
 				controllerutil.RemoveFinalizer(instance, finalizerName)
 
-				if err := r.client.Update(ctx, instance); err != nil {
+				if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 					return fmt.Errorf("failed to remove finalizer: %w", err)
 				}
 			}
@@ -172,8 +173,9 @@ func (r *Reconcile) tryReconcile(ctx context.Context, instance *keycloakApi.Keyc
 			return nil
 		}
 
+		original := instance.DeepCopy()
 		if controllerutil.AddFinalizer(instance, finalizerName) {
-			if err := r.client.Update(ctx, instance); err != nil {
+			if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 				return fmt.Errorf("failed to add finalizer: %w", err)
 			}
 		}
