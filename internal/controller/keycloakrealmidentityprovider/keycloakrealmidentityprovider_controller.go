@@ -127,10 +127,11 @@ func (r *IdentityProviderReconciler) handleDeletion(ctx context.Context, instanc
 			return ctrl.Result{}, fmt.Errorf("failed to remove identity provider: %w", err)
 		}
 
+		original := instance.DeepCopy()
 		controllerutil.RemoveFinalizer(instance, common.FinalizerName)
 		controllerutil.RemoveFinalizer(instance, legacyFinalizerName)
 
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update KeycloakRealmIdentityProvider after finalizer removal: %w", err)
 		}
 	}
@@ -141,8 +142,9 @@ func (r *IdentityProviderReconciler) handleDeletion(ctx context.Context, instanc
 func (r *IdentityProviderReconciler) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakRealmIdentityProvider, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to KeycloakRealmIdentityProvider: %w", err)
 		}
 	}

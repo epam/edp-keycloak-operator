@@ -159,9 +159,10 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 				return "", fmt.Errorf("failed to remove role: %w", err)
 			}
 
+			original := keycloakRealmRole.DeepCopy()
 			controllerutil.RemoveFinalizer(keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName)
 
-			if err := r.client.Update(ctx, keycloakRealmRole); err != nil {
+			if err := helper.PatchObject(ctx, r.client, original, keycloakRealmRole); err != nil {
 				return "", fmt.Errorf("failed to remove finalizer: %w", err)
 			}
 		}
@@ -169,8 +170,9 @@ func (r *ReconcileKeycloakRealmRole) tryReconcile(ctx context.Context, keycloakR
 		return "", nil
 	}
 
+	original := keycloakRealmRole.DeepCopy()
 	if controllerutil.AddFinalizer(keycloakRealmRole, keyCloakRealmRoleOperatorFinalizerName) {
-		if err := r.client.Update(ctx, keycloakRealmRole); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, keycloakRealmRole); err != nil {
 			return "", fmt.Errorf("failed to add finalizer: %w", err)
 		}
 	}

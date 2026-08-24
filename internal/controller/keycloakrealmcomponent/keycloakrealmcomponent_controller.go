@@ -158,10 +158,11 @@ func (r *RealmComponentReconciler) handleDeletion(
 			return ctrl.Result{}, fmt.Errorf("failed to remove realm component: %w", err)
 		}
 
+		original := instance.DeepCopy()
 		controllerutil.RemoveFinalizer(instance, common.FinalizerName)
 		controllerutil.RemoveFinalizer(instance, legacyFinalizerName)
 
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to update KeycloakRealmComponent after finalizer removal: %w", err)
 		}
 	}
@@ -177,8 +178,9 @@ func (r *RealmComponentReconciler) handleReconciliation(
 ) (reconcile.Result, error) {
 	log := ctrl.LoggerFrom(ctx)
 
+	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {
-		if err := r.client.Update(ctx, instance); err != nil {
+		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to KeycloakRealmComponent: %w", err)
 		}
 	}
