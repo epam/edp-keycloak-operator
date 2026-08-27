@@ -49,12 +49,14 @@ func (h *CreateOrUpdateAuthFlow) serveTopLevelFlow(ctx context.Context, flow *ke
 				return fmt.Errorf("auth flow %q has no ID", flow.Spec.Alias)
 			}
 
-			log.Info("Top-level auth flow already exists, updating", "alias", flow.Spec.Alias)
-
 			flow.Status.ID = *flows[i].Id
 
-			if _, err = h.kClient.AuthFlows.UpdateAuthFlow(ctx, realmName, *flows[i].Id, authFlowRepFromSpec(flow.Spec)); err != nil {
-				return fmt.Errorf("failed to update auth flow: %w", err)
+			if !authFlowMatchesSpec(&flows[i], flow.Spec) {
+				log.Info("Top-level auth flow already exists, updating", "alias", flow.Spec.Alias)
+
+				if _, err = h.kClient.AuthFlows.UpdateAuthFlow(ctx, realmName, *flows[i].Id, authFlowRepFromSpec(flow.Spec)); err != nil {
+					return fmt.Errorf("failed to update auth flow: %w", err)
+				}
 			}
 
 			return h.validateChildFlows(ctx, flow, realmName)
@@ -170,6 +172,15 @@ func (h *CreateOrUpdateAuthFlow) validateChildFlows(ctx context.Context, flow *k
 	}
 
 	return nil
+}
+
+// authFlowMatchesSpec reports whether existing already carries the fields authFlowRepFromSpec would write.
+func authFlowMatchesSpec(existing *keycloakapi.AuthFlowRepresentation, spec keycloakApi.KeycloakAuthFlowSpec) bool {
+	return ptr.Deref(existing.Alias, "") == spec.Alias &&
+		ptr.Deref(existing.Description, "") == spec.Description &&
+		ptr.Deref(existing.ProviderId, "") == spec.ProviderID &&
+		ptr.Deref(existing.BuiltIn, false) == spec.BuiltIn &&
+		ptr.Deref(existing.TopLevel, false) == spec.TopLevel
 }
 
 func authFlowRepFromSpec(spec keycloakApi.KeycloakAuthFlowSpec) keycloakapi.AuthFlowRepresentation {

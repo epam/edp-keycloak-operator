@@ -93,6 +93,10 @@ type KeycloakAuthFlowStatus struct {
 	// ID is the Keycloak internal ID of the auth flow.
 	// +optional
 	ID string `json:"id,omitempty"`
+
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true
