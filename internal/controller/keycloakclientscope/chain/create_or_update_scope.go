@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -55,20 +56,29 @@ func (h *CreateOrUpdateScope) Serve(
 			scope.Status.ID = *existingScope.Id
 		}
 
-		_, err := scopesClient.UpdateClientScope(ctx, realmName, scope.Status.ID, keycloakapi.ClientScopeRepresentation{
-			Name:        &spec.Name,
-			Protocol:    &protocol,
-			Description: &desc,
-			Attributes:  &attrs,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to update client scope: %w", err)
+		if specChanged(scope) || !clientScopeMatchesSpec(existingScope, &spec) {
+			_, err := scopesClient.UpdateClientScope(ctx, realmName, scope.Status.ID, keycloakapi.ClientScopeRepresentation{
+				Name:        &spec.Name,
+				Protocol:    &protocol,
+				Description: &desc,
+				Attributes:  &attrs,
+			})
+			if err != nil {
+				return fmt.Errorf("failed to update client scope: %w", err)
+			}
 		}
 	}
 
 	log.Info("Client scope has been synced")
 
 	return nil
+}
+
+func clientScopeMatchesSpec(existing *keycloakapi.ClientScopeRepresentation, spec *keycloakApi.KeycloakClientScopeSpec) bool {
+	return ptr.Deref(existing.Name, "") == spec.Name &&
+		ptr.Deref(existing.Protocol, "") == spec.Protocol &&
+		ptr.Deref(existing.Description, "") == spec.Description &&
+		containsConfig(ptr.Deref(existing.Attributes, nil), spec.Attributes)
 }
 
 func (h *CreateOrUpdateScope) findScopeByName(

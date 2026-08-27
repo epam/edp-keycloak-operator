@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"maps"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type SyncProtocolMappers struct {
@@ -35,27 +37,61 @@ func (h *SyncProtocolMappers) Serve(
 		return fmt.Errorf("failed to get existing protocol mappers: %w", err)
 	}
 
-	for _, mapper := range existingMappers {
+	existingByName := maputil.SliceToMapSelf(existingMappers, func(m keycloakapi.ProtocolMapperRepresentation) (string, bool) {
+		if m.Name == nil {
+			return "", false
+		}
+
+		return *m.Name, true
+	})
+
+	forceUpdate := specChanged(scope)
+
+	for _, specMapper := range scope.Spec.ProtocolMappers {
+		desired := convertProtocolMapper(specMapper)
+
+		existing, exists := existingByName[specMapper.Name]
+		if !exists {
+			if _, err := scopesClient.CreateClientScopeProtocolMapper(ctx, realmName, scopeID, desired); err != nil {
+				return fmt.Errorf("failed to create protocol mapper %s: %w", specMapper.Name, err)
+			}
+
+			continue
+		}
+
+		delete(existingByName, specMapper.Name)
+
+		if existing.Id == nil || (!forceUpdate && protocolMapperMatches(existing, desired)) {
+			continue
+		}
+
+		desired.Id = existing.Id
+
+		if _, err := scopesClient.UpdateClientScopeProtocolMapper(ctx, realmName, scopeID, *existing.Id, desired); err != nil {
+			return fmt.Errorf("failed to update protocol mapper %s: %w", specMapper.Name, err)
+		}
+	}
+
+	// Only mappers removed from the spec are deleted.
+	for name, mapper := range existingByName {
 		if mapper.Id == nil {
 			continue
 		}
 
 		if _, err := scopesClient.DeleteClientScopeProtocolMapper(ctx, realmName, scopeID, *mapper.Id); err != nil {
-			return fmt.Errorf("failed to delete protocol mapper %s: %w", *mapper.Id, err)
-		}
-	}
-
-	for _, specMapper := range scope.Spec.ProtocolMappers {
-		mapper := convertProtocolMapper(specMapper)
-
-		if _, err := scopesClient.CreateClientScopeProtocolMapper(ctx, realmName, scopeID, mapper); err != nil {
-			return fmt.Errorf("failed to create protocol mapper %s: %w", specMapper.Name, err)
+			return fmt.Errorf("failed to delete protocol mapper %s: %w", name, err)
 		}
 	}
 
 	log.Info("Protocol mappers have been synced")
 
 	return nil
+}
+
+func protocolMapperMatches(existing, desired keycloakapi.ProtocolMapperRepresentation) bool {
+	return ptr.Deref(existing.Protocol, "") == ptr.Deref(desired.Protocol, "") &&
+		ptr.Deref(existing.ProtocolMapper, "") == ptr.Deref(desired.ProtocolMapper, "") &&
+		containsConfig(ptr.Deref(existing.Config, nil), ptr.Deref(desired.Config, nil))
 }
 
 func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakapi.ProtocolMapperRepresentation {

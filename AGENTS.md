@@ -76,6 +76,9 @@ KEYCLOAK_VERSION=26.5.2 make generate-keycloak-go-client   # regenerate oapi cli
 2. Wire it into `chain/chain.go` in the correct call order.
 3. Add a `_test.go` alongside it; use Ginkgo + Gomega.
 
+### Reconciliation idempotency
+Skip Keycloak writes when actual state matches the spec; track `status.observedGeneration` and force writes on generation change so spec removals propagate. Never delete-and-recreate child resources — diff by name (reference: `internal/controller/keycloakclientscope/chain/`).
+
 ### Never edit generated code
 `pkg/client/keycloakapi/generated/client_generated.go` is auto-generated — do not edit manually.
 Edit `pkg/client/keycloakapi/openapi.yaml` then re-run `make generate-keycloak-go-client`.
