@@ -16,10 +16,11 @@ import (
 )
 
 const (
-	testScopeName    = "test-scope"
-	testScopeID      = "scope-id-123"
-	testRealmName    = "test-realm"
-	testProtocolOIDC = "openid-connect"
+	testScopeName        = "test-scope"
+	testScopeID          = "scope-id-123"
+	testRealmName        = "test-realm"
+	testProtocolOIDC     = "openid-connect"
+	testScopeDescription = "Test description"
 )
 
 func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
@@ -29,14 +30,14 @@ func TestCreateOrUpdateScope_Serve_CreateNew(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Name = testScopeName
 	scope.Spec.Protocol = testProtocolOIDC
-	scope.Spec.Description = "Test description"
+	scope.Spec.Description = testScopeDescription
 	scope.Spec.Attributes = map[string]string{"key": "val"}
 
 	mockScopes.EXPECT().GetClientScopes(
 		context.Background(), testRealmName,
 	).Return([]keycloakapi.ClientScopeRepresentation{}, nil, nil)
 
-	desc := "Test description"
+	desc := testScopeDescription
 	protocol := testProtocolOIDC
 	attrs := map[string]string{"key": "val"}
 
@@ -92,6 +93,86 @@ func TestCreateOrUpdateScope_Serve_UpdateExisting(t *testing.T) {
 			Protocol:    &protocol,
 			Description: &desc,
 			Attributes:  &nilAttrs,
+		},
+	).Return(nil, nil)
+
+	h := NewCreateOrUpdateScope(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testScopeID, scope.Status.ID)
+}
+
+func TestCreateOrUpdateScope_Serve_SkipUpdateWhenInSync(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Name = testScopeName
+	scope.Spec.Protocol = testProtocolOIDC
+	scope.Spec.Description = testScopeDescription
+	scope.Spec.Attributes = map[string]string{"key": "val"}
+
+	// Server-added default attributes must not trigger an update.
+	existingAttrs := map[string]string{"key": "val", "display.on.consent.screen": "true"}
+
+	// Existing state matches spec: no UpdateClientScope call expected.
+	mockScopes.EXPECT().GetClientScopes(
+		context.Background(), testRealmName,
+	).Return([]keycloakapi.ClientScopeRepresentation{
+		{
+			Id:          ptr.To(testScopeID),
+			Name:        ptr.To(testScopeName),
+			Protocol:    ptr.To(testProtocolOIDC),
+			Description: ptr.To(testScopeDescription),
+			Attributes:  &existingAttrs,
+		},
+	}, nil, nil)
+
+	h := NewCreateOrUpdateScope(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testScopeID, scope.Status.ID)
+}
+
+func TestCreateOrUpdateScope_Serve_ForceUpdateOnSpecChange(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	// Generation ahead of ObservedGeneration: PUT must fire even though the
+	// declared attributes match, so keys removed from the spec are dropped.
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Generation = 2
+	scope.Status.ObservedGeneration = 1
+	scope.Spec.Name = testScopeName
+	scope.Spec.Protocol = testProtocolOIDC
+	scope.Spec.Description = testScopeDescription
+	scope.Spec.Attributes = map[string]string{"key": "val"}
+
+	existingAttrs := map[string]string{"key": "val", "removed.key": "stale"}
+
+	mockScopes.EXPECT().GetClientScopes(
+		context.Background(), testRealmName,
+	).Return([]keycloakapi.ClientScopeRepresentation{
+		{
+			Id:          ptr.To(testScopeID),
+			Name:        ptr.To(testScopeName),
+			Protocol:    ptr.To(testProtocolOIDC),
+			Description: ptr.To(testScopeDescription),
+			Attributes:  &existingAttrs,
+		},
+	}, nil, nil)
+
+	desc := testScopeDescription
+	protocol := testProtocolOIDC
+	attrs := map[string]string{"key": "val"}
+
+	mockScopes.EXPECT().UpdateClientScope(
+		context.Background(), testRealmName, testScopeID,
+		keycloakapi.ClientScopeRepresentation{
+			Name:        ptr.To(testScopeName),
+			Protocol:    &protocol,
+			Description: &desc,
+			Attributes:  &attrs,
 		},
 	).Return(nil, nil)
 

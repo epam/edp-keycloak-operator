@@ -4761,6 +4761,15 @@ KeycloakClientScopeStatus defines the observed state of KeycloakClientScope.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>value</b></td>
         <td>string</td>
         <td>

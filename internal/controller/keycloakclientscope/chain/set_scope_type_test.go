@@ -7,11 +7,31 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
+
+func scopeList(ids ...string) []keycloakapi.ClientScopeRepresentation {
+	scopes := make([]keycloakapi.ClientScopeRepresentation, 0, len(ids))
+	for _, id := range ids {
+		scopes = append(scopes, keycloakapi.ClientScopeRepresentation{Id: ptr.To(id)})
+	}
+
+	return scopes
+}
+
+func expectRealmScopeLists(mockScopes *mocks.MockClientScopesClient, defaultIDs, optionalIDs []string) {
+	mockScopes.EXPECT().GetRealmDefaultClientScopes(
+		context.Background(), testRealmName,
+	).Return(scopeList(defaultIDs...), nil, nil)
+
+	mockScopes.EXPECT().GetRealmOptionalClientScopes(
+		context.Background(), testRealmName,
+	).Return(scopeList(optionalIDs...), nil, nil)
+}
 
 func TestSetScopeType_Serve_Default(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
@@ -20,6 +40,8 @@ func TestSetScopeType_Serve_Default(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -34,6 +56,22 @@ func TestSetScopeType_Serve_Default(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSetScopeType_Serve_Default_AlreadyInSync(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
+	scope.Status.ID = testScopeID
+
+	// Scope already in default list only: no write calls expected.
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, nil)
+
+	h := NewSetScopeType(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
 func TestSetScopeType_Serve_Optional(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
@@ -41,6 +79,8 @@ func TestSetScopeType_Serve_Optional(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeOptional
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, nil)
 
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -55,6 +95,21 @@ func TestSetScopeType_Serve_Optional(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSetScopeType_Serve_Optional_AlreadyInSync(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeOptional
+	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
+
+	h := NewSetScopeType(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
 func TestSetScopeType_Serve_None(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
@@ -62,6 +117,8 @@ func TestSetScopeType_Serve_None(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -76,6 +133,21 @@ func TestSetScopeType_Serve_None(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSetScopeType_Serve_None_AlreadyInSync(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
+	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, nil)
+
+	h := NewSetScopeType(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
 func TestSetScopeType_Serve_DefaultRemoveOptionalNotFound(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
@@ -83,6 +155,8 @@ func TestSetScopeType_Serve_DefaultRemoveOptionalNotFound(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -105,9 +179,7 @@ func TestSetScopeType_Serve_AddDefaultError(t *testing.T) {
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
 	scope.Status.ID = testScopeID
 
-	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, nil)
+	expectRealmScopeLists(mockScopes, nil, nil)
 
 	mockScopes.EXPECT().AddRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -126,6 +198,8 @@ func TestSetScopeType_Serve_RemoveOptionalError(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -146,6 +220,8 @@ func TestSetScopeType_Serve_DeprecatedDefaultField(t *testing.T) {
 	scope.Spec.Default = true
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -168,6 +244,8 @@ func TestSetScopeType_Serve_OptionalRemoveDefaultNotFound(t *testing.T) {
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeOptional
 	scope.Status.ID = testScopeID
 
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, nil)
+
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
 	).Return(nil, keycloakapi.ErrNotFound)
@@ -189,6 +267,8 @@ func TestSetScopeType_Serve_OptionalRemoveDefaultError(t *testing.T) {
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeOptional
 	scope.Status.ID = testScopeID
 
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, nil)
+
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
 	).Return(nil, errors.New("api error"))
@@ -207,9 +287,7 @@ func TestSetScopeType_Serve_OptionalAddOptionalError(t *testing.T) {
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeOptional
 	scope.Status.ID = testScopeID
 
-	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, nil)
+	expectRealmScopeLists(mockScopes, nil, nil)
 
 	mockScopes.EXPECT().AddRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -221,27 +299,6 @@ func TestSetScopeType_Serve_OptionalAddOptionalError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to add scope to optional list")
 }
 
-func TestSetScopeType_Serve_NoneRemoveDefaultNotFound(t *testing.T) {
-	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
-
-	scope := &keycloakApi.KeycloakClientScope{}
-	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
-	scope.Status.ID = testScopeID
-
-	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, keycloakapi.ErrNotFound)
-
-	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, nil)
-
-	h := NewSetScopeType(kClient)
-	err := h.Serve(context.Background(), scope, testRealmName)
-	require.NoError(t, err)
-}
-
 func TestSetScopeType_Serve_NoneRemoveDefaultError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
@@ -249,6 +306,8 @@ func TestSetScopeType_Serve_NoneRemoveDefaultError(t *testing.T) {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
 	scope.Status.ID = testScopeID
+
+	expectRealmScopeLists(mockScopes, []string{testScopeID}, nil)
 
 	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -260,27 +319,6 @@ func TestSetScopeType_Serve_NoneRemoveDefaultError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to remove scope from default list")
 }
 
-func TestSetScopeType_Serve_NoneRemoveOptionalNotFound(t *testing.T) {
-	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
-
-	scope := &keycloakApi.KeycloakClientScope{}
-	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
-	scope.Status.ID = testScopeID
-
-	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, nil)
-
-	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, keycloakapi.ErrNotFound)
-
-	h := NewSetScopeType(kClient)
-	err := h.Serve(context.Background(), scope, testRealmName)
-	require.NoError(t, err)
-}
-
 func TestSetScopeType_Serve_NoneRemoveOptionalError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
@@ -289,9 +327,7 @@ func TestSetScopeType_Serve_NoneRemoveOptionalError(t *testing.T) {
 	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeNone
 	scope.Status.ID = testScopeID
 
-	mockScopes.EXPECT().RemoveRealmDefaultClientScope(
-		context.Background(), testRealmName, testScopeID,
-	).Return(nil, nil)
+	expectRealmScopeLists(mockScopes, nil, []string{testScopeID})
 
 	mockScopes.EXPECT().RemoveRealmOptionalClientScope(
 		context.Background(), testRealmName, testScopeID,
@@ -301,6 +337,46 @@ func TestSetScopeType_Serve_NoneRemoveOptionalError(t *testing.T) {
 	err := h.Serve(context.Background(), scope, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to remove scope from optional list")
+}
+
+func TestSetScopeType_Serve_GetDefaultScopesError(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
+	scope.Status.ID = testScopeID
+
+	mockScopes.EXPECT().GetRealmDefaultClientScopes(
+		context.Background(), testRealmName,
+	).Return(nil, nil, errors.New("api error"))
+
+	h := NewSetScopeType(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get realm default client scopes")
+}
+
+func TestSetScopeType_Serve_GetOptionalScopesError(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Type = keycloakApi.KeycloakClientScopeTypeDefault
+	scope.Status.ID = testScopeID
+
+	mockScopes.EXPECT().GetRealmDefaultClientScopes(
+		context.Background(), testRealmName,
+	).Return(nil, nil, nil)
+
+	mockScopes.EXPECT().GetRealmOptionalClientScopes(
+		context.Background(), testRealmName,
+	).Return(nil, nil, errors.New("api error"))
+
+	h := NewSetScopeType(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get realm optional client scopes")
 }
 
 func TestSetScopeType_Serve_InvalidType(t *testing.T) {

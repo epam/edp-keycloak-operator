@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
@@ -14,20 +15,42 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
-func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
-	mockScopes := mocks.NewMockClientScopesClient(t)
-	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+const (
+	testMapperID   = "mapper-id"
+	testMapperName = "groups"
+	testMapperType = "oidc-group-membership-mapper"
+)
 
+func groupsMapperScope(config map[string]string) *keycloakApi.KeycloakClientScope {
 	scope := &keycloakApi.KeycloakClientScope{}
 	scope.Status.ID = testScopeID
 	scope.Spec.ProtocolMappers = []keycloakApi.ProtocolMapper{
 		{
-			Name:           "groups",
+			Name:           testMapperName,
 			Protocol:       testProtocolOIDC,
-			ProtocolMapper: "oidc-group-membership-mapper",
-			Config:         map[string]string{"claim.name": "groups"},
+			ProtocolMapper: testMapperType,
+			Config:         config,
 		},
 	}
+
+	return scope
+}
+
+func groupsMapperRepr(config map[string]string) keycloakapi.ProtocolMapperRepresentation {
+	return keycloakapi.ProtocolMapperRepresentation{
+		Id:             ptr.To(testMapperID),
+		Name:           ptr.To(testMapperName),
+		Protocol:       ptr.To(testProtocolOIDC),
+		ProtocolMapper: ptr.To(testMapperType),
+		Config:         &config,
+	}
+}
+
+func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := groupsMapperScope(map[string]string{"claim.name": "groups"})
 
 	// Existing mapper to delete
 	mockScopes.EXPECT().GetClientScopeProtocolMappers(
@@ -45,9 +68,9 @@ func TestSyncProtocolMappers_Serve_Success(t *testing.T) {
 	mockScopes.EXPECT().CreateClientScopeProtocolMapper(
 		context.Background(), testRealmName, testScopeID,
 		keycloakapi.ProtocolMapperRepresentation{
-			Name:           ptr.To("groups"),
+			Name:           ptr.To(testMapperName),
 			Protocol:       ptr.To(testProtocolOIDC),
-			ProtocolMapper: ptr.To("oidc-group-membership-mapper"),
+			ProtocolMapper: ptr.To(testMapperType),
 			Config:         &config,
 		},
 	).Return(nil, nil)
@@ -101,11 +124,11 @@ func TestSyncProtocolMappers_Serve_DeleteMapperError(t *testing.T) {
 	mockScopes.EXPECT().GetClientScopeProtocolMappers(
 		context.Background(), testRealmName, testScopeID,
 	).Return([]keycloakapi.ProtocolMapperRepresentation{
-		{Id: ptr.To("mapper-id"), Name: ptr.To("mapper")},
+		{Id: ptr.To(testMapperID), Name: ptr.To("mapper")},
 	}, nil, nil)
 
 	mockScopes.EXPECT().DeleteClientScopeProtocolMapper(
-		context.Background(), testRealmName, testScopeID, "mapper-id",
+		context.Background(), testRealmName, testScopeID, testMapperID,
 	).Return(nil, errors.New("delete error"))
 
 	h := NewSyncProtocolMappers(kClient)
@@ -131,6 +154,119 @@ func TestSyncProtocolMappers_Serve_NilMapperID(t *testing.T) {
 	h := NewSyncProtocolMappers(kClient)
 	err := h.Serve(context.Background(), scope, testRealmName)
 	require.NoError(t, err)
+}
+
+func TestSyncProtocolMappers_Serve_SkipWhenInSync(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := groupsMapperScope(map[string]string{"claim.name": "groups"})
+
+	// Server-added default keys must not trigger an update.
+	// Existing state matches spec: no write calls expected.
+	mockScopes.EXPECT().GetClientScopeProtocolMappers(
+		context.Background(), testRealmName, testScopeID,
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
+		groupsMapperRepr(map[string]string{"claim.name": "groups", "introspection.token.claim": "true"}),
+	}, nil, nil)
+
+	h := NewSyncProtocolMappers(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestSyncProtocolMappers_Serve_ForceUpdateOnSpecChange(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	// Generation ahead of ObservedGeneration: PUT must fire even though the
+	// declared keys match, so keys removed from the spec are dropped in Keycloak.
+	scope := groupsMapperScope(map[string]string{"claim.name": "groups"})
+	scope.Generation = 2
+	scope.Status.ObservedGeneration = 1
+
+	mockScopes.EXPECT().GetClientScopeProtocolMappers(
+		context.Background(), testRealmName, testScopeID,
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
+		groupsMapperRepr(map[string]string{"claim.name": "groups", "removed.key": "stale"}),
+	}, nil, nil)
+
+	mockScopes.EXPECT().UpdateClientScopeProtocolMapper(
+		context.Background(), testRealmName, testScopeID, testMapperID,
+		groupsMapperRepr(map[string]string{"claim.name": "groups"}),
+	).Return(nil, nil)
+
+	h := NewSyncProtocolMappers(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestSyncProtocolMappers_Serve_EmptyValueKeyDetected(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := groupsMapperScope(map[string]string{"empty.key": ""})
+
+	// Key absent server-side vs declared with "" value: must trigger an update.
+	mockScopes.EXPECT().GetClientScopeProtocolMappers(
+		context.Background(), testRealmName, testScopeID,
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
+		groupsMapperRepr(map[string]string{}),
+	}, nil, nil)
+
+	mockScopes.EXPECT().UpdateClientScopeProtocolMapper(
+		context.Background(), testRealmName, testScopeID, testMapperID,
+		mock.Anything,
+	).Return(nil, nil)
+
+	h := NewSyncProtocolMappers(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestSyncProtocolMappers_Serve_UpdateChangedMapper(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := groupsMapperScope(map[string]string{"claim.name": "groups", "full.path": "true"})
+
+	mockScopes.EXPECT().GetClientScopeProtocolMappers(
+		context.Background(), testRealmName, testScopeID,
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
+		groupsMapperRepr(map[string]string{"claim.name": "groups", "full.path": "false"}),
+	}, nil, nil)
+
+	mockScopes.EXPECT().UpdateClientScopeProtocolMapper(
+		context.Background(), testRealmName, testScopeID, testMapperID,
+		groupsMapperRepr(map[string]string{"claim.name": "groups", "full.path": "true"}),
+	).Return(nil, nil)
+
+	h := NewSyncProtocolMappers(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestSyncProtocolMappers_Serve_UpdateMapperError(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := groupsMapperScope(map[string]string{"claim.name": "changed"})
+
+	mockScopes.EXPECT().GetClientScopeProtocolMappers(
+		context.Background(), testRealmName, testScopeID,
+	).Return([]keycloakapi.ProtocolMapperRepresentation{
+		groupsMapperRepr(map[string]string{"claim.name": "groups"}),
+	}, nil, nil)
+
+	mockScopes.EXPECT().UpdateClientScopeProtocolMapper(
+		context.Background(), testRealmName, testScopeID, testMapperID,
+		mock.Anything,
+	).Return(nil, errors.New("update error"))
+
+	h := NewSyncProtocolMappers(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to update protocol mapper")
 }
 
 func TestSyncProtocolMappers_Serve_CreateMapperError(t *testing.T) {

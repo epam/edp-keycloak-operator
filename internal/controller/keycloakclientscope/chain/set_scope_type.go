@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	ctrl "sigs.k8s.io/controller-runtime"
 
@@ -30,39 +31,65 @@ func (h *SetScopeType) Serve(
 	scopeID := scope.Status.ID
 	scopeType := scope.GetType()
 
-	switch scopeType {
-	case keycloakApi.KeycloakClientScopeTypeDefault:
+	if scopeType != keycloakApi.KeycloakClientScopeTypeDefault &&
+		scopeType != keycloakApi.KeycloakClientScopeTypeOptional &&
+		scopeType != keycloakApi.KeycloakClientScopeTypeNone {
+		return fmt.Errorf("invalid client scope type: %s", scopeType)
+	}
+
+	inDefault, err := h.scopeInRealmList(ctx, realmName, scopeID, scopesClient.GetRealmDefaultClientScopes)
+	if err != nil {
+		return fmt.Errorf("failed to get realm default client scopes: %w", err)
+	}
+
+	inOptional, err := h.scopeInRealmList(ctx, realmName, scopeID, scopesClient.GetRealmOptionalClientScopes)
+	if err != nil {
+		return fmt.Errorf("failed to get realm optional client scopes: %w", err)
+	}
+
+	wantDefault := scopeType == keycloakApi.KeycloakClientScopeTypeDefault
+	wantOptional := scopeType == keycloakApi.KeycloakClientScopeTypeOptional
+
+	if inDefault && !wantDefault {
+		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
+			return fmt.Errorf("failed to remove scope from default list: %w", err)
+		}
+	}
+
+	if inOptional && !wantOptional {
 		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("failed to remove scope from optional list: %w", err)
 		}
+	}
 
+	if !inDefault && wantDefault {
 		if _, err := scopesClient.AddRealmDefaultClientScope(ctx, realmName, scopeID); err != nil {
 			return fmt.Errorf("failed to add scope to default list: %w", err)
 		}
+	}
 
-	case keycloakApi.KeycloakClientScopeTypeOptional:
-		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
-			return fmt.Errorf("failed to remove scope from default list: %w", err)
-		}
-
+	if !inOptional && wantOptional {
 		if _, err := scopesClient.AddRealmOptionalClientScope(ctx, realmName, scopeID); err != nil {
 			return fmt.Errorf("failed to add scope to optional list: %w", err)
 		}
-
-	case keycloakApi.KeycloakClientScopeTypeNone:
-		if _, err := scopesClient.RemoveRealmDefaultClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
-			return fmt.Errorf("failed to remove scope from default list: %w", err)
-		}
-
-		if _, err := scopesClient.RemoveRealmOptionalClientScope(ctx, realmName, scopeID); err != nil && !keycloakapi.IsNotFound(err) {
-			return fmt.Errorf("failed to remove scope from optional list: %w", err)
-		}
-
-	default:
-		return fmt.Errorf("invalid client scope type: %s", scopeType)
 	}
 
 	log.Info("Client scope type has been set")
 
 	return nil
+}
+
+func (h *SetScopeType) scopeInRealmList(
+	ctx context.Context,
+	realmName, scopeID string,
+	list func(ctx context.Context, realm string) ([]keycloakapi.ClientScopeRepresentation, *keycloakapi.Response, error),
+) (bool, error) {
+	scopes, _, err := list(ctx, realmName)
+	if err != nil {
+		return false, err
+	}
+
+	return slices.ContainsFunc(scopes, func(s keycloakapi.ClientScopeRepresentation) bool {
+		return s.Id != nil && *s.Id == scopeID
+	}), nil
 }

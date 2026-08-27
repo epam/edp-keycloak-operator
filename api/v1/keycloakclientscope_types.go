@@ -63,6 +63,10 @@ type KeycloakClientScopeStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 // +kubebuilder:object:root=true
