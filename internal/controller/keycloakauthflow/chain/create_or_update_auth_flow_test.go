@@ -20,6 +20,7 @@ const (
 	testParentFlow = "parent-flow"
 	testChildAlias = "child-flow"
 	testProviderID = "basic-flow"
+	testFlowDesc   = "desc"
 )
 
 func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
@@ -28,7 +29,7 @@ func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 
 	flow := &keycloakApi.KeycloakAuthFlow{}
 	flow.Spec.Alias = testFlowAlias
-	flow.Spec.Description = "desc"
+	flow.Spec.Description = testFlowDesc
 	flow.Spec.ProviderID = testProviderID
 	flow.Spec.TopLevel = true
 
@@ -41,7 +42,7 @@ func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 		context.Background(), testRealmName,
 		keycloakapi.AuthFlowRepresentation{
 			Alias:       ptr.To(testFlowAlias),
-			Description: ptr.To("desc"),
+			Description: ptr.To(testFlowDesc),
 			ProviderId:  ptr.To(testProviderID),
 			BuiltIn:     ptr.To(false),
 			TopLevel:    ptr.To(true),
@@ -55,7 +56,39 @@ func TestCreateOrUpdateAuthFlow_TopLevel_Create(t *testing.T) {
 	assert.Equal(t, testFlowID, flow.Status.ID)
 }
 
-func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
+// existingTopLevelFlowRep builds the fetched representation of the sample top-level flow.
+func existingTopLevelFlowRep(description string) keycloakapi.AuthFlowRepresentation {
+	return keycloakapi.AuthFlowRepresentation{
+		Alias:       ptr.To(testFlowAlias),
+		Id:          ptr.To(testFlowID),
+		Description: ptr.To(description),
+		ProviderId:  ptr.To(testProviderID),
+		BuiltIn:     ptr.To(false),
+		TopLevel:    ptr.To(true),
+	}
+}
+
+func TestCreateOrUpdateAuthFlow_TopLevel_InSync(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	flow.Spec.Alias = testFlowAlias
+	flow.Spec.Description = testFlowDesc
+	flow.Spec.ProviderID = testProviderID
+	flow.Spec.TopLevel = true
+
+	// Flow already exists and already matches spec — UpdateAuthFlow must NOT be called
+	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
+		Return([]keycloakapi.AuthFlowRepresentation{existingTopLevelFlowRep(testFlowDesc)}, nil, nil)
+
+	h := NewCreateOrUpdateAuthFlow(kc)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testFlowID, flow.Status.ID)
+}
+
+func TestCreateOrUpdateAuthFlow_TopLevel_DiffersFromSpec(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
 	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
 
@@ -65,11 +98,9 @@ func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
 	flow.Spec.ProviderID = testProviderID
 	flow.Spec.TopLevel = true
 
-	// Flow already exists
+	// Flow already exists but description differs
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
-		Return([]keycloakapi.AuthFlowRepresentation{
-			{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)},
-		}, nil, nil)
+		Return([]keycloakapi.AuthFlowRepresentation{existingTopLevelFlowRep("stale-desc")}, nil, nil)
 
 	// UpdateAuthFlow must be called with updated fields; CreateAuthFlow must NOT be called
 	mockFlows.EXPECT().UpdateAuthFlow(
@@ -82,6 +113,27 @@ func TestCreateOrUpdateAuthFlow_TopLevel_AlreadyExists(t *testing.T) {
 			TopLevel:    ptr.To(true),
 		},
 	).Return(nil, nil)
+
+	h := NewCreateOrUpdateAuthFlow(kc)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestCreateOrUpdateAuthFlow_TopLevel_InSyncIgnoresGeneration(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	flow.Generation = 2
+	flow.Status.ObservedGeneration = 1
+	flow.Spec.Alias = testFlowAlias
+	flow.Spec.Description = testFlowDesc
+	flow.Spec.ProviderID = testProviderID
+	flow.Spec.TopLevel = true
+
+	// Flow scalar fields are exact diffs: matching state needs no write even on generation drift.
+	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
+		Return([]keycloakapi.AuthFlowRepresentation{existingTopLevelFlowRep(testFlowDesc)}, nil, nil)
 
 	h := NewCreateOrUpdateAuthFlow(kc)
 	err := h.Serve(context.Background(), flow, testRealmName)
@@ -165,20 +217,9 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_NotAllCreated(t *testing.T) {
 		{AuthenticatorFlow: true, Alias: "sub-flow"},
 	}
 
-	// Flow exists (with ID so UpdateAuthFlow is called)
+	// Existing flow matches spec → no UpdateAuthFlow
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
 		Return([]keycloakapi.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
-
-	mockFlows.EXPECT().UpdateAuthFlow(
-		context.Background(), testRealmName, testFlowID,
-		keycloakapi.AuthFlowRepresentation{
-			Alias:       ptr.To(testFlowAlias),
-			Description: ptr.To(""),
-			ProviderId:  ptr.To(""),
-			BuiltIn:     ptr.To(false),
-			TopLevel:    ptr.To(false),
-		},
-	).Return(nil, nil)
 
 	// validateChildFlows: GetFlowExecutions returns non-flow execution only → 0 child flows
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
@@ -202,19 +243,9 @@ func TestCreateOrUpdateAuthFlow_ValidateChildFlows_AllCreated(t *testing.T) {
 		{AuthenticatorFlow: true, Alias: "sub-flow"},
 	}
 
+	// Existing flow matches spec → no UpdateAuthFlow
 	mockFlows.EXPECT().GetAuthFlows(context.Background(), testRealmName).
 		Return([]keycloakapi.AuthFlowRepresentation{{Alias: ptr.To(testFlowAlias), Id: ptr.To(testFlowID)}}, nil, nil)
-
-	mockFlows.EXPECT().UpdateAuthFlow(
-		context.Background(), testRealmName, testFlowID,
-		keycloakapi.AuthFlowRepresentation{
-			Alias:       ptr.To(testFlowAlias),
-			Description: ptr.To(""),
-			ProviderId:  ptr.To(""),
-			BuiltIn:     ptr.To(false),
-			TopLevel:    ptr.To(false),
-		},
-	).Return(nil, nil)
 
 	// validateChildFlows: one AuthenticationFlow=true, Level=0 execution → 1 child
 	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).

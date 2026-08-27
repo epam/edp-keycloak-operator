@@ -167,6 +167,7 @@ func (r *Reconcile) handleReconciliation(ctx context.Context, instance *keycloak
 	}
 
 	instance.Status.Value = common.StatusOK
+	instance.Status.ObservedGeneration = instance.Generation
 
 	if err := r.updateKeycloakAuthFlowStatus(ctx, instance, oldStatus); err != nil {
 		return reconcile.Result{}, err
