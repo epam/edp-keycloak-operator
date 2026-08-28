@@ -70,6 +70,10 @@ type KeycloakOrganizationStatus struct {
 	// Error is the error message if the reconciliation failed.
 	// +optional
 	Error string `json:"error,omitempty"`
+
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 }
 
 func (in *KeycloakOrganizationStatus) SetOK() {

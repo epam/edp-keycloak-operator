@@ -36,4 +36,7 @@ const (
 	ClientAuthClientJWT       = "client-jwt"
 	ClientAuthClientSecretJWT = "client-secret-jwt"
 	ClientAuthX509Certificate = "client-x509"
+
+	// MaskedSecretValue is the sentinel Keycloak returns for secret-typed config values on GET.
+	MaskedSecretValue = "**********"
 )

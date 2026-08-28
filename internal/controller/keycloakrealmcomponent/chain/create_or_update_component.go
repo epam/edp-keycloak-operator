@@ -3,13 +3,18 @@ package chain
 import (
 	"context"
 	"fmt"
+	"slices"
 
+	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"k8s.io/apimachinery/pkg/types"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 // CreateOrUpdateComponent creates or updates a realm component in Keycloak.
@@ -40,6 +45,7 @@ func (h *CreateOrUpdateComponent) Serve(
 	log.Info("Creating or updating realm component")
 
 	spec := component.Spec
+	rawCfg := spec.Config
 
 	config := make(keycloakapi.MultivaluedHashMapStringString, len(spec.Config))
 
@@ -52,6 +58,8 @@ func (h *CreateOrUpdateComponent) Serve(
 	if err := h.secretRefClient.MapComponentConfigSecretsRefs(ctx, config, component.Namespace); err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}
+
+	newHash := secretref.ConfigSecretsHash(rawCfg, config)
 
 	parentID, err := h.resolveParentID(ctx, component, realmName)
 	if err != nil {
@@ -83,22 +91,66 @@ func (h *CreateOrUpdateComponent) Serve(
 		component.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
 
 		log.Info("Realm component created")
+	} else {
+		if existing.Id != nil {
+			component.Status.ID = *existing.Id
+			repr.Id = existing.Id
+		}
 
-		return nil
+		needsUpdate := helper.SpecChanged(component.Generation, component.Status.ObservedGeneration) ||
+			newHash != component.Status.ConfigSecretsHash ||
+			!componentMatchesSpec(existing, repr, rawCfg)
+
+		if needsUpdate {
+			if _, err := h.kClient.RealmComponents.UpdateComponent(ctx, realmName, component.Status.ID, repr); err != nil {
+				return fmt.Errorf("failed to update realm component: %w", err)
+			}
+
+			log.Info("Realm component updated")
+		}
 	}
 
-	if existing.Id != nil {
-		component.Status.ID = *existing.Id
-		repr.Id = existing.Id
-	}
-
-	if _, err := h.kClient.RealmComponents.UpdateComponent(ctx, realmName, component.Status.ID, repr); err != nil {
-		return fmt.Errorf("failed to update realm component: %w", err)
-	}
-
-	log.Info("Realm component updated")
+	// Stamped even when the update is skipped; if the controller's status write fails, the
+	// generation check forces the next reconcile to re-run.
+	component.Status.ConfigSecretsHash = newHash
 
 	return nil
+}
+
+// componentMatchesSpec reports whether the fetched component already matches the desired
+// representation. Config keys are excluded from comparison when Keycloak masks them: either
+// the raw spec value is a secret ref, or the fetched value is already the mask sentinel.
+// ParentId is compared only when the operator manages it (desired.ParentId set): Keycloak
+// auto-fills it with the realm's internal ID for components created without a parentRef.
+func componentMatchesSpec(
+	existing *keycloakapi.ComponentRepresentation,
+	desired keycloakapi.ComponentRepresentation,
+	rawCfg map[string][]string,
+) bool {
+	if ptr.Deref(existing.Name, "") != ptr.Deref(desired.Name, "") ||
+		ptr.Deref(existing.ProviderId, "") != ptr.Deref(desired.ProviderId, "") ||
+		ptr.Deref(existing.ProviderType, "") != ptr.Deref(desired.ProviderType, "") {
+		return false
+	}
+
+	if desired.ParentId != nil && ptr.Deref(existing.ParentId, "") != *desired.ParentId {
+		return false
+	}
+
+	existingConfig := ptr.Deref(existing.Config, nil)
+	desiredConfig := ptr.Deref(desired.Config, nil)
+
+	comparableConfig := make(map[string][]string, len(desiredConfig))
+
+	for k, v := range desiredConfig {
+		if secretref.HasAnySecretRef(rawCfg[k]) || slices.Contains(existingConfig[k], keycloakapi.MaskedSecretValue) {
+			continue
+		}
+
+		comparableConfig[k] = v
+	}
+
+	return maputil.ContainsSubsetMulti(existingConfig, comparableConfig)
 }
 
 func (h *CreateOrUpdateComponent) resolveParentID(

@@ -2,7 +2,11 @@ package secretref
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
+	"maps"
+	"slices"
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
@@ -109,7 +113,52 @@ func HasSecretRef(val string) bool {
 	return strings.HasPrefix(val, secretRefPrefix)
 }
 
+// HasAnySecretRef reports whether any value in values is a secret reference.
+func HasAnySecretRef(values []string) bool {
+	return slices.ContainsFunc(values, HasSecretRef)
+}
+
 // GenerateSecretRef generates secret reference.
 func GenerateSecretRef(secretName, secretFiled string) string {
 	return fmt.Sprintf("%s%s:%s", secretRefPrefix, secretName, secretFiled)
+}
+
+// ConfigSecretsHash hashes the resolved values of secret-ref config keys so that rotating the
+// referenced k8s Secret (which does not bump the CR generation) still forces a write. No secret
+// material is stored, only the digest.
+func ConfigSecretsHash(rawCfg, resolvedCfg map[string][]string) string {
+	h := sha256.New()
+
+	for _, k := range slices.Sorted(maps.Keys(rawCfg)) {
+		if !HasAnySecretRef(rawCfg[k]) {
+			continue
+		}
+
+		values := resolvedCfg[k]
+
+		// Length- and count-prefixed to avoid delimiter ambiguity between adjacent key/value
+		// entries. hash.Hash.Write never returns an error.
+		_, _ = fmt.Fprintf(h, "%d:%s%d:", len(k), k, len(values))
+
+		for _, v := range values {
+			_, _ = fmt.Fprintf(h, "%d:%s", len(v), v)
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
+}
+
+// ConfigSecretsHashSingle is ConfigSecretsHash for single-value config maps: each value is
+// wrapped as a one-element slice.
+func ConfigSecretsHashSingle(rawCfg, resolvedCfg map[string]string) string {
+	wrap := func(config map[string]string) map[string][]string {
+		wrapped := make(map[string][]string, len(config))
+		for k, v := range config {
+			wrapped[k] = []string{v}
+		}
+
+		return wrapped
+	}
+
+	return ConfigSecretsHash(wrap(rawCfg), wrap(resolvedCfg))
 }

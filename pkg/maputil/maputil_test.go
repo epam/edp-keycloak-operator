@@ -200,3 +200,83 @@ func TestContainsSubset(t *testing.T) {
 		})
 	}
 }
+
+func TestContainsSubsetMulti(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		m        map[string][]string
+		subset   map[string][]string
+		expected bool
+	}{
+		{
+			name:     "empty subset always true",
+			m:        map[string][]string{"a": {"1", "2"}},
+			subset:   map[string][]string{},
+			expected: true,
+		},
+		{
+			name:     "empty subset matches empty map",
+			m:        map[string][]string{},
+			subset:   map[string][]string{},
+			expected: true,
+		},
+		{
+			name:     "equal value sets",
+			m:        map[string][]string{"a": {"1", "2"}},
+			subset:   map[string][]string{"a": {"1", "2"}},
+			expected: true,
+		},
+		{
+			name:     "order-shuffled values still equal",
+			m:        map[string][]string{"a": {"2", "1", "3"}},
+			subset:   map[string][]string{"a": {"3", "1", "2"}},
+			expected: true,
+		},
+		{
+			name:     "value differs",
+			m:        map[string][]string{"a": {"1", "2"}},
+			subset:   map[string][]string{"a": {"1", "3"}},
+			expected: false,
+		},
+		{
+			name:     "value count differs",
+			m:        map[string][]string{"a": {"1", "2"}},
+			subset:   map[string][]string{"a": {"1", "2", "3"}},
+			expected: false,
+		},
+		{
+			name:     "absent key vs empty slice",
+			m:        map[string][]string{},
+			subset:   map[string][]string{"a": {}},
+			expected: false,
+		},
+		{
+			name:     "present key with empty slice matches empty slice",
+			m:        map[string][]string{"a": {}},
+			subset:   map[string][]string{"a": {}},
+			expected: true,
+		},
+		{
+			name:     "extra keys in m are allowed",
+			m:        map[string][]string{"a": {"1"}, "b": {"2"}},
+			subset:   map[string][]string{"a": {"1"}},
+			expected: true,
+		},
+		{
+			name:     "subset key missing from map",
+			m:        map[string][]string{"a": {"1"}},
+			subset:   map[string][]string{"a": {"1"}, "b": {"2"}},
+			expected: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expected, ContainsSubsetMulti(tc.m, tc.subset))
+		})
+	}
+}
