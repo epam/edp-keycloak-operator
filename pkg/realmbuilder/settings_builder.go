@@ -2,8 +2,10 @@ package realmbuilder
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"maps"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -13,6 +15,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/jsonutil"
 )
 
 // commonRealmSpec holds the normalized, API-version-agnostic fields shared by
@@ -63,6 +66,8 @@ func ApplyRealmEventConfig(
 		current = &keycloakapi.RealmEventsConfigRepresentation{}
 	}
 
+	before, beforeErr := json.Marshal(current)
+
 	if cfg.AdminEventsDetailsEnabled != nil {
 		current.AdminEventsDetailsEnabled = cfg.AdminEventsDetailsEnabled
 	}
@@ -80,11 +85,15 @@ func ApplyRealmEventConfig(
 	}
 
 	if cfg.EnabledEventTypes != nil {
-		current.EnabledEventTypes = &cfg.EnabledEventTypes
+		mergeStringSet(&current.EnabledEventTypes, &cfg.EnabledEventTypes)
 	}
 
 	if cfg.EventsListeners != nil {
-		current.EventsListeners = &cfg.EventsListeners
+		mergeStringSet(&current.EventsListeners, &cfg.EventsListeners)
+	}
+
+	if jsonutil.Unchanged(before, beforeErr, current) {
+		return nil
 	}
 
 	if _, err := eventsClient.SetEventsConfig(ctx, realmName, *current); err != nil {
@@ -107,7 +116,13 @@ func ApplyRealmSettings(
 		return fmt.Errorf("unable to get realm: %w", err)
 	}
 
+	before, beforeErr := json.Marshal(current)
+
 	MergeRealmRepresentation(current, &overlay)
+
+	if jsonutil.Unchanged(before, beforeErr, current) {
+		return nil
+	}
 
 	if _, err := realmClient.UpdateRealm(ctx, realmName, *current); err != nil {
 		return fmt.Errorf("unable to update realm settings: %w", err)
@@ -320,8 +335,35 @@ func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.EmailTheme, &overlay.EmailTheme)
 	mergePtr(&base.InternationalizationEnabled, &overlay.InternationalizationEnabled)
 	mergePtr(&base.PasswordPolicy, &overlay.PasswordPolicy)
-	mergePtr(&base.SupportedLocales, &overlay.SupportedLocales)
+	mergeStringSet(&base.SupportedLocales, overlay.SupportedLocales)
 	mergePtr(&base.DefaultLocale, &overlay.DefaultLocale)
+}
+
+// mergeStringSet replaces base only when the sets differ: Keycloak stores supportedLocales,
+// enabledEventTypes and eventsListeners as sets and returns them in arbitrary order, so an
+// order-only difference must not defeat the snapshot compare.
+func mergeStringSet(base **[]string, overlay *[]string) {
+	if overlay == nil {
+		return
+	}
+
+	if *base != nil && equalStringSets(**base, *overlay) {
+		return
+	}
+
+	*base = overlay
+}
+
+func equalStringSets(a, b []string) bool {
+	if len(a) != len(b) {
+		return false
+	}
+
+	as, bs := slices.Clone(a), slices.Clone(b)
+	slices.Sort(as)
+	slices.Sort(bs)
+
+	return slices.Equal(as, bs)
 }
 
 func mergeRealmTokenSettings(base, overlay *keycloakapi.RealmRepresentation) {

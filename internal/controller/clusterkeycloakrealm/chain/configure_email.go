@@ -8,6 +8,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
@@ -29,16 +30,21 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Clu
 	l := ctrl.LoggerFrom(ctx)
 	l.Info("Configuring email for realm")
 
-	if err := keycloakrealmchain.ConfigureRealmEmail(
+	newHash, err := keycloakrealmchain.ConfigureRealmEmail(
 		ctx,
 		realm.Spec.RealmName,
 		realm.Spec.Smtp,
 		s.operatorNs,
 		kClient.Realms,
 		s.client,
-	); err != nil {
+		realm.Status.ConfigSecretsHash,
+		helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
+	)
+	if err != nil {
 		return fmt.Errorf("failed to configure email: %w", err)
 	}
+
+	realm.Status.ConfigSecretsHash = newHash
 
 	l.Info("Email has been configured")
 

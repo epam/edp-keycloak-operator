@@ -66,7 +66,8 @@ func SyncLocalizationTexts(ctx context.Context, kClient *keycloakapi.KeycloakCli
 // are ignored — removal is not supported by the Keycloak POST /localization API.
 func localesAlreadyInSync(current, desired map[string]string) bool {
 	for k, v := range desired {
-		if current[k] != v {
+		cv, ok := current[k]
+		if !ok || cv != v {
 			return false
 		}
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -95,6 +96,10 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		return reconcile.Result{}, nil
 	}
 
+	// Captured before the chain runs: the chain mutates Status.ConfigSecretsHash in place,
+	// and updateSuccessStatus's DeepEqual guard must compare against the persisted status.
+	oldStatus := clusterRealm.Status
+
 	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient); err != nil {
 		clusterRealm.Status.Available = false
 		clusterRealm.Status.Value = err.Error()
@@ -109,7 +114,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		}, fmt.Errorf("error during ClusterRealm chain: %w", err)
 	}
 
-	if err := r.updateSuccessStatus(ctx, clusterRealm); err != nil {
+	if err := r.updateSuccessStatus(ctx, clusterRealm, oldStatus); err != nil {
 		return ctrl.Result{}, err
 	}
 
@@ -118,14 +123,19 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	}, nil
 }
 
-func (r *ClusterKeycloakRealmReconciler) updateSuccessStatus(ctx context.Context, clusterRealm *keycloakAlpha.ClusterKeycloakRealm) error {
-	if clusterRealm.Status.Available {
-		return nil
-	}
-
+func (r *ClusterKeycloakRealmReconciler) updateSuccessStatus(
+	ctx context.Context,
+	clusterRealm *keycloakAlpha.ClusterKeycloakRealm,
+	oldStatus keycloakAlpha.ClusterKeycloakRealmStatus,
+) error {
 	clusterRealm.Status.Available = true
 	clusterRealm.Status.Value = common.StatusOK
 	clusterRealm.Status.FailureCount = 0
+	clusterRealm.Status.ObservedGeneration = clusterRealm.Generation
+
+	if equality.Semantic.DeepEqual(&clusterRealm.Status, &oldStatus) {
+		return nil
+	}
 
 	if err := r.client.Status().Update(ctx, clusterRealm); err != nil {
 		return fmt.Errorf("unable to update cluster realm status: %w", err)

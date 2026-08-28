@@ -26,13 +26,13 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 		wantErr         require.ErrorAssertionFunc
 	}{
 		{
-			name:  "minimal realm — no event config",
+			// Empty spec overlaid on an empty current realm produces no diff, so
+			// UpdateRealm is intentionally not stubbed here.
+			name:  "minimal realm — no event config, no diff, no write",
 			realm: &keycloakApi.KeycloakRealm{},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "").
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
-				m.EXPECT().UpdateRealm(mock.Anything, "", mock.Anything).
-					Return(nil, nil)
 			},
 			setupEventsMock: func(_ *v2mocks.MockEventsClient) {},
 			wantErr:         require.NoError,
@@ -127,8 +127,12 @@ func TestRealmSettings_ServeRequest(t *testing.T) {
 			},
 		},
 		{
-			name:  "UpdateRealm fails",
-			realm: &keycloakApi.KeycloakRealm{},
+			name: "UpdateRealm fails",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					DisplayName: ptr.To("New Name"),
+				},
+			},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "").
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)

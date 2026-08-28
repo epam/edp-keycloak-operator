@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"k8s.io/apimachinery/pkg/api/equality"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -92,6 +93,10 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		return result, resultErr
 	}
 
+	// Captured before the chain runs: the chain mutates Status.ConfigSecretsHash in place,
+	// and the DeepEqual guard below must compare against the persisted status.
+	oldStatus := instance.Status
+
 	if err := r.tryReconcile(ctx, instance); err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{
@@ -108,11 +113,14 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 		instance.Status.Available = true
 		instance.Status.Value = common.StatusOK
 		instance.Status.FailureCount = 0
+		instance.Status.ObservedGeneration = instance.Generation
 		result.RequeueAfter = r.successReconcileTimeout
 	}
 
-	if err := r.client.Status().Update(ctx, instance); err != nil {
-		resultErr = fmt.Errorf("unable to update status: %w", err)
+	if !equality.Semantic.DeepEqual(&instance.Status, &oldStatus) {
+		if err := r.client.Status().Update(ctx, instance); err != nil {
+			resultErr = fmt.Errorf("unable to update status: %w", err)
+		}
 	}
 
 	return result, resultErr

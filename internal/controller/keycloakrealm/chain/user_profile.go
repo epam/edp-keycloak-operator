@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 
@@ -12,6 +13,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/jsonutil"
 )
 
 type UserProfile struct {
@@ -45,12 +47,20 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 		return fmt.Errorf("unable to get current user profile: %w", err)
 	}
 
-	userProfileToUpdate := userProfileConfigSpecToModel(userProfileSpec)
-	attributesToUpdate := userProfileConfigAttributeToMap(&userProfileToUpdate)
-
 	if userProfile.Attributes == nil {
 		userProfile.Attributes = &[]keycloakapi.UserProfileAttribute{}
 	}
+
+	if userProfile.Groups == nil {
+		userProfile.Groups = &[]keycloakapi.UserProfileGroup{}
+	}
+
+	// Snapshot taken after the nil-to-empty normalization so nil-vs-empty slices
+	// cannot defeat the compare.
+	before, beforeErr := json.Marshal(userProfile)
+
+	userProfileToUpdate := userProfileConfigSpecToModel(userProfileSpec)
+	attributesToUpdate := userProfileConfigAttributeToMap(&userProfileToUpdate)
 
 	for i := 0; i < len(*userProfile.Attributes); i++ {
 		attribute := (*userProfile.Attributes)[i]
@@ -67,10 +77,6 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 
 	groupsToUpdate := userProfileConfigGroupToMap(&userProfileToUpdate)
 
-	if userProfile.Groups == nil {
-		userProfile.Groups = &[]keycloakapi.UserProfileGroup{}
-	}
-
 	for i := 0; i < len(*userProfile.Groups); i++ {
 		group := (*userProfile.Groups)[i]
 		if v, ok := groupsToUpdate[*group.Name]; ok {
@@ -85,6 +91,10 @@ func ProcessUserProfile(ctx context.Context, realm string, userProfileSpec *comm
 	}
 
 	userProfile.UnmanagedAttributePolicy = userProfileToUpdate.UnmanagedAttributePolicy
+
+	if jsonutil.Unchanged(before, beforeErr, userProfile) {
+		return nil
+	}
 
 	if _, _, err = kClient.Users.UpdateUsersProfile(
 		ctx,

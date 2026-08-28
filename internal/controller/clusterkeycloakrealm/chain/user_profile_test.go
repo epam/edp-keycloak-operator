@@ -81,6 +81,46 @@ func TestUserProfile_ServeRequest(t *testing.T) {
 			},
 			wantErr: require.NoError,
 		},
+		{
+			// GetUsersProfile returns exactly what the merge would produce, so
+			// UpdateUsersProfile is intentionally not stubbed here.
+			name: "user profile already in sync — no update",
+			realm: &keycloakApi.ClusterKeycloakRealm{
+				Spec: keycloakApi.ClusterKeycloakRealmSpec{
+					RealmName: "realm",
+					UserProfileConfig: &common.UserProfileConfig{
+						UnmanagedAttributePolicy: "ADMIN_VIEW",
+						Attributes: []common.UserProfileAttribute{
+							{
+								DisplayName: "Attribute 1",
+								Name:        "attr1",
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				mockUsers := keycloakapimocks.NewMockUsersClient(t)
+
+				mockUsers.On("GetUsersProfile", mock.Anything, "realm").
+					Return(&keycloakapi.UserProfileConfig{
+						UnmanagedAttributePolicy: ptr.To(keycloakapi.UnmanagedAttributePolicy("ADMIN_VIEW")),
+						Attributes: &[]keycloakapi.UserProfileAttribute{
+							{
+								DisplayName: ptr.To("Attribute 1"),
+								Name:        ptr.To("attr1"),
+								Multivalued: ptr.To(false),
+								Annotations: &map[string]any{},
+								Validations: &map[string]map[string]any{},
+							},
+						},
+						Groups: &[]keycloakapi.UserProfileGroup{},
+					}, nil, nil)
+
+				return &keycloakapi.KeycloakClient{Users: mockUsers}
+			},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {

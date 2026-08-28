@@ -52,11 +52,10 @@ func TestCreateDefChain(t *testing.T) {
 	// PutRealm: realm already exists
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
 		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
-	// RealmSettings: GetRealm + UpdateRealm
+	// RealmSettings: GetRealm only — empty spec overlaid on an empty current realm
+	// produces no diff, so UpdateRealm is not called.
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
 		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
-	mockRealm.EXPECT().UpdateRealm(testifymock.Anything, kr.Spec.RealmName, testifymock.Anything).
-		Return(nil, nil)
 
 	_ = realmName // kept for local variable consistency
 	chain := CreateDefChain(client, s)

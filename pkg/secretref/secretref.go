@@ -123,18 +123,14 @@ func GenerateSecretRef(secretName, secretFiled string) string {
 	return fmt.Sprintf("%s%s:%s", secretRefPrefix, secretName, secretFiled)
 }
 
-// ConfigSecretsHash hashes the resolved values of secret-ref config keys so that rotating the
-// referenced k8s Secret (which does not bump the CR generation) still forces a write. No secret
-// material is stored, only the digest.
-func ConfigSecretsHash(rawCfg, resolvedCfg map[string][]string) string {
+// ValuesHash hashes resolved secret values so that rotating the backing k8s Secret (which
+// does not bump the CR generation) still forces a write. No secret material is stored, only
+// the digest.
+func ValuesHash(cfg map[string][]string) string {
 	h := sha256.New()
 
-	for _, k := range slices.Sorted(maps.Keys(rawCfg)) {
-		if !HasAnySecretRef(rawCfg[k]) {
-			continue
-		}
-
-		values := resolvedCfg[k]
+	for _, k := range slices.Sorted(maps.Keys(cfg)) {
+		values := cfg[k]
 
 		// Length- and count-prefixed to avoid delimiter ambiguity between adjacent key/value
 		// entries. hash.Hash.Write never returns an error.
@@ -146,6 +142,19 @@ func ConfigSecretsHash(rawCfg, resolvedCfg map[string][]string) string {
 	}
 
 	return hex.EncodeToString(h.Sum(nil))
+}
+
+// ConfigSecretsHash is ValuesHash restricted to keys whose raw config value is a secret ref.
+func ConfigSecretsHash(rawCfg, resolvedCfg map[string][]string) string {
+	secretBacked := make(map[string][]string)
+
+	for k, raw := range rawCfg {
+		if HasAnySecretRef(raw) {
+			secretBacked[k] = resolvedCfg[k]
+		}
+	}
+
+	return ValuesHash(secretBacked)
 }
 
 // ConfigSecretsHashSingle is ConfigSecretsHash for single-value config maps: each value is

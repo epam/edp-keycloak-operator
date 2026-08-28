@@ -2,6 +2,7 @@ package realmbuilder
 
 import (
 	"context"
+	"slices"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -772,6 +773,53 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			// Keycloak stores enabledEventTypes as a set and returns it in arbitrary order:
+			// SetEventsConfig is intentionally not stubbed here.
+			name: "in sync — enabledEventTypes differ only in order, no write",
+			cfg: &common.RealmEventConfig{
+				EnabledEventTypes: []string{"LOGIN", "LOGOUT"},
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EnabledEventTypes: &[]string{"LOGOUT", "LOGIN"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// eventsListeners is a set too; SetEventsConfig is intentionally not stubbed here.
+			name: "in sync — eventsListeners differ only in order, no write",
+			cfg: &common.RealmEventConfig{
+				EventsListeners: []string{"jboss-logging", "email"},
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EventsListeners: &[]string{"email", "jboss-logging"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "drift — enabledEventTypes sets differ, write applied",
+			cfg: &common.RealmEventConfig{
+				EnabledEventTypes: []string{"LOGIN", "LOGOUT"},
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EnabledEventTypes: &[]string{"LOGIN"},
+					}, nil, nil)
+				m.EXPECT().SetEventsConfig(mock.Anything, "test-realm",
+					mock.MatchedBy(func(rep keycloakapi.RealmEventsConfigRepresentation) bool {
+						return rep.EnabledEventTypes != nil &&
+							slices.Equal(*rep.EnabledEventTypes, []string{"LOGIN", "LOGOUT"})
+					})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "explicit false propagated for all boolean fields",
 			cfg: &common.RealmEventConfig{
 				AdminEventsDetailsEnabled: ptr.To(false),
@@ -851,6 +899,23 @@ func TestApplyRealmEventConfig(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "in sync — cfg already matches current, no write",
+			cfg: &common.RealmEventConfig{
+				AdminEventsDetailsEnabled: ptr.To(true),
+				AdminEventsEnabled:        ptr.To(true),
+				EventsEnabled:             ptr.To(true),
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						AdminEventsDetailsEnabled: ptr.To(true),
+						AdminEventsEnabled:        ptr.To(true),
+						EventsEnabled:             ptr.To(true),
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "GetEventsConfig fails — error returned",
 			cfg:  &common.RealmEventConfig{EventsEnabled: ptr.To(true)},
 			setupMock: func(m *v2mocks.MockEventsClient) {
@@ -913,7 +978,12 @@ func TestApplyRealmSettings(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
-			name: "unset fields in overlay preserve externally-set Keycloak values",
+			// Overlay fields are unset (nil), so the merge leaves current untouched; current
+			// already carries these values, so the before/after JSON snapshots are equal and
+			// the write is skipped. UpdateRealm is intentionally not stubbed: a merge
+			// regression that clobbers these fields triggers an unexpected mock call and
+			// fails the test.
+			name: "in sync — unset overlay fields already match externally-set Keycloak values, no write",
 			overlay: BuildRealmRepresentationFromV1(&keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{RealmName: "test-realm"},
 			}),
@@ -924,10 +994,50 @@ func TestApplyRealmSettings(t *testing.T) {
 						DisplayNameHtml:      ptr.To("<b>Externally Set</b>"),
 						OrganizationsEnabled: ptr.To(true),
 					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// Keycloak stores supportedLocales as a set and returns it in arbitrary order:
+			// an order-only difference must not trigger a write.
+			name: "in sync — supportedLocales differ only in order, no write",
+			overlay: keycloakapi.RealmRepresentation{
+				InternationalizationEnabled: ptr.To(true),
+				SupportedLocales:            &[]string{"en", "de"},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{
+						InternationalizationEnabled: ptr.To(true),
+						SupportedLocales:            &[]string{"de", "en"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "drift — supportedLocales sets differ, write applied",
+			overlay: keycloakapi.RealmRepresentation{
+				SupportedLocales: &[]string{"en", "fr"},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{
+						SupportedLocales: &[]string{"de", "en"},
+					}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
-					return rep.DisplayName != nil && *rep.DisplayName == "Externally Set" &&
-						rep.DisplayNameHtml != nil && *rep.DisplayNameHtml == "<b>Externally Set</b>" &&
-						rep.OrganizationsEnabled != nil && *rep.OrganizationsEnabled
+					return rep.SupportedLocales != nil && slices.Equal(*rep.SupportedLocales, []string{"en", "fr"})
+				})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name:    "drift — overlay differs from current, write applied",
+			overlay: keycloakapi.RealmRepresentation{DisplayName: ptr.To("New Name")},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{DisplayName: ptr.To("Old Name")}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+					return rep.DisplayName != nil && *rep.DisplayName == "New Name"
 				})).Return(nil, nil)
 			},
 			wantErr: require.NoError,
@@ -946,7 +1056,7 @@ func TestApplyRealmSettings(t *testing.T) {
 		},
 		{
 			name:    "UpdateRealm fails — error returned",
-			overlay: keycloakapi.RealmRepresentation{},
+			overlay: keycloakapi.RealmRepresentation{DisplayName: ptr.To("New Name")},
 			setupMock: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
