@@ -92,7 +92,9 @@ spec:
                 description: LinkOnly is a flag to link only.
                 type: boolean
               mappers:
-                description: Mappers is a list of identity provider mappers.
+                description: |-
+                  Mappers is a list of identity provider mappers.
+                  Omitted: existing mappers are left untouched. Set (even empty): the operator owns mapper state and removes mappers absent from the list.
                 items:
                   properties:
                     config:
@@ -173,7 +175,16 @@ spec:
             description: KeycloakRealmIdentityProviderStatus defines the observed
               state of KeycloakRealmIdentityProvider.
             properties:
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of resolved secret-ref config
+                  values from the last successful reconcile.
+                type: string
               failureCount:
+                format: int64
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
                 format: int64
                 type: integer
               value:

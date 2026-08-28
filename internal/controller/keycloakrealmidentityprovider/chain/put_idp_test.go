@@ -18,8 +18,62 @@ import (
 	secretrefmocks "github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
 
+// inSyncIDPSpec and inSyncIDPRepresentation describe the same identity provider from the spec
+// side and the fetched Keycloak side, used as a baseline for the idempotency test cases below.
+func inSyncIDPSpec() keycloakApi.KeycloakRealmIdentityProviderSpec {
+	return keycloakApi.KeycloakRealmIdentityProviderSpec{
+		Alias:                     "test-idp",
+		ProviderID:                "github",
+		Enabled:                   true,
+		AddReadTokenRoleOnCreate:  true,
+		AuthenticateByDefault:     true,
+		DisplayName:               "Test IDP",
+		FirstBrokerLoginFlowAlias: "first-broker",
+		PostBrokerLoginFlowAlias:  "post-broker",
+		LinkOnly:                  true,
+		StoreToken:                true,
+		TrustEmail:                true,
+		HideOnLogin:               ptr.To(true),
+		Config:                    map[string]string{"clientId": "test-client"},
+	}
+}
+
+func inSyncIDPRepresentation() *keycloakapi.IdentityProviderRepresentation {
+	return &keycloakapi.IdentityProviderRepresentation{
+		Alias:                     ptr.To("test-idp"),
+		ProviderId:                ptr.To("github"),
+		Enabled:                   ptr.To(true),
+		AddReadTokenRoleOnCreate:  ptr.To(true),
+		AuthenticateByDefault:     ptr.To(true),
+		DisplayName:               ptr.To("Test IDP"),
+		FirstBrokerLoginFlowAlias: ptr.To("first-broker"),
+		PostBrokerLoginFlowAlias:  ptr.To("post-broker"),
+		LinkOnly:                  ptr.To(true),
+		StoreToken:                ptr.To(true),
+		TrustEmail:                ptr.To(true),
+		HideOnLogin:               ptr.To(true),
+		Config:                    &map[string]string{"clientId": "test-client"},
+	}
+}
+
+func noSecretRefMock(t *testing.T) refClient {
+	m := secretrefmocks.NewMockRefClient(t)
+	m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(nil)
+
+	return m
+}
+
 func TestPutIDP_Serve(t *testing.T) {
 	t.Parallel()
+
+	inSyncHash := computeConfigSecretsHash(
+		map[string]string{"clientId": "test-client"},
+		map[string]string{"clientId": "test-client"},
+	)
+	maskedSecretRefHash := computeConfigSecretsHash(
+		map[string]string{"clientId": "test-client", "clientSecret": "$secret:key"},
+		map[string]string{"clientId": "test-client", "clientSecret": "resolved-secret-value"},
+	)
 
 	tests := []struct {
 		name      string
@@ -27,6 +81,7 @@ func TestPutIDP_Serve(t *testing.T) {
 		idpClient func(t *testing.T) keycloakapi.IdentityProvidersClient
 		secretRef func(t *testing.T) refClient
 		wantErr   require.ErrorAssertionFunc
+		check     func(t *testing.T, idp *keycloakApi.KeycloakRealmIdentityProvider)
 	}{
 		{
 			name: "create new identity provider",
@@ -60,7 +115,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
-			name: "update existing identity provider",
+			name: "differs from spec - update fires",
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
@@ -78,12 +133,8 @@ func TestPutIDP_Serve(t *testing.T) {
 					Return((*keycloakapi.Response)(nil), nil).Once()
 				return m
 			},
-			secretRef: func(t *testing.T) refClient {
-				m := secretrefmocks.NewMockRefClient(t)
-				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(nil)
-				return m
-			},
-			wantErr: require.NoError,
+			secretRef: noSecretRefMock,
+			wantErr:   require.NoError,
 		},
 		{
 			name: "secret ref mapping fails",
@@ -106,6 +157,152 @@ func TestPutIDP_Serve(t *testing.T) {
 			},
 			wantErr: require.Error,
 		},
+		{
+			name: "already in sync - no update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
+				Spec:       inSyncIDPSpec(),
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
+					ObservedGeneration: 3,
+					ConfigSecretsHash:  inSyncHash,
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(inSyncIDPRepresentation(), (*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			secretRef: noSecretRefMock,
+			wantErr:   require.NoError,
+			check: func(t *testing.T, idp *keycloakApi.KeycloakRealmIdentityProvider) {
+				require.Equal(t, inSyncHash, idp.Status.ConfigSecretsHash)
+			},
+		},
+		{
+			name: "masked secret config key is skipped from comparison - no update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
+				Spec: func() keycloakApi.KeycloakRealmIdentityProviderSpec {
+					spec := inSyncIDPSpec()
+					spec.Config = map[string]string{
+						"clientId":     "test-client",
+						"clientSecret": "$secret:key",
+					}
+					return spec
+				}(),
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
+					ObservedGeneration: 3,
+					ConfigSecretsHash:  maskedSecretRefHash,
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				existing := inSyncIDPRepresentation()
+				existing.Config = &map[string]string{
+					"clientId":     "test-client",
+					"clientSecret": "**********",
+				}
+
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(existing, (*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			secretRef: func(t *testing.T) refClient {
+				m := secretrefmocks.NewMockRefClient(t)
+				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
+					Run(func(args mock.Arguments) {
+						cfg, _ := args.Get(1).(map[string]string)
+						cfg["clientSecret"] = "resolved-secret-value"
+					}).
+					Return(nil)
+				return m
+			},
+			wantErr: require.NoError,
+			check: func(t *testing.T, idp *keycloakApi.KeycloakRealmIdentityProvider) {
+				require.Equal(t, maskedSecretRefHash, idp.Status.ConfigSecretsHash)
+			},
+		},
+		{
+			name: "plain literal secret masked on GET is skipped from comparison - no update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
+				Spec: func() keycloakApi.KeycloakRealmIdentityProviderSpec {
+					spec := inSyncIDPSpec()
+					spec.Config = map[string]string{
+						"clientId":     "test-client",
+						"clientSecret": "supersecret123",
+					}
+					return spec
+				}(),
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
+					ObservedGeneration: 3,
+					ConfigSecretsHash: computeConfigSecretsHash(
+						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
+						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
+					),
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				existing := inSyncIDPRepresentation()
+				existing.Config = &map[string]string{
+					"clientId":     "test-client",
+					"clientSecret": maskedSecretValue,
+				}
+
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(existing, (*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			secretRef: noSecretRefMock,
+			wantErr:   require.NoError,
+		},
+		{
+			name: "config secrets hash drift forces update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
+				Spec:       inSyncIDPSpec(),
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
+					ObservedGeneration: 3,
+					ConfigSecretsHash:  "stale-hash",
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(inSyncIDPRepresentation(), (*keycloakapi.Response)(nil), nil).Once()
+				m.On("UpdateIdentityProvider", mock.Anything, "realm", "test-idp", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			secretRef: noSecretRefMock,
+			wantErr:   require.NoError,
+			check: func(t *testing.T, idp *keycloakApi.KeycloakRealmIdentityProvider) {
+				require.NotEqual(t, "stale-hash", idp.Status.ConfigSecretsHash)
+			},
+		},
+		{
+			name: "generation bump forces update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 4},
+				Spec:       inSyncIDPSpec(),
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
+					ObservedGeneration: 3,
+					ConfigSecretsHash:  inSyncHash,
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(inSyncIDPRepresentation(), (*keycloakapi.Response)(nil), nil).Once()
+				m.On("UpdateIdentityProvider", mock.Anything, "realm", "test-idp", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			secretRef: noSecretRefMock,
+			wantErr:   require.NoError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -119,6 +316,10 @@ func TestPutIDP_Serve(t *testing.T) {
 				"realm",
 			)
 			tt.wantErr(t, err)
+
+			if tt.check != nil {
+				tt.check(t, tt.idp)
+			}
 		})
 	}
 }

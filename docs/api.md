@@ -5468,7 +5468,8 @@ If hidden, login with this provider is possible only if requested explicitly, fo
         <td><b><a href="#keycloakrealmidentityproviderspecmappersindex">mappers</a></b></td>
         <td>[]object</td>
         <td>
-          Mappers is a list of identity provider mappers.<br/>
+          Mappers is a list of identity provider mappers.
+Omitted: existing mappers are left untouched. Set (even empty): the operator owns mapper state and removes mappers absent from the list.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5666,10 +5667,26 @@ KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmI
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>configSecretsHash</b></td>
+        <td>string</td>
+        <td>
+          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>failureCount</b></td>
         <td>integer</td>
         <td>
           <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>

@@ -138,3 +138,65 @@ func TestSliceToMapSelf(t *testing.T) {
 		assert.Len(t, got, 1)
 	})
 }
+
+func TestContainsSubset(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		m        map[string]string
+		subset   map[string]string
+		expected bool
+	}{
+		{
+			name:     "empty subset matches any map",
+			m:        map[string]string{"a": "1"},
+			subset:   map[string]string{},
+			expected: true,
+		},
+		{
+			name:     "empty subset matches empty map",
+			m:        map[string]string{},
+			subset:   map[string]string{},
+			expected: true,
+		},
+		{
+			name:     "subset fully present",
+			m:        map[string]string{"a": "1", "b": "2", "c": "3"},
+			subset:   map[string]string{"a": "1", "b": "2"},
+			expected: true,
+		},
+		{
+			name:     "subset key missing from map",
+			m:        map[string]string{"a": "1"},
+			subset:   map[string]string{"a": "1", "b": "2"},
+			expected: false,
+		},
+		{
+			name:     "subset value differs from map value",
+			m:        map[string]string{"a": "1"},
+			subset:   map[string]string{"a": "2"},
+			expected: false,
+		},
+		{
+			name:     "absent key differs from empty value",
+			m:        map[string]string{},
+			subset:   map[string]string{"a": ""},
+			expected: false,
+		},
+		{
+			name:     "present key with empty value matches empty value",
+			m:        map[string]string{"a": ""},
+			subset:   map[string]string{"a": ""},
+			expected: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tc.expected, ContainsSubset(tc.m, tc.subset))
+		})
+	}
+}

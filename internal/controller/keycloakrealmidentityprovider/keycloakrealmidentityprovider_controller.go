@@ -165,6 +165,7 @@ func (r *IdentityProviderReconciler) handleReconciliation(ctx context.Context, i
 	}
 
 	instance.Status.Value = common.StatusOK
+	instance.Status.ObservedGeneration = instance.Generation
 
 	if err := r.updateStatus(ctx, instance, oldStatus); err != nil {
 		return reconcile.Result{}, err
