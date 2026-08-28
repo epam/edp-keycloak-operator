@@ -20,3 +20,15 @@ func SliceToMap[T any, V any](items []T, key func(T) (string, bool), val func(T)
 func SliceToMapSelf[T any](items []T, key func(T) (string, bool)) map[string]T {
 	return SliceToMap(items, key, func(item T) T { return item })
 }
+
+// ContainsSubset reports whether every key/value pair in subset is present in m.
+func ContainsSubset(m, subset map[string]string) bool {
+	for k, v := range subset {
+		mv, ok := m[k]
+		if !ok || mv != v {
+			return false
+		}
+	}
+
+	return true
+}

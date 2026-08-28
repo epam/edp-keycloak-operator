@@ -47,16 +47,16 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}).
-					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
-				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
-				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
 					Return(&keycloakapi.ManagementPermissionReference{
 						Enabled:          ptr.To(true),
 						ScopePermissions: &map[string]string{"map-role": "321"},
-					}, (*keycloakapi.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil).Once()
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				clientsMock := keycloakapimocks.NewMockClientsClient(t)
 				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
@@ -82,6 +82,54 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 				}
 			},
 			wantErr: require.NoError,
+		},
+		{
+			name: "admin fine grained permissions already in sync - no update",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				serverMock := keycloakapimocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakapi.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return &keycloakapi.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+				}
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "GetIDPManagementPermissions fails",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias:                              "test-idp",
+					AdminFineGrainedPermissionsEnabled: true,
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				serverMock := keycloakapimocks.NewMockServerInfoClient(t)
+				serverMock.On("FeatureFlagEnabled", mock.Anything, keycloakapi.FeatureFlagAdminFineGrainedAuthz).
+					Return(true, nil).Once()
+
+				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), fmt.Errorf("api error")).Once()
+
+				return &keycloakapi.KeycloakClient{
+					Server:            serverMock,
+					IdentityProviders: idpMock,
+				}
+			},
+			wantErr: require.Error,
 		},
 		{
 			name: "with feature flag disabled",
@@ -135,6 +183,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}).
 					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), fmt.Errorf("api error"))
@@ -168,6 +218,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}).
 					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
@@ -195,6 +247,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}).
 					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
@@ -228,16 +282,16 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}).
-					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
-				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
-				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
 					Return(&keycloakapi.ManagementPermissionReference{
 						Enabled:          ptr.To(true),
 						ScopePermissions: nil,
-					}, (*keycloakapi.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil).Once()
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				clientsMock := keycloakapimocks.NewMockClientsClient(t)
 				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").
@@ -278,16 +332,16 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					Return(true, nil).Once()
 
 				idpMock := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.ManagementPermissionReference{Enabled: ptr.To(false)}, (*keycloakapi.Response)(nil), nil).Once()
 				idpMock.On("UpdateIDPManagementPermissions", mock.Anything, "realm", "test-idp",
 					keycloakapi.ManagementPermissionReference{Enabled: ptr.To(true)}).
-					Return((*keycloakapi.ManagementPermissionReference)(nil), (*keycloakapi.Response)(nil), nil)
-				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
-					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
-				idpMock.On("GetIDPManagementPermissions", mock.Anything, "realm", "test-idp").
 					Return(&keycloakapi.ManagementPermissionReference{
 						Enabled:          ptr.To(true),
 						ScopePermissions: &map[string]string{"map-role": "321"},
-					}, (*keycloakapi.Response)(nil), nil)
+					}, (*keycloakapi.Response)(nil), nil).Once()
+				idpMock.On("GetIdentityProvider", mock.Anything, "realm", "test-idp").
+					Return(&keycloakapi.IdentityProviderRepresentation{InternalId: ptr.To("12345")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				clientsMock := keycloakapimocks.NewMockClientsClient(t)
 				clientsMock.On("GetClientUUID", mock.Anything, "realm", "realm-management").

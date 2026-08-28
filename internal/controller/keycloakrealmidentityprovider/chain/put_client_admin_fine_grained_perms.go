@@ -38,12 +38,13 @@ func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakIDP 
 		return nil
 	}
 
-	if err = h.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakIDP, realmName); err != nil {
+	current, err := h.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakIDP, realmName)
+	if err != nil {
 		return fmt.Errorf("unable to put keycloak idp admin fine grained permissions: %w", err)
 	}
 
 	if keycloakIDP.Spec.AdminFineGrainedPermissionsEnabled && keycloakIDP.Spec.Permission != nil {
-		if err = h.putKeycloakIDPAdminPermissionPolicies(ctx, keycloakIDP, realmName); err != nil {
+		if err = h.putKeycloakIDPAdminPermissionPolicies(ctx, keycloakIDP, realmName, current); err != nil {
 			return fmt.Errorf("unable to put keycloak idp admin permission policies: %w", err)
 		}
 	}
@@ -51,24 +52,45 @@ func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakIDP 
 	return nil
 }
 
-func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+// putKeycloakClientAdminFineGrainedPermissions returns the current management permissions state
+// (fetched, or the fresh state from the PUT response when an update was needed) so the caller can
+// reuse it instead of re-fetching.
+func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(
+	ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string,
+) (*keycloakapi.ManagementPermissionReference, error) {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak idp admin fine grained permissions")
+
+	current, _, err := h.kClient.IdentityProviders.GetIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get idp management permissions: %w", err)
+	}
+
+	if current != nil && ptr.Deref(current.Enabled, false) == keycloakIDP.Spec.AdminFineGrainedPermissionsEnabled {
+		reqLog.Info("Idp admin fine grained permissions are already in sync, skipping update")
+		return current, nil
+	}
 
 	managementPermissions := keycloakapi.ManagementPermissionReference{
 		Enabled: &keycloakIDP.Spec.AdminFineGrainedPermissionsEnabled,
 	}
 
-	if _, _, err := h.kClient.IdentityProviders.UpdateIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias, managementPermissions); err != nil {
-		return fmt.Errorf("unable to update idp management permissions: %w", err)
+	updated, _, err := h.kClient.IdentityProviders.UpdateIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias, managementPermissions)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update idp management permissions: %w", err)
 	}
 
 	reqLog.Info("End put keycloak idp admin fine grained permissions")
 
-	return nil
+	return updated, nil
 }
 
-func (h *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(ctx context.Context, keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider, realmName string) error {
+func (h *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(
+	ctx context.Context,
+	keycloakIDP *keycloakApi.KeycloakRealmIdentityProvider,
+	realmName string,
+	existingIDPPermissions *keycloakapi.ManagementPermissionReference,
+) error {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak idp admin permission policies")
 
@@ -90,11 +112,6 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakIDPAdminPermissionPolicies(c
 	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakapi.AbstractPolicyRepresentation) (string, bool) {
 		return ptr.Deref(p.Name, ""), p.Name != nil
 	})
-
-	existingIDPPermissions, _, err := h.kClient.IdentityProviders.GetIDPManagementPermissions(ctx, realmName, keycloakIDP.Spec.Alias)
-	if err != nil {
-		return fmt.Errorf("failed to get idp permissions: %w", err)
-	}
 
 	if existingIDPPermissions == nil || existingIDPPermissions.ScopePermissions == nil {
 		return fmt.Errorf("idp management permissions or scope permissions are nil")

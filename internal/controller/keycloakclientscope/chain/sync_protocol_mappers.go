@@ -9,6 +9,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
@@ -45,7 +46,7 @@ func (h *SyncProtocolMappers) Serve(
 		return *m.Name, true
 	})
 
-	forceUpdate := specChanged(scope)
+	forceUpdate := helper.SpecChanged(scope.Generation, scope.Status.ObservedGeneration)
 
 	for _, specMapper := range scope.Spec.ProtocolMappers {
 		desired := convertProtocolMapper(specMapper)
@@ -91,7 +92,7 @@ func (h *SyncProtocolMappers) Serve(
 func protocolMapperMatches(existing, desired keycloakapi.ProtocolMapperRepresentation) bool {
 	return ptr.Deref(existing.Protocol, "") == ptr.Deref(desired.Protocol, "") &&
 		ptr.Deref(existing.ProtocolMapper, "") == ptr.Deref(desired.ProtocolMapper, "") &&
-		containsConfig(ptr.Deref(existing.Config, nil), ptr.Deref(desired.Config, nil))
+		maputil.ContainsSubset(ptr.Deref(existing.Config, nil), ptr.Deref(desired.Config, nil))
 }
 
 func convertProtocolMapper(m keycloakApi.ProtocolMapper) keycloakapi.ProtocolMapperRepresentation {

@@ -10,7 +10,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 // SyncAuthFlowExecutions syncs authentication executions for an auth flow.
@@ -79,7 +81,7 @@ func (h *SyncAuthFlowExecutions) syncNonFlowExecutions(
 
 	pairs, unmatchedExisting, unmatchedDesired := pairExecutionsByAuthenticator(existing, desired)
 
-	forceUpdate := specChanged(flow)
+	forceUpdate := helper.SpecChanged(flow.Generation, flow.Status.ObservedGeneration)
 
 	for _, p := range pairs {
 		if err := h.syncPairedExecution(ctx, flow.Spec.Alias, realmName, p, forceUpdate); err != nil {
@@ -219,7 +221,7 @@ func (h *SyncAuthFlowExecutions) updateExecutionConfigIfNeeded(
 
 		if existingCfg != nil &&
 			ptr.Deref(existingCfg.Alias, "") == desiredConfig.Alias &&
-			containsConfig(ptr.Deref(existingCfg.Config, nil), desiredConfig.Config) {
+			maputil.ContainsSubset(ptr.Deref(existingCfg.Config, nil), desiredConfig.Config) {
 			return nil
 		}
 	}

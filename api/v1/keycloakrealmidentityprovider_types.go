@@ -60,6 +60,7 @@ type KeycloakRealmIdentityProviderSpec struct {
 	TrustEmail bool `json:"trustEmail,omitempty"`
 
 	// Mappers is a list of identity provider mappers.
+	// Omitted: existing mappers are left untouched. Set (even empty): the operator owns mapper state and removes mappers absent from the list.
 	// +nullable
 	// +optional
 	Mappers []IdentityProviderMapper `json:"mappers,omitempty"`
@@ -107,6 +108,14 @@ type KeycloakRealmIdentityProviderStatus struct {
 
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
+
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.
+	// +optional
+	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true

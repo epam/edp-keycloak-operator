@@ -8,7 +8,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type CreateOrUpdateScope struct {
@@ -56,7 +58,7 @@ func (h *CreateOrUpdateScope) Serve(
 			scope.Status.ID = *existingScope.Id
 		}
 
-		if specChanged(scope) || !clientScopeMatchesSpec(existingScope, &spec) {
+		if helper.SpecChanged(scope.Generation, scope.Status.ObservedGeneration) || !clientScopeMatchesSpec(existingScope, &spec) {
 			_, err := scopesClient.UpdateClientScope(ctx, realmName, scope.Status.ID, keycloakapi.ClientScopeRepresentation{
 				Name:        &spec.Name,
 				Protocol:    &protocol,
@@ -78,7 +80,7 @@ func clientScopeMatchesSpec(existing *keycloakapi.ClientScopeRepresentation, spe
 	return ptr.Deref(existing.Name, "") == spec.Name &&
 		ptr.Deref(existing.Protocol, "") == spec.Protocol &&
 		ptr.Deref(existing.Description, "") == spec.Description &&
-		containsConfig(ptr.Deref(existing.Attributes, nil), spec.Attributes)
+		maputil.ContainsSubset(ptr.Deref(existing.Attributes, nil), spec.Attributes)
 }
 
 func (h *CreateOrUpdateScope) findScopeByName(

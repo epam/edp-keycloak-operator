@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -131,6 +132,110 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
 			g.Expect(mappers[0].Name).ShouldNot(BeNil())
 			g.Expect(*mappers[0].Name).Should(Equal("test-mapper"))
 		}, time.Second*10, time.Second).Should(Succeed())
+	})
+	It("Should keep Keycloak state untouched on a no-op reconcile", func() {
+		By("By capturing the current mapper ID in Keycloak")
+		mappers, _, err := keycloakApiClient.IdentityProviders.GetIDPMappers(ctx, KeycloakRealmCR, "new-provider")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(mappers).Should(HaveLen(1))
+		Expect(mappers[0].Id).ShouldNot(BeNil())
+		initialMapperID := *mappers[0].Id
+
+		By("By capturing the current status")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, provider)).Should(Succeed())
+		initialHash := provider.Status.ConfigSecretsHash
+		Expect(initialHash).ShouldNot(BeEmpty())
+		Expect(provider.Status.ObservedGeneration).Should(Equal(provider.Generation))
+		initialObservedGeneration := provider.Status.ObservedGeneration
+
+		By("By triggering a reconcile via an annotation change (no generation bump)")
+		Expect(k8sClient.Patch(ctx, provider, client.RawPatch(types.MergePatchType,
+			[]byte(`{"metadata":{"annotations":{"test.edp.epam.com/reconcile-trigger":"no-op"}}}`)))).Should(Succeed())
+
+		By("Verifying the mapper is not recreated and status is unchanged")
+		Consistently(func(g Gomega) {
+			currentMappers, _, err := keycloakApiClient.IdentityProviders.GetIDPMappers(ctx, KeycloakRealmCR, "new-provider")
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(currentMappers).Should(HaveLen(1))
+			g.Expect(currentMappers[0].Id).ShouldNot(BeNil())
+			g.Expect(*currentMappers[0].Id).Should(Equal(initialMapperID))
+
+			current := &keycloakApi.KeycloakRealmIdentityProvider{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, current)).Should(Succeed())
+			g.Expect(current.Status.ConfigSecretsHash).Should(Equal(initialHash))
+			g.Expect(current.Status.ObservedGeneration).Should(Equal(initialObservedGeneration))
+		}, time.Second*5, time.Second).Should(Succeed())
+	})
+	It("Should propagate secret rotation via config secrets hash", func() {
+		By("By capturing the current config secrets hash")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, provider)).Should(Succeed())
+		initialHash := provider.Status.ConfigSecretsHash
+		Expect(initialHash).ShouldNot(BeEmpty())
+		initialGeneration := provider.Generation
+
+		By("By rotating the referenced client secret value")
+		clientSecret := &corev1.Secret{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: "test-keycloak-realm-client-secret"}, clientSecret)).Should(Succeed())
+		clientSecret.Data["secretKey"] = []byte("rotatedSecretValue")
+		Expect(k8sClient.Update(ctx, clientSecret)).Should(Succeed())
+
+		By("By triggering a reconcile via an annotation change (no generation bump)")
+		Expect(k8sClient.Patch(ctx, provider, client.RawPatch(types.MergePatchType,
+			[]byte(`{"metadata":{"annotations":{"test.edp.epam.com/reconcile-trigger":"secret-rotation"}}}`)))).Should(Succeed())
+
+		By("Verifying the config secrets hash changes without a generation bump")
+		Eventually(func(g Gomega) {
+			current := &keycloakApi.KeycloakRealmIdentityProvider{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, current)).Should(Succeed())
+			g.Expect(current.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(current.Status.ConfigSecretsHash).ShouldNot(Equal(initialHash))
+			g.Expect(current.Generation).Should(Equal(initialGeneration))
+		}, timeout, interval).Should(Succeed())
+	})
+	It("Should leave Keycloak mappers untouched when the mappers field is removed", func() {
+		By("By removing the mappers field from the spec")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, provider)).Should(Succeed())
+		Expect(k8sClient.Patch(ctx, provider, client.RawPatch(types.MergePatchType,
+			[]byte(`{"spec":{"mappers":null}}`)))).Should(Succeed())
+
+		By("Waiting for the new generation to be reconciled")
+		Eventually(func(g Gomega) {
+			current := &keycloakApi.KeycloakRealmIdentityProvider{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, current)).Should(Succeed())
+			g.Expect(current.Spec.Mappers).Should(BeNil())
+			g.Expect(current.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(current.Status.ObservedGeneration).Should(Equal(current.Generation))
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying the mapper still exists in Keycloak")
+		mappers, _, err := keycloakApiClient.IdentityProviders.GetIDPMappers(ctx, KeycloakRealmCR, "new-provider")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(mappers).Should(HaveLen(1))
+	})
+	It("Should delete all Keycloak mappers when the mappers list is explicitly empty", func() {
+		By("By setting the mappers field to an explicit empty list")
+		provider := &keycloakApi.KeycloakRealmIdentityProvider{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, provider)).Should(Succeed())
+		Expect(k8sClient.Patch(ctx, provider, client.RawPatch(types.MergePatchType,
+			[]byte(`{"spec":{"mappers":[]}}`)))).Should(Succeed())
+
+		By("Waiting for the new generation to be reconciled")
+		Eventually(func(g Gomega) {
+			current := &keycloakApi.KeycloakRealmIdentityProvider{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: identityProviderCR}, current)).Should(Succeed())
+			g.Expect(current.Spec.Mappers).ShouldNot(BeNil())
+			g.Expect(current.Spec.Mappers).Should(BeEmpty())
+			g.Expect(current.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(current.Status.ObservedGeneration).Should(Equal(current.Generation))
+		}, timeout, interval).Should(Succeed())
+
+		By("Verifying all mappers are deleted in Keycloak")
+		mappers, _, err := keycloakApiClient.IdentityProviders.GetIDPMappers(ctx, KeycloakRealmCR, "new-provider")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(mappers).Should(BeEmpty())
 	})
 	It("Should delete KeycloakRealmIdentityProvider", func() {
 		By("By getting KeycloakRealmIdentityProvider")
