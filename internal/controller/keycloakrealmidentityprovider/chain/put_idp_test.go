@@ -15,6 +15,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	keycloakapimocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	secretrefmocks "github.com/epam/edp-keycloak-operator/pkg/secretref/mocks"
 )
 
@@ -66,11 +67,11 @@ func noSecretRefMock(t *testing.T) refClient {
 func TestPutIDP_Serve(t *testing.T) {
 	t.Parallel()
 
-	inSyncHash := computeConfigSecretsHash(
+	inSyncHash := secretref.ConfigSecretsHashSingle(
 		map[string]string{"clientId": "test-client"},
 		map[string]string{"clientId": "test-client"},
 	)
-	maskedSecretRefHash := computeConfigSecretsHash(
+	maskedSecretRefHash := secretref.ConfigSecretsHashSingle(
 		map[string]string{"clientId": "test-client", "clientSecret": "$secret:key"},
 		map[string]string{"clientId": "test-client", "clientSecret": "resolved-secret-value"},
 	)
@@ -237,7 +238,7 @@ func TestPutIDP_Serve(t *testing.T) {
 				}(),
 				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
 					ObservedGeneration: 3,
-					ConfigSecretsHash: computeConfigSecretsHash(
+					ConfigSecretsHash: secretref.ConfigSecretsHashSingle(
 						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
 						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
 					),
@@ -247,7 +248,7 @@ func TestPutIDP_Serve(t *testing.T) {
 				existing := inSyncIDPRepresentation()
 				existing.Config = &map[string]string{
 					"clientId":     "test-client",
-					"clientSecret": maskedSecretValue,
+					"clientSecret": keycloakapi.MaskedSecretValue,
 				}
 
 				m := keycloakapimocks.NewMockIdentityProvidersClient(t)

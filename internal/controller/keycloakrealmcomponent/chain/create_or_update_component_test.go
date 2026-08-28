@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -16,6 +17,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const (
@@ -33,6 +35,20 @@ type fakeSecretRefClient struct {
 
 func (f *fakeSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) error {
 	return f.err
+}
+
+// mutatingSecretRefClient simulates secret-ref resolution by rewriting config values in place,
+// mirroring the real SecretRef client's mutate-in-place contract.
+type mutatingSecretRefClient struct {
+	mutate func(config map[string][]string)
+}
+
+func (f *mutatingSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, config map[string][]string, _ string) error {
+	if f.mutate != nil {
+		f.mutate(config)
+	}
+
+	return nil
 }
 
 func newScheme(t *testing.T) *runtime.Scheme {
@@ -96,11 +112,15 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
+	// Pre-seed the hash so it can't itself be the reason the update fires: the test isolates
+	// the providerId drift.
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
 
+	// Fetched providerId differs from spec: drift forces the update.
 	existing := &keycloakapi.ComponentRepresentation{
 		Id:           ptr.To(testComponentID),
 		Name:         ptr.To(testComponentName),
-		ProviderId:   ptr.To(testProviderID),
+		ProviderId:   ptr.To("stale-provider"),
 		ProviderType: ptr.To(testProviderType),
 	}
 
@@ -122,6 +142,208 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.Equal(t, testComponentID, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_TopLevelParentIdAutoFillDoesNotForceUpdate(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+
+	// No spec.ParentRef, but Keycloak auto-fills ParentId with the realm's internal ID for
+	// top-level components: this must not be mistaken for spec drift.
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		ParentId:     ptr.To("realm-internal-id"),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testComponentID, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_SkipUpdateWhenInSync(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Generation = 5
+	component.Status.ObservedGeneration = 5
+	component.Spec.Config = map[string][]string{"key1": {"val1", "val2"}}
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+
+	// Fetched config value order differs from spec: order-insensitive comparison still matches.
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		Config: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+			"key1": {"val2", "val1"},
+		}),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testComponentID, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_ForceUpdateOnGenerationBump(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Generation = 6
+	component.Status.ObservedGeneration = 5
+	component.Spec.Config = map[string][]string{"key1": {"val1", "val2"}}
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		Config: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+			"key1": {"val1", "val2"},
+		}),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	mockComponents.EXPECT().
+		UpdateComponent(context.Background(), testRealmName, testComponentID, mock.Anything).
+		Return(nil, nil)
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestCreateOrUpdateComponent_Serve_SecretRefConfigKeySkipped(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Generation = 2
+	component.Status.ObservedGeneration = 2
+	component.Spec.Config = map[string][]string{"bindCredential": {"$secret:key"}}
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(
+		map[string][]string{"bindCredential": {"$secret:key"}},
+		map[string][]string{"bindCredential": {"resolved-value"}},
+	)
+
+	// Keycloak masks the secret-typed value on GET regardless of the resolved value.
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		Config: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+			"bindCredential": {keycloakapi.MaskedSecretValue},
+		}),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	secretRefClient := &mutatingSecretRefClient{mutate: func(config map[string][]string) {
+		config["bindCredential"] = []string{"resolved-value"}
+	}}
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, secretRefClient)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestCreateOrUpdateComponent_Serve_HashDriftForcesUpdate(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Generation = 2
+	component.Status.ObservedGeneration = 2
+	component.Spec.Config = map[string][]string{"bindCredential": {"$secret:key"}}
+	component.Status.ConfigSecretsHash = "stale-hash"
+
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		Config: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+			"bindCredential": {keycloakapi.MaskedSecretValue},
+		}),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	mockComponents.EXPECT().
+		UpdateComponent(context.Background(), testRealmName, testComponentID, mock.Anything).
+		Return(nil, nil)
+
+	secretRefClient := &mutatingSecretRefClient{mutate: func(config map[string][]string) {
+		config["bindCredential"] = []string{"resolved-value"}
+	}}
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, secretRefClient)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+	assert.NotEqual(t, "stale-hash", component.Status.ConfigSecretsHash)
+}
+
+func TestCreateOrUpdateComponent_Serve_MaskedFetchedValueSkipped(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+	component.Generation = 3
+	component.Status.ObservedGeneration = 3
+	component.Spec.Config = map[string][]string{"bindCredential": {"plain-secret-value"}}
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+
+	// A plain-literal (non secret-ref) value is still masked by Keycloak on GET.
+	existing := &keycloakapi.ComponentRepresentation{
+		Id:           ptr.To(testComponentID),
+		Name:         ptr.To(testComponentName),
+		ProviderId:   ptr.To(testProviderID),
+		ProviderType: ptr.To(testProviderType),
+		Config: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+			"bindCredential": {keycloakapi.MaskedSecretValue},
+		}),
+	}
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(existing, nil)
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
 }
 
 func TestCreateOrUpdateComponent_Serve_FindByNameError(t *testing.T) {
@@ -173,11 +395,15 @@ func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
+	// Pre-seed the hash so it can't itself be the reason the update fires: the test isolates
+	// the providerId drift.
+	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
 
+	// Fetched providerId differs from spec: drift forces the update.
 	existing := &keycloakapi.ComponentRepresentation{
 		Id:           ptr.To(testComponentID),
 		Name:         ptr.To(testComponentName),
-		ProviderId:   ptr.To(testProviderID),
+		ProviderId:   ptr.To("stale-provider"),
 		ProviderType: ptr.To(testProviderType),
 	}
 

@@ -76,6 +76,28 @@ func (c *organizationsClient) GetOrganizationByAlias(
 	}
 }
 
+func (c *organizationsClient) GetOrganization(
+	ctx context.Context,
+	realm, orgID string,
+) (*OrganizationRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmOrganizationsOrgIdWithResponse(ctx, realm, orgID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	return res.JSON200, response, nil
+}
+
 func (c *organizationsClient) CreateOrganization(
 	ctx context.Context,
 	realm string,

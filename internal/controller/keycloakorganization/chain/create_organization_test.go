@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
@@ -83,14 +84,13 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
-				// First call: GetOrganizationByAlias returns existing organization
+				// Fetched organization has none of the spec's fields set: drift forces the update.
 				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-org-456"),
 						Alias: ptr.To("existing-org"),
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				// Second call: UpdateOrganization succeeds
 				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Updated Organization" &&
 						ptr.Deref(org.Alias, "") == "existing-org" &&
@@ -103,6 +103,328 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			},
 			wantErr:       require.NoError,
 			expectedOrgID: "existing-org-456",
+		},
+		{
+			name: "no update when existing organization matches spec",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 3},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:        "In Sync Org",
+					Alias:       "in-sync-org",
+					Description: "In sync description",
+					RedirectURL: "https://in-sync.com/redirect",
+					Domains:     []string{"a.com", "b.com"},
+					Attributes: map[string][]string{
+						"dept": {"eng", "qa"},
+					},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 3,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				// GetOrganizationByAlias is backed by the list endpoint: it never returns
+				// Attributes. Domains are shuffled and Enabled/Members are server-populated
+				// fields the spec never sets: none of that should trigger an update.
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "in-sync-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:          ptr.To("in-sync-id"),
+						Name:        ptr.To("In Sync Org"),
+						Alias:       ptr.To("in-sync-org"),
+						Description: ptr.To("In sync description"),
+						RedirectUrl: ptr.To("https://in-sync.com/redirect"),
+						Enabled:     ptr.To(true),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("b.com"), Verified: ptr.To(true)},
+							{Name: ptr.To("a.com")},
+						},
+						Members: &[]keycloakapi.MemberRepresentation{{}},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				// Brief fields already match, and the spec declares attributes: the full
+				// representation is fetched by ID to compare them, with values shuffled.
+				client.On("GetOrganization", mock.Anything, "test-realm", "in-sync-id").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("in-sync-id"),
+						Alias: ptr.To("in-sync-org"),
+						Attributes: &map[string][]string{
+							"dept": {"qa", "eng"},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "in-sync-id",
+		},
+		{
+			name: "brief field drift forces update without fetching the full representation",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:        "Brief Drift Org",
+					Alias:       "brief-drift-org",
+					Description: "New description",
+					Domains:     []string{"a.com"},
+					Attributes: map[string][]string{
+						"dept": {"eng"},
+					},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				// Description differs: the update fires from the brief comparison alone.
+				// GetOrganization (by ID) is not stubbed; an unexpected call fails the test.
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "brief-drift-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:          ptr.To("brief-drift-id"),
+						Name:        ptr.To("Brief Drift Org"),
+						Alias:       ptr.To("brief-drift-org"),
+						Description: ptr.To("Old description"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "brief-drift-id", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "brief-drift-id",
+		},
+		{
+			name: "spec without attributes needs no full representation fetch",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "No Attrs Org",
+					Alias:   "no-attrs-org",
+					Domains: []string{"a.com"},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				// Brief fields already match and the spec declares no attributes: neither
+				// GetOrganization (by ID) nor UpdateOrganization should be called.
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "no-attrs-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("no-attrs-id"),
+						Name:  ptr.To("No Attrs Org"),
+						Alias: ptr.To("no-attrs-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "no-attrs-id",
+		},
+		{
+			name: "GetOrganization by id error is propagated",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "By Id Error Org",
+					Alias:   "by-id-error-org",
+					Domains: []string{"a.com"},
+					Attributes: map[string][]string{
+						"dept": {"eng"},
+					},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "by-id-error-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("by-id-error-id"),
+						Name:  ptr.To("By Id Error Org"),
+						Alias: ptr.To("by-id-error-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("GetOrganization", mock.Anything, "test-realm", "by-id-error-id").
+					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("network error")).Once()
+
+				return client
+			},
+			wantErr: require.Error,
+		},
+		{
+			name: "generation bump forces update even when in sync",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 4},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "In Sync Org",
+					Alias:   "in-sync-org-gen",
+					Domains: []string{"a.com"},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 3,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "in-sync-org-gen").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("gen-bump-id"),
+						Name:  ptr.To("In Sync Org"),
+						Alias: ptr.To("in-sync-org-gen"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "gen-bump-id", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "gen-bump-id",
+		},
+		{
+			name: "domain removed from spec forces update",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "Domain Drop Org",
+					Alias:   "domain-drop-org",
+					Domains: []string{"a.com"},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "domain-drop-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("domain-drop-id"),
+						Name:  ptr.To("Domain Drop Org"),
+						Alias: ptr.To("domain-drop-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+							{Name: ptr.To("b.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "domain-drop-id", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "domain-drop-id",
+		},
+		{
+			name: "duplicated domain in spec is in sync with the deduped existing domain",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "Dup Domain Org",
+					Alias:   "dup-domain-org",
+					Domains: []string{"a.com", "a.com"},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				// Keycloak dedups domains server-side: only one "a.com" comes back.
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "dup-domain-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("dup-domain-id"),
+						Name:  ptr.To("Dup Domain Org"),
+						Alias: ptr.To("dup-domain-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "dup-domain-id",
+		},
+		{
+			name: "attribute drift discovered via the by-id fetch forces update",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 1},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "Attr Change Org",
+					Alias:   "attr-change-org",
+					Domains: []string{"a.com"},
+					Attributes: map[string][]string{
+						"dept": {"eng"},
+					},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 1,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				// Brief fields match, so the full representation is fetched by ID; its
+				// attributes differ from the spec.
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "attr-change-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("attr-change-id"),
+						Name:  ptr.To("Attr Change Org"),
+						Alias: ptr.To("attr-change-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{Name: ptr.To("a.com")},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("GetOrganization", mock.Anything, "test-realm", "attr-change-id").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("attr-change-id"),
+						Alias: ptr.To("attr-change-org"),
+						Attributes: &map[string][]string{
+							"dept": {"qa"},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "attr-change-id", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "attr-change-id",
 		},
 		{
 			name: "error when GetOrganizationByAlias fails with non-not-found error",

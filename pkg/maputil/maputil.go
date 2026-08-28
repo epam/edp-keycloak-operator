@@ -1,5 +1,7 @@
 package maputil
 
+import "slices"
+
 // SliceToMap builds a map from a slice.
 // key returns the map key and whether the item should be included (ok=false skips the item).
 // val returns the map value.
@@ -26,6 +28,27 @@ func ContainsSubset(m, subset map[string]string) bool {
 	for k, v := range subset {
 		mv, ok := m[k]
 		if !ok || mv != v {
+			return false
+		}
+	}
+
+	return true
+}
+
+// ContainsSubsetMulti reports whether every key in subset is present in m with the
+// same value set; value order is ignored.
+func ContainsSubsetMulti(m, subset map[string][]string) bool {
+	for k, v := range subset {
+		mv, ok := m[k]
+		if !ok {
+			return false
+		}
+
+		if len(v) != len(mv) {
+			return false
+		}
+
+		if !slices.Equal(slices.Sorted(slices.Values(v)), slices.Sorted(slices.Values(mv))) {
 			return false
 		}
 	}

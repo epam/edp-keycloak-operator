@@ -166,6 +166,7 @@ func (r *ReconcileOrganization) handleReconciliation(ctx context.Context, organi
 	}
 
 	organization.Status.SetOK()
+	organization.Status.ObservedGeneration = organization.Generation
 
 	if err := r.updateOrganizationStatus(ctx, organization, *oldStatus); err != nil {
 		return reconcile.Result{}, err

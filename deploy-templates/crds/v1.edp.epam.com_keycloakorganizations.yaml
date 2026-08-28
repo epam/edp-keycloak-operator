@@ -138,6 +138,11 @@ spec:
               error:
                 description: Error is the error message if the reconciliation failed.
                 type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
+                format: int64
+                type: integer
               organizationId:
                 description: OrganizationID is the unique identifier of the organization
                   in Keycloak.

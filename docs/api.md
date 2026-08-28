@@ -2644,6 +2644,15 @@ KeycloakOrganizationStatus defines the observed state of Organization.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>organizationId</b></td>
         <td>string</td>
         <td>
@@ -5000,10 +5009,26 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>configSecretsHash</b></td>
+        <td>string</td>
+        <td>
+          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>id</b></td>
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
+          <br/>
+            <i>Format</i>: int64<br/>
         </td>
         <td>false</td>
       </tr><tr>

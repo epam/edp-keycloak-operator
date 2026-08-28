@@ -266,6 +266,88 @@ func (_c *MockOrganizationsClient_DeleteOrganization_Call) RunAndReturn(run func
 	return _c
 }
 
+// GetOrganization provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) GetOrganization(ctx context.Context, realm string, orgID string) (*keycloakapi.OrganizationRepresentation, *keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetOrganization")
+	}
+
+	var r0 *keycloakapi.OrganizationRepresentation
+	var r1 *keycloakapi.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakapi.OrganizationRepresentation, *keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakapi.OrganizationRepresentation); ok {
+		r0 = returnFunc(ctx, realm, orgID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.OrganizationRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakapi.Response); ok {
+		r1 = returnFunc(ctx, realm, orgID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, orgID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockOrganizationsClient_GetOrganization_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetOrganization'
+type MockOrganizationsClient_GetOrganization_Call struct {
+	*mock.Call
+}
+
+// GetOrganization is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+func (_e *MockOrganizationsClient_Expecter) GetOrganization(ctx interface{}, realm interface{}, orgID interface{}) *MockOrganizationsClient_GetOrganization_Call {
+	return &MockOrganizationsClient_GetOrganization_Call{Call: _e.mock.On("GetOrganization", ctx, realm, orgID)}
+}
+
+func (_c *MockOrganizationsClient_GetOrganization_Call) Run(run func(ctx context.Context, realm string, orgID string)) *MockOrganizationsClient_GetOrganization_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_GetOrganization_Call) Return(v *keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganization_Call {
+	_c.Call.Return(v, response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_GetOrganization_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string) (*keycloakapi.OrganizationRepresentation, *keycloakapi.Response, error)) *MockOrganizationsClient_GetOrganization_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetOrganizationByAlias provides a mock function for the type MockOrganizationsClient
 func (_mock *MockOrganizationsClient) GetOrganizationByAlias(ctx context.Context, realm string, alias string) (*keycloakapi.OrganizationRepresentation, *keycloakapi.Response, error) {
 	ret := _mock.Called(ctx, realm, alias)

@@ -2,11 +2,8 @@ package chain
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"maps"
-	"slices"
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -45,7 +42,7 @@ func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.Keyclo
 	}
 
 	idpRep := specToIdentityProviderRepresentation(&keycloakRealmIDP.Spec, config)
-	newHash := computeConfigSecretsHash(rawSpecConfig, config)
+	newHash := secretref.ConfigSecretsHashSingle(rawSpecConfig, config)
 
 	existingIDP, _, err := h.idpClient.GetIdentityProvider(ctx, realmName, keycloakRealmIDP.Spec.Alias)
 	if err != nil && !keycloakapi.IsNotFound(err) {
@@ -95,10 +92,6 @@ func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentit
 	}
 }
 
-// maskedSecretValue is what Keycloak returns on GET for secret-typed config properties,
-// regardless of how the value was originally supplied.
-const maskedSecretValue = "**********"
-
 // idpMatchesSpec reports whether the fetched IDP already matches the desired representation.
 // Config keys are excluded from comparison when Keycloak masks them: either the raw spec value
 // is a secret ref, or the fetched value is already the mask sentinel (e.g. a plain-literal secret).
@@ -128,7 +121,7 @@ func idpMatchesSpec(
 	comparableConfig := make(map[string]string, len(desiredConfig))
 
 	for k, v := range desiredConfig {
-		if secretref.HasSecretRef(rawSpecConfig[k]) || existingConfig[k] == maskedSecretValue {
+		if secretref.HasSecretRef(rawSpecConfig[k]) || existingConfig[k] == keycloakapi.MaskedSecretValue {
 			continue
 		}
 
@@ -136,24 +129,4 @@ func idpMatchesSpec(
 	}
 
 	return maputil.ContainsSubset(existingConfig, comparableConfig)
-}
-
-// computeConfigSecretsHash hashes the resolved values of secret-ref config keys so that
-// rotating the referenced k8s Secret (which does not bump the CR generation) still forces
-// a write. No secret material is stored, only the digest.
-func computeConfigSecretsHash(rawSpecConfig, resolvedConfig map[string]string) string {
-	h := sha256.New()
-
-	for _, k := range slices.Sorted(maps.Keys(rawSpecConfig)) {
-		if !secretref.HasSecretRef(rawSpecConfig[k]) {
-			continue
-		}
-
-		// Length-prefixed to avoid delimiter ambiguity between adjacent key/value pairs.
-		// hash.Hash.Write never returns an error.
-		v := resolvedConfig[k]
-		_, _ = fmt.Fprintf(h, "%d:%s%d:%s", len(k), k, len(v), v)
-	}
-
-	return hex.EncodeToString(h.Sum(nil))
 }

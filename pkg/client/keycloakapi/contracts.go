@@ -475,7 +475,11 @@ type OrganizationsClient interface {
 		params *GetOrganizationsParams,
 	) ([]OrganizationRepresentation, *Response, error)
 	// GetOrganizationByAlias looks up an organization by its alias. Returns ErrNotFound if no match.
+	// The result comes from the list endpoint and omits Attributes; use GetOrganization for the
+	// full representation.
 	GetOrganizationByAlias(ctx context.Context, realm, alias string) (*OrganizationRepresentation, *Response, error)
+	// GetOrganization retrieves the full organization representation, including Attributes, by its Keycloak UUID.
+	GetOrganization(ctx context.Context, realm, orgID string) (*OrganizationRepresentation, *Response, error)
 	// CreateOrganization creates a new organization in the given realm.
 	CreateOrganization(ctx context.Context, realm string, org OrganizationRepresentation) (*Response, error)
 	// UpdateOrganization updates an existing organization.
