@@ -766,7 +766,16 @@ spec:
             properties:
               available:
                 type: boolean
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of resolved secret-ref config
+                  values from the last successful reconcile.
+                type: string
               failureCount:
+                format: int64
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
                 format: int64
                 type: integer
               value:

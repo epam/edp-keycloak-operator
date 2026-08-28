@@ -27,7 +27,9 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 		expectedError   string
 	}{
 		{
-			name: "successful realm settings update with minimal configuration",
+			// Empty spec overlaid on an empty current realm produces no diff, so
+			// UpdateRealm is intentionally not stubbed here.
+			name: "successful realm settings update with minimal configuration, no diff, no write",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
 					RealmName: "test-realm",
@@ -36,8 +38,6 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			setupMocks: func(m *v2mocks.MockRealmClient) {
 				m.EXPECT().GetRealm(mock.Anything, "test-realm").
 					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
-				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.Anything).
-					Return(nil, nil)
 			},
 			setupEventsMock: func(_ *v2mocks.MockEventsClient) {},
 		},
@@ -130,7 +130,8 @@ func TestPutRealmSettings_ServeRequest(t *testing.T) {
 			name: "error when UpdateRealm fails",
 			realm: &v1alpha1.ClusterKeycloakRealm{
 				Spec: v1alpha1.ClusterKeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName:   "test-realm",
+					DisplayName: ptr.To("New Name"),
 				},
 			},
 			setupMocks: func(m *v2mocks.MockRealmClient) {

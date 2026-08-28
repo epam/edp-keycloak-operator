@@ -127,6 +127,28 @@ func TestRealmLocalizationTexts_ServeRequest(t *testing.T) {
 			},
 		},
 		{
+			// Regression: an explicit empty-string translation for a key absent from
+			// Keycloak must still be posted, not silently treated as in-sync.
+			name: "desired empty string for key absent from current — PostRealmLocalization called",
+			realm: &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					RealmName: "realm1",
+					Localization: &keycloakApi.RealmLocalization{
+						LocalizationTexts: map[string]map[string]string{
+							"en": {"hello": ""},
+						},
+					},
+				},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealmLocalization(mock.Anything, "realm1", "en").
+					Return(map[string]string{}, nil, nil)
+				m.EXPECT().PostRealmLocalization(mock.Anything, "realm1", "en", map[string]string{"hello": ""}).
+					Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "empty locale kv map — skipped",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
@@ -191,6 +213,14 @@ func TestLocalesAlreadyInSync(t *testing.T) {
 			current: map[string]string{},
 			desired: map[string]string{},
 			want:    true,
+		},
+		{
+			// Regression: a missing key must not be conflated with an explicit empty-string
+			// desired value — both compare equal to the zero value of a plain map index.
+			name:    "desired empty string for key absent from current",
+			current: map[string]string{},
+			desired: map[string]string{"a": ""},
+			want:    false,
 		},
 	}
 

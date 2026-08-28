@@ -247,6 +247,14 @@ type KeycloakRealmStatus struct {
 
 	// +optional
 	Value string `json:"value,omitempty"`
+
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.
+	// +optional
+	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
 }
 
 func (in *KeycloakRealm) GetFailureCount() int64 {

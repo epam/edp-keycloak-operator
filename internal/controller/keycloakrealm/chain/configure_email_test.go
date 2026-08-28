@@ -20,6 +20,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 func TestConfigureEmail_ServeRequest(t *testing.T) {
@@ -211,6 +212,156 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 					kClient,
 				),
 			)
+		})
+	}
+}
+
+func TestConfigureRealmEmail(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	const namespace = "default"
+
+	emailSpec := &common.SMTP{
+		Template: common.EmailTemplate{From: "from@mail.com"},
+		Connection: common.EmailConnection{
+			Host: "smtp-host",
+			Port: 25,
+			Authentication: &common.EmailAuthentication{
+				Username: common.SourceRefOrVal{Value: "username"},
+				Password: common.SourceRef{
+					SecretKeyRef: &common.SecretKeySelector{
+						LocalObjectReference: corev1.LocalObjectReference{Name: "secret"},
+						Key:                  "secret",
+					},
+				},
+			},
+		},
+	}
+
+	newK8sClient := func(t *testing.T, password string) client.Client {
+		t.Helper()
+
+		return fake.NewClientBuilder().WithScheme(scheme).WithObjects(
+			&corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "secret", Namespace: namespace},
+				Data:       map[string][]byte{"secret": []byte(password)},
+			},
+		).Build()
+	}
+
+	inSyncSmtpServer := map[string]string{
+		"from":               "from@mail.com",
+		"fromDisplayName":    "",
+		"replyTo":            "",
+		"replyToDisplayName": "",
+		"envelopeFrom":       "",
+		"host":               "smtp-host",
+		"port":               "25",
+		"ssl":                "false",
+		"starttls":           "false",
+		"auth":               "true",
+		"user":               "username",
+		"password":           keycloakapi.MaskedSecretValue,
+	}
+
+	resolvedHash := secretref.ValuesHash(map[string][]string{"password": {"password"}})
+
+	tests := []struct {
+		name        string
+		storedHash  string
+		forceWrite  bool
+		k8sClient   client.Client
+		realmClient func(t *testing.T) keycloakapi.RealmClient
+		wantHash    string
+		wantErr     require.ErrorAssertionFunc
+	}{
+		{
+			// smtpServer already matches spec and the hash matches, so UpdateRealm is
+			// intentionally not stubbed here.
+			name:       "in sync and hash matches — no write",
+			storedHash: resolvedHash,
+			forceWrite: false,
+			k8sClient:  newK8sClient(t, "password"),
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &inSyncSmtpServer}, nil, nil)
+
+				return m
+			},
+			wantHash: resolvedHash,
+			wantErr:  require.NoError,
+		},
+		{
+			name:       "empty stored hash (upgrade path) — write forced",
+			storedHash: "",
+			forceWrite: false,
+			k8sClient:  newK8sClient(t, "password"),
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &inSyncSmtpServer}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.Anything).Return(nil, nil)
+
+				return m
+			},
+			wantHash: resolvedHash,
+			wantErr:  require.NoError,
+		},
+		{
+			name:       "forceWrite true — write applied even though in sync",
+			storedHash: resolvedHash,
+			forceWrite: true,
+			k8sClient:  newK8sClient(t, "password"),
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &inSyncSmtpServer}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.Anything).Return(nil, nil)
+
+				return m
+			},
+			wantHash: resolvedHash,
+			wantErr:  require.NoError,
+		},
+		{
+			name:       "password rotated — hash mismatch forces write despite matching non-password fields",
+			storedHash: secretref.ValuesHash(map[string][]string{"password": {"old-password"}}),
+			forceWrite: false,
+			k8sClient:  newK8sClient(t, "password"),
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &inSyncSmtpServer}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.Anything).Return(nil, nil)
+
+				return m
+			},
+			wantHash: resolvedHash,
+			wantErr:  require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotHash, err := ConfigureRealmEmail(
+				context.Background(),
+				"realm",
+				emailSpec,
+				namespace,
+				tt.realmClient(t),
+				tt.k8sClient,
+				tt.storedHash,
+				tt.forceWrite,
+			)
+
+			tt.wantErr(t, err)
+			require.Equal(t, tt.wantHash, gotHash)
 		})
 	}
 }

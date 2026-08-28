@@ -1698,10 +1698,26 @@ ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>configSecretsHash</b></td>
+        <td>string</td>
+        <td>
+          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>failureCount</b></td>
         <td>integer</td>
         <td>
           <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>
@@ -7991,10 +8007,26 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>configSecretsHash</b></td>
+        <td>string</td>
+        <td>
+          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>failureCount</b></td>
         <td>integer</td>
         <td>
           <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>observedGeneration</b></td>
+        <td>integer</td>
+        <td>
+          ObservedGeneration is the generation last successfully reconciled to Keycloak.<br/>
           <br/>
             <i>Format</i>: int64<br/>
         </td>

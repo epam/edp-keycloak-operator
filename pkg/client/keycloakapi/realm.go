@@ -127,6 +127,10 @@ func (c *realmClient) SetRealmBrowserFlow(ctx context.Context, realm string, flo
 		return resp, fmt.Errorf("unable to get realm: %w", err)
 	}
 
+	if current.BrowserFlow != nil && *current.BrowserFlow == flowAlias {
+		return resp, nil
+	}
+
 	current.BrowserFlow = &flowAlias
 
 	return c.UpdateRealm(ctx, realm, *current)

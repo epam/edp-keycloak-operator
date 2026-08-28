@@ -23,12 +23,13 @@ func (s SetLabels) ServeRequest(ctx context.Context, realm *keycloakApi.Keycloak
 		realm.Labels = make(map[string]string)
 	}
 
-	if tr, ok := realm.Labels[TargetRealmLabel]; !ok || tr != realm.Spec.RealmName {
+	tr, ok := realm.Labels[TargetRealmLabel]
+	if !ok || tr != realm.Spec.RealmName {
 		realm.Labels[TargetRealmLabel] = realm.Spec.RealmName
-	}
 
-	if err := s.client.Update(ctx, realm); err != nil {
-		return fmt.Errorf("unable to update realm with new labels, realm: %+v: %w", realm, err)
+		if err := s.client.Update(ctx, realm); err != nil {
+			return fmt.Errorf("unable to update realm with new labels, realm: %+v: %w", realm, err)
+		}
 	}
 
 	return nextServeOrNil(ctx, s.next, realm, kClient)
