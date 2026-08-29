@@ -297,11 +297,13 @@ var _ = Describe("Organization controller", Ordered, func() {
 		time.Sleep(time.Second * 5)
 
 		By("Checking second Organization status shows duplicate domain error")
+		// Match only the stable prefix: Keycloak names the owning organization from
+		// 26.7.0 on, where earlier releases said "another organization".
 		Consistently(func(g Gomega) {
 			createdOrg := &v1alpha1.KeycloakOrganization{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: org2.Name, Namespace: ns}, createdOrg)
 			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(createdOrg.Status.Value).Should(ContainSubstring("Domain duplicate-domain.com is already linked to another organization"))
+			g.Expect(createdOrg.Status.Value).Should(ContainSubstring("Domain duplicate-domain.com is already linked to"))
 		}, time.Second*3, time.Second).Should(Succeed())
 
 		By("Cleaning up first organization")
