@@ -164,6 +164,7 @@ type RealmLocalization struct {
 
 	// SupportedLocales lists locale tags offered to users (BCP 47).
 	// +optional
+	// +listType=set
 	SupportedLocales []string `json:"supportedLocales,omitempty"`
 
 	// DefaultLocale is the realm default locale tag.

@@ -315,6 +315,7 @@ type RealmEventConfig struct {
 	// EnabledEventTypes is a list of event types to enable.
 	// +optional
 	// +nullable
+	// +listType=set
 	EnabledEventTypes []string `json:"enabledEventTypes,omitempty"`
 
 	// EventsEnabled indicates whether to enable events.
@@ -330,6 +331,7 @@ type RealmEventConfig struct {
 	// EventsListeners is a list of event listeners to enable.
 	// +optional
 	// +nullable
+	// +listType=set
 	EventsListeners []string `json:"eventsListeners,omitempty"`
 }
 

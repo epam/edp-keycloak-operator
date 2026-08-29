@@ -187,6 +187,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: set
                 type: object
               login:
                 description: Login settings for the realm.
@@ -285,6 +286,7 @@ spec:
                       type: string
                     nullable: true
                     type: array
+                    x-kubernetes-list-type: set
                   eventsEnabled:
                     description: EventsEnabled indicates whether to enable events.
                     nullable: true
@@ -300,6 +302,7 @@ spec:
                       type: string
                     nullable: true
                     type: array
+                    x-kubernetes-list-type: set
                 type: object
               realmName:
                 description: RealmName specifies the name of the realm.
