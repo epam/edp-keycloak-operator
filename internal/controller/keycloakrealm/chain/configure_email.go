@@ -75,19 +75,19 @@ func ConfigureRealmEmail(
 		return "", fmt.Errorf("unable to get realm %v: %w", realmName, err)
 	}
 
-	emailMap, err := convertEmailSpecToMap(ctx, emailSpec, secretsNamespace, k8sClient)
+	emailMap, passwordVersion, err := convertEmailSpecToMap(ctx, emailSpec, secretsNamespace, k8sClient)
 	if err != nil {
 		return "", err
 	}
 
-	// Rotating the password's k8s Secret bumps no CR generation; the hash of the resolved
-	// value forces the write instead.
-	passwordValues := map[string][]string{}
+	// Rotating the password's k8s Secret bumps no CR generation; the hash of the secret's
+	// version token forces the write instead.
+	passwordVersions := map[string]string{}
 	if emailSpec.Connection.Authentication != nil {
-		passwordValues["password"] = []string{emailMap["password"]}
+		passwordVersions["password"] = passwordVersion
 	}
 
-	newHash := secretref.ValuesHash(passwordValues)
+	newHash := secretref.ValuesHashSingle(passwordVersions)
 
 	if !forceWrite && storedHash == newHash && smtpMatchesSpec(current.SmtpServer, emailMap) {
 		return newHash, nil
@@ -123,12 +123,14 @@ func smtpMatchesSpec(existing *map[string]string, desired map[string]string) boo
 	return maputil.ContainsSubset(*existing, want)
 }
 
+// convertEmailSpecToMap resolves emailSpec into the realm SMTP config map. The second return
+// is the password's version token ("" without authentication).
 func convertEmailSpecToMap(
 	ctx context.Context,
 	emailSpec *common.SMTP,
 	secretsNamespace string,
 	k8sClient client.Client,
-) (map[string]string, error) {
+) (map[string]string, string, error) {
 	emailMap := make(map[string]string)
 	emailMap["from"] = emailSpec.Template.From
 	emailMap["fromDisplayName"] = emailSpec.Template.FromDisplayName
@@ -141,6 +143,8 @@ func convertEmailSpecToMap(
 	emailMap["starttls"] = strconv.FormatBool(emailSpec.Connection.EnableStartTLS)
 	emailMap["auth"] = strconv.FormatBool(emailSpec.Connection.Authentication != nil)
 
+	passwordVersion := ""
+
 	if emailSpec.Connection.Authentication != nil {
 		username, err := secretref.GetValueFromSourceRefOrVal(
 			ctx,
@@ -149,23 +153,24 @@ func convertEmailSpecToMap(
 			k8sClient,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get username: %w", err)
+			return nil, "", fmt.Errorf("unable to get username: %w", err)
 		}
 
 		emailMap["user"] = username
 
-		password, err := secretref.GetValueFromSourceRef(
+		password, version, err := secretref.GetValueAndVersionFromSourceRef(
 			ctx,
 			&emailSpec.Connection.Authentication.Password,
 			secretsNamespace,
 			k8sClient,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("unable to get password: %w", err)
+			return nil, "", fmt.Errorf("unable to get password: %w", err)
 		}
 
 		emailMap["password"] = password
+		passwordVersion = version
 	}
 
-	return emailMap, nil
+	return emailMap, passwordVersion, nil
 }

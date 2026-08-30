@@ -31,7 +31,7 @@ const (
 
 // secretRef is an interface for getting secret from ref.
 type secretRef interface {
-	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error)
+	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (value, version string, err error)
 }
 
 type PutClient struct {
@@ -170,7 +170,7 @@ func (h *PutClient) getSecret(ctx context.Context, keycloakClient *keycloakApi.K
 			}
 		}
 
-		secretVal, err := h.secretRef.GetSecretFromRef(ctx, keycloakClient.Spec.Secret, keycloakClient.Namespace)
+		secretVal, _, err := h.secretRef.GetSecretFromRef(ctx, keycloakClient.Spec.Secret, keycloakClient.Namespace)
 		if err != nil {
 			return "", fmt.Errorf("unable to get secret from ref: %w", err)
 		}

@@ -55,11 +55,12 @@ func (h *CreateOrUpdateComponent) Serve(
 		config[k] = copied
 	}
 
-	if err := h.secretRefClient.MapComponentConfigSecretsRefs(ctx, config, component.Namespace); err != nil {
+	secretVersions, err := h.secretRefClient.MapComponentConfigSecretsRefs(ctx, config, component.Namespace)
+	if err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}
 
-	newHash := secretref.ConfigSecretsHash(rawCfg, config)
+	newHash := secretref.ValuesHash(secretVersions)
 
 	parentID, err := h.resolveParentID(ctx, component, realmName)
 	if err != nil {

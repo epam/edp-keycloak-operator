@@ -268,3 +268,49 @@ func TestGetValueFromSourceRefOrVal(t *testing.T) {
 		})
 	}
 }
+
+func TestGetValueAndVersionFromSourceRef_VersionTokens(t *testing.T) {
+	t.Parallel()
+
+	k8sClient := fake.NewClientBuilder().WithObjects(
+		&v1.ConfigMap{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "cm",
+				Namespace:       "default",
+				UID:             "cm-uid",
+				ResourceVersion: "7",
+			},
+			Data: map[string]string{"key": "cm-value"},
+		},
+		&v1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "sec",
+				Namespace:       "default",
+				UID:             "sec-uid",
+				ResourceVersion: "9",
+			},
+			Data: map[string][]byte{"key": []byte("sec-value")},
+		},
+	).Build()
+
+	value, version, err := GetValueAndVersionFromSourceRef(context.Background(), &common.SourceRef{
+		ConfigMapKeyRef: &common.ConfigMapKeySelector{
+			LocalObjectReference: v1.LocalObjectReference{Name: "cm"},
+			Key:                  "key",
+		},
+	}, "default", k8sClient)
+	require.NoError(t, err)
+	assert.Equal(t, "cm-value", value)
+	assert.Equal(t, "configmap:cm:key@cm-uid@7", version)
+
+	value, version, err = GetValueAndVersionFromSourceRef(context.Background(), &common.SourceRef{
+		SecretKeyRef: &common.SecretKeySelector{
+			LocalObjectReference: v1.LocalObjectReference{Name: "sec"},
+			Key:                  "key",
+		},
+	}, "default", k8sClient)
+	require.NoError(t, err)
+	assert.Equal(t, "sec-value", value)
+	assert.Equal(t, "secret:sec:key@sec-uid@9", version)
+	assert.NotContains(t, version, "sec-value")
+}

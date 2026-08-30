@@ -29,26 +29,31 @@ const (
 	testNamespace     = "test-ns"
 )
 
+// noSecretRefsHash is the handler-computed hash for a config with no secret refs.
+var noSecretRefsHash = secretref.ValuesHash(nil)
+
 type fakeSecretRefClient struct {
 	err error
 }
 
-func (f *fakeSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) error {
-	return f.err
+func (f *fakeSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) (map[string][]string, error) {
+	return nil, f.err
 }
 
 // mutatingSecretRefClient simulates secret-ref resolution by rewriting config values in place,
-// mirroring the real SecretRef client's mutate-in-place contract.
+// mirroring the real SecretRef client's mutate-in-place contract; versions are the returned
+// secret version tokens.
 type mutatingSecretRefClient struct {
-	mutate func(config map[string][]string)
+	mutate   func(config map[string][]string)
+	versions map[string][]string
 }
 
-func (f *mutatingSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, config map[string][]string, _ string) error {
+func (f *mutatingSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, config map[string][]string, _ string) (map[string][]string, error) {
 	if f.mutate != nil {
 		f.mutate(config)
 	}
 
-	return nil
+	return f.versions, nil
 }
 
 func newScheme(t *testing.T) *runtime.Scheme {
@@ -114,7 +119,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 	component := baseComponent()
 	// Pre-seed the hash so it can't itself be the reason the update fires: the test isolates
 	// the providerId drift.
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	// Fetched providerId differs from spec: drift forces the update.
 	existing := &keycloakapi.ComponentRepresentation{
@@ -150,7 +155,7 @@ func TestCreateOrUpdateComponent_Serve_TopLevelParentIdAutoFillDoesNotForceUpdat
 	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
 
 	component := baseComponent()
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	// No spec.ParentRef, but Keycloak auto-fills ParentId with the realm's internal ID for
 	// top-level components: this must not be mistaken for spec drift.
@@ -181,7 +186,7 @@ func TestCreateOrUpdateComponent_Serve_SkipUpdateWhenInSync(t *testing.T) {
 	component.Generation = 5
 	component.Status.ObservedGeneration = 5
 	component.Spec.Config = map[string][]string{"key1": {"val1", "val2"}}
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	// Fetched config value order differs from spec: order-insensitive comparison still matches.
 	existing := &keycloakapi.ComponentRepresentation{
@@ -213,7 +218,7 @@ func TestCreateOrUpdateComponent_Serve_ForceUpdateOnGenerationBump(t *testing.T)
 	component.Generation = 6
 	component.Status.ObservedGeneration = 5
 	component.Spec.Config = map[string][]string{"key1": {"val1", "val2"}}
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	existing := &keycloakapi.ComponentRepresentation{
 		Id:           ptr.To(testComponentID),
@@ -247,10 +252,8 @@ func TestCreateOrUpdateComponent_Serve_SecretRefConfigKeySkipped(t *testing.T) {
 	component.Generation = 2
 	component.Status.ObservedGeneration = 2
 	component.Spec.Config = map[string][]string{"bindCredential": {"$secret:key"}}
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(
-		map[string][]string{"bindCredential": {"$secret:key"}},
-		map[string][]string{"bindCredential": {"resolved-value"}},
-	)
+	secretVersions := map[string][]string{"bindCredential": {"secret:secret:key@uid-1@100"}}
+	component.Status.ConfigSecretsHash = secretref.ValuesHash(secretVersions)
 
 	// Keycloak masks the secret-typed value on GET regardless of the resolved value.
 	existing := &keycloakapi.ComponentRepresentation{
@@ -267,9 +270,12 @@ func TestCreateOrUpdateComponent_Serve_SecretRefConfigKeySkipped(t *testing.T) {
 		FindComponentByName(context.Background(), testRealmName, testComponentName).
 		Return(existing, nil)
 
-	secretRefClient := &mutatingSecretRefClient{mutate: func(config map[string][]string) {
-		config["bindCredential"] = []string{"resolved-value"}
-	}}
+	secretRefClient := &mutatingSecretRefClient{
+		mutate: func(config map[string][]string) {
+			config["bindCredential"] = []string{"resolved-value"}
+		},
+		versions: secretVersions,
+	}
 
 	h := NewCreateOrUpdateComponent(fakeClient, kClient, secretRefClient)
 	err := h.Serve(context.Background(), component, testRealmName)
@@ -305,9 +311,12 @@ func TestCreateOrUpdateComponent_Serve_HashDriftForcesUpdate(t *testing.T) {
 		UpdateComponent(context.Background(), testRealmName, testComponentID, mock.Anything).
 		Return(nil, nil)
 
-	secretRefClient := &mutatingSecretRefClient{mutate: func(config map[string][]string) {
-		config["bindCredential"] = []string{"resolved-value"}
-	}}
+	secretRefClient := &mutatingSecretRefClient{
+		mutate: func(config map[string][]string) {
+			config["bindCredential"] = []string{"resolved-value"}
+		},
+		versions: map[string][]string{"bindCredential": {"secret:secret:key@uid-1@101"}},
+	}
 
 	h := NewCreateOrUpdateComponent(fakeClient, kClient, secretRefClient)
 	err := h.Serve(context.Background(), component, testRealmName)
@@ -324,7 +333,7 @@ func TestCreateOrUpdateComponent_Serve_MaskedFetchedValueSkipped(t *testing.T) {
 	component.Generation = 3
 	component.Status.ObservedGeneration = 3
 	component.Spec.Config = map[string][]string{"bindCredential": {"plain-secret-value"}}
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	// A plain-literal (non secret-ref) value is still masked by Keycloak on GET.
 	existing := &keycloakapi.ComponentRepresentation{
@@ -397,7 +406,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 	component := baseComponent()
 	// Pre-seed the hash so it can't itself be the reason the update fires: the test isolates
 	// the providerId drift.
-	component.Status.ConfigSecretsHash = secretref.ConfigSecretsHash(component.Spec.Config, component.Spec.Config)
+	component.Status.ConfigSecretsHash = noSecretRefsHash
 
 	// Fetched providerId differs from spec: drift forces the update.
 	existing := &keycloakapi.ComponentRepresentation{

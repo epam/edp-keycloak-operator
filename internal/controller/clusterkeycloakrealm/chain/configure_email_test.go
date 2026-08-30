@@ -169,7 +169,18 @@ func TestConfigureEmail_ServeRequest_Idempotency(t *testing.T) {
 		"password":           keycloakapi.MaskedSecretValue,
 	}
 
-	resolvedHash := secretref.ValuesHash(map[string][]string{"password": {"password"}})
+	// Probe the seeded secret so the expected hash uses the same version token the handler
+	// computes.
+	probeSecret := corev1.Secret{}
+	require.NoError(t, k8sClient.Get(
+		context.Background(),
+		client.ObjectKey{Namespace: namespace, Name: "secret"},
+		&probeSecret,
+	))
+
+	resolvedHash := secretref.ValuesHashSingle(map[string]string{
+		"password": secretref.SecretKeyVersion(&probeSecret, "secret"),
+	})
 
 	tests := []struct {
 		name        string
@@ -238,7 +249,7 @@ func TestConfigureEmail_ServeRequest_Idempotency(t *testing.T) {
 				Spec:       keycloakApi.ClusterKeycloakRealmSpec{RealmName: "realm", Smtp: smtpSpec},
 				Status: keycloakApi.ClusterKeycloakRealmStatus{
 					ObservedGeneration: 1,
-					ConfigSecretsHash:  secretref.ValuesHash(map[string][]string{"password": {"old-password"}}),
+					ConfigSecretsHash:  secretref.ValuesHashSingle(map[string]string{"password": "secret:secret:secret@stale-uid@1"}),
 				},
 			},
 			realmClient: func(t *testing.T) keycloakapi.RealmClient {

@@ -18,8 +18,23 @@ func GetValueFromSourceRef(
 	namespace string,
 	k8sClient client.Client,
 ) (string, error) {
+	value, _, err := GetValueAndVersionFromSourceRef(ctx, sourceRef, namespace, k8sClient)
+
+	return value, err
+}
+
+// GetValueAndVersionFromSourceRef returns the referenced value and its version token
+// ("configmap:<name>:<key>@<uid>@<resourceVersion>" or the SecretKeyVersion format). Value
+// and version come from the same object read so a concurrent rotation cannot produce a
+// token newer than the value.
+func GetValueAndVersionFromSourceRef(
+	ctx context.Context,
+	sourceRef *common.SourceRef,
+	namespace string,
+	k8sClient client.Client,
+) (string, string, error) {
 	if sourceRef == nil {
-		return "", nil
+		return "", "", nil
 	}
 
 	if sourceRef.ConfigMapKeyRef != nil {
@@ -28,10 +43,13 @@ func GetValueFromSourceRef(
 			Namespace: namespace,
 			Name:      sourceRef.ConfigMapKeyRef.Name,
 		}, configMap); err != nil {
-			return "", fmt.Errorf("unable to get configmap: %w", err)
+			return "", "", fmt.Errorf("unable to get configmap: %w", err)
 		}
 
-		return configMap.Data[sourceRef.ConfigMapKeyRef.Key], nil
+		key := sourceRef.ConfigMapKeyRef.Key
+		version := versionToken("configmap", configMap.Name, key, configMap.UID, configMap.ResourceVersion)
+
+		return configMap.Data[key], version, nil
 	}
 
 	if sourceRef.SecretKeyRef != nil {
@@ -40,13 +58,13 @@ func GetValueFromSourceRef(
 			Namespace: namespace,
 			Name:      sourceRef.SecretKeyRef.Name,
 		}, secret); err != nil {
-			return "", fmt.Errorf("unable to get secret: %w", err)
+			return "", "", fmt.Errorf("unable to get secret: %w", err)
 		}
 
-		return string(secret.Data[sourceRef.SecretKeyRef.Key]), nil
+		return string(secret.Data[sourceRef.SecretKeyRef.Key]), SecretKeyVersion(secret, sourceRef.SecretKeyRef.Key), nil
 	}
 
-	return "", nil
+	return "", "", nil
 }
 
 // GetValueFromSecretKeySelector retrieves a value from a Kubernetes Secret using a SecretKeySelector reference.

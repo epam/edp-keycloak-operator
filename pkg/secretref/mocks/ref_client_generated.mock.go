@@ -38,7 +38,7 @@ func (_m *MockRefClient) EXPECT() *MockRefClient_Expecter {
 }
 
 // GetSecretFromRef provides a mock function for the type MockRefClient
-func (_mock *MockRefClient) GetSecretFromRef(ctx context.Context, refVal string, secretNamespace string) (string, error) {
+func (_mock *MockRefClient) GetSecretFromRef(ctx context.Context, refVal string, secretNamespace string) (string, string, error) {
 	ret := _mock.Called(ctx, refVal, secretNamespace)
 
 	if len(ret) == 0 {
@@ -46,8 +46,9 @@ func (_mock *MockRefClient) GetSecretFromRef(ctx context.Context, refVal string,
 	}
 
 	var r0 string
-	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (string, error)); ok {
+	var r1 string
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (string, string, error)); ok {
 		return returnFunc(ctx, refVal, secretNamespace)
 	}
 	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) string); ok {
@@ -55,12 +56,17 @@ func (_mock *MockRefClient) GetSecretFromRef(ctx context.Context, refVal string,
 	} else {
 		r0 = ret.Get(0).(string)
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) string); ok {
 		r1 = returnFunc(ctx, refVal, secretNamespace)
 	} else {
-		r1 = ret.Error(1)
+		r1 = ret.Get(1).(string)
 	}
-	return r0, r1
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, refVal, secretNamespace)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
 }
 
 // MockRefClient_GetSecretFromRef_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetSecretFromRef'
@@ -99,31 +105,42 @@ func (_c *MockRefClient_GetSecretFromRef_Call) Run(run func(ctx context.Context,
 	return _c
 }
 
-func (_c *MockRefClient_GetSecretFromRef_Call) Return(s string, err error) *MockRefClient_GetSecretFromRef_Call {
-	_c.Call.Return(s, err)
+func (_c *MockRefClient_GetSecretFromRef_Call) Return(value string, version string, err error) *MockRefClient_GetSecretFromRef_Call {
+	_c.Call.Return(value, version, err)
 	return _c
 }
 
-func (_c *MockRefClient_GetSecretFromRef_Call) RunAndReturn(run func(ctx context.Context, refVal string, secretNamespace string) (string, error)) *MockRefClient_GetSecretFromRef_Call {
+func (_c *MockRefClient_GetSecretFromRef_Call) RunAndReturn(run func(ctx context.Context, refVal string, secretNamespace string) (string, string, error)) *MockRefClient_GetSecretFromRef_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // MapComponentConfigSecretsRefs provides a mock function for the type MockRefClient
-func (_mock *MockRefClient) MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error {
+func (_mock *MockRefClient) MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) (map[string][]string, error) {
 	ret := _mock.Called(ctx, config, namespace)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MapComponentConfigSecretsRefs")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string][]string, string) error); ok {
+	var r0 map[string][]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string][]string, string) (map[string][]string, error)); ok {
+		return returnFunc(ctx, config, namespace)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string][]string, string) map[string][]string); ok {
 		r0 = returnFunc(ctx, config, namespace)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string][]string)
+		}
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, map[string][]string, string) error); ok {
+		r1 = returnFunc(ctx, config, namespace)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // MockRefClient_MapComponentConfigSecretsRefs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MapComponentConfigSecretsRefs'
@@ -162,31 +179,42 @@ func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Run(run func(ctx con
 	return _c
 }
 
-func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Return(err error) *MockRefClient_MapComponentConfigSecretsRefs_Call {
-	_c.Call.Return(err)
+func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Return(stringToStrings map[string][]string, err error) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+	_c.Call.Return(stringToStrings, err)
 	return _c
 }
 
-func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string][]string, namespace string) error) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string][]string, namespace string) (map[string][]string, error)) *MockRefClient_MapComponentConfigSecretsRefs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // MapConfigSecretsRefs provides a mock function for the type MockRefClient
-func (_mock *MockRefClient) MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error {
+func (_mock *MockRefClient) MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error) {
 	ret := _mock.Called(ctx, config, namespace)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MapConfigSecretsRefs")
 	}
 
-	var r0 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string, string) error); ok {
+	var r0 map[string]string
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string, string) (map[string]string, error)); ok {
+		return returnFunc(ctx, config, namespace)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string, string) map[string]string); ok {
 		r0 = returnFunc(ctx, config, namespace)
 	} else {
-		r0 = ret.Error(0)
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
 	}
-	return r0
+	if returnFunc, ok := ret.Get(1).(func(context.Context, map[string]string, string) error); ok {
+		r1 = returnFunc(ctx, config, namespace)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
 }
 
 // MockRefClient_MapConfigSecretsRefs_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'MapConfigSecretsRefs'
@@ -225,12 +253,12 @@ func (_c *MockRefClient_MapConfigSecretsRefs_Call) Run(run func(ctx context.Cont
 	return _c
 }
 
-func (_c *MockRefClient_MapConfigSecretsRefs_Call) Return(err error) *MockRefClient_MapConfigSecretsRefs_Call {
-	_c.Call.Return(err)
+func (_c *MockRefClient_MapConfigSecretsRefs_Call) Return(stringToString map[string]string, err error) *MockRefClient_MapConfigSecretsRefs_Call {
+	_c.Call.Return(stringToString, err)
 	return _c
 }
 
-func (_c *MockRefClient_MapConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string]string, namespace string) error) *MockRefClient_MapConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)) *MockRefClient_MapConfigSecretsRefs_Call {
 	_c.Call.Return(run)
 	return _c
 }

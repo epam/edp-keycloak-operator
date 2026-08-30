@@ -74,7 +74,7 @@ func TestPutClient_Serve(t *testing.T) {
 					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
-						Return("client-secret", nil)
+						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
 				},
@@ -137,7 +137,7 @@ func TestPutClient_Serve(t *testing.T) {
 					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
-						Return("client-secret", nil)
+						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
 				},
@@ -257,7 +257,7 @@ func TestPutClient_Serve(t *testing.T) {
 					m := mocks.NewMockRefClient(t)
 
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
-						Return("client-secret", nil)
+						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
 				},
@@ -948,7 +948,7 @@ func TestPutClient_Serve(t *testing.T) {
 				secretRef: func(t *testing.T) secretRef {
 					m := mocks.NewMockRefClient(t)
 					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
-						Return("", errors.New("secret not found"))
+						Return("", "", errors.New("secret not found"))
 
 					return m
 				},

@@ -1701,7 +1701,7 @@ ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.
         <td><b>configSecretsHash</b></td>
         <td>string</td>
         <td>
-          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+          ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5028,7 +5028,7 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
         <td><b>configSecretsHash</b></td>
         <td>string</td>
         <td>
-          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+          ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5711,7 +5711,7 @@ KeycloakRealmIdentityProviderStatus defines the observed state of KeycloakRealmI
         <td><b>configSecretsHash</b></td>
         <td>string</td>
         <td>
-          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+          ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8010,7 +8010,7 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm.
         <td><b>configSecretsHash</b></td>
         <td>string</td>
         <td>
-          ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.<br/>
+          ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.<br/>
         </td>
         <td>false</td>
       </tr><tr>

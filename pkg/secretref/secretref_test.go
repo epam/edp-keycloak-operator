@@ -146,10 +146,52 @@ func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSecretRef(tt.client(t))
 
-			tt.wantErr(t, s.MapComponentConfigSecretsRefs(context.Background(), tt.config, "default"))
+			_, err := s.MapComponentConfigSecretsRefs(context.Background(), tt.config, "default")
+			tt.wantErr(t, err)
 			require.Equal(t, tt.wantConfig, tt.config)
 		})
 	}
+}
+
+func TestSecretRef_MapComponentConfigSecretsRefs_ReturnsVersionTokens(t *testing.T) {
+	t.Parallel()
+
+	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "bind-credential",
+				Namespace:       "default",
+				UID:             "uid-1",
+				ResourceVersion: "100",
+			},
+			Data: map[string][]byte{
+				"a": []byte("value-a"),
+				"b": []byte("value-b"),
+			},
+		},
+	).Build()
+
+	config := map[string][]string{
+		"bindDn":         {"uid=serviceaccount,cn=users,dc=example,dc=com"},
+		"bindCredential": {"plain", "$bind-credential:a", "$bind-credential:b"},
+		"vaultRef":       {"${vault.ref}"},
+	}
+
+	versions, err := NewSecretRef(cl).MapComponentConfigSecretsRefs(context.Background(), config, "default")
+	require.NoError(t, err)
+
+	// Plain values yield no version entry; keycloak vault refs pass through literally.
+	assert.Equal(t, map[string][]string{
+		"bindCredential": {
+			"secret:bind-credential:a@uid-1@100",
+			"secret:bind-credential:b@uid-1@100",
+		},
+		"vaultRef": {"${vault.ref}"},
+	}, versions)
+	assert.NotContains(t, versions["bindCredential"][0], "value-a")
 }
 
 func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
@@ -285,10 +327,45 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewSecretRef(tt.client(t))
 
-			tt.wantErr(t, s.MapConfigSecretsRefs(context.Background(), tt.config, "default"))
+			_, err := s.MapConfigSecretsRefs(context.Background(), tt.config, "default")
+			tt.wantErr(t, err)
 			require.Equal(t, tt.wantConfig, tt.config)
 		})
 	}
+}
+
+func TestSecretRef_MapConfigSecretsRefs_ReturnsVersionTokens(t *testing.T) {
+	t.Parallel()
+
+	s := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(s))
+
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(
+		&corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:            "client-secret",
+				Namespace:       "default",
+				UID:             "uid-1",
+				ResourceVersion: "100",
+			},
+			Data: map[string][]byte{
+				"data": []byte("secretValue"),
+			},
+		},
+	).Build()
+
+	config := map[string]string{
+		"clientId":     "provider-client",
+		"clientSecret": "$client-secret:data",
+	}
+
+	versions, err := NewSecretRef(cl).MapConfigSecretsRefs(context.Background(), config, "default")
+	require.NoError(t, err)
+
+	assert.Equal(t, map[string]string{
+		"clientSecret": "secret:client-secret:data@uid-1@100",
+	}, versions)
+	assert.NotContains(t, versions["clientSecret"], "secretValue")
 }
 
 func TestGenerateSecretRef(t *testing.T) {

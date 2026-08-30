@@ -77,6 +77,6 @@ type mockSecretRefClient struct {
 	err error
 }
 
-func (m *mockSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) error {
-	return m.err
+func (m *mockSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) (map[string][]string, error) {
+	return nil, m.err
 }

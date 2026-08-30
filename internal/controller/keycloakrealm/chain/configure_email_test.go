@@ -267,7 +267,18 @@ func TestConfigureRealmEmail(t *testing.T) {
 		"password":           keycloakapi.MaskedSecretValue,
 	}
 
-	resolvedHash := secretref.ValuesHash(map[string][]string{"password": {"password"}})
+	// Every case seeds an identical secret, so one probe client yields the version token the
+	// handler will compute for all of them.
+	probeSecret := corev1.Secret{}
+	require.NoError(t, newK8sClient(t, "password").Get(
+		context.Background(),
+		client.ObjectKey{Namespace: namespace, Name: "secret"},
+		&probeSecret,
+	))
+
+	resolvedHash := secretref.ValuesHashSingle(map[string]string{
+		"password": secretref.SecretKeyVersion(&probeSecret, "secret"),
+	})
 
 	tests := []struct {
 		name        string
@@ -329,7 +340,7 @@ func TestConfigureRealmEmail(t *testing.T) {
 		},
 		{
 			name:       "password rotated — hash mismatch forces write despite matching non-password fields",
-			storedHash: secretref.ValuesHash(map[string][]string{"password": {"old-password"}}),
+			storedHash: secretref.ValuesHashSingle(map[string]string{"password": "secret:secret:secret@stale-uid@1"}),
 			forceWrite: false,
 			k8sClient:  newK8sClient(t, "password"),
 			realmClient: func(t *testing.T) keycloakapi.RealmClient {

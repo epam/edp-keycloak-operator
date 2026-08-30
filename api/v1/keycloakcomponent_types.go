@@ -48,7 +48,7 @@ type KeycloakComponentStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// ConfigSecretsHash is a hash of resolved secret-ref config values from the last successful reconcile.
+	// ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.
 	// +optional
 	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
 }

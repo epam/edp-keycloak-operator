@@ -16,7 +16,7 @@ import (
 )
 
 type refClient interface {
-	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error
+	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)
 }
 
 type PutIDP struct {
@@ -37,12 +37,13 @@ func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.Keyclo
 	config := make(map[string]string, len(rawSpecConfig))
 	maps.Copy(config, rawSpecConfig)
 
-	if err := h.secretRef.MapConfigSecretsRefs(ctx, config, keycloakRealmIDP.Namespace); err != nil {
+	secretVersions, err := h.secretRef.MapConfigSecretsRefs(ctx, config, keycloakRealmIDP.Namespace)
+	if err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}
 
 	idpRep := specToIdentityProviderRepresentation(&keycloakRealmIDP.Spec, config)
-	newHash := secretref.ConfigSecretsHashSingle(rawSpecConfig, config)
+	newHash := secretref.ValuesHashSingle(secretVersions)
 
 	existingIDP, _, err := h.idpClient.GetIdentityProvider(ctx, realmName, keycloakRealmIDP.Spec.Alias)
 	if err != nil && !keycloakapi.IsNotFound(err) {

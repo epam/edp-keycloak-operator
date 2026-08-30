@@ -59,21 +59,19 @@ func inSyncIDPRepresentation() *keycloakapi.IdentityProviderRepresentation {
 
 func noSecretRefMock(t *testing.T) refClient {
 	m := secretrefmocks.NewMockRefClient(t)
-	m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(nil)
+	m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(map[string]string{}, nil)
 
 	return m
 }
 
+const clientSecretVersionToken = "secret:secret:key@uid-1@100"
+
 func TestPutIDP_Serve(t *testing.T) {
 	t.Parallel()
 
-	inSyncHash := secretref.ConfigSecretsHashSingle(
-		map[string]string{"clientId": "test-client"},
-		map[string]string{"clientId": "test-client"},
-	)
-	maskedSecretRefHash := secretref.ConfigSecretsHashSingle(
-		map[string]string{"clientId": "test-client", "clientSecret": "$secret:key"},
-		map[string]string{"clientId": "test-client", "clientSecret": "resolved-secret-value"},
+	inSyncHash := secretref.ValuesHashSingle(nil)
+	maskedSecretRefHash := secretref.ValuesHashSingle(
+		map[string]string{"clientSecret": clientSecretVersionToken},
 	)
 
 	tests := []struct {
@@ -110,7 +108,8 @@ func TestPutIDP_Serve(t *testing.T) {
 			},
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)
-				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(nil)
+				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
+					Return(map[string]string{"clientSecret": "secret:secret-name:secret-key@uid-1@100"}, nil)
 				return m
 			},
 			wantErr: require.NoError,
@@ -153,7 +152,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)
 				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
-					Return(fmt.Errorf("secret not found"))
+					Return(nil, fmt.Errorf("secret not found"))
 				return m
 			},
 			wantErr: require.Error,
@@ -216,7 +215,7 @@ func TestPutIDP_Serve(t *testing.T) {
 						cfg, _ := args.Get(1).(map[string]string)
 						cfg["clientSecret"] = "resolved-secret-value"
 					}).
-					Return(nil)
+					Return(map[string]string{"clientSecret": clientSecretVersionToken}, nil)
 				return m
 			},
 			wantErr: require.NoError,
@@ -238,10 +237,7 @@ func TestPutIDP_Serve(t *testing.T) {
 				}(),
 				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{
 					ObservedGeneration: 3,
-					ConfigSecretsHash: secretref.ConfigSecretsHashSingle(
-						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
-						map[string]string{"clientId": "test-client", "clientSecret": "supersecret123"},
-					),
+					ConfigSecretsHash:  inSyncHash,
 				},
 			},
 			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {

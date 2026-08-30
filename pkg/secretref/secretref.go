@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	corev1 "k8s.io/api/core/v1"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -19,9 +20,13 @@ const (
 )
 
 type RefClient interface {
-	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error
-	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error
-	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error)
+	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)
+	MapComponentConfigSecretsRefs(
+		ctx context.Context,
+		config map[string][]string,
+		namespace string,
+	) (map[string][]string, error)
+	GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (value, version string, err error)
 }
 
 // SecretRef provides methods to work with secret references.
@@ -34,62 +39,77 @@ func NewSecretRef(k8sClient client.Client) *SecretRef {
 	return &SecretRef{client: k8sClient}
 }
 
-// MapConfigSecretsRefs maps secret references in config map to actual values.
-func (s *SecretRef) MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) error {
+// MapConfigSecretsRefs maps secret references in config map to actual values. It returns a
+// version token per ref-backed key for status.configSecretsHash.
+func (s *SecretRef) MapConfigSecretsRefs(
+	ctx context.Context,
+	config map[string]string,
+	namespace string,
+) (map[string]string, error) {
+	versions := make(map[string]string)
+
 	for k, v := range config {
 		if !HasSecretRef(v) {
 			continue
 		}
 
-		secretVal, err := s.GetSecretFromRef(ctx, v, namespace)
+		secretVal, version, err := s.GetSecretFromRef(ctx, v, namespace)
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		config[k] = secretVal
+		versions[k] = version
 	}
 
-	return nil
+	return versions, nil
 }
 
-// MapConfigSecretsRefs maps secret references in config map to actual values.
+// MapComponentConfigSecretsRefs maps secret references in config map to actual values. It
+// returns version tokens per ref-backed key (ref-valued entries only, in spec order).
 func (s *SecretRef) MapComponentConfigSecretsRefs(
 	ctx context.Context,
 	config map[string][]string,
 	namespace string,
-) error {
+) (map[string][]string, error) {
+	versions := make(map[string][]string)
+
 	for k, values := range config {
 		for i, v := range values {
 			if !HasSecretRef(v) {
 				continue
 			}
 
-			secretVal, err := s.GetSecretFromRef(ctx, v, namespace)
+			secretVal, version, err := s.GetSecretFromRef(ctx, v, namespace)
 			if err != nil {
-				return err
+				return nil, err
 			}
 
 			config[k][i] = secretVal
+
+			versions[k] = append(versions[k], version)
 		}
 	}
 
-	return nil
+	return versions, nil
 }
 
-// GetSecretFromRef returns secret value from secret reference.
-func (s *SecretRef) GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, error) {
+// GetSecretFromRef returns the secret value and its version token from a secret reference.
+// Value and version come from the same object read so a concurrent rotation cannot produce
+// a token newer than the value.
+func (s *SecretRef) GetSecretFromRef(ctx context.Context, refVal, secretNamespace string) (string, string, error) {
 	if !HasSecretRef(refVal) {
-		return "", fmt.Errorf("invalid config secret reference %s is not in format '$secretName:secretKey'", refVal)
+		return "", "", fmt.Errorf("invalid config secret reference %s is not in format '$secretName:secretKey'", refVal)
 	}
 
 	// Skip keycloak references format. This mapping is managed by the Keycloak service.
 	if strings.HasPrefix(refVal, keycloakSecretRefPrefix) {
-		return refVal, nil
+		return refVal, refVal, nil
 	}
 
 	ref := strings.Split(refVal[1:], ":")
 	if len(ref) != 2 {
-		return "", fmt.Errorf("invalid config secret  reference %s is not in format '$secretName:secretKey'", refVal)
+		return "", "", fmt.Errorf("invalid config secret  reference %s is not in format '$secretName:secretKey'", refVal)
 	}
 
 	secret := &corev1.Secret{}
@@ -97,15 +117,27 @@ func (s *SecretRef) GetSecretFromRef(ctx context.Context, refVal, secretNamespac
 		Namespace: secretNamespace,
 		Name:      ref[0],
 	}, secret); err != nil {
-		return "", fmt.Errorf("failed to get secret %s: %w", ref[0], err)
+		return "", "", fmt.Errorf("failed to get secret %s: %w", ref[0], err)
 	}
 
 	secretVal, ok := secret.Data[ref[1]]
 	if !ok {
-		return "", fmt.Errorf("secret %s does not contain key %s", ref[0], ref[1])
+		return "", "", fmt.Errorf("secret %s does not contain key %s", ref[0], ref[1])
 	}
 
-	return string(secretVal), nil
+	return string(secretVal), SecretKeyVersion(secret, ref[1]), nil
+}
+
+// versionToken formats "<kind>:<name>:<key>@<uid>@<resourceVersion>". K8s object names and
+// data keys cannot contain ':' or '@', so the framing is unambiguous.
+func versionToken(kind, name, key string, uid k8stypes.UID, resourceVersion string) string {
+	return fmt.Sprintf("%s:%s:%s@%s@%s", kind, name, key, uid, resourceVersion)
+}
+
+// SecretKeyVersion is the version token of one secret key. It carries no secret data;
+// rotating the Secret changes resourceVersion and therefore the token.
+func SecretKeyVersion(secret *corev1.Secret, key string) string {
+	return versionToken("secret", secret.Name, key, secret.UID, secret.ResourceVersion)
 }
 
 // HasSecretRef checks if value has secret reference.
@@ -123,9 +155,10 @@ func GenerateSecretRef(secretName, secretFiled string) string {
 	return fmt.Sprintf("%s%s:%s", secretRefPrefix, secretName, secretFiled)
 }
 
-// ValuesHash hashes resolved secret values so that rotating the backing k8s Secret (which
-// does not bump the CR generation) still forces a write. No secret material is stored, only
-// the digest.
+// ValuesHash hashes secret version tokens so that rotating the backing k8s Secret (which
+// does not bump the CR generation) still forces a write. Input is object metadata
+// (name/key/uid/resourceVersion), never secret material, so the digest cannot be tested
+// against guessed secret values.
 func ValuesHash(cfg map[string][]string) string {
 	h := sha256.New()
 
@@ -144,30 +177,13 @@ func ValuesHash(cfg map[string][]string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// ConfigSecretsHash is ValuesHash restricted to keys whose raw config value is a secret ref.
-func ConfigSecretsHash(rawCfg, resolvedCfg map[string][]string) string {
-	secretBacked := make(map[string][]string)
-
-	for k, raw := range rawCfg {
-		if HasAnySecretRef(raw) {
-			secretBacked[k] = resolvedCfg[k]
-		}
+// ValuesHashSingle is ValuesHash for single-value maps: each value is wrapped as a
+// one-element slice.
+func ValuesHashSingle(cfg map[string]string) string {
+	wrapped := make(map[string][]string, len(cfg))
+	for k, v := range cfg {
+		wrapped[k] = []string{v}
 	}
 
-	return ValuesHash(secretBacked)
-}
-
-// ConfigSecretsHashSingle is ConfigSecretsHash for single-value config maps: each value is
-// wrapped as a one-element slice.
-func ConfigSecretsHashSingle(rawCfg, resolvedCfg map[string]string) string {
-	wrap := func(config map[string]string) map[string][]string {
-		wrapped := make(map[string][]string, len(config))
-		for k, v := range config {
-			wrapped[k] = []string{v}
-		}
-
-		return wrapped
-	}
-
-	return ConfigSecretsHash(wrap(rawCfg), wrap(resolvedCfg))
+	return ValuesHash(wrapped)
 }

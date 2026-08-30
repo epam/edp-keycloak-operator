@@ -13,7 +13,7 @@ import (
 
 // SecretRefClient resolves secret references in component config.
 type SecretRefClient interface {
-	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) error
+	MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) (map[string][]string, error)
 }
 
 // RealmComponentHandler is a handler in the chain of responsibility for KeycloakRealmComponent.

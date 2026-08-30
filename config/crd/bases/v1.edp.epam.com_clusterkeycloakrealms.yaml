@@ -770,8 +770,9 @@ spec:
               available:
                 type: boolean
               configSecretsHash:
-                description: ConfigSecretsHash is a hash of resolved secret-ref config
-                  values from the last successful reconcile.
+                description: ConfigSecretsHash is a hash of referenced secret versions
+                  from the last successful reconcile; it contains no secret-derived
+                  data.
                 type: string
               failureCount:
                 format: int64
