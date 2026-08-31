@@ -362,17 +362,16 @@ func TestConfigureRealmEmail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			gotHash, err := ConfigureRealmEmail(
-				context.Background(),
-				"realm",
-				emailSpec,
-				namespace,
-				tt.realmClient(t),
-				tt.k8sClient,
-				tt.storedHash,
-				tt.forceWrite,
-				destination.AllowAll(),
-			)
+			gotHash, err := ConfigureRealmEmail(context.Background(), RealmEmailParams{
+				RealmName:        "realm",
+				EmailSpec:        emailSpec,
+				SecretsNamespace: namespace,
+				RealmClient:      tt.realmClient(t),
+				K8sClient:        tt.k8sClient,
+				StoredHash:       tt.storedHash,
+				ForceWrite:       tt.forceWrite,
+				Guard:            destination.AllowAll(),
+			})
 
 			tt.wantErr(t, err)
 			require.Equal(t, tt.wantHash, gotHash)

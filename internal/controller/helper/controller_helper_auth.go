@@ -14,7 +14,6 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakClient "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -58,7 +57,7 @@ func (h *Helper) CreateKeycloakClientFromRealm(ctx context.Context, realm *keycl
 }
 
 func (h *Helper) CreateKeycloakClientFromKeycloak(ctx context.Context, kc *keycloakApi.Keycloak) (*keycloakClient.KeycloakClient, error) {
-	authData, err := MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client, h.guard)
+	authData, err := MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (h *Helper) CreateKeycloakClientFromKeycloak(ctx context.Context, kc *keycl
 }
 
 func (h *Helper) CreateKeycloakClientFromClusterKeycloak(ctx context.Context, kc *keycloakAlpha.ClusterKeycloak) (*keycloakClient.KeycloakClient, error) {
-	authData, err := MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client, h.guard)
+	authData, err := MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 	if err != nil {
 		return nil, err
 	}
@@ -94,8 +93,8 @@ func (h *Helper) CreateKeycloakClientFromClusterRealm(ctx context.Context, realm
 }
 
 func (h *Helper) createKeycloakClientFromAuthData(ctx context.Context, authData *KeycloakAuthData) (*keycloakClient.KeycloakClient, error) {
-	// The only path to NewKeycloakClient, so it backstops every caller of
-	// MakeKeycloakAuthDataFrom*. Runs before any credential is resolved below.
+	// Sole path to NewKeycloakClient; the check precedes any client construction.
+	// spec.caCert is resolved by the caller earlier; a CA root is never transmitted.
 	if err := h.guard.RequireHost(ctx, "spec.url", authData.Url); err != nil {
 		return nil, err
 	}
@@ -249,7 +248,7 @@ func (h *Helper) getKeycloakAuthDataFromRealm(ctx context.Context, realm *keyclo
 			return nil, ErrKeycloakIsNotAvailable
 		}
 
-		return MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client, h.guard)
+		return MakeKeycloakAuthDataFromKeycloak(ctx, kc, h.client)
 	case keycloakAlpha.ClusterKeycloakKind:
 		kc := &keycloakAlpha.ClusterKeycloak{}
 		if err := h.client.Get(ctx, types.NamespacedName{Name: name}, kc); err != nil {
@@ -260,7 +259,7 @@ func (h *Helper) getKeycloakAuthDataFromRealm(ctx context.Context, realm *keyclo
 			return nil, ErrKeycloakIsNotAvailable
 		}
 
-		return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client, h.guard)
+		return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 	default:
 		return nil, fmt.Errorf("unknown keycloak kind: %s", kind)
 	}
@@ -276,20 +275,14 @@ func (h *Helper) getKeycloakAuthDataFromClusterRealm(ctx context.Context, realm 
 		return nil, ErrKeycloakIsNotAvailable
 	}
 
-	return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client, h.guard)
+	return MakeKeycloakAuthDataFromClusterKeycloak(ctx, kc, h.operatorNamespace, h.client)
 }
 
 func MakeKeycloakAuthDataFromKeycloak(
 	ctx context.Context,
 	keycloakCR *keycloakApi.Keycloak,
 	k8sClient client.Client,
-	guard *destination.Guard,
 ) (*KeycloakAuthData, error) {
-	// Checked before spec.caCert is resolved below, so a rejected URL reads no Secret at all.
-	if err := guard.RequireHost(ctx, "spec.url", keycloakCR.Spec.Url); err != nil {
-		return nil, err
-	}
-
 	auth := &KeycloakAuthData{
 		Url:                keycloakCR.Spec.Url,
 		SecretName:         keycloakCR.Spec.Secret,
@@ -315,13 +308,7 @@ func MakeKeycloakAuthDataFromClusterKeycloak(
 	keycloakCR *keycloakAlpha.ClusterKeycloak,
 	secretNamespace string,
 	k8sClient client.Client,
-	guard *destination.Guard,
 ) (*KeycloakAuthData, error) {
-	// Checked before spec.caCert is resolved below, so a rejected URL reads no Secret at all.
-	if err := guard.RequireHost(ctx, "spec.url", keycloakCR.Spec.Url); err != nil {
-		return nil, err
-	}
-
 	auth := &KeycloakAuthData{
 		Url:                keycloakCR.Spec.Url,
 		SecretName:         keycloakCR.Spec.Secret,

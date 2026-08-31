@@ -106,7 +106,8 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
+	h, err := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default", destination.AllowAll())
+	Expect(err).NotTo(HaveOccurred())
 
 	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
@@ -116,7 +117,10 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewRealmComponentReconciler(k8sManager.GetClient(), k8sManager.GetScheme(), h, secretref.NewSecretRef(k8sManager.GetClient(), destination.AllowAll())).
+	secretRefClient, err := secretref.NewSecretRef(k8sManager.GetClient(), destination.AllowAll())
+	Expect(err).NotTo(HaveOccurred())
+
+	err = NewRealmComponentReconciler(k8sManager.GetClient(), k8sManager.GetScheme(), h, secretRefClient).
 		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

@@ -32,17 +32,16 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Clu
 	l := ctrl.LoggerFrom(ctx)
 	l.Info("Configuring email for realm")
 
-	newHash, err := keycloakrealmchain.ConfigureRealmEmail(
-		ctx,
-		realm.Spec.RealmName,
-		realm.Spec.Smtp,
-		s.operatorNs,
-		kClient.Realms,
-		s.client,
-		realm.Status.ConfigSecretsHash,
-		helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
-		s.guard,
-	)
+	newHash, err := keycloakrealmchain.ConfigureRealmEmail(ctx, keycloakrealmchain.RealmEmailParams{
+		RealmName:        realm.Spec.RealmName,
+		EmailSpec:        realm.Spec.Smtp,
+		SecretsNamespace: s.operatorNs,
+		RealmClient:      kClient.Realms,
+		K8sClient:        s.client,
+		StoredHash:       realm.Status.ConfigSecretsHash,
+		ForceWrite:       helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
+		Guard:            s.guard,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to configure email: %w", err)
 	}

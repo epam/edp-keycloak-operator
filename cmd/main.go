@@ -62,8 +62,8 @@ const (
 	successReconcileTimeout = "SUCCESS_RECONCILE_TIMEOUT"
 	operatorNamespaceEnv    = "OPERATOR_NAMESPACE"
 
-	allowedDestinationHostsEnv = "ALLOWED_DESTINATION_HOSTS"
-	enforceDestinationEnv      = "ENFORCE_DESTINATION_ALLOWLIST"
+	allowedDestinationHostsEnv     = "ALLOWED_DESTINATION_HOSTS"
+	enforceDestinationAllowlistEnv = "ENFORCE_DESTINATION_ALLOWLIST"
 )
 
 func init() {
@@ -260,15 +260,25 @@ func main() {
 
 	setupLog.Info("Destination allowlist configured",
 		"allowedDestinationHosts", destinationGuard.Hosts(),
-		"enforce", os.Getenv(enforceDestinationEnv) == "true")
+		"enforce", destinationGuard.Enforcing())
 
-	h := helper.MakeHelper(
+	secretRefClient, err := secretref.NewSecretRef(mgr.GetClient(), destinationGuard)
+	if err != nil {
+		setupLog.Error(err, "unable to configure secret reference resolver")
+		os.Exit(1)
+	}
+
+	h, err := helper.MakeHelper(
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		operatorNamespace,
+		destinationGuard,
 		helper.EnableOwnerRef(enableOwnerRef()),
-		helper.WithDestinationGuard(destinationGuard),
 	)
+	if err != nil {
+		setupLog.Error(err, "unable to configure controller helper")
+		os.Exit(1)
+	}
 
 	keycloakCtrl := keycloak.NewReconcileKeycloak(mgr.GetClient(), mgr.GetScheme(), h)
 	if err = keycloakCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
@@ -276,7 +286,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h, destinationGuard)
+	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h, secretRefClient)
 	if err = keycloakClientCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-client controller")
 		os.Exit(1)
@@ -328,14 +338,14 @@ func main() {
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		h,
-		secretref.NewSecretRef(mgr.GetClient(), destinationGuard),
+		secretRefClient,
 	).
 		SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-component controller")
 		os.Exit(1)
 	}
 
-	if err = keycloakrealmidentityprovider.NewIdentityProviderReconciler(mgr.GetClient(), h, destinationGuard).
+	if err = keycloakrealmidentityprovider.NewIdentityProviderReconciler(mgr.GetClient(), h, secretRefClient).
 		SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-identity-provider controller")
 		os.Exit(1)
@@ -451,12 +461,18 @@ func makeDestinationGuard() (*destination.Guard, error) {
 		hosts = strings.Split(raw, ",")
 	}
 
-	guard, err := destination.New(hosts, os.Getenv(enforceDestinationEnv) == "true")
-	if err != nil {
-		return nil, fmt.Errorf("invalid destination allowlist configuration: %w", err)
+	enforce := false
+
+	if raw := strings.TrimSpace(os.Getenv(enforceDestinationAllowlistEnv)); raw != "" {
+		parsed, err := strconv.ParseBool(raw)
+		if err != nil {
+			return nil, fmt.Errorf("%s must be a boolean: %w", enforceDestinationAllowlistEnv, err)
+		}
+
+		enforce = parsed
 	}
 
-	return guard, nil
+	return destination.New(hosts, enforce)
 }
 
 func getOperatorNamespace() (string, error) {

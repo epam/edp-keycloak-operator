@@ -218,7 +218,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeKeycloakAuthDataFromKeycloak(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloak, tt.k8sClient(t), destination.AllowAll())
+			got, err := MakeKeycloakAuthDataFromKeycloak(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloak, tt.k8sClient(t))
 
 			tt.wantErr(t, err)
 			require.Equal(t, tt.want, got)
@@ -289,7 +289,6 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 				tt.keycloak,
 				"ns-with-secrets",
 				tt.k8sClient(t),
-				destination.AllowAll(),
 			)
 
 			tt.wantErr(t, err)

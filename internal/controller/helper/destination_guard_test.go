@@ -67,7 +67,10 @@ func exfilHelper(t *testing.T, kc *keycloakApi.Keycloak, guard *destination.Guar
 
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(victim, kc).Build()
 
-	return MakeHelper(cl, s, "operator-ns", WithDestinationGuard(guard))
+	h, err := MakeHelper(cl, s, "operator-ns", guard)
+	require.NoError(t, err)
+
+	return h
 }
 
 // The advisory's exploit: a Keycloak CR pointing spec.url at an attacker endpoint while naming a
@@ -111,7 +114,7 @@ func TestCreateKeycloakClientFromKeycloak_DeniesUnlistedDestinationForLegacySecr
 	assert.Empty(t, received, "no request may reach an unlisted destination")
 }
 
-// Warn mode preserves today's behaviour so an upgrade breaks no existing installation.
+// Warn mode must not deny; only enforce mode blocks the request.
 func TestCreateKeycloakClientFromKeycloak_WarnModeStillConnects(t *testing.T) {
 	t.Parallel()
 

@@ -82,6 +82,10 @@ Map the field in **both** paths:
 
 Reference: `internal/controller/keycloakrealmgroup/chain/create_or_update_group.go`
 
+**Destination guard.** If the field holds a remote address (host or URL), call
+`guard.RequireHost` on it before any Secret tied to it is resolved — inject the guard and
+copy the pattern from `internal/controller/keycloakrealm/chain/configure_email.go`.
+
 ---
 
 ## Step 6 — Update unit tests

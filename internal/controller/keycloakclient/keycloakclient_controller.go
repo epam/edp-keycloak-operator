@@ -20,7 +20,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/destination"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 type Helper interface {
@@ -35,12 +35,12 @@ const keyCloakClientOperatorFinalizerName = "keycloak.client.operator.finalizer.
 func NewReconcileKeycloakClient(
 	k8sClient client.Client,
 	controllerHelper Helper,
-	guard *destination.Guard,
+	secretRef *secretref.SecretRef,
 ) *ReconcileKeycloakClient {
 	return &ReconcileKeycloakClient{
-		client: k8sClient,
-		helper: controllerHelper,
-		guard:  guard,
+		client:    k8sClient,
+		helper:    controllerHelper,
+		secretRef: secretRef,
 	}
 }
 
@@ -48,7 +48,7 @@ func NewReconcileKeycloakClient(
 type ReconcileKeycloakClient struct {
 	client                  client.Client
 	helper                  Helper
-	guard                   *destination.Guard
+	secretRef               *secretref.SecretRef
 	successReconcileTimeout time.Duration
 }
 
@@ -161,7 +161,7 @@ func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, inst
 
 	var resultErr error
 
-	if err := chain.MakeChain(kClient, r.client, r.guard).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(kClient, r.client, r.secretRef).Serve(ctx, instance, realmName); err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
 		}

@@ -18,7 +18,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmidentityprovider/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/destination"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const successRequeueTime = time.Minute * 10
@@ -34,20 +34,20 @@ type IdentityProviderReconcilerCtrlHelper interface {
 }
 
 type IdentityProviderReconciler struct {
-	client client.Client
-	helper IdentityProviderReconcilerCtrlHelper
-	guard  *destination.Guard
+	client    client.Client
+	helper    IdentityProviderReconcilerCtrlHelper
+	secretRef *secretref.SecretRef
 }
 
 func NewIdentityProviderReconciler(
 	k8sClient client.Client,
 	controllerHelper IdentityProviderReconcilerCtrlHelper,
-	guard *destination.Guard,
+	secretRef *secretref.SecretRef,
 ) *IdentityProviderReconciler {
 	return &IdentityProviderReconciler{
-		client: k8sClient,
-		helper: controllerHelper,
-		guard:  guard,
+		client:    k8sClient,
+		helper:    controllerHelper,
+		secretRef: secretRef,
 	}
 }
 
@@ -158,7 +158,7 @@ func (r *IdentityProviderReconciler) handleReconciliation(ctx context.Context, i
 
 	oldStatus := instance.Status
 
-	if err := chain.MakeChain(kClient, r.client, r.guard).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(kClient, r.client, r.secretRef).Serve(ctx, instance, realmName); err != nil {
 		log.Error(err, "An error has occurred while handling KeycloakRealmIdentityProvider")
 
 		resultErr := fmt.Errorf("identity provider chain processing failed: %w", err)

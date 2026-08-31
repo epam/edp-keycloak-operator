@@ -59,7 +59,7 @@ func inSyncIDPRepresentation() *keycloakapi.IdentityProviderRepresentation {
 
 func noSecretRefMock(t *testing.T) refClient {
 	m := secretrefmocks.NewMockRefClient(t)
-	m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").Return(map[string]string{}, nil)
+	m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, mock.Anything, "default").Return(map[string]string{}, nil)
 
 	return m
 }
@@ -108,7 +108,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			},
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)
-				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
+				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, mock.Anything, "default").
 					Return(map[string]string{"clientSecret": "secret:secret-name:secret-key@uid-1@100"}, nil)
 				return m
 			},
@@ -151,7 +151,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			},
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)
-				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
+				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, mock.Anything, "default").
 					Return(nil, fmt.Errorf("secret not found"))
 				return m
 			},
@@ -210,9 +210,9 @@ func TestPutIDP_Serve(t *testing.T) {
 			},
 			secretRef: func(t *testing.T) refClient {
 				m := secretrefmocks.NewMockRefClient(t)
-				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, "default").
+				m.On("MapConfigSecretsRefs", mock.Anything, mock.Anything, mock.Anything, "default").
 					Run(func(args mock.Arguments) {
-						cfg, _ := args.Get(1).(map[string]string)
+						cfg, _ := args.Get(2).(map[string]string)
 						cfg["clientSecret"] = "resolved-secret-value"
 					}).
 					Return(map[string]string{"clientSecret": clientSecretVersionToken}, nil)

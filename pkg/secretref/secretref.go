@@ -17,14 +17,20 @@ import (
 )
 
 const (
-	secretRefPrefix         = "$"
-	keycloakSecretRefPrefix = "${"
+	secretRefPrefix         = destination.RefPrefix
+	keycloakSecretRefPrefix = secretRefPrefix + "{"
 )
 
 type RefClient interface {
-	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)
+	MapConfigSecretsRefs(
+		ctx context.Context,
+		field string,
+		config map[string]string,
+		namespace string,
+	) (map[string]string, error)
 	MapComponentConfigSecretsRefs(
 		ctx context.Context,
+		field string,
 		config map[string][]string,
 		namespace string,
 	) (map[string][]string, error)
@@ -37,21 +43,28 @@ type SecretRef struct {
 	guard  *destination.Guard
 }
 
-// NewSecretRef returns a new instance of SecretRef. The guard is required: the config-map
-// resolvers substitute secret references in place, so the destination check has to happen in the
-// same call that resolves them.
-func NewSecretRef(k8sClient client.Client, guard *destination.Guard) *SecretRef {
-	return &SecretRef{client: k8sClient, guard: guard}
+// NewSecretRef returns a new instance of SecretRef. The resolvers run guard.ScanConfig before
+// resolving any reference. Pass destination.AllowAll explicitly when policy enforcement is
+// intentionally disabled.
+func NewSecretRef(k8sClient client.Client, guard *destination.Guard) (*SecretRef, error) {
+	// Nil is a wiring fault, not policy-off; policy-off is AllowAll.
+	if guard == nil {
+		return nil, destination.ErrGuardRequired
+	}
+
+	return &SecretRef{client: k8sClient, guard: guard}, nil
 }
 
 // MapConfigSecretsRefs maps secret references in config map to actual values. It returns a
-// version token per ref-backed key for status.configSecretsHash.
+// version token per ref-backed key for status.configSecretsHash. field is the spec path of
+// config in the calling CR, used in violation reports.
 func (s *SecretRef) MapConfigSecretsRefs(
 	ctx context.Context,
+	field string,
 	config map[string]string,
 	namespace string,
 ) (map[string]string, error) {
-	if err := s.guard.ScanConfig(ctx, "spec.config", singleToMultiValued(config)); err != nil {
+	if err := s.guard.ScanConfig(ctx, field, singleToMultiValued(config)); err != nil {
 		return nil, err
 	}
 
@@ -75,13 +88,15 @@ func (s *SecretRef) MapConfigSecretsRefs(
 }
 
 // MapComponentConfigSecretsRefs maps secret references in config map to actual values. It
-// returns version tokens per ref-backed key (ref-valued entries only, in spec order).
+// returns version tokens per ref-backed key (ref-valued entries only, in spec order). field is
+// the spec path of config in the calling CR, used in violation reports.
 func (s *SecretRef) MapComponentConfigSecretsRefs(
 	ctx context.Context,
+	field string,
 	config map[string][]string,
 	namespace string,
 ) (map[string][]string, error) {
-	if err := s.guard.ScanConfig(ctx, "spec.config", config); err != nil {
+	if err := s.guard.ScanConfig(ctx, field, config); err != nil {
 		return nil, err
 	}
 
@@ -158,8 +173,6 @@ func HasSecretRef(val string) bool {
 	return strings.HasPrefix(val, secretRefPrefix)
 }
 
-// singleToMultiValued adapts a single-valued config map for the destination guard, which takes
-// the multivalued shape used by component configs.
 func singleToMultiValued(config map[string]string) map[string][]string {
 	out := make(map[string][]string, len(config))
 	for k, v := range config {
@@ -201,13 +214,7 @@ func ValuesHash(cfg map[string][]string) string {
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// ValuesHashSingle is ValuesHash for single-value maps: each value is wrapped as a
-// one-element slice.
+// ValuesHashSingle is ValuesHash for single-value maps.
 func ValuesHashSingle(cfg map[string]string) string {
-	wrapped := make(map[string][]string, len(cfg))
-	for k, v := range cfg {
-		wrapped[k] = []string{v}
-	}
-
-	return ValuesHash(wrapped)
+	return ValuesHash(singleToMultiValued(cfg))
 }

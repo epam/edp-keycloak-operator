@@ -34,7 +34,10 @@ func guardedSecretRef(t *testing.T) *SecretRef {
 	guard, err := destination.New([]string{"keycloak.example.com"}, true)
 	require.NoError(t, err)
 
-	return NewSecretRef(cl, guard)
+	ref, err := NewSecretRef(cl, guard)
+	require.NoError(t, err)
+
+	return ref
 }
 
 // A destination supplied through a secret reference is never checked against the allowlist, so
@@ -49,7 +52,7 @@ func TestMapConfigSecretsRefs_RejectsSecretRefAsDestination(t *testing.T) {
 		"clientSecret": "$victim:key",
 	}
 
-	_, err := s.MapConfigSecretsRefs(context.Background(), config, "default")
+	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
 	assert.Equal(t, "$victim:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
@@ -65,7 +68,7 @@ func TestMapConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
 		"clientSecret": "$victim:key",
 	}
 
-	_, err := s.MapConfigSecretsRefs(context.Background(), config, "default")
+	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
 	assert.Equal(t, "$victim:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
@@ -81,7 +84,7 @@ func TestMapConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
 		"clientSecret": "$victim:key",
 	}
 
-	_, err := s.MapConfigSecretsRefs(context.Background(), config, "default")
+	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.NoError(t, err)
 	assert.Equal(t, "LeakedSecret123!", config["clientSecret"])
@@ -97,7 +100,7 @@ func TestMapComponentConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) 
 		"bindCredential": {"$victim:key"},
 	}
 
-	_, err := s.MapComponentConfigSecretsRefs(context.Background(), config, "default")
+	_, err := s.MapComponentConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
 	assert.Equal(t, "$victim:key", config["bindCredential"][0], "no secret may be resolved once a destination is rejected")
@@ -113,7 +116,7 @@ func TestMapComponentConfigSecretsRefs_ResolvesForListedDestination(t *testing.T
 		"bindCredential": {"$victim:key"},
 	}
 
-	_, err := s.MapComponentConfigSecretsRefs(context.Background(), config, "default")
+	_, err := s.MapComponentConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.NoError(t, err)
 	assert.Equal(t, "LeakedSecret123!", config["bindCredential"][0])

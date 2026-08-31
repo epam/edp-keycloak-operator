@@ -116,8 +116,8 @@ func (_c *MockRefClient_GetSecretFromRef_Call) RunAndReturn(run func(ctx context
 }
 
 // MapComponentConfigSecretsRefs provides a mock function for the type MockRefClient
-func (_mock *MockRefClient) MapComponentConfigSecretsRefs(ctx context.Context, config map[string][]string, namespace string) (map[string][]string, error) {
-	ret := _mock.Called(ctx, config, namespace)
+func (_mock *MockRefClient) MapComponentConfigSecretsRefs(ctx context.Context, field string, config map[string][]string, namespace string) (map[string][]string, error) {
+	ret := _mock.Called(ctx, field, config, namespace)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MapComponentConfigSecretsRefs")
@@ -125,18 +125,18 @@ func (_mock *MockRefClient) MapComponentConfigSecretsRefs(ctx context.Context, c
 
 	var r0 map[string][]string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string][]string, string) (map[string][]string, error)); ok {
-		return returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, map[string][]string, string) (map[string][]string, error)); ok {
+		return returnFunc(ctx, field, config, namespace)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string][]string, string) map[string][]string); ok {
-		r0 = returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, map[string][]string, string) map[string][]string); ok {
+		r0 = returnFunc(ctx, field, config, namespace)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string][]string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, map[string][]string, string) error); ok {
-		r1 = returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, map[string][]string, string) error); ok {
+		r1 = returnFunc(ctx, field, config, namespace)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -150,30 +150,36 @@ type MockRefClient_MapComponentConfigSecretsRefs_Call struct {
 
 // MapComponentConfigSecretsRefs is a helper method to define mock.On call
 //   - ctx context.Context
+//   - field string
 //   - config map[string][]string
 //   - namespace string
-func (_e *MockRefClient_Expecter) MapComponentConfigSecretsRefs(ctx interface{}, config interface{}, namespace interface{}) *MockRefClient_MapComponentConfigSecretsRefs_Call {
-	return &MockRefClient_MapComponentConfigSecretsRefs_Call{Call: _e.mock.On("MapComponentConfigSecretsRefs", ctx, config, namespace)}
+func (_e *MockRefClient_Expecter) MapComponentConfigSecretsRefs(ctx interface{}, field interface{}, config interface{}, namespace interface{}) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+	return &MockRefClient_MapComponentConfigSecretsRefs_Call{Call: _e.mock.On("MapComponentConfigSecretsRefs", ctx, field, config, namespace)}
 }
 
-func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Run(run func(ctx context.Context, config map[string][]string, namespace string)) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Run(run func(ctx context.Context, field string, config map[string][]string, namespace string)) *MockRefClient_MapComponentConfigSecretsRefs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 map[string][]string
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(map[string][]string)
+			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 map[string][]string
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(map[string][]string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -184,14 +190,14 @@ func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) Return(stringToStrin
 	return _c
 }
 
-func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string][]string, namespace string) (map[string][]string, error)) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapComponentConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, field string, config map[string][]string, namespace string) (map[string][]string, error)) *MockRefClient_MapComponentConfigSecretsRefs_Call {
 	_c.Call.Return(run)
 	return _c
 }
 
 // MapConfigSecretsRefs provides a mock function for the type MockRefClient
-func (_mock *MockRefClient) MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error) {
-	ret := _mock.Called(ctx, config, namespace)
+func (_mock *MockRefClient) MapConfigSecretsRefs(ctx context.Context, field string, config map[string]string, namespace string) (map[string]string, error) {
+	ret := _mock.Called(ctx, field, config, namespace)
 
 	if len(ret) == 0 {
 		panic("no return value specified for MapConfigSecretsRefs")
@@ -199,18 +205,18 @@ func (_mock *MockRefClient) MapConfigSecretsRefs(ctx context.Context, config map
 
 	var r0 map[string]string
 	var r1 error
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string, string) (map[string]string, error)); ok {
-		return returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, map[string]string, string) (map[string]string, error)); ok {
+		return returnFunc(ctx, field, config, namespace)
 	}
-	if returnFunc, ok := ret.Get(0).(func(context.Context, map[string]string, string) map[string]string); ok {
-		r0 = returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, map[string]string, string) map[string]string); ok {
+		r0 = returnFunc(ctx, field, config, namespace)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(map[string]string)
 		}
 	}
-	if returnFunc, ok := ret.Get(1).(func(context.Context, map[string]string, string) error); ok {
-		r1 = returnFunc(ctx, config, namespace)
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, map[string]string, string) error); ok {
+		r1 = returnFunc(ctx, field, config, namespace)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -224,30 +230,36 @@ type MockRefClient_MapConfigSecretsRefs_Call struct {
 
 // MapConfigSecretsRefs is a helper method to define mock.On call
 //   - ctx context.Context
+//   - field string
 //   - config map[string]string
 //   - namespace string
-func (_e *MockRefClient_Expecter) MapConfigSecretsRefs(ctx interface{}, config interface{}, namespace interface{}) *MockRefClient_MapConfigSecretsRefs_Call {
-	return &MockRefClient_MapConfigSecretsRefs_Call{Call: _e.mock.On("MapConfigSecretsRefs", ctx, config, namespace)}
+func (_e *MockRefClient_Expecter) MapConfigSecretsRefs(ctx interface{}, field interface{}, config interface{}, namespace interface{}) *MockRefClient_MapConfigSecretsRefs_Call {
+	return &MockRefClient_MapConfigSecretsRefs_Call{Call: _e.mock.On("MapConfigSecretsRefs", ctx, field, config, namespace)}
 }
 
-func (_c *MockRefClient_MapConfigSecretsRefs_Call) Run(run func(ctx context.Context, config map[string]string, namespace string)) *MockRefClient_MapConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapConfigSecretsRefs_Call) Run(run func(ctx context.Context, field string, config map[string]string, namespace string)) *MockRefClient_MapConfigSecretsRefs_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		var arg0 context.Context
 		if args[0] != nil {
 			arg0 = args[0].(context.Context)
 		}
-		var arg1 map[string]string
+		var arg1 string
 		if args[1] != nil {
-			arg1 = args[1].(map[string]string)
+			arg1 = args[1].(string)
 		}
-		var arg2 string
+		var arg2 map[string]string
 		if args[2] != nil {
-			arg2 = args[2].(string)
+			arg2 = args[2].(map[string]string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
 		}
 		run(
 			arg0,
 			arg1,
 			arg2,
+			arg3,
 		)
 	})
 	return _c
@@ -258,7 +270,7 @@ func (_c *MockRefClient_MapConfigSecretsRefs_Call) Return(stringToString map[str
 	return _c
 }
 
-func (_c *MockRefClient_MapConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)) *MockRefClient_MapConfigSecretsRefs_Call {
+func (_c *MockRefClient_MapConfigSecretsRefs_Call) RunAndReturn(run func(ctx context.Context, field string, config map[string]string, namespace string) (map[string]string, error)) *MockRefClient_MapConfigSecretsRefs_Call {
 	_c.Call.Return(run)
 	return _c
 }
