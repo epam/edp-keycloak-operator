@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
@@ -12,6 +11,8 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
@@ -145,9 +146,10 @@ func TestSecretRef_MapComponentConfigSecretsRefs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSecretRef(tt.client(t), destination.AllowAll())
+			s, err := NewSecretRef(tt.client(t), destination.AllowAll())
+			require.NoError(t, err)
 
-			_, err := s.MapComponentConfigSecretsRefs(context.Background(), tt.config, "default")
+			_, err = s.MapComponentConfigSecretsRefs(context.Background(), "spec.config", tt.config, "default")
 			tt.wantErr(t, err)
 			require.Equal(t, tt.wantConfig, tt.config)
 		})
@@ -181,8 +183,10 @@ func TestSecretRef_MapComponentConfigSecretsRefs_ReturnsVersionTokens(t *testing
 		"vaultRef":       {"${vault.ref}"},
 	}
 
-	versions, err := NewSecretRef(cl, destination.AllowAll()).
-		MapComponentConfigSecretsRefs(context.Background(), config, "default")
+	ref, err := NewSecretRef(cl, destination.AllowAll())
+	require.NoError(t, err)
+
+	versions, err := ref.MapComponentConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 	require.NoError(t, err)
 
 	// Plain values yield no version entry; keycloak vault refs pass through literally.
@@ -327,9 +331,10 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewSecretRef(tt.client(t), destination.AllowAll())
+			s, err := NewSecretRef(tt.client(t), destination.AllowAll())
+			require.NoError(t, err)
 
-			_, err := s.MapConfigSecretsRefs(context.Background(), tt.config, "default")
+			_, err = s.MapConfigSecretsRefs(context.Background(), "spec.config", tt.config, "default")
 			tt.wantErr(t, err)
 			require.Equal(t, tt.wantConfig, tt.config)
 		})
@@ -361,7 +366,10 @@ func TestSecretRef_MapConfigSecretsRefs_ReturnsVersionTokens(t *testing.T) {
 		"clientSecret": "$client-secret:data",
 	}
 
-	versions, err := NewSecretRef(cl, destination.AllowAll()).MapConfigSecretsRefs(context.Background(), config, "default")
+	ref, err := NewSecretRef(cl, destination.AllowAll())
+	require.NoError(t, err)
+
+	versions, err := ref.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 	require.NoError(t, err)
 
 	assert.Equal(t, map[string]string{
@@ -400,4 +408,13 @@ func TestGenerateSecretRef(t *testing.T) {
 			assert.Equal(t, tt.want, GenerateSecretRef(tt.args.secretName, tt.args.secretFiled))
 		})
 	}
+}
+
+func TestNewSecretRef_RejectsNilGuard(t *testing.T) {
+	t.Parallel()
+
+	_, err := NewSecretRef(nil, nil)
+
+	require.ErrorIs(t, err, destination.ErrGuardRequired,
+		"a nil guard must fail at wiring time, not fail open at runtime")
 }

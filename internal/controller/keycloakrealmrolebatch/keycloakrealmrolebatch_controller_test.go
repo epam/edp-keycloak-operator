@@ -24,6 +24,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 type testLogger struct {
@@ -85,12 +86,15 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileDelete(t *testing.T) {
 
 	client := fake.NewClientBuilder().WithScheme(scheme).WithRuntimeObjects(&batch, &realm, &keycloak, &secret).Build()
 	log := newTestLogr()
+	controllerHelper, err := helper.MakeHelper(client, scheme, "default", destination.AllowAll())
+	require.NoError(t, err)
+
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
-		helper: helper.MakeHelper(client, scheme, "default"),
+		helper: controllerHelper,
 	}
 
-	_, err := rkr.Reconcile(context.Background(), reconcile.Request{
+	_, err = rkr.Reconcile(context.Background(), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "test",
 			Namespace: ns,
@@ -145,10 +149,12 @@ func TestReconcileKeycloakRealmRoleBatch_Reconcile(t *testing.T) {
 		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).WithStatusSubresource(&batch).Build()
 
 	logger := newTestLogr()
+	controllerHelper, err := helper.MakeHelper(client, sch, "default", destination.AllowAll())
+	require.NoError(t, err)
 
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client:                  client,
-		helper:                  helper.MakeHelper(client, sch, "default"),
+		helper:                  controllerHelper,
 		successReconcileTimeout: time.Hour,
 	}
 
@@ -250,12 +256,15 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		WithRuntimeObjects(&batch, &realm, &keycloak, &secret, &role).WithStatusSubresource(&batch).Build()
 
 	logger := newTestLogr()
+	controllerHelper, err := helper.MakeHelper(client, scheme, "default", destination.AllowAll())
+	require.NoError(t, err)
+
 	rkr := ReconcileKeycloakRealmRoleBatch{
 		client: client,
-		helper: helper.MakeHelper(client, scheme, "default"),
+		helper: controllerHelper,
 	}
 
-	_, err := rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
+	_, err = rkr.Reconcile(ctrl.LoggerInto(context.Background(), logger), reconcile.Request{
 		NamespacedName: types.NamespacedName{
 			Name:      "batch1",
 			Namespace: ns,

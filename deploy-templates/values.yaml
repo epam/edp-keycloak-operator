@@ -68,14 +68,17 @@ clusterReconciliationEnabled: false
 enableOwnerRef: true
 
 # -- Hostnames the operator and Keycloak may reach with credentials resolved from Secrets.
-# Covers Keycloak spec.url, realm spec.smtp.connection.host, and URLs inside identity provider
-# and realm component config. Exact, case-insensitive match; no wildcards. Write the hostname
-# only, without scheme, port or path, and prefer fully qualified names.
-# An empty list allows every destination.
+# Covers Keycloak spec.url, realm spec.smtp.connection.host, and the known destination keys
+# (tokenUrl, connectionUrl, ...) inside identity provider and realm component config.
+# Values in other config keys are not checked. Exact, case-insensitive match; no wildcards.
+# Write the hostname only, without scheme, port or path, and prefer fully qualified names.
+# An empty list means no policy: every destination is allowed and nothing is logged or counted.
+# Add at least one host (for example the Keycloak host) to turn on reporting.
 allowedDestinationHosts: []
 
 # -- If true, a destination absent from allowedDestinationHosts fails the reconcile.
-# If false, it is only logged and counted, so the list can be built from a running cluster.
+# If false, destinations absent from a non-empty list are logged and counted, so the list
+# can be built from a running cluster before enforcement is turned on.
 # Enabling this with an empty allowedDestinationHosts stops the operator at startup.
 enforceDestinationAllowlist: false
 

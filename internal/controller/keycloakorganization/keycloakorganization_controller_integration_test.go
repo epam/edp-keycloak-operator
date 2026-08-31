@@ -16,6 +16,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -30,7 +31,9 @@ var _ = Describe("Organization controller", Ordered, func() {
 	)
 
 	BeforeAll(func() {
-		h = helper.MakeHelper(k8sClient, k8sClient.Scheme(), "default")
+		var err error
+		h, err = helper.MakeHelper(k8sClient, k8sClient.Scheme(), "default", destination.AllowAll())
+		Expect(err).NotTo(HaveOccurred())
 	})
 
 	It("Should create Organization", func() {

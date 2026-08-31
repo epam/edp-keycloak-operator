@@ -22,6 +22,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -78,7 +79,8 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
+	h, err := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default", destination.AllowAll())
+	Expect(err).NotTo(HaveOccurred())
 
 	err = NewReconcile(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager)

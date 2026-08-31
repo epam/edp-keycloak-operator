@@ -65,38 +65,41 @@ type Helper struct {
 	// enableOwnerRef is a flag to enable legacy owner reference to Keycloak and KeycloakRealm for operator objects.
 	// This is needed for backward compatibility with the old version of the operator.
 	enableOwnerRef bool
-	// guard vets the Keycloak URL a custom resource points at. Defaults to permissive; cmd/main.go
-	// supplies the configured one.
+	// guard vets the Keycloak URL a custom resource points at.
 	guard *destination.Guard
 }
 
-func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
+func MakeHelper(
+	k8sClient client.Client,
+	scheme *runtime.Scheme,
+	operatorNamespace string,
+	guard *destination.Guard,
+	options ...func(*Helper),
+) (*Helper, error) {
+	// Nil is a wiring fault, not policy-off; policy-off is AllowAll.
+	if guard == nil {
+		return nil, destination.ErrGuardRequired
+	}
+
 	helper := &Helper{
 		client:            k8sClient,
 		scheme:            scheme,
 		operatorNamespace: operatorNamespace,
 		enableOwnerRef:    false,
-		guard:             destination.AllowAll(),
+		guard:             guard,
 	}
 
 	for _, option := range options {
 		option(helper)
 	}
 
-	return helper
+	return helper, nil
 }
 
 // EnableOwnerRef is an option to set the enableOwnerRef field in Helper.
 func EnableOwnerRef(setOwnerRef bool) func(*Helper) {
 	return func(h *Helper) {
 		h.enableOwnerRef = setOwnerRef
-	}
-}
-
-// WithDestinationGuard sets the guard applied to spec.url.
-func WithDestinationGuard(guard *destination.Guard) func(*Helper) {
-	return func(h *Helper) {
-		h.guard = guard
 	}
 }
 

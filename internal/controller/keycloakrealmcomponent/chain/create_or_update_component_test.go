@@ -36,7 +36,7 @@ type fakeSecretRefClient struct {
 	err error
 }
 
-func (f *fakeSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ map[string][]string, _ string) (map[string][]string, error) {
+func (f *fakeSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ string, _ map[string][]string, _ string) (map[string][]string, error) {
 	return nil, f.err
 }
 
@@ -48,7 +48,7 @@ type mutatingSecretRefClient struct {
 	versions map[string][]string
 }
 
-func (f *mutatingSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, config map[string][]string, _ string) (map[string][]string, error) {
+func (f *mutatingSecretRefClient) MapComponentConfigSecretsRefs(_ context.Context, _ string, config map[string][]string, _ string) (map[string][]string, error) {
 	if f.mutate != nil {
 		f.mutate(config)
 	}

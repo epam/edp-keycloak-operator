@@ -55,7 +55,7 @@ func (h *CreateOrUpdateComponent) Serve(
 		config[k] = copied
 	}
 
-	secretVersions, err := h.secretRefClient.MapComponentConfigSecretsRefs(ctx, config, component.Namespace)
+	secretVersions, err := h.secretRefClient.MapComponentConfigSecretsRefs(ctx, "spec.config", config, component.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}

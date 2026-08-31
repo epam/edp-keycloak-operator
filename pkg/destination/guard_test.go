@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -68,6 +69,31 @@ func TestNew(t *testing.T) {
 		{
 			name:    "entry with a port is fatal",
 			hosts:   []string{"smtp.example.com:587"},
+			enforce: true,
+			wantErr: require.Error,
+		},
+		{
+			name:    "entry with a double colon typo is fatal",
+			hosts:   []string{"smtp.example.com::587"},
+			enforce: true,
+			wantErr: require.Error,
+		},
+		{
+			name:    "bracketed ipv6 entry with a port is fatal",
+			hosts:   []string{"[2001:db8::1]:636"},
+			enforce: true,
+			wantErr: require.Error,
+		},
+		{
+			name:      "accepts a bracketed IPv6 literal",
+			hosts:     []string{"[2001:db8::1]"},
+			enforce:   true,
+			wantHosts: []string{"2001:db8::1"},
+			wantErr:   require.NoError,
+		},
+		{
+			name:    "colon-separated non-address is fatal",
+			hosts:   []string{"a:b:c"},
 			enforce: true,
 			wantErr: require.Error,
 		},
@@ -233,6 +259,22 @@ func TestGuard_ScanConfig(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "secret ref in a key provider privateKey is a credential",
+			config: map[string][]string{
+				"privateKey":  {"$realm-key:private"},
+				"certificate": {"$realm-key:cert"},
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "empty value in a destination key is skipped",
+			config: map[string][]string{
+				"baseUrl":   {""},
+				"logoutUrl": {"   "},
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "known destination key holding a non-host is a violation",
 			config: map[string][]string{
 				"tokenUrl": {"not a url"},
@@ -247,11 +289,11 @@ func TestGuard_ScanConfig(t *testing.T) {
 			wantErr: require.Error,
 		},
 		{
-			name: "any value carrying a scheme is checked",
+			name: "url in an unknown key is not judged",
 			config: map[string][]string{
 				"undocumentedKey": {"https://evil.example.com/collect"},
 			},
-			wantErr: require.Error,
+			wantErr: require.NoError,
 		},
 		{
 			name: "every value in a multivalued key is checked",
@@ -324,4 +366,177 @@ func TestGuard_ErrorMessageIsLengthCapped(t *testing.T) {
 	require.Error(t, err)
 
 	assert.Less(t, len(err.Error()), 512, "a rejected value must not blow up the message")
+}
+
+// Warn mode exists so an administrator can read every host that will later be denied.
+func TestGuard_ScanConfig_WarnModeReportsEveryViolation(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, false)
+	require.NoError(t, err)
+
+	const field = "test.reportsEveryViolation"
+
+	before := warnViolations(field)
+
+	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
+		"tokenUrl":    {"$victim:url"},
+		"userInfoUrl": {"https://evil.example.com/"},
+	}))
+
+	assert.Equal(t, float64(2), warnViolations(field)-before, "both violations must be recorded")
+}
+
+func TestGuard_ScanConfig_AcceptsBareHostInADestinationKey(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, true)
+	require.NoError(t, err)
+
+	assert.NoError(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"baseUrl": {"keycloak.example.com"},
+	}))
+}
+
+func TestGuard_ScanConfig_MultiAddressFailover(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"ldap1.example.com", "ldap2.example.com"}, true)
+	require.NoError(t, err)
+
+	assert.NoError(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"connectionUrl": {"ldap://ldap1.example.com:389 ldap://ldap2.example.com:389"},
+	}))
+
+	assert.Error(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"connectionUrl": {"ldap://ldap1.example.com:389 ldap://evil.example.com:389"},
+	}), "one unlisted address in the list must still be denied")
+}
+
+func TestGuard_ScanConfig_VaultRefOutsideACredentialKeyIsDenied(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, true)
+	require.NoError(t, err)
+
+	assert.Error(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"tokenUrl": {"${anything"},
+	}))
+}
+
+// Policy-off is AllowAll; nil fails closed.
+func TestGuard_NilReceiverFailsClosed(t *testing.T) {
+	t.Parallel()
+
+	var g *Guard
+
+	assert.ErrorIs(t, g.RequireHost(context.Background(), "spec.url", "https://keycloak.example.com/"), ErrGuardRequired)
+	assert.ErrorIs(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"tokenUrl": {"https://keycloak.example.com/"},
+	}), ErrGuardRequired)
+}
+
+func TestSanitizeForLog(t *testing.T) {
+	t.Parallel()
+
+	assert.Equal(t, "evil.example.com?forged", sanitizeForLog("evil.example.com\nforged"))
+	assert.Equal(t, "keycloak.example.com", sanitizeForLog("keycloak.example.com"))
+}
+
+// warnViolations reads the counter for a field in warn mode.
+func warnViolations(field string) float64 {
+	return testutil.ToFloat64(violations.WithLabelValues(field, "false"))
+}
+
+// An empty allowlist leaves the guard inactive (see Guard.inactive).
+func TestGuard_EmptyAllowlistIsSilent(t *testing.T) {
+	t.Parallel()
+
+	g, err := New(nil, false)
+	require.NoError(t, err)
+
+	const field = "test.emptyAllowlistIsSilent"
+
+	before := warnViolations(field)
+
+	require.NoError(t, g.RequireHost(context.Background(), field, "https://anything.example.com"))
+	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
+		"tokenUrl": {"https://anything.example.com"},
+	}))
+
+	assert.Equal(t, float64(0), warnViolations(field)-before, "an unconfigured guard must record nothing")
+}
+
+// A value in an unrecognised key is never judged or reported (see ScanConfig): key semantics
+// are unknown at runtime, and a guess must not deny or flood the warn log.
+func TestGuard_ScanConfig_UnknownKeysAreNotJudged(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, false)
+	require.NoError(t, err)
+
+	const field = "test.unknownKeysNotJudged"
+
+	before := warnViolations(field)
+
+	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
+		"helpText":        {"see https://evil.example.com for details"},
+		"undocumentedKey": {"evil.example.com:8443"},
+	}))
+
+	assert.Equal(t, float64(0), warnViolations(field)-before,
+		"a value in an unknown key must not be reported")
+}
+
+// Enforce mode reports every violation in one error, so one reconcile surfaces the whole list.
+func TestGuard_ScanConfig_EnforceModeReportsEveryViolation(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, true)
+	require.NoError(t, err)
+
+	err = g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"tokenUrl":    {"https://evil-one.example.com/"},
+		"userInfoUrl": {"https://evil-two.example.com/"},
+	})
+	require.Error(t, err)
+
+	assert.ErrorIs(t, err, ErrNotAllowed)
+	assert.Contains(t, err.Error(), "evil-one.example.com")
+	assert.Contains(t, err.Error(), "evil-two.example.com")
+}
+
+// The config key is author-controlled and must not forge lines in the error (see report).
+func TestGuard_ScanConfig_ConfigKeyCannotForgeError(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, true)
+	require.NoError(t, err)
+
+	err = g.ScanConfig(context.Background(), "spec.config", map[string][]string{
+		"evil\nlevel=info msg=forged": {"$attacker-secret:url"},
+	})
+	require.Error(t, err)
+
+	assert.NotContains(t, err.Error(), "\n", "a config key must not inject a newline")
+}
+
+// The config key must never become a metric label (see the violations counter).
+func TestGuard_ScanConfig_MetricLabelIsTheStaticField(t *testing.T) {
+	t.Parallel()
+
+	g, err := New([]string{"keycloak.example.com"}, false)
+	require.NoError(t, err)
+
+	const field = "test.metricLabelIsStatic"
+
+	before := warnViolations(field)
+
+	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
+		"attackerChosenKeyOne": {"$attacker-secret:url"},
+		"attackerChosenKeyTwo": {"$attacker-secret:url"},
+	}))
+
+	assert.Equal(t, float64(2), warnViolations(field)-before, "both must land on the one static label")
+	assert.Zero(t, warnViolations(field+".attackerChosenKeyOne"), "the key must not create a series")
 }

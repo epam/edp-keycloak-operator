@@ -23,6 +23,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakApiAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
@@ -31,7 +32,8 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	sch := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
-	helper := MakeHelper(&mc, sch, "default")
+	helper, err := MakeHelper(&mc, sch, "default", destination.AllowAll())
+	require.NoError(t, err)
 
 	kcGroup := keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
@@ -51,7 +53,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 	mc.On("Update", testifymock.Anything, testifymock.Anything).Return(nil)
 
-	err := helper.SetRealmOwnerRef(context.Background(), &kcGroup)
+	err = helper.SetRealmOwnerRef(context.Background(), &kcGroup)
 	require.NoError(t, err)
 
 	kcGroup = keycloakApi.KeycloakRealmGroup{
@@ -76,7 +78,8 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 }
 
 func TestMakeHelper(t *testing.T) {
-	h := MakeHelper(nil, nil, "default", EnableOwnerRef(true))
+	h, err := MakeHelper(nil, nil, "default", destination.AllowAll(), EnableOwnerRef(true))
+	require.NoError(t, err)
 	assert.True(t, h.enableOwnerRef)
 }
 
@@ -941,4 +944,13 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMakeHelper_RejectsNilGuard(t *testing.T) {
+	t.Parallel()
+
+	_, err := MakeHelper(nil, nil, "ns", nil)
+
+	require.ErrorIs(t, err, destination.ErrGuardRequired,
+		"a nil guard must fail at wiring time, not fail open at runtime")
 }

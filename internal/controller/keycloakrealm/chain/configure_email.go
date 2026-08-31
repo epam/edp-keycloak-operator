@@ -33,17 +33,16 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 	l := ctrl.LoggerFrom(ctx)
 	l.Info("Configuring email for realm")
 
-	newHash, err := ConfigureRealmEmail(
-		ctx,
-		realm.Spec.RealmName,
-		realm.Spec.Smtp,
-		realm.Namespace,
-		kClient.Realms,
-		s.client,
-		realm.Status.ConfigSecretsHash,
-		helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
-		s.guard,
-	)
+	newHash, err := ConfigureRealmEmail(ctx, RealmEmailParams{
+		RealmName:        realm.Spec.RealmName,
+		EmailSpec:        realm.Spec.Smtp,
+		SecretsNamespace: realm.Namespace,
+		RealmClient:      kClient.Realms,
+		K8sClient:        s.client,
+		StoredHash:       realm.Status.ConfigSecretsHash,
+		ForceWrite:       helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
+		Guard:            s.guard,
+	})
 	if err != nil {
 		return err
 	}
@@ -55,37 +54,39 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 	return nextServeOrNil(ctx, s.next, realm, kClient)
 }
 
-// ConfigureRealmEmail applies emailSpec to the realm's SMTP server config and returns the
+// RealmEmailParams carries the inputs of ConfigureRealmEmail.
+type RealmEmailParams struct {
+	RealmName        string
+	EmailSpec        *common.SMTP
+	SecretsNamespace string
+	RealmClient      keycloakapi.RealmClient
+	K8sClient        client.Client
+	StoredHash       string
+	ForceWrite       bool
+	Guard            *destination.Guard
+}
+
+// ConfigureRealmEmail applies EmailSpec to the realm's SMTP server config and returns the
 // resolved-secret hash. GetRealm always runs to obtain the comparison baseline; the UpdateRealm
-// write is skipped when forceWrite is false, storedHash matches the newly resolved hash, and
+// write is skipped when ForceWrite is false, StoredHash matches the newly resolved hash, and
 // the fetched SMTP config already matches spec.
-func ConfigureRealmEmail(
-	ctx context.Context,
-	realmName string,
-	emailSpec *common.SMTP,
-	secretsNamespace string,
-	realmClient keycloakapi.RealmClient,
-	k8sClient client.Client,
-	storedHash string,
-	forceWrite bool,
-	guard *destination.Guard,
-) (string, error) {
-	if emailSpec == nil {
+func ConfigureRealmEmail(ctx context.Context, p RealmEmailParams) (string, error) {
+	if p.EmailSpec == nil {
 		return "", nil
 	}
 
 	// Keycloak, not the operator, dials this host, and it carries the SMTP password.
 	// Checked before the password Secret is resolved below.
-	if err := guard.RequireHost(ctx, "spec.smtp.connection.host", emailSpec.Connection.Host); err != nil {
+	if err := p.Guard.RequireHost(ctx, "spec.smtp.connection.host", p.EmailSpec.Connection.Host); err != nil {
 		return "", err
 	}
 
-	current, _, err := realmClient.GetRealm(ctx, realmName)
+	current, _, err := p.RealmClient.GetRealm(ctx, p.RealmName)
 	if err != nil {
-		return "", fmt.Errorf("unable to get realm %v: %w", realmName, err)
+		return "", fmt.Errorf("unable to get realm %v: %w", p.RealmName, err)
 	}
 
-	emailMap, passwordVersion, err := convertEmailSpecToMap(ctx, emailSpec, secretsNamespace, k8sClient)
+	emailMap, passwordVersion, err := convertEmailSpecToMap(ctx, p.EmailSpec, p.SecretsNamespace, p.K8sClient)
 	if err != nil {
 		return "", err
 	}
@@ -93,20 +94,20 @@ func ConfigureRealmEmail(
 	// Rotating the password's k8s Secret bumps no CR generation; the hash of the secret's
 	// version token forces the write instead.
 	passwordVersions := map[string]string{}
-	if emailSpec.Connection.Authentication != nil {
+	if p.EmailSpec.Connection.Authentication != nil {
 		passwordVersions["password"] = passwordVersion
 	}
 
 	newHash := secretref.ValuesHashSingle(passwordVersions)
 
-	if !forceWrite && storedHash == newHash && smtpMatchesSpec(current.SmtpServer, emailMap) {
+	if !p.ForceWrite && p.StoredHash == newHash && smtpMatchesSpec(current.SmtpServer, emailMap) {
 		return newHash, nil
 	}
 
 	current.SmtpServer = &emailMap
 
-	if _, err = realmClient.UpdateRealm(ctx, realmName, *current); err != nil {
-		return "", fmt.Errorf("unable to update realm %v: %w", realmName, err)
+	if _, err = p.RealmClient.UpdateRealm(ctx, p.RealmName, *current); err != nil {
+		return "", fmt.Errorf("unable to update realm %v: %w", p.RealmName, err)
 	}
 
 	return newHash, nil

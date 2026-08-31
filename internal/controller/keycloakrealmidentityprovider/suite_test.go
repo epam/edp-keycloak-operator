@@ -29,6 +29,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/destination"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -105,7 +106,8 @@ var _ = BeforeSuite(func() {
 	})
 	Expect(err).ToNot(HaveOccurred())
 
-	h := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default")
+	h, err := helper.MakeHelper(k8sManager.GetClient(), k8sManager.GetScheme(), "default", destination.AllowAll())
+	Expect(err).NotTo(HaveOccurred())
 
 	err = keycloak.NewReconcileKeycloak(k8sManager.GetClient(), k8sManager.GetScheme(), h).
 		SetupWithManager(k8sManager, 0)
@@ -115,7 +117,10 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, 0)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewIdentityProviderReconciler(k8sManager.GetClient(), h, destination.AllowAll()).
+	secretRefClient, err := secretref.NewSecretRef(k8sManager.GetClient(), destination.AllowAll())
+	Expect(err).NotTo(HaveOccurred())
+
+	err = NewIdentityProviderReconciler(k8sManager.GetClient(), h, secretRefClient).
 		SetupWithManager(k8sManager)
 	Expect(err).ToNot(HaveOccurred())
 

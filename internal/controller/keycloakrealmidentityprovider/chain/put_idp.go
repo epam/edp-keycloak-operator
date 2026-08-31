@@ -16,7 +16,7 @@ import (
 )
 
 type refClient interface {
-	MapConfigSecretsRefs(ctx context.Context, config map[string]string, namespace string) (map[string]string, error)
+	MapConfigSecretsRefs(ctx context.Context, field string, config map[string]string, namespace string) (map[string]string, error)
 }
 
 type PutIDP struct {
@@ -37,7 +37,7 @@ func (h *PutIDP) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi.Keyclo
 	config := make(map[string]string, len(rawSpecConfig))
 	maps.Copy(config, rawSpecConfig)
 
-	secretVersions, err := h.secretRef.MapConfigSecretsRefs(ctx, config, keycloakRealmIDP.Namespace)
+	secretVersions, err := h.secretRef.MapConfigSecretsRefs(ctx, "spec.config", config, keycloakRealmIDP.Namespace)
 	if err != nil {
 		return fmt.Errorf("unable to map config secrets: %w", err)
 	}
