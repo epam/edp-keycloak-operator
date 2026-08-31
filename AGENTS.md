@@ -83,6 +83,11 @@ Skip Keycloak writes when actual state matches the spec; track `status.observedG
 `pkg/client/keycloakapi/generated/client_generated.go` is auto-generated — do not edit manually.
 Edit `pkg/client/keycloakapi/openapi.yaml` then re-run `make generate-keycloak-go-client`.
 
+### Scaffolded RBAC helper roles
+`kubebuilder create api` scaffolds `*_admin_role.yaml`, `*_editor_role.yaml` and `*_viewer_role.yaml` per CRD, once. `make manifests` never regenerates them — controller-gen only writes `config/rbac/role.yaml` from the `+kubebuilder:rbac` markers.
+
+Do not ship an admin or editor role for a kind whose spec pairs a Secret reference with an author-controlled destination (GHSA-wj3g-w873-xwg7); write access to such a kind grants indirect read of any Secret reachable by the operator. Keep the viewer role, delete the scaffolded admin and editor files, and drop their `config/rbac/kustomization.yaml` entries.
+
 ## Further Reading
 - `docs/development.md` — local setup, debugging, VS Code config
 

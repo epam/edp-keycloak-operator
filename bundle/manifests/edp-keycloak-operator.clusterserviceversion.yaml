@@ -840,7 +840,7 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.35.0
-    createdAt: "2026-07-13T09:23:42Z"
+    createdAt: "2026-08-31T14:27:29Z"
     description: An Operator for managing Keycloak
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

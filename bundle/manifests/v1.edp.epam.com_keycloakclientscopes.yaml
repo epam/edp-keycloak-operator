@@ -130,6 +130,11 @@ spec:
                 type: integer
               id:
                 type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
+                format: int64
+                type: integer
               value:
                 type: string
             type: object
