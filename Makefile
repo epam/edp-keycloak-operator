@@ -178,7 +178,8 @@ oapi-codegen: $(OAPICODEGEN) ## Download oapi-codegen locally if necessary.
 $(OAPICODEGEN): $(LOCALBIN)
 	$(call go-install-tool,$(OAPICODEGEN),github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen,latest)
 
-KEYCLOAK_VERSION ?= 26.5.2
+# Source version for the spec download below; the checked-in spec is hand-edited and tracks 26.6.
+KEYCLOAK_VERSION ?= 26.7.3
 .PHONY: generate-keycloak-go-client
 generate-keycloak-go-client: oapi-codegen
 # Currently, the OpenApi spec is manually edited due to the issue https://github.com/keycloak/keycloak/issues/46015

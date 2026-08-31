@@ -15,6 +15,15 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
+)
+
+// Realm names are unique per test process: all suites share one Keycloak.
+var (
+	realmFullConfig = testutils.RealmName("test-realm-with-full-config")
+	realmLogin      = testutils.RealmName("test-realm-login")
+	realmSSOSession = testutils.RealmName("test-realm-sso-session")
+	realmBruteForce = testutils.RealmName("test-realm-brute-force")
 )
 
 var _ = Describe("KeycloakRealm controller", Ordered, func() {
@@ -41,7 +50,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-realm-with-full-config",
+				RealmName: realmFullConfig,
 				KeycloakRef: common.KeycloakRef{
 					Name: keycloakCR,
 					Kind: keycloakApi.KeycloakKind,
@@ -202,7 +211,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm was created in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-with-full-config")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmFullConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -261,17 +270,17 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 			g.Expect(realm.DefaultLocale).Should(Equal(ptr.To("nl")))
 
 			// localizationTexts must be verified via /localization/{locale}, not from realm representation
-			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "en")
+			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, realmFullConfig, "en")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(enTexts["test.key"]).Should(Equal("this is a test"))
-			nlTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "nl")
+			nlTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, realmFullConfig, "nl")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(nlTexts["test.key"]).Should(Equal("dit is een test"))
 		}, time.Second*10, time.Second).Should(Succeed())
 
 		By("Verifying the user profile was configured in Keycloak")
 		Eventually(func(g Gomega) {
-			userProfile, _, err := keycloakApiClient.Users.GetUsersProfile(ctx, "test-realm-with-full-config")
+			userProfile, _, err := keycloakApiClient.Users.GetUsersProfile(ctx, realmFullConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(userProfile).ShouldNot(BeNil())
 
@@ -294,7 +303,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the user was created in Keycloak")
 		Eventually(func(g Gomega) {
-			user, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, "test-realm-with-full-config", "keycloakrealm-user@mail.com")
+			user, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmFullConfig, "keycloakrealm-user@mail.com")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(user).ShouldNot(BeNil())
 		}, time.Second*10, time.Second).Should(Succeed())
@@ -322,14 +331,14 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm was updated in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-with-full-config")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmFullConfig)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 			g.Expect(realm.Attributes).ShouldNot(BeNil())
 			g.Expect((*realm.Attributes)["frontendUrl"]).Should(Equal("https://test-updated.com"))
 			g.Expect(realm.DefaultLocale).Should(Equal(ptr.To("en")))
 
-			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, "test-realm-with-full-config", "en")
+			enTexts, _, err := keycloakApiClient.Realms.GetRealmLocalization(ctx, realmFullConfig, "en")
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(enTexts["new.key"]).Should(Equal("new value"))
 			g.Expect(enTexts["test.key"]).Should(Equal("this is a test"))
@@ -358,7 +367,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-realm-login",
+				RealmName: realmLogin,
 				KeycloakRef: common.KeycloakRef{
 					Name: keycloakCR,
 					Kind: keycloakApi.KeycloakKind,
@@ -392,7 +401,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm login settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-login")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmLogin)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -424,7 +433,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-realm-sso-session",
+				RealmName: realmSSOSession,
 				KeycloakRef: common.KeycloakRef{
 					Name: keycloakCR,
 					Kind: keycloakApi.KeycloakKind,
@@ -468,7 +477,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm SSO session settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-sso-session")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmSSOSession)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -505,7 +514,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-realm-brute-force",
+				RealmName: realmBruteForce,
 				KeycloakRef: common.KeycloakRef{
 					Name: keycloakCR,
 					Kind: keycloakApi.KeycloakKind,
@@ -541,7 +550,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying the realm brute force detection settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmBruteForce)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -567,7 +576,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 		By("Verifying only FailureFactor changed while other brute force fields were preserved")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmBruteForce)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 

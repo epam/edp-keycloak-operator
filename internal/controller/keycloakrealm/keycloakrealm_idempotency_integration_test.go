@@ -21,11 +21,12 @@ import (
 // resets the event log without it.
 var _ = Describe("KeycloakRealm idempotent reconcile", Ordered, func() {
 	const (
-		crName    = "idem-realm"
-		realmName = "idem-realm"
-		settle    = testutils.Settle
-		longWait  = testutils.LongWait
+		crName   = "idem-realm"
+		settle   = testutils.Settle
+		longWait = testutils.LongWait
 	)
+
+	realmName := testutils.RealmName("idem-realm")
 
 	var recorder *testutils.AdminEventRecorder
 

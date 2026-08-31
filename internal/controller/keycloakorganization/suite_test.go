@@ -43,13 +43,15 @@ var (
 )
 
 const (
-	KeycloakCR      = "test-keycloak"
-	KeycloakRealmCR = "test-org-realm"
-	ns              = "test-org"
+	KeycloakCR = "test-keycloak"
+	ns         = "test-org"
 
 	timeout  = time.Second * 10
 	interval = time.Millisecond * 250
 )
+
+// KeycloakRealmCR names both the KeycloakRealm CR and the Keycloak realm it manages.
+var KeycloakRealmCR = testutils.RealmName("test-org-realm")
 
 func TestKeycloakOrganization(t *testing.T) {
 	RegisterFailHandler(Fail)
