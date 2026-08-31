@@ -11,17 +11,19 @@ jobs:
   prepare-release:
     name: Perform automatic release on trigger ${{ github.ref }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
       # The name of the tag as supplied by the GitHub event
       SOURCE_TAG: ${{ github.ref }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: '0'
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -78,11 +80,11 @@ jobs:
           echo "RELEASE_TAG=${RELEASE_TAG}" >> $GITHUB_ENV
 
       - name: Create GitHub release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v3.0.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         id: create_release
         with:
           tag_name: ${{ env.RELEASE_TAG }}
-          release_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
           body_path: release.md

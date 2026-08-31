@@ -30,6 +30,8 @@ E2E_IMAGE_REPOSITORY?="keycloak-image"
 E2E_IMAGE_TAG?="latest"
 
 TEST_KEYCLOAK_URL?=""
+# Keep in sync with the newest entry of the CI integration-test matrix in .github/workflows/pr.yaml.
+KEYCLOAK_TEST_VERSION?=26.7
 
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \
@@ -331,7 +333,7 @@ docker-push: ## Push docker image with the manager.
 
 .PHONY: start-keycloak
 start-keycloak: ## Start Keycloak instance for testing
-	docker run -d -p 8086:8080 -e KEYCLOAK_ADMIN=admin -e KEYCLOAK_ADMIN_PASSWORD=admin -e KC_FEATURES=admin-fine-grained-authz:v1 --name keycloak-test quay.io/keycloak/keycloak:latest start-dev
+	docker run -d -p 8086:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin -e KC_FEATURES=admin-fine-grained-authz:v1 --name keycloak-test quay.io/keycloak/keycloak:$(KEYCLOAK_TEST_VERSION) start-dev
 
 .PHONY: delete-keycloak
 delete-keycloak: ## Stop Keycloak test instance
