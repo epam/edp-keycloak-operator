@@ -22,15 +22,16 @@ resources:
 # default, aiding admins in cluster management. Those roles are
 # not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
-- keycloak_admin_role.yaml
-- keycloak_editor_role.yaml
+#
+# The six kinds below ship viewer roles only (GHSA-wj3g-w873-xwg7). Their specs
+# pair a Secret reference with an author-controlled destination, so write access
+# grants indirect read of any Secret reachable by the operator.
 - keycloak_viewer_role.yaml
-- clusterkeycloak_admin_role.yaml
-- clusterkeycloak_editor_role.yaml
 - clusterkeycloak_viewer_role.yaml
-- clusterkeycloakrealm_admin_role.yaml
-- clusterkeycloakrealm_editor_role.yaml
+- keycloakrealm_viewer_role.yaml
 - clusterkeycloakrealm_viewer_role.yaml
+- keycloakrealmidentityprovider_viewer_role.yaml
+- keycloakrealmcomponent_viewer_role.yaml
 - keycloakauthflow_admin_role.yaml
 - keycloakauthflow_editor_role.yaml
 - keycloakauthflow_viewer_role.yaml
@@ -40,18 +41,9 @@ resources:
 - keycloakclientscope_admin_role.yaml
 - keycloakclientscope_editor_role.yaml
 - keycloakclientscope_viewer_role.yaml
-- keycloakrealm_admin_role.yaml
-- keycloakrealm_editor_role.yaml
-- keycloakrealm_viewer_role.yaml
-- keycloakrealmcomponent_admin_role.yaml
-- keycloakrealmcomponent_editor_role.yaml
-- keycloakrealmcomponent_viewer_role.yaml
 - keycloakrealmgroup_admin_role.yaml
 - keycloakrealmgroup_editor_role.yaml
 - keycloakrealmgroup_viewer_role.yaml
-- keycloakrealmidentityprovider_admin_role.yaml
-- keycloakrealmidentityprovider_editor_role.yaml
-- keycloakrealmidentityprovider_viewer_role.yaml
 - keycloakrealmrole_admin_role.yaml
 - keycloakrealmrole_editor_role.yaml
 - keycloakrealmrole_viewer_role.yaml

@@ -144,10 +144,16 @@ spec:
                   that owns the realm.
                 type: string
               displayHtmlName:
-                description: DisplayHTMLName name to render in the UI.
+                description: |-
+                  DisplayHTMLName name to render in the UI.
+                  Set to an empty string to clear the value in Keycloak.
+                nullable: true
                 type: string
               displayName:
-                description: DisplayName is the display name of the realm.
+                description: |-
+                  DisplayName is the display name of the realm.
+                  Set to an empty string to clear the value in Keycloak.
+                nullable: true
                 type: string
               frontendUrl:
                 description: |-
@@ -181,6 +187,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: set
                 type: object
               login:
                 description: Login settings for the realm.
@@ -227,11 +234,11 @@ spec:
                     type: boolean
                 type: object
               organizationsEnabled:
-                default: false
                 description: |-
                   OrganizationsEnabled enables Keycloak Organizations feature for this realm.
                   When enabled, this realm can support Organization resources for multi-tenant scenarios,
                   identity provider groupings, and domain-based user routing.
+                nullable: true
                 type: boolean
               passwordPolicy:
                 description: PasswordPolicies is a list of password policies to apply
@@ -271,6 +278,7 @@ spec:
                     description: |-
                       AdminEventsExpiration sets the expiration for events in seconds.
                       Expired events are periodically deleted from the database.
+                    nullable: true
                     type: integer
                   enabledEventTypes:
                     description: EnabledEventTypes is a list of event types to enable.
@@ -278,6 +286,7 @@ spec:
                       type: string
                     nullable: true
                     type: array
+                    x-kubernetes-list-type: set
                   eventsEnabled:
                     description: EventsEnabled indicates whether to enable events.
                     nullable: true
@@ -293,6 +302,7 @@ spec:
                       type: string
                     nullable: true
                     type: array
+                    x-kubernetes-list-type: set
                 type: object
               realmName:
                 description: RealmName specifies the name of the realm.
@@ -759,7 +769,17 @@ spec:
             properties:
               available:
                 type: boolean
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of referenced secret versions
+                  from the last successful reconcile; it contains no secret-derived
+                  data.
+                type: string
               failureCount:
+                format: int64
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
                 format: int64
                 type: integer
               value:

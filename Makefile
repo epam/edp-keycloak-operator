@@ -250,6 +250,9 @@ endef
 bundle: manifests kustomize operator-sdk ## Generate bundle manifests and metadata, then validate generated files.
 	$(OPERATOR_SDK) generate kustomize manifests -q
 	cd config/manager && $(KUSTOMIZE) edit set image controller=$(IMG)
+	# operator-sdk only writes manifests, it never deletes. Removed or renamed resources
+	# stay behind and still ship, and `bundle validate` does not flag them.
+	rm -rf bundle/manifests
 	$(KUSTOMIZE) build config/manifests | $(OPERATOR_SDK) generate bundle $(BUNDLE_GEN_FLAGS)
 	# Add OpenShift version to bundle.Dockerfile and bundle/metadata/annotations.yaml manually because operator-sdk cleans any additional labels.
 	echo "" >> bundle.Dockerfile

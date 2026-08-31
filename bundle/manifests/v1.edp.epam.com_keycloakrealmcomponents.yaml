@@ -115,8 +115,18 @@ spec:
           status:
             description: KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
             properties:
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of referenced secret versions
+                  from the last successful reconcile; it contains no secret-derived
+                  data.
+                type: string
               id:
                 type: string
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
+                format: int64
+                type: integer
               value:
                 type: string
             type: object
