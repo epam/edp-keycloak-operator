@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -50,12 +50,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -74,23 +74,23 @@ jobs:
      CHART_SCHEMA_FILE_PATH: "chart_schema.yaml"
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Helm
-        uses: azure/setup-helm@v4
+        uses: azure/setup-helm@v5
         with:
           version: ${{ env.HELM_VERSION }}
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           check-latest: true
 
       - name: Set up chart-testing
-        uses: helm/chart-testing-action@v2.6.0
+        uses: helm/chart-testing-action@v2.8.0
 
       - name: Run chart-testing (lint)
         run: ct lint --target-branch ${{ github.event.repository.default_branch }} \
@@ -104,17 +104,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
       - name: Cache golangci-lint
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/golangci-lint
           key: ${{ runner.os }}-golangci-lint-${{ hashFiles('**/go.sum') }}
@@ -134,12 +134,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Run hadolint
-        uses: hadolint/hadolint-action@v3.1.0
+        uses: hadolint/hadolint-action@v3.5.0
         with:
           dockerfile: Dockerfile
 
@@ -149,16 +149,18 @@ jobs:
     strategy:
       matrix:
         keycloak-version:
+        - "26.7"
+        - "26.6"
         - "26.5"
         - "26.4"
     steps:
     - name: Checkout code
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
       with:
         fetch-depth: 1
 
     - name: Set up Go
-      uses: actions/setup-go@v6
+      uses: actions/setup-go@v7
       with:
         go-version: ${{ env.GOLANG_VERSION }}
 
@@ -201,12 +203,12 @@ jobs:
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -220,7 +222,7 @@ jobs:
 
       - name: Upload e2e logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-k8s-${{ matrix.kube-version }}
           path: |

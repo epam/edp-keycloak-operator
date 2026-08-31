@@ -29,8 +29,8 @@ runs:
         docker run -d \
           --name keycloak \
           -p ${{ inputs.port }}:${{ inputs.port }} \
-          -e KEYCLOAK_ADMIN=${{ inputs.admin-user }} \
-          -e KEYCLOAK_ADMIN_PASSWORD=${{ inputs.admin-password }} \
+          -e KC_BOOTSTRAP_ADMIN_USERNAME=${{ inputs.admin-user }} \
+          -e KC_BOOTSTRAP_ADMIN_PASSWORD=${{ inputs.admin-password }} \
           -e KC_FEATURES=admin-fine-grained-authz:v1 \
           -e KC_HTTP_PORT=${{ inputs.port }} \
           quay.io/keycloak/keycloak:${{ inputs.keycloak-version }} \

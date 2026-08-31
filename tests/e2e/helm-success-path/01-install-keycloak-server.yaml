@@ -62,7 +62,7 @@ spec:
           - name: configs
             mountPath: /etc/nginx/conf.d
         - name: keycloak
-          image: quay.io/keycloak/keycloak:26.3
+          image: quay.io/keycloak/keycloak:26.7
           args:
             - "start-dev"
             - "--proxy-headers"

@@ -6,7 +6,7 @@ on:
 
 env:
   GOLANG_VERSION: '1.25'
-  KEYCLOAK_VERSION: '26.5'
+  KEYCLOAK_VERSION: '26.7'
 
 jobs:
 
@@ -14,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -32,7 +32,7 @@ jobs:
         run: TEST_KEYCLOAK_URL="http://localhost:8081" make test
 
       - name: Upload codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: coverage.out

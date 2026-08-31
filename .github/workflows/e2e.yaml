@@ -25,12 +25,12 @@ jobs:
 
     steps:
       - name: Check out code into the Go module directory
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 1
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
 
@@ -44,7 +44,7 @@ jobs:
 
       - name: Upload e2e logs on failure
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: e2e-logs-k8s-${{ matrix.kube-version }}-master
           path: |
