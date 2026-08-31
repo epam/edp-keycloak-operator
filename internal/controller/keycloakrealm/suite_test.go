@@ -27,6 +27,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloak"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -97,11 +98,11 @@ var _ = BeforeSuite(func() {
 		SetupWithManager(k8sManager, time.Second)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), h).
+	err = NewReconcileKeycloakRealm(k8sManager.GetClient(), k8sManager.GetScheme(), h, destination.AllowAll()).
 		SetupWithManager(k8sManager, time.Second)
 	Expect(err).ToNot(HaveOccurred())
 
-	err = keycloakclient.NewReconcileKeycloakClient(k8sManager.GetClient(), h).
+	err = keycloakclient.NewReconcileKeycloakClient(k8sManager.GetClient(), h, destination.AllowAll()).
 		SetupWithManager(k8sManager, time.Second)
 
 	go func() {

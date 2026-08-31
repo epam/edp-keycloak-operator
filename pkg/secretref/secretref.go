@@ -12,6 +12,8 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 const (
@@ -32,11 +34,14 @@ type RefClient interface {
 // SecretRef provides methods to work with secret references.
 type SecretRef struct {
 	client client.Client
+	guard  *destination.Guard
 }
 
-// NewSecretRef returns a new instance of SecretRef.
-func NewSecretRef(k8sClient client.Client) *SecretRef {
-	return &SecretRef{client: k8sClient}
+// NewSecretRef returns a new instance of SecretRef. The guard is required: the config-map
+// resolvers substitute secret references in place, so the destination check has to happen in the
+// same call that resolves them.
+func NewSecretRef(k8sClient client.Client, guard *destination.Guard) *SecretRef {
+	return &SecretRef{client: k8sClient, guard: guard}
 }
 
 // MapConfigSecretsRefs maps secret references in config map to actual values. It returns a
@@ -46,6 +51,10 @@ func (s *SecretRef) MapConfigSecretsRefs(
 	config map[string]string,
 	namespace string,
 ) (map[string]string, error) {
+	if err := s.guard.ScanConfig(ctx, "spec.config", singleToMultiValued(config)); err != nil {
+		return nil, err
+	}
+
 	versions := make(map[string]string)
 
 	for k, v := range config {
@@ -72,6 +81,10 @@ func (s *SecretRef) MapComponentConfigSecretsRefs(
 	config map[string][]string,
 	namespace string,
 ) (map[string][]string, error) {
+	if err := s.guard.ScanConfig(ctx, "spec.config", config); err != nil {
+		return nil, err
+	}
+
 	versions := make(map[string][]string)
 
 	for k, values := range config {
@@ -143,6 +156,17 @@ func SecretKeyVersion(secret *corev1.Secret, key string) string {
 // HasSecretRef checks if value has secret reference.
 func HasSecretRef(val string) bool {
 	return strings.HasPrefix(val, secretRefPrefix)
+}
+
+// singleToMultiValued adapts a single-valued config map for the destination guard, which takes
+// the multivalued shape used by component configs.
+func singleToMultiValued(config map[string]string) map[string][]string {
+	out := make(map[string][]string, len(config))
+	for k, v := range config {
+		out[k] = []string{v}
+	}
+
+	return out
 }
 
 // HasAnySecretRef reports whether any value in values is a secret reference.

@@ -20,6 +20,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -198,6 +199,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := ConfigureEmail{
 				client: tt.k8sClient(t),
+				guard:  destination.AllowAll(),
 			}
 			mockRealm := tt.realmClient(t)
 			kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
@@ -369,6 +371,7 @@ func TestConfigureRealmEmail(t *testing.T) {
 				tt.k8sClient,
 				tt.storedHash,
 				tt.forceWrite,
+				destination.AllowAll(),
 			)
 
 			tt.wantErr(t, err)

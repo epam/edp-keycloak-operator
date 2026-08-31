@@ -14,6 +14,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -21,6 +22,7 @@ import (
 type ConfigureEmail struct {
 	next   handler.RealmHandler
 	client client.Client
+	guard  *destination.Guard
 }
 
 func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
@@ -40,6 +42,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Key
 		s.client,
 		realm.Status.ConfigSecretsHash,
 		helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
+		s.guard,
 	)
 	if err != nil {
 		return err
@@ -65,9 +68,16 @@ func ConfigureRealmEmail(
 	k8sClient client.Client,
 	storedHash string,
 	forceWrite bool,
+	guard *destination.Guard,
 ) (string, error) {
 	if emailSpec == nil {
 		return "", nil
+	}
+
+	// Keycloak, not the operator, dials this host, and it carries the SMTP password.
+	// Checked before the password Secret is resolved below.
+	if err := guard.RequireHost(ctx, "spec.smtp.connection.host", emailSpec.Connection.Host); err != nil {
+		return "", err
 	}
 
 	current, _, err := realmClient.GetRealm(ctx, realmName)

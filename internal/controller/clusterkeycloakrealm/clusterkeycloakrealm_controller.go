@@ -19,6 +19,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -35,6 +36,7 @@ type ClusterKeycloakRealmReconciler struct {
 	scheme            *runtime.Scheme
 	helper            Helper
 	operatorNamespace string
+	guard             *destination.Guard
 }
 
 func NewClusterKeycloakRealmReconciler(
@@ -42,9 +44,10 @@ func NewClusterKeycloakRealmReconciler(
 	scheme *runtime.Scheme,
 	controllerHelper Helper,
 	operatorNamespace string,
+	guard *destination.Guard,
 ) *ClusterKeycloakRealmReconciler {
 	return &ClusterKeycloakRealmReconciler{
-		client: k8sClient, scheme: scheme, helper: controllerHelper, operatorNamespace: operatorNamespace}
+		client: k8sClient, scheme: scheme, helper: controllerHelper, operatorNamespace: operatorNamespace, guard: guard}
 }
 
 const (
@@ -100,7 +103,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	// and updateSuccessStatus's DeepEqual guard must compare against the persisted status.
 	oldStatus := clusterRealm.Status
 
-	if err := chain.MakeChain(r.client, r.operatorNamespace).ServeRequest(ctx, clusterRealm, kClient); err != nil {
+	if err := chain.MakeChain(r.client, r.operatorNamespace, r.guard).ServeRequest(ctx, clusterRealm, kClient); err != nil {
 		clusterRealm.Status.Available = false
 		clusterRealm.Status.Value = err.Error()
 		requeue := r.helper.SetFailureCount(clusterRealm)

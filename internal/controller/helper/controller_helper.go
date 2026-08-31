@@ -16,6 +16,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakClient "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 const (
@@ -64,6 +65,9 @@ type Helper struct {
 	// enableOwnerRef is a flag to enable legacy owner reference to Keycloak and KeycloakRealm for operator objects.
 	// This is needed for backward compatibility with the old version of the operator.
 	enableOwnerRef bool
+	// guard vets the Keycloak URL a custom resource points at. Defaults to permissive; cmd/main.go
+	// supplies the configured one.
+	guard *destination.Guard
 }
 
 func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespace string, options ...func(*Helper)) *Helper {
@@ -72,6 +76,7 @@ func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespa
 		scheme:            scheme,
 		operatorNamespace: operatorNamespace,
 		enableOwnerRef:    false,
+		guard:             destination.AllowAll(),
 	}
 
 	for _, option := range options {
@@ -85,6 +90,13 @@ func MakeHelper(k8sClient client.Client, scheme *runtime.Scheme, operatorNamespa
 func EnableOwnerRef(setOwnerRef bool) func(*Helper) {
 	return func(h *Helper) {
 		h.enableOwnerRef = setOwnerRef
+	}
+}
+
+// WithDestinationGuard sets the guard applied to spec.url.
+func WithDestinationGuard(guard *destination.Guard) func(*Helper) {
+	return func(h *Helper) {
+		h.guard = guard
 	}
 }
 

@@ -12,11 +12,12 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 var log = ctrl.Log.WithName("realm_handler")
 
-func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme) handler.RealmHandler {
+func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, guard *destination.Guard) handler.RealmHandler {
 	return PutRealm{
 		client: k8sClient,
 		next: SetLabels{
@@ -29,6 +30,7 @@ func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme) handler.Rea
 								next: UserProfile{
 									next: ConfigureEmail{
 										client: k8sClient,
+										guard:  guard,
 									},
 								},
 							},

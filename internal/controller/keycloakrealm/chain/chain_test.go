@@ -16,6 +16,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 func TestCreateDefChain(t *testing.T) {
@@ -58,7 +59,7 @@ func TestCreateDefChain(t *testing.T) {
 		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
 
 	_ = realmName // kept for local variable consistency
-	chain := CreateDefChain(client, s)
+	chain := CreateDefChain(client, s, destination.AllowAll())
 	kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)

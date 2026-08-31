@@ -9,6 +9,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -56,11 +57,12 @@ func (ch *Chain) Serve(
 func MakeChain(
 	kClient *keycloakapi.KeycloakClient,
 	k8sClient client.Client,
+	guard *destination.Guard,
 ) *Chain {
 	c := &Chain{}
 
 	c.Use(
-		NewPutIDP(kClient.IdentityProviders, secretref.NewSecretRef(k8sClient)),
+		NewPutIDP(kClient.IdentityProviders, secretref.NewSecretRef(k8sClient, guard)),
 		NewPutIDPMappers(kClient.IdentityProviders),
 		NewPutAdminFineGrainedPermissions(kClient),
 	)

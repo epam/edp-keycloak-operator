@@ -133,12 +133,14 @@ Development versions are also available from the [snapshot helm chart repository
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | affinity | object | `{}` | Affinity for pod assignment |
+| allowedDestinationHosts | list | `[]` | Hostnames the operator and Keycloak may reach with credentials resolved from Secrets. Covers Keycloak spec.url, realm spec.smtp.connection.host, and URLs inside identity provider and realm component config. Exact, case-insensitive match; no wildcards. Write the hostname only, without scheme, port or path, and prefer fully qualified names. An empty list allows every destination. |
 | annotations | object | `{}` | Annotations to be added to the Deployment |
 | clusterDomain | string | `"cluster.local"` | Cluster domain for constructing service DNS names |
 | clusterReconciliationEnabled | bool | `false` | If clusterReconciliationEnabled is true, the operator reconciles all Keycloak instances in the cluster;  otherwise, it only reconciles instances in the same namespace by default, and cluster-scoped resources are ignored. |
 | containerSecurityContext | object | `{"allowPrivilegeEscalation":false}` | Container Security Context Ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/ |
 | enableOwnerRef | bool | `true` | If set to true, the operator will set the owner reference for all resources that have Keycloak or KeycloakRealm as reference. This is legacy behavior and not recommended for use. In the future, this will be set to false by default. |
 | enableWebhooks | bool | `true` | If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate). Webhooks require cert-manager to be installed in the cluster. |
+| enforceDestinationAllowlist | bool | `false` | If true, a destination absent from allowedDestinationHosts fails the reconcile. If false, it is only logged and counted, so the list can be built from a running cluster. Enabling this with an empty allowedDestinationHosts stops the operator at startup. |
 | extraVolumeMounts | list | `[]` | Additional volumeMounts to be added to the container |
 | extraVolumes | list | `[]` | Additional volumes to be added to the pod |
 | image.registry | string | `""` | KubeRocketCI keycloak-operator Docker image registry. |

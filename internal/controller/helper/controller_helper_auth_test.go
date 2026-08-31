@@ -18,6 +18,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	keycloakClient "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
@@ -217,7 +218,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := MakeKeycloakAuthDataFromKeycloak(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloak, tt.k8sClient(t))
+			got, err := MakeKeycloakAuthDataFromKeycloak(ctrl.LoggerInto(context.Background(), logr.Discard()), tt.keycloak, tt.k8sClient(t), destination.AllowAll())
 
 			tt.wantErr(t, err)
 			require.Equal(t, tt.want, got)
@@ -288,6 +289,7 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 				tt.keycloak,
 				"ns-with-secrets",
 				tt.k8sClient(t),
+				destination.AllowAll(),
 			)
 
 			tt.wantErr(t, err)
@@ -575,6 +577,7 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -750,6 +753,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -999,6 +1003,7 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 				Build()
 
 			h := &Helper{
+				guard:  destination.AllowAll(),
 				client: k8sClient,
 			}
 
@@ -1131,6 +1136,7 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 				Build()
 
 			h := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -1275,6 +1281,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 				Build()
 
 			helper := &Helper{
+				guard:  destination.AllowAll(),
 				client: k8sClient,
 			}
 
@@ -1395,6 +1402,7 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -1593,6 +1601,7 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -1820,6 +1829,7 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}
@@ -1942,6 +1952,7 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 				Build()
 
 			helper := &Helper{
+				guard:             destination.AllowAll(),
 				client:            k8sClient,
 				operatorNamespace: "default",
 			}

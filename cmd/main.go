@@ -47,6 +47,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrolebatch"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser"
 	webhookv1 "github.com/epam/edp-keycloak-operator/internal/webhook/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 	"github.com/epam/edp-keycloak-operator/pkg/util"
 )
@@ -60,6 +61,9 @@ const (
 	keycloakOperatorLock    = "edp-keycloak-operator-lock"
 	successReconcileTimeout = "SUCCESS_RECONCILE_TIMEOUT"
 	operatorNamespaceEnv    = "OPERATOR_NAMESPACE"
+
+	allowedDestinationHostsEnv = "ALLOWED_DESTINATION_HOSTS"
+	enforceDestinationEnv      = "ENFORCE_DESTINATION_ALLOWLIST"
 )
 
 func init() {
@@ -248,7 +252,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	h := helper.MakeHelper(mgr.GetClient(), mgr.GetScheme(), operatorNamespace, helper.EnableOwnerRef(enableOwnerRef()))
+	destinationGuard, err := makeDestinationGuard()
+	if err != nil {
+		setupLog.Error(err, "unable to configure the destination allowlist")
+		os.Exit(1)
+	}
+
+	setupLog.Info("Destination allowlist configured",
+		"allowedDestinationHosts", destinationGuard.Hosts(),
+		"enforce", os.Getenv(enforceDestinationEnv) == "true")
+
+	h := helper.MakeHelper(
+		mgr.GetClient(),
+		mgr.GetScheme(),
+		operatorNamespace,
+		helper.EnableOwnerRef(enableOwnerRef()),
+		helper.WithDestinationGuard(destinationGuard),
+	)
 
 	keycloakCtrl := keycloak.NewReconcileKeycloak(mgr.GetClient(), mgr.GetScheme(), h)
 	if err = keycloakCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
@@ -256,13 +276,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h)
+	keycloakClientCtrl := keycloakclient.NewReconcileKeycloakClient(mgr.GetClient(), h, destinationGuard)
 	if err = keycloakClientCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-client controller")
 		os.Exit(1)
 	}
 
-	keycloakRealmCtrl := keycloakrealm.NewReconcileKeycloakRealm(mgr.GetClient(), mgr.GetScheme(), h)
+	keycloakRealmCtrl := keycloakrealm.NewReconcileKeycloakRealm(mgr.GetClient(), mgr.GetScheme(), h, destinationGuard)
 	if err = keycloakRealmCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm controller")
 		os.Exit(1)
@@ -308,14 +328,14 @@ func main() {
 		mgr.GetClient(),
 		mgr.GetScheme(),
 		h,
-		secretref.NewSecretRef(mgr.GetClient()),
+		secretref.NewSecretRef(mgr.GetClient(), destinationGuard),
 	).
 		SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-component controller")
 		os.Exit(1)
 	}
 
-	if err = keycloakrealmidentityprovider.NewIdentityProviderReconciler(mgr.GetClient(), h).
+	if err = keycloakrealmidentityprovider.NewIdentityProviderReconciler(mgr.GetClient(), h, destinationGuard).
 		SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-identity-provider controller")
 		os.Exit(1)
@@ -333,6 +353,7 @@ func main() {
 			mgr.GetScheme(),
 			h,
 			operatorNamespace,
+			destinationGuard,
 		).
 			SetupWithManager(mgr); err != nil {
 			setupLog.Error(err, "unable to create controller", "controller", "ClusterKeycloakRealm")
@@ -419,6 +440,23 @@ func getSuccessReconcileTimeout() (time.Duration, error) {
 	}
 
 	return d, nil
+}
+
+// makeDestinationGuard builds the register of hosts the operator and Keycloak may reach with
+// credentials resolved from Secrets. An empty list allows every destination.
+func makeDestinationGuard() (*destination.Guard, error) {
+	var hosts []string
+
+	if raw := strings.TrimSpace(os.Getenv(allowedDestinationHostsEnv)); raw != "" {
+		hosts = strings.Split(raw, ",")
+	}
+
+	guard, err := destination.New(hosts, os.Getenv(enforceDestinationEnv) == "true")
+	if err != nil {
+		return nil, fmt.Errorf("invalid destination allowlist configuration: %w", err)
+	}
+
+	return guard, nil
 }
 
 func getOperatorNamespace() (string, error) {

@@ -14,6 +14,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 type testHandler struct {
@@ -97,7 +98,7 @@ func TestMakeChain(t *testing.T) {
 
 	k8sClient := fake.NewClientBuilder().WithScheme(s).Build()
 
-	c := MakeChain(&keycloakapi.KeycloakClient{}, k8sClient)
+	c := MakeChain(&keycloakapi.KeycloakClient{}, k8sClient, destination.AllowAll())
 
 	require.Len(t, c.handlers, 3)
 }

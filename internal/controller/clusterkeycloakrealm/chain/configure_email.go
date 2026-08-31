@@ -11,15 +11,17 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	keycloakrealmchain "github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 type ConfigureEmail struct {
 	client     client.Client
 	operatorNs string
+	guard      *destination.Guard
 }
 
-func NewConfigureEmail(k8sClient client.Client, operatorNs string) *ConfigureEmail {
-	return &ConfigureEmail{client: k8sClient, operatorNs: operatorNs}
+func NewConfigureEmail(k8sClient client.Client, operatorNs string, guard *destination.Guard) *ConfigureEmail {
+	return &ConfigureEmail{client: k8sClient, operatorNs: operatorNs, guard: guard}
 }
 
 func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.ClusterKeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
@@ -39,6 +41,7 @@ func (s ConfigureEmail) ServeRequest(ctx context.Context, realm *keycloakApi.Clu
 		s.client,
 		realm.Status.ConfigSecretsHash,
 		helper.SpecChanged(realm.Generation, realm.Status.ObservedGeneration),
+		s.guard,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to configure email: %w", err)

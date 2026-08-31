@@ -67,6 +67,18 @@ clusterReconciliationEnabled: false
 # This is legacy behavior and not recommended for use. In the future, this will be set to false by default.
 enableOwnerRef: true
 
+# -- Hostnames the operator and Keycloak may reach with credentials resolved from Secrets.
+# Covers Keycloak spec.url, realm spec.smtp.connection.host, and URLs inside identity provider
+# and realm component config. Exact, case-insensitive match; no wildcards. Write the hostname
+# only, without scheme, port or path, and prefer fully qualified names.
+# An empty list allows every destination.
+allowedDestinationHosts: []
+
+# -- If true, a destination absent from allowedDestinationHosts fails the reconcile.
+# If false, it is only logged and counted, so the list can be built from a running cluster.
+# Enabling this with an empty allowedDestinationHosts stops the operator at startup.
+enforceDestinationAllowlist: false
+
 # -- If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate).
 # Webhooks require cert-manager to be installed in the cluster.
 enableWebhooks: true

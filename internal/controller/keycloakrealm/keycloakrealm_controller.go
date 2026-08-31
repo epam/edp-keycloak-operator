@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm/chain/handler"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
@@ -37,11 +38,12 @@ func NewReconcileKeycloakRealm(
 	k8sClient client.Client,
 	scheme *runtime.Scheme,
 	controllerHelper Helper,
+	guard *destination.Guard,
 ) *ReconcileKeycloakRealm {
 	return &ReconcileKeycloakRealm{
 		client: k8sClient,
 		helper: controllerHelper,
-		chain:  chain.CreateDefChain(k8sClient, scheme),
+		chain:  chain.CreateDefChain(k8sClient, scheme, guard),
 	}
 }
 

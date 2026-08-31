@@ -72,6 +72,10 @@ spec:
               value: {{ .Values.enableOwnerRef | quote }}
             - name: ENABLE_WEBHOOKS
               value: {{ .Values.enableWebhooks | quote }}
+            - name: ALLOWED_DESTINATION_HOSTS
+              value: {{ join "," .Values.allowedDestinationHosts | quote }}
+            - name: ENFORCE_DESTINATION_ALLOWLIST
+              value: {{ .Values.enforceDestinationAllowlist | quote }}
         {{- if or .Values.extraVolumeMounts .Values.enableWebhooks }}
           volumeMounts:
           {{- if .Values.enableWebhooks }}
