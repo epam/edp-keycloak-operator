@@ -18,11 +18,12 @@ import (
 // Idempotency suite for ClusterKeycloakRealm.
 var _ = Describe("ClusterKeycloakRealm idempotent reconcile", Ordered, func() {
 	const (
-		crName    = "idem-cluster-realm"
-		realmName = "idem-cluster-realm"
-		settle    = testutils.Settle
-		longWait  = testutils.LongWait
+		crName   = "idem-cluster-realm"
+		settle   = testutils.Settle
+		longWait = testutils.LongWait
 	)
+
+	realmName := testutils.RealmName("idem-cluster-realm")
 
 	var recorder *testutils.AdminEventRecorder
 

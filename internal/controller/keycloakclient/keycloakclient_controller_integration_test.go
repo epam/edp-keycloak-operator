@@ -18,6 +18,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakclient/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var _ = Describe("KeycloakClient controller", Ordered, func() {
@@ -1028,13 +1029,14 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 
 	It("Should successfully delete KeycloakClient if ErrKeycloakRealmNotFound occurs", func() {
 		By("By creating a KeycloakRealm")
+		realmName := testutils.RealmName("test-realm")
 		testRealm := &keycloakApi.KeycloakRealm{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-realm",
+				Name:      realmName,
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-realm",
+				RealmName: realmName,
 				KeycloakRef: common.KeycloakRef{
 					Kind: keycloakApi.KeycloakKind,
 					Name: KeycloakCR,
@@ -1050,7 +1052,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakClientSpec{
-				RealmRef: common.RealmRef{Name: "test-realm"},
+				RealmRef: common.RealmRef{Name: realmName},
 				ClientId: "test-client-id",
 			},
 		}

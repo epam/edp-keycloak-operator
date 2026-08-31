@@ -13,13 +13,15 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var _ = Describe("KeycloakRealm admin events expiration", Ordered, func() {
 	const (
-		crName    = "test-keycloak-realm-admin-events"
-		realmName = "test-realm-admin-events"
+		crName = "test-keycloak-realm-admin-events"
 	)
+
+	realmName := testutils.RealmName("test-realm-admin-events")
 
 	It("Should preserve externally-set adminEventsExpiration when the CR omits it", func() {
 		By("Creating a KeycloakRealm without realmEventConfig")
@@ -95,9 +97,10 @@ var _ = Describe("KeycloakRealm admin events expiration", Ordered, func() {
 
 var _ = Describe("KeycloakRealm externally-managed settings", Ordered, func() {
 	const (
-		crName    = "test-keycloak-realm-external"
-		realmName = "test-realm-external-managed"
+		crName = "test-keycloak-realm-external"
 	)
+
+	realmName := testutils.RealmName("test-realm-external-managed")
 
 	It("Should preserve externally-set realm settings not defined in the CR", func() {
 		By("Creating a minimal KeycloakRealm without display name or organizations settings")

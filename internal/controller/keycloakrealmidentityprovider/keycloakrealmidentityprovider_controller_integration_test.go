@@ -17,6 +17,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
@@ -294,13 +295,14 @@ var _ = Describe("KeycloakRealmIdentityProvider controller", Ordered, func() {
 	})
 	It("Should successfully delete KeycloakRealmIdentityProvider if realm is deleted first", func() {
 		By("By creating a KeycloakRealm")
+		realmName := testutils.RealmName("test-idp-realm-for-deletion")
 		testRealm := &keycloakApi.KeycloakRealm{
 			ObjectMeta: metav1.ObjectMeta{
-				Name:      "test-idp-realm-for-deletion",
+				Name:      realmName,
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakRealmSpec{
-				RealmName: "test-idp-realm-for-deletion",
+				RealmName: realmName,
 				KeycloakRef: common.KeycloakRef{
 					Kind: keycloakApi.KeycloakKind,
 					Name: KeycloakCR,

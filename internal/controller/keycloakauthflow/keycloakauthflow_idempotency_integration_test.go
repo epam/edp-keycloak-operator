@@ -19,10 +19,11 @@ var _ = Describe("KeycloakAuthFlow idempotent reconcile", Ordered, func() {
 	const (
 		crName    = "idem-flow"
 		flowAlias = "idem-flow"
-		realmCR   = "idem-flow-realm"
 		settle    = testutils.Settle
 		longWait  = testutils.LongWait
 	)
+
+	realmCR := testutils.RealmName("idem-flow-realm")
 
 	var recorder *testutils.AdminEventRecorder
 

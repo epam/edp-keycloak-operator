@@ -16,6 +16,16 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
+)
+
+// Realm names are unique per test process: all suites share one Keycloak.
+var (
+	realmMain       = testutils.RealmName("test-realm")
+	realmPreserved  = testutils.RealmName("test-realm2")
+	realmLogin      = testutils.RealmName("test-realm-login")
+	realmSSOSession = testutils.RealmName("test-realm-sso-session")
+	realmBruteForce = testutils.RealmName("test-realm-brute-force")
 )
 
 var _ = Describe("ClusterKeycloakRealm controller", func() {
@@ -30,7 +40,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			},
 			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
 				ClusterKeycloakRef: ClusterKeycloakCR,
-				RealmName:          "test-realm",
+				RealmName:          realmMain,
 				FrontendURL:        "https://test.com",
 				TokenSettings: &common.TokenSettings{
 					DefaultSignatureAlgorithm:           "RS256",
@@ -61,7 +71,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Verifying the realm was created in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmMain)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -109,7 +119,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Checking realm configuration")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmMain)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm.BrowserFlow).Should(Equal(ptr.To("browser")))
 		}, time.Second*30, time.Second).Should(Succeed())
@@ -134,7 +144,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			},
 			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
 				ClusterKeycloakRef: ClusterKeycloakCR,
-				RealmName:          "test-realm2",
+				RealmName:          realmPreserved,
 				FrontendURL:        "https://test.com",
 			},
 		}
@@ -163,7 +173,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			},
 			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
 				ClusterKeycloakRef: ClusterKeycloakCR,
-				RealmName:          "test-realm-login",
+				RealmName:          realmLogin,
 				Login: &keycloakApi.RealmLogin{
 					UserRegistration: true,
 					ForgotPassword:   true,
@@ -189,7 +199,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Verifying the realm login settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-login")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmLogin)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -221,7 +231,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			},
 			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
 				ClusterKeycloakRef: ClusterKeycloakCR,
-				RealmName:          "test-realm-sso-session",
+				RealmName:          realmSSOSession,
 				Sessions: &common.RealmSessions{
 					SSOSessionSettings: &common.RealmSSOSessionSettings{
 						IdleTimeout:           1801,
@@ -254,7 +264,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Verifying the realm SSO session settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-sso-session")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmSSOSession)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -291,7 +301,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			},
 			Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
 				ClusterKeycloakRef: ClusterKeycloakCR,
-				RealmName:          "test-realm-brute-force",
+				RealmName:          realmBruteForce,
 				BruteForceDetection: &common.BruteForceDetection{
 					BruteForceProtected:          ptr.To(true),
 					BruteForceStrategy:           string(keycloakapi.BruteForceStrategyMultiple),
@@ -319,7 +329,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Verifying the realm brute force detection settings in Keycloak")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmBruteForce)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
@@ -345,7 +355,7 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 
 		By("Verifying only FailureFactor changed while other brute force fields were preserved")
 		Eventually(func(g Gomega) {
-			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, "test-realm-brute-force")
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmBruteForce)
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(realm).ShouldNot(BeNil())
 
