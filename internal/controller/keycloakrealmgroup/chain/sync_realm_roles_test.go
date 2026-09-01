@@ -15,7 +15,7 @@ import (
 )
 
 func TestSyncRealmRoles_Serve_UnmanagedOmittedRolesLeftAlone(t *testing.T) {
-	// Strict mocks with no expectations: any Keycloak call fails this test.
+	// No expectations: any Keycloak call fails this test.
 	mockGroups := mocks.NewMockGroupsClient(t)
 	mockRoles := mocks.NewMockRolesClient(t)
 
@@ -146,8 +146,7 @@ func TestSyncRealmRoles_Serve_EmptyListWithNoCurrentRoles(t *testing.T) {
 		context.Background(), "test-realm", "group-123",
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	// No AddRealmRoleMappings or DeleteRealmRoleMappings: an empty list over an empty
-	// mapping set must not issue a write.
+	// No add or delete expected: an empty list over an empty mapping set writes nothing.
 
 	h := NewSyncRealmRoles()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
@@ -316,7 +315,7 @@ func TestSyncRealmRoles_Serve_ErrorRoleNotFound(t *testing.T) {
 		context.Background(), "test-realm", "group-123",
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	// Keycloak answers with no role and no error.
+	// No role, no error.
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", "ghost-role",
 	).Return(nil, nil, nil)
@@ -324,6 +323,37 @@ func TestSyncRealmRoles_Serve_ErrorRoleNotFound(t *testing.T) {
 	h := NewSyncRealmRoles()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, `realm role "ghost-role" not found in realm "test-realm"`)
+}
+
+func TestSyncRealmRoles_Serve_RoleWithoutID(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockRoles := mocks.NewMockRolesClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups: mockGroups,
+		Roles:  mockRoles,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.RealmRoles = ptr.To([]string{"idless-role"})
+
+	mockGroups.EXPECT().GetRealmRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	// Keycloak answers a name/id mismatch with 404, so no AddRealmRoleMappings may be issued.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", "idless-role",
+	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To("idless-role")}, nil, nil)
+
+	h := NewSyncRealmRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, `realm role "idless-role" has no id`)
 }
 
 func TestSyncRealmRoles_Serve_ErrorAddingRoles(t *testing.T) {

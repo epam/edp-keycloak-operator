@@ -346,6 +346,79 @@ func TestCreateOrUpdateGroup_Serve_RenameByID(t *testing.T) {
 	assert.Equal(t, "existing-id", groupCtx.GroupID)
 }
 
+func TestCreateOrUpdateGroup_Serve_ExistingGroupWithoutID(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm", GroupID: "existing-id"}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.Name = testGroupName
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), "test-realm", "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)}, nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "has no id")
+}
+
+func TestCreateOrUpdateGroup_Serve_GroupFoundByNameWithoutID(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: testNamespace},
+	}
+	group.Spec.Name = testGroupName
+
+	// The ownership check and the update both need the id, so neither may run.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testGroupName,
+	).Return(&keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)}, nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "has no id")
+	assert.Empty(t, groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_CreateWithoutLocationHeader(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: "test-realm"}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.Name = testGroupName
+	group.Spec.Path = testGroupPath
+	group.Spec.Attributes = map[string][]string{"key": {"val"}}
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", testGroupName,
+	).Return(nil, nil, keycloakapi.ErrNotFound)
+
+	// Keycloak reports the new id in the Location header only. Without it the chain would
+	// carry an empty group id into every later handler.
+	mockGroups.EXPECT().CreateGroup(
+		context.Background(), "test-realm",
+		keycloakapi.GroupRepresentation{
+			Name:        ptr.To(testGroupName),
+			Description: ptr.To(""),
+			Path:        ptr.To(testGroupPath),
+			Attributes:  &map[string][]string{"key": {"val"}},
+		},
+	).Return(&keycloakapi.Response{HTTPResponse: &http.Response{Header: http.Header{}}}, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "Location header missing or empty")
+	assert.Empty(t, groupCtx.GroupID)
+}
+
 func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 

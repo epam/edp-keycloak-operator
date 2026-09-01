@@ -69,7 +69,8 @@
 //   - [IsServerError] — true for any 5xx error
 //
 // Find* methods return [ErrNotFound] (a sentinel error) when the searched resource does
-// not exist, distinct from [ApiError] with a 404 status code.
+// not exist. A 404 from Keycloak arrives as [ApiError] instead. Both match
+// errors.Is(err, ErrNotFound) and [IsNotFound]; errors.As still yields the [ApiError].
 //
 // # Response Type
 //

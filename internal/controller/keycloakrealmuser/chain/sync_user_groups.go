@@ -44,7 +44,7 @@ func (h *SyncUserGroups) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing user groups")
 
-	// nil: field omitted, not managed. Empty non-nil: managed, clears every membership.
+	// nil: not managed, leave Keycloak alone. Empty non-nil: managed, clear every membership.
 	if user.Spec.Groups == nil {
 		log.Info("Groups are not managed by the resource, skipping")
 
@@ -69,11 +69,19 @@ func (h *SyncUserGroups) Serve(
 		if strings.HasPrefix(g, "/") {
 			grp, _, err := h.kClient.Groups.GetGroupByPath(ctx, realmName, g)
 			if err != nil {
+				if keycloakapi.IsNotFound(err) {
+					return fmt.Errorf("group not found by path %q", g)
+				}
+
 				return fmt.Errorf("unable to get group by path %q: %w", g, err)
 			}
 
-			if grp == nil || grp.Id == nil {
+			if grp == nil {
 				return fmt.Errorf("group not found by path %q", g)
+			}
+
+			if grp.Id == nil {
+				return fmt.Errorf("group %q has no id", g)
 			}
 
 			desired = append(desired, resolvedGroup{id: *grp.Id, path: g})
@@ -85,6 +93,14 @@ func (h *SyncUserGroups) Serve(
 				}
 
 				return fmt.Errorf("unable to find group by name %q: %w", g, err)
+			}
+
+			if grp == nil {
+				return fmt.Errorf("group not found by name %q", g)
+			}
+
+			if grp.Id == nil {
+				return fmt.Errorf("group %q has no id", g)
 			}
 
 			desired = append(desired, resolvedGroup{id: *grp.Id, name: g})

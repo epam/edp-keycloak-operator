@@ -69,13 +69,23 @@ func (h *SyncSubGroups) Serve(
 				return fmt.Errorf("unable to find subgroup %q: %w", claimed, err)
 			}
 
+			// GroupsClient guarantees a non-nil group and id on success; the generated mock is a
+			// second implementation of the same interface and does not. Guard before every use.
+			if subGroup == nil {
+				return fmt.Errorf("subgroup %q not found in realm %q", claimed, realm)
+			}
+
+			if subGroup.Id == nil {
+				return fmt.Errorf("subgroup %q has no id", claimed)
+			}
+
 			// Claiming a group that is itself managed by another KeycloakRealmGroup resource is
 			// the documented behavior of this deprecated field: the move keeps the group ID, so
 			// the owning resource still resolves it via status.ID afterwards.
 			//
-			// CreateChildGroup moves an existing group to a new parent. Only allow this when
-			// the found group is currently top-level (no parent) or already a child of this
-			// group; otherwise we would silently steal it from a different parent group.
+			// CreateChildGroup moves an existing group, so a nested match would be taken from
+			// its current parent. Unreachable through Keycloak: the search above returns only
+			// top-level roots. Kept for an alternate GroupsClient or a changed server response.
 			if subGroup.ParentId != nil && *subGroup.ParentId != groupID {
 				return fmt.Errorf(
 					"subgroup %q is already nested under a different parent group (id %s); "+

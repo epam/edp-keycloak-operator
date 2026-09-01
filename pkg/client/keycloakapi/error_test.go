@@ -2,6 +2,7 @@ package keycloakapi
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -192,6 +193,18 @@ func TestHelperFunctions(t *testing.T) {
 
 		// Test with nil
 		assert.False(t, IsNotFound(nil))
+
+		// The sentinel and the 404 ApiError name the same condition, and errors.Is sees both.
+		assert.True(t, IsNotFound(ErrNotFound))
+		assert.True(t, errors.Is(error(&ApiError{Code: http.StatusNotFound}), ErrNotFound))
+		assert.True(t, errors.Is(fmt.Errorf("wrapped: %w", &ApiError{Code: http.StatusNotFound}), ErrNotFound))
+		assert.False(t, errors.Is(error(&ApiError{Code: http.StatusBadRequest}), ErrNotFound))
+
+		// errors.As still reaches the ApiError for callers that need the status code.
+		var asErr *ApiError
+
+		require.True(t, errors.As(fmt.Errorf("wrapped: %w", &ApiError{Code: http.StatusNotFound}), &asErr))
+		assert.Equal(t, http.StatusNotFound, asErr.Code)
 	})
 
 	t.Run("IsConflict", func(t *testing.T) {

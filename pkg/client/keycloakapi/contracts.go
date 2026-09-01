@@ -147,6 +147,11 @@ type RealmClient interface {
 
 // GroupsClient defines operations for managing Keycloak groups including CRUD,
 // hierarchy, role mappings, and member management.
+//
+// Single-group lookups report a missing group as not found, either as the ErrNotFound
+// sentinel or as a 404 ApiError. Test with IsNotFound or errors.Is against ErrNotFound;
+// both forms match. On success the group and its Id are non-nil; a group without an Id
+// counts as no match, because no other call can address it.
 type GroupsClient interface {
 	// GetGroups lists or searches groups in the given realm.
 	GetGroups(ctx context.Context, realm string, params *GetGroupsParams) ([]GroupRepresentation, *Response, error)
@@ -167,11 +172,11 @@ type GroupsClient interface {
 	) ([]GroupRepresentation, *Response, error)
 	// CreateChildGroup creates a child group under the given parent group.
 	CreateChildGroup(ctx context.Context, realm, parentGroupID string, group GroupRepresentation) (*Response, error)
-	// FindGroupByName searches for a group by exact name. Returns ErrNotFound if no match.
+	// FindGroupByName searches for a group by exact name.
 	FindGroupByName(ctx context.Context, realm, groupName string) (*GroupRepresentation, *Response, error)
 	// GetGroupByPath retrieves a group by its path (e.g., "/parent/child").
 	GetGroupByPath(ctx context.Context, realm, path string) (*GroupRepresentation, *Response, error)
-	// FindChildGroupByName searches for a child group by name under the given parent. Returns ErrNotFound if no match.
+	// FindChildGroupByName searches for a child group by name under the given parent.
 	FindChildGroupByName(
 		ctx context.Context,
 		realm string,

@@ -67,6 +67,10 @@ func (c *groupsClient) GetGroup(ctx context.Context, realm, groupID string) (*Gr
 		return nil, response, err
 	}
 
+	if res.JSON200 == nil || res.JSON200.Id == nil {
+		return nil, response, ErrNotFound
+	}
+
 	return res.JSON200, response, nil
 }
 
@@ -460,13 +464,17 @@ func (c *groupsClient) GetGroupByPath(
 		return nil, response, err
 	}
 
+	if res.JSON200 == nil || res.JSON200.Id == nil {
+		return nil, response, ErrNotFound
+	}
+
 	return res.JSON200, response, nil
 }
 
-// findGroupInList searches for a group by name in a list of groups.
+// findGroupInList searches for a group by name in a list of groups. Skips groups without an ID.
 func findGroupInList(groups []GroupRepresentation, name string) *GroupRepresentation {
 	for i := range groups {
-		if groups[i].Name != nil && *groups[i].Name == name {
+		if groups[i].Id != nil && groups[i].Name != nil && *groups[i].Name == name {
 			return &groups[i]
 		}
 	}
