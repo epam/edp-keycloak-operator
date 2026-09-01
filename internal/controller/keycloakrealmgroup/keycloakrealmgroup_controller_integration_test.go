@@ -10,6 +10,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -456,7 +457,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 				ClientRoles: []keycloakApi.UserClientRole{
 					{
 						ClientID: clientID,
-						Roles:    []string{"group-client-role-1", "group-client-role-2"},
+						Roles:    ptr.To([]string{"group-client-role-1", "group-client-role-2"}),
 					},
 				},
 			},
@@ -496,7 +497,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		updatableGroup.Spec.ClientRoles = []keycloakApi.UserClientRole{
 			{
 				ClientID: clientID,
-				Roles:    []string{"group-client-role-2", "group-client-role-3"},
+				Roles:    ptr.To([]string{"group-client-role-2", "group-client-role-3"}),
 			},
 		}
 		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())

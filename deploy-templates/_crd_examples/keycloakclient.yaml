@@ -44,6 +44,19 @@ spec:
   authorizationServicesEnabled: true
   serviceAccount:
     enabled: true
+    # realmRoles and clientRoles[].roles have three states.
+    #   omitted    the operator does not manage them; Keycloak keeps what it has,
+    #              including the default-roles-<realm> mapping it assigns at creation
+    #   []         the operator manages them and removes every mapping
+    #   [a, b]     the operator manages them; exactly a and b remain
+    # Helm: write [] in values.yaml or pass --set-json 'realmRoles=[]'.
+    # `--set realmRoles={}` yields [""], and a {{ if }} guard drops [] entirely.
+    realmRoles:
+      - offline_access
+    clientRoles:
+      - clientId: realm-management
+        roles:
+          - view-users
   authorization:
     scopes:
       - scope1

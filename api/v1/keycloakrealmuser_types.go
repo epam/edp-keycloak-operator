@@ -40,10 +40,12 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	RequiredUserActions []string `json:"requiredUserActions,omitempty"`
 
-	// Roles is a list of roles assigned to user.
+	// Roles is a list of realm roles assigned to user.
+	// Omit the field to leave the user's realm roles unmanaged; set it to an empty list to
+	// remove every realm role.
 	// +nullable
 	// +optional
-	Roles []string `json:"roles,omitempty"`
+	Roles *[]string `json:"roles,omitempty"`
 
 	// ClientRoles is a list of client roles assigned to user.
 	// +nullable

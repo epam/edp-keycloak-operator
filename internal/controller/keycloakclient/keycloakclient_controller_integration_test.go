@@ -439,11 +439,11 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Secret: secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
 				ServiceAccount: &keycloakApi.ServiceAccount{
 					Enabled:    true,
-					RealmRoles: []string{"default-roles-" + KeycloakRealmCR},
+					RealmRoles: ptr.To([]string{"default-roles-" + KeycloakRealmCR}),
 					ClientRoles: []keycloakApi.UserClientRole{
 						{
 							ClientID: "account",
-							Roles:    []string{"view-profile"},
+							Roles:    ptr.To([]string{"view-profile"}),
 						},
 					},
 					Groups: []string{"test-sa-group"},

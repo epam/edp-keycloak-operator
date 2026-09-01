@@ -57,10 +57,15 @@ func (h *ServiceAccount) Serve(ctx context.Context, keycloakClient *keycloakApi.
 		return fmt.Errorf("unable to sync service account realm roles: %w", err)
 	}
 
-	// Sync client roles
+	// Entries with a nil role list are not managed and never reach the map.
 	clientRoles := make(map[string][]string)
+
 	for _, v := range keycloakClient.Spec.ServiceAccount.ClientRoles {
-		clientRoles[v.ClientID] = v.Roles
+		if v.Roles == nil {
+			continue
+		}
+
+		clientRoles[v.ClientID] = *v.Roles
 	}
 
 	if err := h.syncClientRoles(ctx, realmName, saUserID, clientRoles, addOnly); err != nil {
@@ -120,9 +125,17 @@ func (h *ServiceAccount) setSuccessCondition(ctx context.Context, keycloakClient
 func (h *ServiceAccount) syncRealmRoles(
 	ctx context.Context,
 	realmName, saUserID string,
-	desiredRoleNames []string,
+	desired *[]string,
 	addOnly bool,
 ) error {
+	// nil: field omitted, not managed. Empty non-nil: managed, clears every mapping.
+	// Keycloak seeds default-roles-<realm> on the service-account user at creation.
+	if desired == nil {
+		return nil
+	}
+
+	desiredRoleNames := *desired
+
 	// Get current realm role mappings
 	currentRoles, _, err := h.kClient.Users.GetUserRealmRoleMappings(ctx, realmName, saUserID)
 	if err != nil {

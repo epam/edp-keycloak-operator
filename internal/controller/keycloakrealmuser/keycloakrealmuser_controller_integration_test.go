@@ -119,23 +119,23 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				RequiredUserActions: []string{
 					"VERIFY_EMAIL",
 				},
-				Roles: []string{
+				Roles: ptr.To([]string{
 					"offline_access",
 					"uma_authorization",
-				},
+				}),
 				ClientRoles: []keycloakApi.UserClientRole{
 					{
 						ClientID: "account",
-						Roles: []string{
+						Roles: ptr.To([]string{
 							"view-profile",
 							"view-groups",
-						},
+						}),
 					},
 					{
 						ClientID: "realm-management",
-						Roles: []string{
+						Roles: ptr.To([]string{
 							"create-client",
-						},
+						}),
 					},
 				},
 				Groups: []string{
@@ -376,15 +376,15 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Namespace: ns, Name: userCR}, user)).Should(Succeed())
 
 		By("Updating KeycloakRealmUser roles")
-		user.Spec.Roles = []string{
+		user.Spec.Roles = ptr.To([]string{
 			"offline_access",
-		}
+		})
 		user.Spec.ClientRoles = []keycloakApi.UserClientRole{
 			{
 				ClientID: "account",
-				Roles: []string{
+				Roles: ptr.To([]string{
 					"view-profile",
-				},
+				}),
 			},
 		}
 
@@ -582,7 +582,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 					Name: KeycloakRealmCR,
 				},
 				Username: "test-user-invalid-role",
-				Roles:    []string{"invalid-role"},
+				Roles:    ptr.To([]string{"invalid-role"}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
@@ -643,6 +643,72 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			deletedUser := &keycloakApi.KeycloakRealmUser{}
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: user.Name, Namespace: ns}, deletedUser)
 			g.Expect(k8sErrors.IsNotFound(err)).Should(BeTrue())
+		}, timeout, interval).Should(Succeed())
+	})
+})
+
+// Under the default full strategy an omitted spec.roles must revoke nothing. The user is created
+// outside the operator, so the default-roles-<realm> mapping under test is Keycloak's own.
+var _ = Describe("KeycloakRealmUser unmanaged roles", Ordered, func() {
+	const (
+		crName   = "unmanaged-roles-user"
+		username = "unmanaged-roles-user"
+	)
+
+	defaultRole := "default-roles-" + KeycloakRealmCR
+
+	realmRoleNames := func() []string {
+		found, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, KeycloakRealmCR, username)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(found).ShouldNot(BeNil())
+
+		mappings, _, err := keycloakApiClient.Users.GetUserRealmRoleMappings(ctx, KeycloakRealmCR, *found.Id)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		names := make([]string, 0, len(mappings))
+		for _, r := range mappings {
+			names = append(names, ptr.Deref(r.Name, ""))
+		}
+
+		return names
+	}
+
+	It("Should keep the Keycloak default role when spec.roles is omitted", func() {
+		_, err := keycloakApiClient.Users.CreateUser(ctx, KeycloakRealmCR, keycloakapi.UserRepresentation{
+			Username: ptr.To(username),
+			Enabled:  ptr.To(true),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(realmRoleNames()).To(ContainElement(defaultRole), "Keycloak must seed the default role")
+
+		Expect(k8sClient.Create(ctx, &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				Username:     username,
+				Enabled:      true,
+				KeepResource: true,
+			},
+		})).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmUser{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
+
+		Expect(realmRoleNames()).To(ContainElement(defaultRole),
+			"omitting spec.roles must not revoke the role Keycloak assigned")
+	})
+
+	It("Should remove every realm role when spec.roles is an explicit empty list", func() {
+		cr := &keycloakApi.KeycloakRealmUser{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.Roles = ptr.To([]string{})
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(realmRoleNames()).ShouldNot(ContainElement(defaultRole))
 		}, timeout, interval).Should(Succeed())
 	})
 })

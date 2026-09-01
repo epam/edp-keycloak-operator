@@ -79,6 +79,11 @@ KEYCLOAK_VERSION=26.5.2 make generate-keycloak-go-client   # regenerate oapi cli
 ### Reconciliation idempotency
 Skip Keycloak writes when actual state matches the spec; track `status.observedGeneration` and force writes on generation change so spec removals propagate. Never delete-and-recreate child resources — diff by name (reference: `internal/controller/keycloakclientscope/chain/`).
 
+### Optional list fields
+`absent` = the resource does not manage that facet, leave Keycloak alone. `[]` = managed, clear every entry. `[a,b]` = managed, exactly a and b. Type such a field `*[]T`; a plain `[]T` cannot express the distinction, and the operator's own full-object `Update` erases an explicit `[]` from etcd. Older plain-slice fields still clear on omission — convert one when you touch it.
+
+A sweep is a two-way diff and cannot tell "not mentioned" from "remove". Check nil before reading live state. Key an orphan sweep off "mentioned in spec", not "has a list", or the sweep undoes the nil check.
+
 ### Never edit generated code
 `pkg/client/keycloakapi/generated/client_generated.go` is auto-generated — do not edit manually.
 Edit `pkg/client/keycloakapi/openapi.yaml` then re-run `make generate-keycloak-go-client`.

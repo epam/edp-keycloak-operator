@@ -4380,7 +4380,9 @@ Each attribute can have multiple values.<br/>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>
-          RealmRoles is a list of realm roles assigned to service account.<br/>
+          RealmRoles is a list of realm roles assigned to service account.
+Omit the field to leave the service account's realm roles unmanaged; set it to an empty
+list to remove every realm role.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -4414,7 +4416,9 @@ Each attribute can have multiple values.<br/>
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of client roles names assigned to user.<br/>
+          Roles is a list of client roles names assigned to user.
+Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+remove every mapping for the client.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -5275,7 +5279,9 @@ RealmRef is reference to Realm custom resource.
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of client roles names assigned to user.<br/>
+          Roles is a list of client roles names assigned to user.
+Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+remove every mapping for the client.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8253,7 +8259,9 @@ If set to full, user will be created if it does not exist, or updated if it exis
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of roles assigned to user.<br/>
+          Roles is a list of realm roles assigned to user.
+Omit the field to leave the user's realm roles unmanaged; set it to an empty list to
+remove every realm role.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8324,7 +8332,9 @@ RealmRef is reference to Realm custom resource.
         <td><b>roles</b></td>
         <td>[]string</td>
         <td>
-          Roles is a list of client roles names assigned to user.<br/>
+          Roles is a list of client roles names assigned to user.
+Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+remove every mapping for the client.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
