@@ -34,9 +34,11 @@ type KeycloakRealmGroupSpec struct {
 	Access map[string]bool `json:"access,omitempty"`
 
 	// RealmRoles is a list of realm roles assigned to group.
+	// Omit the field to leave the group's realm roles unmanaged; set it to an empty list to
+	// remove every realm role.
 	// +nullable
 	// +optional
-	RealmRoles []string `json:"realmRoles,omitempty"`
+	RealmRoles *[]string `json:"realmRoles,omitempty"`
 
 	// SubGroups is a list of subgroups assigned to group.
 	// Deprecated: This filed doesn't allow to fully support child groups. Use ParentGroup approach instead.

@@ -138,10 +138,10 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 						}),
 					},
 				},
-				Groups: []string{
+				Groups: ptr.To([]string{
 					"test-user-group",
 					"/test-user-group2/test-user-group2-subgroup",
-				},
+				}),
 				AttributesV2: map[string][]string{
 					"attr1": {"test-value"},
 				},
@@ -709,6 +709,90 @@ var _ = Describe("KeycloakRealmUser unmanaged roles", Ordered, func() {
 
 		Eventually(func(g Gomega) {
 			g.Expect(realmRoleNames()).ShouldNot(ContainElement(defaultRole))
+		}, timeout, interval).Should(Succeed())
+	})
+})
+
+// Under the default full strategy an omitted spec.groups must revoke nothing. Both the user and
+// the membership are created outside the operator, so the membership under test is not the
+// operator's to remove.
+var _ = Describe("KeycloakRealmUser unmanaged groups", Ordered, func() {
+	const (
+		crName    = "unmanaged-groups-user"
+		username  = "unmanaged-groups-user"
+		groupName = "unmanaged-groups-group"
+	)
+
+	groupNames := func() []string {
+		found, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, KeycloakRealmCR, username)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(found).ShouldNot(BeNil())
+
+		groups, _, err := keycloakApiClient.Users.GetUserGroups(ctx, KeycloakRealmCR, *found.Id)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		names := make([]string, 0, len(groups))
+		for _, g := range groups {
+			names = append(names, ptr.Deref(g.Name, ""))
+		}
+
+		return names
+	}
+
+	It("Should keep the Keycloak group membership when spec.groups is omitted", func() {
+		_, err := keycloakApiClient.Groups.CreateGroup(ctx, KeycloakRealmCR, keycloakapi.GroupRepresentation{
+			Name: ptr.To(groupName),
+		})
+		if err != nil && !keycloakapi.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
+		group, _, err := keycloakApiClient.Groups.FindGroupByName(ctx, KeycloakRealmCR, groupName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(group).ShouldNot(BeNil())
+
+		_, err = keycloakApiClient.Users.CreateUser(ctx, KeycloakRealmCR, keycloakapi.UserRepresentation{
+			Username: ptr.To(username),
+			Enabled:  ptr.To(true),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		created, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, KeycloakRealmCR, username)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(created).ShouldNot(BeNil())
+
+		_, err = keycloakApiClient.Users.AddUserToGroup(ctx, KeycloakRealmCR, *created.Id, *group.Id)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(groupNames()).To(ContainElement(groupName), "the membership must exist before the operator runs")
+
+		Expect(k8sClient.Create(ctx, &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				Username:     username,
+				Enabled:      true,
+				KeepResource: true,
+			},
+		})).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmUser{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+		}, timeout, interval).Should(Succeed())
+
+		Expect(groupNames()).To(ContainElement(groupName),
+			"omitting spec.groups must not revoke a membership the operator did not create")
+	})
+
+	It("Should remove every group membership when spec.groups is an explicit empty list", func() {
+		cr := &keycloakApi.KeycloakRealmUser{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.Groups = ptr.To([]string{})
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(groupNames()).ShouldNot(ContainElement(groupName))
 		}, timeout, interval).Should(Succeed())
 	})
 })

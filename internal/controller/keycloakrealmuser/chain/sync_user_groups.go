@@ -44,7 +44,16 @@ func (h *SyncUserGroups) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing user groups")
 
-	if len(user.Spec.Groups) == 0 && user.IsReconciliationStrategyAddOnly() {
+	// nil: field omitted, not managed. Empty non-nil: managed, clears every membership.
+	if user.Spec.Groups == nil {
+		log.Info("Groups are not managed by the resource, skipping")
+
+		return nil
+	}
+
+	desiredGroupNames := *user.Spec.Groups
+
+	if len(desiredGroupNames) == 0 && user.IsReconciliationStrategyAddOnly() {
 		log.Info("No groups specified (add-only), skipping")
 		return nil
 	}
@@ -54,9 +63,9 @@ func (h *SyncUserGroups) Serve(
 		return fmt.Errorf("unable to get user groups: %w", err)
 	}
 
-	desired := make([]resolvedGroup, 0, len(user.Spec.Groups))
+	desired := make([]resolvedGroup, 0, len(desiredGroupNames))
 
-	for _, g := range user.Spec.Groups {
+	for _, g := range desiredGroupNames {
 		if strings.HasPrefix(g, "/") {
 			grp, _, err := h.kClient.Groups.GetGroupByPath(ctx, realmName, g)
 			if err != nil {

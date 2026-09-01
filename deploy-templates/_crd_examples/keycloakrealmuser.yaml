@@ -19,7 +19,7 @@ spec:
     temporary: true
   requiredUserActions:
     - UPDATE_PROFILE
-  # roles and clientRoles have three states.
+  # roles, clientRoles and groups have three states.
   #   omitted    the operator does not manage them; Keycloak keeps what it has,
   #              including the default-roles-<realm> mapping it assigns at creation
   #   []         the operator manages them and removes every mapping

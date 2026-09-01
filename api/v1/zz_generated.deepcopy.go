@@ -990,8 +990,12 @@ func (in *KeycloakRealmGroupSpec) DeepCopyInto(out *KeycloakRealmGroupSpec) {
 	}
 	if in.RealmRoles != nil {
 		in, out := &in.RealmRoles, &out.RealmRoles
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.SubGroups != nil {
 		in, out := &in.SubGroups, &out.SubGroups
@@ -1617,8 +1621,12 @@ func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 	}
 	if in.Groups != nil {
 		in, out := &in.Groups, &out.Groups
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.Attributes != nil {
 		in, out := &in.Attributes, &out.Attributes

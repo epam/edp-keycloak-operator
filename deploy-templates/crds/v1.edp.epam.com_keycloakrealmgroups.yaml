@@ -119,7 +119,10 @@ spec:
                 - name
                 type: object
               realmRoles:
-                description: RealmRoles is a list of realm roles assigned to group.
+                description: |-
+                  RealmRoles is a list of realm roles assigned to group.
+                  Omit the field to leave the group's realm roles unmanaged; set it to an empty list to
+                  remove every realm role.
                 items:
                   type: string
                 nullable: true
