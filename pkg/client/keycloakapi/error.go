@@ -40,6 +40,12 @@ func (e *ApiError) IsNotFound() bool {
 	return e.Code == http.StatusNotFound
 }
 
+// Is matches ErrNotFound against a 404. A 404 does not wrap the sentinel; both name the
+// same condition. errors.As still yields *ApiError.
+func (e *ApiError) Is(target error) bool {
+	return target == ErrNotFound && e.IsNotFound()
+}
+
 // IsConflict returns true if the error is a 409 Conflict
 func (e *ApiError) IsConflict() bool {
 	return e.Code == http.StatusConflict
@@ -102,18 +108,10 @@ func checkResponseError(httpResp *http.Response, body []byte) error {
 
 // Helper functions for error checking
 
-// IsNotFound returns true if the error is ErrNotFound or a 404 Not Found ApiError
+// IsNotFound returns true if the error is ErrNotFound or a 404 Not Found ApiError.
+// ApiError.Is makes both forms match the sentinel.
 func IsNotFound(err error) bool {
-	if errors.Is(err, ErrNotFound) {
-		return true
-	}
-
-	var apiErr *ApiError
-	if errors.As(err, &apiErr) {
-		return apiErr.IsNotFound()
-	}
-
-	return false
+	return errors.Is(err, ErrNotFound)
 }
 
 // IsConflict returns true if the error is a 409 Conflict ApiError

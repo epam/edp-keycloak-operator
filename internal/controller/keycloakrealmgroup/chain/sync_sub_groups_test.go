@@ -210,6 +210,60 @@ func TestSyncSubGroups_Serve_SubGroupNotFound(t *testing.T) {
 	assert.ErrorContains(t, err, "subgroup \"nonexistent\" not found")
 }
 
+func TestSyncSubGroups_Serve_SubGroupWithoutID(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	// A group with no id cannot be moved under a parent. Fail instead of dereferencing it.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(&keycloakapi.GroupRepresentation{Name: ptr.To("subgroup1")}, nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "subgroup \"subgroup1\" has no id")
+}
+
+func TestSyncSubGroups_Serve_NilSubGroupWithoutError(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "parent-group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.SubGroups = []string{"subgroup1"}
+
+	mockGroups.EXPECT().GetChildGroups(
+		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
+
+	// No group and no error. Report it instead of dereferencing nil.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), "test-realm", "subgroup1",
+	).Return(nil, nil, nil)
+
+	h := NewSyncSubGroups()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "subgroup \"subgroup1\" not found in realm \"test-realm\"")
+}
+
 func TestSyncSubGroups_Serve_ErrorFindingSubGroup(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 

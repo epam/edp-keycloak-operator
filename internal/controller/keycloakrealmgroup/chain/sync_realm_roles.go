@@ -25,8 +25,8 @@ func (h *SyncRealmRoles) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing group realm roles")
 
-	// nil: field omitted, not managed. Empty non-nil: managed, clears every mapping.
-	// KeycloakRealmGroup has no reconciliationStrategy field; this guard is the only escape hatch.
+	// nil: not managed, leave Keycloak alone. Empty non-nil: managed, clear every mapping.
+	// KeycloakRealmGroup has no reconciliationStrategy; this is the only opt-out.
 	if group.Spec.RealmRoles == nil {
 		log.Info("Realm roles are not managed by the resource, skipping")
 
@@ -67,6 +67,12 @@ func (h *SyncRealmRoles) Serve(
 
 			if role == nil {
 				return fmt.Errorf("realm role %q not found in realm %q", claimedName, realm)
+			}
+
+			// Keycloak matches a role-mapping payload on name and id together and answers a
+			// mismatch with 404. A role without an id cannot be mapped.
+			if role.Id == nil {
+				return fmt.Errorf("realm role %q has no id", claimedName)
 			}
 
 			rolesToAdd = append(rolesToAdd, *role)

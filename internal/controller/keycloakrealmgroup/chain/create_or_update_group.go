@@ -68,12 +68,25 @@ func (h *CreateOrUpdateGroup) Serve(
 		foundByName = existingGroup != nil
 	}
 
+	// GroupsClient guarantees a non-nil group and id on success; the generated mock is a
+	// second implementation of the same interface and does not. Resolve the id once here so
+	// the ownership check and the update branch below work on a plain string.
+	existingGroupID := ""
+
+	if existingGroup != nil {
+		if existingGroup.Id == nil {
+			return fmt.Errorf("group %q has no id", spec.Name)
+		}
+
+		existingGroupID = *existingGroup.Id
+	}
+
 	// A group found by name search (as opposed to by our own status.ID) may already be
 	// managed by a different KeycloakRealmGroup resource, e.g. another CR using the same
 	// spec.name/parentGroup combination. Adopting it would make two CRs share one Keycloak
 	// group ID and fight over its children on every reconcile. Refuse instead of adopting.
-	if foundByName && existingGroup.Id != nil {
-		owner, ownerErr := findOwnerCR(ctx, h.k8sClient, group, *existingGroup.Id)
+	if foundByName {
+		owner, ownerErr := findOwnerCR(ctx, h.k8sClient, group, existingGroupID)
 		if ownerErr != nil {
 			return fmt.Errorf("unable to check group ownership for %q: %w", spec.Name, ownerErr)
 		}
@@ -82,7 +95,7 @@ func (h *CreateOrUpdateGroup) Serve(
 			return fmt.Errorf(
 				"group %q (id %s) is already managed by KeycloakRealmGroup %s/%s; "+
 					"refusing to adopt it - check for a duplicate spec.name/parentGroup combination",
-				spec.Name, *existingGroup.Id, owner.Namespace, owner.Name,
+				spec.Name, existingGroupID, owner.Namespace, owner.Name,
 			)
 		}
 	}
@@ -108,9 +121,13 @@ func (h *CreateOrUpdateGroup) Serve(
 		}
 
 		groupCtx.GroupID = keycloakapi.GetResourceIDFromResponse(resp)
+		if groupCtx.GroupID == "" {
+			return fmt.Errorf("group %q created but Location header missing or empty", spec.Name)
+		}
+
 		log.Info("Group created", "groupID", groupCtx.GroupID)
 	} else {
-		groupCtx.GroupID = *existingGroup.Id
+		groupCtx.GroupID = existingGroupID
 		existingGroup.Name = &spec.Name
 		existingGroup.Description = &spec.Description
 		existingGroup.Path = &spec.Path

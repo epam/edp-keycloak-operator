@@ -8199,6 +8199,8 @@ Each attribute can have multiple values.<br/>
 Each entry is either a plain group name (e.g. "developers") or a slash-separated
 path (e.g. "/developers", "/parent/child"), where each segment represents a level
 in the group hierarchy.
+A plain name resolves against top-level groups only, because the Keycloak name search
+returns the top-level ancestor of a match. Use a path to reference a nested group.
 Omit the field to leave the user's group memberships unmanaged; set it to an empty list
 to remove every membership.<br/>
         </td>

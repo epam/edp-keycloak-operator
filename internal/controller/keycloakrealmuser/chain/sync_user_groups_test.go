@@ -35,7 +35,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 				Spec:       keycloakApi.KeycloakRealmUserSpec{},
 			},
 			userCtx: &UserContext{UserID: "user-unmanaged"},
-			// No expectations on the mocks: any Keycloak call fails this case.
+			// No expectations: any Keycloak call fails this case.
 			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {},
 			wantErr:   require.NoError,
 		},
@@ -182,6 +182,42 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			},
 		},
 		{
+			name: "error - GetGroupByPath reports not found",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/missing/group"})},
+			},
+			userCtx: &UserContext{UserID: "user-19"},
+			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
+				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-19").
+					Return(nil, nil, nil)
+				g.EXPECT().GetGroupByPath(context.Background(), "test-realm", "/missing/group").
+					Return(nil, nil, keycloakapi.ErrNotFound)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "group not found by path")
+			},
+		},
+		{
+			name: "error - FindGroupByName returns a group without an id",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
+			},
+			userCtx: &UserContext{UserID: "user-18"},
+			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
+				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-18").
+					Return(nil, nil, nil)
+				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
+					Return(&keycloakapi.GroupRepresentation{Name: ptr.To("developers")}, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), `group "developers" has no id`)
+			},
+		},
+		{
 			name: "error - FindGroupByName fails for a reason other than not-found",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
@@ -209,7 +245,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {
 				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-17").
 					Return(nil, nil, nil)
-				// No RemoveUserFromGroup: an empty list over no memberships must not issue a write.
+				// No remove expected: an empty list over no memberships writes nothing.
 			},
 			wantErr: require.NoError,
 		},

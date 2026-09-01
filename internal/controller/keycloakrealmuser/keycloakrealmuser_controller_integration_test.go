@@ -713,9 +713,8 @@ var _ = Describe("KeycloakRealmUser unmanaged roles", Ordered, func() {
 	})
 })
 
-// Under the default full strategy an omitted spec.groups must revoke nothing. Both the user and
-// the membership are created outside the operator, so the membership under test is not the
-// operator's to remove.
+// The user and the membership are created outside the operator, so the membership under test is
+// not the operator's to remove.
 var _ = Describe("KeycloakRealmUser unmanaged groups", Ordered, func() {
 	const (
 		crName    = "unmanaged-groups-user"
