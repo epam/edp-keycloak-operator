@@ -25,6 +25,16 @@ func (h *SyncRealmRoles) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing group realm roles")
 
+	// nil: field omitted, not managed. Empty non-nil: managed, clears every mapping.
+	// KeycloakRealmGroup has no reconciliationStrategy field; this guard is the only escape hatch.
+	if group.Spec.RealmRoles == nil {
+		log.Info("Realm roles are not managed by the resource, skipping")
+
+		return nil
+	}
+
+	desiredRoleNames := *group.Spec.RealmRoles
+
 	realm := groupCtx.RealmName
 	groupID := groupCtx.GroupID
 
@@ -41,14 +51,14 @@ func (h *SyncRealmRoles) Serve(
 		}
 	}
 
-	claimedSet := make(map[string]struct{}, len(group.Spec.RealmRoles))
-	for _, r := range group.Spec.RealmRoles {
+	claimedSet := make(map[string]struct{}, len(desiredRoleNames))
+	for _, r := range desiredRoleNames {
 		claimedSet[r] = struct{}{}
 	}
 
 	var rolesToAdd []keycloakapi.RoleRepresentation
 
-	for _, claimedName := range group.Spec.RealmRoles {
+	for _, claimedName := range desiredRoleNames {
 		if _, exists := currentMap[claimedName]; !exists {
 			role, _, err := kClient.Roles.GetRealmRole(ctx, realm, claimedName)
 			if err != nil {

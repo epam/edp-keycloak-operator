@@ -56,10 +56,12 @@ type KeycloakRealmUserSpec struct {
 	// Each entry is either a plain group name (e.g. "developers") or a slash-separated
 	// path (e.g. "/developers", "/parent/child"), where each segment represents a level
 	// in the group hierarchy.
+	// Omit the field to leave the user's group memberships unmanaged; set it to an empty list
+	// to remove every membership.
 	// +nullable
 	// +optional
 	// +kubebuilder:example={"developers","/parent/child"}
-	Groups []string `json:"groups,omitempty"`
+	Groups *[]string `json:"groups,omitempty"`
 
 	// Attributes is a map of user attributes.
 	// Deprecated: Use AttributesV2 instead.

@@ -47,7 +47,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 					Name: KeycloakRealmCR,
 				},
 				Path:       "/parent-group",
-				RealmRoles: []string{"test-group-role"},
+				RealmRoles: ptr.To([]string{"test-group-role"}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, parentGroup)).Should(Succeed())
@@ -176,7 +176,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 					"attr1": {"value1", "value2"},
 					"attr2": {"value3"},
 				},
-				RealmRoles: []string{"test-group-role"},
+				RealmRoles: ptr.To([]string{"test-group-role"}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, group)).Should(Succeed())
@@ -240,7 +240,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			"updated-attr": {"updated-value"},
 			"new-attr":     {"new-value"},
 		}
-		updatableGroup.Spec.RealmRoles = []string{"test-group-role-2"}
+		updatableGroup.Spec.RealmRoles = ptr.To([]string{"test-group-role-2"})
 		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -334,7 +334,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 					Kind: keycloakApi.KeycloakRealmKind,
 					Name: KeycloakRealmCR,
 				},
-				RealmRoles: []string{"test-group-role", "test-group-role-2"},
+				RealmRoles: ptr.To([]string{"test-group-role", "test-group-role-2"}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, group)).Should(Succeed())
@@ -361,7 +361,7 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		By("Updating KeycloakRealmGroup roles")
 		updatableGroup := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
-		updatableGroup.Spec.RealmRoles = []string{"test-group-role-2", "test-group-role-3"}
+		updatableGroup.Spec.RealmRoles = ptr.To([]string{"test-group-role-2", "test-group-role-3"})
 		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -645,5 +645,99 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(err).ShouldNot(HaveOccurred())
 			g.Expect(groups).Should(HaveLen(1))
 		}, time.Minute, time.Second*5).Should(Succeed())
+	})
+})
+
+// The mapping under test is assigned directly in Keycloak, so it is not the operator's to remove.
+var _ = Describe("KeycloakRealmGroup unmanaged realm roles", Ordered, func() {
+	const (
+		crName    = "unmanaged-realm-roles-group"
+		groupName = "unmanaged-realm-roles-group"
+		roleName  = "unmanaged-realm-roles-role"
+	)
+
+	groupID := func() string {
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		Expect(cr.Status.ID).ShouldNot(BeEmpty())
+
+		return cr.Status.ID
+	}
+
+	roleNames := func() []string {
+		mappings, _, err := keycloakApiClient.Groups.GetRealmRoleMappings(ctx, KeycloakRealmCR, groupID())
+		Expect(err).ShouldNot(HaveOccurred())
+
+		names := make([]string, 0, len(mappings))
+		for _, r := range mappings {
+			names = append(names, ptr.Deref(r.Name, ""))
+		}
+
+		return names
+	}
+
+	It("Should keep a directly-assigned realm role when spec.realmRoles is omitted", func() {
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR, keycloakapi.RoleRepresentation{
+			Name: ptr.To(roleName),
+		})
+		if err != nil && !keycloakapi.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
+		Expect(k8sClient.Create(ctx, &keycloakApi.KeycloakRealmGroup{
+			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:     groupName,
+				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+			},
+		})).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmGroup{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(got.Status.ID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed())
+
+		role, _, err := keycloakApiClient.Roles.GetRealmRole(ctx, KeycloakRealmCR, roleName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(role).ShouldNot(BeNil())
+
+		_, err = keycloakApiClient.Groups.AddRealmRoleMappings(
+			ctx, KeycloakRealmCR, groupID(), []keycloakapi.RoleRepresentation{*role},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(roleNames()).To(ContainElement(roleName), "the mapping must exist before the next reconcile")
+
+		By("Forcing a reconcile with an unrelated spec change")
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.Description = "force a reconcile"
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmGroup{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+
+			groupRep, _, err := keycloakApiClient.Groups.GetGroup(ctx, KeycloakRealmCR, got.Status.ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(groupRep).ShouldNot(BeNil())
+			g.Expect(ptr.Deref(groupRep.Description, "")).Should(Equal("force a reconcile"))
+		}, timeout, interval).Should(Succeed())
+
+		Expect(roleNames()).To(ContainElement(roleName),
+			"omitting spec.realmRoles must not revoke a mapping the operator did not create")
+	})
+
+	It("Should remove every realm role when spec.realmRoles is an explicit empty list", func() {
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.RealmRoles = ptr.To([]string{})
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(roleNames()).ShouldNot(ContainElement(roleName))
+		}, timeout, interval).Should(Succeed())
 	})
 })

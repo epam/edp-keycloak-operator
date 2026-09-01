@@ -5200,7 +5200,9 @@ The parent KeycloakRealmGroup must exist in the same namespace.<br/>
         <td><b>realmRoles</b></td>
         <td>[]string</td>
         <td>
-          RealmRoles is a list of realm roles assigned to group.<br/>
+          RealmRoles is a list of realm roles assigned to group.
+Omit the field to leave the group's realm roles unmanaged; set it to an empty list to
+remove every realm role.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8196,7 +8198,9 @@ Each attribute can have multiple values.<br/>
           Groups is a list of groups assigned to user.
 Each entry is either a plain group name (e.g. "developers") or a slash-separated
 path (e.g. "/developers", "/parent/child"), where each segment represents a level
-in the group hierarchy.<br/>
+in the group hierarchy.
+Omit the field to leave the user's group memberships unmanaged; set it to an empty list
+to remove every membership.<br/>
         </td>
         <td>false</td>
       </tr><tr>

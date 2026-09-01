@@ -7,6 +7,15 @@ spec:
     name: keycloakrealm-sample
     kind: KeycloakRealm
   name: ArgoCDAdmins
+  # realmRoles has three states. KeycloakRealmGroup has no reconciliationStrategy,
+  # so omitting the field is the only way to leave the group's realm roles alone.
+  #   omitted    the operator does not manage them; Keycloak keeps what it has
+  #   []         the operator manages them and removes every mapping
+  #   [a, b]     the operator manages them; the group ends up with exactly a and b
+  # Helm: write [] in values.yaml or pass --set-json 'realmRoles=[]'.
+  # `--set realmRoles={}` yields [""], and a {{ if .Values.realmRoles }} guard drops [].
+  realmRoles:
+    - argocd-admin
 ---
 # Example of a child group using parentGroup
 apiVersion: v1.edp.epam.com/v1

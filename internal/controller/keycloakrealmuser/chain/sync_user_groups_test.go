@@ -29,10 +29,33 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		wantErr   require.ErrorAssertionFunc
 	}{
 		{
+			name: "unmanaged - omitted groups leave every membership alone",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{},
+			},
+			userCtx: &UserContext{UserID: "user-unmanaged"},
+			// No expectations on the mocks: any Keycloak call fails this case.
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {},
+			wantErr:   require.NoError,
+		},
+		{
+			name: "unmanaged - omitted groups skipped under add-only too",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
+				},
+			},
+			userCtx:   &UserContext{UserID: "user-unmanaged-addonly"},
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {},
+			wantErr:   require.NoError,
+		},
+		{
 			name: "success - name-style group added when not yet assigned",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-1"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -49,7 +72,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - path-style group added when not yet assigned",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"/system/data_admin"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/system/data_admin"})},
 			},
 			userCtx: &UserContext{UserID: "user-2"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -69,7 +92,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - group already assigned, no add called",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-3"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -86,7 +109,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - path-style: correct nested group selected over root with same name",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"/system/data_admin"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/system/data_admin"})},
 			},
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -111,7 +134,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Groups:                 []string{"developers"},
+					Groups:                 ptr.To([]string{"developers"}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 				},
 			},
@@ -132,7 +155,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Groups:                 []string{},
+					Groups:                 ptr.To([]string{}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 				},
 			},
@@ -144,7 +167,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "error - FindGroupByName returns nil (group not found)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"missing-group"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"missing-group"})},
 			},
 			userCtx: &UserContext{UserID: "user-6"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -159,10 +182,42 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			},
 		},
 		{
+			name: "error - FindGroupByName fails for a reason other than not-found",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
+			},
+			userCtx: &UserContext{UserID: "user-16"},
+			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
+				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-16").
+					Return(nil, nil, nil)
+				g.EXPECT().FindGroupByName(context.Background(), "test-realm", "developers").
+					Return(nil, nil, errors.New("connection refused"))
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to find group by name")
+			},
+		},
+		{
+			name: "success - empty groups with full strategy and no current groups",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{})},
+			},
+			userCtx: &UserContext{UserID: "user-17"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {
+				u.EXPECT().GetUserGroups(context.Background(), "test-realm", "user-17").
+					Return(nil, nil, nil)
+				// No RemoveUserFromGroup: an empty list over no memberships must not issue a write.
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "error - GetGroupByPath returns error",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"/bad/path"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/bad/path"})},
 			},
 			userCtx: &UserContext{UserID: "user-7"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -180,7 +235,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "error - GetUserGroups fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-8"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -196,7 +251,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "error - AddUserToGroup fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-10"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -216,7 +271,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "error - RemoveUserFromGroup fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-11"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -239,7 +294,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "error - GetGroupByPath returns nil (group not found by path)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"/missing/path"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/missing/path"})},
 			},
 			userCtx: &UserContext{UserID: "user-12"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -257,7 +312,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - full strategy removes extra groups",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-13"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {
@@ -277,7 +332,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - empty groups with full strategy removes all",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{})},
 			},
 			userCtx: &UserContext{UserID: "user-14"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockGroupsClient) {
@@ -297,7 +352,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 			name: "success - multiple groups: mixed name-style and path-style",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
-				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: []string{"developers", "/system/admins"}},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers", "/system/admins"})},
 			},
 			userCtx: &UserContext{UserID: "user-15"},
 			mockSetup: func(u *v2mocks.MockUsersClient, g *v2mocks.MockGroupsClient) {

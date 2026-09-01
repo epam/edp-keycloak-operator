@@ -14,6 +14,28 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
+func TestSyncRealmRoles_Serve_UnmanagedOmittedRolesLeftAlone(t *testing.T) {
+	// Strict mocks with no expectations: any Keycloak call fails this test.
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockRoles := mocks.NewMockRolesClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups: mockGroups,
+		Roles:  mockRoles,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+
+	h := NewSyncRealmRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
 func TestSyncRealmRoles_Serve_AddRoles(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 	mockRoles := mocks.NewMockRolesClient(t)
@@ -29,7 +51,7 @@ func TestSyncRealmRoles_Serve_AddRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"role1", "role2"}
+	group.Spec.RealmRoles = ptr.To([]string{"role1", "role2"})
 
 	// No existing roles
 	mockGroups.EXPECT().GetRealmRoleMappings(
@@ -81,7 +103,7 @@ func TestSyncRealmRoles_Serve_RemoveRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{} // Empty - remove all
+	group.Spec.RealmRoles = ptr.To([]string{}) // Empty - remove all
 
 	// Current roles
 	mockGroups.EXPECT().GetRealmRoleMappings(
@@ -103,6 +125,35 @@ func TestSyncRealmRoles_Serve_RemoveRoles(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestSyncRealmRoles_Serve_EmptyListWithNoCurrentRoles(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockRoles := mocks.NewMockRolesClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups: mockGroups,
+		Roles:  mockRoles,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.RealmRoles = ptr.To([]string{}) // Managed, nothing to keep
+
+	mockGroups.EXPECT().GetRealmRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	// No AddRealmRoleMappings or DeleteRealmRoleMappings: an empty list over an empty
+	// mapping set must not issue a write.
+
+	h := NewSyncRealmRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
 func TestSyncRealmRoles_Serve_AddAndRemove(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 	mockRoles := mocks.NewMockRolesClient(t)
@@ -118,7 +169,7 @@ func TestSyncRealmRoles_Serve_AddAndRemove(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"role1", "role2"}
+	group.Spec.RealmRoles = ptr.To([]string{"role1", "role2"})
 
 	// Current roles: role1 (keep), old-role (remove)
 	mockGroups.EXPECT().GetRealmRoleMappings(
@@ -172,7 +223,7 @@ func TestSyncRealmRoles_Serve_NoChanges(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"role1"}
+	group.Spec.RealmRoles = ptr.To([]string{"role1"})
 
 	// Current roles match spec
 	mockGroups.EXPECT().GetRealmRoleMappings(
@@ -203,7 +254,7 @@ func TestSyncRealmRoles_Serve_ErrorGettingRoleMappings(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"role1"}
+	group.Spec.RealmRoles = ptr.To([]string{"role1"})
 
 	mockGroups.EXPECT().GetRealmRoleMappings(
 		context.Background(), "test-realm", "group-123",
@@ -229,7 +280,7 @@ func TestSyncRealmRoles_Serve_ErrorGettingRole(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"nonexistent-role"}
+	group.Spec.RealmRoles = ptr.To([]string{"nonexistent-role"})
 
 	mockGroups.EXPECT().GetRealmRoleMappings(
 		context.Background(), "test-realm", "group-123",
@@ -242,6 +293,37 @@ func TestSyncRealmRoles_Serve_ErrorGettingRole(t *testing.T) {
 	h := NewSyncRealmRoles()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to get realm role")
+}
+
+func TestSyncRealmRoles_Serve_ErrorRoleNotFound(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockRoles := mocks.NewMockRolesClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups: mockGroups,
+		Roles:  mockRoles,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.RealmRoles = ptr.To([]string{"ghost-role"})
+
+	mockGroups.EXPECT().GetRealmRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	// Keycloak answers with no role and no error.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", "ghost-role",
+	).Return(nil, nil, nil)
+
+	h := NewSyncRealmRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, `realm role "ghost-role" not found in realm "test-realm"`)
 }
 
 func TestSyncRealmRoles_Serve_ErrorAddingRoles(t *testing.T) {
@@ -259,7 +341,7 @@ func TestSyncRealmRoles_Serve_ErrorAddingRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{"role1"}
+	group.Spec.RealmRoles = ptr.To([]string{"role1"})
 
 	mockGroups.EXPECT().GetRealmRoleMappings(
 		context.Background(), "test-realm", "group-123",
@@ -299,7 +381,7 @@ func TestSyncRealmRoles_Serve_ErrorDeletingRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.RealmRoles = []string{} // Remove all
+	group.Spec.RealmRoles = ptr.To([]string{}) // Remove all
 
 	mockGroups.EXPECT().GetRealmRoleMappings(
 		context.Background(), "test-realm", "group-123",
