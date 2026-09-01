@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"net/url"
 
+	"k8s.io/utils/ptr"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/generated"
 )
 
@@ -314,8 +316,13 @@ func (a *authorizationClient) GetPolicies(
 	realm string,
 	clientUUID string,
 ) ([]AbstractPolicyRepresentation, *Response, error) {
+	// permission=false is required: Keycloak returns permissions from this endpoint when the
+	// filter is absent.
 	res, err := a.client.GetAdminRealmsRealmClientsClientUuidAuthzResourceServerPolicyWithResponse(
-		ctx, realm, clientUUID, nil,
+		ctx, realm, clientUUID,
+		&generated.GetAdminRealmsRealmClientsClientUuidAuthzResourceServerPolicyParams{
+			Permission: ptr.To(false),
+		},
 	)
 	if err != nil {
 		return nil, nil, err

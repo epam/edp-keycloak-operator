@@ -7,10 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"k8s.io/utils/ptr"
+
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
-	"github.com/stretchr/testify/require"
 )
+
+// permissionTypeScope is the Keycloak permission type keyed on authorization scopes.
+const permissionTypeScope = "scope"
 
 // createAuthzClient sets up a Keycloak client with Authorization Services enabled and returns
 // the keycloak client, the realm name, and the client UUID.
@@ -698,7 +703,7 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 	baseline := len(permissions)
 
 	permName := fmt.Sprintf("test-permission-%d", time.Now().UnixNano())
-	permType := "scope"
+	permType := permissionTypeScope
 	decisionStrategy := keycloakapi.DecisionStrategy("UNANIMOUS")
 
 	perm := keycloakapi.PolicyRepresentation{
@@ -742,6 +747,86 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 			t.Fatal("deleted permission should not be in the list")
 		}
 	}
+}
+
+// TestAuthorizationClient_PoliciesAndPermissionsAreSeparateLists asserts GetPolicies excludes
+// permissions and GetPermissions excludes policies. Both endpoints accept the same permission
+// filter; only a live Keycloak says which one applies it by default, so both are checked.
+func TestAuthorizationClient_PoliciesAndPermissionsAreSeparateLists(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	kc, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-authz-split-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = kc.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = kc.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
+		Realm:   &realmName,
+		Enabled: &enabled,
+	})
+	require.NoError(t, err)
+
+	clientUUID := createAuthzClient(t, kc, ctx, realmName)
+
+	decisionStrategy := keycloakapi.DecisionStrategy("UNANIMOUS")
+	logic := keycloakapi.Logic("POSITIVE")
+
+	policyName := fmt.Sprintf("split-policy-%d", time.Now().UnixNano())
+	policyType := "time"
+
+	_, _, err = kc.Authorization.CreatePolicy(ctx, realmName, clientUUID, policyType, keycloakapi.PolicyRepresentation{
+		Name:             &policyName,
+		Type:             &policyType,
+		Logic:            &logic,
+		DecisionStrategy: &decisionStrategy,
+	})
+	require.NoError(t, err)
+
+	permName := fmt.Sprintf("split-permission-%d", time.Now().UnixNano())
+	permType := permissionTypeScope
+
+	_, _, err = kc.Authorization.CreatePermission(ctx, realmName, clientUUID, permType, keycloakapi.PolicyRepresentation{
+		Name:             &permName,
+		Type:             &permType,
+		DecisionStrategy: &decisionStrategy,
+	})
+	require.NoError(t, err)
+
+	policies, _, err := kc.Authorization.GetPolicies(ctx, realmName, clientUUID)
+	require.NoError(t, err)
+
+	policyNames := abstractPolicyNames(policies)
+	require.Contains(t, policyNames, policyName, "GetPolicies must return the policy")
+	require.NotContains(t, policyNames, permName, "GetPolicies must not return permissions")
+
+	permissions, _, err := kc.Authorization.GetPermissions(ctx, realmName, clientUUID)
+	require.NoError(t, err)
+
+	permissionNames := abstractPolicyNames(permissions)
+	require.Contains(t, permissionNames, permName, "GetPermissions must return the permission")
+	require.NotContains(t, permissionNames, policyName, "GetPermissions must not return policies")
+}
+
+func abstractPolicyNames(entries []keycloakapi.AbstractPolicyRepresentation) []string {
+	names := make([]string, 0, len(entries))
+
+	for _, e := range entries {
+		names = append(names, ptr.Deref(e.Name, ""))
+	}
+
+	return names
 }
 
 func TestAuthorizationClient_GetResource(t *testing.T) {

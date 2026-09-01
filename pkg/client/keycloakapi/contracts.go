@@ -409,7 +409,9 @@ type AuthorizationClient interface {
 	// DeleteResource deletes an authorization resource by ID.
 	DeleteResource(ctx context.Context, realm, clientUUID, resourceID string) (*Response, error)
 	// Policies
-	// GetPolicies returns all authorization policies for a resource server.
+	// GetPolicies returns the authorization policies for a resource server. Permissions are
+	// excluded: Keycloak stores them in the same table and returns them from this endpoint
+	// unless permission=false is passed. Use GetPermissions for permissions.
 	GetPolicies(ctx context.Context, realm, clientUUID string) ([]AbstractPolicyRepresentation, *Response, error)
 	// CreatePolicy creates a new authorization policy of the given type.
 	CreatePolicy(
