@@ -2432,6 +2432,13 @@ ClusterKeycloakStatus defines the observed state of ClusterKeycloak.
           Connected shows if keycloak service is up and running.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value is the status message: OK, or the error of the last connection attempt.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -9190,5 +9197,12 @@ KeycloakStatus defines the observed state of Keycloak.
           Connected shows if keycloak service is up and running.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          Value is the status message: OK, or the error of the last connection attempt.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>

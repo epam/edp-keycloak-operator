@@ -19,6 +19,9 @@ spec:
       jsonPath: .status.connected
       name: Connected
       type: boolean
+    - jsonPath: .status.value
+      name: Status
+      type: string
     name: v1alpha1
     schema:
       openAPIV3Schema:
@@ -286,6 +289,10 @@ spec:
               connected:
                 description: Connected shows if keycloak service is up and running.
                 type: boolean
+              value:
+                description: 'Value is the status message: OK, or the error of the
+                  last connection attempt.'
+                type: string
             required:
             - connected
             type: object

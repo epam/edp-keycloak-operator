@@ -55,6 +55,10 @@ func (in *ClusterKeycloak) GetAdminType() string {
 type ClusterKeycloakStatus struct {
 	// Connected shows if keycloak service is up and running.
 	Connected bool `json:"connected"`
+
+	// Value is the status message: OK, or the error of the last connection attempt.
+	// +optional
+	Value string `json:"value,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -62,6 +66,7 @@ type ClusterKeycloakStatus struct {
 // +kubebuilder:storageversion
 // +kubebuilder:resource:scope=Cluster
 // +kubebuilder:printcolumn:name="Connected",type="boolean",JSONPath=".status.connected",description="Is connected to keycloak"
+// +kubebuilder:printcolumn:name="Status",type="string",JSONPath=".status.value"
 
 // ClusterKeycloak is the Schema for the clusterkeycloaks API.
 type ClusterKeycloak struct {

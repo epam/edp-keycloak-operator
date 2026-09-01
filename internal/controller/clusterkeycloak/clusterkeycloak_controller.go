@@ -14,6 +14,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
@@ -113,7 +114,13 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 
 	connected := err == nil
 
-	if instance.Status.Connected == connected {
+	value := common.StatusOK
+	if err != nil {
+		value = err.Error()
+	}
+
+	// Unchanged status is not written: no resourceVersion bump, no watch event.
+	if instance.Status.Connected == connected && instance.Status.Value == value {
 		log.Info("Connection status hasn't been changed", "status", instance.Status.Connected)
 
 		return nil
@@ -122,6 +129,7 @@ func (r *Reconciler) updateConnectionStatusToKeycloak(ctx context.Context, insta
 	log.Info("Connection status has been changed", "from", instance.Status.Connected, "to", connected)
 
 	instance.Status.Connected = connected
+	instance.Status.Value = value
 
 	err = r.client.Status().Update(ctx, instance)
 	if err != nil {
