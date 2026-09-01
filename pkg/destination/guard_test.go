@@ -239,15 +239,15 @@ func TestGuard_ScanConfig(t *testing.T) {
 		{
 			name: "secret ref in a destination key is a violation",
 			config: map[string][]string{
-				"tokenUrl":     {"$attacker-secret:url"},
-				"clientSecret": {"$victim-secret:key"},
+				"tokenUrl":     {"$other-secret:url"},
+				"clientSecret": {"$credential-secret:key"},
 			},
 			wantErr: require.Error,
 		},
 		{
 			name: "secret ref in an unknown key is a violation",
 			config: map[string][]string{
-				"someFutureUrl": {"$attacker-secret:url"},
+				"someFutureUrl": {"$other-secret:url"},
 			},
 			wantErr: require.Error,
 		},
@@ -323,8 +323,8 @@ func TestGuard_ScanConfig_WarnModeNeverDenies(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.NoError(t, g.ScanConfig(context.Background(), "spec.config", map[string][]string{
-		"tokenUrl":     {"$attacker-secret:url"},
-		"clientSecret": {"$victim-secret:key"},
+		"tokenUrl":     {"$other-secret:url"},
+		"clientSecret": {"$credential-secret:key"},
 	}))
 }
 
@@ -380,7 +380,7 @@ func TestGuard_ScanConfig_WarnModeReportsEveryViolation(t *testing.T) {
 	before := warnViolations(field)
 
 	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
-		"tokenUrl":    {"$victim:url"},
+		"tokenUrl":    {"$other-secret:url"},
 		"userInfoUrl": {"https://evil.example.com/"},
 	}))
 
@@ -514,7 +514,7 @@ func TestGuard_ScanConfig_ConfigKeyCannotForgeError(t *testing.T) {
 	require.NoError(t, err)
 
 	err = g.ScanConfig(context.Background(), "spec.config", map[string][]string{
-		"evil\nlevel=info msg=forged": {"$attacker-secret:url"},
+		"evil\nlevel=info msg=forged": {"$other-secret:url"},
 	})
 	require.Error(t, err)
 
@@ -533,10 +533,10 @@ func TestGuard_ScanConfig_MetricLabelIsTheStaticField(t *testing.T) {
 	before := warnViolations(field)
 
 	require.NoError(t, g.ScanConfig(context.Background(), field, map[string][]string{
-		"attackerChosenKeyOne": {"$attacker-secret:url"},
-		"attackerChosenKeyTwo": {"$attacker-secret:url"},
+		"authorChosenKeyOne": {"$other-secret:url"},
+		"authorChosenKeyTwo": {"$other-secret:url"},
 	}))
 
 	assert.Equal(t, float64(2), warnViolations(field)-before, "both must land on the one static label")
-	assert.Zero(t, warnViolations(field+".attackerChosenKeyOne"), "the key must not create a series")
+	assert.Zero(t, warnViolations(field+".authorChosenKeyOne"), "the key must not create a series")
 }

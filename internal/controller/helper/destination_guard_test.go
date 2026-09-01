@@ -19,8 +19,8 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
-// exfilSink stands in for the attacker-controlled endpoint from the advisory's proof of concept.
-func exfilSink(t *testing.T, received *string) *httptest.Server {
+// recordingServer records the body of every request it receives.
+func recordingServer(t *testing.T, received *string) *httptest.Server {
 	t.Helper()
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -35,16 +35,17 @@ func exfilSink(t *testing.T, received *string) *httptest.Server {
 	return srv
 }
 
-func exfilKeycloakCR(url string) *keycloakApi.Keycloak {
+// keycloakCRWithPasswordGrant names url as the destination and a Secret as the credential.
+func keycloakCRWithPasswordGrant(url string) *keycloakApi.Keycloak {
 	return &keycloakApi.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "exfil", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: "default"},
 		Spec: keycloakApi.KeycloakSpec{
 			Url: url,
 			Auth: &common.AuthSpec{
 				PasswordGrant: &common.PasswordGrantConfig{
 					Username: common.SourceRefOrVal{Value: "admin"},
 					PasswordRef: common.SecretKeySelector{
-						LocalObjectReference: corev1.LocalObjectReference{Name: "victim"},
+						LocalObjectReference: corev1.LocalObjectReference{Name: "referenced"},
 						Key:                  "adminPassword",
 					},
 				},
@@ -53,19 +54,26 @@ func exfilKeycloakCR(url string) *keycloakApi.Keycloak {
 	}
 }
 
-func exfilHelper(t *testing.T, kc *keycloakApi.Keycloak, guard *destination.Guard) *Helper {
+func guardedHelper(t *testing.T, kc *keycloakApi.Keycloak, guard *destination.Guard) *Helper {
+	t.Helper()
+
+	return guardedHelperWithPassword(t, kc, guard, "S3cretValue!")
+}
+
+// The referenced Secret stands for one the custom resource author cannot read directly.
+func guardedHelperWithPassword(t *testing.T, kc *keycloakApi.Keycloak, guard *destination.Guard, password string) *Helper {
 	t.Helper()
 
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
 
-	victim := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "default"},
-		Data:       map[string][]byte{"adminPassword": []byte("LeakedSecret123!")},
+	referenced := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: "referenced", Namespace: "default"},
+		Data:       map[string][]byte{"adminPassword": []byte(password), "username": []byte("admin")},
 	}
 
-	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(victim, kc).Build()
+	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(referenced, kc).Build()
 
 	h, err := MakeHelper(cl, s, "operator-ns", guard)
 	require.NoError(t, err)
@@ -73,61 +81,60 @@ func exfilHelper(t *testing.T, kc *keycloakApi.Keycloak, guard *destination.Guar
 	return h
 }
 
-// The advisory's exploit: a Keycloak CR pointing spec.url at an attacker endpoint while naming a
-// Secret its author cannot read. With enforcement on, the credential must never leave the process.
+// An unlisted spec.url is denied before the credential is resolved, so it never leaves the process.
 func TestCreateKeycloakClientFromKeycloak_DeniesUnlistedDestination(t *testing.T) {
 	t.Parallel()
 
 	var received string
 
-	sink := exfilSink(t, &received)
-	kc := exfilKeycloakCR(sink.URL)
+	server := recordingServer(t, &received)
+	kc := keycloakCRWithPasswordGrant(server.URL)
 
 	guard, err := destination.New([]string{"keycloak.example.com"}, true)
 	require.NoError(t, err)
 
-	_, err = exfilHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
+	_, err = guardedHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Empty(t, received, "no request may reach an unlisted destination")
+	assert.Empty(t, received, "nothing may reach an unlisted destination")
 }
 
-// The deprecated spec.secret path leaks the same way and is covered by the same check.
+// The deprecated spec.secret path uses the same check.
 func TestCreateKeycloakClientFromKeycloak_DeniesUnlistedDestinationForLegacySecret(t *testing.T) {
 	t.Parallel()
 
 	var received string
 
-	sink := exfilSink(t, &received)
+	server := recordingServer(t, &received)
 
 	kc := &keycloakApi.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "exfil-legacy", Namespace: "default"},
-		Spec:       keycloakApi.KeycloakSpec{Url: sink.URL, Secret: "victim"},
+		ObjectMeta: metav1.ObjectMeta{Name: "kc-legacy", Namespace: "default"},
+		Spec:       keycloakApi.KeycloakSpec{Url: server.URL, Secret: "referenced"},
 	}
 
 	guard, err := destination.New([]string{"keycloak.example.com"}, true)
 	require.NoError(t, err)
 
-	_, err = exfilHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
+	_, err = guardedHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Empty(t, received, "no request may reach an unlisted destination")
+	assert.Empty(t, received, "nothing may reach an unlisted destination")
 }
 
-// Warn mode must not deny; only enforce mode blocks the request.
+// Warn mode records the violation and permits the request; only enforce mode denies.
 func TestCreateKeycloakClientFromKeycloak_WarnModeStillConnects(t *testing.T) {
 	t.Parallel()
 
 	var received string
 
-	sink := exfilSink(t, &received)
-	kc := exfilKeycloakCR(sink.URL)
+	server := recordingServer(t, &received)
+	kc := keycloakCRWithPasswordGrant(server.URL)
 
 	guard, err := destination.New([]string{"keycloak.example.com"}, false)
 	require.NoError(t, err)
 
-	_, err = exfilHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
+	_, err = guardedHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
 
 	require.NoError(t, err)
-	assert.Contains(t, received, "password=LeakedSecret123", "warn mode must not change behaviour")
+	assert.Contains(t, received, "password=S3cretValue", "warn mode must not change behaviour")
 }

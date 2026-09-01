@@ -14,8 +14,8 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
@@ -96,41 +96,10 @@ func (r *ReconcileKeycloak) SetupWithManager(mgr ctrl.Manager, successReconcileT
 }
 
 func (r *ReconcileKeycloak) updateConnectionStatusToKeycloak(ctx context.Context, instance *keycloakApi.Keycloak) error {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Start updating connection status to Keycloak")
+	ctrl.LoggerFrom(ctx).Info("Start updating connection status to Keycloak")
 
-	err := r.createClient(ctx, instance)
-	if err != nil {
-		log.Error(err, "Unable to connect to Keycloak")
-	}
-
-	connected := err == nil
-
-	value := common.StatusOK
-	if err != nil {
-		value = err.Error()
-	}
-
-	// Unchanged status is not written: no resourceVersion bump, no watch event.
-	if instance.Status.Connected == connected && instance.Status.Value == value {
-		log.Info("Connection status hasn't been changed", "status", instance.Status.Connected)
-
-		return nil
-	}
-
-	log.Info("Connection status has been changed", "from", instance.Status.Connected, "to", connected)
-
-	instance.Status.Connected = connected
-	instance.Status.Value = value
-
-	err = r.client.Status().Update(ctx, instance)
-	if err != nil {
-		return fmt.Errorf("failed to update status: %w", err)
-	}
-
-	log.Info("Status has been updated", "status", instance.Status)
-
-	return nil
+	return helper.UpdateConnectionStatus(ctx, r.client, instance,
+		&instance.Status.Connected, &instance.Status.Value, r.createClient(ctx, instance))
 }
 
 func (r *ReconcileKeycloak) createClient(ctx context.Context, instance *keycloakApi.Keycloak) error {
