@@ -3,6 +3,7 @@ package keycloak
 import (
 	"context"
 	"os"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -54,9 +55,34 @@ var _ = Describe("Keycloak controller", Ordered, func() {
 				return false
 			}
 
-			return kc.Status.Connected
+			return kc.Status.Connected && kc.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	}
+
+	It("Should report a connection failure in status", func() {
+		kc := &keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "kc-missing-secret",
+				Namespace: testNamespace,
+			},
+			Spec: keycloakApi.KeycloakSpec{
+				Url:    keycloakURL,
+				Secret: "absent-auth-secret",
+			},
+		}
+		Expect(k8sClient.Create(ctx, kc)).Should(Succeed())
+
+		Eventually(func() bool {
+			out := &keycloakApi.Keycloak{}
+			if err := k8sClient.Get(ctx, types.NamespacedName{Name: kc.Name, Namespace: testNamespace}, out); err != nil {
+				return false
+			}
+
+			return !out.Status.Connected && strings.Contains(out.Status.Value, "failed")
+		}, timeout, interval).Should(BeTrue())
+
+		Expect(k8sClient.Delete(ctx, kc)).Should(Succeed())
+	})
 
 	It("Should connect with legacy secret auth", func() {
 		secret := &corev1.Secret{

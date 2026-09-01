@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 )
 
@@ -54,7 +55,7 @@ var _ = Describe("ClusterKeycloak controller", func() {
 			if err != nil {
 				return false
 			}
-			return createdKeycloak.Status.Connected
+			return createdKeycloak.Status.Connected && createdKeycloak.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
 })
