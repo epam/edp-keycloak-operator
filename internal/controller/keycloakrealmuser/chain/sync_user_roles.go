@@ -46,9 +46,17 @@ func (h *SyncUserRoles) Serve(
 func (h *SyncUserRoles) syncRealmRoles(
 	ctx context.Context,
 	realmName, userID string,
-	desiredRoleNames []string,
+	desired *[]string,
 	addOnly bool,
 ) error {
+	// nil: field omitted, not managed. Empty non-nil: managed, clears every mapping.
+	// Keycloak seeds default-roles-<realm> on every user at creation.
+	if desired == nil {
+		return nil
+	}
+
+	desiredRoleNames := *desired
+
 	currentRoles, _, err := h.kClient.Users.GetUserRealmRoleMappings(ctx, realmName, userID)
 	if err != nil {
 		return fmt.Errorf("unable to get user realm role mappings: %w", err)
@@ -113,6 +121,14 @@ func (h *SyncUserRoles) syncClientRoles(
 	addOnly bool,
 ) error {
 	for _, cr := range clientRoles {
+		// Unmanaged entry: skip before the client lookup. A stale clientId here must not fail
+		// the reconcile.
+		if cr.Roles == nil {
+			continue
+		}
+
+		desiredRoleNames := *cr.Roles
+
 		clients, _, err := h.kClient.Clients.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{ClientId: &cr.ClientID})
 		if err != nil {
 			return fmt.Errorf("unable to get client %q: %w", cr.ClientID, err)
@@ -140,7 +156,7 @@ func (h *SyncUserRoles) syncClientRoles(
 		// Add missing roles
 		var toAdd []keycloakapi.RoleRepresentation
 
-		for _, roleName := range cr.Roles {
+		for _, roleName := range desiredRoleNames {
 			if _, exists := currentByName[roleName]; exists {
 				continue
 			}
@@ -167,7 +183,7 @@ func (h *SyncUserRoles) syncClientRoles(
 		var toRemove []keycloakapi.RoleRepresentation
 
 		for _, r := range currentRoles {
-			if r.Name != nil && !slices.Contains(cr.Roles, *r.Name) {
+			if r.Name != nil && !slices.Contains(desiredRoleNames, *r.Name) {
 				toRemove = append(toRemove, r)
 			}
 		}

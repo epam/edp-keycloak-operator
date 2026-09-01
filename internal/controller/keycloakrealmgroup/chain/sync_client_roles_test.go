@@ -30,7 +30,7 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{"role1", "role2"}},
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1", "role2"})},
 	}
 
 	// Empty role mappings (no clients have roles yet)
@@ -92,7 +92,7 @@ func TestSyncClientRoles_Serve_RemoveRoles(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{}}, // Empty - remove all
+		{ClientID: "test-client", Roles: ptr.To([]string{})}, // Empty - remove all
 	}
 
 	// Role mappings with existing client roles
@@ -170,6 +170,48 @@ func TestSyncClientRoles_Serve_RemoveUnclaimedClient(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// A client named with no role list is neither synced nor swept.
+func TestSyncClientRoles_Serve_MentionedClientWithoutRolesIsLeftAlone(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+		{ClientID: "unmanaged-client"},
+	}
+
+	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
+		"unmanaged-client": {
+			Id:     ptr.To("unmanaged-client-uuid"),
+			Client: ptr.To("unmanaged-client"),
+			Mappings: &[]keycloakapi.RoleRepresentation{
+				{Id: ptr.To("kept-role-id"), Name: ptr.To("kept-role")},
+			},
+		},
+	}
+	mockGroups.EXPECT().GetRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return(&keycloakapi.MappingsRepresentation{
+		ClientMappings: &clientMappings,
+	}, nil, nil)
+
+	// No DeleteClientRoleMappings expectation: any delete fails this test.
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
 func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
@@ -186,8 +228,8 @@ func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "client1", Roles: []string{"role1"}},
-		{ClientID: "client2", Roles: []string{"role2"}},
+		{ClientID: "client1", Roles: ptr.To([]string{"role1"})},
+		{ClientID: "client2", Roles: ptr.To([]string{"role2"})},
 	}
 
 	// Empty role mappings
@@ -258,7 +300,7 @@ func TestSyncClientRoles_Serve_ErrorGettingRoleMappings(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{"role1"}},
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
@@ -286,7 +328,7 @@ func TestSyncClientRoles_Serve_ErrorResolvingClientUUID(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "nonexistent-client", Roles: []string{"role1"}},
+		{ClientID: "nonexistent-client", Roles: ptr.To([]string{"role1"})},
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
@@ -320,7 +362,7 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRoleMappings(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{"role1"}},
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
@@ -361,7 +403,7 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRole(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{"nonexistent-role"}},
+		{ClientID: "test-client", Roles: ptr.To([]string{"nonexistent-role"})},
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
@@ -401,7 +443,7 @@ func TestSyncClientRoles_Serve_ErrorAddingClientRoleMappings(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{"role1"}},
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
@@ -450,7 +492,7 @@ func TestSyncClientRoles_Serve_ErrorDeletingClientRoleMappings(t *testing.T) {
 
 	group := &keycloakApi.KeycloakRealmGroup{}
 	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
-		{ClientID: "test-client", Roles: []string{}}, // Remove all
+		{ClientID: "test-client", Roles: ptr.To([]string{})}, // Remove all
 	}
 
 	// Role mappings with existing client roles

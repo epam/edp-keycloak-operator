@@ -33,9 +33,19 @@ func (h *SyncClientRoles) Serve(
 		return fmt.Errorf("unable to get role mappings for group %s: %w", groupID, err)
 	}
 
+	// claimedClientRoles drives the sync; mentionedClients gates the sweep below. An entry with a
+	// nil role list lands only in mentionedClients: not synced, not swept.
 	claimedClientRoles := make(map[string][]string, len(group.Spec.ClientRoles))
+	mentionedClients := make(map[string]struct{}, len(group.Spec.ClientRoles))
+
 	for _, cr := range group.Spec.ClientRoles {
-		claimedClientRoles[cr.ClientID] = cr.Roles
+		mentionedClients[cr.ClientID] = struct{}{}
+
+		if cr.Roles == nil {
+			continue
+		}
+
+		claimedClientRoles[cr.ClientID] = *cr.Roles
 	}
 
 	// Extract client mappings to avoid redundant API calls in syncOneClientRoles.
@@ -53,7 +63,7 @@ func (h *SyncClientRoles) Serve(
 	// Remove roles for clients no longer in spec.
 	if roleMappings != nil && roleMappings.ClientMappings != nil {
 		for clientName, clientMapping := range *roleMappings.ClientMappings {
-			if _, claimed := claimedClientRoles[clientName]; claimed {
+			if _, mentioned := mentionedClients[clientName]; mentioned {
 				continue
 			}
 

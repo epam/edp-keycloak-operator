@@ -217,9 +217,11 @@ type ServiceAccount struct {
 	Enabled bool `json:"enabled,omitempty"`
 
 	// RealmRoles is a list of realm roles assigned to service account.
+	// Omit the field to leave the service account's realm roles unmanaged; set it to an empty
+	// list to remove every realm role.
 	// +nullable
 	// +optional
-	RealmRoles []string `json:"realmRoles"`
+	RealmRoles *[]string `json:"realmRoles,omitempty"`
 
 	// ClientRoles is a list of client roles assigned to service account.
 	// +nullable
@@ -249,9 +251,11 @@ type UserClientRole struct {
 	ClientID string `json:"clientId"`
 
 	// Roles is a list of client roles names assigned to user.
+	// Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+	// remove every mapping for the client.
 	// +nullable
 	// +optional
-	Roles []string `json:"roles,omitempty"`
+	Roles *[]string `json:"roles,omitempty"`
 }
 
 type ClientRole struct {

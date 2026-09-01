@@ -33,7 +33,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Roles: []string{"role1", "role2"},
+					Roles: ptr.To([]string{"role1", "role2"}),
 				},
 			},
 			userCtx: &UserContext{UserID: "user-1"},
@@ -56,7 +56,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Roles: []string{"role1"},
+					Roles: ptr.To([]string{"role1"}),
 				},
 			},
 			userCtx: &UserContext{UserID: "user-2"},
@@ -78,7 +78,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Roles:                  []string{"role1"},
+					Roles:                  ptr.To([]string{"role1"}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 				},
 			},
@@ -103,15 +103,12 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
-						{ClientID: "client1", Roles: []string{"crole1"}},
+						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
 					},
 				},
 			},
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				// no realm roles
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-4").
-					Return(nil, nil, nil)
 				// client lookup
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
 					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
@@ -135,14 +132,12 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
-						{ClientID: "client1", Roles: []string{"crole1"}},
+						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
 					},
 				},
 			},
 			userCtx: &UserContext{UserID: "user-5"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-5").
-					Return(nil, nil, nil)
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
 					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-5", "client-uuid-1").
@@ -162,7 +157,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Roles: []string{"role1"},
+					Roles: ptr.To([]string{"role1"}),
 				},
 			},
 			userCtx: &UserContext{UserID: "user-err"},
@@ -180,7 +175,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Roles: []string{"missing-role"},
+					Roles: ptr.To([]string{"missing-role"}),
 				},
 			},
 			userCtx: &UserContext{UserID: "user-err2"},
@@ -201,14 +196,12 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
-						{ClientID: "no-such-client", Roles: []string{"role1"}},
+						{ClientID: "no-such-client", Roles: ptr.To([]string{"role1"})},
 					},
 				},
 			},
 			userCtx: &UserContext{UserID: "user-err3"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-err3").
-					Return(nil, nil, nil)
 				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("no-such-client")}).
 					Return(nil, nil, nil)
 			},
@@ -216,6 +209,74 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), "unable to sync user client roles")
 			},
+		},
+		{
+			// No expectations on the mocks: any Keycloak call fails this case.
+			name: "unmanaged - omitted realm roles leave every mapping alone",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{},
+			},
+			userCtx:   &UserContext{UserID: "user-unmanaged"},
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, _ *v2mocks.MockClientsClient) {},
+			wantErr:   require.NoError,
+		},
+		{
+			name: "explicit empty realm roles remove every mapping",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Roles: ptr.To([]string{}),
+				},
+			},
+			userCtx: &UserContext{UserID: "user-clear"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, _ *v2mocks.MockClientsClient) {
+				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-clear").
+					Return([]keycloakapi.RoleRepresentation{
+						{Id: ptr.To("d1"), Name: ptr.To("default-roles-test-realm")},
+					}, nil, nil)
+				u.EXPECT().DeleteUserRealmRoles(context.Background(), "test-realm", "user-clear",
+					[]keycloakapi.RoleRepresentation{{Id: ptr.To("d1"), Name: ptr.To("default-roles-test-realm")}}).
+					Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "explicit empty client role list clears that client's mappings",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client1", Roles: ptr.To([]string{})},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-clear-client"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-clear-client", "client-uuid-1").
+					Return([]keycloakapi.RoleRepresentation{{Id: ptr.To("crid1"), Name: ptr.To("crole1")}}, nil, nil)
+				u.EXPECT().DeleteUserClientRoles(context.Background(), "test-realm", "user-clear-client", "client-uuid-1",
+					[]keycloakapi.RoleRepresentation{{Id: ptr.To("crid1"), Name: ptr.To("crole1")}}).
+					Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// The stale clientId is never resolved: the entry is skipped before the lookup.
+			name: "unmanaged - client entry without a role list is skipped before the client lookup",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "no-such-client"},
+					},
+				},
+			},
+			userCtx:   &UserContext{UserID: "user-unmanaged-client"},
+			mockSetup: func(_ *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, _ *v2mocks.MockClientsClient) {},
+			wantErr:   require.NoError,
 		},
 	}
 

@@ -1601,8 +1601,12 @@ func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 	}
 	if in.Roles != nil {
 		in, out := &in.Roles, &out.Roles
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.ClientRoles != nil {
 		in, out := &in.ClientRoles, &out.ClientRoles
@@ -2115,8 +2119,12 @@ func (in *ServiceAccount) DeepCopyInto(out *ServiceAccount) {
 	*out = *in
 	if in.RealmRoles != nil {
 		in, out := &in.RealmRoles, &out.RealmRoles
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.ClientRoles != nil {
 		in, out := &in.ClientRoles, &out.ClientRoles
@@ -2205,8 +2213,12 @@ func (in *UserClientRole) DeepCopyInto(out *UserClientRole) {
 	*out = *in
 	if in.Roles != nil {
 		in, out := &in.Roles, &out.Roles
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 }
 

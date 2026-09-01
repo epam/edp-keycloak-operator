@@ -32,6 +32,31 @@ func TestServiceAccount_Serve(t *testing.T) {
 		expectedError  string
 	}{
 		{
+			// No role-mapping expectations on the mocks: any Keycloak read fails this case.
+			name: "unmanaged - omitted realm roles and role-less client entries are left alone",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ServiceAccount: &keycloakApi.ServiceAccount{
+						Enabled:     true,
+						ClientRoles: []keycloakApi.UserClientRole{{ClientID: "unmanaged-client"}},
+					},
+				},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients: clientsMock,
+					Users:   keycloakapiMocks.NewMockUsersClient(t),
+				}
+			},
+			realmName: "test-realm",
+		},
+		{
 			name: "success - service account disabled (nil)",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
@@ -108,15 +133,15 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyFull,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1", "realm-role2"},
+						RealmRoles: ptr.To([]string{"realm-role1", "realm-role2"}),
 						ClientRoles: []keycloakApi.UserClientRole{
 							{
 								ClientID: "client1",
-								Roles:    []string{"role1", "role2"},
+								Roles:    ptr.To([]string{"role1", "role2"}),
 							},
 							{
 								ClientID: "client2",
-								Roles:    []string{"role3"},
+								Roles:    ptr.To([]string{"role3"}),
 							},
 						},
 					},
@@ -187,11 +212,11 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 						ClientRoles: []keycloakApi.UserClientRole{
 							{
 								ClientID: "client1",
-								Roles:    []string{"role1"},
+								Roles:    ptr.To([]string{"role1"}),
 							},
 						},
 					},
@@ -244,7 +269,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 						Groups:     []string{"group1", "group2"},
 					},
 				},
@@ -303,7 +328,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 						AttributesV2: map[string][]string{
 							"attr1": {"value1", "value2"},
 							"attr2": {"value3"},
@@ -355,11 +380,11 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1", "realm-role2"},
+						RealmRoles: ptr.To([]string{"realm-role1", "realm-role2"}),
 						ClientRoles: []keycloakApi.UserClientRole{
 							{
 								ClientID: "client1",
-								Roles:    []string{"role1", "role2"},
+								Roles:    ptr.To([]string{"role1", "role2"}),
 							},
 						},
 						Groups: []string{"group1", "group2"},
@@ -442,7 +467,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
@@ -470,7 +495,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
@@ -502,7 +527,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 						Groups:     []string{"group1"},
 					},
 				},
@@ -550,7 +575,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 						AttributesV2: map[string][]string{
 							"attr1": {"value1"},
 						},
@@ -600,7 +625,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:     true,
-						RealmRoles:  []string{"realm-role1"},
+						RealmRoles:  ptr.To([]string{"realm-role1"}),
 						ClientRoles: []keycloakApi.UserClientRole{},
 					},
 				},
@@ -633,6 +658,40 @@ func TestServiceAccount_Serve(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			name: "explicit empty client role list clears that client's mappings",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ServiceAccount: &keycloakApi.ServiceAccount{
+						Enabled: true,
+						ClientRoles: []keycloakApi.UserClientRole{
+							{ClientID: "client1", Roles: ptr.To([]string{})},
+						},
+					},
+				},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				usersMock := keycloakapiMocks.NewMockUsersClient(t)
+
+				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
+				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+					Return([]keycloakapi.RoleRepresentation{
+						{Id: ptr.To("cr1-id"), Name: ptr.To("role1")},
+					}, (*keycloakapi.Response)(nil), nil)
+				usersMock.On("DeleteUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client1-uuid",
+					[]keycloakapi.RoleRepresentation{{Id: ptr.To("cr1-id"), Name: ptr.To("role1")}}).
+					Return((*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{Clients: clientsMock, Users: usersMock}
+			},
+			realmName: "test-realm",
+		},
+		{
 			name: "success - empty realm roles",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
@@ -643,11 +702,11 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{},
+						RealmRoles: ptr.To([]string{}),
 						ClientRoles: []keycloakApi.UserClientRole{
 							{
 								ClientID: "client1",
-								Roles:    []string{"role1"},
+								Roles:    ptr.To([]string{"role1"}),
 							},
 						},
 					},
@@ -717,9 +776,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 						Attributes: &existingAttrs,
 					}, (*keycloakapi.Response)(nil), nil)
 
-				// syncRealmRoles: empty desired, empty current => no-op
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
-					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
+				// realmRoles unset: the mappings are never read.
 
 				// setAttributes: must contain both existing and new attributes
 				usersMock.On("UpdateUser", mock.Anything, "test-realm", "sa-user-id",
@@ -756,7 +813,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					ClientId: "test-client-id",
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
-						RealmRoles: []string{"realm-role1"},
+						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
