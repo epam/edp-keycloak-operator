@@ -14,11 +14,11 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
-// victimSecret stands in for a Secret the custom resource author cannot read directly.
-func victimSecret() *corev1.Secret {
+// referencedSecret is a Secret the custom resource author cannot read directly.
+func referencedSecret() *corev1.Secret {
 	return &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "victim", Namespace: "default"},
-		Data:       map[string][]byte{"key": []byte("LeakedSecret123!"), "url": []byte("https://evil.example.com")},
+		ObjectMeta: metav1.ObjectMeta{Name: "referenced", Namespace: "default"},
+		Data:       map[string][]byte{"key": []byte("S3cretValue!"), "url": []byte("https://evil.example.com")},
 	}
 }
 
@@ -28,7 +28,7 @@ func guardedSecretRef(t *testing.T) *SecretRef {
 	s := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(s))
 
-	secret := victimSecret()
+	secret := referencedSecret()
 	cl := fake.NewClientBuilder().WithScheme(s).WithObjects(secret).Build()
 
 	guard, err := destination.New([]string{"keycloak.example.com"}, true)
@@ -41,21 +41,21 @@ func guardedSecretRef(t *testing.T) *SecretRef {
 }
 
 // A destination supplied through a secret reference is never checked against the allowlist, so
-// the resolver must refuse it outright (GHSA-wj3g-w873-xwg7).
+// the resolver must refuse it outright.
 func TestMapConfigSecretsRefs_RejectsSecretRefAsDestination(t *testing.T) {
 	t.Parallel()
 
 	s := guardedSecretRef(t)
 
 	config := map[string]string{
-		"tokenUrl":     "$victim:url",
-		"clientSecret": "$victim:key",
+		"tokenUrl":     "$referenced:url",
+		"clientSecret": "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Equal(t, "$victim:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
+	assert.Equal(t, "$referenced:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
 }
 
 func TestMapConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
@@ -65,13 +65,13 @@ func TestMapConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
 
 	config := map[string]string{
 		"tokenUrl":     "https://evil.example.com/collect",
-		"clientSecret": "$victim:key",
+		"clientSecret": "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Equal(t, "$victim:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
+	assert.Equal(t, "$referenced:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
 }
 
 func TestMapConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
@@ -81,13 +81,13 @@ func TestMapConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
 
 	config := map[string]string{
 		"tokenUrl":     "https://keycloak.example.com/token",
-		"clientSecret": "$victim:key",
+		"clientSecret": "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.NoError(t, err)
-	assert.Equal(t, "LeakedSecret123!", config["clientSecret"])
+	assert.Equal(t, "S3cretValue!", config["clientSecret"])
 }
 
 func TestMapComponentConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
@@ -97,13 +97,14 @@ func TestMapComponentConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) 
 
 	config := map[string][]string{
 		"connectionUrl":  {"ldap://evil.example.com:389"},
-		"bindCredential": {"$victim:key"},
+		"bindCredential": {"$referenced:key"},
 	}
 
 	_, err := s.MapComponentConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Equal(t, "$victim:key", config["bindCredential"][0], "no secret may be resolved once a destination is rejected")
+	assert.Equal(t, "$referenced:key", config["bindCredential"][0],
+		"no secret may be resolved once a destination is rejected")
 }
 
 func TestMapComponentConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
@@ -113,11 +114,11 @@ func TestMapComponentConfigSecretsRefs_ResolvesForListedDestination(t *testing.T
 
 	config := map[string][]string{
 		"connectionUrl":  {"ldap://keycloak.example.com:389"},
-		"bindCredential": {"$victim:key"},
+		"bindCredential": {"$referenced:key"},
 	}
 
 	_, err := s.MapComponentConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.NoError(t, err)
-	assert.Equal(t, "LeakedSecret123!", config["bindCredential"][0])
+	assert.Equal(t, "S3cretValue!", config["bindCredential"][0])
 }

@@ -2,9 +2,8 @@
 // destination named in a custom resource.
 //
 // A custom resource author supplies both a Secret reference and an outbound destination in one
-// spec. The operator's ServiceAccount can read Secrets the author cannot, so without this check
-// the author can name any Secret and any destination and have the operator deliver one to the
-// other (GHSA-wj3g-w873-xwg7).
+// spec. The operator's ServiceAccount reads Secrets the author cannot, so the destination is
+// checked before any referenced Secret is resolved.
 //
 // Covered spec fields are listed in deploy-templates/values.yaml (allowedDestinationHosts);
 // update that list when adding a call site.
