@@ -42,7 +42,7 @@ Derive the Go import path from the file path:
 
 ## Step 3 — Update .mockery.yml if needed (skip if `$ARGUMENTS` is empty)
 
-Use **targeted Edit** (never rewrite the whole file) to add only what is missing:
+Add only the missing entries with a targeted Edit; the file registers every mocked interface in the repo, and a rewrite drops the ones outside this task:
 
 - Interface already registered → nothing to do, skip to Step 4.
 - Package present, interface missing → insert `      InterfaceName: {}` under its `interfaces:` block.
