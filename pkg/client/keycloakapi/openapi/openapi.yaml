@@ -2660,6 +2660,7 @@ paths:
         in: query
         schema:
           format: int32
+          default: "100"
           type: integer
       - name: name
         in: query
@@ -2830,6 +2831,7 @@ paths:
         in: query
         schema:
           format: int32
+          default: "100"
           type: integer
       - name: name
         in: query
@@ -3012,6 +3014,7 @@ paths:
         in: query
         schema:
           format: int32
+          default: "100"
           type: integer
       - name: name
         in: query
@@ -3095,6 +3098,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -3172,6 +3176,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -3277,6 +3282,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -3347,6 +3353,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -3425,6 +3432,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -3503,6 +3511,7 @@ paths:
       in: query
       schema:
         format: int32
+        default: "100"
         type: integer
     - name: name
       in: query
@@ -4164,6 +4173,44 @@ paths:
       required: true
       schema:
         type: string
+  /admin/realms/{realm}/clients/{client-uuid}/evaluate-scopes/generate-example-saml-response:
+    get:
+      tags:
+      - Clients
+      summary: Create JSON with an example SAML response as payload
+      parameters:
+      - name: audience
+        in: query
+        schema:
+          type: string
+      - name: scope
+        in: query
+        schema:
+          type: string
+      - name: userId
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SamlExampleResponse'
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: client-uuid
+      in: path
+      description: id of client (not client-id!)
+      required: true
+      schema:
+        type: string
   /admin/realms/{realm}/clients/{client-uuid}/evaluate-scopes/generate-example-userinfo:
     get:
       tags:
@@ -4482,7 +4529,7 @@ paths:
     get:
       tags:
       - Clients
-      summary: Get offline sessions for client Returns a list of offline user sessions
+      summary: Get offline sessions for client. Returns a list of offline user sessions
         associated with this client
       parameters:
       - name: first
@@ -4493,9 +4540,10 @@ paths:
           type: integer
       - name: max
         in: query
-        description: Maximum results size (defaults to 100)
+        description: Maximum results size.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -4916,6 +4964,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
         "403":
           description: Forbidden
         "404":
@@ -5138,23 +5188,23 @@ paths:
           type: string
       - name: briefRepresentation
         in: query
-        description: "if false, return a full representation of the {@code GroupRepresentation}\
+        description: "If false, return a full representation of the {@code GroupRepresentation}\
           \ objects."
         schema:
           default: true
           type: boolean
       - name: first
         in: query
-        description: "first result to return. Ignored if negative or {@code null}."
+        description: "First result to return. Ignored if negative or {@code null}."
         schema:
           format: int32
           type: integer
       - name: max
         in: query
-        description: "maximum number of results to return. Ignored if negative or\
-          \ {@code null}."
+        description: Maximum number of results to return. Unbounded if negative.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -5271,10 +5321,10 @@ paths:
           type: integer
       - name: max
         in: query
-        description: "maximum number of results to return. Ignored if negative or\
-          \ {@code null}."
+        description: Maximum number of results to return. Unbounded if negative.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -5668,7 +5718,7 @@ paths:
       tags:
       - Clients
       summary: |
-        Get user sessions for client Returns a list of user sessions associated with this client
+        Get user sessions for client. Returns a list of user sessions associated with this client.
       parameters:
       - name: first
         in: query
@@ -5678,9 +5728,10 @@ paths:
           type: integer
       - name: max
         in: query
-        description: Maximum results size (defaults to 100)
+        description: Maximum results size.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -5714,6 +5765,10 @@ paths:
         schema:
           type: string
       - name: parent
+        in: query
+        schema:
+          type: string
+      - name: providerId
         in: query
         schema:
           type: string
@@ -6086,9 +6141,10 @@ paths:
           type: string
       - name: max
         in: query
-        description: Maximum results size (defaults to 100)
+        description: Maximum results size
         schema:
           format: int32
+          default: "100"
           type: integer
       - name: type
         in: query
@@ -7515,7 +7571,7 @@ paths:
           type: string
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
@@ -7580,6 +7636,8 @@ paths:
               schema:
                 format: int64
                 type: integer
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -7608,7 +7666,7 @@ paths:
           type: boolean
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
@@ -7617,6 +7675,8 @@ paths:
                   $ref: '#/components/schemas/OrganizationRepresentation'
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -7631,11 +7691,13 @@ paths:
       summary: Returns the organization representation
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrganizationRepresentation'
+        "403":
+          description: Forbidden
     put:
       tags:
       - Organizations
@@ -7650,6 +7712,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "409":
           description: Conflict
     delete:
@@ -7661,6 +7725,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -7683,6 +7749,11 @@ paths:
         \ searched by attributes. If neither parameter is provided, top-level groups\
         \ are returned."
       parameters:
+      - name: briefRepresentation
+        in: query
+        schema:
+          default: true
+          type: boolean
       - name: exact
         in: query
         schema:
@@ -7698,6 +7769,11 @@ paths:
         schema:
           format: int32
           type: integer
+      - name: populateHierarchy
+        in: query
+        schema:
+          default: false
+          type: boolean
       - name: q
         in: query
         schema:
@@ -7706,6 +7782,11 @@ paths:
         in: query
         schema:
           type: string
+      - name: subGroupsCount
+        in: query
+        schema:
+          default: false
+          type: boolean
       responses:
         "200":
           description: OK
@@ -7715,13 +7796,15 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/GroupRepresentation'
+        "403":
+          description: Forbidden
     post:
       tags:
       - Organizations
-      summary: Creates a new top-level group in the organization
-      description: "Adds a new group as a top-level group to the organization. If\
-        \ a group already exists or group with the same name already exists, an error\
-        \ response is returned."
+      summary: Creates a new top-level group or moves an existing group to top-level
+      description: "Creates a new top-level group in the organization. If the group\
+        \ representation includes an ID, moves the existing organization group to\
+        \ be a top-level group. If no ID is provided, creates a new top-level group."
       requestBody:
         content:
           application/json:
@@ -7730,8 +7813,14 @@ paths:
       responses:
         "201":
           description: Created
+        "204":
+          description: No Content - Group moved to top-level
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found - Group does not exist
         "409":
           description: Conflict
     parameters:
@@ -7759,6 +7848,12 @@ paths:
         schema:
           pattern: .*
           type: string
+      - name: subGroupsCount
+        in: query
+        description: "Whether to return the count of subgroups (default: false)"
+        schema:
+          default: false
+          type: boolean
       responses:
         "200":
           description: OK
@@ -7787,6 +7882,13 @@ paths:
       tags:
       - Organizations
       summary: Get organization group representation
+      parameters:
+      - name: subGroupsCount
+        in: query
+        description: "Whether to return the count of subgroups (default: false)"
+        schema:
+          default: false
+          type: boolean
       responses:
         "200":
           description: OK
@@ -7794,6 +7896,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GroupRepresentation'
+        "403":
+          description: Forbidden
     put:
       tags:
       - Organizations
@@ -7810,6 +7914,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "409":
           description: Conflict
     delete:
@@ -7820,6 +7926,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     parameters:
@@ -7874,6 +7982,11 @@ paths:
           name
         schema:
           type: string
+      - name: subGroupsCount
+        in: query
+        description: "Whether to return the count of subgroups (default: false)"
+        schema:
+          type: boolean
       responses:
         "200":
           description: OK
@@ -7883,6 +7996,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/GroupRepresentation'
+        "403":
+          description: Forbidden
     post:
       tags:
       - Organizations
@@ -7962,6 +8077,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/MemberRepresentation'
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -8041,6 +8158,336 @@ paths:
       required: true
       schema:
         type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings:
+    get:
+      tags:
+      - Role Mapper
+      summary: Get role mappings
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MappingsRepresentation'
+        "403":
+          description: Forbidden
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/clients/{client-id}:
+    get:
+      tags:
+      - Client Role Mappings
+      summary: "Get client-level role mappings for the user or group, and the app"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+    post:
+      tags:
+      - Client Role Mappings
+      summary: Add client-level roles to the user or group role mapping
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoleRepresentation'
+      responses:
+        "204":
+          description: No Content
+    delete:
+      tags:
+      - Client Role Mappings
+      summary: Delete client-level roles from user or group role mapping
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoleRepresentation'
+      responses:
+        "204":
+          description: No Content
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: client-id
+      in: path
+      description: client id (not clientId!)
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/clients/{client-id}/available:
+    get:
+      tags:
+      - Client Role Mappings
+      summary: Get available client-level roles that can be mapped to the user or
+        group
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: client-id
+      in: path
+      description: client id (not clientId!)
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/clients/{client-id}/composite:
+    get:
+      tags:
+      - Client Role Mappings
+      summary: Get effective client-level role mappings This recurses any composite
+        roles
+      parameters:
+      - name: briefRepresentation
+        in: query
+        description: "if false, return roles with their attributes"
+        schema:
+          default: true
+          type: boolean
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: client-id
+      in: path
+      description: client id (not clientId!)
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/realm:
+    get:
+      tags:
+      - Role Mapper
+      summary: Get realm-level role mappings
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+        "403":
+          description: Forbidden
+    post:
+      tags:
+      - Role Mapper
+      summary: Add realm-level role mappings to the user
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoleRepresentation'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+    delete:
+      tags:
+      - Role Mapper
+      summary: Delete realm-level role mappings
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/RoleRepresentation'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+        "500":
+          description: Internal Server Error
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/realm/available:
+    get:
+      tags:
+      - Role Mapper
+      summary: Get realm-level roles that can be mapped
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+        "403":
+          description: Forbidden
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/groups/{group-id}/role-mappings/realm/composite:
+    get:
+      tags:
+      - Role Mapper
+      summary: Get effective realm-level role mappings This will recurse all composite
+        roles to get the result.
+      parameters:
+      - name: briefRepresentation
+        in: query
+        description: "if false, return roles with their attributes"
+        schema:
+          default: true
+          type: boolean
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RoleRepresentation'
+        "403":
+          description: Forbidden
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+    - name: group-id
+      in: path
+      required: true
+      schema:
+        type: string
   /admin/realms/{realm}/organizations/{org-id}/identity-providers:
     get:
       tags:
@@ -8055,6 +8502,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/IdentityProviderRepresentation'
+        "403":
+          description: Forbidden
     post:
       tags:
       - Organizations
@@ -8114,6 +8563,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/IdentityProviderRepresentation'
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     delete:
@@ -8134,6 +8585,90 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias}/groups:
+    get:
+      tags:
+      - Organizations
+      summary: Returns organization groups for the identity provider
+      description: Returns organization groups that can be used in identity provider
+        mappers. Only returns groups if the identity provider is associated with the
+        organization.
+      parameters:
+      - name: alias
+        in: path
+        description: The alias of the identity provider
+        required: true
+        schema:
+          type: string
+      - name: briefRepresentation
+        in: query
+        description: "If true, return brief representation; otherwise return full\
+          \ representation"
+        schema:
+          default: true
+          type: boolean
+      - name: exact
+        in: query
+        description: "If true, perform exact match on the search parameter"
+        schema:
+          default: "false"
+          type: boolean
+      - name: first
+        in: query
+        description: The position of the first result (pagination offset)
+        schema:
+          format: int32
+          type: integer
+      - name: max
+        in: query
+        description: The maximum number of results to return
+        schema:
+          format: int32
+          type: integer
+      - name: q
+        in: query
+        description: "A query to search for group attributes, in the format 'key1:value1\
+          \ key2:value2'"
+        schema:
+          type: string
+      - name: search
+        in: query
+        description: A string to search for in group names
+        schema:
+          type: string
+      - name: subGroupsCount
+        in: query
+        description: "If true, include subgroups count in the response"
+        schema:
+          default: false
+          type: boolean
+      responses:
+        "200":
+          description: ""
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupRepresentation'
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     parameters:
@@ -8193,6 +8728,8 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/OrganizationInvitationRepresentation'
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -8223,6 +8760,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrganizationInvitationRepresentation'
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     delete:
@@ -8238,6 +8777,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     parameters:
@@ -8266,6 +8807,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "403":
+          description: Forbidden
         "404":
           description: Not Found
     parameters:
@@ -8287,6 +8830,13 @@ paths:
       summary: Returns a paginated list of organization members filtered according
         to the specified parameters
       parameters:
+      - name: briefRepresentation
+        in: query
+        description: "Boolean to return either a brief or a full user representation.\
+          \ If not specified, the brief representation is returned by default."
+        schema:
+          default: true
+          type: boolean
       - name: exact
         in: query
         description: Boolean which defines whether the param 'search' must match exactly
@@ -8321,13 +8871,15 @@ paths:
           type: string
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/MemberRepresentation'
+        "403":
+          description: Forbidden
     post:
       tags:
       - Organizations
@@ -8349,6 +8901,8 @@ paths:
           description: Created
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "409":
           description: Conflict
     parameters:
@@ -8370,12 +8924,14 @@ paths:
       summary: Returns number of members in the organization.
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
                 format: int64
                 type: integer
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -8407,6 +8963,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "500":
           description: Internal Server Error
     parameters:
@@ -8446,6 +9004,8 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
         "409":
           description: Conflict
         "500":
@@ -8478,13 +9038,15 @@ paths:
           type: string
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemberRepresentation'
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
     delete:
       tags:
       - Organizations
@@ -8504,6 +9066,68 @@ paths:
           description: No Content
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/groups:
+    get:
+      tags:
+      - Organizations
+      summary: Returns the organization group memberships for a member with the specified
+        id
+      description: "Searches for auser with the given id. If one is found, and is\
+        \ currently a member of the organization, returns the groups from the organizationwhere\
+        \ the user is member of. Otherwise, an error response with status NOT_FOUND\
+        \ is returned"
+      parameters:
+      - name: member-id
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: briefRepresentation
+        in: query
+        schema:
+          default: true
+          type: boolean
+      - name: first
+        in: query
+        schema:
+          format: int32
+          type: integer
+      - name: max
+        in: query
+        schema:
+          format: int32
+          type: integer
+      - name: search
+        in: query
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/GroupRepresentation'
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -8537,7 +9161,7 @@ paths:
           type: boolean
       responses:
         "200":
-          description: ""
+          description: OK
           content:
             application/json:
               schema:
@@ -8546,6 +9170,8 @@ paths:
                   $ref: '#/components/schemas/OrganizationRepresentation'
         "400":
           description: Bad Request
+        "403":
+          description: Forbidden
     parameters:
     - name: realm
       in: path
@@ -8745,6 +9371,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
         "403":
           description: Forbidden
     delete:
@@ -9021,6 +9649,8 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: Bad Request
         "403":
           description: Forbidden
         "404":
@@ -9219,23 +9849,23 @@ paths:
           type: string
       - name: briefRepresentation
         in: query
-        description: "if false, return a full representation of the {@code GroupRepresentation}\
+        description: "If false, return a full representation of the {@code GroupRepresentation}\
           \ objects."
         schema:
           default: true
           type: boolean
       - name: first
         in: query
-        description: "first result to return. Ignored if negative or {@code null}."
+        description: "First result to return. Ignored if negative or {@code null}."
         schema:
           format: int32
           type: integer
       - name: max
         in: query
-        description: "maximum number of results to return. Ignored if negative or\
-          \ {@code null}."
+        description: Maximum number of results to return. Unbounded if negative.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -9340,10 +9970,10 @@ paths:
           type: integer
       - name: max
         in: query
-        description: "maximum number of results to return. Ignored if negative or\
-          \ {@code null}."
+        description: Maximum number of results to return. Unbounded if negative.
         schema:
           format: int32
+          default: "100"
           type: integer
       responses:
         "200":
@@ -9433,6 +10063,10 @@ paths:
       tags:
       - Users
       summary: "Get users Returns a stream of users, filtered according to query parameters."
+      description: "Returns a stream of users. Note that the 'credentials' field in\
+        \ the returned UserRepresentation objects is typically not populated for performance\
+        \ reasons. If specific credential metadata is required, use the dedicated\
+        \ 'GET /admin/realms/{realm}/users/{user-id}/credentials' endpoint."
       parameters:
       - name: briefRepresentation
         in: query
@@ -9440,6 +10074,18 @@ paths:
           \ (default: false)"
         schema:
           type: boolean
+      - name: createdAfter
+        in: query
+        description: "Only return users created after (inclusive) the given date,\
+          \ in ISO-8601 format (yyyy-MM-dd) or epoch milliseconds"
+        schema:
+          type: string
+      - name: createdBefore
+        in: query
+        description: "Only return users created before (inclusive) the given date,\
+          \ in ISO-8601 format (yyyy-MM-dd) or epoch milliseconds"
+        schema:
+          type: string
       - name: email
         in: query
         description: "A String contained in email, or the complete email, if param\
@@ -9608,6 +10254,18 @@ paths:
         \ are matched against their respective fields on a user entity. Combined with\
         \ a logical and."
       parameters:
+      - name: createdAfter
+        in: query
+        description: "Only return users created after (inclusive) the given date,\
+          \ in ISO-8601 format (yyyy-MM-dd) or epoch milliseconds"
+        schema:
+          type: string
+      - name: createdBefore
+        in: query
+        description: "Only return users created before (inclusive) the given date,\
+          \ in ISO-8601 format (yyyy-MM-dd) or epoch milliseconds"
+        schema:
+          type: string
       - name: email
         in: query
         description: "A String contained in email, or the complete email, if param\
@@ -11708,10 +12366,6 @@ components:
         customData:
           type: object
           additionalProperties: {}
-        scopeNameFromCustomData:
-          type: string
-        dynamicScopeParamFromCustomData:
-          type: string
     AuthorizationSchema:
       type: object
       properties:
@@ -11841,6 +12495,8 @@ components:
           type: string
         enabled:
           type: boolean
+        mode:
+          type: string
         conditions:
           type: array
           items:
@@ -12171,6 +12827,8 @@ components:
         x5t#S256:
           type: string
         jkt:
+          type: string
+        kc-jkt-type:
           type: string
     CredentialRepresentation:
       type: object
@@ -12521,6 +13179,29 @@ components:
         updateProfileFirstLogin:
           type: boolean
           deprecated: true
+    IssuedVerifiableCredentialRepresentation:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        credentialType:
+          type: string
+        issuedAt:
+          format: int64
+          type: integer
+        expiresAt:
+          format: int64
+          type: integer
+        clientId:
+          type: string
+        clientName:
+          type: string
+        clientBaseUrl:
+          type: string
+        revision:
+          type: string
     KeyMetadataRepresentation:
       type: object
       properties:
@@ -12683,6 +13364,14 @@ components:
         notBefore:
           format: int32
           type: integer
+        verifiableCredentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserVerifiableCredentialRepresentation'
+        issuedVerifiableCredentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssuedVerifiableCredentialRepresentation'
         applicationRoles:
           type: object
           additionalProperties:
@@ -12878,6 +13567,7 @@ components:
           $ref: '#/components/schemas/Status'
         inviteLink:
           type: string
+          deprecated: true
     OrganizationRepresentation:
       type: object
       properties:
@@ -12987,6 +13677,10 @@ components:
         name:
           type: string
         group:
+          type: string
+        description:
+          type: string
+        code:
           type: string
     PolicyRepresentation:
       type: object
@@ -13266,6 +13960,9 @@ components:
         failureFactor:
           format: int32
           type: integer
+        maxSecondaryAuthFailures:
+          format: int32
+          type: integer
         privateKey:
           type: string
           deprecated: true
@@ -13347,6 +14044,8 @@ components:
           type: string
         webAuthnPolicyRequireResidentKey:
           type: string
+        webAuthnPolicyResidentKey:
+          type: string
         webAuthnPolicyUserVerificationRequirement:
           type: string
         webAuthnPolicyCreateTimeout:
@@ -13376,6 +14075,8 @@ components:
           type: string
         webAuthnPolicyPasswordlessRequireResidentKey:
           type: string
+        webAuthnPolicyPasswordlessResidentKey:
+          type: string
         webAuthnPolicyPasswordlessUserVerificationRequirement:
           type: string
         webAuthnPolicyPasswordlessCreateTimeout:
@@ -13393,6 +14094,8 @@ components:
             type: string
         webAuthnPolicyPasswordlessPasskeysEnabled:
           type: boolean
+        webAuthnPolicyPasswordlessMediation:
+          type: string
         clientProfiles:
           $ref: '#/components/schemas/ClientProfilesRepresentation'
         clientPolicies:
@@ -13572,6 +14275,8 @@ components:
           items:
             $ref: '#/components/schemas/ClientTemplateRepresentation'
           deprecated: true
+        scimApiEnabled:
+          type: boolean
     RequiredActionConfigInfoRepresentation:
       type: object
       properties:
@@ -13752,6 +14457,11 @@ components:
             items:
               $ref: '#/components/schemas/RoleRepresentation'
           deprecated: true
+    SamlExampleResponse:
+      type: object
+      properties:
+        samlResponse:
+          type: string
     ScopeMappingRepresentation:
       type: object
       properties:
@@ -14079,6 +14789,14 @@ components:
         notBefore:
           format: int32
           type: integer
+        verifiableCredentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/UserVerifiableCredentialRepresentation'
+        issuedVerifiableCredentials:
+          type: array
+          items:
+            $ref: '#/components/schemas/IssuedVerifiableCredentialRepresentation'
         applicationRoles:
           type: object
           additionalProperties:
@@ -14123,6 +14841,36 @@ components:
           additionalProperties:
             type: string
         transientUser:
+          type: boolean
+    UserVerifiableCredentialRepresentation:
+      type: object
+      properties:
+        credentialScopeName:
+          type: string
+        credentialConfigurationId:
+          type: string
+        revision:
+          type: string
+        createdDate:
+          format: int64
+          type: integer
+        updatedDate:
+          format: int64
+          type: integer
+        userAttributes:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+    VerifiableCredentialOfferActionConfig:
+      type: object
+      properties:
+        credentialConfigurationId:
+          type: string
+        clientId:
+          type: string
+        preAuthorized:
           type: boolean
     WorkflowConcurrencyRepresentation:
       type: object

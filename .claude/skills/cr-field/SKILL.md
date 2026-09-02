@@ -67,7 +67,7 @@ to see which fields are available.
 ### 4c. Confirm the field exists — then follow this decision tree
 
 - **Field exists in keycloakapi representation** → proceed to Step 5.
-- **Field missing from keycloakapi representation** → stop and report it. Exposing the field means editing the hand-maintained spec `pkg/client/keycloakapi/openapi/openapi.yaml` and running `make generate-keycloak-go-client`, which is a separate change; ask the user whether to do that before going further.
+- **Field missing from keycloakapi representation** → stop and report it. The spec `pkg/client/keycloakapi/openapi/openapi.yaml` is downloaded from the Keycloak release pinned by `KEYCLOAK_VERSION` in the Makefile, so the field needs a newer release: bump the version and run `make generate-keycloak-go-client`. That is a separate change; ask the user before going further.
 
 ---
 
