@@ -138,11 +138,12 @@ func (h *SyncClientRoles) syncOneClientRoles(
 				return fmt.Errorf("unable to get client role %q: %w", rn, err)
 			}
 
-			if role == nil {
-				return fmt.Errorf("client role %q not found for client %q in realm %q", rn, clientIDStr, realm)
+			mappable, err := keycloakapi.RequireClientRoleWithID(role, clientIDStr, rn)
+			if err != nil {
+				return err
 			}
 
-			rolesToAdd = append(rolesToAdd, *role)
+			rolesToAdd = append(rolesToAdd, mappable)
 		}
 	}
 

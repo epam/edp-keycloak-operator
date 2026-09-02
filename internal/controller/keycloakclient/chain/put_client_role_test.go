@@ -286,6 +286,76 @@ func TestPutClientRole_Serve(t *testing.T) {
 			expectedError: "",
 		},
 		{
+			name: "error - composite client role lookup returns no role",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ClientRolesV2: []keycloakApi.ClientRole{
+						{
+							Name:                  "composite-role",
+							Description:           "Composite role",
+							AssociatedClientRoles: []string{"role1"},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				clientsMock.On("GetClientRoles", mock.Anything, "test-realm", "client-uuid", (*keycloakapi.GetClientRolesParams)(nil)).
+					Return([]keycloakapi.RoleRepresentation{
+						{Name: ptr.To("composite-role"), Description: ptr.To("Composite role")},
+					}, (*keycloakapi.Response)(nil), nil)
+				clientsMock.On("GetClientRoleComposites", mock.Anything, "test-realm", "client-uuid", "composite-role").
+					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
+				// No role, no error.
+				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client-uuid", "role1").
+					Return((*keycloakapi.RoleRepresentation)(nil), (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{Clients: clientsMock}
+			},
+			realmName:     "test-realm",
+			expectedError: `client role "role1" not found for client "test-client-id"`,
+		},
+		{
+			name: "error - composite client role has no id",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ClientRolesV2: []keycloakApi.ClientRole{
+						{
+							Name:                  "composite-role",
+							Description:           "Composite role",
+							AssociatedClientRoles: []string{"role1"},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				clientsMock.On("GetClientRoles", mock.Anything, "test-realm", "client-uuid", (*keycloakapi.GetClientRolesParams)(nil)).
+					Return([]keycloakapi.RoleRepresentation{
+						{Name: ptr.To("composite-role"), Description: ptr.To("Composite role")},
+					}, (*keycloakapi.Response)(nil), nil)
+				clientsMock.On("GetClientRoleComposites", mock.Anything, "test-realm", "client-uuid", "composite-role").
+					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
+				// No AddClientRoleComposites expectation: reaching it fails the test.
+				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client-uuid", "role1").
+					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{Clients: clientsMock}
+			},
+			realmName:     "test-realm",
+			expectedError: `client role "role1" has no id`,
+		},
+		{
 			name: "success - composites already exist, removes extra",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{

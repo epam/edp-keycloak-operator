@@ -133,7 +133,7 @@ func (h *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClien
 			continue
 		}
 
-		if err := h.syncRoleComposites(ctx, realmName, clientUUID, role); err != nil {
+		if err := h.syncRoleComposites(ctx, realmName, keycloakClient.Spec.ClientId, clientUUID, role); err != nil {
 			return fmt.Errorf("unable to sync composites for role %s: %w", role.Name, err)
 		}
 	}
@@ -145,7 +145,7 @@ func (h *PutClientRole) putKeycloakClientRole(ctx context.Context, keycloakClien
 
 func (h *PutClientRole) syncRoleComposites(
 	ctx context.Context,
-	realmName, clientUUID string,
+	realmName, clientID, clientUUID string,
 	role keycloakApi.ClientRole,
 ) error {
 	// Get existing composites
@@ -173,7 +173,12 @@ func (h *PutClientRole) syncRoleComposites(
 				return fmt.Errorf("unable to get client role %s for composite: %w", compositeName, err)
 			}
 
-			toAdd = append(toAdd, *compositeRole)
+			composable, err := keycloakapi.RequireClientRoleWithID(compositeRole, clientID, compositeName)
+			if err != nil {
+				return err
+			}
+
+			toAdd = append(toAdd, composable)
 		}
 	}
 

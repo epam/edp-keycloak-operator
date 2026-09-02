@@ -243,6 +243,104 @@ func TestSyncComposites_Serve_RealmRoleWithoutID(t *testing.T) {
 	assert.Contains(t, err.Error(), `realm role "child-role" has no id`)
 }
 
+func TestSyncComposites_Serve_RealmRoleIsAnotherRole(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testParentRoleName
+	role.Spec.Composite = true
+	role.Spec.Composites = []keycloakApi.Composite{
+		{Name: "child-role"},
+	}
+
+	mockRoles.EXPECT().GetRealmRoleComposites(
+		context.Background(), "test-realm", testParentRoleName,
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	// No AddRealmRoleComposites expectation: reaching it fails the test.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", "child-role",
+	).Return(&keycloakapi.RoleRepresentation{Id: ptr.To("other-id"), Name: ptr.To("other-role")}, nil, nil)
+
+	h := NewSyncComposites(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `realm role lookup for "child-role" returned "other-role"`)
+}
+
+func TestSyncComposites_Serve_ClientRoleMissing(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+
+	clientName := testClientName
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testParentRoleName
+	role.Spec.Composite = true
+	role.Spec.CompositesClientRoles = map[string][]keycloakApi.Composite{
+		clientName: {{Name: "role1"}},
+	}
+
+	mockRoles.EXPECT().GetRealmRoleComposites(
+		context.Background(), "test-realm", testParentRoleName,
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	mockClients.EXPECT().GetClients(
+		context.Background(), "test-realm",
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{
+		{Id: ptr.To("client-uuid-1")},
+	}, nil, nil)
+
+	// No role, no error.
+	mockClients.EXPECT().GetClientRole(
+		context.Background(), "test-realm", "client-uuid-1", "role1",
+	).Return(nil, nil, nil)
+
+	h := NewSyncComposites(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `client role "role1" not found for client "my-client"`)
+}
+
+func TestSyncComposites_Serve_ClientRoleWithoutID(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+
+	clientName := testClientName
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testParentRoleName
+	role.Spec.Composite = true
+	role.Spec.CompositesClientRoles = map[string][]keycloakApi.Composite{
+		clientName: {{Name: "role1"}},
+	}
+
+	mockRoles.EXPECT().GetRealmRoleComposites(
+		context.Background(), "test-realm", testParentRoleName,
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	mockClients.EXPECT().GetClients(
+		context.Background(), "test-realm",
+		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	).Return([]keycloakapi.ClientRepresentation{
+		{Id: ptr.To("client-uuid-1")},
+	}, nil, nil)
+
+	// No AddRealmRoleComposites expectation: reaching it fails the test.
+	mockClients.EXPECT().GetClientRole(
+		context.Background(), "test-realm", "client-uuid-1", "role1",
+	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, nil, nil)
+
+	h := NewSyncComposites(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `client role "role1" has no id`)
+}
+
 func TestSyncComposites_Serve_GetClientRoleError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)

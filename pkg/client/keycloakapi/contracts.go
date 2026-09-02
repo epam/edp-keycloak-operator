@@ -230,7 +230,8 @@ type GroupsClient interface {
 type RolesClient interface {
 	// GetRealmRoles lists realm-level roles, optionally filtered by params.
 	GetRealmRoles(ctx context.Context, realm string, params *GetRealmRolesParams) ([]RoleRepresentation, *Response, error)
-	// GetRealmRole retrieves a realm-level role by name.
+	// GetRealmRole retrieves a realm-level role by name. A 2xx reply without a JSON body yields
+	// a nil role and a nil error.
 	GetRealmRole(ctx context.Context, realm, roleName string) (*RoleRepresentation, *Response, error)
 	// CreateRealmRole creates a new realm-level role.
 	CreateRealmRole(ctx context.Context, realm string, role RoleRepresentation) (*Response, error)
@@ -280,7 +281,8 @@ type ClientsClient interface {
 		clientID string,
 		params *GetClientRolesParams,
 	) ([]RoleRepresentation, *Response, error)
-	// GetClientRole retrieves a single client role by name; clientID is the Keycloak UUID.
+	// GetClientRole retrieves a single client role by name; clientID is the Keycloak UUID. A 2xx
+	// reply without a JSON body yields a nil role and a nil error.
 	GetClientRole(ctx context.Context, realm, clientID, roleName string) (*RoleRepresentation, *Response, error)
 	// CreateClientRole creates a new role for a client; clientID is the Keycloak UUID.
 	CreateClientRole(ctx context.Context, realm, clientID string, role RoleRepresentation) (*Response, error)
