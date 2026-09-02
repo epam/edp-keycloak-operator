@@ -277,6 +277,26 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 			g.Expect(*groupRep.RealmRoles).ShouldNot(ContainElement("test-group-role"))
 		}, time.Minute, time.Second*5).Should(Succeed())
 
+		By("Emptying spec.Description clears it in Keycloak")
+		updatableGroup = &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
+		updatableGroup.Spec.Description = ""
+		updatableGroup.Spec.Attributes = map[string][]string{"cleared-desc-probe": {"1"}}
+		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			groupFromK8s := &keycloakApi.KeycloakRealmGroup{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, groupFromK8s)).Should(Succeed())
+			g.Expect(groupFromK8s.Status.Value).Should(Equal(common.StatusOK))
+
+			groupRep, _, err := keycloakApiClient.Groups.GetGroup(ctx, KeycloakRealmCR, groupFromK8s.Status.ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(groupRep).ShouldNot(BeNil())
+
+			g.Expect(*groupRep.Attributes).Should(HaveKey("cleared-desc-probe"))
+			g.Expect(ptr.Deref(groupRep.Description, "")).Should(BeEmpty())
+		}, time.Minute, time.Second*5).Should(Succeed())
+
 		By("Renaming the group via spec.Name")
 		updatableGroup = &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
