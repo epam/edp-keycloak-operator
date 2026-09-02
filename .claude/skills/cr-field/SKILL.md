@@ -7,7 +7,7 @@ allowed-tools: Bash(make *), Read, Grep, Glob
 ## Your task
 
 Add a new field to an existing Custom Resource following the project's established conventions.
-Work through all steps in order. Do not skip steps.
+Complete every step. The order matters: Step 2 generates code from the types added in Step 1, and Step 5 maps onto the representation type found in Step 4.
 
 ---
 
@@ -43,14 +43,14 @@ This regenerates DeepCopy methods and CRD YAMLs in `config/crd/bases/` and `depl
 ## Step 3 — Update CRD examples
 
 Add the new field with a meaningful example value to:
-- `config/samples/v1_v1_{kind}.yaml`
+- `config/samples/v1_v1_{kind}.yaml` (`v1_v1alpha1_{kind}.yaml` for alpha kinds)
 - `deploy-templates/_crd_examples/{kind}.yaml`
 
 ---
 
 ## Step 4 — Identify the client and find the Keycloak representation type
 
-This is the critical investigation step before touching any handler code.
+Do this before touching handler code: the generated client may not expose the field, and Step 5 maps onto the representation type found here.
 
 ### 4a. Confirm the controller uses keycloakapi
 
@@ -67,7 +67,7 @@ to see which fields are available.
 ### 4c. Confirm the field exists — then follow this decision tree
 
 - **Field exists in keycloakapi representation** → proceed to Step 5.
-- **Field missing from keycloakapi representation** → **stop**. Warn the user that the field is not exposed by the client. `openapi.yaml` is auto-generated and must not be edited manually. Ask the user how to proceed before making any further changes.
+- **Field missing from keycloakapi representation** → stop and report it. Exposing the field means editing the hand-maintained spec `pkg/client/keycloakapi/openapi/openapi.yaml` and running `make generate-keycloak-go-client`, which is a separate change; ask the user whether to do that before going further.
 
 ---
 

@@ -2,7 +2,7 @@
 name: run-tests
 description: "Run tests for the edp-keycloak-operator. By default runs unit + integration tests. Use /run-tests e2e for end-to-end tests."
 argument-hint: "[unit|integration|e2e]"
-allowed-tools: Bash(make *), Bash(docker *), Read
+allowed-tools: Bash(make *), Bash(docker *), Bash(curl *), Read
 context: fork
 ---
 
@@ -31,9 +31,10 @@ Requires a running Keycloak instance on port 8086.
    ```
    docker ps --filter name=keycloak-test --format '{{.Names}}'
    ```
-2. If not running, start it and wait ~10 seconds for initialization:
+2. If not running, start it, then wait until it answers on port 8086:
    ```
    make start-keycloak
+   until curl -sf http://localhost:8086/realms/master >/dev/null; do sleep 2; done
    ```
 3. Run unit + integration tests:
    ```
@@ -55,12 +56,8 @@ make e2e
 ## Interpreting Results
 
 - Coverage report is written to `coverage.out`
-- `PASS` with coverage summary = all tests passed
-- `FAIL` lines indicate failures — read the error output carefully
 
 ## On Failure
 
-- Do NOT retry the same failing test blindly
 - Isolate failures to a specific package: `go test -v ./pkg/client/keycloakapi/...`
-- Investigate the root cause before making changes
 - After fixing, re-run the full suite to confirm no regressions

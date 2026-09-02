@@ -25,7 +25,7 @@ Run `make lint-fix` to auto-fix linting errors across the entire project, then f
 
 **Other errors**: Fix the root cause directly. Do not add `//nolint` unless the false-positive is clear and add a comment explaining why.
 
-**Complex / subjective issues**: Explain the trade-offs and ask for user approval before making changes.
+**Complex / subjective issues**: Leave them unchanged and list the trade-offs in your final report; this skill runs in a forked context where the user cannot answer mid-task.
 
 ## Iteration
 
