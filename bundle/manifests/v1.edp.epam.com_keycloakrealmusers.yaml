@@ -70,8 +70,10 @@ spec:
                       description: ClientID is a client ID.
                       type: string
                     roles:
-                      description: Roles is a list of client roles names assigned
-                        to user.
+                      description: |-
+                        Roles is a list of client roles names assigned to user.
+                        Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+                        remove every mapping for the client.
                       items:
                         type: string
                       nullable: true
@@ -88,7 +90,10 @@ spec:
                 description: EmailVerified is a user email verified flag.
                 type: boolean
               enabled:
-                description: Enabled is a user enabled flag.
+                default: true
+                description: |-
+                  Enabled is a user enabled flag.
+                  Omit the field to create an enabled user.
                 type: boolean
               firstName:
                 description: FirstName is a user first name.
@@ -99,6 +104,10 @@ spec:
                   Each entry is either a plain group name (e.g. "developers") or a slash-separated
                   path (e.g. "/developers", "/parent/child"), where each segment represents a level
                   in the group hierarchy.
+                  A plain name resolves against top-level groups only, because the Keycloak name search
+                  returns the top-level ancestor of a match. Use a path to reference a nested group.
+                  Omit the field to leave the user's group memberships unmanaged; set it to an empty list
+                  to remove every membership.
                 example:
                 - developers
                 - /parent/child
@@ -177,7 +186,10 @@ spec:
                 nullable: true
                 type: array
               roles:
-                description: Roles is a list of roles assigned to user.
+                description: |-
+                  Roles is a list of realm roles assigned to user.
+                  Omit the field to leave the user's realm roles unmanaged; set it to an empty list to
+                  remove every realm role.
                 items:
                   type: string
                 nullable: true

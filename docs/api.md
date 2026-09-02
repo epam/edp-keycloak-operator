@@ -8183,7 +8183,10 @@ Each attribute can have multiple values.<br/>
         <td><b>enabled</b></td>
         <td>boolean</td>
         <td>
-          Enabled is a user enabled flag.<br/>
+          Enabled is a user enabled flag.
+Omit the field to create an enabled user.<br/>
+          <br/>
+            <i>Default</i>: true<br/>
         </td>
         <td>false</td>
       </tr><tr>

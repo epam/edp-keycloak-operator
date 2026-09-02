@@ -648,8 +648,10 @@ spec:
                           description: ClientID is a client ID.
                           type: string
                         roles:
-                          description: Roles is a list of client roles names assigned
-                            to user.
+                          description: |-
+                            Roles is a list of client roles names assigned to user.
+                            Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+                            remove every mapping for the client.
                           items:
                             type: string
                           nullable: true
@@ -669,8 +671,10 @@ spec:
                     nullable: true
                     type: array
                   realmRoles:
-                    description: RealmRoles is a list of realm roles assigned to service
-                      account.
+                    description: |-
+                      RealmRoles is a list of realm roles assigned to service account.
+                      Omit the field to leave the service account's realm roles unmanaged; set it to an empty
+                      list to remove every realm role.
                     items:
                       type: string
                     nullable: true

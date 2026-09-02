@@ -90,7 +90,10 @@ spec:
                 description: EmailVerified is a user email verified flag.
                 type: boolean
               enabled:
-                description: Enabled is a user enabled flag.
+                default: true
+                description: |-
+                  Enabled is a user enabled flag.
+                  Omit the field to create an enabled user.
                 type: boolean
               firstName:
                 description: FirstName is a user first name.
