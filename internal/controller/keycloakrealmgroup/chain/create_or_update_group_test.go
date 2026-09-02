@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"testing"
@@ -82,10 +83,9 @@ func TestCreateOrUpdateGroup_Serve_CreateTopLevel(t *testing.T) {
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakapi.GroupRepresentation{
-			Name:        ptr.To(testGroupName),
-			Description: ptr.To(""),
-			Path:        ptr.To(testGroupPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Name:       ptr.To(testGroupName),
+			Path:       ptr.To(testGroupPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
@@ -208,16 +208,97 @@ func TestCreateOrUpdateGroup_Serve_CreateGroupError(t *testing.T) {
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakapi.GroupRepresentation{
-			Name:        ptr.To(testGroupName),
-			Description: ptr.To(""),
-			Path:        ptr.To(testGroupPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Name:       ptr.To(testGroupName),
+			Path:       ptr.To(testGroupPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, errors.New("create failed"))
 
 	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to create group")
+}
+
+func assertNoDescriptionOnWire(t *testing.T, rep keycloakapi.GroupRepresentation) {
+	t.Helper()
+
+	body, err := json.Marshal(rep)
+	require.NoError(t, err)
+	assert.NotContains(t, string(body), `"description"`)
+}
+
+func TestCreateOrUpdateGroup_Serve_OmitsEmptyDescription(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
+		mockGroups := mocks.NewMockGroupsClient(t)
+
+		kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+		groupCtx := &GroupContext{RealmName: "test-realm"}
+
+		group := &keycloakApi.KeycloakRealmGroup{}
+		group.Spec.Name = testGroupName
+		group.Spec.Path = testGroupPath
+
+		mockGroups.EXPECT().FindGroupByName(
+			context.Background(), "test-realm", testGroupName,
+		).Return(nil, nil, keycloakapi.ErrNotFound)
+
+		mockGroups.EXPECT().CreateGroup(
+			context.Background(), "test-realm",
+			keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Path:       ptr.To(testGroupPath),
+				Attributes: &group.Spec.Attributes,
+			},
+		).RunAndReturn(func(_ context.Context, _ string, rep keycloakapi.GroupRepresentation) (*keycloakapi.Response, error) {
+			assertNoDescriptionOnWire(t, rep)
+
+			return &keycloakapi.Response{
+				HTTPResponse: &http.Response{
+					Header: http.Header{"Location": []string{"http://localhost/admin/realms/test-realm/groups/group-id-123"}},
+				},
+			}, nil
+		})
+
+		h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+		require.NoError(t, h.Serve(context.Background(), group, kClient, groupCtx))
+	})
+
+	t.Run("update over a stored description", func(t *testing.T) {
+		mockGroups := mocks.NewMockGroupsClient(t)
+
+		kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+		groupCtx := &GroupContext{RealmName: "test-realm"}
+
+		group := &keycloakApi.KeycloakRealmGroup{}
+		group.Spec.Name = testExistingGroup
+		group.Spec.Path = testUpdatedPath
+
+		mockGroups.EXPECT().FindGroupByName(
+			context.Background(), "test-realm", testExistingGroup,
+		).Return(&keycloakapi.GroupRepresentation{
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To(testExistingGroup),
+			Description: ptr.To("stale description"),
+			Path:        ptr.To("/old-path"),
+		}, nil, nil)
+
+		mockGroups.EXPECT().UpdateGroup(
+			context.Background(), "test-realm", "existing-id",
+			keycloakapi.GroupRepresentation{
+				Id:         ptr.To("existing-id"),
+				Name:       ptr.To(testExistingGroup),
+				Path:       ptr.To(testUpdatedPath),
+				Attributes: &group.Spec.Attributes,
+			},
+		).RunAndReturn(func(_ context.Context, _, _ string, rep keycloakapi.GroupRepresentation) (*keycloakapi.Response, error) {
+			assertNoDescriptionOnWire(t, rep)
+
+			return nil, nil
+		})
+
+		h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+		require.NoError(t, h.Serve(context.Background(), group, kClient, groupCtx))
+	})
 }
 
 func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
@@ -242,11 +323,10 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("existing-id"),
-			Name:        ptr.To(testExistingGroup),
-			Description: ptr.To(""),
-			Path:        ptr.To(testUpdatedPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Id:         ptr.To("existing-id"),
+			Name:       ptr.To(testExistingGroup),
+			Path:       ptr.To(testUpdatedPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, errors.New("update failed"))
 
@@ -277,11 +357,10 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "child-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("child-id"),
-			Name:        ptr.To(testChildGroupName),
-			Description: ptr.To(""),
-			Path:        ptr.To(testUpdatedPath),
-			Attributes:  &map[string][]string{"k": {"v"}},
+			Id:         ptr.To("child-id"),
+			Name:       ptr.To(testChildGroupName),
+			Path:       ptr.To(testUpdatedPath),
+			Attributes: &map[string][]string{"k": {"v"}},
 		},
 	).Return(nil, nil)
 
@@ -406,10 +485,9 @@ func TestCreateOrUpdateGroup_Serve_CreateWithoutLocationHeader(t *testing.T) {
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakapi.GroupRepresentation{
-			Name:        ptr.To(testGroupName),
-			Description: ptr.To(""),
-			Path:        ptr.To(testGroupPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Name:       ptr.To(testGroupName),
+			Path:       ptr.To(testGroupPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(&keycloakapi.Response{HTTPResponse: &http.Response{Header: http.Header{}}}, nil)
 
@@ -441,10 +519,9 @@ func TestCreateOrUpdateGroup_Serve_ExistingIDNotFound_FallsBackToName(t *testing
 	mockGroups.EXPECT().CreateGroup(
 		context.Background(), "test-realm",
 		keycloakapi.GroupRepresentation{
-			Name:        ptr.To(testGroupName),
-			Description: ptr.To(""),
-			Path:        ptr.To(testGroupPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Name:       ptr.To(testGroupName),
+			Path:       ptr.To(testGroupPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(&keycloakapi.Response{
 		HTTPResponse: &http.Response{
@@ -500,11 +577,10 @@ func TestCreateOrUpdateGroup_Serve_AdoptUnownedGroupByName(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("existing-id"),
-			Name:        ptr.To(testExistingGroup),
-			Description: ptr.To(""),
-			Path:        ptr.To(testUpdatedPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Id:         ptr.To("existing-id"),
+			Name:       ptr.To(testExistingGroup),
+			Path:       ptr.To(testUpdatedPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, nil)
 
@@ -577,11 +653,10 @@ func TestCreateOrUpdateGroup_Serve_AllowsSameGroupIDOnNamespacedRealmInAnotherNa
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("existing-id"),
-			Name:        ptr.To(testExistingGroup),
-			Description: ptr.To(""),
-			Path:        ptr.To(testUpdatedPath),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Id:         ptr.To("existing-id"),
+			Name:       ptr.To(testExistingGroup),
+			Path:       ptr.To(testUpdatedPath),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, nil)
 
@@ -726,11 +801,10 @@ func TestCreateOrUpdateGroup_Serve_ByIDPathSkipsOwnershipCheck(t *testing.T) {
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), "test-realm", "existing-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("existing-id"),
-			Name:        ptr.To("new-name"),
-			Description: ptr.To(""),
-			Path:        ptr.To("/new-name"),
-			Attributes:  &map[string][]string{"key": {"val"}},
+			Id:         ptr.To("existing-id"),
+			Name:       ptr.To("new-name"),
+			Path:       ptr.To("/new-name"),
+			Attributes: &map[string][]string{"key": {"val"}},
 		},
 	).Return(nil, nil)
 

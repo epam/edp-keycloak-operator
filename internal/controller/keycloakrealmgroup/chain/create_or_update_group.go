@@ -19,6 +19,15 @@ func NewCreateOrUpdateGroup(k8sClient client.Client) *CreateOrUpdateGroup {
 	return &CreateOrUpdateGroup{k8sClient: k8sClient}
 }
 
+// Keycloak clears the description when the key is absent; servers before 26.3 reject it.
+func optionalDescription(description string) *string {
+	if description == "" {
+		return nil
+	}
+
+	return &description
+}
+
 func (h *CreateOrUpdateGroup) Serve(
 	ctx context.Context,
 	group *keycloakApi.KeycloakRealmGroup,
@@ -102,7 +111,7 @@ func (h *CreateOrUpdateGroup) Serve(
 	if existingGroup == nil {
 		groupRep := keycloakapi.GroupRepresentation{
 			Name:        &spec.Name,
-			Description: &spec.Description,
+			Description: optionalDescription(spec.Description),
 			Path:        &spec.Path,
 			Attributes:  &spec.Attributes,
 		}
@@ -128,7 +137,7 @@ func (h *CreateOrUpdateGroup) Serve(
 	} else {
 		groupCtx.GroupID = existingGroupID
 		existingGroup.Name = &spec.Name
-		existingGroup.Description = &spec.Description
+		existingGroup.Description = optionalDescription(spec.Description)
 		existingGroup.Path = &spec.Path
 		existingGroup.Attributes = &spec.Attributes
 
