@@ -66,8 +66,10 @@ spec:
                       description: ClientID is a client ID.
                       type: string
                     roles:
-                      description: Roles is a list of client roles names assigned
-                        to user.
+                      description: |-
+                        Roles is a list of client roles names assigned to user.
+                        Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+                        remove every mapping for the client.
                       items:
                         type: string
                       nullable: true
@@ -98,7 +100,10 @@ spec:
                 - name
                 type: object
               path:
-                description: Path is a group path.
+                description: |-
+                  Path is a group path.
+                  Read-only. Keycloak derives the path from the group name and its parent, and ignores
+                  this field on both create and update.
                 type: string
               realmRef:
                 description: RealmRef is reference to Realm custom resource.
@@ -117,7 +122,10 @@ spec:
                 - name
                 type: object
               realmRoles:
-                description: RealmRoles is a list of realm roles assigned to group.
+                description: |-
+                  RealmRoles is a list of realm roles assigned to group.
+                  Omit the field to leave the group's realm roles unmanaged; set it to an empty list to
+                  remove every realm role.
                 items:
                   type: string
                 nullable: true
