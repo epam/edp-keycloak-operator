@@ -15,17 +15,37 @@ type (
 // RequireRealmRoleWithID validates a GetRealmRole result for work that needs the role's id:
 // role mappings, composites and default-role entries. Keycloak matches a mapping payload on
 // name and id together, and a composite on id alone, and answers either mismatch with 404.
-// The returned representation has a non-nil Id.
+// The returned representation carries the requested name and a non-empty Id.
 //
 // GetRealmRole itself does not enforce this. A realm role is addressable by name on other
 // endpoints, so a response without an id is incomplete rather than missing.
 func RequireRealmRoleWithID(role *RoleRepresentation, realm, name string) (RoleRepresentation, error) {
+	return requireRoleWithID(role, "realm role", name, "in realm", realm)
+}
+
+// RequireClientRoleWithID validates a GetClientRole result for work that needs the role's id:
+// role mappings and composites. Same rule as [RequireRealmRoleWithID]; GetClientRole does not
+// enforce it. clientID is the human-readable clientId and only names the client in the error.
+// The returned representation carries the requested name and a non-empty Id.
+func RequireClientRoleWithID(role *RoleRepresentation, clientID, name string) (RoleRepresentation, error) {
+	return requireRoleWithID(role, "client role", name, "for client", clientID)
+}
+
+func requireRoleWithID(role *RoleRepresentation, kind, name, containerLabel, containerName string) (RoleRepresentation, error) {
 	if role == nil {
-		return RoleRepresentation{}, fmt.Errorf("realm role %q not found in realm %q", name, realm)
+		return RoleRepresentation{}, fmt.Errorf("%s %q not found %s %q", kind, name, containerLabel, containerName)
 	}
 
-	if role.Id == nil {
-		return RoleRepresentation{}, fmt.Errorf("realm role %q has no id", name)
+	if role.Name == nil {
+		return RoleRepresentation{}, fmt.Errorf("%s %q has no name", kind, name)
+	}
+
+	if *role.Name != name {
+		return RoleRepresentation{}, fmt.Errorf("%s lookup for %q returned %q", kind, name, *role.Name)
+	}
+
+	if role.Id == nil || *role.Id == "" {
+		return RoleRepresentation{}, fmt.Errorf("%s %q has no id", kind, name)
 	}
 
 	return *role, nil

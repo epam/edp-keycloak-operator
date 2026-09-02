@@ -103,7 +103,12 @@ func (h *SyncComposites) Serve(
 				return fmt.Errorf("failed to get client role %s: %w", roleName, err)
 			}
 
-			rolesToAdd = append(rolesToAdd, *clientRole)
+			composable, err := keycloakapi.RequireClientRoleWithID(clientRole, clientName, roleName)
+			if err != nil {
+				return err
+			}
+
+			rolesToAdd = append(rolesToAdd, composable)
 		}
 	}
 

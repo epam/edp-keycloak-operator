@@ -427,6 +427,86 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRole(t *testing.T) {
 	assert.ErrorContains(t, err, "unable to get client role")
 }
 
+func TestSyncClientRoles_Serve_ClientRoleMissing(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
+	}
+
+	mockGroups.EXPECT().GetRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
+
+	mockClients.EXPECT().GetClients(
+		context.Background(), "test-realm",
+		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
+	).Return([]keycloakapi.ClientRepresentation{
+		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
+	}, nil, nil)
+
+	// No role, no error.
+	mockClients.EXPECT().GetClientRole(
+		context.Background(), "test-realm", "client-uuid", "role1",
+	).Return(nil, nil, nil)
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, `client role "role1" not found for client "test-client"`)
+}
+
+func TestSyncClientRoles_Serve_ClientRoleWithoutID(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: "test-realm",
+		GroupID:   "group-123",
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
+	}
+
+	mockGroups.EXPECT().GetRoleMappings(
+		context.Background(), "test-realm", "group-123",
+	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
+
+	mockClients.EXPECT().GetClients(
+		context.Background(), "test-realm",
+		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
+	).Return([]keycloakapi.ClientRepresentation{
+		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
+	}, nil, nil)
+
+	// No AddClientRoleMappings expectation: reaching it fails the test.
+	mockClients.EXPECT().GetClientRole(
+		context.Background(), "test-realm", "client-uuid", "role1",
+	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, nil, nil)
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, `client role "role1" has no id`)
+}
+
 func TestSyncClientRoles_Serve_ErrorAddingClientRoleMappings(t *testing.T) {
 	mockGroups := mocks.NewMockGroupsClient(t)
 	mockClients := mocks.NewMockClientsClient(t)

@@ -66,6 +66,80 @@ func TestServiceAccount_Serve(t *testing.T) {
 			expectedError: `realm role "realm-role1" has no id`,
 		},
 		{
+			name: "error - client role lookup returns no role",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ServiceAccount: &keycloakApi.ServiceAccount{
+						Enabled: true,
+						ClientRoles: []keycloakApi.UserClientRole{
+							{ClientID: "client1", Roles: ptr.To([]string{"role1"})},
+						},
+					},
+				},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				usersMock := keycloakapiMocks.NewMockUsersClient(t)
+
+				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
+				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
+				// No role, no error.
+				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+					Return((*keycloakapi.RoleRepresentation)(nil), (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients: clientsMock,
+					Users:   usersMock,
+					Roles:   keycloakapiMocks.NewMockRolesClient(t),
+				}
+			},
+			realmName:     "test-realm",
+			expectedError: `client role "role1" not found for client "client1"`,
+		},
+		{
+			name: "error - client role has no id",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: "test-client-id",
+					ServiceAccount: &keycloakApi.ServiceAccount{
+						Enabled: true,
+						ClientRoles: []keycloakApi.UserClientRole{
+							{ClientID: "client1", Roles: ptr.To([]string{"role1"})},
+						},
+					},
+				},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				usersMock := keycloakapiMocks.NewMockUsersClient(t)
+
+				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
+				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
+				// No AddUserClientRoles expectation: reaching it fails the test.
+				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients: clientsMock,
+					Users:   usersMock,
+					Roles:   keycloakapiMocks.NewMockRolesClient(t),
+				}
+			},
+			realmName:     "test-realm",
+			expectedError: `client role "role1" has no id`,
+		},
+		{
 			// No role-mapping expectations on the mocks: any Keycloak read fails this case.
 			name: "unmanaged - omitted realm roles and role-less client entries are left alone",
 			keycloakClient: &keycloakApi.KeycloakClient{

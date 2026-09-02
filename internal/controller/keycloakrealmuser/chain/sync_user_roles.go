@@ -171,7 +171,12 @@ func (h *SyncUserRoles) syncClientRoles(
 				return fmt.Errorf("unable to get client role %q for client %q: %w", roleName, cr.ClientID, err)
 			}
 
-			toAdd = append(toAdd, *role)
+			mappable, err := keycloakapi.RequireClientRoleWithID(role, cr.ClientID, roleName)
+			if err != nil {
+				return err
+			}
+
+			toAdd = append(toAdd, mappable)
 		}
 
 		if len(toAdd) > 0 {

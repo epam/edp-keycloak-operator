@@ -192,6 +192,81 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 		},
 		{
+			name: "error - GetClientRole returns no role",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-crole-missing"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-missing", "client-uuid-1").
+					Return(nil, nil, nil)
+				// No role, no error.
+				c.EXPECT().GetClientRole(context.Background(), "test-realm", "client-uuid-1", "crole1").
+					Return(nil, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), `client role "crole1" not found for client "client1"`)
+			},
+		},
+		{
+			name: "error - GetClientRole returns a role without an id",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-crole-idless"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-idless", "client-uuid-1").
+					Return(nil, nil, nil)
+				// No AddUserClientRoles expectation: reaching it fails the test.
+				c.EXPECT().GetClientRole(context.Background(), "test-realm", "client-uuid-1", "crole1").
+					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("crole1")}, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), `client role "crole1" has no id`)
+			},
+		},
+		{
+			name: "error - GetClientRole returns another role",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{
+						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
+					},
+				},
+			},
+			userCtx: &UserContext{UserID: "user-crole-other"},
+			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
+				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
+					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-other", "client-uuid-1").
+					Return(nil, nil, nil)
+				// No AddUserClientRoles expectation: reaching it fails the test.
+				c.EXPECT().GetClientRole(context.Background(), "test-realm", "client-uuid-1", "crole1").
+					Return(&keycloakapi.RoleRepresentation{Id: ptr.To("crid2"), Name: ptr.To("crole2")}, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), `client role lookup for "crole1" returned "crole2"`)
+			},
+		},
+		{
 			name: "error - GetRealmRole fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
