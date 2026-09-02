@@ -231,6 +231,41 @@ func TestCreateOrUpdateScope_Serve_CreateError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to create client scope")
 }
 
+func TestCreateOrUpdateScope_Serve_CreateWithoutLocationHeader(t *testing.T) {
+	mockScopes := mocks.NewMockClientScopesClient(t)
+	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}
+
+	scope := &keycloakApi.KeycloakClientScope{}
+	scope.Spec.Name = testScopeName
+	scope.Spec.Protocol = testProtocolOIDC
+
+	mockScopes.EXPECT().GetClientScopes(
+		context.Background(), testRealmName,
+	).Return([]keycloakapi.ClientScopeRepresentation{}, nil, nil)
+
+	var nilAttrs map[string]string
+
+	protocol := testProtocolOIDC
+
+	// Keycloak reports the new id in the Location header only. Without it status.ID would
+	// stay empty and every later update would address an empty scope id.
+	mockScopes.EXPECT().CreateClientScope(
+		context.Background(), testRealmName,
+		keycloakapi.ClientScopeRepresentation{
+			Name:        ptr.To(testScopeName),
+			Protocol:    &protocol,
+			Description: ptr.To(""),
+			Attributes:  &nilAttrs,
+		},
+	).Return(&keycloakapi.Response{HTTPResponse: &http.Response{Header: http.Header{}}}, nil)
+
+	h := NewCreateOrUpdateScope(kClient)
+	err := h.Serve(context.Background(), scope, testRealmName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Location header missing or empty")
+	assert.Empty(t, scope.Status.ID)
+}
+
 func TestCreateOrUpdateScope_Serve_UpdateError(t *testing.T) {
 	mockScopes := mocks.NewMockClientScopesClient(t)
 	kClient := &keycloakapi.KeycloakClient{ClientScopes: mockScopes}

@@ -34,6 +34,34 @@ func TestPutRealmRole_Serve(t *testing.T) {
 		expectedError  string
 	}{
 		{
+			name: "error - composite realm role has no id",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-client",
+					Namespace: "default",
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					RealmRoles: &[]keycloakApi.RealmRole{
+						{
+							Name:      "test-role",
+							Composite: "composite-role",
+						},
+					},
+				},
+			},
+			mockSetup: func(m *keycloakapiMocks.MockRolesClient) {
+				m.On("GetRealmRole", mock.Anything, "test-realm", "test-role").
+					Return((*keycloakapi.RoleRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).Once()
+				m.On("CreateRealmRole", mock.Anything, "test-realm", mock.Anything).
+					Return((*keycloakapi.Response)(nil), nil)
+				// Keycloak resolves a composite by id alone, so no AddRealmRoleComposites may follow.
+				m.On("GetRealmRole", mock.Anything, "test-realm", "composite-role").
+					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("composite-role")}, (*keycloakapi.Response)(nil), nil)
+			},
+			realmName:     "test-realm",
+			expectedError: `composite of realm role "test-role": realm role "composite-role" has no id`,
+		},
+		{
 			name: "success - create single realm role with composite",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{

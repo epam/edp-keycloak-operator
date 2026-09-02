@@ -5193,7 +5193,9 @@ The parent KeycloakRealmGroup must exist in the same namespace.<br/>
         <td><b>path</b></td>
         <td>string</td>
         <td>
-          Path is a group path.<br/>
+          Path is a group path.
+Read-only. Keycloak derives the path from the group name and its parent, and ignores
+this field on both create and update.<br/>
         </td>
         <td>false</td>
       </tr><tr>

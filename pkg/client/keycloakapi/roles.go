@@ -2,6 +2,7 @@ package keycloakapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/generated"
 )
@@ -10,6 +11,25 @@ type (
 	RoleRepresentation  = generated.RoleRepresentation
 	GetRealmRolesParams = generated.GetAdminRealmsRealmRolesParams
 )
+
+// RequireRealmRoleWithID validates a GetRealmRole result for work that needs the role's id:
+// role mappings, composites and default-role entries. Keycloak matches a mapping payload on
+// name and id together, and a composite on id alone, and answers either mismatch with 404.
+// The returned representation has a non-nil Id.
+//
+// GetRealmRole itself does not enforce this. A realm role is addressable by name on other
+// endpoints, so a response without an id is incomplete rather than missing.
+func RequireRealmRoleWithID(role *RoleRepresentation, realm, name string) (RoleRepresentation, error) {
+	if role == nil {
+		return RoleRepresentation{}, fmt.Errorf("realm role %q not found in realm %q", name, realm)
+	}
+
+	if role.Id == nil {
+		return RoleRepresentation{}, fmt.Errorf("realm role %q has no id", name)
+	}
+
+	return *role, nil
+}
 
 type rolesClient struct {
 	client generated.ClientWithResponsesInterface

@@ -67,7 +67,12 @@ func (h *SyncComposites) Serve(
 			return fmt.Errorf("failed to get realm role %s: %w", name, err)
 		}
 
-		rolesToAdd = append(rolesToAdd, *realmRole)
+		composable, err := keycloakapi.RequireRealmRoleWithID(realmRole, realmName, name)
+		if err != nil {
+			return err
+		}
+
+		rolesToAdd = append(rolesToAdd, composable)
 	}
 
 	for clientName, composites := range spec.CompositesClientRoles {

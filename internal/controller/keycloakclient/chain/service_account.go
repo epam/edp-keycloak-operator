@@ -161,7 +161,12 @@ func (h *ServiceAccount) syncRealmRoles(
 				return fmt.Errorf("unable to get realm role %s: %w", roleName, err)
 			}
 
-			toAdd = append(toAdd, *role)
+			mappable, err := keycloakapi.RequireRealmRoleWithID(role, realmName, roleName)
+			if err != nil {
+				return err
+			}
+
+			toAdd = append(toAdd, mappable)
 		}
 	}
 

@@ -65,17 +65,12 @@ func (h *SyncRealmRoles) Serve(
 				return fmt.Errorf("unable to get realm role %q: %w", claimedName, err)
 			}
 
-			if role == nil {
-				return fmt.Errorf("realm role %q not found in realm %q", claimedName, realm)
+			mappable, err := keycloakapi.RequireRealmRoleWithID(role, realm, claimedName)
+			if err != nil {
+				return err
 			}
 
-			// Keycloak matches a role-mapping payload on name and id together and answers a
-			// mismatch with 404. A role without an id cannot be mapped.
-			if role.Id == nil {
-				return fmt.Errorf("realm role %q has no id", claimedName)
-			}
-
-			rolesToAdd = append(rolesToAdd, *role)
+			rolesToAdd = append(rolesToAdd, mappable)
 		}
 	}
 

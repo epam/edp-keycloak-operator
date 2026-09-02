@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
 
@@ -112,6 +113,58 @@ func TestCreateOrUpdateRole_Serve_GetRealmRoleError(t *testing.T) {
 	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get realm role")
+}
+
+func TestCreateOrUpdateRole_Serve_MissingAfterCreate(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+	roleCtx := &RoleContext{}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testRoleName
+
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(nil, nil, keycloakapi.ErrNotFound).Once()
+
+	mockRoles.EXPECT().CreateRealmRole(
+		context.Background(), "test-realm", mock.Anything,
+	).Return(nil, nil)
+
+	// No role and no error on the re-read. Report it instead of dereferencing nil.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(nil, nil, nil).Once()
+
+	h := NewCreateOrUpdateRole(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "not addressable after sync")
+	assert.Empty(t, roleCtx.RoleID)
+}
+
+func TestCreateOrUpdateRole_Serve_ExistingRoleWithoutID(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+	roleCtx := &RoleContext{}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testRoleName
+
+	// The role comes back without an id after the update.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To(testRoleName)}, nil, nil)
+
+	mockRoles.EXPECT().UpdateRealmRole(
+		context.Background(), "test-realm", testRoleName, mock.Anything,
+	).Return(nil, nil)
+
+	h := NewCreateOrUpdateRole(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `realm role "test-role" has no id`)
+	assert.Empty(t, roleCtx.RoleID)
 }
 
 func TestCreateOrUpdateRole_Serve_CreateError(t *testing.T) {

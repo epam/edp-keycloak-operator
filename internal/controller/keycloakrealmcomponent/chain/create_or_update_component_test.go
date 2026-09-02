@@ -398,6 +398,35 @@ func TestCreateOrUpdateComponent_Serve_CreateError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to create realm component")
 }
 
+func TestCreateOrUpdateComponent_Serve_CreateWithoutLocationHeader(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	component := baseComponent()
+
+	mockComponents.EXPECT().
+		FindComponentByName(context.Background(), testRealmName, testComponentName).
+		Return(nil, nil)
+
+	// Keycloak reports the new id in the Location header only. Without it status.ID would
+	// stay empty and every later update would address an empty component id.
+	mockComponents.EXPECT().
+		CreateComponent(context.Background(), testRealmName, keycloakapi.ComponentRepresentation{
+			Name:         ptr.To(testComponentName),
+			ProviderId:   ptr.To(testProviderID),
+			ProviderType: ptr.To(testProviderType),
+			Config:       ptr.To(keycloakapi.MultivaluedHashMapStringString{}),
+		}).
+		Return(&keycloakapi.Response{HTTPResponse: &http.Response{Header: http.Header{}}}, nil)
+
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{})
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "Location header missing or empty")
+	assert.Empty(t, component.Status.ID)
+}
+
 func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
 	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}

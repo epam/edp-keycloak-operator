@@ -53,6 +53,9 @@ func (h *CreateOrUpdateScope) Serve(
 		}
 
 		scope.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
+		if scope.Status.ID == "" {
+			return fmt.Errorf("client scope %q created but Location header missing or empty", spec.Name)
+		}
 	} else {
 		if existingScope.Id != nil {
 			scope.Status.ID = *existingScope.Id

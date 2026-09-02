@@ -90,6 +90,9 @@ func (h *CreateOrUpdateComponent) Serve(
 		}
 
 		component.Status.ID = keycloakapi.GetResourceIDFromResponse(resp)
+		if component.Status.ID == "" {
+			return fmt.Errorf("realm component %q created but Location header missing or empty", spec.Name)
+		}
 
 		log.Info("Realm component created")
 	} else {

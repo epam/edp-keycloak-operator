@@ -171,6 +171,27 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 		},
 		{
+			name: "error - GetRealmRole returns a role without an id",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Roles: ptr.To([]string{"role1"}),
+				},
+			},
+			userCtx: &UserContext{UserID: "user-idless"},
+			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, _ *v2mocks.MockClientsClient) {
+				u.EXPECT().GetUserRealmRoleMappings(context.Background(), "test-realm", "user-idless").
+					Return(nil, nil, nil)
+				// Keycloak matches on name and id together, so no AddUserRealmRoles may follow.
+				r.EXPECT().GetRealmRole(context.Background(), "test-realm", "role1").
+					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), `realm role "role1" has no id`)
+			},
+		},
+		{
 			name: "error - GetRealmRole fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},

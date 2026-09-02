@@ -73,7 +73,12 @@ func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role str
 		return fmt.Errorf("unable to get realm role: %w", err)
 	}
 
-	if _, err := kClient.Users.AddUserRealmRoles(ctx, realmName, *user.Id, []keycloakapi.RoleRepresentation{*realmRole}); err != nil {
+	mappable, err := keycloakapi.RequireRealmRoleWithID(realmRole, realmName, role)
+	if err != nil {
+		return err
+	}
+
+	if _, err := kClient.Users.AddUserRealmRoles(ctx, realmName, *user.Id, []keycloakapi.RoleRepresentation{mappable}); err != nil {
 		return fmt.Errorf("unable to add realm role to user: %w", err)
 	}
 
