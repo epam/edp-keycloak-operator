@@ -66,7 +66,7 @@ make lint-fix # run golangci-lint (config: .golangci.yaml) with auto-fix where p
 make generate                                               # DeepCopy methods (kubebuilder markers)
 make manifests                                              # CRDs, RBAC, webhooks → config/
 make mocks                                                  # test mocks via mockery
-make generate-keycloak-go-client                            # regenerate oapi client from the hand-maintained spec (rare)
+make generate-keycloak-go-client                            # download the Keycloak OpenAPI spec and regenerate the client (rare)
 ```
 
 ## Conventions
@@ -86,7 +86,7 @@ A sweep is a two-way diff and cannot tell "not mentioned" from "remove". Check n
 
 ### Never edit generated code
 `pkg/client/keycloakapi/generated/client_generated.go` is auto-generated — do not edit manually.
-Edit `pkg/client/keycloakapi/openapi/openapi.yaml` (hand-maintained, not downloaded) then re-run `make generate-keycloak-go-client`.
+`pkg/client/keycloakapi/openapi/openapi.yaml` is downloaded from the Keycloak release in `KEYCLOAK_VERSION` (Makefile) — do not hand-edit it either. To change the client, bump that version and re-run `make generate-keycloak-go-client`.
 
 ### Scaffolded RBAC helper roles
 `kubebuilder create api` scaffolds `*_admin_role.yaml`, `*_editor_role.yaml` and `*_viewer_role.yaml` per CRD, once. `make manifests` never regenerates them — controller-gen only writes `config/rbac/role.yaml` from the `+kubebuilder:rbac` markers.

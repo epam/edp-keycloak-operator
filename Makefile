@@ -176,15 +176,13 @@ OAPICODEGEN ?= $(LOCALBIN)/oapi-codegen
 .PHONY: oapi-codegen
 oapi-codegen: $(OAPICODEGEN) ## Download oapi-codegen locally if necessary.
 $(OAPICODEGEN): $(LOCALBIN)
-	$(call go-install-tool,$(OAPICODEGEN),github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen,latest)
+	$(call go-install-tool,$(OAPICODEGEN),github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen,$(OAPICODEGEN_VERSION))
 
-# Source version for the spec download below; the checked-in spec is hand-edited and tracks 26.6.
+# Keycloak release the OpenAPI spec is downloaded from. Keep in step with KEYCLOAK_TEST_VERSION.
 KEYCLOAK_VERSION ?= 26.7.3
 .PHONY: generate-keycloak-go-client
-generate-keycloak-go-client: oapi-codegen
-# Currently, the OpenApi spec is manually edited due to the issue https://github.com/keycloak/keycloak/issues/46015
-# Once the issue is resolved, the spec can be downloaded directly from the Keycloak documentation.
-# 	curl -o pkg/client/keycloakapi/openapi/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
+generate-keycloak-go-client: oapi-codegen ## Download the Keycloak OpenAPI spec and regenerate the Go client
+	curl -fsSL -o pkg/client/keycloakapi/openapi/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml
 	$(OAPICODEGEN) -config pkg/client/keycloakapi/openapi/oapicfg.yaml pkg/client/keycloakapi/openapi/openapi.yaml
 .PHONY: install
 install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~/.kube/config.
@@ -199,6 +197,7 @@ ENVTEST_VERSION := $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller
 ENVTEST_K8S_VERSION := $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
 GOLANGCI_LINT_VERSION ?= v2.1.6
 MOCKERY_VERSION ?= v3.6.3
+OAPICODEGEN_VERSION ?= v2.7.2
 HELMDOCS_VERSION ?= v1.14.2
 GITCHGLOG_VERSION ?= v0.15.4
 CRDOC_VERSION ?= v0.6.4
