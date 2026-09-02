@@ -100,7 +100,12 @@ func (h *PutRealmRole) putRealmRoles(ctx context.Context, keycloakClient *keyclo
 				return fmt.Errorf("error getting composite realm role %s: %w", role.Composite, err)
 			}
 
-			if _, err := h.kClient.Roles.AddRealmRoleComposites(ctx, realmName, role.Name, []keycloakapi.RoleRepresentation{*compositeRole}); err != nil {
+			composable, err := keycloakapi.RequireRealmRoleWithID(compositeRole, realmName, role.Composite)
+			if err != nil {
+				return fmt.Errorf("composite of realm role %q: %w", role.Name, err)
+			}
+
+			if _, err := h.kClient.Roles.AddRealmRoleComposites(ctx, realmName, role.Name, []keycloakapi.RoleRepresentation{composable}); err != nil {
 				return fmt.Errorf("error adding composite to realm role %s: %w", role.Name, err)
 			}
 		}

@@ -68,9 +68,8 @@ func (h *CreateOrUpdateGroup) Serve(
 		foundByName = existingGroup != nil
 	}
 
-	// GroupsClient guarantees a non-nil group and id on success; the generated mock is a
-	// second implementation of the same interface and does not. Resolve the id once here so
-	// the ownership check and the update branch below work on a plain string.
+	// GroupsClient returns a non-nil id on success. Guard anyway, and resolve the id once
+	// so the ownership check and the update branch below work on a plain string.
 	existingGroupID := ""
 
 	if existingGroup != nil {

@@ -20,6 +20,8 @@ type KeycloakRealmGroupSpec struct {
 	RealmRef common.RealmRef `json:"realmRef"`
 
 	// Path is a group path.
+	// Read-only. Keycloak derives the path from the group name and its parent, and ignores
+	// this field on both create and update.
 	// +optional
 	Path string `json:"path,omitempty"`
 

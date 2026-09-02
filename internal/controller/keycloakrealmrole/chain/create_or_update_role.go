@@ -63,9 +63,14 @@ func (h *CreateOrUpdateRole) Serve(
 		}
 	}
 
-	if existingRole.Id != nil {
-		roleCtx.RoleID = *existingRole.Id
+	// MakeDefault maps RoleID as a composite, and Keycloak resolves a composite by id alone.
+	// An unset RoleID would reach it as an empty id.
+	syncedRole, err := keycloakapi.RequireRealmRoleWithID(existingRole, realmName, spec.Name)
+	if err != nil {
+		return fmt.Errorf("realm role is not addressable after sync: %w", err)
 	}
+
+	roleCtx.RoleID = *syncedRole.Id
 
 	log.Info("Realm role has been synced")
 

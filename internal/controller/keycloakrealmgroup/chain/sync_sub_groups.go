@@ -69,8 +69,7 @@ func (h *SyncSubGroups) Serve(
 				return fmt.Errorf("unable to find subgroup %q: %w", claimed, err)
 			}
 
-			// GroupsClient guarantees a non-nil group and id on success; the generated mock is a
-			// second implementation of the same interface and does not. Guard before every use.
+			// GroupsClient returns a non-nil group and id on success. Guard anyway.
 			if subGroup == nil {
 				return fmt.Errorf("subgroup %q not found in realm %q", claimed, realm)
 			}
@@ -83,9 +82,9 @@ func (h *SyncSubGroups) Serve(
 			// the documented behavior of this deprecated field: the move keeps the group ID, so
 			// the owning resource still resolves it via status.ID afterwards.
 			//
-			// CreateChildGroup moves an existing group, so a nested match would be taken from
-			// its current parent. Unreachable through Keycloak: the search above returns only
-			// top-level roots. Kept for an alternate GroupsClient or a changed server response.
+			// CreateChildGroup moves an existing group out of its current parent. Refuse a
+			// nested match. FindGroupByName returns top-level groups only, so ParentId is nil
+			// on every match from the real client.
 			if subGroup.ParentId != nil && *subGroup.ParentId != groupID {
 				return fmt.Errorf(
 					"subgroup %q is already nested under a different parent group (id %s); "+
