@@ -305,7 +305,9 @@ spec:
                     x-kubernetes-list-type: set
                 type: object
               realmName:
-                description: RealmName specifies the name of the realm.
+                description: |-
+                  RealmName specifies the name of the realm.
+                  The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.
                 type: string
               sessions:
                 description: Sessions defines the session settings for the realm.

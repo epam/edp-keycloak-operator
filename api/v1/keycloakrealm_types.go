@@ -9,6 +9,7 @@ import (
 // KeycloakRealmSpec defines the desired state of KeycloakRealm.
 type KeycloakRealmSpec struct {
 	// RealmName specifies the name of the realm.
+	// The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.
 	// +required
 	// +kubebuilder:validation:XValidation:rule="self == oldSelf",message="Value is immutable"
 	RealmName string `json:"realmName"`

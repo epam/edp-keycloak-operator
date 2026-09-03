@@ -57,6 +57,15 @@ func Test_terminator_DeleteResource(t *testing.T) {
 			preserveResourcesOnDeletion: true,
 			wantErr:                     assert.NoError,
 		},
+		{
+			name:      "master realm — skip",
+			realmName: masterRealmName,
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				return v2mocks.NewMockRealmClient(t)
+			},
+			preserveResourcesOnDeletion: false,
+			wantErr:                     assert.NoError,
+		},
 	}
 
 	for _, tt := range tests {

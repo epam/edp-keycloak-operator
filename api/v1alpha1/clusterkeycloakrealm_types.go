@@ -14,6 +14,7 @@ type ClusterKeycloakRealmSpec struct {
 	ClusterKeycloakRef string `json:"clusterKeycloakRef"`
 
 	// RealmName specifies the name of the realm.
+	// The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.
 	RealmName string `json:"realmName"`
 
 	// FrontendURL Set the frontend URL for the realm.

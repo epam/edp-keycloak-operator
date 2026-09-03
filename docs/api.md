@@ -99,7 +99,8 @@ ClusterKeycloakRealmSpec defines the desired state of ClusterKeycloakRealm.
         <td><b>realmName</b></td>
         <td>string</td>
         <td>
-          RealmName specifies the name of the realm.<br/>
+          RealmName specifies the name of the realm.
+The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -6352,7 +6353,8 @@ KeycloakRealmSpec defines the desired state of KeycloakRealm.
         <td><b>realmName</b></td>
         <td>string</td>
         <td>
-          RealmName specifies the name of the realm.<br/>
+          RealmName specifies the name of the realm.
+The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.<br/>
           <br/>
             <i>Validations</i>:<li>self == oldSelf: Value is immutable</li>
         </td>

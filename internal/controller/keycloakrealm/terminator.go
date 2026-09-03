@@ -9,6 +9,10 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 )
 
+// masterRealmName is the Keycloak admin realm. Keycloak rejects DELETE on it with 400
+// "Can't remove master realm"; the name is fixed in the Quarkus distribution.
+const masterRealmName = "master"
+
 // Terminator deletes a Keycloak realm during resource cleanup.
 type Terminator struct {
 	realmName                   string
@@ -20,6 +24,11 @@ func (t *Terminator) DeleteResource(ctx context.Context) error {
 	log := ctrl.LoggerFrom(ctx).WithValues("keycloak_realm", t.realmName)
 	if t.preserveResourcesOnDeletion {
 		log.Info("PreserveResourcesOnDeletion is enabled, skipping deletion.")
+		return nil
+	}
+
+	if t.realmName == masterRealmName {
+		log.Info("Master realm cannot be deleted in Keycloak, skipping deletion.")
 		return nil
 	}
 
