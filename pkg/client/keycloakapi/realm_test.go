@@ -301,9 +301,22 @@ func TestRealmClient_GetRealms(t *testing.T) {
 
 	ctx := context.Background()
 
-	realms, resp, err := c.Realms.GetRealms(ctx)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	// Keycloak streams GET /admin/realms. A realm deleted by a parallel suite
+	// mid-stream truncates the body and appends an error object under HTTP 200,
+	// which fails JSON decoding. Retry until a full body arrives.
+	var realms []keycloakapi.RealmRepresentation
+
+	require.EventuallyWithT(t, func(ct *assert.CollectT) {
+		var (
+			resp *keycloakapi.Response
+			err  error
+		)
+
+		realms, resp, err = c.Realms.GetRealms(ctx)
+		assert.NoError(ct, err)
+		assert.NotNil(ct, resp)
+	}, 10*time.Second, time.Second)
+
 	require.Greater(t, len(realms), 0, "at least the master realm should exist")
 
 	found := false
