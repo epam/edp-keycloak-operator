@@ -512,14 +512,14 @@ type ClientPolicyConditionRepresentation struct {
 	Condition *string `json:"condition,omitempty"`
 
 	// Configuration Configuration settings as a JSON object
-	Configuration *map[string]interface{} `json:"configuration,omitempty"`
+	Configuration *RawJsonValue `json:"configuration,omitempty"`
 }
 
 // ClientPolicyExecutorRepresentation defines model for ClientPolicyExecutorRepresentation.
 type ClientPolicyExecutorRepresentation struct {
 	// Configuration Configuration settings as a JSON object
-	Configuration *map[string]interface{} `json:"configuration,omitempty"`
-	Executor      *string                 `json:"executor,omitempty"`
+	Configuration *RawJsonValue `json:"configuration,omitempty"`
+	Executor      *string       `json:"executor,omitempty"`
 }
 
 // ClientPolicyRepresentation defines model for ClientPolicyRepresentation.
@@ -867,12 +867,14 @@ type IdentityProviderRepresentation struct {
 	HideOnLogin               *bool              `json:"hideOnLogin,omitempty"`
 	InternalId                *string            `json:"internalId,omitempty"`
 	LinkOnly                  *bool              `json:"linkOnly,omitempty"`
-	OrganizationId            *string            `json:"organizationId,omitempty"`
-	PostBrokerLoginFlowAlias  *string            `json:"postBrokerLoginFlowAlias,omitempty"`
-	ProviderId                *string            `json:"providerId,omitempty"`
-	StoreToken                *bool              `json:"storeToken,omitempty"`
-	TrustEmail                *bool              `json:"trustEmail,omitempty"`
-	Types                     *[]string          `json:"types,omitempty"`
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	OrganizationId           *string                                           `json:"organizationId,omitempty"`
+	OrganizationLinks        *[]OrganizationIdentityProviderLinkRepresentation `json:"organizationLinks,omitempty"`
+	PostBrokerLoginFlowAlias *string                                           `json:"postBrokerLoginFlowAlias,omitempty"`
+	ProviderId               *string                                           `json:"providerId,omitempty"`
+	StoreToken               *bool                                             `json:"storeToken,omitempty"`
+	TrustEmail               *bool                                             `json:"trustEmail,omitempty"`
+	Types                    *[]string                                         `json:"types,omitempty"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateProfileFirstLogin *bool `json:"updateProfileFirstLogin,omitempty"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -1046,8 +1048,17 @@ type OAuthClientRepresentation struct {
 
 // OrganizationDomainRepresentation defines model for OrganizationDomainRepresentation.
 type OrganizationDomainRepresentation struct {
-	Name     *string `json:"name,omitempty"`
-	Verified *bool   `json:"verified,omitempty"`
+	AutoRedirect          *bool   `json:"autoRedirect,omitempty"`
+	IdentityProviderAlias *string `json:"identityProviderAlias,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	Verified              *bool   `json:"verified,omitempty"`
+}
+
+// OrganizationIdentityProviderLinkRepresentation defines model for OrganizationIdentityProviderLinkRepresentation.
+type OrganizationIdentityProviderLinkRepresentation struct {
+	AutoMembership *bool   `json:"autoMembership,omitempty"`
+	MembershipType *string `json:"membershipType,omitempty"`
+	OrganizationId *string `json:"organizationId,omitempty"`
 }
 
 // OrganizationInvitationRepresentation defines model for OrganizationInvitationRepresentation.
@@ -1181,6 +1192,12 @@ type PublishedRealmRepresentation struct {
 	Realm           *string `json:"realm,omitempty"`
 	TokenService    *string `json:"token-service,omitempty"`
 	TokensNotBefore *int32  `json:"tokens-not-before,omitempty"`
+}
+
+// RawJsonValue defines model for RawJsonValue.
+type RawJsonValue struct {
+	Empty *bool       `json:"empty,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // RealmEventsConfigRepresentation defines model for RealmEventsConfigRepresentation.
@@ -2343,6 +2360,9 @@ type GetAdminRealmsRealmOrganizationsParams struct {
 	// First The position of the first result to be processed (pagination offset)
 	First *int32 `form:"first,omitempty" json:"first,omitempty"`
 
+	// IdentityProvider The alias of an identity provider, to only return the organizations linked to it. Cannot be combined with 'q'
+	IdentityProvider *string `form:"identityProvider,omitempty" json:"identityProvider,omitempty"`
+
 	// Max The maximum number of results to be returned - defaults to 10
 	Max *int32 `form:"max,omitempty" json:"max,omitempty"`
 
@@ -2357,6 +2377,9 @@ type GetAdminRealmsRealmOrganizationsParams struct {
 type GetAdminRealmsRealmOrganizationsCountParams struct {
 	// Exact Boolean which defines whether the param 'search' must match exactly or not
 	Exact *bool `form:"exact,omitempty" json:"exact,omitempty"`
+
+	// IdentityProvider The alias of an identity provider, to only count the organizations linked to it. Cannot be combined with 'q'
+	IdentityProvider *string `form:"identityProvider,omitempty" json:"identityProvider,omitempty"`
 
 	// Q A query to search for custom attributes, in the format 'key1:value2 key2:value2'
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -2385,6 +2408,9 @@ type GetAdminRealmsRealmOrganizationsOrgIdGroupsParams struct {
 
 // GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathParams defines parameters for GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPath.
 type GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathParams struct {
+	// BriefRepresentation Whether to return a brief representation (default: true)
+	BriefRepresentation *bool `form:"briefRepresentation,omitempty" json:"briefRepresentation,omitempty"`
+
 	// SubGroupsCount Whether to return the count of subgroups (default: false)
 	SubGroupsCount *bool `form:"subGroupsCount,omitempty" json:"subGroupsCount,omitempty"`
 }
@@ -2521,6 +2547,12 @@ type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataBody struct 
 	Email     *string `form:"email,omitempty" json:"email,omitempty"`
 	FirstName *string `form:"firstName,omitempty" json:"firstName,omitempty"`
 	LastName  *string `form:"lastName,omitempty" json:"lastName,omitempty"`
+}
+
+// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams defines parameters for PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser.
+type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams struct {
+	// ClientId Client id
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
 }
 
 // GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams defines parameters for GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups.
@@ -3112,6 +3144,9 @@ type PostAdminRealmsRealmOrganizationsOrgIdGroupsGroupIdRoleMappingsRealmJSONReq
 // PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdIdentityProviders for application/json ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONRequestBody = PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONBody
 
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody defines body for PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias for application/json ContentType.
+type PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody = OrganizationIdentityProviderLinkRepresentation
+
 // PostAdminRealmsRealmOrganizationsOrgIdMembersJSONRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdMembers for application/json ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdMembersJSONRequestBody = PostAdminRealmsRealmOrganizationsOrgIdMembersJSONBody
 
@@ -3120,6 +3155,9 @@ type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequ
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser for application/x-www-form-urlencoded ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataBody
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody defines body for PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType for application/json ContentType.
+type PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody = MembershipType
 
 // PostAdminRealmsRealmPartialImportJSONRequestBody defines body for PostAdminRealmsRealmPartialImport for application/json ContentType.
 type PostAdminRealmsRealmPartialImportJSONRequestBody = PostAdminRealmsRealmPartialImportJSONBody
@@ -4409,6 +4447,11 @@ type ClientInterface interface {
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias request
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody request with any body
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups request
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups(ctx context.Context, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
@@ -4441,9 +4484,9 @@ type ClientInterface interface {
 	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserWithFormdataBody(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody request with any body
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberId request
 	DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberId(ctx context.Context, realm string, orgId string, memberId string, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -4453,6 +4496,11 @@ type ClientInterface interface {
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups request
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody request with any body
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizations request
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizations(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -9687,6 +9735,30 @@ func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx
 	return c.Client.Do(req)
 }
 
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(c.Server, realm, orgId, alias, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(c.Server, realm, orgId, alias, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups(ctx context.Context, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsRequest(c.Server, realm, orgId, alias, params)
 	if err != nil {
@@ -9819,8 +9891,8 @@ func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUser
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(c.Server, realm, orgId, contentType, body)
+func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(c.Server, realm, orgId, params, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9831,8 +9903,8 @@ func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody
 	return c.Client.Do(req)
 }
 
-func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(c.Server, realm, orgId, body)
+func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(c.Server, realm, orgId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -9869,6 +9941,30 @@ func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdMembersMemberId(ctx contex
 
 func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsRequest(c.Server, realm, orgId, memberId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(c.Server, realm, orgId, memberId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest(c.Server, realm, orgId, memberId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -27567,6 +27663,18 @@ func NewGetAdminRealmsRealmOrganizationsRequest(server string, realm string, par
 
 		}
 
+		if params.IdentityProvider != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "identityProvider", *params.IdentityProvider, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Max != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "max", *params.Max, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
@@ -27702,6 +27810,18 @@ func NewGetAdminRealmsRealmOrganizationsCountRequest(server string, realm string
 		if params.Exact != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "exact", *params.Exact, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IdentityProvider != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "identityProvider", *params.IdentityProvider, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -28207,6 +28327,18 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathRequest(server
 		// styled parameters, preserving literal commas as delimiters
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
+
+		if params.BriefRepresentation != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "briefRepresentation", *params.BriefRepresentation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
 
 		if params.SubGroupsCount != nil {
 
@@ -29671,6 +29803,67 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(serve
 	return req, nil
 }
 
+// NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest calls the generic PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias builder with application/json body
+func NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(server string, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(server, realm, orgId, alias, "application/json", bodyReader)
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody generates requests for PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias with any type of body
+func NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(server string, realm string, orgId string, alias string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "realm", realm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "org-id", orgId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "alias", alias, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/admin/realms/%s/organizations/%s/identity-providers/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsRequest generates requests for GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups
 func NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsRequest(server string, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams) (*http.Request, error) {
 	var err error
@@ -30380,18 +30573,18 @@ func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserRequestWi
 }
 
 // NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody calls the generic PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser builder with application/x-www-form-urlencoded body
-func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(server string, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody) (*http.Request, error) {
+func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(server string, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	bodyStr, err := runtime.MarshalForm(body, nil)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server, realm, orgId, "application/x-www-form-urlencoded", bodyReader)
+	return NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server, realm, orgId, params, "application/x-www-form-urlencoded", bodyReader)
 }
 
 // NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody generates requests for PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser with any type of body
-func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server string, realm string, orgId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server string, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -30421,6 +30614,33 @@ func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(s
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.ClientId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "client_id", *params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
@@ -30636,6 +30856,67 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsRequest(server
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest calls the generic PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType builder with application/json body
+func NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest(server string, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(server, realm, orgId, memberId, "application/json", bodyReader)
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody generates requests for PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType with any type of body
+func NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(server string, realm string, orgId string, memberId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "realm", realm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "org-id", orgId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "member-id", memberId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/admin/realms/%s/organizations/%s/members/%s/membership-type", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -36889,6 +37170,11 @@ type ClientWithResponsesInterface interface {
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse request
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
 
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse request with any body
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
+
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
+
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse request
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse(ctx context.Context, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse, error)
 
@@ -36921,9 +37207,9 @@ type ClientWithResponsesInterface interface {
 	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserResponse, error)
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse request with any body
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
 
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
 
 	// DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberIdWithResponse request
 	DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberIdWithResponse(ctx context.Context, realm string, orgId string, memberId string, reqEditors ...RequestEditorFn) (*DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberIdResponse, error)
@@ -36933,6 +37219,11 @@ type ClientWithResponsesInterface interface {
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsWithResponse request
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsWithResponse(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse request with any body
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error)
+
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error)
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsWithResponse request
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsWithResponse(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsParams, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsResponse, error)
@@ -42924,7 +43215,7 @@ func (r GetAdminRealmsRealmClientsClientUuidRolesRoleNameCompositesRealmResponse
 type GetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]UserRepresentation
+	JSON200      *[]GroupRepresentation
 }
 
 // Status returns HTTPResponse.Status
@@ -46530,6 +46821,35 @@ func (r GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) Con
 	return ""
 }
 
+type PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -46908,6 +47228,35 @@ func (r GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse) Stat
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -47628,7 +47977,7 @@ func (r GetAdminRealmsRealmRolesRoleNameCompositesRealmResponse) ContentType() s
 type GetAdminRealmsRealmRolesRoleNameGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
-	JSON200      *[]UserRepresentation
+	JSON200      *[]GroupRepresentation
 }
 
 // Status returns HTTPResponse.Status
@@ -53052,6 +53401,23 @@ func (c *ClientWithResponses) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvi
 	return ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
 }
 
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse request with arbitrary body returning *PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx, realm, orgId, alias, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx, realm, orgId, alias, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
+}
+
 // GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse request returning *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse
 func (c *ClientWithResponses) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse(ctx context.Context, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse, error) {
 	rsp, err := c.GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups(ctx, realm, orgId, alias, params, reqEditors...)
@@ -53150,16 +53516,16 @@ func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInvit
 }
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse request with arbitrary body returning *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse
-func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
-	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx, realm, orgId, contentType, body, reqEditors...)
+func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
+	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx, realm, orgId, params, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
 	return ParsePostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse(rsp)
 }
 
-func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
-	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx, realm, orgId, body, reqEditors...)
+func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
+	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx, realm, orgId, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -53191,6 +53557,23 @@ func (c *ClientWithResponses) GetAdminRealmsRealmOrganizationsOrgIdMembersMember
 		return nil, err
 	}
 	return ParseGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse(rsp)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse request with arbitrary body returning *PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx, realm, orgId, memberId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx, realm, orgId, memberId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp)
 }
 
 // GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsWithResponse request returning *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsResponse
@@ -58330,7 +58713,7 @@ func ParseGetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse(rsp *h
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []UserRepresentation
+		var dest []GroupRepresentation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -60977,6 +61360,22 @@ func ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rs
 	return response, nil
 }
 
+// ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse parses an HTTP response from a PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse call
+func ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp *http.Response) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse parses an HTTP response from a GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse call
 func ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse(rsp *http.Response) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -61250,6 +61649,22 @@ func ParseGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse(rsp
 		}
 		response.JSON200 = &dest
 
+	}
+
+	return response, nil
+}
+
+// ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse parses an HTTP response from a PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse call
+func ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp *http.Response) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -61804,7 +62219,7 @@ func ParseGetAdminRealmsRealmRolesRoleNameGroupsResponse(rsp *http.Response) (*G
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []UserRepresentation
+		var dest []GroupRepresentation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
