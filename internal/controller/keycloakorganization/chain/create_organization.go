@@ -42,6 +42,7 @@ func (h *CreateOrganization) ServeRequest(ctx context.Context, organization *key
 		// Organization exists, update it
 		orgRepresentation.Id = existingOrg.Id
 		organization.Status.OrganizationID = ptr.Deref(existingOrg.Id, "")
+		preserveDomainSettings(&orgRepresentation, existingOrg)
 
 		needsUpdate, matchErr := h.orgNeedsUpdate(ctx, realmName, existingOrg, organization)
 		if matchErr != nil {
@@ -105,6 +106,21 @@ func specToOrganizationRepresentation(org *keycloakApi.KeycloakOrganization) key
 	}
 
 	return rep
+}
+
+// preserveDomainSettings carries over the Keycloak-side settings of domains the spec still lists:
+// the update replaces each domain wholesale, resetting verified, identityProviderAlias and autoRedirect.
+func preserveDomainSettings(rep, existing *keycloakapi.OrganizationRepresentation) {
+	current := make(map[string]keycloakapi.OrganizationDomainRepresentation)
+	for _, d := range ptr.Deref(existing.Domains, nil) {
+		current[ptr.Deref(d.Name, "")] = d
+	}
+
+	for i, d := range ptr.Deref(rep.Domains, nil) {
+		if c, ok := current[ptr.Deref(d.Name, "")]; ok {
+			(*rep.Domains)[i] = c
+		}
+	}
 }
 
 // orgNeedsUpdate reports whether organization must be written to Keycloak. A spec edit
