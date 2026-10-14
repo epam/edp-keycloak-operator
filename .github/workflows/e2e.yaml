@@ -9,7 +9,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GOLANG_VERSION: '1.25'
+  GOLANG_VERSION: '1.26'
 
 jobs:
   e2e-tests:
@@ -33,6 +33,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: "install kuttl"
         run: ./hack/install-kuttl.sh

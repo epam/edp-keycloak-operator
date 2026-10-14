@@ -1,6 +1,6 @@
 module github.com/epam/edp-keycloak-operator
 
-go 1.25.0
+go 1.26.9
 
 require (
 	github.com/epam/edp-common v0.0.0-20230710145648-344bbce4120e

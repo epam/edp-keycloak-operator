@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  GOLANG_VERSION: '1.25'
+  GOLANG_VERSION: '1.26'
   HELM_VERSION: 'v3.12.1'
   PYTHON_VERSION: '3.10'
   CHART_TESTING_VERSION: 'v3.11.0'
@@ -58,6 +58,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: Validate Helm docs
         run: make validate-docs
@@ -112,6 +113,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: Cache golangci-lint
         uses: actions/cache@v6
@@ -165,6 +167,7 @@ jobs:
       uses: actions/setup-go@v7
       with:
         go-version: ${{ env.GOLANG_VERSION }}
+        check-latest: true
 
     - name: Set up Keycloak
       uses: ./.github/actions/setup-keycloak
@@ -213,6 +216,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: "install kuttl"
         run: ./hack/install-kuttl.sh
