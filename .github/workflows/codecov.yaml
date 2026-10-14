@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 env:
-  GOLANG_VERSION: '1.25'
+  GOLANG_VERSION: '1.26'
   KEYCLOAK_VERSION: '26.7'
 
 jobs:
@@ -22,6 +22,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: Set up Keycloak
         uses: ./.github/actions/setup-keycloak

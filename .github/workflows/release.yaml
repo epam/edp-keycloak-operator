@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  GOLANG_VERSION: '1.25'
+  GOLANG_VERSION: '1.26'
 
 jobs:
   prepare-release:
@@ -26,6 +26,7 @@ jobs:
         uses: actions/setup-go@v7
         with:
           go-version: ${{ env.GOLANG_VERSION }}
+          check-latest: true
 
       - name: Check if the published tag is well formed and setup vars
         run: |
