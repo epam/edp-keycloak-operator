@@ -105,6 +105,61 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			expectedOrgID: "existing-org-456",
 		},
 		{
+			name: "update keeps Keycloak domain settings for domains the spec still lists",
+			organization: &keycloakApi.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Generation: 2},
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:    "Preserve Org",
+					Alias:   "preserve-org",
+					Domains: []string{"a.com", "new.com"},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					ObservedGeneration: 2,
+				},
+			},
+			realmName: "test-realm",
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "preserve-org").
+					Return(&keycloakapi.OrganizationRepresentation{
+						Id:    ptr.To("preserve-id"),
+						Name:  ptr.To("Preserve Org"),
+						Alias: ptr.To("preserve-org"),
+						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
+							{
+								Name:                  ptr.To("a.com"),
+								Verified:              ptr.To(true),
+								IdentityProviderAlias: ptr.To("idp-a"),
+								AutoRedirect:          ptr.To(true),
+							},
+						},
+					}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("UpdateOrganization", mock.Anything, "test-realm", "preserve-id", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+					domains := ptr.Deref(org.Domains, nil)
+					if len(domains) != 2 {
+						return false
+					}
+
+					kept, added := domains[0], domains[1]
+
+					return ptr.Deref(kept.Name, "") == "a.com" &&
+						ptr.Deref(kept.Verified, false) &&
+						ptr.Deref(kept.IdentityProviderAlias, "") == "idp-a" &&
+						ptr.Deref(kept.AutoRedirect, false) &&
+						ptr.Deref(added.Name, "") == "new.com" &&
+						added.Verified == nil &&
+						added.IdentityProviderAlias == nil &&
+						added.AutoRedirect == nil
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			wantErr:       require.NoError,
+			expectedOrgID: "preserve-id",
+		},
+		{
 			name: "no update when existing organization matches spec",
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 3},

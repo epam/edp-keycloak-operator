@@ -348,8 +348,9 @@ func (c *organizationsClient) InviteNewOrganizationMember(
 		LastName:  &lastName,
 	}
 
+	// client_id is optional. Omitting it keeps the account client, the previous default.
 	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(
-		ctx, realm, orgID, body,
+		ctx, realm, orgID, nil, body,
 	)
 	if err != nil {
 		return nil, err
