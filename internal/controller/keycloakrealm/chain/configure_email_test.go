@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"errors"
+	"maps"
 	"testing"
 
 	"github.com/go-logr/logr"
@@ -56,7 +57,7 @@ func TestConfigureEmail_ServeRequest(t *testing.T) {
 						},
 						Connection: common.EmailConnection{
 							Host:           "smtp-host",
-							Port:           25,
+							Port:           ptr.To(25),
 							EnableSSL:      true,
 							EnableStartTLS: true,
 							Authentication: &common.EmailAuthentication{
@@ -230,7 +231,7 @@ func TestConfigureRealmEmail(t *testing.T) {
 		Template: common.EmailTemplate{From: "from@mail.com"},
 		Connection: common.EmailConnection{
 			Host: "smtp-host",
-			Port: 25,
+			Port: ptr.To(25),
 			Authentication: &common.EmailAuthentication{
 				Username: common.SourceRefOrVal{Value: "username"},
 				Password: common.SourceRef{
@@ -375,6 +376,75 @@ func TestConfigureRealmEmail(t *testing.T) {
 
 			tt.wantErr(t, err)
 			require.Equal(t, tt.wantHash, gotHash)
+		})
+	}
+}
+
+// With no port in spec the operator sends none and Keycloak picks 465 (SSL) or 25. A port left
+// in Keycloak from an earlier spec must be removed.
+func TestConfigureRealmEmail_PortOmitted(t *testing.T) {
+	t.Parallel()
+
+	emailSpec := &common.SMTP{
+		Template:   common.EmailTemplate{From: "from@mail.com"},
+		Connection: common.EmailConnection{Host: "smtp-host", EnableSSL: true},
+	}
+
+	inSyncSmtpServer, _, err := convertEmailSpecToMap(context.Background(), emailSpec, "", nil)
+	require.NoError(t, err)
+	require.NotContains(t, inSyncSmtpServer, "port")
+
+	withStalePort := maps.Clone(inSyncSmtpServer)
+	withStalePort["port"] = "25"
+
+	storedHash := secretref.ValuesHashSingle(map[string]string{})
+
+	tests := []struct {
+		name        string
+		realmClient func(t *testing.T) keycloakapi.RealmClient
+	}{
+		{
+			// UpdateRealm is intentionally not stubbed.
+			name: "Keycloak has no port — no write",
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &inSyncSmtpServer}, nil, nil)
+
+				return m
+			},
+		},
+		{
+			name: "Keycloak has stale port — write without port",
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{SmtpServer: &withStalePort}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "realm", mock.MatchedBy(func(r keycloakapi.RealmRepresentation) bool {
+					_, hasPort := (*r.SmtpServer)["port"]
+
+					return !hasPort && (*r.SmtpServer)["ssl"] == "true"
+				})).Return(nil, nil)
+
+				return m
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			gotHash, err := ConfigureRealmEmail(context.Background(), RealmEmailParams{
+				RealmName:   "realm",
+				EmailSpec:   emailSpec,
+				RealmClient: tt.realmClient(t),
+				StoredHash:  storedHash,
+				Guard:       destination.AllowAll(),
+			})
+
+			require.NoError(t, err)
+			require.Equal(t, storedHash, gotHash)
 		})
 	}
 }

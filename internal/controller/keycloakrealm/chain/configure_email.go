@@ -149,7 +149,12 @@ func convertEmailSpecToMap(
 	emailMap["replyToDisplayName"] = emailSpec.Template.ReplyToDisplayName
 	emailMap["envelopeFrom"] = emailSpec.Template.EnvelopeFrom
 	emailMap["host"] = emailSpec.Connection.Host
-	emailMap["port"] = strconv.Itoa(emailSpec.Connection.Port)
+
+	// Keycloak picks 25 or 465 by SSL mode when port is absent.
+	if emailSpec.Connection.Port != nil {
+		emailMap["port"] = strconv.Itoa(*emailSpec.Connection.Port)
+	}
+
 	emailMap["ssl"] = strconv.FormatBool(emailSpec.Connection.EnableSSL)
 	emailMap["starttls"] = strconv.FormatBool(emailSpec.Connection.EnableStartTLS)
 	emailMap["auth"] = strconv.FormatBool(emailSpec.Connection.Authentication != nil)

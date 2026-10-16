@@ -105,8 +105,9 @@ spec:
       envelopeFrom: "envelopeFrom@mail.com"
     connection:
       host: "host"
+      # Optional. When omitted Keycloak uses 465 with enableSSL and 25 otherwise.
+      # port: 465
       enableSSL: true
-      enableStartTLS: true
       authentication:
         password:
           secretKeyRef:

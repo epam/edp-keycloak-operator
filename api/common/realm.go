@@ -207,9 +207,12 @@ type EmailConnection struct {
 	Host string `json:"host"`
 
 	// Port specifies the email server port.
+	// If omitted, Keycloak uses 465 when SSL is enabled and 25 otherwise.
+	// Set it explicitly for STARTTLS submission, typically 587.
 	// +optional
-	// +kubebuilder:default=25
-	Port int `json:"port"`
+	// +kubebuilder:validation:Minimum=1
+	// +kubebuilder:validation:Maximum=65535
+	Port *int `json:"port,omitempty"`
 
 	// EnableSSL specifies if SSL is enabled.
 	EnableSSL bool `json:"enableSSL,omitempty"`

@@ -871,9 +871,12 @@ Connection specifies the email connection configuration.
         <td><b>port</b></td>
         <td>integer</td>
         <td>
-          Port specifies the email server port.<br/>
+          Port specifies the email server port.
+If omitted, Keycloak uses 465 when SSL is enabled and 25 otherwise.
+Set it explicitly for STARTTLS submission, typically 587.<br/>
           <br/>
-            <i>Default</i>: 25<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -7152,9 +7155,12 @@ Connection specifies the email connection configuration.
         <td><b>port</b></td>
         <td>integer</td>
         <td>
-          Port specifies the email server port.<br/>
+          Port specifies the email server port.
+If omitted, Keycloak uses 465 when SSL is enabled and 25 otherwise.
+Set it explicitly for STARTTLS submission, typically 587.<br/>
           <br/>
-            <i>Default</i>: 25<br/>
+            <i>Minimum</i>: 1<br/>
+            <i>Maximum</i>: 65535<br/>
         </td>
         <td>false</td>
       </tr></tbody>

@@ -135,7 +135,7 @@ func TestConfigureEmail_ServeRequest_Idempotency(t *testing.T) {
 		Template: common.EmailTemplate{From: "from@mail.com"},
 		Connection: common.EmailConnection{
 			Host: "smtp-host",
-			Port: 25,
+			Port: ptr.To(25),
 			Authentication: &common.EmailAuthentication{
 				Username: common.SourceRefOrVal{Value: "username"},
 				Password: common.SourceRef{
