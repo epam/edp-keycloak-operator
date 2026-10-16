@@ -167,7 +167,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					},
 					Connection: common.EmailConnection{
 						Host:           "smtp-host",
-						Port:           25,
+						Port:           ptr.To(25),
 						EnableSSL:      true,
 						EnableStartTLS: true,
 						Authentication: &common.EmailAuthentication{

@@ -495,8 +495,12 @@ spec:
                         description: Host specifies the email server host.
                         type: string
                       port:
-                        default: 25
-                        description: Port specifies the email server port.
+                        description: |-
+                          Port specifies the email server port.
+                          If omitted, Keycloak uses 465 when SSL is enabled and 25 otherwise.
+                          Set it explicitly for STARTTLS submission, typically 587.
+                        maximum: 65535
+                        minimum: 1
                         type: integer
                     required:
                     - host
