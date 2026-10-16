@@ -21,9 +21,7 @@ import (
 
 func TestProcessPermissions_Serve(t *testing.T) {
 	const (
-		testClientName      = "test-client"
-		testClientNamespace = "default"
-		permissionName      = "resource-permission"
+		permissionName = "resource-permission"
 	)
 
 	s := runtime.NewScheme()

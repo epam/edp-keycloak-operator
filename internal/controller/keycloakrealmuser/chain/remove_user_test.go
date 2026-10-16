@@ -30,15 +30,15 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "success - user deleted",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
 					Return(nil, nil)
@@ -49,15 +49,15 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "user not found on FindUserByUsername - skip silently",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 			},
 			wantErr: require.NoError,
@@ -66,15 +66,15 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "user not found on DeleteUser - skip silently",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
 					Return(nil, keycloakapi.ErrNotFound)
@@ -85,14 +85,14 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "preserve resources on deletion annotation set - skip",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 					Annotations: map[string]string{
 						"edp.epam.com/preserve-resources-on-deletion": "true",
 					},
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {},
@@ -102,15 +102,15 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "FindUserByUsername returns unexpected error",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, errors.New("connection error"))
 			},
 			wantErr: require.Error,
@@ -119,15 +119,15 @@ func TestRemoveUser_ServeRequest(t *testing.T) {
 			name: "DeleteUser returns unexpected error",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id-123")}, nil, nil)
 				m.EXPECT().DeleteUser(context.Background(), "test-realm", "user-id-123").
 					Return(nil, errors.New("delete error"))

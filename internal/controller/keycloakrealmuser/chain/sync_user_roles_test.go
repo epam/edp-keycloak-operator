@@ -31,7 +31,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "success - add missing realm roles (full strategy)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{"role1", "role2"}),
 				},
@@ -54,7 +54,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "success - remove extra realm roles (full strategy)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{"role1"}),
 				},
@@ -76,7 +76,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "success - add-only: no removal of extra roles",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles:                  ptr.To([]string{"role1"}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
@@ -100,7 +100,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "success - sync client roles",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
@@ -129,7 +129,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "success - remove extra client roles (full strategy)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
@@ -155,7 +155,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetUserRealmRoleMappings fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{"role1"}),
 				},
@@ -173,7 +173,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetRealmRole returns a role without an id",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{"role1"}),
 				},
@@ -194,7 +194,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetClientRole returns no role",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
@@ -219,7 +219,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetClientRole returns a role without an id",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
@@ -244,7 +244,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetClientRole returns another role",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{"crole1"})},
@@ -269,7 +269,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - GetRealmRole fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{"missing-role"}),
 				},
@@ -289,7 +289,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "error - client not found",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "no-such-client", Roles: ptr.To([]string{"role1"})},
@@ -310,7 +310,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			// No expectations on the mocks: any Keycloak call fails this case.
 			name: "unmanaged - omitted realm roles leave every mapping alone",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{},
 			},
 			userCtx:   &UserContext{UserID: "user-unmanaged"},
@@ -320,7 +320,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "explicit empty realm roles remove every mapping",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Roles: ptr.To([]string{}),
 				},
@@ -340,7 +340,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 		{
 			name: "explicit empty client role list clears that client's mappings",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "client1", Roles: ptr.To([]string{})},
@@ -363,7 +363,7 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			// The stale clientId is never resolved: the entry is skipped before the lookup.
 			name: "unmanaged - client entry without a role list is skipped before the client lookup",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ClientRoles: []keycloakApi.UserClientRole{
 						{ClientID: "no-such-client"},

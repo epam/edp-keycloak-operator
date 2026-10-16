@@ -46,11 +46,11 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "success - no password configured",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup:     func(m *v2mocks.MockUsersClient) {},
@@ -61,12 +61,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "success - set password from secret (non-temporary)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 1,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -77,7 +77,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{
@@ -107,12 +107,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "success - set temporary password from secret",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 1,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -123,7 +123,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{
@@ -153,11 +153,11 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "skip - temporary password already synced",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -177,7 +177,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{
@@ -192,11 +192,11 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "skip - non-temporary password secret unchanged",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -218,7 +218,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{
@@ -233,12 +233,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "success - non-temporary password secret changed",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 1,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -260,7 +260,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "67890",
 				},
 				Data: map[string][]byte{
@@ -290,12 +290,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "success - set password from spec (deprecated)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 1,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					Password: "inline-password",
 				},
 			},
@@ -322,12 +322,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "error - secret not found",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 5,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name: "missing-secret",
 						Key:  "password",
@@ -348,12 +348,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "error - key not found in secret",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 5,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name: "user-password",
 						Key:  "wrong-key",
@@ -363,7 +363,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "user-password",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Data: map[string][]byte{
 					"password": []byte("secret-password"),
@@ -383,12 +383,12 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			name: "error - keycloak SetUserPassword fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:       "test-user",
-					Namespace:  "default",
+					Name:       testUserCRName,
+					Namespace:  defaultNamespace,
 					Generation: 5,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 					PasswordSecret: &keycloakApi.PasswordSecret{
 						Name:      "user-password",
 						Key:       "password",
@@ -399,7 +399,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			secret: &corev1.Secret{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:            "user-password",
-					Namespace:       "default",
+					Namespace:       defaultNamespace,
 					ResourceVersion: "12345",
 				},
 				Data: map[string][]byte{

@@ -31,7 +31,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "unmanaged - omitted groups leave every membership alone",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{},
 			},
 			userCtx: &UserContext{UserID: "user-unmanaged"},
@@ -42,7 +42,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "unmanaged - omitted groups skipped under add-only too",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 				},
@@ -54,7 +54,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - name-style group added when not yet assigned",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-1"},
@@ -71,7 +71,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - path-style group added when not yet assigned",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/system/data_admin"})},
 			},
 			userCtx: &UserContext{UserID: "user-2"},
@@ -91,7 +91,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - group already assigned, no add called",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-3"},
@@ -108,7 +108,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - path-style: correct nested group selected over root with same name",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/system/data_admin"})},
 			},
 			userCtx: &UserContext{UserID: "user-4"},
@@ -132,7 +132,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - add-only: extra group not removed",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Groups:                 ptr.To([]string{"developers"}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
@@ -153,7 +153,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - add-only with empty groups skips API calls",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
 					Groups:                 ptr.To([]string{}),
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
@@ -166,7 +166,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - FindGroupByName returns nil (group not found)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"missing-group"})},
 			},
 			userCtx: &UserContext{UserID: "user-6"},
@@ -184,7 +184,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - GetGroupByPath reports not found",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/missing/group"})},
 			},
 			userCtx: &UserContext{UserID: "user-19"},
@@ -202,7 +202,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - FindGroupByName returns a group without an id",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-18"},
@@ -220,7 +220,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - FindGroupByName fails for a reason other than not-found",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-16"},
@@ -238,7 +238,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - empty groups with full strategy and no current groups",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{})},
 			},
 			userCtx: &UserContext{UserID: "user-17"},
@@ -252,7 +252,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - GetGroupByPath returns error",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/bad/path"})},
 			},
 			userCtx: &UserContext{UserID: "user-7"},
@@ -270,7 +270,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - GetUserGroups fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-8"},
@@ -286,7 +286,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - AddUserToGroup fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-10"},
@@ -306,7 +306,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - RemoveUserFromGroup fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-11"},
@@ -329,7 +329,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "error - GetGroupByPath returns nil (group not found by path)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"/missing/path"})},
 			},
 			userCtx: &UserContext{UserID: "user-12"},
@@ -347,7 +347,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - full strategy removes extra groups",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers"})},
 			},
 			userCtx: &UserContext{UserID: "user-13"},
@@ -367,7 +367,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - empty groups with full strategy removes all",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{})},
 			},
 			userCtx: &UserContext{UserID: "user-14"},
@@ -387,7 +387,7 @@ func TestSyncUserGroups_Serve(t *testing.T) {
 		{
 			name: "success - multiple groups: mixed name-style and path-style",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec:       keycloakApi.KeycloakRealmUserSpec{Groups: ptr.To([]string{"developers", "/system/admins"})},
 			},
 			userCtx: &UserContext{UserID: "user-15"},

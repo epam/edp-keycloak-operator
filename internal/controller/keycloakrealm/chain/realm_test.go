@@ -22,7 +22,7 @@ import (
 
 func TestPutRealm_ServeRequest(t *testing.T) {
 	ctx := context.Background()
-	realmName := "test-realm"
+	realmName := testRealmName
 	namespace := "test-namespace"
 	keycloakRefName := "test-keycloak"
 
@@ -166,7 +166,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 }
 
 func TestPutRealm_putRealmRoles(t *testing.T) {
-	realmName := "test-realm"
+	realmName := testRealmName
 
 	tests := []struct {
 		name          string

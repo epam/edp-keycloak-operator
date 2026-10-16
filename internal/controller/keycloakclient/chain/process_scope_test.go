@@ -19,11 +19,6 @@ import (
 )
 
 func TestProcessScope_Serve(t *testing.T) {
-	const (
-		testClientName      = "test-client"
-		testClientNamespace = "default"
-	)
-
 	s := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))

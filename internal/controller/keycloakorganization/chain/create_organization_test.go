@@ -39,16 +39,16 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+				client.On("CreateOrganization", mock.Anything, testRealmName, mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Test Organization" &&
 						ptr.Deref(org.Alias, "") == "test-org" &&
 						ptr.Deref(org.Description, "") == "Test organization" &&
@@ -58,7 +58,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias returns the created organization
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("org-123"),
 						Alias: ptr.To("test-org"),
@@ -80,18 +80,18 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains:     []string{"updated.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// Fetched organization has none of the spec's fields set: drift forces the update.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "existing-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-org-456"),
 						Alias: ptr.To("existing-org"),
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "existing-org-456", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Updated Organization" &&
 						ptr.Deref(org.Alias, "") == "existing-org" &&
 						ptr.Deref(org.Description, "") == "Updated organization" &&
@@ -122,14 +122,14 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 3,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// GetOrganizationByAlias is backed by the list endpoint: it never returns
 				// Attributes. Domains are shuffled and Enabled/Members are server-populated
 				// fields the spec never sets: none of that should trigger an update.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "in-sync-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "in-sync-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:          ptr.To("in-sync-id"),
 						Name:        ptr.To("In Sync Org"),
@@ -146,7 +146,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 
 				// Brief fields already match, and the spec declares attributes: the full
 				// representation is fetched by ID to compare them, with values shuffled.
-				client.On("GetOrganization", mock.Anything, "test-realm", "in-sync-id").
+				client.On("GetOrganization", mock.Anything, testRealmName, "in-sync-id").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("in-sync-id"),
 						Alias: ptr.To("in-sync-org"),
@@ -177,13 +177,13 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// Description differs: the update fires from the brief comparison alone.
 				// GetOrganization (by ID) is not stubbed; an unexpected call fails the test.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "brief-drift-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "brief-drift-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:          ptr.To("brief-drift-id"),
 						Name:        ptr.To("Brief Drift Org"),
@@ -194,7 +194,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "brief-drift-id", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "brief-drift-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
@@ -215,13 +215,13 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// Brief fields already match and the spec declares no attributes: neither
 				// GetOrganization (by ID) nor UpdateOrganization should be called.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "no-attrs-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "no-attrs-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("no-attrs-id"),
 						Name:  ptr.To("No Attrs Org"),
@@ -252,11 +252,11 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "by-id-error-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "by-id-error-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("by-id-error-id"),
 						Name:  ptr.To("By Id Error Org"),
@@ -266,7 +266,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("GetOrganization", mock.Anything, "test-realm", "by-id-error-id").
+				client.On("GetOrganization", mock.Anything, testRealmName, "by-id-error-id").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("network error")).Once()
 
 				return client
@@ -286,11 +286,11 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 3,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "in-sync-org-gen").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "in-sync-org-gen").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("gen-bump-id"),
 						Name:  ptr.To("In Sync Org"),
@@ -300,7 +300,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "gen-bump-id", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "gen-bump-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
@@ -321,11 +321,11 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "domain-drop-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "domain-drop-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("domain-drop-id"),
 						Name:  ptr.To("Domain Drop Org"),
@@ -336,7 +336,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "domain-drop-id", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "domain-drop-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
@@ -357,12 +357,12 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// Keycloak dedups domains server-side: only one "a.com" comes back.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "dup-domain-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "dup-domain-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("dup-domain-id"),
 						Name:  ptr.To("Dup Domain Org"),
@@ -393,13 +393,13 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					ObservedGeneration: 1,
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// Brief fields match, so the full representation is fetched by ID; its
 				// attributes differ from the spec.
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "attr-change-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "attr-change-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("attr-change-id"),
 						Name:  ptr.To("Attr Change Org"),
@@ -409,7 +409,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("GetOrganization", mock.Anything, "test-realm", "attr-change-id").
+				client.On("GetOrganization", mock.Anything, testRealmName, "attr-change-id").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("attr-change-id"),
 						Alias: ptr.To("attr-change-org"),
@@ -418,7 +418,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "attr-change-id", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "attr-change-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
@@ -435,11 +435,11 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"example.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("network error")).Once()
 
 				return client
@@ -455,16 +455,16 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"example.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization fails
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.Anything).
+				client.On("CreateOrganization", mock.Anything, testRealmName, mock.Anything).
 					Return((*keycloakapi.Response)(nil), errors.New("creation failed")).Once()
 
 				return client
@@ -480,19 +480,19 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"example.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns existing organization
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "existing-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-org-456"),
 						Alias: ptr.To("existing-org"),
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// Second call: UpdateOrganization fails
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-org-456", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "existing-org-456", mock.Anything).
 					Return((*keycloakapi.Response)(nil), errors.New("update failed")).Once()
 
 				return client
@@ -508,20 +508,20 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"example.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.Anything).
+				client.On("CreateOrganization", mock.Anything, testRealmName, mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias fails after creation
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "test-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("failed to retrieve created organization")).Once()
 
 				return client
@@ -537,23 +537,23 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Domains: []string{"minimal.com"},
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns not found
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "minimal-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "minimal-org").
 					Return((*keycloakapi.OrganizationRepresentation)(nil), (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 
 				// Second call: CreateOrganization succeeds
-				client.On("CreateOrganization", mock.Anything, "test-realm", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+				client.On("CreateOrganization", mock.Anything, testRealmName, mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Minimal Org" &&
 						ptr.Deref(org.Alias, "") == "minimal-org" &&
 						len(ptr.Deref(org.Domains, nil)) == 1
 				})).Return((*keycloakapi.Response)(nil), nil).Once()
 
 				// Third call: GetOrganizationByAlias returns the created organization
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "minimal-org").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "minimal-org").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("minimal-org-789"),
 						Alias: ptr.To("minimal-org"),
@@ -576,19 +576,19 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "existing-id-123",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
 
 				// First call: GetOrganizationByAlias returns existing organization
-				client.On("GetOrganizationByAlias", mock.Anything, "test-realm", "existing-org-with-id").
+				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "existing-org-with-id").
 					Return(&keycloakapi.OrganizationRepresentation{
 						Id:    ptr.To("existing-id-123"),
 						Alias: ptr.To("existing-org-with-id"),
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				// Second call: UpdateOrganization succeeds
-				client.On("UpdateOrganization", mock.Anything, "test-realm", "existing-id-123", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "existing-id-123", mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
 					return ptr.Deref(org.Name, "") == "Existing Org" &&
 						ptr.Deref(org.Alias, "") == "existing-org-with-id"
 				})).Return((*keycloakapi.Response)(nil), nil).Once()

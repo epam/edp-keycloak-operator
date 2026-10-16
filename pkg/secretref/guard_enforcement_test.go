@@ -48,14 +48,15 @@ func TestMapConfigSecretsRefs_RejectsSecretRefAsDestination(t *testing.T) {
 	s := guardedSecretRef(t)
 
 	config := map[string]string{
-		"tokenUrl":     "$referenced:url",
-		"clientSecret": "$referenced:key",
+		"tokenUrl":          "$referenced:url",
+		testClientSecretKey: "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Equal(t, "$referenced:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
+	assert.Equal(t, "$referenced:key", config[testClientSecretKey],
+		"no secret may be resolved once a destination is rejected")
 }
 
 func TestMapConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
@@ -64,14 +65,15 @@ func TestMapConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {
 	s := guardedSecretRef(t)
 
 	config := map[string]string{
-		"tokenUrl":     "https://evil.example.com/collect",
-		"clientSecret": "$referenced:key",
+		"tokenUrl":          "https://evil.example.com/collect",
+		testClientSecretKey: "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.ErrorIs(t, err, destination.ErrNotAllowed)
-	assert.Equal(t, "$referenced:key", config["clientSecret"], "no secret may be resolved once a destination is rejected")
+	assert.Equal(t, "$referenced:key", config[testClientSecretKey],
+		"no secret may be resolved once a destination is rejected")
 }
 
 func TestMapConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
@@ -80,14 +82,14 @@ func TestMapConfigSecretsRefs_ResolvesForListedDestination(t *testing.T) {
 	s := guardedSecretRef(t)
 
 	config := map[string]string{
-		"tokenUrl":     "https://keycloak.example.com/token",
-		"clientSecret": "$referenced:key",
+		"tokenUrl":          "https://keycloak.example.com/token",
+		testClientSecretKey: "$referenced:key",
 	}
 
 	_, err := s.MapConfigSecretsRefs(context.Background(), "spec.config", config, "default")
 
 	require.NoError(t, err)
-	assert.Equal(t, "S3cretValue!", config["clientSecret"])
+	assert.Equal(t, "S3cretValue!", config[testClientSecretKey])
 }
 
 func TestMapComponentConfigSecretsRefs_RejectsUnlistedDestination(t *testing.T) {

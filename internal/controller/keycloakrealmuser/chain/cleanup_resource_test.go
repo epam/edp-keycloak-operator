@@ -28,11 +28,11 @@ func TestCleanupResource_Serve(t *testing.T) {
 			name: "KeepResource is true - should skip deletion",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					KeepResource: true,
 				},
 			},
@@ -45,22 +45,22 @@ func TestCleanupResource_Serve(t *testing.T) {
 			name: "KeepResource is false - should delete resource",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					KeepResource: false,
 				},
 			},
 			k8sClient: func(t *testing.T) client.Client {
 				user := &keycloakApi.KeycloakRealmUser{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-user",
-						Namespace: "default",
+						Name:      testUserCRName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakRealmUserSpec{
-						Username:     "testuser",
+						Username:     testUsername,
 						KeepResource: false,
 					},
 				}
@@ -72,11 +72,11 @@ func TestCleanupResource_Serve(t *testing.T) {
 			name: "KeepResource is false - resource not found should not error",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					KeepResource: false,
 				},
 			},
@@ -89,11 +89,11 @@ func TestCleanupResource_Serve(t *testing.T) {
 			name: "KeepResource is false - delete fails with error",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					KeepResource: false,
 				},
 			},

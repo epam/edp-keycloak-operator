@@ -25,7 +25,7 @@ func TestUpdateConnectionStatus(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(scheme))
 
-	kc := &keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: "default"}}
+	kc := &keycloakApi.Keycloak{ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: defaultNamespace}}
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
 		WithStatusSubresource(&keycloakApi.Keycloak{}).
@@ -36,7 +36,7 @@ func TestUpdateConnectionStatus(t *testing.T) {
 
 	get := func() *keycloakApi.Keycloak {
 		out := &keycloakApi.Keycloak{}
-		require.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "kc", Namespace: "default"}, out))
+		require.NoError(t, cl.Get(ctx, client.ObjectKey{Name: "kc", Namespace: defaultNamespace}, out))
 
 		return out
 	}

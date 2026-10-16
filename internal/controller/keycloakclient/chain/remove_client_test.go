@@ -29,8 +29,8 @@ func TestRemoveClient_Serve(t *testing.T) {
 			name: "preserve resources on deletion - skip",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 					Annotations: map[string]string{
 						objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
 					},
@@ -44,15 +44,15 @@ func TestRemoveClient_Serve(t *testing.T) {
 					Clients: keycloakapiMocks.NewMockClientsClient(t),
 				}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			wantErr:   require.NoError,
 		},
 		{
 			name: "empty client ID in status - skip",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Status: keycloakApi.KeycloakClientStatus{
 					ClientID: "",
@@ -63,15 +63,15 @@ func TestRemoveClient_Serve(t *testing.T) {
 					Clients: keycloakapiMocks.NewMockClientsClient(t),
 				}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			wantErr:   require.NoError,
 		},
 		{
 			name: "delete client successfully",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Status: keycloakApi.KeycloakClientStatus{
 					ClientID: "client-uuid",
@@ -79,20 +79,20 @@ func TestRemoveClient_Serve(t *testing.T) {
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("DeleteClient", testifymock.Anything, testRealmName, "client-uuid").
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			wantErr:   require.NoError,
 		},
 		{
 			name: "client not found in keycloak - skip",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Status: keycloakApi.KeycloakClientStatus{
 					ClientID: "client-uuid",
@@ -100,20 +100,20 @@ func TestRemoveClient_Serve(t *testing.T) {
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("DeleteClient", testifymock.Anything, testRealmName, "client-uuid").
 					Return((*keycloakapi.Response)(nil), keycloakapi.ErrNotFound)
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			wantErr:   require.NoError,
 		},
 		{
 			name: "delete client fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Status: keycloakApi.KeycloakClientStatus{
 					ClientID: "client-uuid",
@@ -121,12 +121,12 @@ func TestRemoveClient_Serve(t *testing.T) {
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-				clientsMock.On("DeleteClient", testifymock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("DeleteClient", testifymock.Anything, testRealmName, "client-uuid").
 					Return((*keycloakapi.Response)(nil), errors.New("connection refused"))
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			wantErr:   require.Error,
 		},
 	}

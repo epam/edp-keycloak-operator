@@ -38,8 +38,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			name: "successfully create keycloak auth data with caCert secret",
 			keycloak: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url:    "https://test.com",
@@ -59,7 +59,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 					&corev1.Secret{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test-secret",
-							Namespace: "default",
+							Namespace: defaultNamespace,
 						},
 						Data: map[string][]byte{
 							"ca.crt": []byte("test-ca-cert"),
@@ -69,8 +69,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			want: &KeycloakAuthData{
 				Url:             "https://test.com",
 				SecretName:      "admin-secret",
-				SecretNamespace: "default",
-				KeycloakCRName:  "test",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testResourceName,
 				CACert:          "test-ca-cert",
 			},
 			wantErr: require.NoError,
@@ -79,8 +79,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			name: "successfully create keycloak auth data with caCert configmap",
 			keycloak: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url:    "https://test.com",
@@ -100,7 +100,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 					&corev1.ConfigMap{
 						ObjectMeta: metav1.ObjectMeta{
 							Name:      "test-configmap",
-							Namespace: "default",
+							Namespace: defaultNamespace,
 						},
 						Data: map[string]string{
 							"ca.crt": "test-ca-cert",
@@ -110,8 +110,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			want: &KeycloakAuthData{
 				Url:             "https://test.com",
 				SecretName:      "admin-secret",
-				SecretNamespace: "default",
-				KeycloakCRName:  "test",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testResourceName,
 				CACert:          "test-ca-cert",
 			},
 			wantErr: require.NoError,
@@ -120,8 +120,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			name: "caCert secret not found",
 			keycloak: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					CACert: &common.SourceRef{
@@ -146,8 +146,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			name: "caCert configmap not found",
 			keycloak: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					CACert: &common.SourceRef{
@@ -171,8 +171,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			name: "successfully propagate auth spec",
 			keycloak: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test",
-					Namespace: "default",
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url: "https://test.com",
@@ -185,7 +185,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: "test-secret",
 								},
-								Key: "password",
+								Key: testPasswordKey,
 							},
 						},
 					},
@@ -196,8 +196,8 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			},
 			want: &KeycloakAuthData{
 				Url:             "https://test.com",
-				SecretNamespace: "default",
-				KeycloakCRName:  "test",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testResourceName,
 				AuthSpec: &common.AuthSpec{
 					PasswordGrant: &common.PasswordGrantConfig{
 						Username: common.SourceRefOrVal{
@@ -207,7 +207,7 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "test-secret",
 							},
-							Key: "password",
+							Key: testPasswordKey,
 						},
 					},
 				},
@@ -242,7 +242,7 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 			name: "successfully create keycloak auth data with caCert secret",
 			keycloak: &keycloakAlpha.ClusterKeycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test",
+					Name: testResourceName,
 				},
 				Spec: keycloakAlpha.ClusterKeycloakSpec{
 					Url:    "https://test.com",
@@ -274,7 +274,7 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 				Url:             "https://test.com",
 				SecretName:      "admin-secret",
 				SecretNamespace: "ns-with-secrets",
-				KeycloakCRName:  "test",
+				KeycloakCRName:  testResourceName,
 				CACert:          "test-ca-cert",
 			},
 			wantErr: require.NoError,
@@ -319,26 +319,26 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			name: "successfully create v2 client from realm",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakApi.KeycloakStatus{
 						Connected: true,
@@ -346,12 +346,12 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -364,26 +364,26 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			name: "successfully create v2 client with CA cert",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 						CACert: &common.SourceRef{
 							SecretKeyRef: &common.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
@@ -399,18 +399,18 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "ca-cert-secret",
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
 						"ca.crt": []byte("-----BEGIN CERTIFICATE-----\ntest-ca-cert\n-----END CERTIFICATE-----"),
@@ -427,13 +427,13 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:      "non-existent-realm",
-					Namespace: "default",
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
@@ -450,26 +450,26 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			name: "keycloak not connected",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    "https://keycloak.example.com",
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakApi.KeycloakStatus{
 						Connected: false,
@@ -488,22 +488,22 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			name: "credentials secret not found",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakApi.KeycloakKind,
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    "https://keycloak.example.com",
@@ -526,11 +526,11 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			name: "cluster keycloak ref",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakAlpha.ClusterKeycloakKind,
 						Name: "test-cluster-keycloak",
@@ -544,7 +544,7 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 					},
 					Spec: keycloakAlpha.ClusterKeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakAlpha.ClusterKeycloakStatus{
 						Connected: true,
@@ -552,12 +552,12 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -578,7 +578,7 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -623,7 +623,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					Name: "test-cluster-realm",
 				},
 				Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-					RealmName:          "test",
+					RealmName:          testResourceName,
 					ClusterKeycloakRef: "test-cluster-keycloak",
 				},
 			},
@@ -634,7 +634,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					},
 					Spec: keycloakAlpha.ClusterKeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakAlpha.ClusterKeycloakStatus{
 						Connected: true,
@@ -642,12 +642,12 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -663,7 +663,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					Name: "test-cluster-realm",
 				},
 				Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-					RealmName:          "test",
+					RealmName:          testResourceName,
 					ClusterKeycloakRef: "non-existent-cluster-keycloak",
 				},
 			},
@@ -683,7 +683,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					Name: "test-cluster-realm",
 				},
 				Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-					RealmName:          "test",
+					RealmName:          testResourceName,
 					ClusterKeycloakRef: "test-cluster-keycloak",
 				},
 			},
@@ -694,7 +694,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					},
 					Spec: keycloakAlpha.ClusterKeycloakSpec{
 						Url:    "https://keycloak.example.com",
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakAlpha.ClusterKeycloakStatus{
 						Connected: false,
@@ -716,7 +716,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 					Name: "test-cluster-realm",
 				},
 				Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-					RealmName:          "test",
+					RealmName:          testResourceName,
 					ClusterKeycloakRef: "test-cluster-keycloak",
 				},
 			},
@@ -754,7 +754,7 @@ func TestHelper_CreateKeycloakClientFromClusterRealm(t *testing.T) {
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -793,23 +793,23 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "successfully create v2 client from keycloak",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url:    mockServer.GetURL(),
-					Secret: "keycloak-secret",
+					Secret: testKeycloakSecretName,
 				},
 			},
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -822,8 +822,8 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "successfully create v2 client with auth passwordGrant",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url: mockServer.GetURL(),
@@ -834,9 +834,9 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 							},
 							PasswordRef: common.SecretKeySelector{
 								LocalObjectReference: corev1.LocalObjectReference{
-									Name: "keycloak-secret",
+									Name: testKeycloakSecretName,
 								},
-								Key: "password",
+								Key: testPasswordKey,
 							},
 						},
 					},
@@ -845,11 +845,11 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"password": []byte("admin123"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -862,8 +862,8 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "successfully create v2 client with auth clientCredentials",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url: mockServer.GetURL(),
@@ -886,7 +886,7 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "client-secret",
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
 						"secret": []byte("client-secret-value"),
@@ -902,8 +902,8 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "auth passwordGrant with missing password secret",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url: mockServer.GetURL(),
@@ -916,7 +916,7 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 								LocalObjectReference: corev1.LocalObjectReference{
 									Name: "missing-secret",
 								},
-								Key: "password",
+								Key: testPasswordKey,
 							},
 						},
 					},
@@ -935,8 +935,8 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "credentials secret not found",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url:    mockServer.GetURL(),
@@ -956,12 +956,12 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			name: "ca cert secret not found returns error",
 			kc: &keycloakApi.Keycloak{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-keycloak",
-					Namespace: "default",
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakSpec{
 					Url:    mockServer.GetURL(),
-					Secret: "keycloak-secret",
+					Secret: testKeycloakSecretName,
 					CACert: &common.SourceRef{
 						SecretKeyRef: &common.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -975,12 +975,12 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1046,18 +1046,18 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 				},
 				Spec: keycloakAlpha.ClusterKeycloakSpec{
 					Url:    mockServer.GetURL(),
-					Secret: "keycloak-secret",
+					Secret: testKeycloakSecretName,
 				},
 			},
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1094,7 +1094,7 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 				},
 				Spec: keycloakAlpha.ClusterKeycloakSpec{
 					Url:    mockServer.GetURL(),
-					Secret: "keycloak-secret",
+					Secret: testKeycloakSecretName,
 					CACert: &common.SourceRef{
 						SecretKeyRef: &common.SecretKeySelector{
 							LocalObjectReference: corev1.LocalObjectReference{
@@ -1108,12 +1108,12 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1137,7 +1137,7 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 			h := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -1166,7 +1166,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 		{
 			name: "success with password grant - returns admin-cli client ID",
 			authData: &KeycloakAuthData{
-				SecretNamespace: "default",
+				SecretNamespace: defaultNamespace,
 				AuthSpec: &common.AuthSpec{
 					PasswordGrant: &common.PasswordGrantConfig{
 						Username: common.SourceRefOrVal{
@@ -1176,7 +1176,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "password-secret",
 							},
-							Key: "password",
+							Key: testPasswordKey,
 						},
 					},
 				},
@@ -1185,10 +1185,10 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "password-secret",
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"password": []byte("secret-password"),
+						testPasswordKey: []byte("secret-password"),
 					},
 				},
 			},
@@ -1198,7 +1198,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 		{
 			name: "success with client credentials - returns custom client ID",
 			authData: &KeycloakAuthData{
-				SecretNamespace: "default",
+				SecretNamespace: defaultNamespace,
 				AuthSpec: &common.AuthSpec{
 					ClientCredentials: &common.ClientCredentialsConfig{
 						ClientID: common.SourceRefOrVal{
@@ -1217,7 +1217,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "client-secret",
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
 						"secret": []byte("client-secret-value"),
@@ -1230,7 +1230,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 		{
 			name: "error resolving username in password grant",
 			authData: &KeycloakAuthData{
-				SecretNamespace: "default",
+				SecretNamespace: defaultNamespace,
 				AuthSpec: &common.AuthSpec{
 					PasswordGrant: &common.PasswordGrantConfig{
 						Username: common.SourceRefOrVal{
@@ -1247,7 +1247,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "password-secret",
 							},
-							Key: "password",
+							Key: testPasswordKey,
 						},
 					},
 				},
@@ -1261,7 +1261,7 @@ func TestHelper_buildV2AuthOptions(t *testing.T) {
 		{
 			name: "error when neither password grant nor client credentials set",
 			authData: &KeycloakAuthData{
-				SecretNamespace: "default",
+				SecretNamespace: defaultNamespace,
 				AuthSpec:        &common.AuthSpec{},
 			},
 			objects: []client.Object{},
@@ -1316,20 +1316,20 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 			name: "successfully create v2 client with service account admin type",
 			authData: &KeycloakAuthData{
 				Url:             mockServer.GetURL(),
-				SecretName:      "keycloak-secret",
-				SecretNamespace: "default",
+				SecretName:      testKeycloakSecretName,
+				SecretNamespace: defaultNamespace,
 				AdminType:       keycloakApi.KeycloakAdminTypeServiceAccount,
-				KeycloakCRName:  "test-keycloak",
+				KeycloakCRName:  testKeycloakName,
 			},
 			objects: []client.Object{
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("service-account-client"),
-						"password": []byte("client-secret"),
+						"username":      []byte("service-account-client"),
+						testPasswordKey: []byte("client-secret"),
 					},
 				},
 			},
@@ -1342,8 +1342,8 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 			name: "successfully create v2 client with password grant auth spec",
 			authData: &KeycloakAuthData{
 				Url:             mockServer.GetURL(),
-				SecretNamespace: "default",
-				KeycloakCRName:  "test-keycloak",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testKeycloakName,
 				AuthSpec: &common.AuthSpec{
 					PasswordGrant: &common.PasswordGrantConfig{
 						Username: common.SourceRefOrVal{
@@ -1353,7 +1353,7 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 							LocalObjectReference: corev1.LocalObjectReference{
 								Name: "password-secret",
 							},
-							Key: "password",
+							Key: testPasswordKey,
 						},
 					},
 				},
@@ -1362,10 +1362,10 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
 						Name:      "password-secret",
-						Namespace: "default",
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"password": []byte("admin123"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1378,8 +1378,8 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 			name: "error when auth spec is invalid",
 			authData: &KeycloakAuthData{
 				Url:             mockServer.GetURL(),
-				SecretNamespace: "default",
-				KeycloakCRName:  "test-keycloak",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testKeycloakName,
 				AuthSpec:        &common.AuthSpec{},
 			},
 			objects: []client.Object{},
@@ -1403,7 +1403,7 @@ func TestHelper_createKeycloakClientFromAuthData_withServiceAccount(t *testing.T
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			client, err := helper.createKeycloakClientFromAuthData(context.Background(), tt.authData)
@@ -1439,38 +1439,38 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 			name: "successfully create v2 client from KeycloakRealm ref",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
 						Kind: keycloakApi.KeycloakRealmKind,
-						Name: "test-realm",
+						Name: testRealmName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-realm",
-						Namespace: "default",
+						Name:      testRealmName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test",
+						RealmName: testResourceName,
 						KeycloakRef: common.KeycloakRef{
 							Kind: keycloakApi.KeycloakKind,
-							Name: "test-keycloak",
+							Name: testKeycloakName,
 						},
 					},
 				},
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakApi.KeycloakStatus{
 						Connected: true,
@@ -1478,12 +1478,12 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1496,8 +1496,8 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 			name: "successfully create v2 client from ClusterKeycloakRealm ref",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -1512,7 +1512,7 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 						Name: "test-cluster-realm",
 					},
 					Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-						RealmName:          "test",
+						RealmName:          testResourceName,
 						ClusterKeycloakRef: "test-cluster-keycloak",
 					},
 				},
@@ -1522,7 +1522,7 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 					},
 					Spec: keycloakAlpha.ClusterKeycloakSpec{
 						Url:    mockServer.GetURL(),
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakAlpha.ClusterKeycloakStatus{
 						Connected: true,
@@ -1530,12 +1530,12 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 				},
 				&corev1.Secret{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "keycloak-secret",
-						Namespace: "default",
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"username": []byte("admin"),
-						"password": []byte("admin123"),
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
 					},
 				},
 			},
@@ -1548,8 +1548,8 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 			name: "error when KeycloakRealm not found",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -1571,13 +1571,13 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 			name: "error with unknown realm kind",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
 						Kind: "UnknownKind",
-						Name: "test-realm",
+						Name: testRealmName,
 					},
 				},
 			},
@@ -1602,7 +1602,7 @@ func TestHelper_CreateKeycloakClientFromRealmRef(t *testing.T) {
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -1634,38 +1634,38 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			name: "successfully get auth data from KeycloakRealm ref",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
 						Kind: keycloakApi.KeycloakRealmKind,
-						Name: "test-realm",
+						Name: testRealmName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-realm",
-						Namespace: "default",
+						Name:      testRealmName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test",
+						RealmName: testResourceName,
 						KeycloakRef: common.KeycloakRef{
 							Kind: keycloakApi.KeycloakKind,
-							Name: "test-keycloak",
+							Name: testKeycloakName,
 						},
 					},
 				},
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    "https://keycloak.example.com",
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakApi.KeycloakStatus{
 						Connected: true,
@@ -1675,16 +1675,16 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			wantErr: require.NoError,
 			checkFunc: func(t *testing.T, authData *KeycloakAuthData) {
 				require.Equal(t, "https://keycloak.example.com", authData.Url)
-				require.Equal(t, "keycloak-secret", authData.SecretName)
-				require.Equal(t, "default", authData.SecretNamespace)
+				require.Equal(t, testKeycloakSecretName, authData.SecretName)
+				require.Equal(t, defaultNamespace, authData.SecretNamespace)
 			},
 		},
 		{
 			name: "successfully get auth data from ClusterKeycloakRealm ref",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -1699,7 +1699,7 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 						Name: "test-cluster-realm",
 					},
 					Spec: keycloakAlpha.ClusterKeycloakRealmSpec{
-						RealmName:          "test",
+						RealmName:          testResourceName,
 						ClusterKeycloakRef: "test-cluster-keycloak",
 					},
 				},
@@ -1726,8 +1726,8 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			name: "error when realm not found and object being deleted returns ErrKeycloakRealmNotFound",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:              "test-group",
-					Namespace:         "default",
+					Name:              testGroupName,
+					Namespace:         defaultNamespace,
 					DeletionTimestamp: &metav1.Time{Time: time.Now()},
 					Finalizers:        []string{"test-finalizer"},
 				},
@@ -1750,13 +1750,13 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			name: "error with unknown realm kind",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
 						Kind: "UnknownKind",
-						Name: "test-realm",
+						Name: testRealmName,
 					},
 				},
 			},
@@ -1773,38 +1773,38 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			name: "error when keycloak not connected",
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-group",
-					Namespace: "default",
+					Name:      testGroupName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
 						Kind: keycloakApi.KeycloakRealmKind,
-						Name: "test-realm",
+						Name: testRealmName,
 					},
 				},
 			},
 			objects: []client.Object{
 				&keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-realm",
-						Namespace: "default",
+						Name:      testRealmName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
-						RealmName: "test",
+						RealmName: testResourceName,
 						KeycloakRef: common.KeycloakRef{
 							Kind: keycloakApi.KeycloakKind,
-							Name: "test-keycloak",
+							Name: testKeycloakName,
 						},
 					},
 				},
 				&keycloakApi.Keycloak{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-keycloak",
-						Namespace: "default",
+						Name:      testKeycloakName,
+						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
 						Url:    "https://keycloak.example.com",
-						Secret: "keycloak-secret",
+						Secret: testKeycloakSecretName,
 					},
 					Status: keycloakApi.KeycloakStatus{
 						Connected: false,
@@ -1830,7 +1830,7 @@ func TestHelper_getKeycloakAuthDataFromRealmRef(t *testing.T) {
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
@@ -1862,11 +1862,11 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 			name: "successfully get auth data with ClusterKeycloak kind",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakAlpha.ClusterKeycloakKind,
 						Name: "test-cluster-keycloak",
@@ -1897,11 +1897,11 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 			name: "error when ClusterKeycloak not found",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: keycloakAlpha.ClusterKeycloakKind,
 						Name: "non-existent-cluster-keycloak",
@@ -1921,14 +1921,14 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 			name: "error with unknown keycloak kind",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
-					Namespace: "default",
+					Name:      testRealmName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test",
+					RealmName: testResourceName,
 					KeycloakRef: common.KeycloakRef{
 						Kind: "UnknownKind",
-						Name: "test-keycloak",
+						Name: testKeycloakName,
 					},
 				},
 			},
@@ -1953,7 +1953,7 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 			helper := &Helper{
 				guard:             destination.AllowAll(),
 				client:            k8sClient,
-				operatorNamespace: "default",
+				operatorNamespace: defaultNamespace,
 			}
 
 			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())

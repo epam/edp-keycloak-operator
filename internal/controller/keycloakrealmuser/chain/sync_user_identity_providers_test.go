@@ -32,9 +32,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "success - nil identity providers skips sync",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			userCtx:   &UserContext{UserID: "user-1"},
@@ -44,9 +44,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "success - add missing identity provider",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"google"},
 				},
 			},
@@ -66,7 +66,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 					keycloakapi.FederatedIdentityRepresentation{
 						IdentityProvider: ptr.To("google"),
 						UserId:           ptr.To("user-2"),
-						UserName:         ptr.To("testuser"),
+						UserName:         ptr.To(testUsername),
 					},
 				).Return(nil, nil)
 			},
@@ -75,9 +75,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "success - remove extra identity provider",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{},
 				},
 			},
@@ -95,9 +95,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "success - existing provider already linked, no action",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"google"},
 				},
 			},
@@ -113,9 +113,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "error - GetUserFederatedIdentities fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"google"},
 				},
 			},
@@ -132,9 +132,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "error - identity provider does not exist (404)",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"nonexistent"},
 				},
 			},
@@ -156,9 +156,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "error - GetIdentityProvider fails with non-404 error",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"broken-idp"},
 				},
 			},
@@ -177,9 +177,9 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 		{
 			name: "error - CreateUserFederatedIdentity fails",
 			user: &keycloakApi.KeycloakRealmUser{
-				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: "default"},
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:          "testuser",
+					Username:          testUsername,
 					IdentityProviders: &[]string{"google"},
 				},
 			},
@@ -199,7 +199,7 @@ func TestSyncUserIdentityProviders_Serve(t *testing.T) {
 					keycloakapi.FederatedIdentityRepresentation{
 						IdentityProvider: ptr.To("google"),
 						UserId:           ptr.To("user-err4"),
-						UserName:         ptr.To("testuser"),
+						UserName:         ptr.To(testUsername),
 					},
 				).Return(nil, errors.New("create error"))
 			},

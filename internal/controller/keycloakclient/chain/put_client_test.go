@@ -59,11 +59,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Secret:   secretref.GenerateSecretRef("client-secret", "secret"),
 								},
 							},
@@ -73,7 +73,7 @@ func TestPutClient_Serve(t *testing.T) {
 				secretRef: func(t *testing.T) secretRef {
 					m := mocks.NewMockRefClient(t)
 
-					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
 						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
@@ -81,13 +81,13 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
@@ -122,11 +122,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Secret:   "client-secret",
 								},
 							},
@@ -136,7 +136,7 @@ func TestPutClient_Serve(t *testing.T) {
 				secretRef: func(t *testing.T) secretRef {
 					m := mocks.NewMockRefClient(t)
 
-					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
 						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
@@ -144,13 +144,13 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
@@ -185,11 +185,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 								},
 							},
 						).
@@ -201,13 +201,13 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
@@ -242,11 +242,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Secret:   secretref.GenerateSecretRef("client-secret", "secret"),
 								},
 							},
@@ -256,7 +256,7 @@ func TestPutClient_Serve(t *testing.T) {
 				secretRef: func(t *testing.T) secretRef {
 					m := mocks.NewMockRefClient(t)
 
-					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
 						Return("client-secret", "secret:client-secret:secret@uid-1@100", nil)
 
 					return m
@@ -264,13 +264,13 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("123")}, (*keycloakapi.Response)(nil), nil)
 
 					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
@@ -300,11 +300,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -317,13 +317,13 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
@@ -358,11 +358,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 										Browser:     "browser",
 										DirectGrant: "direct grant",
@@ -378,8 +378,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -397,7 +397,7 @@ func TestPutClient_Serve(t *testing.T) {
 							},
 						}, (*keycloakapi.Response)(nil), nil)
 
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 
@@ -432,11 +432,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 										Browser: "browser",
 									},
@@ -451,8 +451,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					realmsMock := keycloakapiMocks.NewMockRealmClient(t)
@@ -486,11 +486,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 										Browser: "custom-browser",
 									},
@@ -505,8 +505,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					realmsMock := keycloakapiMocks.NewMockRealmClient(t)
@@ -542,11 +542,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 										Browser:     "browser",
 										DirectGrant: "custom-grant",
@@ -562,8 +562,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					realmsMock := keycloakapiMocks.NewMockRealmClient(t)
@@ -599,11 +599,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -616,12 +616,12 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("connection refused"))
 
 					return &keycloakapi.KeycloakClient{Clients: clientsMock}
@@ -651,11 +651,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -668,12 +668,12 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("123")}, (*keycloakapi.Response)(nil), nil)
 					clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
 						Return((*keycloakapi.Response)(nil), errors.New("update failed"))
@@ -705,11 +705,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -722,12 +722,12 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
@@ -760,11 +760,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -777,19 +777,19 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
 						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return(&keycloakapi.ClientRepresentation{Id: ptr.To("456")}, (*keycloakapi.Response)(nil), nil)
 
 					return &keycloakapi.KeycloakClient{Clients: clientsMock}
@@ -816,11 +816,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -833,19 +833,19 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
 						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("lookup failed"))
 
 					return &keycloakapi.KeycloakClient{Clients: clientsMock}
@@ -875,11 +875,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Public:   true,
 								},
 							},
@@ -892,19 +892,19 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
 						Once()
 					clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
 						Return(&keycloakapi.Response{
 							HTTPResponse: &http.Response{Header: http.Header{}},
 						}, nil)
-					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", "test-client-id").
+					clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
 						Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), nil)
 
 					return &keycloakapi.KeycloakClient{Clients: clientsMock}
@@ -934,11 +934,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Secret:   secretref.GenerateSecretRef("my-secret", "key"),
 								},
 							},
@@ -947,7 +947,7 @@ func TestPutClient_Serve(t *testing.T) {
 				},
 				secretRef: func(t *testing.T) secretRef {
 					m := mocks.NewMockRefClient(t)
-					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, "default").
+					m.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
 						Return("", "", errors.New("secret not found"))
 
 					return m
@@ -955,8 +955,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					return &keycloakapi.KeycloakClient{}
@@ -986,11 +986,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 									Secret:   "plain-old-secret",
 								},
 							},
@@ -1008,8 +1008,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					return &keycloakapi.KeycloakClient{}
@@ -1035,11 +1035,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 								},
 							},
 						).
@@ -1056,8 +1056,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					return &keycloakapi.KeycloakClient{}
@@ -1083,11 +1083,11 @@ func TestPutClient_Serve(t *testing.T) {
 						WithObjects(
 							&keycloakApi.KeycloakClient{
 								ObjectMeta: metav1.ObjectMeta{
-									Name:      "test-client",
-									Namespace: "default",
+									Name:      testClientName,
+									Namespace: testClientNamespace,
 								},
 								Spec: keycloakApi.KeycloakClientSpec{
-									ClientId: "test-client-id",
+									ClientId: testClientID,
 								},
 							},
 						).
@@ -1104,8 +1104,8 @@ func TestPutClient_Serve(t *testing.T) {
 			},
 			args: args{
 				keycloakClient: client.ObjectKey{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 					return &keycloakapi.KeycloakClient{}

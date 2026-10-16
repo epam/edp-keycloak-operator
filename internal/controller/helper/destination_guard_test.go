@@ -38,7 +38,7 @@ func recordingServer(t *testing.T, received *string) *httptest.Server {
 // keycloakCRWithPasswordGrant names url as the destination and a Secret as the credential.
 func keycloakCRWithPasswordGrant(url string) *keycloakApi.Keycloak {
 	return &keycloakApi.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: defaultNamespace},
 		Spec: keycloakApi.KeycloakSpec{
 			Url: url,
 			Auth: &common.AuthSpec{
@@ -69,7 +69,7 @@ func guardedHelperWithPassword(t *testing.T, kc *keycloakApi.Keycloak, guard *de
 	require.NoError(t, corev1.AddToScheme(s))
 
 	referenced := &corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{Name: "referenced", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "referenced", Namespace: defaultNamespace},
 		Data:       map[string][]byte{"adminPassword": []byte(password), "username": []byte("admin")},
 	}
 
@@ -108,7 +108,7 @@ func TestCreateKeycloakClientFromKeycloak_DeniesUnlistedDestinationForLegacySecr
 	server := recordingServer(t, &received)
 
 	kc := &keycloakApi.Keycloak{
-		ObjectMeta: metav1.ObjectMeta{Name: "kc-legacy", Namespace: "default"},
+		ObjectMeta: metav1.ObjectMeta{Name: "kc-legacy", Namespace: defaultNamespace},
 		Spec:       keycloakApi.KeycloakSpec{Url: server.URL, Secret: "referenced"},
 	}
 

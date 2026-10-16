@@ -24,8 +24,8 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -35,12 +35,12 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 
 	// Empty role mappings (no clients have roles yet)
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Resolve client UUID (since client not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
@@ -48,7 +48,7 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 
 	// Get role1
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role1",
+		context.Background(), testRealmName, "client-uuid", "role1",
 	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role1-id"),
 		Name: ptr.To("role1"),
@@ -56,7 +56,7 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 
 	// Get role2
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role2",
+		context.Background(), testRealmName, "client-uuid", "role2",
 	).Return(&keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role2-id"),
 		Name: ptr.To("role2"),
@@ -64,7 +64,7 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 
 	// Add both roles
 	mockGroups.EXPECT().AddClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client-uuid",
+		context.Background(), testRealmName, testGroupID, "client-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("role1-id"), Name: ptr.To("role1")},
 			{Id: ptr.To("role2-id"), Name: ptr.To("role2")},
@@ -86,8 +86,8 @@ func TestSyncClientRoles_Serve_RemoveRoles(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -106,14 +106,14 @@ func TestSyncClientRoles_Serve_RemoveRoles(t *testing.T) {
 		},
 	}
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{
 		ClientMappings: &clientMappings,
 	}, nil, nil)
 
 	// Remove old role
 	mockGroups.EXPECT().DeleteClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client-uuid",
+		context.Background(), testRealmName, testGroupID, "client-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("old-role-id"), Name: ptr.To("old-role")},
 		},
@@ -134,8 +134,8 @@ func TestSyncClientRoles_Serve_RemoveUnclaimedClient(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -152,14 +152,14 @@ func TestSyncClientRoles_Serve_RemoveUnclaimedClient(t *testing.T) {
 		},
 	}
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{
 		ClientMappings: &clientMappings,
 	}, nil, nil)
 
 	// Delete roles for unclaimed client
 	mockGroups.EXPECT().DeleteClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "old-client-uuid",
+		context.Background(), testRealmName, testGroupID, "old-client-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("old-role-id"), Name: ptr.To("old-role")},
 		},
@@ -181,8 +181,8 @@ func TestSyncClientRoles_Serve_MentionedClientWithoutRolesIsLeftAlone(t *testing
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -200,7 +200,7 @@ func TestSyncClientRoles_Serve_MentionedClientWithoutRolesIsLeftAlone(t *testing
 		},
 	}
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{
 		ClientMappings: &clientMappings,
 	}, nil, nil)
@@ -222,8 +222,8 @@ func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -234,25 +234,25 @@ func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 
 	// Empty role mappings
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Client1: Resolve UUID (since not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("client1")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client1-uuid"), ClientId: ptr.To("client1")},
 	}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client1-uuid", "role1",
+		context.Background(), testRealmName, "client1-uuid", "role1",
 	).Return(&keycloakapi.RoleRepresentation{
 		Id: ptr.To("role1-id"), Name: ptr.To("role1"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().AddClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client1-uuid",
+		context.Background(), testRealmName, testGroupID, "client1-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("role1-id"), Name: ptr.To("role1")},
 		},
@@ -260,20 +260,20 @@ func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 
 	// Client2: Resolve UUID (since not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("client2")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client2-uuid"), ClientId: ptr.To("client2")},
 	}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client2-uuid", "role2",
+		context.Background(), testRealmName, "client2-uuid", "role2",
 	).Return(&keycloakapi.RoleRepresentation{
 		Id: ptr.To("role2-id"), Name: ptr.To("role2"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().AddClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client2-uuid",
+		context.Background(), testRealmName, testGroupID, "client2-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("role2-id"), Name: ptr.To("role2")},
 		},
@@ -294,8 +294,8 @@ func TestSyncClientRoles_Serve_ErrorGettingRoleMappings(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -304,7 +304,7 @@ func TestSyncClientRoles_Serve_ErrorGettingRoleMappings(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncClientRoles()
@@ -322,8 +322,8 @@ func TestSyncClientRoles_Serve_ErrorResolvingClientUUID(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -332,12 +332,12 @@ func TestSyncClientRoles_Serve_ErrorResolvingClientUUID(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Client not found
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("nonexistent-client")},
 	).Return([]keycloakapi.ClientRepresentation{}, nil, nil)
 
@@ -356,8 +356,8 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRoleMappings(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -366,12 +366,12 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRoleMappings(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Resolve client UUID (since not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
@@ -379,7 +379,7 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRoleMappings(t *testing.T) {
 
 	// This test now triggers an error getting the client role (no longer gets client role mappings)
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role1",
+		context.Background(), testRealmName, "client-uuid", "role1",
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncClientRoles()
@@ -397,8 +397,8 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRole(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -407,19 +407,19 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRole(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Resolve client UUID (since not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
 	}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "nonexistent-role",
+		context.Background(), testRealmName, "client-uuid", "nonexistent-role",
 	).Return(nil, nil, errors.New("role not found"))
 
 	h := NewSyncClientRoles()
@@ -437,8 +437,8 @@ func TestSyncClientRoles_Serve_ClientRoleMissing(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -447,11 +447,11 @@ func TestSyncClientRoles_Serve_ClientRoleMissing(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
@@ -459,7 +459,7 @@ func TestSyncClientRoles_Serve_ClientRoleMissing(t *testing.T) {
 
 	// No role, no error.
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role1",
+		context.Background(), testRealmName, "client-uuid", "role1",
 	).Return(nil, nil, nil)
 
 	h := NewSyncClientRoles()
@@ -477,8 +477,8 @@ func TestSyncClientRoles_Serve_ClientRoleWithoutID(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -487,11 +487,11 @@ func TestSyncClientRoles_Serve_ClientRoleWithoutID(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
@@ -499,7 +499,7 @@ func TestSyncClientRoles_Serve_ClientRoleWithoutID(t *testing.T) {
 
 	// No AddClientRoleMappings expectation: reaching it fails the test.
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role1",
+		context.Background(), testRealmName, "client-uuid", "role1",
 	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, nil, nil)
 
 	h := NewSyncClientRoles()
@@ -517,8 +517,8 @@ func TestSyncClientRoles_Serve_ErrorAddingClientRoleMappings(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -527,25 +527,25 @@ func TestSyncClientRoles_Serve_ErrorAddingClientRoleMappings(t *testing.T) {
 	}
 
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 	// Resolve client UUID (since not in mappings)
 	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		&keycloakapi.GetClientsParams{ClientId: ptr.To("test-client")},
 	).Return([]keycloakapi.ClientRepresentation{
 		{Id: ptr.To("client-uuid"), ClientId: ptr.To("test-client")},
 	}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
-		context.Background(), "test-realm", "client-uuid", "role1",
+		context.Background(), testRealmName, "client-uuid", "role1",
 	).Return(&keycloakapi.RoleRepresentation{
 		Id: ptr.To("role1-id"), Name: ptr.To("role1"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().AddClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client-uuid",
+		context.Background(), testRealmName, testGroupID, "client-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("role1-id"), Name: ptr.To("role1")},
 		},
@@ -566,8 +566,8 @@ func TestSyncClientRoles_Serve_ErrorDeletingClientRoleMappings(t *testing.T) {
 	}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -586,13 +586,13 @@ func TestSyncClientRoles_Serve_ErrorDeletingClientRoleMappings(t *testing.T) {
 		},
 	}
 	mockGroups.EXPECT().GetRoleMappings(
-		context.Background(), "test-realm", "group-123",
+		context.Background(), testRealmName, testGroupID,
 	).Return(&keycloakapi.MappingsRepresentation{
 		ClientMappings: &clientMappings,
 	}, nil, nil)
 
 	mockGroups.EXPECT().DeleteClientRoleMappings(
-		context.Background(), "test-realm", "group-123", "client-uuid",
+		context.Background(), testRealmName, testGroupID, "client-uuid",
 		[]keycloakapi.RoleRepresentation{
 			{Id: ptr.To("old-role-id"), Name: ptr.To("old-role")},
 		},

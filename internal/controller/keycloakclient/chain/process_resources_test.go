@@ -21,9 +21,7 @@ import (
 
 func TestProcessResources_Serve(t *testing.T) {
 	const (
-		testClientName      = "test-client"
-		testClientNamespace = "default"
-		resourceName        = "resource-1"
+		resourceName = "resource-1"
 	)
 
 	s := runtime.NewScheme()

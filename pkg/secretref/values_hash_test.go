@@ -67,22 +67,22 @@ func TestValuesHash_Deterministic(t *testing.T) {
 	t.Parallel()
 
 	input := map[string][]string{
-		"clientSecret":   {"secret:s:key@uid-1@100"},
-		"bindCredential": {"secret:s:a@uid-1@100", "secret:s:b@uid-1@100"},
+		testClientSecretKey: {"secret:s:key@uid-1@100"},
+		"bindCredential":    {"secret:s:a@uid-1@100", "secret:s:b@uid-1@100"},
 	}
 
 	assert.Equal(t, ValuesHash(input), ValuesHash(input))
 	assert.NotEqual(t,
-		ValuesHash(map[string][]string{"clientSecret": {"secret:s:key@uid-1@100"}}),
-		ValuesHash(map[string][]string{"clientSecret": {"secret:s:key@uid-1@101"}}),
+		ValuesHash(map[string][]string{testClientSecretKey: {"secret:s:key@uid-1@100"}}),
+		ValuesHash(map[string][]string{testClientSecretKey: {"secret:s:key@uid-1@101"}}),
 	)
 }
 
 func TestValuesHashSingle_MatchesWrappedValuesHash(t *testing.T) {
 	t.Parallel()
 
-	single := map[string]string{"clientSecret": "secret:s:key@uid-1@100"}
-	wrapped := map[string][]string{"clientSecret": {"secret:s:key@uid-1@100"}}
+	single := map[string]string{testClientSecretKey: "secret:s:key@uid-1@100"}
+	wrapped := map[string][]string{testClientSecretKey: {"secret:s:key@uid-1@100"}}
 
 	assert.Equal(t, ValuesHash(wrapped), ValuesHashSingle(single))
 }

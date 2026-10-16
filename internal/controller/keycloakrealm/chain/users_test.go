@@ -29,11 +29,11 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "success - create single user",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
+					Name:      testRealmName,
 					Namespace: "default",
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					KeycloakRef: common.KeycloakRef{
 						Name: "test-keycloak",
 					},
@@ -46,9 +46,9 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 				},
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser1").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "testuser1").
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.MatchedBy(func(u keycloakapi.UserRepresentation) bool {
+				mockUsers.EXPECT().CreateUser(mock.Anything, testRealmName, mock.MatchedBy(func(u keycloakapi.UserRepresentation) bool {
 					return u.Username != nil && *u.Username == "testuser1"
 				})).Return(nil, nil)
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
@@ -59,11 +59,11 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "success - create multiple users",
 			realm: &keycloakApi.KeycloakRealm{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-realm",
+					Name:      testRealmName,
 					Namespace: "default",
 				},
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users: []keycloakApi.User{
 						{Username: "user1"},
 						{Username: "user2"},
@@ -71,13 +71,13 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 				},
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user1").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "user1").
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
+				mockUsers.EXPECT().CreateUser(mock.Anything, testRealmName, mock.Anything).
 					Return(nil, nil).Once()
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "user2").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "user2").
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
+				mockUsers.EXPECT().CreateUser(mock.Anything, testRealmName, mock.Anything).
 					Return(nil, nil).Once()
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
@@ -87,7 +87,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "success - no users in realm",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users:     []keycloakApi.User{},
 				},
 			},
@@ -100,7 +100,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "success - user already exists",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users: []keycloakApi.User{
 						{Username: "existinguser"},
 					},
@@ -108,7 +108,7 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
 				uid := "some-uid"
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "existinguser").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "existinguser").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
 				mockNext.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
@@ -118,14 +118,14 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "error - FindUserByUsername fails",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users: []keycloakApi.User{
 						{Username: "testuser"},
 					},
 				},
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "testuser").
 					Return(nil, nil, errors.New("existence check failed"))
 			},
 			expectedError: "error during exist realm user check",
@@ -134,16 +134,16 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "error - CreateUser fails",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users: []keycloakApi.User{
 						{Username: "testuser"},
 					},
 				},
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "testuser").
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
+				mockUsers.EXPECT().CreateUser(mock.Anything, testRealmName, mock.Anything).
 					Return(nil, errors.New("user creation failed"))
 			},
 			expectedError: "unable to create user in realm",
@@ -152,16 +152,16 @@ func TestPutUsers_ServeRequest(t *testing.T) {
 			name: "success - next handler is nil",
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
-					RealmName: "test-realm",
+					RealmName: testRealmName,
 					Users: []keycloakApi.User{
 						{Username: "testuser"},
 					},
 				},
 			},
 			mockSetup: func(mockUsers *v2mocks.MockUsersClient, mockNext *handlermocks.MockRealmHandler) {
-				mockUsers.EXPECT().FindUserByUsername(mock.Anything, "test-realm", "testuser").
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, "testuser").
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				mockUsers.EXPECT().CreateUser(mock.Anything, "test-realm", mock.Anything).
+				mockUsers.EXPECT().CreateUser(mock.Anything, testRealmName, mock.Anything).
 					Return(nil, nil)
 			},
 			expectedError: "",

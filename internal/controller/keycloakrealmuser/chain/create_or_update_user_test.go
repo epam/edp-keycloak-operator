@@ -33,11 +33,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - create new user",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:      "testuser",
+					Username:      testUsername,
 					Email:         "test@example.com",
 					FirstName:     "Test",
 					LastName:      "User",
@@ -46,10 +46,10 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(true),
 					EmailVerified:   ptr.To(true),
 					FirstName:       ptr.To("Test"),
@@ -69,19 +69,19 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - create user with required actions",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:            "testuser",
+					Username:            testUsername,
 					RequiredUserActions: []string{"UPDATE_PASSWORD", "VERIFY_EMAIL"},
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -101,11 +101,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - update existing user",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:      "testuser",
+					Username:      testUsername,
 					Email:         "updated@example.com",
 					FirstName:     "Updated",
 					LastName:      "User",
@@ -116,14 +116,14 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
 					Id:       ptr.To("existing-user-id"),
-					Username: ptr.To("testuser"),
+					Username: ptr.To(testUsername),
 					Email:    ptr.To("old@example.com"),
 				}
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(true),
 					EmailVerified:   ptr.To(true),
 					FirstName:       ptr.To("Updated"),
@@ -139,26 +139,26 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - update user preserves UPDATE_PASSWORD action",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:            "testuser",
+					Username:            testUsername,
 					RequiredUserActions: []string{"VERIFY_EMAIL"},
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					RequiredActions: ptr.To([]string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}),
 				}
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				// UPDATE_PASSWORD should be preserved
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -174,19 +174,19 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - create user with add-only reconciliation strategy",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:               "testuser",
+					Username:               testUsername,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -206,15 +206,15 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "error - FindUserByUsername fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, errors.New("keycloak api error"))
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
@@ -226,18 +226,18 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "error - CreateUser fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -255,23 +255,23 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "error - UpdateUser fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
 					Id:       ptr.To("existing-user-id"),
-					Username: ptr.To("testuser"),
+					Username: ptr.To(testUsername),
 				}
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -289,18 +289,18 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "error - CreateUser returns no Location header (empty userID)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username: "testuser",
+					Username: testUsername,
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -320,20 +320,20 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - create user with attributes",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					AttributesV2: map[string][]string{"dept": {"engineering"}},
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				attrs := map[string][]string{"dept": {"engineering"}}
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -354,11 +354,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - update user with attributes (non-addOnly removes stale keys)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:     "testuser",
+					Username:     testUsername,
 					AttributesV2: map[string][]string{"dept": {"engineering"}},
 				},
 			},
@@ -369,15 +369,15 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}
 				existingUser := &keycloakapi.UserRepresentation{
 					Id:         ptr.To("existing-user-id"),
-					Username:   ptr.To("testuser"),
+					Username:   ptr.To(testUsername),
 					Attributes: &existingAttrs,
 				}
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				mergedAttrs := map[string][]string{"dept": {"engineering"}}
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
@@ -394,11 +394,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			name: "success - update user with attributes (addOnly merges without removing)",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-user",
-					Namespace: "default",
+					Name:      testUserCRName,
+					Namespace: defaultNamespace,
 				},
 				Spec: keycloakApi.KeycloakRealmUserSpec{
-					Username:               "testuser",
+					Username:               testUsername,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					AttributesV2:           map[string][]string{"dept": {"engineering", "existing-val"}},
 				},
@@ -410,10 +410,10 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}
 				existingUser := &keycloakapi.UserRepresentation{
 					Id:         ptr.To("existing-user-id"),
-					Username:   ptr.To("testuser"),
+					Username:   ptr.To(testUsername),
 					Attributes: &existingAttrs,
 				}
-				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", "testuser").
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				// addOnly: merges new values, keeps extra key, deduplicates
 				mergedAttrs := map[string][]string{
@@ -422,7 +422,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To("testuser"),
+					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),

@@ -213,8 +213,8 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 		{
 			name: "config with secret ref",
 			config: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$client-secret:data",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$client-secret:data",
 			},
 			client: func(t *testing.T) client.Client {
 				s := runtime.NewScheme()
@@ -234,15 +234,15 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 			},
 			wantErr: require.NoError,
 			wantConfig: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "secretValue",
+				"clientId":          "provider-client",
+				testClientSecretKey: "secretValue",
 			},
 		},
 		{
 			name: "skip keycloak ref",
 			config: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "${client-secret.Data}",
+				"clientId":          "provider-client",
+				testClientSecretKey: "${client-secret.Data}",
 			},
 			client: func(t *testing.T) client.Client {
 				s := runtime.NewScheme()
@@ -252,15 +252,15 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 			},
 			wantErr: require.NoError,
 			wantConfig: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "${client-secret.Data}",
+				"clientId":          "provider-client",
+				testClientSecretKey: "${client-secret.Data}",
 			},
 		},
 		{
 			name: "secret key not found",
 			config: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$client-secret:data",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$client-secret:data",
 			},
 			client: func(t *testing.T) client.Client {
 				s := runtime.NewScheme()
@@ -281,15 +281,15 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 				assert.Contains(t, err.Error(), "does not contain key")
 			},
 			wantConfig: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$client-secret:data",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$client-secret:data",
 			},
 		},
 		{
 			name: "secret not found",
 			config: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$client-secret:data",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$client-secret:data",
 			},
 			client: func(t *testing.T) client.Client {
 				s := runtime.NewScheme()
@@ -302,15 +302,15 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 				assert.Contains(t, err.Error(), "failed to get secret")
 			},
 			wantConfig: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$client-secret:data",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$client-secret:data",
 			},
 		},
 		{
 			name: "invalid secret ref format",
 			config: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$invalid-secret-ref",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$invalid-secret-ref",
 			},
 			client: func(t *testing.T) client.Client {
 				s := runtime.NewScheme()
@@ -323,8 +323,8 @@ func TestSecretRef_MapConfigSecretsRefs(t *testing.T) {
 				assert.Contains(t, err.Error(), "invalid config secret  reference")
 			},
 			wantConfig: map[string]string{
-				"clientId":     "provider-client",
-				"clientSecret": "$invalid-secret-ref",
+				"clientId":          "provider-client",
+				testClientSecretKey: "$invalid-secret-ref",
 			},
 		},
 	}
@@ -362,8 +362,8 @@ func TestSecretRef_MapConfigSecretsRefs_ReturnsVersionTokens(t *testing.T) {
 	).Build()
 
 	config := map[string]string{
-		"clientId":     "provider-client",
-		"clientSecret": "$client-secret:data",
+		"clientId":          "provider-client",
+		testClientSecretKey: "$client-secret:data",
 	}
 
 	ref, err := NewSecretRef(cl, destination.AllowAll())
@@ -373,9 +373,9 @@ func TestSecretRef_MapConfigSecretsRefs_ReturnsVersionTokens(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, map[string]string{
-		"clientSecret": "secret:client-secret:data@uid-1@100",
+		testClientSecretKey: "secret:client-secret:data@uid-1@100",
 	}, versions)
-	assert.NotContains(t, versions["clientSecret"], "secretValue")
+	assert.NotContains(t, versions[testClientSecretKey], "secretValue")
 }
 
 func TestGenerateSecretRef(t *testing.T) {
