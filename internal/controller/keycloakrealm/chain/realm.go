@@ -23,11 +23,14 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 
 	realmName := realm.Spec.RealmName
 
-	_, _, err := kClient.Realms.GetRealm(ctx, realmName)
+	kcRealm, _, err := kClient.Realms.GetRealm(ctx, realmName)
 	if err != nil {
 		if !keycloakapi.IsNotFound(err) {
 			return fmt.Errorf("unable to check realm existence: %w", err)
 		}
+
+		// The realm is gone from Keycloak; a persisted ID belongs to the deleted realm.
+		realm.Status.ID = ""
 
 		if err = h.createRealm(ctx, realm, kClient); err != nil {
 			return err
@@ -37,6 +40,13 @@ func (h PutRealm) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakR
 	}
 
 	rLog.Info("Realm already exists")
+
+	id, err := keycloakapi.RealmID(kcRealm)
+	if err != nil {
+		return fmt.Errorf("unable to read realm %q id: %w", realmName, err)
+	}
+
+	realm.Status.ID = id
 
 	return nextServeOrNil(ctx, h.next, realm, kClient)
 }
@@ -54,6 +64,19 @@ func (h PutRealm) createRealm(ctx context.Context, realm *keycloakApi.KeycloakRe
 	if err := h.putRealmRoles(ctx, realm, kClient); err != nil {
 		return fmt.Errorf("unable to create realm roles on no sso scenario: %w", err)
 	}
+
+	// The create response carries no realm ID.
+	kcRealm, _, err := kClient.Realms.GetRealm(ctx, realmName)
+	if err != nil {
+		return fmt.Errorf("unable to get created realm: %w", err)
+	}
+
+	id, err := keycloakapi.RealmID(kcRealm)
+	if err != nil {
+		return fmt.Errorf("unable to read created realm %q id: %w", realmName, err)
+	}
+
+	realm.Status.ID = id
 
 	log.WithValues("realm name", realmName).Info("End putting realm!")
 

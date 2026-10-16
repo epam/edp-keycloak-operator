@@ -22,6 +22,20 @@ const (
 	BruteForceStrategyMultiple = generated.MULTIPLE
 )
 
+// RealmID returns the realm internal ID. A nil representation is ErrNilRealmRepresentation;
+// a representation without an ID is ErrRealmIDMissing.
+func RealmID(realm *RealmRepresentation) (string, error) {
+	if realm == nil {
+		return "", ErrNilRealmRepresentation
+	}
+
+	if realm.Id == nil || *realm.Id == "" {
+		return "", ErrRealmIDMissing
+	}
+
+	return *realm.Id, nil
+}
+
 type realmClient struct {
 	client generated.ClientWithResponsesInterface
 }

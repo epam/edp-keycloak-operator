@@ -10,6 +10,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -94,6 +95,46 @@ var _ = Describe("ClusterKeycloakRealm controller", func() {
 			// Verify event config
 			g.Expect(realm.AdminEventsEnabled).Should(Equal(ptr.To(true)))
 		}, time.Second*30, time.Second).Should(Succeed())
+
+		By("Verifying the Keycloak realm ID is recorded in status")
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmMain)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			cr := &keycloakAlpha.ClusterKeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterKeycloakCR}, cr)).Should(Succeed())
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+			g.Expect(cr.Status.ID).Should(Equal(ptr.Deref(realm.Id, "")))
+		}, timeout, interval).Should(Succeed())
+
+		By("Recreating a realm deleted out of band and refreshing the ID in status")
+		previous := &keycloakAlpha.ClusterKeycloakRealm{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterKeycloakCR}, previous)).Should(Succeed())
+		previousID := previous.Status.ID
+
+		_, delErr := keycloakApiClient.Realms.DeleteRealm(ctx, realmMain)
+		Expect(delErr).ShouldNot(HaveOccurred())
+
+		// A metadata change triggers the reconcile. Merge patch: a reconcile may be writing
+		// status concurrently, and an optimistic-lock Update would 409.
+		patched := previous.DeepCopy()
+		if patched.Annotations == nil {
+			patched.Annotations = map[string]string{}
+		}
+		patched.Annotations["test/recreate"] = "1"
+		Expect(k8sClient.Patch(ctx, patched, client.MergeFrom(previous))).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmMain)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			cr := &keycloakAlpha.ClusterKeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clusterKeycloakCR}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Available).Should(BeTrue())
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+			g.Expect(cr.Status.ID).ShouldNot(Equal(previousID))
+			g.Expect(cr.Status.ID).Should(Equal(ptr.Deref(realm.Id, "")))
+		}, timeout, interval).Should(Succeed())
 
 		By("Updating ClusterKeycloakRealm with authentication flow")
 		By("Getting ClusterKeycloakRealm")

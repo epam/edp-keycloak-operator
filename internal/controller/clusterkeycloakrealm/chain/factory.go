@@ -9,7 +9,7 @@ import (
 func MakeChain(c client.Client, operatorNs string, guard *destination.Guard) RealmHandler {
 	ch := &chain{}
 	ch.Use(
-		NewPutRealm(c),
+		NewPutRealm(),
 		NewPutRealmSettings(),
 		NewPutRealmLocalizationTexts(),
 		NewUserProfile(),

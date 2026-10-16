@@ -45,6 +45,9 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 		setupMocks    func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler)
 		expectError   bool
 		errorContains string
+		wantStatusID  string
+		// wantNext creates the next handler mock for an error case that reaches it.
+		wantNext bool
 	}{
 		{
 			name: "success - realm does not exist, creates realm and roles",
@@ -58,10 +61,12 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Once()
 				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.MatchedBy(func(r keycloakapi.RealmRepresentation) bool {
 					return r.Realm != nil && *r.Realm == realmName
 				})).Return(nil, nil)
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(&keycloakapi.RealmRepresentation{Id: ptr.To("created-realm-id")}, nil, nil).Once()
 
 				// Role checks (3 unique roles)
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, mock.AnythingOfType("string")).
@@ -71,7 +76,8 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 
 				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
-			expectError: false,
+			expectError:  false,
+			wantStatusID: "created-realm-id",
 		},
 		{
 			name: "success - realm already exists, skips creation",
@@ -80,10 +86,95 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(&keycloakapi.RealmRepresentation{}, nil, nil)
+					Return(&keycloakapi.RealmRepresentation{Id: ptr.To("existing-realm-id")}, nil, nil)
 				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(nil)
 			},
-			expectError: false,
+			expectError:  false,
+			wantStatusID: "existing-realm-id",
+		},
+		{
+			name: "error - realm missing in Keycloak and create fails, stale status ID is cleared",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				realm := baseRealm.DeepCopy()
+				realm.Status.ID = "stale-realm-id"
+				return realm
+			},
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Once()
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).
+					Return(nil, &keycloakapi.ApiError{Code: 403})
+			},
+			expectError:   true,
+			errorContains: "unable to create realm with default config",
+			wantStatusID:  "",
+		},
+		{
+			name: "error - realm exists but credential lacks view-realm, persisted status ID is kept",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				realm := baseRealm.DeepCopy()
+				realm.Status.ID = "persisted-realm-id"
+				return realm
+			},
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(&keycloakapi.RealmRepresentation{Realm: ptr.To(realmName)}, nil, nil)
+			},
+			expectError:   true,
+			errorContains: "lacks view-realm",
+			wantStatusID:  "persisted-realm-id",
+		},
+		{
+			name: "error - realm exists with empty body, persisted status ID is kept",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				realm := baseRealm.DeepCopy()
+				realm.Status.ID = "persisted-realm-id"
+				return realm
+			},
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).Return(nil, nil, nil)
+			},
+			expectError:   true,
+			errorContains: "unable to read realm",
+			wantStatusID:  "persisted-realm-id",
+		},
+		{
+			name:     "error - next handler fails, status ID is still set",
+			wantNext: true,
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				return baseRealm.DeepCopy()
+			},
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(&keycloakapi.RealmRepresentation{Id: ptr.To("existing-realm-id")}, nil, nil)
+				nextHandler.EXPECT().ServeRequest(mock.Anything, mock.Anything, mock.Anything).Return(errors.New("next failed"))
+			},
+			expectError:   true,
+			errorContains: "next failed",
+			wantStatusID:  "existing-realm-id",
+		},
+		{
+			name: "error - GetRealm after create fails, roles already created",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				realm := baseRealm.DeepCopy()
+				realm.Spec.Users = []keycloakApi.User{
+					{Username: "bootstrap-user", RealmRoles: []string{testRole1}},
+				}
+				return realm
+			},
+			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Once()
+				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).Return(nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, testRole1).
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
+				mockRoles.EXPECT().CreateRealmRole(mock.Anything, realmName, mock.Anything).
+					Return(nil, nil)
+				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
+					Return(nil, nil, errors.New("keycloak connection error")).Once()
+			},
+			expectError:   true,
+			errorContains: "unable to get created realm",
 		},
 		{
 			name: "error - GetRealm fails",
@@ -122,7 +213,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			},
 			setupMocks: func(mockRealms *v2mocks.MockRealmClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
 				mockRealms.EXPECT().GetRealm(mock.Anything, realmName).
-					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404}).Once()
 				mockRealms.EXPECT().CreateRealm(mock.Anything, mock.Anything).Return(nil, nil)
 				mockRoles.EXPECT().GetRealmRole(mock.Anything, realmName, "role1").
 					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
@@ -140,7 +231,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			mockRoles := v2mocks.NewMockRolesClient(t)
 
 			var nextHandler *handlermocks.MockRealmHandler
-			if !tt.expectError || tt.name == "success - realm already exists, skips creation" {
+			if !tt.expectError || tt.wantNext {
 				nextHandler = handlermocks.NewMockRealmHandler(t)
 			}
 
@@ -161,6 +252,8 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+
+			assert.Equal(t, tt.wantStatusID, realm.Status.ID)
 		})
 	}
 }

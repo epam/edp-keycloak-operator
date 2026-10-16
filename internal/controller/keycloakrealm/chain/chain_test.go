@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -47,12 +48,16 @@ func TestCreateDefChain(t *testing.T) {
 	s := runtime.NewScheme()
 	require.NoError(t, corev1.AddToScheme(s))
 	require.NoError(t, keycloakApi.AddToScheme(s))
-	client := fake.NewClientBuilder().WithScheme(s).WithRuntimeObjects(&secret, &k, &kr, &clientSecret).Build()
+	client := fake.NewClientBuilder().
+		WithScheme(s).
+		WithRuntimeObjects(&secret, &k, &kr, &clientSecret).
+		WithStatusSubresource(&keycloakApi.KeycloakRealm{}).
+		Build()
 
 	mockRealm := v2mocks.NewMockRealmClient(t)
 	// PutRealm: realm already exists
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
-		Return(&keycloakapi.RealmRepresentation{}, nil, nil).Once()
+		Return(&keycloakapi.RealmRepresentation{Id: ptr.To("realm-id")}, nil, nil).Once()
 	// RealmSettings: GetRealm only — empty spec overlaid on an empty current realm
 	// produces no diff, so UpdateRealm is not called.
 	mockRealm.EXPECT().GetRealm(testifymock.Anything, kr.Spec.RealmName).
@@ -63,4 +68,6 @@ func TestCreateDefChain(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Realms: mockRealm}
 	err := chain.ServeRequest(context.Background(), &kr, kClient)
 	require.NoError(t, err)
+	require.Equal(t, kr.Spec.RealmName, kr.Labels[TargetRealmLabel])
+	require.Equal(t, "realm-id", kr.Status.ID)
 }

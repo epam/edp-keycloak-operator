@@ -11,6 +11,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -208,6 +209,46 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 
 			return createdKeycloakRealm.Status.Available
 		}, time.Minute, time.Second*5).Should(BeTrue())
+
+		By("Verifying the Keycloak realm ID is recorded in status")
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmFullConfig)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			cr := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakRealmCR, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+			g.Expect(cr.Status.ID).Should(Equal(ptr.Deref(realm.Id, "")))
+		}, time.Second*30, time.Second).Should(Succeed())
+
+		By("Recreating a realm deleted out of band and refreshing the ID in status")
+		previous := &keycloakApi.KeycloakRealm{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakRealmCR, Namespace: ns}, previous)).Should(Succeed())
+		previousID := previous.Status.ID
+
+		_, err := keycloakApiClient.Realms.DeleteRealm(ctx, realmFullConfig)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		// A metadata change triggers the reconcile. Merge patch: a reconcile may be writing
+		// status concurrently, and an optimistic-lock Update would 409.
+		patched := previous.DeepCopy()
+		if patched.Annotations == nil {
+			patched.Annotations = map[string]string{}
+		}
+		patched.Annotations["test/recreate"] = "1"
+		Expect(k8sClient.Patch(ctx, patched, client.MergeFrom(previous))).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			realm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realmFullConfig)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			cr := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: keycloakRealmCR, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Available).Should(BeTrue())
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+			g.Expect(cr.Status.ID).ShouldNot(Equal(previousID))
+			g.Expect(cr.Status.ID).Should(Equal(ptr.Deref(realm.Id, "")))
+		}, time.Minute, time.Second).Should(Succeed())
 
 		By("Verifying the realm was created in Keycloak")
 		Eventually(func(g Gomega) {
