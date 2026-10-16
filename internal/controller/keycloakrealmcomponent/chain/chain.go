@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
@@ -48,11 +47,12 @@ func (ch *Chain) Serve(ctx context.Context, component *keycloakApi.KeycloakRealm
 }
 
 // MakeChain creates the reconciliation chain for KeycloakRealmComponent.
-func MakeChain(k8sClient client.Client, kClient *keycloakapi.KeycloakClient, secretRefClient SecretRefClient) *Chain {
+// parentID is the Keycloak parent ID resolved by ResolveParent.
+func MakeChain(kClient *keycloakapi.KeycloakClient, secretRefClient SecretRefClient, parentID string) *Chain {
 	ch := &Chain{}
 
 	ch.Use(
-		NewCreateOrUpdateComponent(k8sClient, kClient, secretRefClient),
+		NewCreateOrUpdateComponent(kClient, secretRefClient, parentID),
 	)
 
 	return ch

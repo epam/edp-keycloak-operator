@@ -68,7 +68,7 @@ func TestMakeChain_NotNil(t *testing.T) {
 	mockComponents := keycloakapimocks.NewMockRealmComponentsClient(t)
 	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
 
-	ch := MakeChain(nil, kClient, &mockSecretRefClient{})
+	ch := MakeChain(kClient, &mockSecretRefClient{}, testRealmID)
 	assert.NotNil(t, ch)
 	assert.Len(t, ch.handlers, 1)
 }

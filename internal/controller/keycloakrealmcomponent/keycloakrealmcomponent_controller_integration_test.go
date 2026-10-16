@@ -1,6 +1,7 @@
 package keycloakrealmcomponent
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,6 +11,7 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -42,7 +44,8 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 				Namespace: ns,
 			},
 			Spec: keycloakApi.KeycloakComponentSpec{
-				Name:         "test-keycloak-realm-component",
+				// differs from metadata.name so the child's parentRef must resolve via the parent CR
+				Name:         "Test Realm Component Parent",
 				ProviderID:   scopeProviderID,
 				ProviderType: scopeProviderType,
 				RealmRef: common.RealmRef{
@@ -260,15 +263,178 @@ var _ = Describe("KeycloakRealmComponent controller", func() {
 			},
 		}
 		Expect(k8sClient.Create(ctx, component)).Should(Succeed())
-		Consistently(func() bool {
+		Eventually(func(g Gomega) {
 			cr := &keycloakApi.KeycloakRealmComponent{}
-			err := k8sClient.Get(ctx, types.NamespacedName{Name: component.Name, Namespace: ns}, cr)
-			if err != nil {
-				return false
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: component.Name, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(ContainSubstring(`parent component "invalid-parent-component"`))
+		}, timeout, interval).Should(Succeed(), "status must name the missing parent")
+	})
+
+	It("Should reconcile a child created before its parent once the parent is ready", func() {
+		const (
+			parentName = "test-component-late-parent"
+			childName  = "test-component-early-child"
+		)
+
+		By("By creating the child first")
+		child := &keycloakApi.KeycloakRealmComponent{
+			ObjectMeta: metav1.ObjectMeta{Name: childName, Namespace: ns},
+			Spec: keycloakApi.KeycloakComponentSpec{
+				Name:         childName,
+				ProviderID:   scopeProviderID,
+				ProviderType: scopeProviderType,
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				ParentRef:    &keycloakApi.ParentComponent{Kind: keycloakApi.KeycloakRealmComponentKind, Name: parentName},
+			},
+		}
+		Expect(k8sClient.Create(ctx, child)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			cr := &keycloakApi.KeycloakRealmComponent{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: childName, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(ContainSubstring(fmt.Sprintf("parent component %q", parentName)))
+		}, timeout, interval).Should(Succeed())
+
+		By("By creating the parent")
+		parent := &keycloakApi.KeycloakRealmComponent{
+			ObjectMeta: metav1.ObjectMeta{Name: parentName, Namespace: ns},
+			Spec: keycloakApi.KeycloakComponentSpec{
+				Name:         "Late Parent",
+				ProviderID:   scopeProviderID,
+				ProviderType: scopeProviderType,
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+			},
+		}
+		Expect(k8sClient.Create(ctx, parent)).Should(Succeed())
+
+		var parentID string
+		Eventually(func(g Gomega) {
+			cr := &keycloakApi.KeycloakRealmComponent{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: parentName, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+			parentID = cr.Status.ID
+		}, timeout, interval).Should(Succeed())
+
+		By("By verifying the child is attached to the parent in Keycloak")
+		Eventually(func(g Gomega) {
+			cr := &keycloakApi.KeycloakRealmComponent{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: childName, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+
+			kcChild, _, err := keycloakApiClient.RealmComponents.GetComponent(ctx, KeycloakRealmCR, cr.Status.ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(ptr.Deref(kcChild.ParentId, "")).Should(Equal(parentID))
+		}, timeout, interval).Should(Succeed())
+
+		Expect(k8sClient.Delete(ctx, child)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, parent)).Should(Succeed())
+	})
+
+	It("Should move a child between parents and back to the realm", func() {
+		const (
+			parentAName = "test-component-parent-a"
+			parentBName = "test-component-parent-b"
+			childName   = "test-component-moving-child"
+		)
+
+		kcRealm, _, err := keycloakApiClient.Realms.GetRealm(ctx, KeycloakRealmCR)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(ptr.Deref(kcRealm.Id, "")).ShouldNot(BeEmpty())
+		realmID := *kcRealm.Id
+
+		createParent := func(name, keycloakName string) *keycloakApi.KeycloakRealmComponent {
+			parent := &keycloakApi.KeycloakRealmComponent{
+				ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+				Spec: keycloakApi.KeycloakComponentSpec{
+					Name:         keycloakName,
+					ProviderID:   scopeProviderID,
+					ProviderType: scopeProviderType,
+					RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				},
+			}
+			Expect(k8sClient.Create(ctx, parent)).Should(Succeed())
+			Eventually(func(g Gomega) {
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, parent)).Should(Succeed())
+				g.Expect(parent.Status.Value).Should(Equal(common.StatusOK))
+				g.Expect(parent.Status.ID).ShouldNot(BeEmpty())
+			}, timeout, interval).Should(Succeed())
+
+			return parent
+		}
+
+		componentOwners := func(g Gomega) []string {
+			cr := &keycloakApi.KeycloakRealmComponent{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: childName, Namespace: ns}, cr)).Should(Succeed())
+
+			var owners []string
+
+			for _, ref := range cr.GetOwnerReferences() {
+				if ref.Kind == keycloakApi.KeycloakRealmComponentKind {
+					owners = append(owners, ref.Name)
+				}
 			}
 
-			return cr.Status.Value != common.StatusOK
-		}, timeout, interval).Should(BeTrue(), "KeycloakRealmComponent with invalid parent component should remain in failed state")
+			return owners
+		}
+
+		expectKeycloakParent := func(g Gomega, wantParentID string) {
+			cr := &keycloakApi.KeycloakRealmComponent{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: childName, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(cr.Status.ObservedGeneration).Should(Equal(cr.Generation))
+
+			kcChild, _, err := keycloakApiClient.RealmComponents.GetComponent(ctx, KeycloakRealmCR, cr.Status.ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(ptr.Deref(kcChild.ParentId, "")).Should(Equal(wantParentID))
+		}
+
+		updateParentRef := func(parentRef *keycloakApi.ParentComponent) {
+			Eventually(func(g Gomega) {
+				cr := &keycloakApi.KeycloakRealmComponent{}
+				g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: childName, Namespace: ns}, cr)).Should(Succeed())
+				cr.Spec.ParentRef = parentRef
+				g.Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+			}, timeout, interval).Should(Succeed())
+		}
+
+		parentA := createParent(parentAName, "Parent A")
+		parentB := createParent(parentBName, "Parent B")
+
+		By("By creating the child under parent A")
+		child := &keycloakApi.KeycloakRealmComponent{
+			ObjectMeta: metav1.ObjectMeta{Name: childName, Namespace: ns},
+			Spec: keycloakApi.KeycloakComponentSpec{
+				Name:         childName,
+				ProviderID:   scopeProviderID,
+				ProviderType: scopeProviderType,
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				ParentRef:    &keycloakApi.ParentComponent{Kind: keycloakApi.KeycloakRealmComponentKind, Name: parentAName},
+			},
+		}
+		Expect(k8sClient.Create(ctx, child)).Should(Succeed())
+		Eventually(func(g Gomega) {
+			expectKeycloakParent(g, parentA.Status.ID)
+			g.Expect(componentOwners(g)).Should(ConsistOf(parentAName))
+		}, timeout, interval).Should(Succeed())
+
+		By("By re-parenting the child to parent B")
+		updateParentRef(&keycloakApi.ParentComponent{Kind: keycloakApi.KeycloakRealmComponentKind, Name: parentBName})
+		Eventually(func(g Gomega) {
+			expectKeycloakParent(g, parentB.Status.ID)
+			g.Expect(componentOwners(g)).Should(ConsistOf(parentBName))
+		}, timeout, interval).Should(Succeed())
+
+		By("By removing parentRef")
+		updateParentRef(nil)
+		Eventually(func(g Gomega) {
+			expectKeycloakParent(g, realmID)
+			g.Expect(componentOwners(g)).Should(BeEmpty())
+		}, timeout, interval).Should(Succeed())
+
+		Expect(k8sClient.Delete(ctx, child)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, parentA)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, parentB)).Should(Succeed())
 	})
 
 	It("Should fail with invalid parent realm", func() {

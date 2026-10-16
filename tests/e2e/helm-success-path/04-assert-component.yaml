@@ -6,7 +6,7 @@ spec:
   realmRef:
     name: keycloakrealm-sample
     kind: KeycloakRealm
-  name: component-sample
+  name: Component Sample Parent
   providerId: scope
   providerType: "org.keycloak.services.clientregistration.policy.ClientRegistrationPolicy"
 status:
