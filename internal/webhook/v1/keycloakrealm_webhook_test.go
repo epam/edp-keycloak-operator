@@ -148,7 +148,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			realm := &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					Themes: &keycloakApi.RealmThemes{
-						InternationalizationEnabled: &t,
+						InternationalizationEnabled: &t, //nolint:staticcheck // covers the deprecated themes field
 					},
 					Localization: &keycloakApi.RealmLocalization{
 						InternationalizationEnabled: &t,
@@ -185,7 +185,7 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			newRealm := &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					Themes: &keycloakApi.RealmThemes{
-						InternationalizationEnabled: &t,
+						InternationalizationEnabled: &t, //nolint:staticcheck // covers the deprecated themes field
 					},
 					Localization: &keycloakApi.RealmLocalization{
 						InternationalizationEnabled: &t,

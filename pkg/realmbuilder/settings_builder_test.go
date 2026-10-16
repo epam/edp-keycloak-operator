@@ -78,7 +78,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 					Themes: &keycloakApi.RealmThemes{
 						LoginTheme:                  &loginTheme,
 						AccountTheme:                &accountTheme,
-						InternationalizationEnabled: ptr.To(true),
+						InternationalizationEnabled: ptr.To(true), //nolint:staticcheck // covers the deprecated themes field
 					},
 				},
 			},
@@ -295,7 +295,7 @@ func TestBuildRealmRepresentationFromV1(t *testing.T) {
 			realm: &keycloakApi.KeycloakRealm{
 				Spec: keycloakApi.KeycloakRealmSpec{
 					Themes: &keycloakApi.RealmThemes{
-						InternationalizationEnabled: ptr.To(false),
+						InternationalizationEnabled: ptr.To(false), //nolint:staticcheck // covers the deprecated themes field
 					},
 					Localization: &keycloakApi.RealmLocalization{
 						InternationalizationEnabled: ptr.To(true),

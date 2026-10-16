@@ -23,6 +23,8 @@ linters:
     - unused
     - wsl
   settings:
+    goconst:
+      min-occurrences: 20
     revive:
       rules:
         - name: comment-spacings

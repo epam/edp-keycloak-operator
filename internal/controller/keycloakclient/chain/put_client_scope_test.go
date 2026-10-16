@@ -44,18 +44,18 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:            "test-client-id",
+								ClientId:            testClientID,
 								DefaultClientScopes: []string{"default-scope"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -91,18 +91,18 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:             "test-client-id",
+								ClientId:             testClientID,
 								OptionalClientScopes: []string{"optional-scope"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -133,19 +133,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:             "test-client-id",
+								ClientId:             testClientID,
 								DefaultClientScopes:  []string{"default-scope-1", "default-scope-2"},
 								OptionalClientScopes: []string{"optional-scope-1", "optional-scope-2"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -190,17 +190,17 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId: "test-client-id",
+								ClientId: testClientID,
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				return &keycloakapi.KeycloakClient{}
@@ -220,18 +220,18 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:            "test-client-id",
+								ClientId:            testClientID,
 								DefaultClientScopes: []string{"default-scope"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -262,18 +262,18 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:             "test-client-id",
+								ClientId:             testClientID,
 								OptionalClientScopes: []string{"optional-scope"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -304,19 +304,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:             "test-client-id",
+								ClientId:             testClientID,
 								DefaultClientScopes:  []string{"default-scope"},
 								OptionalClientScopes: []string{"optional-scope"},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
@@ -355,19 +355,19 @@ func TestPutClientScope_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:             "test-client-id",
+								ClientId:             testClientID,
 								DefaultClientScopes:  []string{},
 								OptionalClientScopes: []string{},
 							},
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				return &keycloakapi.KeycloakClient{}

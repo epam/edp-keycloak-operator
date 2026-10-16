@@ -811,13 +811,11 @@ func TestClientsClient_ProtocolMapperCRUD(t *testing.T) {
 	mapperName := fmt.Sprintf("test-mapper-%d", time.Now().UnixNano())
 	mapperProtocol := protocolOpenIDConnect
 	mapperProtocolMapper := "oidc-hardcoded-claim-mapper"
-	consentRequired := false
 
 	mapper := keycloakapi.ProtocolMapperRepresentation{
-		Name:            &mapperName,
-		Protocol:        &mapperProtocol,
-		ProtocolMapper:  &mapperProtocolMapper,
-		ConsentRequired: &consentRequired,
+		Name:           &mapperName,
+		Protocol:       &mapperProtocol,
+		ProtocolMapper: &mapperProtocolMapper,
 		Config: &map[string]string{
 			"claim.name":           "test-claim",
 			"claim.value":          "test-value",

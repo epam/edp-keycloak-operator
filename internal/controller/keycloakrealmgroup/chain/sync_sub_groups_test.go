@@ -21,8 +21,8 @@ func TestSyncSubGroups_Serve_EmptySubGroups(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
-		GroupID:   "group-123",
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
@@ -41,7 +41,7 @@ func TestSyncSubGroups_Serve_AddSubGroups(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -50,32 +50,32 @@ func TestSyncSubGroups_Serve_AddSubGroups(t *testing.T) {
 
 	// Get current children (empty)
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// Find subgroup1
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
 	}, nil, nil)
 
 	// Add subgroup1 as child
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
 	).Return(nil, nil)
 
 	// Find subgroup2
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup2",
+		context.Background(), testRealmName, "subgroup2",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup2-id"), Name: ptr.To("subgroup2"),
 	}, nil, nil)
 
 	// Add subgroup2 as child
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup2-id"), Name: ptr.To("subgroup2")},
 	).Return(nil, nil)
 
@@ -90,7 +90,7 @@ func TestSyncSubGroups_Serve_DetachSubGroups(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -99,7 +99,7 @@ func TestSyncSubGroups_Serve_DetachSubGroups(t *testing.T) {
 
 	// Get current children: keep-child (keep), old-child (detach)
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{
 		{Id: ptr.To("keep-child-id"), Name: ptr.To("keep-child")},
 		{Id: ptr.To("old-child-id"), Name: ptr.To("old-child")},
@@ -107,7 +107,7 @@ func TestSyncSubGroups_Serve_DetachSubGroups(t *testing.T) {
 
 	// Detach old-child (create at top level)
 	mockGroups.EXPECT().CreateGroup(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		keycloakapi.GroupRepresentation{Id: ptr.To("old-child-id"), Name: ptr.To("old-child")},
 	).Return(nil, nil)
 
@@ -122,7 +122,7 @@ func TestSyncSubGroups_Serve_AddAndDetach(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -131,7 +131,7 @@ func TestSyncSubGroups_Serve_AddAndDetach(t *testing.T) {
 
 	// Get current children: keep-child (keep), old-child (detach)
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{
 		{Id: ptr.To("keep-child-id"), Name: ptr.To("keep-child")},
 		{Id: ptr.To("old-child-id"), Name: ptr.To("old-child")},
@@ -139,20 +139,20 @@ func TestSyncSubGroups_Serve_AddAndDetach(t *testing.T) {
 
 	// Find new-child (keep-child already exists)
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "new-child",
+		context.Background(), testRealmName, "new-child",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("new-child-id"), Name: ptr.To("new-child"),
 	}, nil, nil)
 
 	// Add new-child as child
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("new-child-id"), Name: ptr.To("new-child")},
 	).Return(nil, nil)
 
 	// Detach old-child (create at top level)
 	mockGroups.EXPECT().CreateGroup(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		keycloakapi.GroupRepresentation{Id: ptr.To("old-child-id"), Name: ptr.To("old-child")},
 	).Return(nil, nil)
 
@@ -167,7 +167,7 @@ func TestSyncSubGroups_Serve_ErrorGettingChildGroups(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -175,7 +175,7 @@ func TestSyncSubGroups_Serve_ErrorGettingChildGroups(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncSubGroups()
@@ -189,7 +189,7 @@ func TestSyncSubGroups_Serve_SubGroupNotFound(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -197,12 +197,12 @@ func TestSyncSubGroups_Serve_SubGroupNotFound(t *testing.T) {
 	group.Spec.SubGroups = []string{"nonexistent"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// FindGroupByName returns ErrNotFound
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "nonexistent",
+		context.Background(), testRealmName, "nonexistent",
 	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	h := NewSyncSubGroups()
@@ -216,7 +216,7 @@ func TestSyncSubGroups_Serve_SubGroupWithoutID(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -224,12 +224,12 @@ func TestSyncSubGroups_Serve_SubGroupWithoutID(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// A group with no id cannot be moved under a parent. Fail instead of dereferencing it.
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{Name: ptr.To("subgroup1")}, nil, nil)
 
 	h := NewSyncSubGroups()
@@ -243,7 +243,7 @@ func TestSyncSubGroups_Serve_NilSubGroupWithoutError(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -251,12 +251,12 @@ func TestSyncSubGroups_Serve_NilSubGroupWithoutError(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// No group and no error. Report it instead of dereferencing nil.
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(nil, nil, nil)
 
 	h := NewSyncSubGroups()
@@ -270,7 +270,7 @@ func TestSyncSubGroups_Serve_ErrorFindingSubGroup(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -278,11 +278,11 @@ func TestSyncSubGroups_Serve_ErrorFindingSubGroup(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncSubGroups()
@@ -296,7 +296,7 @@ func TestSyncSubGroups_Serve_ErrorCreatingChildGroup(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -304,17 +304,17 @@ func TestSyncSubGroups_Serve_ErrorCreatingChildGroup(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
 	).Return(nil, errors.New("create failed"))
 
@@ -329,7 +329,7 @@ func TestSyncSubGroups_Serve_ErrorDetachingSubGroup(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -337,14 +337,14 @@ func TestSyncSubGroups_Serve_ErrorDetachingSubGroup(t *testing.T) {
 	group.Spec.SubGroups = []string{"keep-child"} // Detach others
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{
 		{Id: ptr.To("keep-child-id"), Name: ptr.To("keep-child")},
 		{Id: ptr.To("child1-id"), Name: ptr.To("child1")},
 	}, nil, nil)
 
 	mockGroups.EXPECT().CreateGroup(
-		context.Background(), "test-realm",
+		context.Background(), testRealmName,
 		keycloakapi.GroupRepresentation{Id: ptr.To("child1-id"), Name: ptr.To("child1")},
 	).Return(nil, errors.New("detach failed"))
 
@@ -362,7 +362,7 @@ func TestSyncSubGroups_Serve_ClaimsTopLevelGroupOwnedByAnotherCR(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -372,17 +372,17 @@ func TestSyncSubGroups_Serve_ClaimsTopLevelGroupOwnedByAnotherCR(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
 	).Return(nil, nil)
 
@@ -397,7 +397,7 @@ func TestSyncSubGroups_Serve_RefusesToStealSubGroupFromDifferentParent(t *testin
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -405,12 +405,12 @@ func TestSyncSubGroups_Serve_RefusesToStealSubGroupFromDifferentParent(t *testin
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// subgroup1 is already nested under a different parent ("other-parent-id").
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("other-parent-id"),
 	}, nil, nil)
@@ -427,7 +427,7 @@ func TestSyncSubGroups_Serve_ClaimsUnownedTopLevelGroup(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -435,18 +435,18 @@ func TestSyncSubGroups_Serve_ClaimsUnownedTopLevelGroup(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// subgroup1 is top-level (no ParentId) and unowned - claiming it is still allowed.
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1")},
 	).Return(nil, nil)
 
@@ -461,7 +461,7 @@ func TestSyncSubGroups_Serve_ClaimsAlreadyOwnChild(t *testing.T) {
 	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
 
 	groupCtx := &GroupContext{
-		RealmName: "test-realm",
+		RealmName: testRealmName,
 		GroupID:   "parent-group-123",
 	}
 
@@ -469,19 +469,19 @@ func TestSyncSubGroups_Serve_ClaimsAlreadyOwnChild(t *testing.T) {
 	group.Spec.SubGroups = []string{"subgroup1"}
 
 	mockGroups.EXPECT().GetChildGroups(
-		context.Background(), "test-realm", "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
+		context.Background(), testRealmName, "parent-group-123", (*keycloakapi.GetChildGroupsParams)(nil),
 	).Return([]keycloakapi.GroupRepresentation{}, nil, nil)
 
 	// subgroup1 is already a child of this exact parent (e.g. pagination missed it above) -
 	// re-claiming it is a no-op move and must still be allowed.
 	mockGroups.EXPECT().FindGroupByName(
-		context.Background(), "test-realm", "subgroup1",
+		context.Background(), testRealmName, "subgroup1",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("parent-group-123"),
 	}, nil, nil)
 
 	mockGroups.EXPECT().CreateChildGroup(
-		context.Background(), "test-realm", "parent-group-123",
+		context.Background(), testRealmName, "parent-group-123",
 		keycloakapi.GroupRepresentation{
 			Id: ptr.To("subgroup1-id"), Name: ptr.To("subgroup1"), ParentId: ptr.To("parent-group-123"),
 		},

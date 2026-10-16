@@ -39,7 +39,7 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				return keycloakapimocks.NewMockOrganizationsClient(t)
 			},
@@ -63,7 +63,7 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				return keycloakapimocks.NewMockOrganizationsClient(t)
 			},
@@ -84,10 +84,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
-				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
+				client.On("DeleteOrganization", mock.Anything, testRealmName, "org-123").
 					Return((*keycloakapi.Response)(nil), nil).Once()
 				return client
 			},
@@ -108,10 +108,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
-				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
+				client.On("DeleteOrganization", mock.Anything, testRealmName, "org-123").
 					Return((*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: 404, Message: "organization not found"}).Once()
 				return client
 			},
@@ -132,10 +132,10 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					OrganizationID: "org-123",
 				},
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
 				client := keycloakapimocks.NewMockOrganizationsClient(t)
-				client.On("DeleteOrganization", mock.Anything, "test-realm", "org-123").
+				client.On("DeleteOrganization", mock.Anything, testRealmName, "org-123").
 					Return((*keycloakapi.Response)(nil), errors.New("network error")).Once()
 				return client
 			},

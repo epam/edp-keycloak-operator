@@ -32,12 +32,12 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	sch := runtime.NewScheme()
 	utilruntime.Must(keycloakApi.AddToScheme(sch))
 
-	helper, err := MakeHelper(&mc, sch, "default", destination.AllowAll())
+	helper, err := MakeHelper(&mc, sch, defaultNamespace, destination.AllowAll())
 	require.NoError(t, err)
 
 	kcGroup := keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
+			Namespace: testResourceName,
 		},
 		Spec: keycloakApi.KeycloakRealmGroupSpec{
 			RealmRef: common.RealmRef{
@@ -48,7 +48,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	}
 
 	mc.On("Get", types.NamespacedName{
-		Namespace: "test",
+		Namespace: testResourceName,
 		Name:      "realm",
 	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 	mc.On("Update", testifymock.Anything, testifymock.Anything).Return(nil)
@@ -58,7 +58,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 
 	kcGroup = keycloakApi.KeycloakRealmGroup{
 		ObjectMeta: metav1.ObjectMeta{
-			Namespace: "test",
+			Namespace: testResourceName,
 		},
 		Spec: keycloakApi.KeycloakRealmGroupSpec{
 			RealmRef: common.RealmRef{
@@ -69,7 +69,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 	}
 
 	mc.On("Get", types.NamespacedName{
-		Namespace: "test",
+		Namespace: testResourceName,
 		Name:      "foo13",
 	}, &keycloakApi.KeycloakRealm{}).Return(nil)
 
@@ -78,7 +78,7 @@ func TestHelper_GetOrCreateRealmOwnerRef(t *testing.T) {
 }
 
 func TestMakeHelper(t *testing.T) {
-	h, err := MakeHelper(nil, nil, "default", destination.AllowAll(), EnableOwnerRef(true))
+	h, err := MakeHelper(nil, nil, defaultNamespace, destination.AllowAll(), EnableOwnerRef(true))
 	require.NoError(t, err)
 	assert.True(t, h.enableOwnerRef)
 }
@@ -146,14 +146,14 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 				client: func(t *testing.T) client.Client {
 					realm := &keycloakApi.KeycloakRealm{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
+							Namespace: testResourceName,
 							Name:      "realm",
 						},
 					}
 					group := &keycloakApi.KeycloakRealmGroup{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
-							Name:      "test-group",
+							Namespace: testResourceName,
+							Name:      testGroupName,
 						},
 						Spec: keycloakApi.KeycloakRealmGroupSpec{
 							RealmRef: common.RealmRef{
@@ -170,8 +170,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace:       "test",
-						Name:            "test-group",
+						Namespace:       testResourceName,
+						Name:            testGroupName,
 						ResourceVersion: "999",
 					},
 					Spec: keycloakApi.KeycloakRealmGroupSpec{
@@ -186,8 +186,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				group := &keycloakApi.KeycloakRealmGroup{}
 				err := k8sCl.Get(context.Background(), types.NamespacedName{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				}, group)
 
 				require.NoError(t, err)
@@ -205,8 +205,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 					}
 					group := &keycloakApi.KeycloakRealmGroup{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
-							Name:      "test-group",
+							Namespace: testResourceName,
+							Name:      testGroupName,
 						},
 						Spec: keycloakApi.KeycloakRealmGroupSpec{
 							RealmRef: common.RealmRef{
@@ -223,8 +223,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace:       "test",
-						Name:            "test-group",
+						Namespace:       testResourceName,
+						Name:            testGroupName,
 						ResourceVersion: "999",
 					},
 					Spec: keycloakApi.KeycloakRealmGroupSpec{
@@ -239,8 +239,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				group := &keycloakApi.KeycloakRealmGroup{}
 				err := k8sCl.Get(context.Background(), types.NamespacedName{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				}, group)
 
 				require.NoError(t, err)
@@ -253,8 +253,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 				client: func(t *testing.T) client.Client {
 					group := &keycloakApi.KeycloakRealmGroup{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
-							Name:      "test-group",
+							Namespace: testResourceName,
+							Name:      testGroupName,
 						},
 						Spec: keycloakApi.KeycloakRealmGroupSpec{
 							RealmRef: common.RealmRef{
@@ -271,8 +271,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "test-group",
+						Namespace: testResourceName,
+						Name:      testGroupName,
 					},
 					Spec: keycloakApi.KeycloakRealmGroupSpec{
 						RealmRef: common.RealmRef{
@@ -286,8 +286,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				group := &keycloakApi.KeycloakRealmGroup{}
 				err := k8sCl.Get(context.Background(), types.NamespacedName{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				}, group)
 				require.NoError(t, err)
 				require.Nil(t, metav1.GetControllerOf(group))
@@ -304,8 +304,8 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "test-group",
+						Namespace: testResourceName,
+						Name:      testGroupName,
 					},
 					Spec: keycloakApi.KeycloakRealmGroupSpec{
 						RealmRef: common.RealmRef{
@@ -356,7 +356,7 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			client: func(t *testing.T) client.Client {
 				realm := &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
+						Namespace: testResourceName,
 						Name:      "realm-cr",
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
@@ -368,8 +368,8 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			},
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -397,8 +397,8 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			},
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -417,8 +417,8 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			},
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -436,8 +436,8 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			},
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -455,8 +455,8 @@ func TestHelper_GetRealmNameFromRef(t *testing.T) {
 			},
 			object: &keycloakApi.KeycloakRealmGroup{
 				ObjectMeta: metav1.ObjectMeta{
-					Namespace: "test",
-					Name:      "test-group",
+					Namespace: testResourceName,
+					Name:      testGroupName,
 				},
 				Spec: keycloakApi.KeycloakRealmGroupSpec{
 					RealmRef: common.RealmRef{
@@ -507,8 +507,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			client: func(t *testing.T) client.Client {
 				obj := &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-group",
-						Namespace:  "test",
+						Name:       testGroupName,
+						Namespace:  testResourceName,
 						Finalizers: []string{"finalizer-a", "finalizer-b"},
 					},
 				}
@@ -518,8 +518,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			obj: func() *keycloakApi.KeycloakRealmGroup {
 				return &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:            "test-group",
-						Namespace:       "test",
+						Name:            testGroupName,
+						Namespace:       testResourceName,
 						ResourceVersion: "999",
 						Finalizers:      []string{"finalizer-a", "finalizer-b"},
 					},
@@ -531,8 +531,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				obj := &keycloakApi.KeycloakRealmGroup{}
 				require.NoError(t, k8sCl.Get(context.Background(), types.NamespacedName{
-					Name:      "test-group",
-					Namespace: "test",
+					Name:      testGroupName,
+					Namespace: testResourceName,
 				}, obj))
 				assert.Empty(t, obj.Finalizers)
 			},
@@ -542,8 +542,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			client: func(t *testing.T) client.Client {
 				obj := &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-group",
-						Namespace:  "test",
+						Name:       testGroupName,
+						Namespace:  testResourceName,
 						Finalizers: []string{"finalizer-a"},
 					},
 				}
@@ -553,8 +553,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			obj: func() *keycloakApi.KeycloakRealmGroup {
 				return &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:            "test-group",
-						Namespace:       "test",
+						Name:            testGroupName,
+						Namespace:       testResourceName,
 						ResourceVersion: "999",
 						Finalizers:      []string{"finalizer-a"},
 					},
@@ -566,8 +566,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				obj := &keycloakApi.KeycloakRealmGroup{}
 				require.NoError(t, k8sCl.Get(context.Background(), types.NamespacedName{
-					Name:      "test-group",
-					Namespace: "test",
+					Name:      testGroupName,
+					Namespace: testResourceName,
 				}, obj))
 				assert.Empty(t, obj.Finalizers)
 			},
@@ -577,8 +577,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			client: func(t *testing.T) client.Client {
 				obj := &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-group",
-						Namespace: "test",
+						Name:      testGroupName,
+						Namespace: testResourceName,
 					},
 				}
 
@@ -587,8 +587,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			obj: func() *keycloakApi.KeycloakRealmGroup {
 				return &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:      "test-group",
-						Namespace: "test",
+						Name:      testGroupName,
+						Namespace: testResourceName,
 					},
 				}
 			},
@@ -608,8 +608,8 @@ func TestRemoveFinalizersOnRealmNotFound(t *testing.T) {
 			obj: func() *keycloakApi.KeycloakRealmGroup {
 				return &keycloakApi.KeycloakRealmGroup{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:       "test-group",
-						Namespace:  "test",
+						Name:       testGroupName,
+						Namespace:  testResourceName,
 						Finalizers: []string{"finalizer-a"},
 					},
 				}
@@ -640,7 +640,7 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		role := &keycloakApi.KeycloakRealmRole{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "test-role",
-				Namespace:       "test",
+				Namespace:       testResourceName,
 				ResourceVersion: "1",
 			},
 			Spec: keycloakApi.KeycloakRealmRoleSpec{
@@ -672,7 +672,7 @@ func TestMergePatchPreservesZeroValuedSpecFields(t *testing.T) {
 		flow := &keycloakApi.KeycloakAuthFlow{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:            "test-flow",
-				Namespace:       "test",
+				Namespace:       testResourceName,
 				ResourceVersion: "1",
 			},
 			Spec: keycloakApi.KeycloakAuthFlowSpec{
@@ -713,7 +713,7 @@ func TestTryToDelete_preservesZeroValuedSpecFields(t *testing.T) {
 	role := &keycloakApi.KeycloakRealmRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      "test-role",
-			Namespace: "test",
+			Namespace: testResourceName,
 		},
 		Spec: keycloakApi.KeycloakRealmRoleSpec{
 			Name:        "test-role",
@@ -729,7 +729,7 @@ func TestTryToDelete_preservesZeroValuedSpecFields(t *testing.T) {
 	stored := &keycloakApi.KeycloakRealmRole{}
 	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
 		Name:      "test-role",
-		Namespace: "test",
+		Namespace: testResourceName,
 	}, stored))
 
 	deleted, err := h.TryToDelete(context.Background(), stored, &testTerminator{log: logr.Discard()}, common.FinalizerName)
@@ -739,7 +739,7 @@ func TestTryToDelete_preservesZeroValuedSpecFields(t *testing.T) {
 	got := &keycloakApi.KeycloakRealmRole{}
 	require.NoError(t, fakeClient.Get(context.Background(), types.NamespacedName{
 		Name:      "test-role",
-		Namespace: "test",
+		Namespace: testResourceName,
 	}, got))
 	assert.Contains(t, got.Finalizers, common.FinalizerName)
 	assert.Empty(t, got.Spec.Description)
@@ -774,14 +774,14 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 				client: func(t *testing.T) client.Client {
 					keycloak := &keycloakApi.Keycloak{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
+							Namespace: testResourceName,
 							Name:      "keycloak",
 						},
 					}
 					realm := &keycloakApi.KeycloakRealm{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
-							Name:      "test-realm",
+							Namespace: testResourceName,
+							Name:      testRealmName,
 						},
 						Spec: keycloakApi.KeycloakRealmSpec{
 							KeycloakRef: common.KeycloakRef{
@@ -798,8 +798,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace:       "test",
-						Name:            "test-realm",
+						Namespace:       testResourceName,
+						Name:            testRealmName,
 						ResourceVersion: "999",
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
@@ -814,8 +814,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				realm := &keycloakApi.KeycloakRealm{}
 				err := k8sCl.Get(context.Background(), types.NamespacedName{
-					Namespace: "test",
-					Name:      "test-realm",
+					Namespace: testResourceName,
+					Name:      testRealmName,
 				}, realm)
 
 				require.NoError(t, err)
@@ -833,8 +833,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 					}
 					realm := &keycloakApi.KeycloakRealm{
 						ObjectMeta: metav1.ObjectMeta{
-							Namespace: "test",
-							Name:      "test-realm",
+							Namespace: testResourceName,
+							Name:      testRealmName,
 						},
 						Spec: keycloakApi.KeycloakRealmSpec{
 							KeycloakRef: common.KeycloakRef{
@@ -851,8 +851,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace:       "test",
-						Name:            "test-realm",
+						Namespace:       testResourceName,
+						Name:            testRealmName,
 						ResourceVersion: "999",
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
@@ -867,8 +867,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			want: func(t *testing.T, k8sCl client.Client) {
 				realm := &keycloakApi.KeycloakRealm{}
 				err := k8sCl.Get(context.Background(), types.NamespacedName{
-					Namespace: "test",
-					Name:      "test-realm",
+					Namespace: testResourceName,
+					Name:      testRealmName,
 				}, realm)
 
 				require.NoError(t, err)
@@ -886,13 +886,13 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "test-realm",
+						Namespace: testResourceName,
+						Name:      testRealmName,
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
 						KeycloakRef: common.KeycloakRef{
 							Kind: keycloakApi.KeycloakKind,
-							Name: "test",
+							Name: testResourceName,
 						},
 					},
 				},
@@ -911,8 +911,8 @@ func TestHelper_SetKeycloakOwnerRef(t *testing.T) {
 			args: args{
 				object: &keycloakApi.KeycloakRealm{
 					ObjectMeta: metav1.ObjectMeta{
-						Namespace: "test",
-						Name:      "test-realm",
+						Namespace: testResourceName,
+						Name:      testRealmName,
 					},
 					Spec: keycloakApi.KeycloakRealmSpec{
 						KeycloakRef: common.KeycloakRef{

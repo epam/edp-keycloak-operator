@@ -35,25 +35,25 @@ func TestServiceAccount_Serve(t *testing.T) {
 			name: "error - realm role has no id",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
-				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				// Keycloak matches on name and id together, so no AddUserRealmRoles may follow.
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1")}, (*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -62,14 +62,14 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: `realm role "realm-role1" has no id`,
 		},
 		{
 			name: "error - client role lookup returns no role",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled: true,
 						ClientRoles: []keycloakApi.UserClientRole{
@@ -77,20 +77,20 @@ func TestServiceAccount_Serve(t *testing.T) {
 						},
 					},
 				},
-				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				// No role, no error.
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role1").
 					Return((*keycloakapi.RoleRepresentation)(nil), (*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -99,14 +99,14 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   keycloakapiMocks.NewMockRolesClient(t),
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: `client role "role1" not found for client "client1"`,
 		},
 		{
 			name: "error - client role has no id",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled: true,
 						ClientRoles: []keycloakApi.UserClientRole{
@@ -114,20 +114,20 @@ func TestServiceAccount_Serve(t *testing.T) {
 						},
 					},
 				},
-				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
 				// No AddUserClientRoles expectation: reaching it fails the test.
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1")}, (*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -136,7 +136,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   keycloakapiMocks.NewMockRolesClient(t),
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: `client role "role1" has no id`,
 		},
 		{
@@ -144,17 +144,17 @@ func TestServiceAccount_Serve(t *testing.T) {
 			name: "unmanaged - omitted realm roles and role-less client entries are left alone",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:     true,
 						ClientRoles: []keycloakApi.UserClientRole{{ClientID: "unmanaged-client"}},
 					},
 				},
-				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -162,34 +162,34 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Users:   keycloakapiMocks.NewMockUsersClient(t),
 				}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 		},
 		{
 			name: "success - service account disabled (nil)",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
 					ServiceAccount: nil,
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				return &keycloakapi.KeycloakClient{}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - service account disabled (enabled=false)",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
 					ServiceAccount: &keycloakApi.ServiceAccount{
@@ -197,21 +197,21 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				return &keycloakapi.KeycloakClient{}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "error - service account with public client",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
 					Public: true,
@@ -220,24 +220,24 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				return &keycloakapi.KeycloakClient{}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "service account can not be configured with public client",
 		},
 		{
 			name: "success - basic service account with full reconciliation",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId:               "test-client-id",
+					ClientId:               testClientID,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyFull,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
@@ -255,7 +255,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -264,39 +264,39 @@ func TestServiceAccount_Serve(t *testing.T) {
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
 				// GetServiceAccountUser
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles: get current mappings (empty), get each role, add
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role2").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role2").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role2"), Id: ptr.To("rr2-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncClientRoles for client1
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1"), Id: ptr.To("cr1-id")}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role2").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role2").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role2"), Id: ptr.To("cr2-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client1-uuid", mock.Anything).
+				usersMock.On("AddUserClientRoles", mock.Anything, testRealmName, "sa-user-id", "client1-uuid", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncClientRoles for client2
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client2").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client2").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client2-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client2-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client2-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client2-uuid", "role3").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client2-uuid", "role3").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role3"), Id: ptr.To("cr3-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client2-uuid", mock.Anything).
+				usersMock.On("AddUserClientRoles", mock.Anything, testRealmName, "sa-user-id", "client2-uuid", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -305,18 +305,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - basic service account with add-only reconciliation",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId:               "test-client-id",
+					ClientId:               testClientID,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
@@ -330,7 +330,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -338,20 +338,20 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles: role1 already exists
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{
 						{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")},
 					}, (*keycloakapi.Response)(nil), nil)
 				// No AddUserRealmRoles or DeleteUserRealmRoles expected (addOnly=true, role already exists)
 
 				// syncClientRoles
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{
 						{Name: ptr.To("role1"), Id: ptr.To("cr1-id")},
 					}, (*keycloakapi.Response)(nil), nil)
@@ -363,18 +363,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - service account with groups",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
@@ -382,7 +382,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -391,28 +391,28 @@ func TestServiceAccount_Serve(t *testing.T) {
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 				groupsMock := keycloakapiMocks.NewMockGroupsClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncGroups
-				usersMock.On("GetUserGroups", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserGroups", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.GroupRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				groupsMock.On("GetGroups", mock.Anything, "test-realm", (*keycloakapi.GetGroupsParams)(nil)).
+				groupsMock.On("GetGroups", mock.Anything, testRealmName, (*keycloakapi.GetGroupsParams)(nil)).
 					Return([]keycloakapi.GroupRepresentation{
 						{Name: ptr.To("group1"), Id: ptr.To("g1-id")},
 						{Name: ptr.To("group2"), Id: ptr.To("g2-id")},
 					}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserToGroup", mock.Anything, "test-realm", "sa-user-id", "g1-id").
+				usersMock.On("AddUserToGroup", mock.Anything, testRealmName, "sa-user-id", "g1-id").
 					Return((*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserToGroup", mock.Anything, "test-realm", "sa-user-id", "g2-id").
+				usersMock.On("AddUserToGroup", mock.Anything, testRealmName, "sa-user-id", "g2-id").
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -422,18 +422,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Groups:  groupsMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - service account with attributes",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
@@ -444,7 +444,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -452,19 +452,19 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// setAttributes
-				usersMock.On("UpdateUser", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("UpdateUser", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -473,18 +473,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - full service account with all features",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId:               "test-client-id",
+					ClientId:               testClientID,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
@@ -503,7 +503,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -512,46 +512,46 @@ func TestServiceAccount_Serve(t *testing.T) {
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 				groupsMock := keycloakapiMocks.NewMockGroupsClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles - addOnly, roles don't exist yet
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role2").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role2").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role2"), Id: ptr.To("rr2-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncClientRoles
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1"), Id: ptr.To("cr1-id")}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role2").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role2").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role2"), Id: ptr.To("cr2-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client1-uuid", mock.Anything).
+				usersMock.On("AddUserClientRoles", mock.Anything, testRealmName, "sa-user-id", "client1-uuid", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncGroups - addOnly
-				usersMock.On("GetUserGroups", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserGroups", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.GroupRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				groupsMock.On("GetGroups", mock.Anything, "test-realm", (*keycloakapi.GetGroupsParams)(nil)).
+				groupsMock.On("GetGroups", mock.Anything, testRealmName, (*keycloakapi.GetGroupsParams)(nil)).
 					Return([]keycloakapi.GroupRepresentation{
 						{Name: ptr.To("group1"), Id: ptr.To("g1-id")},
 						{Name: ptr.To("group2"), Id: ptr.To("g2-id")},
 					}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserToGroup", mock.Anything, "test-realm", "sa-user-id", "g1-id").
+				usersMock.On("AddUserToGroup", mock.Anything, testRealmName, "sa-user-id", "g1-id").
 					Return((*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserToGroup", mock.Anything, "test-realm", "sa-user-id", "g2-id").
+				usersMock.On("AddUserToGroup", mock.Anything, testRealmName, "sa-user-id", "g2-id").
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// setAttributes
-				usersMock.On("UpdateUser", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("UpdateUser", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -561,78 +561,78 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Groups:  groupsMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "error - GetServiceAccountUser fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return((*keycloakapi.UserRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("sa user lookup failed"))
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "unable to get service account user",
 		},
 		{
 			name: "error - syncRealmRoles fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return(nil, (*keycloakapi.Response)(nil), errors.New("roles sync failed"))
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock, Users: usersMock}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "unable to sync service account realm roles",
 		},
 		{
 			name: "error - syncGroups fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
@@ -640,7 +640,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -648,19 +648,19 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles succeeds
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// syncGroups fails
-				usersMock.On("GetUserGroups", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserGroups", mock.Anything, testRealmName, "sa-user-id").
 					Return(nil, (*keycloakapi.Response)(nil), errors.New("groups sync failed"))
 
 				return &keycloakapi.KeycloakClient{
@@ -669,18 +669,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "unable to sync service account groups",
 		},
 		{
 			name: "error - setAttributes fails",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
@@ -690,7 +690,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -698,19 +698,19 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles succeeds
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				// setAttributes: UpdateUser fails
-				usersMock.On("UpdateUser", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("UpdateUser", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), errors.New("attributes set failed"))
 
 				return &keycloakapi.KeycloakClient{
@@ -719,18 +719,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "unable to set service account attributes",
 		},
 		{
 			name: "success - empty client roles",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:     true,
 						RealmRoles:  ptr.To([]string{"realm-role1"}),
@@ -738,7 +738,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -746,14 +746,14 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -762,14 +762,14 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "explicit empty client role list clears that client's mappings",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled: true,
 						ClientRoles: []keycloakApi.UserClientRole{
@@ -777,37 +777,37 @@ func TestServiceAccount_Serve(t *testing.T) {
 						},
 					},
 				},
-				Status: keycloakApi.KeycloakClientStatus{ClientID: "client-123"},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{
 						{Id: ptr.To("cr1-id"), Name: ptr.To("role1")},
 					}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("DeleteUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client1-uuid",
+				usersMock.On("DeleteUserClientRoles", mock.Anything, testRealmName, "sa-user-id", "client1-uuid",
 					[]keycloakapi.RoleRepresentation{{Id: ptr.To("cr1-id"), Name: ptr.To("role1")}}).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{Clients: clientsMock, Users: usersMock}
 			},
-			realmName: "test-realm",
+			realmName: testRealmName,
 		},
 		{
 			name: "success - empty realm roles",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{}),
@@ -820,28 +820,28 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
 				// syncRealmRoles: empty desired, empty current => no-op
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
 
 				// syncClientRoles for client1
-				clientsMock.On("GetClientByClientID", mock.Anything, "test-realm", "client1").
+				clientsMock.On("GetClientByClientID", mock.Anything, testRealmName, "client1").
 					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client1-uuid")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("GetUserClientRoleMappings", mock.Anything, "test-realm", "sa-user-id", "client1-uuid").
+				usersMock.On("GetUserClientRoleMappings", mock.Anything, testRealmName, "sa-user-id", "client1-uuid").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				clientsMock.On("GetClientRole", mock.Anything, "test-realm", "client1-uuid", "role1").
+				clientsMock.On("GetClientRole", mock.Anything, testRealmName, "client1-uuid", "role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("role1"), Id: ptr.To("cr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserClientRoles", mock.Anything, "test-realm", "sa-user-id", "client1-uuid", mock.Anything).
+				usersMock.On("AddUserClientRoles", mock.Anything, testRealmName, "sa-user-id", "client1-uuid", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -849,18 +849,18 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Users:   usersMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - addOnly preserves existing attributes",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId:               "test-client-id",
+					ClientId:               testClientID,
 					ReconciliationStrategy: keycloakApi.ReconciliationStrategyAddOnly,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled: true,
@@ -870,7 +870,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -878,7 +878,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 
 				existingAttrs := map[string][]string{"existing-attr": {"existing-value"}}
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{
 						Id:         ptr.To("sa-user-id"),
 						Attributes: &existingAttrs,
@@ -887,7 +887,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 				// realmRoles unset: the mappings are never read.
 
 				// setAttributes: must contain both existing and new attributes
-				usersMock.On("UpdateUser", mock.Anything, "test-realm", "sa-user-id",
+				usersMock.On("UpdateUser", mock.Anything, testRealmName, "sa-user-id",
 					mock.MatchedBy(func(u keycloakapi.UserRepresentation) bool {
 						if u.Attributes == nil {
 							return false
@@ -907,25 +907,25 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Users:   usersMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 		{
 			name: "success - default reconciliation strategy (full)",
 			keycloakClient: &keycloakApi.KeycloakClient{
 				ObjectMeta: metav1.ObjectMeta{
-					Name:      "test-client",
-					Namespace: "default",
+					Name:      testClientName,
+					Namespace: testClientNamespace,
 				},
 				Spec: keycloakApi.KeycloakClientSpec{
-					ClientId: "test-client-id",
+					ClientId: testClientID,
 					ServiceAccount: &keycloakApi.ServiceAccount{
 						Enabled:    true,
 						RealmRoles: ptr.To([]string{"realm-role1"}),
 					},
 				},
 				Status: keycloakApi.KeycloakClientStatus{
-					ClientID: "client-123",
+					ClientID: testClientUUID,
 				},
 			},
 			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
@@ -933,14 +933,14 @@ func TestServiceAccount_Serve(t *testing.T) {
 				usersMock := keycloakapiMocks.NewMockUsersClient(t)
 				rolesMock := keycloakapiMocks.NewMockRolesClient(t)
 
-				clientsMock.On("GetServiceAccountUser", mock.Anything, "test-realm", "client-uuid").
+				clientsMock.On("GetServiceAccountUser", mock.Anything, testRealmName, "client-uuid").
 					Return(&keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")}, (*keycloakapi.Response)(nil), nil)
 
-				usersMock.On("GetUserRealmRoleMappings", mock.Anything, "test-realm", "sa-user-id").
+				usersMock.On("GetUserRealmRoleMappings", mock.Anything, testRealmName, "sa-user-id").
 					Return([]keycloakapi.RoleRepresentation{}, (*keycloakapi.Response)(nil), nil)
-				rolesMock.On("GetRealmRole", mock.Anything, "test-realm", "realm-role1").
+				rolesMock.On("GetRealmRole", mock.Anything, testRealmName, "realm-role1").
 					Return(&keycloakapi.RoleRepresentation{Name: ptr.To("realm-role1"), Id: ptr.To("rr1-id")}, (*keycloakapi.Response)(nil), nil)
-				usersMock.On("AddUserRealmRoles", mock.Anything, "test-realm", "sa-user-id", mock.Anything).
+				usersMock.On("AddUserRealmRoles", mock.Anything, testRealmName, "sa-user-id", mock.Anything).
 					Return((*keycloakapi.Response)(nil), nil)
 
 				return &keycloakapi.KeycloakClient{
@@ -949,7 +949,7 @@ func TestServiceAccount_Serve(t *testing.T) {
 					Roles:   rolesMock,
 				}
 			},
-			realmName:     "test-realm",
+			realmName:     testRealmName,
 			expectedError: "",
 		},
 	}
@@ -959,11 +959,11 @@ func TestServiceAccount_Serve(t *testing.T) {
 			kClient := tt.kClient(t)
 
 			if tt.keycloakClient.Name == "" {
-				tt.keycloakClient.Name = "test-client"
+				tt.keycloakClient.Name = testClientName
 			}
 
 			if tt.keycloakClient.Namespace == "" {
-				tt.keycloakClient.Namespace = "default"
+				tt.keycloakClient.Namespace = testClientNamespace
 			}
 
 			k8sClient := fake.NewClientBuilder().

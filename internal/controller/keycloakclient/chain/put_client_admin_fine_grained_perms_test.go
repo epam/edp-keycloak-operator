@@ -42,11 +42,11 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:                           "test-client-id",
+								ClientId:                           testClientID,
 								AdminFineGrainedPermissionsEnabled: true,
 								Permission: &keycloakApi.AdminFineGrainedPermission{
 									ScopePermissions: []keycloakApi.ScopePermissions{
@@ -60,8 +60,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				serverMock := keycloakapiMocks.NewMockServerInfoClient(t)
@@ -132,11 +132,11 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:                           "test-client-id",
+								ClientId:                           testClientID,
 								AdminFineGrainedPermissionsEnabled: true,
 								Permission: &keycloakApi.AdminFineGrainedPermission{
 									ScopePermissions: []keycloakApi.ScopePermissions{
@@ -150,8 +150,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				serverMock := keycloakapiMocks.NewMockServerInfoClient(t)
@@ -179,11 +179,11 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 					WithObjects(
 						&keycloakApi.KeycloakClient{
 							ObjectMeta: metav1.ObjectMeta{
-								Name:      "test-client",
-								Namespace: "default",
+								Name:      testClientName,
+								Namespace: testClientNamespace,
 							},
 							Spec: keycloakApi.KeycloakClientSpec{
-								ClientId:                           "test-client-id",
+								ClientId:                           testClientID,
 								AdminFineGrainedPermissionsEnabled: true,
 								Permission: &keycloakApi.AdminFineGrainedPermission{
 									ScopePermissions: []keycloakApi.ScopePermissions{
@@ -197,8 +197,8 @@ func TestPutAdminFineGrainedPermissions_Serve(t *testing.T) {
 						}).Build()
 			},
 			keycloakClient: client.ObjectKey{
-				Name:      "test-client",
-				Namespace: "default",
+				Name:      testClientName,
+				Namespace: testClientNamespace,
 			},
 			keycloakApiClient: func(t *testing.T) *keycloakapi.KeycloakClient {
 				serverMock := keycloakapiMocks.NewMockServerInfoClient(t)
