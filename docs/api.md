@@ -1718,6 +1718,13 @@ ClusterKeycloakRealmStatus defines the observed state of ClusterKeycloakRealm.
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b>id</b></td>
+        <td>string</td>
+        <td>
+          ID is the internal ID Keycloak assigned to the realm; empty until the operator has read the realm from Keycloak.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>observedGeneration</b></td>
         <td>integer</td>
         <td>
@@ -8046,6 +8053,13 @@ KeycloakRealmStatus defines the observed state of KeycloakRealm.
           <br/>
           <br/>
             <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>id</b></td>
+        <td>string</td>
+        <td>
+          ID is the internal ID Keycloak assigned to the realm; empty until the operator has read the realm from Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>

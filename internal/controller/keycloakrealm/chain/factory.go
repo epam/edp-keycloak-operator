@@ -18,9 +18,10 @@ import (
 var log = ctrl.Log.WithName("realm_handler")
 
 func CreateDefChain(k8sClient client.Client, scheme *runtime.Scheme, guard *destination.Guard) handler.RealmHandler {
-	return PutRealm{
+	// SetLabels runs first: its full-object Update replaces in-memory status with the persisted one.
+	return SetLabels{
 		client: k8sClient,
-		next: SetLabels{
+		next: PutRealm{
 			client: k8sClient,
 			next: PutUsers{
 				next: PutUsersRoles{

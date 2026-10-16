@@ -173,6 +173,10 @@ type ClusterKeycloakRealmStatus struct {
 	// ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.
 	// +optional
 	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
+
+	// ID is the internal ID Keycloak assigned to the realm; empty until the operator has read the realm from Keycloak.
+	// +optional
+	ID string `json:"id,omitempty"`
 }
 
 // +kubebuilder:object:root=true

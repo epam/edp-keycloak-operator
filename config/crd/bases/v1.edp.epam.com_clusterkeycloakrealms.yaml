@@ -783,6 +783,10 @@ spec:
               failureCount:
                 format: int64
                 type: integer
+              id:
+                description: ID is the internal ID Keycloak assigned to the realm;
+                  empty until the operator has read the realm from Keycloak.
+                type: string
               observedGeneration:
                 description: ObservedGeneration is the generation last successfully
                   reconciled to Keycloak.
