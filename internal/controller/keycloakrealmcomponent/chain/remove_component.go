@@ -37,7 +37,18 @@ func (h *RemoveComponent) Serve(
 	componentID := component.Status.ID
 
 	if componentID == "" {
-		existing, err := h.kClient.RealmComponents.FindComponentByName(ctx, realmName, component.Spec.Name)
+		if ref := component.Spec.ParentRef; ref != nil && parentRefKind(ref) == keycloakApi.KeycloakRealmComponentKind {
+			log.Info("Realm component has no ID in status and a component parent, skipping deletion")
+
+			return nil
+		}
+
+		realm, err := resolveRealmParent(ctx, h.kClient, realmName)
+		if err != nil {
+			return fmt.Errorf("failed to resolve realm for deletion: %w", err)
+		}
+
+		existing, err := findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, realm.ID)
 		if err != nil {
 			return fmt.Errorf("failed to find component for deletion: %w", err)
 		}

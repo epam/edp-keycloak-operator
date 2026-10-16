@@ -5,10 +5,8 @@ import (
 	"fmt"
 	"slices"
 
-	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
@@ -19,20 +17,20 @@ import (
 
 // CreateOrUpdateComponent creates or updates a realm component in Keycloak.
 type CreateOrUpdateComponent struct {
-	k8sClient       client.Client
 	kClient         *keycloakapi.KeycloakClient
 	secretRefClient SecretRefClient
+	parentID        string
 }
 
 func NewCreateOrUpdateComponent(
-	k8sClient client.Client,
 	kClient *keycloakapi.KeycloakClient,
 	secretRefClient SecretRefClient,
+	parentID string,
 ) *CreateOrUpdateComponent {
 	return &CreateOrUpdateComponent{
-		k8sClient:       k8sClient,
 		kClient:         kClient,
 		secretRefClient: secretRefClient,
+		parentID:        parentID,
 	}
 }
 
@@ -62,25 +60,17 @@ func (h *CreateOrUpdateComponent) Serve(
 
 	newHash := secretref.ValuesHash(secretVersions)
 
-	parentID, err := h.resolveParentID(ctx, component, realmName)
-	if err != nil {
-		return fmt.Errorf("unable to resolve parent ID: %w", err)
-	}
-
 	repr := keycloakapi.ComponentRepresentation{
 		Name:         &spec.Name,
 		ProviderId:   &spec.ProviderID,
 		ProviderType: &spec.ProviderType,
 		Config:       &config,
+		ParentId:     ptr.To(h.parentID),
 	}
 
-	if parentID != "" {
-		repr.ParentId = &parentID
-	}
-
-	existing, err := h.kClient.RealmComponents.FindComponentByName(ctx, realmName, spec.Name)
+	existing, err := h.findExisting(ctx, component, realmName)
 	if err != nil {
-		return fmt.Errorf("failed to find component by name: %w", err)
+		return err
 	}
 
 	if existing == nil {
@@ -124,8 +114,6 @@ func (h *CreateOrUpdateComponent) Serve(
 // componentMatchesSpec reports whether the fetched component already matches the desired
 // representation. Config keys are excluded from comparison when Keycloak masks them: either
 // the raw spec value is a secret ref, or the fetched value is already the mask sentinel.
-// ParentId is compared only when the operator manages it (desired.ParentId set): Keycloak
-// auto-fills it with the realm's internal ID for components created without a parentRef.
 func componentMatchesSpec(
 	existing *keycloakapi.ComponentRepresentation,
 	desired keycloakapi.ComponentRepresentation,
@@ -137,7 +125,7 @@ func componentMatchesSpec(
 		return false
 	}
 
-	if desired.ParentId != nil && ptr.Deref(existing.ParentId, "") != *desired.ParentId {
+	if ptr.Deref(existing.ParentId, "") != ptr.Deref(desired.ParentId, "") {
 		return false
 	}
 
@@ -157,53 +145,49 @@ func componentMatchesSpec(
 	return maputil.ContainsSubsetMulti(existingConfig, comparableConfig)
 }
 
-func (h *CreateOrUpdateComponent) resolveParentID(
+// findExisting returns the Keycloak component the CR manages, or nil if none exists.
+// status.id wins when it still exists, whatever its current name or parent.
+// Otherwise the component is matched by exact spec.name under the resolved parent.
+func (h *CreateOrUpdateComponent) findExisting(
 	ctx context.Context,
 	component *keycloakApi.KeycloakRealmComponent,
 	realmName string,
-) (string, error) {
-	if component.Spec.ParentRef == nil {
-		return "", nil
+) (*keycloakapi.ComponentRepresentation, error) {
+	if id := component.Status.ID; id != "" {
+		existing, _, err := h.kClient.RealmComponents.GetComponent(ctx, realmName, id)
+		if err != nil && !keycloakapi.IsNotFound(err) {
+			return nil, fmt.Errorf("failed to get component %s: %w", id, err)
+		}
+
+		if err == nil && existing != nil {
+			return existing, nil
+		}
 	}
 
-	switch component.Spec.ParentRef.Kind {
-	case keycloakApi.KeycloakRealmKind:
-		parentRealm := &keycloakApi.KeycloakRealm{}
-		if err := h.k8sClient.Get(ctx, types.NamespacedName{
-			Name:      component.Spec.ParentRef.Name,
-			Namespace: component.Namespace,
-		}, parentRealm); err != nil {
-			return "", fmt.Errorf("unable to get parent realm: %w", err)
-		}
+	return findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, h.parentID)
+}
 
-		kcRealm, _, err := h.kClient.Realms.GetRealm(ctx, parentRealm.Spec.RealmName)
-		if err != nil {
-			return "", fmt.Errorf("unable to get parent realm from Keycloak: %w", err)
-		}
-
-		if kcRealm.Id == nil || *kcRealm.Id == "" {
-			return "", fmt.Errorf("parent realm ID is empty")
-		}
-
-		return *kcRealm.Id, nil
-
-	case keycloakApi.KeycloakRealmComponentKind:
-		parentComponent, err := h.kClient.RealmComponents.FindComponentByName(ctx, realmName, component.Spec.ParentRef.Name)
-		if err != nil {
-			return "", fmt.Errorf("unable to find parent component: %w", err)
-		}
-
-		if parentComponent == nil {
-			return "", fmt.Errorf("parent component %q not found", component.Spec.ParentRef.Name)
-		}
-
-		if parentComponent.Id == nil {
-			return "", fmt.Errorf("parent component %q has no ID", component.Spec.ParentRef.Name)
-		}
-
-		return *parentComponent.Id, nil
-
-	default:
-		return "", fmt.Errorf("parent kind %s is not supported", component.Spec.ParentRef.Kind)
+// findComponentUnderParent returns the component with exactly name under parentID, or nil.
+// Keycloak's parent filter defaults to the realm ID, so passing the realm ID selects top-level
+// components.
+func findComponentUnderParent(
+	ctx context.Context,
+	kClient *keycloakapi.KeycloakClient,
+	realmName, name, parentID string,
+) (*keycloakapi.ComponentRepresentation, error) {
+	components, _, err := kClient.RealmComponents.GetComponents(ctx, realmName, &keycloakapi.GetComponentsParams{
+		Name:   &name,
+		Parent: &parentID,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to find component %q under parent %s: %w", name, parentID, err)
 	}
+
+	for i := range components {
+		if ptr.Deref(components[i].Name, "") == name {
+			return &components[i], nil
+		}
+	}
+
+	return nil, nil
 }

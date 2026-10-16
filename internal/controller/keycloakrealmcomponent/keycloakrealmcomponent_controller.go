@@ -13,9 +13,13 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/apiutil"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
+	"sigs.k8s.io/controller-runtime/pkg/event"
+	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -28,9 +32,17 @@ import (
 const (
 	successRequeueTime = time.Minute * 10
 
+	// parentNotReadyRequeueTime is the fallback when a parent is expected to appear; the watch on
+	// the parent's status.id requeues the child earlier.
+	parentNotReadyRequeueTime = time.Second * 30
+
 	// legacyFinalizerName is the old finalizer used before migration to common.FinalizerName.
 	// Kept to ensure existing resources carrying the old finalizer can be deleted cleanly.
 	legacyFinalizerName = "keycloak.realmcomponent.operator.finalizer.name"
+
+	// parentComponentIndexField indexes KeycloakRealmComponents by the parent CR name
+	// in spec.parentRef; set only for parentRef.kind KeycloakRealmComponent.
+	parentComponentIndexField = "spec.parentRef.name"
 )
 
 type RealmComponentHelper interface {
@@ -61,8 +73,22 @@ func NewRealmComponentReconciler(
 }
 
 func (r *RealmComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	if err := mgr.GetFieldIndexer().IndexField(
+		context.Background(),
+		&keycloakApi.KeycloakRealmComponent{},
+		parentComponentIndexField,
+		indexParentComponent,
+	); err != nil {
+		return fmt.Errorf("failed to index KeycloakRealmComponent by %s: %w", parentComponentIndexField, err)
+	}
+
 	if err := ctrl.NewControllerManagedBy(mgr).
 		For(&keycloakApi.KeycloakRealmComponent{}).
+		Watches(
+			&keycloakApi.KeycloakRealmComponent{},
+			handler.EnqueueRequestsFromMapFunc(r.childComponentRequests),
+			builder.WithPredicates(parentIDChangedPredicate()),
+		).
 		Complete(r); err != nil {
 		return fmt.Errorf("failed to setup KeycloakRealmComponent controller: %w", err)
 	}
@@ -114,12 +140,6 @@ func (r *RealmComponentReconciler) initializeReconciliation(
 
 	if err := r.helper.SetRealmOwnerRef(ctx, instance); err != nil {
 		return nil, nil, "", fmt.Errorf("unable to set realm owner ref: %w", err)
-	}
-
-	if instance.GetDeletionTimestamp() == nil {
-		if err := r.setComponentOwnerReference(ctx, instance); err != nil {
-			return nil, nil, "", fmt.Errorf("unable to set component owner reference: %w", err)
-		}
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
@@ -187,9 +207,30 @@ func (r *RealmComponentReconciler) handleReconciliation(
 
 	oldStatus := instance.Status
 
-	if err := chain.MakeChain(r.client, kClient, r.secretRefClient).Serve(ctx, instance, realmName); err != nil {
-		log.Error(err, "An error has occurred while handling KeycloakRealmComponent")
+	parent, err := chain.ResolveParent(ctx, r.client, kClient, instance, realmName)
+	if err != nil {
+		resultErr := fmt.Errorf("unable to resolve parent: %w", err)
+		instance.Status.Value = resultErr.Error()
 
+		if statusErr := r.updateStatus(ctx, instance, oldStatus); statusErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed to update KeycloakRealmComponent status: %w", statusErr)
+		}
+
+		if errors.Is(err, chain.ErrParentNotReady) {
+			log.Info("Waiting for parent component", "reason", err.Error())
+
+			return reconcile.Result{RequeueAfter: parentNotReadyRequeueTime}, nil
+		}
+
+		return reconcile.Result{}, resultErr
+	}
+
+	// Runs before the chain: the patch decodes the server object into instance, status included.
+	if err := r.syncParentOwnerReference(ctx, instance, parent.CR); err != nil {
+		return reconcile.Result{}, err
+	}
+
+	if err := chain.MakeChain(kClient, r.secretRefClient, parent.ID).Serve(ctx, instance, realmName); err != nil {
 		resultErr := fmt.Errorf("realm component chain processing failed: %w", err)
 		instance.Status.Value = resultErr.Error()
 
@@ -226,51 +267,115 @@ func (r *RealmComponentReconciler) updateStatus(
 	return nil
 }
 
-// setComponentOwnerReference sets the owner reference for the component.
-// In case the component has a parent component, we need to set owner reference to it
-// to trigger the deletion of the child KeycloakRealmComponent.
-// In the keycloak API side child component is automatically deleted,
-// so we need to do the same with the KeycloakRealmComponent resource.
-func (r *RealmComponentReconciler) setComponentOwnerReference(
+// syncParentOwnerReference makes the KeycloakRealmComponent owner references of component
+// exactly one reference to parent, or none when parent is nil. Other owner references are kept.
+// Kubernetes garbage-collects the child CR with its parent, as Keycloak deletes child components.
+func (r *RealmComponentReconciler) syncParentOwnerReference(
 	ctx context.Context,
 	component *keycloakApi.KeycloakRealmComponent,
+	parent *keycloakApi.KeycloakRealmComponent,
 ) error {
-	if component.Spec.ParentRef == nil || component.Spec.ParentRef.Kind != keycloakApi.KeycloakRealmComponentKind {
-		return nil
+	gvk, err := apiutil.GVKForObject(component, r.scheme)
+	if err != nil {
+		return fmt.Errorf("unable to get gvk for KeycloakRealmComponent: %w", err)
 	}
 
-	for _, ref := range component.GetOwnerReferences() {
-		if ref.Kind == keycloakApi.KeycloakRealmComponentKind {
-			return nil
+	apiVersion := gvk.GroupVersion().String()
+
+	var parentRef *metav1.OwnerReference
+
+	if parent != nil {
+		parentRef = &metav1.OwnerReference{
+			APIVersion:         apiVersion,
+			Kind:               gvk.Kind,
+			Name:               parent.GetName(),
+			UID:                parent.GetUID(),
+			BlockOwnerDeletion: ptr.To(true),
+			Controller:         ptr.To(false),
 		}
 	}
 
-	parentComponent := &keycloakApi.KeycloakRealmComponent{}
-	if err := r.client.Get(ctx, types.NamespacedName{
-		Name:      component.Spec.ParentRef.Name,
-		Namespace: component.GetNamespace(),
-	}, parentComponent); err != nil {
-		return fmt.Errorf("unable to get parent component: %w", err)
+	current := component.GetOwnerReferences()
+
+	var desired []metav1.OwnerReference
+
+	for _, ref := range current {
+		if ref.APIVersion != apiVersion || ref.Kind != gvk.Kind {
+			desired = append(desired, ref)
+
+			continue
+		}
+
+		// The existing parent reference keeps its position.
+		if parentRef != nil && ref.UID == parentRef.UID && ref.Name == parentRef.Name {
+			desired = append(desired, *parentRef)
+			parentRef = nil
+		}
 	}
 
-	gvk, err := apiutil.GVKForObject(parentComponent, r.scheme)
-	if err != nil {
-		return fmt.Errorf("unable to get gvk for parent component: %w", err)
+	if parentRef != nil {
+		desired = append(desired, *parentRef)
 	}
 
-	ref := metav1.OwnerReference{
-		APIVersion:         gvk.GroupVersion().String(),
-		Kind:               gvk.Kind,
-		Name:               parentComponent.GetName(),
-		UID:                parentComponent.GetUID(),
-		BlockOwnerDeletion: ptr.To(true),
-		Controller:         ptr.To(false),
+	if equality.Semantic.DeepEqual(current, desired) {
+		return nil
 	}
-	component.SetOwnerReferences(append(component.GetOwnerReferences(), ref))
 
-	if err := r.client.Update(ctx, component); err != nil {
-		return fmt.Errorf("failed to set owner reference %s: %w", parentComponent.Name, err)
+	original := component.DeepCopy()
+	component.SetOwnerReferences(desired)
+
+	if err := helper.PatchObject(ctx, r.client, original, component); err != nil {
+		return fmt.Errorf("failed to sync parent component owner reference: %w", err)
 	}
 
 	return nil
+}
+
+// indexParentComponent returns the parent CR name for parentRef.kind KeycloakRealmComponent.
+func indexParentComponent(obj client.Object) []string {
+	component, ok := obj.(*keycloakApi.KeycloakRealmComponent)
+	if !ok || component.Spec.ParentRef == nil ||
+		component.Spec.ParentRef.Kind != keycloakApi.KeycloakRealmComponentKind {
+		return nil
+	}
+
+	return []string{component.Spec.ParentRef.Name}
+}
+
+// childComponentRequests enqueues the KeycloakRealmComponents whose parentRef names obj.
+func (r *RealmComponentReconciler) childComponentRequests(ctx context.Context, obj client.Object) []reconcile.Request {
+	children := &keycloakApi.KeycloakRealmComponentList{}
+	if err := r.client.List(ctx, children,
+		client.InNamespace(obj.GetNamespace()),
+		client.MatchingFields{parentComponentIndexField: obj.GetName()},
+	); err != nil {
+		ctrl.LoggerFrom(ctx).Error(err, "Unable to list child KeycloakRealmComponents", "parent", obj.GetName())
+
+		return nil
+	}
+
+	requests := make([]reconcile.Request, 0, len(children.Items))
+	for i := range children.Items {
+		requests = append(requests, reconcile.Request{NamespacedName: types.NamespacedName{
+			Namespace: children.Items[i].Namespace,
+			Name:      children.Items[i].Name,
+		}})
+	}
+
+	return requests
+}
+
+// parentIDChangedPredicate passes update events that change status.id.
+func parentIDChangedPredicate() predicate.Funcs {
+	return predicate.Funcs{
+		CreateFunc:  func(event.CreateEvent) bool { return false },
+		DeleteFunc:  func(event.DeleteEvent) bool { return false },
+		GenericFunc: func(event.GenericEvent) bool { return false },
+		UpdateFunc: func(e event.UpdateEvent) bool {
+			oldComponent, okOld := e.ObjectOld.(*keycloakApi.KeycloakRealmComponent)
+			newComponent, okNew := e.ObjectNew.(*keycloakApi.KeycloakRealmComponent)
+
+			return okOld && okNew && oldComponent.Status.ID != newComponent.Status.ID
+		},
+	}
 }

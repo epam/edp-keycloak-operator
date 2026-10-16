@@ -61,8 +61,9 @@ type ParentComponent struct {
 	// +kubebuilder:validation:Enum=KeycloakRealm;KeycloakRealmComponent
 	Kind string `json:"kind,omitempty"`
 
-	// Name is a name of parent component custom resource.
-	// For example, if Kind is KeycloakRealm, then Name is name of KeycloakRealm custom resource.
+	// Name is the metadata.name of the parent custom resource in the same namespace.
+	// For Kind KeycloakRealmComponent, it is the parent KeycloakRealmComponent metadata.name, not its spec.name.
+	// For Kind KeycloakRealm, it must equal spec.realmRef.name.
 	Name string `json:"name"`
 }
 

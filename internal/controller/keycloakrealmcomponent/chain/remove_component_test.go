@@ -15,135 +15,120 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 )
 
-func TestRemoveComponent_Serve_SuccessWithStatusID(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Status:     keycloakApi.KeycloakComponentStatus{ID: testComponentID},
+func TestRemoveComponent_Serve(t *testing.T) {
+	realmFound := func(realms *mocks.MockRealmClient) {
+		realms.EXPECT().GetRealm(context.Background(), testRealmName).
+			Return(&keycloakapi.RealmRepresentation{Id: ptr.To(testRealmID)}, nil, nil)
 	}
 
-	mockComponents.EXPECT().
-		DeleteComponent(context.Background(), testRealmName, testComponentID).
-		Return(nil, nil)
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.NoError(t, err)
-}
-
-func TestRemoveComponent_Serve_SuccessFallbackByName(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Spec:       keycloakApi.KeycloakComponentSpec{Name: testComponentName},
-	}
-
-	mockComponents.EXPECT().
-		FindComponentByName(context.Background(), testRealmName, testComponentName).
-		Return(&keycloakapi.ComponentRepresentation{Id: ptr.To(testComponentID)}, nil)
-
-	mockComponents.EXPECT().
-		DeleteComponent(context.Background(), testRealmName, testComponentID).
-		Return(nil, nil)
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.NoError(t, err)
-}
-
-func TestRemoveComponent_Serve_ComponentNotFoundByName(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Spec:       keycloakApi.KeycloakComponentSpec{Name: testComponentName},
-	}
-
-	mockComponents.EXPECT().
-		FindComponentByName(context.Background(), testRealmName, testComponentName).
-		Return(nil, nil)
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.NoError(t, err)
-}
-
-func TestRemoveComponent_Serve_DeleteNotFound(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Status:     keycloakApi.KeycloakComponentStatus{ID: testComponentID},
-	}
-
-	mockComponents.EXPECT().
-		DeleteComponent(context.Background(), testRealmName, testComponentID).
-		Return(nil, &keycloakapi.ApiError{Code: 404, Message: "Not Found"})
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.NoError(t, err)
-}
-
-func TestRemoveComponent_Serve_PreserveAnnotation(t *testing.T) {
-	kClient := &keycloakapi.KeycloakClient{}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{
-			Name: testComponentName,
-			Annotations: map[string]string{
-				objectmeta.PreserveResourcesOnDeletionAnnotation: "true",
+	tests := []struct {
+		name        string
+		statusID    string
+		parentRef   *keycloakApi.ParentComponent
+		annotations map[string]string
+		setup       func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient)
+		wantErr     string
+	}{
+		{
+			name:     "deletes by status.id",
+			statusID: testComponentID,
+			setup: func(components *mocks.MockRealmComponentsClient, _ *mocks.MockRealmClient) {
+				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).Return(nil, nil)
 			},
 		},
-		Status: keycloakApi.KeycloakComponentStatus{ID: testComponentID},
+		{
+			name:     "status.id already gone in Keycloak",
+			statusID: testComponentID,
+			setup: func(components *mocks.MockRealmComponentsClient, _ *mocks.MockRealmClient) {
+				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).
+					Return(nil, &keycloakapi.ApiError{Code: 404, Message: "Not Found"})
+			},
+		},
+		{
+			name:     "delete error",
+			statusID: testComponentID,
+			setup: func(components *mocks.MockRealmComponentsClient, _ *mocks.MockRealmClient) {
+				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).
+					Return(nil, errors.New("delete error"))
+			},
+			wantErr: "failed to delete realm component",
+		},
+		{
+			name:        "preserve annotation skips Keycloak",
+			statusID:    testComponentID,
+			annotations: map[string]string{objectmeta.PreserveResourcesOnDeletionAnnotation: "true"},
+		},
+		{
+			name: "no status.id: found by name under the realm",
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+					Return([]keycloakapi.ComponentRepresentation{{Id: ptr.To(testComponentID), Name: ptr.To(testComponentName)}}, nil, nil)
+				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).Return(nil, nil)
+			},
+		},
+		{
+			name: "no status.id: nothing under the realm",
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).Return(nil, nil, nil)
+			},
+		},
+		{
+			name: "no status.id: lookup error",
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+					Return(nil, nil, errors.New("lookup error"))
+			},
+			wantErr: "failed to find component for deletion",
+		},
+		{
+			name: "no status.id: realm lookup error",
+			setup: func(_ *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realms.EXPECT().GetRealm(context.Background(), testRealmName).Return(nil, nil, errors.New("realm error"))
+			},
+			wantErr: "failed to resolve realm for deletion",
+		},
+		{
+			name:      "no status.id: empty parentRef.kind is the realm",
+			parentRef: &keycloakApi.ParentComponent{Name: "test-realm-cr"},
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).Return(nil, nil, nil)
+			},
+		},
+		{
+			name:      "no status.id: component parent skips the name lookup",
+			parentRef: &keycloakApi.ParentComponent{Kind: keycloakApi.KeycloakRealmComponentKind, Name: "parent"},
+		},
 	}
 
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.NoError(t, err)
-	// no mock expectations — verify no API calls were made
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			components := mocks.NewMockRealmComponentsClient(t)
+			realms := mocks.NewMockRealmClient(t)
 
-func TestRemoveComponent_Serve_FindByNameError(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+			if tt.setup != nil {
+				tt.setup(components, realms)
+			}
 
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Spec:       keycloakApi.KeycloakComponentSpec{Name: testComponentName},
+			component := &keycloakApi.KeycloakRealmComponent{
+				ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Annotations: tt.annotations},
+				Spec:       keycloakApi.KeycloakComponentSpec{Name: testComponentName, ParentRef: tt.parentRef},
+				Status:     keycloakApi.KeycloakComponentStatus{ID: tt.statusID},
+			}
+
+			kClient := &keycloakapi.KeycloakClient{RealmComponents: components, Realms: realms}
+			err := NewRemoveComponent(kClient).Serve(context.Background(), component, testRealmName)
+
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+
+				return
+			}
+
+			require.ErrorContains(t, err, tt.wantErr)
+		})
 	}
-
-	mockComponents.EXPECT().
-		FindComponentByName(context.Background(), testRealmName, testComponentName).
-		Return(nil, errors.New("lookup error"))
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to find component for deletion")
-}
-
-func TestRemoveComponent_Serve_DeleteError(t *testing.T) {
-	mockComponents := mocks.NewMockRealmComponentsClient(t)
-	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
-
-	component := &keycloakApi.KeycloakRealmComponent{
-		ObjectMeta: metav1.ObjectMeta{Name: testComponentName},
-		Status:     keycloakApi.KeycloakComponentStatus{ID: testComponentID},
-	}
-
-	mockComponents.EXPECT().
-		DeleteComponent(context.Background(), testRealmName, testComponentID).
-		Return(nil, errors.New("delete error"))
-
-	h := NewRemoveComponent(kClient)
-	err := h.Serve(context.Background(), component, testRealmName)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "failed to delete realm component")
 }
