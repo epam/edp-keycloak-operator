@@ -17,10 +17,19 @@ func NewMockRolesClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockRolesClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockRolesClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -76,7 +85,7 @@ type MockRolesClient_AddRealmRoleComposites_Call struct {
 //   - realm string
 //   - roleName string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockRolesClient_Expecter) AddRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}, roles interface{}) *MockRolesClient_AddRealmRoleComposites_Call {
+func (_e *MockRolesClient_Expecter) AddRealmRoleComposites(ctx any, realm any, roleName any, roles any) *MockRolesClient_AddRealmRoleComposites_Call {
 	return &MockRolesClient_AddRealmRoleComposites_Call{Call: _e.mock.On("AddRealmRoleComposites", ctx, realm, roleName, roles)}
 }
 
@@ -155,7 +164,7 @@ type MockRolesClient_CreateRealmRole_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - role keycloakapi.RoleRepresentation
-func (_e *MockRolesClient_Expecter) CreateRealmRole(ctx interface{}, realm interface{}, role interface{}) *MockRolesClient_CreateRealmRole_Call {
+func (_e *MockRolesClient_Expecter) CreateRealmRole(ctx any, realm any, role any) *MockRolesClient_CreateRealmRole_Call {
 	return &MockRolesClient_CreateRealmRole_Call{Call: _e.mock.On("CreateRealmRole", ctx, realm, role)}
 }
 
@@ -229,7 +238,7 @@ type MockRolesClient_DeleteRealmRole_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - roleName string
-func (_e *MockRolesClient_Expecter) DeleteRealmRole(ctx interface{}, realm interface{}, roleName interface{}) *MockRolesClient_DeleteRealmRole_Call {
+func (_e *MockRolesClient_Expecter) DeleteRealmRole(ctx any, realm any, roleName any) *MockRolesClient_DeleteRealmRole_Call {
 	return &MockRolesClient_DeleteRealmRole_Call{Call: _e.mock.On("DeleteRealmRole", ctx, realm, roleName)}
 }
 
@@ -304,7 +313,7 @@ type MockRolesClient_DeleteRealmRoleComposites_Call struct {
 //   - realm string
 //   - roleName string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockRolesClient_Expecter) DeleteRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}, roles interface{}) *MockRolesClient_DeleteRealmRoleComposites_Call {
+func (_e *MockRolesClient_Expecter) DeleteRealmRoleComposites(ctx any, realm any, roleName any, roles any) *MockRolesClient_DeleteRealmRoleComposites_Call {
 	return &MockRolesClient_DeleteRealmRoleComposites_Call{Call: _e.mock.On("DeleteRealmRoleComposites", ctx, realm, roleName, roles)}
 }
 
@@ -391,7 +400,7 @@ type MockRolesClient_GetRealmRole_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - roleName string
-func (_e *MockRolesClient_Expecter) GetRealmRole(ctx interface{}, realm interface{}, roleName interface{}) *MockRolesClient_GetRealmRole_Call {
+func (_e *MockRolesClient_Expecter) GetRealmRole(ctx any, realm any, roleName any) *MockRolesClient_GetRealmRole_Call {
 	return &MockRolesClient_GetRealmRole_Call{Call: _e.mock.On("GetRealmRole", ctx, realm, roleName)}
 }
 
@@ -418,8 +427,8 @@ func (_c *MockRolesClient_GetRealmRole_Call) Run(run func(ctx context.Context, r
 	return _c
 }
 
-func (_c *MockRolesClient_GetRealmRole_Call) Return(v *keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRole_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockRolesClient_GetRealmRole_Call) Return(roleRepresentation *keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRole_Call {
+	_c.Call.Return(roleRepresentation, response, err)
 	return _c
 }
 
@@ -473,7 +482,7 @@ type MockRolesClient_GetRealmRoleComposites_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - roleName string
-func (_e *MockRolesClient_Expecter) GetRealmRoleComposites(ctx interface{}, realm interface{}, roleName interface{}) *MockRolesClient_GetRealmRoleComposites_Call {
+func (_e *MockRolesClient_Expecter) GetRealmRoleComposites(ctx any, realm any, roleName any) *MockRolesClient_GetRealmRoleComposites_Call {
 	return &MockRolesClient_GetRealmRoleComposites_Call{Call: _e.mock.On("GetRealmRoleComposites", ctx, realm, roleName)}
 }
 
@@ -500,8 +509,8 @@ func (_c *MockRolesClient_GetRealmRoleComposites_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockRolesClient_GetRealmRoleComposites_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRoleComposites_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockRolesClient_GetRealmRoleComposites_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRoleComposites_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -555,7 +564,7 @@ type MockRolesClient_GetRealmRoles_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetRealmRolesParams
-func (_e *MockRolesClient_Expecter) GetRealmRoles(ctx interface{}, realm interface{}, params interface{}) *MockRolesClient_GetRealmRoles_Call {
+func (_e *MockRolesClient_Expecter) GetRealmRoles(ctx any, realm any, params any) *MockRolesClient_GetRealmRoles_Call {
 	return &MockRolesClient_GetRealmRoles_Call{Call: _e.mock.On("GetRealmRoles", ctx, realm, params)}
 }
 
@@ -582,8 +591,8 @@ func (_c *MockRolesClient_GetRealmRoles_Call) Run(run func(ctx context.Context, 
 	return _c
 }
 
-func (_c *MockRolesClient_GetRealmRoles_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRoles_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockRolesClient_GetRealmRoles_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockRolesClient_GetRealmRoles_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -630,7 +639,7 @@ type MockRolesClient_UpdateRealmRole_Call struct {
 //   - realm string
 //   - roleName string
 //   - role keycloakapi.RoleRepresentation
-func (_e *MockRolesClient_Expecter) UpdateRealmRole(ctx interface{}, realm interface{}, roleName interface{}, role interface{}) *MockRolesClient_UpdateRealmRole_Call {
+func (_e *MockRolesClient_Expecter) UpdateRealmRole(ctx any, realm any, roleName any, role any) *MockRolesClient_UpdateRealmRole_Call {
 	return &MockRolesClient_UpdateRealmRole_Call{Call: _e.mock.On("UpdateRealmRole", ctx, realm, roleName, role)}
 }
 

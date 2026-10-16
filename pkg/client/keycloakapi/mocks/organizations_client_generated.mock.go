@@ -17,10 +17,19 @@ func NewMockOrganizationsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockOrganizationsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockOrganizationsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -76,7 +85,7 @@ type MockOrganizationsClient_AddOrganizationMember_Call struct {
 //   - realm string
 //   - orgID string
 //   - userID string
-func (_e *MockOrganizationsClient_Expecter) AddOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, userID interface{}) *MockOrganizationsClient_AddOrganizationMember_Call {
+func (_e *MockOrganizationsClient_Expecter) AddOrganizationMember(ctx any, realm any, orgID any, userID any) *MockOrganizationsClient_AddOrganizationMember_Call {
 	return &MockOrganizationsClient_AddOrganizationMember_Call{Call: _e.mock.On("AddOrganizationMember", ctx, realm, orgID, userID)}
 }
 
@@ -155,7 +164,7 @@ type MockOrganizationsClient_CreateOrganization_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - org keycloakapi.OrganizationRepresentation
-func (_e *MockOrganizationsClient_Expecter) CreateOrganization(ctx interface{}, realm interface{}, org interface{}) *MockOrganizationsClient_CreateOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) CreateOrganization(ctx any, realm any, org any) *MockOrganizationsClient_CreateOrganization_Call {
 	return &MockOrganizationsClient_CreateOrganization_Call{Call: _e.mock.On("CreateOrganization", ctx, realm, org)}
 }
 
@@ -229,7 +238,7 @@ type MockOrganizationsClient_DeleteOrganization_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - orgID string
-func (_e *MockOrganizationsClient_Expecter) DeleteOrganization(ctx interface{}, realm interface{}, orgID interface{}) *MockOrganizationsClient_DeleteOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) DeleteOrganization(ctx any, realm any, orgID any) *MockOrganizationsClient_DeleteOrganization_Call {
 	return &MockOrganizationsClient_DeleteOrganization_Call{Call: _e.mock.On("DeleteOrganization", ctx, realm, orgID)}
 }
 
@@ -311,7 +320,7 @@ type MockOrganizationsClient_GetOrganization_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - orgID string
-func (_e *MockOrganizationsClient_Expecter) GetOrganization(ctx interface{}, realm interface{}, orgID interface{}) *MockOrganizationsClient_GetOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) GetOrganization(ctx any, realm any, orgID any) *MockOrganizationsClient_GetOrganization_Call {
 	return &MockOrganizationsClient_GetOrganization_Call{Call: _e.mock.On("GetOrganization", ctx, realm, orgID)}
 }
 
@@ -338,8 +347,8 @@ func (_c *MockOrganizationsClient_GetOrganization_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockOrganizationsClient_GetOrganization_Call) Return(v *keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganization_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockOrganizationsClient_GetOrganization_Call) Return(organizationRepresentation *keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganization_Call {
+	_c.Call.Return(organizationRepresentation, response, err)
 	return _c
 }
 
@@ -393,7 +402,7 @@ type MockOrganizationsClient_GetOrganizationByAlias_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - alias string
-func (_e *MockOrganizationsClient_Expecter) GetOrganizationByAlias(ctx interface{}, realm interface{}, alias interface{}) *MockOrganizationsClient_GetOrganizationByAlias_Call {
+func (_e *MockOrganizationsClient_Expecter) GetOrganizationByAlias(ctx any, realm any, alias any) *MockOrganizationsClient_GetOrganizationByAlias_Call {
 	return &MockOrganizationsClient_GetOrganizationByAlias_Call{Call: _e.mock.On("GetOrganizationByAlias", ctx, realm, alias)}
 }
 
@@ -420,8 +429,8 @@ func (_c *MockOrganizationsClient_GetOrganizationByAlias_Call) Run(run func(ctx 
 	return _c
 }
 
-func (_c *MockOrganizationsClient_GetOrganizationByAlias_Call) Return(v *keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationByAlias_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockOrganizationsClient_GetOrganizationByAlias_Call) Return(organizationRepresentation *keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationByAlias_Call {
+	_c.Call.Return(organizationRepresentation, response, err)
 	return _c
 }
 
@@ -475,7 +484,7 @@ type MockOrganizationsClient_GetOrganizationIdentityProviders_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - orgID string
-func (_e *MockOrganizationsClient_Expecter) GetOrganizationIdentityProviders(ctx interface{}, realm interface{}, orgID interface{}) *MockOrganizationsClient_GetOrganizationIdentityProviders_Call {
+func (_e *MockOrganizationsClient_Expecter) GetOrganizationIdentityProviders(ctx any, realm any, orgID any) *MockOrganizationsClient_GetOrganizationIdentityProviders_Call {
 	return &MockOrganizationsClient_GetOrganizationIdentityProviders_Call{Call: _e.mock.On("GetOrganizationIdentityProviders", ctx, realm, orgID)}
 }
 
@@ -502,8 +511,8 @@ func (_c *MockOrganizationsClient_GetOrganizationIdentityProviders_Call) Run(run
 	return _c
 }
 
-func (_c *MockOrganizationsClient_GetOrganizationIdentityProviders_Call) Return(vs []keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationIdentityProviders_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockOrganizationsClient_GetOrganizationIdentityProviders_Call) Return(identityProviderRepresentations []keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationIdentityProviders_Call {
+	_c.Call.Return(identityProviderRepresentations, response, err)
 	return _c
 }
 
@@ -558,7 +567,7 @@ type MockOrganizationsClient_GetOrganizationMembers_Call struct {
 //   - realm string
 //   - orgID string
 //   - params *keycloakapi.GetOrganizationMembersParams
-func (_e *MockOrganizationsClient_Expecter) GetOrganizationMembers(ctx interface{}, realm interface{}, orgID interface{}, params interface{}) *MockOrganizationsClient_GetOrganizationMembers_Call {
+func (_e *MockOrganizationsClient_Expecter) GetOrganizationMembers(ctx any, realm any, orgID any, params any) *MockOrganizationsClient_GetOrganizationMembers_Call {
 	return &MockOrganizationsClient_GetOrganizationMembers_Call{Call: _e.mock.On("GetOrganizationMembers", ctx, realm, orgID, params)}
 }
 
@@ -590,8 +599,8 @@ func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) Run(run func(ctx 
 	return _c
 }
 
-func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) Return(vs []keycloakapi.MemberRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationMembers_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockOrganizationsClient_GetOrganizationMembers_Call) Return(memberRepresentations []keycloakapi.MemberRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizationMembers_Call {
+	_c.Call.Return(memberRepresentations, response, err)
 	return _c
 }
 
@@ -645,7 +654,7 @@ type MockOrganizationsClient_GetOrganizations_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetOrganizationsParams
-func (_e *MockOrganizationsClient_Expecter) GetOrganizations(ctx interface{}, realm interface{}, params interface{}) *MockOrganizationsClient_GetOrganizations_Call {
+func (_e *MockOrganizationsClient_Expecter) GetOrganizations(ctx any, realm any, params any) *MockOrganizationsClient_GetOrganizations_Call {
 	return &MockOrganizationsClient_GetOrganizations_Call{Call: _e.mock.On("GetOrganizations", ctx, realm, params)}
 }
 
@@ -672,8 +681,8 @@ func (_c *MockOrganizationsClient_GetOrganizations_Call) Run(run func(ctx contex
 	return _c
 }
 
-func (_c *MockOrganizationsClient_GetOrganizations_Call) Return(vs []keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizations_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockOrganizationsClient_GetOrganizations_Call) Return(organizationRepresentations []keycloakapi.OrganizationRepresentation, response *keycloakapi.Response, err error) *MockOrganizationsClient_GetOrganizations_Call {
+	_c.Call.Return(organizationRepresentations, response, err)
 	return _c
 }
 
@@ -720,7 +729,7 @@ type MockOrganizationsClient_InviteExistingOrganizationMember_Call struct {
 //   - realm string
 //   - orgID string
 //   - userID string
-func (_e *MockOrganizationsClient_Expecter) InviteExistingOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, userID interface{}) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
+func (_e *MockOrganizationsClient_Expecter) InviteExistingOrganizationMember(ctx any, realm any, orgID any, userID any) *MockOrganizationsClient_InviteExistingOrganizationMember_Call {
 	return &MockOrganizationsClient_InviteExistingOrganizationMember_Call{Call: _e.mock.On("InviteExistingOrganizationMember", ctx, realm, orgID, userID)}
 }
 
@@ -802,7 +811,7 @@ type MockOrganizationsClient_InviteNewOrganizationMember_Call struct {
 //   - email string
 //   - firstName string
 //   - lastName string
-func (_e *MockOrganizationsClient_Expecter) InviteNewOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, email interface{}, firstName interface{}, lastName interface{}) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
+func (_e *MockOrganizationsClient_Expecter) InviteNewOrganizationMember(ctx any, realm any, orgID any, email any, firstName any, lastName any) *MockOrganizationsClient_InviteNewOrganizationMember_Call {
 	return &MockOrganizationsClient_InviteNewOrganizationMember_Call{Call: _e.mock.On("InviteNewOrganizationMember", ctx, realm, orgID, email, firstName, lastName)}
 }
 
@@ -892,7 +901,7 @@ type MockOrganizationsClient_LinkIdentityProviderToOrganization_Call struct {
 //   - realm string
 //   - orgID string
 //   - alias string
-func (_e *MockOrganizationsClient_Expecter) LinkIdentityProviderToOrganization(ctx interface{}, realm interface{}, orgID interface{}, alias interface{}) *MockOrganizationsClient_LinkIdentityProviderToOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) LinkIdentityProviderToOrganization(ctx any, realm any, orgID any, alias any) *MockOrganizationsClient_LinkIdentityProviderToOrganization_Call {
 	return &MockOrganizationsClient_LinkIdentityProviderToOrganization_Call{Call: _e.mock.On("LinkIdentityProviderToOrganization", ctx, realm, orgID, alias)}
 }
 
@@ -972,7 +981,7 @@ type MockOrganizationsClient_RemoveOrganizationMember_Call struct {
 //   - realm string
 //   - orgID string
 //   - memberID string
-func (_e *MockOrganizationsClient_Expecter) RemoveOrganizationMember(ctx interface{}, realm interface{}, orgID interface{}, memberID interface{}) *MockOrganizationsClient_RemoveOrganizationMember_Call {
+func (_e *MockOrganizationsClient_Expecter) RemoveOrganizationMember(ctx any, realm any, orgID any, memberID any) *MockOrganizationsClient_RemoveOrganizationMember_Call {
 	return &MockOrganizationsClient_RemoveOrganizationMember_Call{Call: _e.mock.On("RemoveOrganizationMember", ctx, realm, orgID, memberID)}
 }
 
@@ -1052,7 +1061,7 @@ type MockOrganizationsClient_UnlinkIdentityProviderFromOrganization_Call struct 
 //   - realm string
 //   - orgID string
 //   - alias string
-func (_e *MockOrganizationsClient_Expecter) UnlinkIdentityProviderFromOrganization(ctx interface{}, realm interface{}, orgID interface{}, alias interface{}) *MockOrganizationsClient_UnlinkIdentityProviderFromOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) UnlinkIdentityProviderFromOrganization(ctx any, realm any, orgID any, alias any) *MockOrganizationsClient_UnlinkIdentityProviderFromOrganization_Call {
 	return &MockOrganizationsClient_UnlinkIdentityProviderFromOrganization_Call{Call: _e.mock.On("UnlinkIdentityProviderFromOrganization", ctx, realm, orgID, alias)}
 }
 
@@ -1132,7 +1141,7 @@ type MockOrganizationsClient_UpdateOrganization_Call struct {
 //   - realm string
 //   - orgID string
 //   - org keycloakapi.OrganizationRepresentation
-func (_e *MockOrganizationsClient_Expecter) UpdateOrganization(ctx interface{}, realm interface{}, orgID interface{}, org interface{}) *MockOrganizationsClient_UpdateOrganization_Call {
+func (_e *MockOrganizationsClient_Expecter) UpdateOrganization(ctx any, realm any, orgID any, org any) *MockOrganizationsClient_UpdateOrganization_Call {
 	return &MockOrganizationsClient_UpdateOrganization_Call{Call: _e.mock.On("UpdateOrganization", ctx, realm, orgID, org)}
 }
 

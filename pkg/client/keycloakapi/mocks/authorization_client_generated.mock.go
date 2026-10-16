@@ -17,10 +17,19 @@ func NewMockAuthorizationClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockAuthorizationClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockAuthorizationClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -85,7 +94,7 @@ type MockAuthorizationClient_CreatePermission_Call struct {
 //   - clientUUID string
 //   - permType string
 //   - perm keycloakapi.PolicyRepresentation
-func (_e *MockAuthorizationClient_Expecter) CreatePermission(ctx interface{}, realm interface{}, clientUUID interface{}, permType interface{}, perm interface{}) *MockAuthorizationClient_CreatePermission_Call {
+func (_e *MockAuthorizationClient_Expecter) CreatePermission(ctx any, realm any, clientUUID any, permType any, perm any) *MockAuthorizationClient_CreatePermission_Call {
 	return &MockAuthorizationClient_CreatePermission_Call{Call: _e.mock.On("CreatePermission", ctx, realm, clientUUID, permType, perm)}
 }
 
@@ -122,8 +131,8 @@ func (_c *MockAuthorizationClient_CreatePermission_Call) Run(run func(ctx contex
 	return _c
 }
 
-func (_c *MockAuthorizationClient_CreatePermission_Call) Return(v *keycloakapi.PolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreatePermission_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthorizationClient_CreatePermission_Call) Return(policyRepresentation *keycloakapi.PolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreatePermission_Call {
+	_c.Call.Return(policyRepresentation, response, err)
 	return _c
 }
 
@@ -179,7 +188,7 @@ type MockAuthorizationClient_CreatePolicy_Call struct {
 //   - clientUUID string
 //   - policyType string
 //   - policy any
-func (_e *MockAuthorizationClient_Expecter) CreatePolicy(ctx interface{}, realm interface{}, clientUUID interface{}, policyType interface{}, policy interface{}) *MockAuthorizationClient_CreatePolicy_Call {
+func (_e *MockAuthorizationClient_Expecter) CreatePolicy(ctx any, realm any, clientUUID any, policyType any, policy any) *MockAuthorizationClient_CreatePolicy_Call {
 	return &MockAuthorizationClient_CreatePolicy_Call{Call: _e.mock.On("CreatePolicy", ctx, realm, clientUUID, policyType, policy)}
 }
 
@@ -216,8 +225,8 @@ func (_c *MockAuthorizationClient_CreatePolicy_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockAuthorizationClient_CreatePolicy_Call) Return(v *keycloakapi.PolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreatePolicy_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthorizationClient_CreatePolicy_Call) Return(policyRepresentation *keycloakapi.PolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreatePolicy_Call {
+	_c.Call.Return(policyRepresentation, response, err)
 	return _c
 }
 
@@ -272,7 +281,7 @@ type MockAuthorizationClient_CreateResource_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - resource keycloakapi.ResourceRepresentation
-func (_e *MockAuthorizationClient_Expecter) CreateResource(ctx interface{}, realm interface{}, clientUUID interface{}, resource interface{}) *MockAuthorizationClient_CreateResource_Call {
+func (_e *MockAuthorizationClient_Expecter) CreateResource(ctx any, realm any, clientUUID any, resource any) *MockAuthorizationClient_CreateResource_Call {
 	return &MockAuthorizationClient_CreateResource_Call{Call: _e.mock.On("CreateResource", ctx, realm, clientUUID, resource)}
 }
 
@@ -304,8 +313,8 @@ func (_c *MockAuthorizationClient_CreateResource_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockAuthorizationClient_CreateResource_Call) Return(v *keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreateResource_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthorizationClient_CreateResource_Call) Return(resourceRepresentation *keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_CreateResource_Call {
+	_c.Call.Return(resourceRepresentation, response, err)
 	return _c
 }
 
@@ -352,7 +361,7 @@ type MockAuthorizationClient_CreateScope_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - scope keycloakapi.ScopeRepresentation
-func (_e *MockAuthorizationClient_Expecter) CreateScope(ctx interface{}, realm interface{}, clientUUID interface{}, scope interface{}) *MockAuthorizationClient_CreateScope_Call {
+func (_e *MockAuthorizationClient_Expecter) CreateScope(ctx any, realm any, clientUUID any, scope any) *MockAuthorizationClient_CreateScope_Call {
 	return &MockAuthorizationClient_CreateScope_Call{Call: _e.mock.On("CreateScope", ctx, realm, clientUUID, scope)}
 }
 
@@ -432,7 +441,7 @@ type MockAuthorizationClient_DeletePermission_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - permID string
-func (_e *MockAuthorizationClient_Expecter) DeletePermission(ctx interface{}, realm interface{}, clientUUID interface{}, permID interface{}) *MockAuthorizationClient_DeletePermission_Call {
+func (_e *MockAuthorizationClient_Expecter) DeletePermission(ctx any, realm any, clientUUID any, permID any) *MockAuthorizationClient_DeletePermission_Call {
 	return &MockAuthorizationClient_DeletePermission_Call{Call: _e.mock.On("DeletePermission", ctx, realm, clientUUID, permID)}
 }
 
@@ -512,7 +521,7 @@ type MockAuthorizationClient_DeletePolicy_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - policyID string
-func (_e *MockAuthorizationClient_Expecter) DeletePolicy(ctx interface{}, realm interface{}, clientUUID interface{}, policyID interface{}) *MockAuthorizationClient_DeletePolicy_Call {
+func (_e *MockAuthorizationClient_Expecter) DeletePolicy(ctx any, realm any, clientUUID any, policyID any) *MockAuthorizationClient_DeletePolicy_Call {
 	return &MockAuthorizationClient_DeletePolicy_Call{Call: _e.mock.On("DeletePolicy", ctx, realm, clientUUID, policyID)}
 }
 
@@ -592,7 +601,7 @@ type MockAuthorizationClient_DeleteResource_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - resourceID string
-func (_e *MockAuthorizationClient_Expecter) DeleteResource(ctx interface{}, realm interface{}, clientUUID interface{}, resourceID interface{}) *MockAuthorizationClient_DeleteResource_Call {
+func (_e *MockAuthorizationClient_Expecter) DeleteResource(ctx any, realm any, clientUUID any, resourceID any) *MockAuthorizationClient_DeleteResource_Call {
 	return &MockAuthorizationClient_DeleteResource_Call{Call: _e.mock.On("DeleteResource", ctx, realm, clientUUID, resourceID)}
 }
 
@@ -672,7 +681,7 @@ type MockAuthorizationClient_DeleteScope_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - scopeID string
-func (_e *MockAuthorizationClient_Expecter) DeleteScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockAuthorizationClient_DeleteScope_Call {
+func (_e *MockAuthorizationClient_Expecter) DeleteScope(ctx any, realm any, clientUUID any, scopeID any) *MockAuthorizationClient_DeleteScope_Call {
 	return &MockAuthorizationClient_DeleteScope_Call{Call: _e.mock.On("DeleteScope", ctx, realm, clientUUID, scopeID)}
 }
 
@@ -759,7 +768,7 @@ type MockAuthorizationClient_GetPermissions_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockAuthorizationClient_Expecter) GetPermissions(ctx interface{}, realm interface{}, clientUUID interface{}) *MockAuthorizationClient_GetPermissions_Call {
+func (_e *MockAuthorizationClient_Expecter) GetPermissions(ctx any, realm any, clientUUID any) *MockAuthorizationClient_GetPermissions_Call {
 	return &MockAuthorizationClient_GetPermissions_Call{Call: _e.mock.On("GetPermissions", ctx, realm, clientUUID)}
 }
 
@@ -786,8 +795,8 @@ func (_c *MockAuthorizationClient_GetPermissions_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetPermissions_Call) Return(vs []keycloakapi.AbstractPolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetPermissions_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthorizationClient_GetPermissions_Call) Return(abstractPolicyRepresentations []keycloakapi.AbstractPolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetPermissions_Call {
+	_c.Call.Return(abstractPolicyRepresentations, response, err)
 	return _c
 }
 
@@ -841,7 +850,7 @@ type MockAuthorizationClient_GetPolicies_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockAuthorizationClient_Expecter) GetPolicies(ctx interface{}, realm interface{}, clientUUID interface{}) *MockAuthorizationClient_GetPolicies_Call {
+func (_e *MockAuthorizationClient_Expecter) GetPolicies(ctx any, realm any, clientUUID any) *MockAuthorizationClient_GetPolicies_Call {
 	return &MockAuthorizationClient_GetPolicies_Call{Call: _e.mock.On("GetPolicies", ctx, realm, clientUUID)}
 }
 
@@ -868,8 +877,8 @@ func (_c *MockAuthorizationClient_GetPolicies_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetPolicies_Call) Return(vs []keycloakapi.AbstractPolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetPolicies_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthorizationClient_GetPolicies_Call) Return(abstractPolicyRepresentations []keycloakapi.AbstractPolicyRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetPolicies_Call {
+	_c.Call.Return(abstractPolicyRepresentations, response, err)
 	return _c
 }
 
@@ -917,7 +926,7 @@ type MockAuthorizationClient_GetPolicy_Call struct {
 //   - clientUUID string
 //   - policyType string
 //   - policyID string
-func (_e *MockAuthorizationClient_Expecter) GetPolicy(ctx interface{}, realm interface{}, clientUUID interface{}, policyType interface{}, policyID interface{}) *MockAuthorizationClient_GetPolicy_Call {
+func (_e *MockAuthorizationClient_Expecter) GetPolicy(ctx any, realm any, clientUUID any, policyType any, policyID any) *MockAuthorizationClient_GetPolicy_Call {
 	return &MockAuthorizationClient_GetPolicy_Call{Call: _e.mock.On("GetPolicy", ctx, realm, clientUUID, policyType, policyID)}
 }
 
@@ -1010,7 +1019,7 @@ type MockAuthorizationClient_GetResource_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - resourceID string
-func (_e *MockAuthorizationClient_Expecter) GetResource(ctx interface{}, realm interface{}, clientUUID interface{}, resourceID interface{}) *MockAuthorizationClient_GetResource_Call {
+func (_e *MockAuthorizationClient_Expecter) GetResource(ctx any, realm any, clientUUID any, resourceID any) *MockAuthorizationClient_GetResource_Call {
 	return &MockAuthorizationClient_GetResource_Call{Call: _e.mock.On("GetResource", ctx, realm, clientUUID, resourceID)}
 }
 
@@ -1042,8 +1051,8 @@ func (_c *MockAuthorizationClient_GetResource_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetResource_Call) Return(v *keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetResource_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthorizationClient_GetResource_Call) Return(resourceRepresentation *keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetResource_Call {
+	_c.Call.Return(resourceRepresentation, response, err)
 	return _c
 }
 
@@ -1097,7 +1106,7 @@ type MockAuthorizationClient_GetResources_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockAuthorizationClient_Expecter) GetResources(ctx interface{}, realm interface{}, clientUUID interface{}) *MockAuthorizationClient_GetResources_Call {
+func (_e *MockAuthorizationClient_Expecter) GetResources(ctx any, realm any, clientUUID any) *MockAuthorizationClient_GetResources_Call {
 	return &MockAuthorizationClient_GetResources_Call{Call: _e.mock.On("GetResources", ctx, realm, clientUUID)}
 }
 
@@ -1124,8 +1133,8 @@ func (_c *MockAuthorizationClient_GetResources_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetResources_Call) Return(vs []keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetResources_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthorizationClient_GetResources_Call) Return(resourceRepresentations []keycloakapi.ResourceRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetResources_Call {
+	_c.Call.Return(resourceRepresentations, response, err)
 	return _c
 }
 
@@ -1180,7 +1189,7 @@ type MockAuthorizationClient_GetScope_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - scopeID string
-func (_e *MockAuthorizationClient_Expecter) GetScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockAuthorizationClient_GetScope_Call {
+func (_e *MockAuthorizationClient_Expecter) GetScope(ctx any, realm any, clientUUID any, scopeID any) *MockAuthorizationClient_GetScope_Call {
 	return &MockAuthorizationClient_GetScope_Call{Call: _e.mock.On("GetScope", ctx, realm, clientUUID, scopeID)}
 }
 
@@ -1212,8 +1221,8 @@ func (_c *MockAuthorizationClient_GetScope_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetScope_Call) Return(v *keycloakapi.ScopeRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetScope_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthorizationClient_GetScope_Call) Return(scopeRepresentation *keycloakapi.ScopeRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetScope_Call {
+	_c.Call.Return(scopeRepresentation, response, err)
 	return _c
 }
 
@@ -1267,7 +1276,7 @@ type MockAuthorizationClient_GetScopes_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockAuthorizationClient_Expecter) GetScopes(ctx interface{}, realm interface{}, clientUUID interface{}) *MockAuthorizationClient_GetScopes_Call {
+func (_e *MockAuthorizationClient_Expecter) GetScopes(ctx any, realm any, clientUUID any) *MockAuthorizationClient_GetScopes_Call {
 	return &MockAuthorizationClient_GetScopes_Call{Call: _e.mock.On("GetScopes", ctx, realm, clientUUID)}
 }
 
@@ -1294,8 +1303,8 @@ func (_c *MockAuthorizationClient_GetScopes_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *MockAuthorizationClient_GetScopes_Call) Return(vs []keycloakapi.ScopeRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthorizationClient_GetScopes_Call) Return(scopeRepresentations []keycloakapi.ScopeRepresentation, response *keycloakapi.Response, err error) *MockAuthorizationClient_GetScopes_Call {
+	_c.Call.Return(scopeRepresentations, response, err)
 	return _c
 }
 
@@ -1344,7 +1353,7 @@ type MockAuthorizationClient_UpdatePermission_Call struct {
 //   - permType string
 //   - permID string
 //   - perm keycloakapi.PolicyRepresentation
-func (_e *MockAuthorizationClient_Expecter) UpdatePermission(ctx interface{}, realm interface{}, clientUUID interface{}, permType interface{}, permID interface{}, perm interface{}) *MockAuthorizationClient_UpdatePermission_Call {
+func (_e *MockAuthorizationClient_Expecter) UpdatePermission(ctx any, realm any, clientUUID any, permType any, permID any, perm any) *MockAuthorizationClient_UpdatePermission_Call {
 	return &MockAuthorizationClient_UpdatePermission_Call{Call: _e.mock.On("UpdatePermission", ctx, realm, clientUUID, permType, permID, perm)}
 }
 
@@ -1436,7 +1445,7 @@ type MockAuthorizationClient_UpdatePolicy_Call struct {
 //   - policyType string
 //   - policyID string
 //   - policy any
-func (_e *MockAuthorizationClient_Expecter) UpdatePolicy(ctx interface{}, realm interface{}, clientUUID interface{}, policyType interface{}, policyID interface{}, policy interface{}) *MockAuthorizationClient_UpdatePolicy_Call {
+func (_e *MockAuthorizationClient_Expecter) UpdatePolicy(ctx any, realm any, clientUUID any, policyType any, policyID any, policy any) *MockAuthorizationClient_UpdatePolicy_Call {
 	return &MockAuthorizationClient_UpdatePolicy_Call{Call: _e.mock.On("UpdatePolicy", ctx, realm, clientUUID, policyType, policyID, policy)}
 }
 
@@ -1527,7 +1536,7 @@ type MockAuthorizationClient_UpdateResource_Call struct {
 //   - clientUUID string
 //   - resourceID string
 //   - resource keycloakapi.ResourceRepresentation
-func (_e *MockAuthorizationClient_Expecter) UpdateResource(ctx interface{}, realm interface{}, clientUUID interface{}, resourceID interface{}, resource interface{}) *MockAuthorizationClient_UpdateResource_Call {
+func (_e *MockAuthorizationClient_Expecter) UpdateResource(ctx any, realm any, clientUUID any, resourceID any, resource any) *MockAuthorizationClient_UpdateResource_Call {
 	return &MockAuthorizationClient_UpdateResource_Call{Call: _e.mock.On("UpdateResource", ctx, realm, clientUUID, resourceID, resource)}
 }
 
@@ -1613,7 +1622,7 @@ type MockAuthorizationClient_UpdateScope_Call struct {
 //   - clientUUID string
 //   - scopeID string
 //   - scope keycloakapi.ScopeRepresentation
-func (_e *MockAuthorizationClient_Expecter) UpdateScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}, scope interface{}) *MockAuthorizationClient_UpdateScope_Call {
+func (_e *MockAuthorizationClient_Expecter) UpdateScope(ctx any, realm any, clientUUID any, scopeID any, scope any) *MockAuthorizationClient_UpdateScope_Call {
 	return &MockAuthorizationClient_UpdateScope_Call{Call: _e.mock.On("UpdateScope", ctx, realm, clientUUID, scopeID, scope)}
 }
 

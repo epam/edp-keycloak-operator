@@ -16,10 +16,19 @@ func NewMockRefClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockRefClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockRefClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -78,7 +87,7 @@ type MockRefClient_GetSecretFromRef_Call struct {
 //   - ctx context.Context
 //   - refVal string
 //   - secretNamespace string
-func (_e *MockRefClient_Expecter) GetSecretFromRef(ctx interface{}, refVal interface{}, secretNamespace interface{}) *MockRefClient_GetSecretFromRef_Call {
+func (_e *MockRefClient_Expecter) GetSecretFromRef(ctx any, refVal any, secretNamespace any) *MockRefClient_GetSecretFromRef_Call {
 	return &MockRefClient_GetSecretFromRef_Call{Call: _e.mock.On("GetSecretFromRef", ctx, refVal, secretNamespace)}
 }
 
@@ -153,7 +162,7 @@ type MockRefClient_MapComponentConfigSecretsRefs_Call struct {
 //   - field string
 //   - config map[string][]string
 //   - namespace string
-func (_e *MockRefClient_Expecter) MapComponentConfigSecretsRefs(ctx interface{}, field interface{}, config interface{}, namespace interface{}) *MockRefClient_MapComponentConfigSecretsRefs_Call {
+func (_e *MockRefClient_Expecter) MapComponentConfigSecretsRefs(ctx any, field any, config any, namespace any) *MockRefClient_MapComponentConfigSecretsRefs_Call {
 	return &MockRefClient_MapComponentConfigSecretsRefs_Call{Call: _e.mock.On("MapComponentConfigSecretsRefs", ctx, field, config, namespace)}
 }
 
@@ -233,7 +242,7 @@ type MockRefClient_MapConfigSecretsRefs_Call struct {
 //   - field string
 //   - config map[string]string
 //   - namespace string
-func (_e *MockRefClient_Expecter) MapConfigSecretsRefs(ctx interface{}, field interface{}, config interface{}, namespace interface{}) *MockRefClient_MapConfigSecretsRefs_Call {
+func (_e *MockRefClient_Expecter) MapConfigSecretsRefs(ctx any, field any, config any, namespace any) *MockRefClient_MapConfigSecretsRefs_Call {
 	return &MockRefClient_MapConfigSecretsRefs_Call{Call: _e.mock.On("MapConfigSecretsRefs", ctx, field, config, namespace)}
 }
 

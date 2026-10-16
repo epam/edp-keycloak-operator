@@ -17,10 +17,19 @@ func NewMockAuthFlowsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockAuthFlowsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockAuthFlowsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -76,7 +85,7 @@ type MockAuthFlowsClient_AddChildFlowToFlow_Call struct {
 //   - realm string
 //   - flowAlias string
 //   - body map[string]any
-func (_e *MockAuthFlowsClient_Expecter) AddChildFlowToFlow(ctx interface{}, realm interface{}, flowAlias interface{}, body interface{}) *MockAuthFlowsClient_AddChildFlowToFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) AddChildFlowToFlow(ctx any, realm any, flowAlias any, body any) *MockAuthFlowsClient_AddChildFlowToFlow_Call {
 	return &MockAuthFlowsClient_AddChildFlowToFlow_Call{Call: _e.mock.On("AddChildFlowToFlow", ctx, realm, flowAlias, body)}
 }
 
@@ -155,7 +164,7 @@ type MockAuthFlowsClient_AddExecutionToFlow_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - body keycloakapi.AuthenticationExecutionRepresentation
-func (_e *MockAuthFlowsClient_Expecter) AddExecutionToFlow(ctx interface{}, realm interface{}, body interface{}) *MockAuthFlowsClient_AddExecutionToFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) AddExecutionToFlow(ctx any, realm any, body any) *MockAuthFlowsClient_AddExecutionToFlow_Call {
 	return &MockAuthFlowsClient_AddExecutionToFlow_Call{Call: _e.mock.On("AddExecutionToFlow", ctx, realm, body)}
 }
 
@@ -230,7 +239,7 @@ type MockAuthFlowsClient_CopyAuthFlow_Call struct {
 //   - realm string
 //   - flowAlias string
 //   - newName string
-func (_e *MockAuthFlowsClient_Expecter) CopyAuthFlow(ctx interface{}, realm interface{}, flowAlias interface{}, newName interface{}) *MockAuthFlowsClient_CopyAuthFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) CopyAuthFlow(ctx any, realm any, flowAlias any, newName any) *MockAuthFlowsClient_CopyAuthFlow_Call {
 	return &MockAuthFlowsClient_CopyAuthFlow_Call{Call: _e.mock.On("CopyAuthFlow", ctx, realm, flowAlias, newName)}
 }
 
@@ -309,7 +318,7 @@ type MockAuthFlowsClient_CreateAuthFlow_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - body keycloakapi.AuthFlowRepresentation
-func (_e *MockAuthFlowsClient_Expecter) CreateAuthFlow(ctx interface{}, realm interface{}, body interface{}) *MockAuthFlowsClient_CreateAuthFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) CreateAuthFlow(ctx any, realm any, body any) *MockAuthFlowsClient_CreateAuthFlow_Call {
 	return &MockAuthFlowsClient_CreateAuthFlow_Call{Call: _e.mock.On("CreateAuthFlow", ctx, realm, body)}
 }
 
@@ -384,7 +393,7 @@ type MockAuthFlowsClient_CreateExecutionConfig_Call struct {
 //   - realm string
 //   - executionID string
 //   - body keycloakapi.AuthenticatorConfigRepresentation
-func (_e *MockAuthFlowsClient_Expecter) CreateExecutionConfig(ctx interface{}, realm interface{}, executionID interface{}, body interface{}) *MockAuthFlowsClient_CreateExecutionConfig_Call {
+func (_e *MockAuthFlowsClient_Expecter) CreateExecutionConfig(ctx any, realm any, executionID any, body any) *MockAuthFlowsClient_CreateExecutionConfig_Call {
 	return &MockAuthFlowsClient_CreateExecutionConfig_Call{Call: _e.mock.On("CreateExecutionConfig", ctx, realm, executionID, body)}
 }
 
@@ -463,7 +472,7 @@ type MockAuthFlowsClient_DeleteAuthFlow_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - id string
-func (_e *MockAuthFlowsClient_Expecter) DeleteAuthFlow(ctx interface{}, realm interface{}, id interface{}) *MockAuthFlowsClient_DeleteAuthFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) DeleteAuthFlow(ctx any, realm any, id any) *MockAuthFlowsClient_DeleteAuthFlow_Call {
 	return &MockAuthFlowsClient_DeleteAuthFlow_Call{Call: _e.mock.On("DeleteAuthFlow", ctx, realm, id)}
 }
 
@@ -537,7 +546,7 @@ type MockAuthFlowsClient_DeleteAuthenticatorConfig_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - configID string
-func (_e *MockAuthFlowsClient_Expecter) DeleteAuthenticatorConfig(ctx interface{}, realm interface{}, configID interface{}) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
+func (_e *MockAuthFlowsClient_Expecter) DeleteAuthenticatorConfig(ctx any, realm any, configID any) *MockAuthFlowsClient_DeleteAuthenticatorConfig_Call {
 	return &MockAuthFlowsClient_DeleteAuthenticatorConfig_Call{Call: _e.mock.On("DeleteAuthenticatorConfig", ctx, realm, configID)}
 }
 
@@ -611,7 +620,7 @@ type MockAuthFlowsClient_DeleteExecution_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - executionID string
-func (_e *MockAuthFlowsClient_Expecter) DeleteExecution(ctx interface{}, realm interface{}, executionID interface{}) *MockAuthFlowsClient_DeleteExecution_Call {
+func (_e *MockAuthFlowsClient_Expecter) DeleteExecution(ctx any, realm any, executionID any) *MockAuthFlowsClient_DeleteExecution_Call {
 	return &MockAuthFlowsClient_DeleteExecution_Call{Call: _e.mock.On("DeleteExecution", ctx, realm, executionID)}
 }
 
@@ -693,7 +702,7 @@ type MockAuthFlowsClient_GetAuthFlow_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - flowID string
-func (_e *MockAuthFlowsClient_Expecter) GetAuthFlow(ctx interface{}, realm interface{}, flowID interface{}) *MockAuthFlowsClient_GetAuthFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) GetAuthFlow(ctx any, realm any, flowID any) *MockAuthFlowsClient_GetAuthFlow_Call {
 	return &MockAuthFlowsClient_GetAuthFlow_Call{Call: _e.mock.On("GetAuthFlow", ctx, realm, flowID)}
 }
 
@@ -720,8 +729,8 @@ func (_c *MockAuthFlowsClient_GetAuthFlow_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockAuthFlowsClient_GetAuthFlow_Call) Return(v *keycloakapi.AuthFlowRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthFlow_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthFlowsClient_GetAuthFlow_Call) Return(authFlowRepresentation *keycloakapi.AuthFlowRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthFlow_Call {
+	_c.Call.Return(authFlowRepresentation, response, err)
 	return _c
 }
 
@@ -774,7 +783,7 @@ type MockAuthFlowsClient_GetAuthFlows_Call struct {
 // GetAuthFlows is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockAuthFlowsClient_Expecter) GetAuthFlows(ctx interface{}, realm interface{}) *MockAuthFlowsClient_GetAuthFlows_Call {
+func (_e *MockAuthFlowsClient_Expecter) GetAuthFlows(ctx any, realm any) *MockAuthFlowsClient_GetAuthFlows_Call {
 	return &MockAuthFlowsClient_GetAuthFlows_Call{Call: _e.mock.On("GetAuthFlows", ctx, realm)}
 }
 
@@ -796,8 +805,8 @@ func (_c *MockAuthFlowsClient_GetAuthFlows_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockAuthFlowsClient_GetAuthFlows_Call) Return(vs []keycloakapi.AuthFlowRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthFlows_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthFlowsClient_GetAuthFlows_Call) Return(authFlowRepresentations []keycloakapi.AuthFlowRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthFlows_Call {
+	_c.Call.Return(authFlowRepresentations, response, err)
 	return _c
 }
 
@@ -851,7 +860,7 @@ type MockAuthFlowsClient_GetAuthenticatorConfig_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - configID string
-func (_e *MockAuthFlowsClient_Expecter) GetAuthenticatorConfig(ctx interface{}, realm interface{}, configID interface{}) *MockAuthFlowsClient_GetAuthenticatorConfig_Call {
+func (_e *MockAuthFlowsClient_Expecter) GetAuthenticatorConfig(ctx any, realm any, configID any) *MockAuthFlowsClient_GetAuthenticatorConfig_Call {
 	return &MockAuthFlowsClient_GetAuthenticatorConfig_Call{Call: _e.mock.On("GetAuthenticatorConfig", ctx, realm, configID)}
 }
 
@@ -878,8 +887,8 @@ func (_c *MockAuthFlowsClient_GetAuthenticatorConfig_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockAuthFlowsClient_GetAuthenticatorConfig_Call) Return(v *keycloakapi.AuthenticatorConfigRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthenticatorConfig_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockAuthFlowsClient_GetAuthenticatorConfig_Call) Return(authenticatorConfigRepresentation *keycloakapi.AuthenticatorConfigRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetAuthenticatorConfig_Call {
+	_c.Call.Return(authenticatorConfigRepresentation, response, err)
 	return _c
 }
 
@@ -933,7 +942,7 @@ type MockAuthFlowsClient_GetFlowExecutions_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - flowAlias string
-func (_e *MockAuthFlowsClient_Expecter) GetFlowExecutions(ctx interface{}, realm interface{}, flowAlias interface{}) *MockAuthFlowsClient_GetFlowExecutions_Call {
+func (_e *MockAuthFlowsClient_Expecter) GetFlowExecutions(ctx any, realm any, flowAlias any) *MockAuthFlowsClient_GetFlowExecutions_Call {
 	return &MockAuthFlowsClient_GetFlowExecutions_Call{Call: _e.mock.On("GetFlowExecutions", ctx, realm, flowAlias)}
 }
 
@@ -960,8 +969,8 @@ func (_c *MockAuthFlowsClient_GetFlowExecutions_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockAuthFlowsClient_GetFlowExecutions_Call) Return(vs []keycloakapi.AuthenticationExecutionInfoRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetFlowExecutions_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthFlowsClient_GetFlowExecutions_Call) Return(authenticationExecutionInfoRepresentations []keycloakapi.AuthenticationExecutionInfoRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetFlowExecutions_Call {
+	_c.Call.Return(authenticationExecutionInfoRepresentations, response, err)
 	return _c
 }
 
@@ -1014,7 +1023,7 @@ type MockAuthFlowsClient_GetRequiredActions_Call struct {
 // GetRequiredActions is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockAuthFlowsClient_Expecter) GetRequiredActions(ctx interface{}, realm interface{}) *MockAuthFlowsClient_GetRequiredActions_Call {
+func (_e *MockAuthFlowsClient_Expecter) GetRequiredActions(ctx any, realm any) *MockAuthFlowsClient_GetRequiredActions_Call {
 	return &MockAuthFlowsClient_GetRequiredActions_Call{Call: _e.mock.On("GetRequiredActions", ctx, realm)}
 }
 
@@ -1036,8 +1045,8 @@ func (_c *MockAuthFlowsClient_GetRequiredActions_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockAuthFlowsClient_GetRequiredActions_Call) Return(vs []keycloakapi.RequiredActionProviderRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetRequiredActions_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockAuthFlowsClient_GetRequiredActions_Call) Return(requiredActionProviderRepresentations []keycloakapi.RequiredActionProviderRepresentation, response *keycloakapi.Response, err error) *MockAuthFlowsClient_GetRequiredActions_Call {
+	_c.Call.Return(requiredActionProviderRepresentations, response, err)
 	return _c
 }
 
@@ -1084,7 +1093,7 @@ type MockAuthFlowsClient_UpdateAuthFlow_Call struct {
 //   - realm string
 //   - id string
 //   - body keycloakapi.AuthFlowRepresentation
-func (_e *MockAuthFlowsClient_Expecter) UpdateAuthFlow(ctx interface{}, realm interface{}, id interface{}, body interface{}) *MockAuthFlowsClient_UpdateAuthFlow_Call {
+func (_e *MockAuthFlowsClient_Expecter) UpdateAuthFlow(ctx any, realm any, id any, body any) *MockAuthFlowsClient_UpdateAuthFlow_Call {
 	return &MockAuthFlowsClient_UpdateAuthFlow_Call{Call: _e.mock.On("UpdateAuthFlow", ctx, realm, id, body)}
 }
 
@@ -1164,7 +1173,7 @@ type MockAuthFlowsClient_UpdateAuthenticatorConfig_Call struct {
 //   - realm string
 //   - configID string
 //   - body keycloakapi.AuthenticatorConfigRepresentation
-func (_e *MockAuthFlowsClient_Expecter) UpdateAuthenticatorConfig(ctx interface{}, realm interface{}, configID interface{}, body interface{}) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
+func (_e *MockAuthFlowsClient_Expecter) UpdateAuthenticatorConfig(ctx any, realm any, configID any, body any) *MockAuthFlowsClient_UpdateAuthenticatorConfig_Call {
 	return &MockAuthFlowsClient_UpdateAuthenticatorConfig_Call{Call: _e.mock.On("UpdateAuthenticatorConfig", ctx, realm, configID, body)}
 }
 
@@ -1244,7 +1253,7 @@ type MockAuthFlowsClient_UpdateFlowExecution_Call struct {
 //   - realm string
 //   - flowAlias string
 //   - body keycloakapi.AuthenticationExecutionInfoRepresentation
-func (_e *MockAuthFlowsClient_Expecter) UpdateFlowExecution(ctx interface{}, realm interface{}, flowAlias interface{}, body interface{}) *MockAuthFlowsClient_UpdateFlowExecution_Call {
+func (_e *MockAuthFlowsClient_Expecter) UpdateFlowExecution(ctx any, realm any, flowAlias any, body any) *MockAuthFlowsClient_UpdateFlowExecution_Call {
 	return &MockAuthFlowsClient_UpdateFlowExecution_Call{Call: _e.mock.On("UpdateFlowExecution", ctx, realm, flowAlias, body)}
 }
 
@@ -1324,7 +1333,7 @@ type MockAuthFlowsClient_UpdateRequiredAction_Call struct {
 //   - realm string
 //   - alias string
 //   - action keycloakapi.RequiredActionProviderRepresentation
-func (_e *MockAuthFlowsClient_Expecter) UpdateRequiredAction(ctx interface{}, realm interface{}, alias interface{}, action interface{}) *MockAuthFlowsClient_UpdateRequiredAction_Call {
+func (_e *MockAuthFlowsClient_Expecter) UpdateRequiredAction(ctx any, realm any, alias any, action any) *MockAuthFlowsClient_UpdateRequiredAction_Call {
 	return &MockAuthFlowsClient_UpdateRequiredAction_Call{Call: _e.mock.On("UpdateRequiredAction", ctx, realm, alias, action)}
 }
 

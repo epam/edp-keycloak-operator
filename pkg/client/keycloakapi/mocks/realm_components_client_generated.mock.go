@@ -17,10 +17,19 @@ func NewMockRealmComponentsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockRealmComponentsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockRealmComponentsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -75,7 +84,7 @@ type MockRealmComponentsClient_CreateComponent_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - component keycloakapi.ComponentRepresentation
-func (_e *MockRealmComponentsClient_Expecter) CreateComponent(ctx interface{}, realm interface{}, component interface{}) *MockRealmComponentsClient_CreateComponent_Call {
+func (_e *MockRealmComponentsClient_Expecter) CreateComponent(ctx any, realm any, component any) *MockRealmComponentsClient_CreateComponent_Call {
 	return &MockRealmComponentsClient_CreateComponent_Call{Call: _e.mock.On("CreateComponent", ctx, realm, component)}
 }
 
@@ -149,7 +158,7 @@ type MockRealmComponentsClient_DeleteComponent_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - componentID string
-func (_e *MockRealmComponentsClient_Expecter) DeleteComponent(ctx interface{}, realm interface{}, componentID interface{}) *MockRealmComponentsClient_DeleteComponent_Call {
+func (_e *MockRealmComponentsClient_Expecter) DeleteComponent(ctx any, realm any, componentID any) *MockRealmComponentsClient_DeleteComponent_Call {
 	return &MockRealmComponentsClient_DeleteComponent_Call{Call: _e.mock.On("DeleteComponent", ctx, realm, componentID)}
 }
 
@@ -223,7 +232,7 @@ type MockRealmComponentsClient_FindComponentByName_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - componentName string
-func (_e *MockRealmComponentsClient_Expecter) FindComponentByName(ctx interface{}, realm interface{}, componentName interface{}) *MockRealmComponentsClient_FindComponentByName_Call {
+func (_e *MockRealmComponentsClient_Expecter) FindComponentByName(ctx any, realm any, componentName any) *MockRealmComponentsClient_FindComponentByName_Call {
 	return &MockRealmComponentsClient_FindComponentByName_Call{Call: _e.mock.On("FindComponentByName", ctx, realm, componentName)}
 }
 
@@ -250,8 +259,8 @@ func (_c *MockRealmComponentsClient_FindComponentByName_Call) Run(run func(ctx c
 	return _c
 }
 
-func (_c *MockRealmComponentsClient_FindComponentByName_Call) Return(v *keycloakapi.ComponentRepresentation, err error) *MockRealmComponentsClient_FindComponentByName_Call {
-	_c.Call.Return(v, err)
+func (_c *MockRealmComponentsClient_FindComponentByName_Call) Return(componentRepresentation *keycloakapi.ComponentRepresentation, err error) *MockRealmComponentsClient_FindComponentByName_Call {
+	_c.Call.Return(componentRepresentation, err)
 	return _c
 }
 
@@ -305,7 +314,7 @@ type MockRealmComponentsClient_GetComponent_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - componentID string
-func (_e *MockRealmComponentsClient_Expecter) GetComponent(ctx interface{}, realm interface{}, componentID interface{}) *MockRealmComponentsClient_GetComponent_Call {
+func (_e *MockRealmComponentsClient_Expecter) GetComponent(ctx any, realm any, componentID any) *MockRealmComponentsClient_GetComponent_Call {
 	return &MockRealmComponentsClient_GetComponent_Call{Call: _e.mock.On("GetComponent", ctx, realm, componentID)}
 }
 
@@ -332,8 +341,8 @@ func (_c *MockRealmComponentsClient_GetComponent_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockRealmComponentsClient_GetComponent_Call) Return(v *keycloakapi.ComponentRepresentation, response *keycloakapi.Response, err error) *MockRealmComponentsClient_GetComponent_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockRealmComponentsClient_GetComponent_Call) Return(componentRepresentation *keycloakapi.ComponentRepresentation, response *keycloakapi.Response, err error) *MockRealmComponentsClient_GetComponent_Call {
+	_c.Call.Return(componentRepresentation, response, err)
 	return _c
 }
 
@@ -387,7 +396,7 @@ type MockRealmComponentsClient_GetComponents_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetComponentsParams
-func (_e *MockRealmComponentsClient_Expecter) GetComponents(ctx interface{}, realm interface{}, params interface{}) *MockRealmComponentsClient_GetComponents_Call {
+func (_e *MockRealmComponentsClient_Expecter) GetComponents(ctx any, realm any, params any) *MockRealmComponentsClient_GetComponents_Call {
 	return &MockRealmComponentsClient_GetComponents_Call{Call: _e.mock.On("GetComponents", ctx, realm, params)}
 }
 
@@ -414,8 +423,8 @@ func (_c *MockRealmComponentsClient_GetComponents_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockRealmComponentsClient_GetComponents_Call) Return(vs []keycloakapi.ComponentRepresentation, response *keycloakapi.Response, err error) *MockRealmComponentsClient_GetComponents_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockRealmComponentsClient_GetComponents_Call) Return(componentRepresentations []keycloakapi.ComponentRepresentation, response *keycloakapi.Response, err error) *MockRealmComponentsClient_GetComponents_Call {
+	_c.Call.Return(componentRepresentations, response, err)
 	return _c
 }
 
@@ -462,7 +471,7 @@ type MockRealmComponentsClient_UpdateComponent_Call struct {
 //   - realm string
 //   - componentID string
 //   - component keycloakapi.ComponentRepresentation
-func (_e *MockRealmComponentsClient_Expecter) UpdateComponent(ctx interface{}, realm interface{}, componentID interface{}, component interface{}) *MockRealmComponentsClient_UpdateComponent_Call {
+func (_e *MockRealmComponentsClient_Expecter) UpdateComponent(ctx any, realm any, componentID any, component any) *MockRealmComponentsClient_UpdateComponent_Call {
 	return &MockRealmComponentsClient_UpdateComponent_Call{Call: _e.mock.On("UpdateComponent", ctx, realm, componentID, component)}
 }
 

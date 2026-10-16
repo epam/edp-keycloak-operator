@@ -17,10 +17,19 @@ func NewMockRealmClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockRealmClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockRealmClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -74,7 +83,7 @@ type MockRealmClient_CreateRealm_Call struct {
 // CreateRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realmRep keycloakapi.RealmRepresentation
-func (_e *MockRealmClient_Expecter) CreateRealm(ctx interface{}, realmRep interface{}) *MockRealmClient_CreateRealm_Call {
+func (_e *MockRealmClient_Expecter) CreateRealm(ctx any, realmRep any) *MockRealmClient_CreateRealm_Call {
 	return &MockRealmClient_CreateRealm_Call{Call: _e.mock.On("CreateRealm", ctx, realmRep)}
 }
 
@@ -142,7 +151,7 @@ type MockRealmClient_DeleteRealm_Call struct {
 // DeleteRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockRealmClient_Expecter) DeleteRealm(ctx interface{}, realm interface{}) *MockRealmClient_DeleteRealm_Call {
+func (_e *MockRealmClient_Expecter) DeleteRealm(ctx any, realm any) *MockRealmClient_DeleteRealm_Call {
 	return &MockRealmClient_DeleteRealm_Call{Call: _e.mock.On("DeleteRealm", ctx, realm)}
 }
 
@@ -218,7 +227,7 @@ type MockRealmClient_GetAuthenticationFlows_Call struct {
 // GetAuthenticationFlows is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockRealmClient_Expecter) GetAuthenticationFlows(ctx interface{}, realm interface{}) *MockRealmClient_GetAuthenticationFlows_Call {
+func (_e *MockRealmClient_Expecter) GetAuthenticationFlows(ctx any, realm any) *MockRealmClient_GetAuthenticationFlows_Call {
 	return &MockRealmClient_GetAuthenticationFlows_Call{Call: _e.mock.On("GetAuthenticationFlows", ctx, realm)}
 }
 
@@ -240,8 +249,8 @@ func (_c *MockRealmClient_GetAuthenticationFlows_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockRealmClient_GetAuthenticationFlows_Call) Return(vs []keycloakapi.AuthenticationFlowRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetAuthenticationFlows_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockRealmClient_GetAuthenticationFlows_Call) Return(authenticationFlowRepresentations []keycloakapi.AuthenticationFlowRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetAuthenticationFlows_Call {
+	_c.Call.Return(authenticationFlowRepresentations, response, err)
 	return _c
 }
 
@@ -294,7 +303,7 @@ type MockRealmClient_GetRealm_Call struct {
 // GetRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockRealmClient_Expecter) GetRealm(ctx interface{}, realm interface{}) *MockRealmClient_GetRealm_Call {
+func (_e *MockRealmClient_Expecter) GetRealm(ctx any, realm any) *MockRealmClient_GetRealm_Call {
 	return &MockRealmClient_GetRealm_Call{Call: _e.mock.On("GetRealm", ctx, realm)}
 }
 
@@ -316,8 +325,8 @@ func (_c *MockRealmClient_GetRealm_Call) Run(run func(ctx context.Context, realm
 	return _c
 }
 
-func (_c *MockRealmClient_GetRealm_Call) Return(v *keycloakapi.RealmRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealm_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockRealmClient_GetRealm_Call) Return(realmRepresentation *keycloakapi.RealmRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealm_Call {
+	_c.Call.Return(realmRepresentation, response, err)
 	return _c
 }
 
@@ -370,7 +379,7 @@ type MockRealmClient_GetRealmKeys_Call struct {
 // GetRealmKeys is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockRealmClient_Expecter) GetRealmKeys(ctx interface{}, realm interface{}) *MockRealmClient_GetRealmKeys_Call {
+func (_e *MockRealmClient_Expecter) GetRealmKeys(ctx any, realm any) *MockRealmClient_GetRealmKeys_Call {
 	return &MockRealmClient_GetRealmKeys_Call{Call: _e.mock.On("GetRealmKeys", ctx, realm)}
 }
 
@@ -392,8 +401,8 @@ func (_c *MockRealmClient_GetRealmKeys_Call) Run(run func(ctx context.Context, r
 	return _c
 }
 
-func (_c *MockRealmClient_GetRealmKeys_Call) Return(v *keycloakapi.KeysMetadataRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealmKeys_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockRealmClient_GetRealmKeys_Call) Return(keysMetadataRepresentation *keycloakapi.KeysMetadataRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealmKeys_Call {
+	_c.Call.Return(keysMetadataRepresentation, response, err)
 	return _c
 }
 
@@ -447,7 +456,7 @@ type MockRealmClient_GetRealmLocalization_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - locale string
-func (_e *MockRealmClient_Expecter) GetRealmLocalization(ctx interface{}, realm interface{}, locale interface{}) *MockRealmClient_GetRealmLocalization_Call {
+func (_e *MockRealmClient_Expecter) GetRealmLocalization(ctx any, realm any, locale any) *MockRealmClient_GetRealmLocalization_Call {
 	return &MockRealmClient_GetRealmLocalization_Call{Call: _e.mock.On("GetRealmLocalization", ctx, realm, locale)}
 }
 
@@ -527,7 +536,7 @@ type MockRealmClient_GetRealms_Call struct {
 
 // GetRealms is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockRealmClient_Expecter) GetRealms(ctx interface{}) *MockRealmClient_GetRealms_Call {
+func (_e *MockRealmClient_Expecter) GetRealms(ctx any) *MockRealmClient_GetRealms_Call {
 	return &MockRealmClient_GetRealms_Call{Call: _e.mock.On("GetRealms", ctx)}
 }
 
@@ -544,8 +553,8 @@ func (_c *MockRealmClient_GetRealms_Call) Run(run func(ctx context.Context)) *Mo
 	return _c
 }
 
-func (_c *MockRealmClient_GetRealms_Call) Return(vs []keycloakapi.RealmRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealms_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockRealmClient_GetRealms_Call) Return(realmRepresentations []keycloakapi.RealmRepresentation, response *keycloakapi.Response, err error) *MockRealmClient_GetRealms_Call {
+	_c.Call.Return(realmRepresentations, response, err)
 	return _c
 }
 
@@ -592,7 +601,7 @@ type MockRealmClient_PostRealmLocalization_Call struct {
 //   - realm string
 //   - locale string
 //   - texts map[string]string
-func (_e *MockRealmClient_Expecter) PostRealmLocalization(ctx interface{}, realm interface{}, locale interface{}, texts interface{}) *MockRealmClient_PostRealmLocalization_Call {
+func (_e *MockRealmClient_Expecter) PostRealmLocalization(ctx any, realm any, locale any, texts any) *MockRealmClient_PostRealmLocalization_Call {
 	return &MockRealmClient_PostRealmLocalization_Call{Call: _e.mock.On("PostRealmLocalization", ctx, realm, locale, texts)}
 }
 
@@ -671,7 +680,7 @@ type MockRealmClient_SetRealmBrowserFlow_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - flowAlias string
-func (_e *MockRealmClient_Expecter) SetRealmBrowserFlow(ctx interface{}, realm interface{}, flowAlias interface{}) *MockRealmClient_SetRealmBrowserFlow_Call {
+func (_e *MockRealmClient_Expecter) SetRealmBrowserFlow(ctx any, realm any, flowAlias any) *MockRealmClient_SetRealmBrowserFlow_Call {
 	return &MockRealmClient_SetRealmBrowserFlow_Call{Call: _e.mock.On("SetRealmBrowserFlow", ctx, realm, flowAlias)}
 }
 
@@ -745,7 +754,7 @@ type MockRealmClient_UpdateRealm_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - realmRep keycloakapi.RealmRepresentation
-func (_e *MockRealmClient_Expecter) UpdateRealm(ctx interface{}, realm interface{}, realmRep interface{}) *MockRealmClient_UpdateRealm_Call {
+func (_e *MockRealmClient_Expecter) UpdateRealm(ctx any, realm any, realmRep any) *MockRealmClient_UpdateRealm_Call {
 	return &MockRealmClient_UpdateRealm_Call{Call: _e.mock.On("UpdateRealm", ctx, realm, realmRep)}
 }
 

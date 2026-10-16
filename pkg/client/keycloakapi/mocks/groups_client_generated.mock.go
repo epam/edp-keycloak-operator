@@ -17,10 +17,19 @@ func NewMockGroupsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockGroupsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockGroupsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -77,7 +86,7 @@ type MockGroupsClient_AddClientRoleMappings_Call struct {
 //   - groupID string
 //   - clientID string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockGroupsClient_Expecter) AddClientRoleMappings(ctx interface{}, realm interface{}, groupID interface{}, clientID interface{}, roles interface{}) *MockGroupsClient_AddClientRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) AddClientRoleMappings(ctx any, realm any, groupID any, clientID any, roles any) *MockGroupsClient_AddClientRoleMappings_Call {
 	return &MockGroupsClient_AddClientRoleMappings_Call{Call: _e.mock.On("AddClientRoleMappings", ctx, realm, groupID, clientID, roles)}
 }
 
@@ -162,7 +171,7 @@ type MockGroupsClient_AddRealmRoleMappings_Call struct {
 //   - realm string
 //   - groupID string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockGroupsClient_Expecter) AddRealmRoleMappings(ctx interface{}, realm interface{}, groupID interface{}, roles interface{}) *MockGroupsClient_AddRealmRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) AddRealmRoleMappings(ctx any, realm any, groupID any, roles any) *MockGroupsClient_AddRealmRoleMappings_Call {
 	return &MockGroupsClient_AddRealmRoleMappings_Call{Call: _e.mock.On("AddRealmRoleMappings", ctx, realm, groupID, roles)}
 }
 
@@ -249,7 +258,7 @@ type MockGroupsClient_CountGroups_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.CountGroupsParams
-func (_e *MockGroupsClient_Expecter) CountGroups(ctx interface{}, realm interface{}, params interface{}) *MockGroupsClient_CountGroups_Call {
+func (_e *MockGroupsClient_Expecter) CountGroups(ctx any, realm any, params any) *MockGroupsClient_CountGroups_Call {
 	return &MockGroupsClient_CountGroups_Call{Call: _e.mock.On("CountGroups", ctx, realm, params)}
 }
 
@@ -324,7 +333,7 @@ type MockGroupsClient_CreateChildGroup_Call struct {
 //   - realm string
 //   - parentGroupID string
 //   - group keycloakapi.GroupRepresentation
-func (_e *MockGroupsClient_Expecter) CreateChildGroup(ctx interface{}, realm interface{}, parentGroupID interface{}, group interface{}) *MockGroupsClient_CreateChildGroup_Call {
+func (_e *MockGroupsClient_Expecter) CreateChildGroup(ctx any, realm any, parentGroupID any, group any) *MockGroupsClient_CreateChildGroup_Call {
 	return &MockGroupsClient_CreateChildGroup_Call{Call: _e.mock.On("CreateChildGroup", ctx, realm, parentGroupID, group)}
 }
 
@@ -403,7 +412,7 @@ type MockGroupsClient_CreateGroup_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - group keycloakapi.GroupRepresentation
-func (_e *MockGroupsClient_Expecter) CreateGroup(ctx interface{}, realm interface{}, group interface{}) *MockGroupsClient_CreateGroup_Call {
+func (_e *MockGroupsClient_Expecter) CreateGroup(ctx any, realm any, group any) *MockGroupsClient_CreateGroup_Call {
 	return &MockGroupsClient_CreateGroup_Call{Call: _e.mock.On("CreateGroup", ctx, realm, group)}
 }
 
@@ -479,7 +488,7 @@ type MockGroupsClient_DeleteClientRoleMappings_Call struct {
 //   - groupID string
 //   - clientID string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockGroupsClient_Expecter) DeleteClientRoleMappings(ctx interface{}, realm interface{}, groupID interface{}, clientID interface{}, roles interface{}) *MockGroupsClient_DeleteClientRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) DeleteClientRoleMappings(ctx any, realm any, groupID any, clientID any, roles any) *MockGroupsClient_DeleteClientRoleMappings_Call {
 	return &MockGroupsClient_DeleteClientRoleMappings_Call{Call: _e.mock.On("DeleteClientRoleMappings", ctx, realm, groupID, clientID, roles)}
 }
 
@@ -563,7 +572,7 @@ type MockGroupsClient_DeleteGroup_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupID string
-func (_e *MockGroupsClient_Expecter) DeleteGroup(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_DeleteGroup_Call {
+func (_e *MockGroupsClient_Expecter) DeleteGroup(ctx any, realm any, groupID any) *MockGroupsClient_DeleteGroup_Call {
 	return &MockGroupsClient_DeleteGroup_Call{Call: _e.mock.On("DeleteGroup", ctx, realm, groupID)}
 }
 
@@ -638,7 +647,7 @@ type MockGroupsClient_DeleteRealmRoleMappings_Call struct {
 //   - realm string
 //   - groupID string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockGroupsClient_Expecter) DeleteRealmRoleMappings(ctx interface{}, realm interface{}, groupID interface{}, roles interface{}) *MockGroupsClient_DeleteRealmRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) DeleteRealmRoleMappings(ctx any, realm any, groupID any, roles any) *MockGroupsClient_DeleteRealmRoleMappings_Call {
 	return &MockGroupsClient_DeleteRealmRoleMappings_Call{Call: _e.mock.On("DeleteRealmRoleMappings", ctx, realm, groupID, roles)}
 }
 
@@ -726,7 +735,7 @@ type MockGroupsClient_FindChildGroupByName_Call struct {
 //   - realm string
 //   - parentGroupID string
 //   - groupName string
-func (_e *MockGroupsClient_Expecter) FindChildGroupByName(ctx interface{}, realm interface{}, parentGroupID interface{}, groupName interface{}) *MockGroupsClient_FindChildGroupByName_Call {
+func (_e *MockGroupsClient_Expecter) FindChildGroupByName(ctx any, realm any, parentGroupID any, groupName any) *MockGroupsClient_FindChildGroupByName_Call {
 	return &MockGroupsClient_FindChildGroupByName_Call{Call: _e.mock.On("FindChildGroupByName", ctx, realm, parentGroupID, groupName)}
 }
 
@@ -758,8 +767,8 @@ func (_c *MockGroupsClient_FindChildGroupByName_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockGroupsClient_FindChildGroupByName_Call) Return(v *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_FindChildGroupByName_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_FindChildGroupByName_Call) Return(groupRepresentation *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_FindChildGroupByName_Call {
+	_c.Call.Return(groupRepresentation, response, err)
 	return _c
 }
 
@@ -813,7 +822,7 @@ type MockGroupsClient_FindGroupByName_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupName string
-func (_e *MockGroupsClient_Expecter) FindGroupByName(ctx interface{}, realm interface{}, groupName interface{}) *MockGroupsClient_FindGroupByName_Call {
+func (_e *MockGroupsClient_Expecter) FindGroupByName(ctx any, realm any, groupName any) *MockGroupsClient_FindGroupByName_Call {
 	return &MockGroupsClient_FindGroupByName_Call{Call: _e.mock.On("FindGroupByName", ctx, realm, groupName)}
 }
 
@@ -840,8 +849,8 @@ func (_c *MockGroupsClient_FindGroupByName_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockGroupsClient_FindGroupByName_Call) Return(v *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_FindGroupByName_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_FindGroupByName_Call) Return(groupRepresentation *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_FindGroupByName_Call {
+	_c.Call.Return(groupRepresentation, response, err)
 	return _c
 }
 
@@ -896,7 +905,7 @@ type MockGroupsClient_GetChildGroups_Call struct {
 //   - realm string
 //   - groupID string
 //   - params *keycloakapi.GetChildGroupsParams
-func (_e *MockGroupsClient_Expecter) GetChildGroups(ctx interface{}, realm interface{}, groupID interface{}, params interface{}) *MockGroupsClient_GetChildGroups_Call {
+func (_e *MockGroupsClient_Expecter) GetChildGroups(ctx any, realm any, groupID any, params any) *MockGroupsClient_GetChildGroups_Call {
 	return &MockGroupsClient_GetChildGroups_Call{Call: _e.mock.On("GetChildGroups", ctx, realm, groupID, params)}
 }
 
@@ -928,8 +937,8 @@ func (_c *MockGroupsClient_GetChildGroups_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockGroupsClient_GetChildGroups_Call) Return(vs []keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetChildGroups_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockGroupsClient_GetChildGroups_Call) Return(groupRepresentations []keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetChildGroups_Call {
+	_c.Call.Return(groupRepresentations, response, err)
 	return _c
 }
 
@@ -984,7 +993,7 @@ type MockGroupsClient_GetClientRoleMappings_Call struct {
 //   - realm string
 //   - groupID string
 //   - clientID string
-func (_e *MockGroupsClient_Expecter) GetClientRoleMappings(ctx interface{}, realm interface{}, groupID interface{}, clientID interface{}) *MockGroupsClient_GetClientRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) GetClientRoleMappings(ctx any, realm any, groupID any, clientID any) *MockGroupsClient_GetClientRoleMappings_Call {
 	return &MockGroupsClient_GetClientRoleMappings_Call{Call: _e.mock.On("GetClientRoleMappings", ctx, realm, groupID, clientID)}
 }
 
@@ -1016,8 +1025,8 @@ func (_c *MockGroupsClient_GetClientRoleMappings_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockGroupsClient_GetClientRoleMappings_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetClientRoleMappings_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockGroupsClient_GetClientRoleMappings_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetClientRoleMappings_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -1071,7 +1080,7 @@ type MockGroupsClient_GetGroup_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupID string
-func (_e *MockGroupsClient_Expecter) GetGroup(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_GetGroup_Call {
+func (_e *MockGroupsClient_Expecter) GetGroup(ctx any, realm any, groupID any) *MockGroupsClient_GetGroup_Call {
 	return &MockGroupsClient_GetGroup_Call{Call: _e.mock.On("GetGroup", ctx, realm, groupID)}
 }
 
@@ -1098,8 +1107,8 @@ func (_c *MockGroupsClient_GetGroup_Call) Run(run func(ctx context.Context, real
 	return _c
 }
 
-func (_c *MockGroupsClient_GetGroup_Call) Return(v *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroup_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_GetGroup_Call) Return(groupRepresentation *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroup_Call {
+	_c.Call.Return(groupRepresentation, response, err)
 	return _c
 }
 
@@ -1153,7 +1162,7 @@ type MockGroupsClient_GetGroupByPath_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - path string
-func (_e *MockGroupsClient_Expecter) GetGroupByPath(ctx interface{}, realm interface{}, path interface{}) *MockGroupsClient_GetGroupByPath_Call {
+func (_e *MockGroupsClient_Expecter) GetGroupByPath(ctx any, realm any, path any) *MockGroupsClient_GetGroupByPath_Call {
 	return &MockGroupsClient_GetGroupByPath_Call{Call: _e.mock.On("GetGroupByPath", ctx, realm, path)}
 }
 
@@ -1180,8 +1189,8 @@ func (_c *MockGroupsClient_GetGroupByPath_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockGroupsClient_GetGroupByPath_Call) Return(v *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupByPath_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_GetGroupByPath_Call) Return(groupRepresentation *keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupByPath_Call {
+	_c.Call.Return(groupRepresentation, response, err)
 	return _c
 }
 
@@ -1235,7 +1244,7 @@ type MockGroupsClient_GetGroupManagementPermissions_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupID string
-func (_e *MockGroupsClient_Expecter) GetGroupManagementPermissions(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_GetGroupManagementPermissions_Call {
+func (_e *MockGroupsClient_Expecter) GetGroupManagementPermissions(ctx any, realm any, groupID any) *MockGroupsClient_GetGroupManagementPermissions_Call {
 	return &MockGroupsClient_GetGroupManagementPermissions_Call{Call: _e.mock.On("GetGroupManagementPermissions", ctx, realm, groupID)}
 }
 
@@ -1262,8 +1271,8 @@ func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) Run(run func(ctx 
 	return _c
 }
 
-func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_GetGroupManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
@@ -1318,7 +1327,7 @@ type MockGroupsClient_GetGroupMembers_Call struct {
 //   - realm string
 //   - groupID string
 //   - params *keycloakapi.GetGroupMembersParams
-func (_e *MockGroupsClient_Expecter) GetGroupMembers(ctx interface{}, realm interface{}, groupID interface{}, params interface{}) *MockGroupsClient_GetGroupMembers_Call {
+func (_e *MockGroupsClient_Expecter) GetGroupMembers(ctx any, realm any, groupID any, params any) *MockGroupsClient_GetGroupMembers_Call {
 	return &MockGroupsClient_GetGroupMembers_Call{Call: _e.mock.On("GetGroupMembers", ctx, realm, groupID, params)}
 }
 
@@ -1350,8 +1359,8 @@ func (_c *MockGroupsClient_GetGroupMembers_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockGroupsClient_GetGroupMembers_Call) Return(vs []keycloakapi.UserRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupMembers_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockGroupsClient_GetGroupMembers_Call) Return(userRepresentations []keycloakapi.UserRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroupMembers_Call {
+	_c.Call.Return(userRepresentations, response, err)
 	return _c
 }
 
@@ -1405,7 +1414,7 @@ type MockGroupsClient_GetGroups_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetGroupsParams
-func (_e *MockGroupsClient_Expecter) GetGroups(ctx interface{}, realm interface{}, params interface{}) *MockGroupsClient_GetGroups_Call {
+func (_e *MockGroupsClient_Expecter) GetGroups(ctx any, realm any, params any) *MockGroupsClient_GetGroups_Call {
 	return &MockGroupsClient_GetGroups_Call{Call: _e.mock.On("GetGroups", ctx, realm, params)}
 }
 
@@ -1432,8 +1441,8 @@ func (_c *MockGroupsClient_GetGroups_Call) Run(run func(ctx context.Context, rea
 	return _c
 }
 
-func (_c *MockGroupsClient_GetGroups_Call) Return(vs []keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroups_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockGroupsClient_GetGroups_Call) Return(groupRepresentations []keycloakapi.GroupRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetGroups_Call {
+	_c.Call.Return(groupRepresentations, response, err)
 	return _c
 }
 
@@ -1487,7 +1496,7 @@ type MockGroupsClient_GetRealmRoleMappings_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupID string
-func (_e *MockGroupsClient_Expecter) GetRealmRoleMappings(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_GetRealmRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) GetRealmRoleMappings(ctx any, realm any, groupID any) *MockGroupsClient_GetRealmRoleMappings_Call {
 	return &MockGroupsClient_GetRealmRoleMappings_Call{Call: _e.mock.On("GetRealmRoleMappings", ctx, realm, groupID)}
 }
 
@@ -1514,8 +1523,8 @@ func (_c *MockGroupsClient_GetRealmRoleMappings_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockGroupsClient_GetRealmRoleMappings_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetRealmRoleMappings_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockGroupsClient_GetRealmRoleMappings_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetRealmRoleMappings_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -1569,7 +1578,7 @@ type MockGroupsClient_GetRoleMappings_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - groupID string
-func (_e *MockGroupsClient_Expecter) GetRoleMappings(ctx interface{}, realm interface{}, groupID interface{}) *MockGroupsClient_GetRoleMappings_Call {
+func (_e *MockGroupsClient_Expecter) GetRoleMappings(ctx any, realm any, groupID any) *MockGroupsClient_GetRoleMappings_Call {
 	return &MockGroupsClient_GetRoleMappings_Call{Call: _e.mock.On("GetRoleMappings", ctx, realm, groupID)}
 }
 
@@ -1596,8 +1605,8 @@ func (_c *MockGroupsClient_GetRoleMappings_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockGroupsClient_GetRoleMappings_Call) Return(v *keycloakapi.MappingsRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetRoleMappings_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_GetRoleMappings_Call) Return(mappingsRepresentation *keycloakapi.MappingsRepresentation, response *keycloakapi.Response, err error) *MockGroupsClient_GetRoleMappings_Call {
+	_c.Call.Return(mappingsRepresentation, response, err)
 	return _c
 }
 
@@ -1644,7 +1653,7 @@ type MockGroupsClient_UpdateGroup_Call struct {
 //   - realm string
 //   - groupID string
 //   - group keycloakapi.GroupRepresentation
-func (_e *MockGroupsClient_Expecter) UpdateGroup(ctx interface{}, realm interface{}, groupID interface{}, group interface{}) *MockGroupsClient_UpdateGroup_Call {
+func (_e *MockGroupsClient_Expecter) UpdateGroup(ctx any, realm any, groupID any, group any) *MockGroupsClient_UpdateGroup_Call {
 	return &MockGroupsClient_UpdateGroup_Call{Call: _e.mock.On("UpdateGroup", ctx, realm, groupID, group)}
 }
 
@@ -1732,7 +1741,7 @@ type MockGroupsClient_UpdateGroupManagementPermissions_Call struct {
 //   - realm string
 //   - groupID string
 //   - permissions keycloakapi.ManagementPermissionReference
-func (_e *MockGroupsClient_Expecter) UpdateGroupManagementPermissions(ctx interface{}, realm interface{}, groupID interface{}, permissions interface{}) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
+func (_e *MockGroupsClient_Expecter) UpdateGroupManagementPermissions(ctx any, realm any, groupID any, permissions any) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
 	return &MockGroupsClient_UpdateGroupManagementPermissions_Call{Call: _e.mock.On("UpdateGroupManagementPermissions", ctx, realm, groupID, permissions)}
 }
 
@@ -1764,8 +1773,8 @@ func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) Run(run func(c
 	return _c
 }
 
-func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockGroupsClient_UpdateGroupManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockGroupsClient_UpdateGroupManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
