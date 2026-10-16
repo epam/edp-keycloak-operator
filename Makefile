@@ -191,13 +191,13 @@ install: manifests kustomize ## Install CRDs into the K8s cluster specified in ~
 ##@ Build Dependencies
 
 ## Tool Versions
-KUSTOMIZE_VERSION ?= v5.6.0
-CONTROLLER_TOOLS_VERSION ?= v0.18.0
+KUSTOMIZE_VERSION ?= v5.8.3
+CONTROLLER_TOOLS_VERSION ?= v0.23.0
 ENVTEST_VERSION := $(shell go list -m -f "{{ .Version }}" sigs.k8s.io/controller-runtime | awk -F'[v.]' '{printf "release-%d.%d", $$2, $$3}')
 ENVTEST_K8S_VERSION := $(shell go list -m -f "{{ .Version }}" k8s.io/api | awk -F'[v.]' '{printf "1.%d", $$3}')
-GOLANGCI_LINT_VERSION ?= v2.1.6
-MOCKERY_VERSION ?= v3.6.3
-OAPICODEGEN_VERSION ?= v2.7.2
+GOLANGCI_LINT_VERSION ?= v2.14.0
+MOCKERY_VERSION ?= v3.8.1
+OAPICODEGEN_VERSION ?= v2.8.0
 HELMDOCS_VERSION ?= v1.14.2
 GITCHGLOG_VERSION ?= v0.15.4
 CRDOC_VERSION ?= v0.6.4

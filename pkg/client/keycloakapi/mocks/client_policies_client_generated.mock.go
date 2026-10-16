@@ -17,10 +17,19 @@ func NewMockClientPoliciesClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockClientPoliciesClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockClientPoliciesClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -83,7 +92,7 @@ type MockClientPoliciesClient_GetClientPolicies_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetClientPoliciesParams
-func (_e *MockClientPoliciesClient_Expecter) GetClientPolicies(ctx interface{}, realm interface{}, params interface{}) *MockClientPoliciesClient_GetClientPolicies_Call {
+func (_e *MockClientPoliciesClient_Expecter) GetClientPolicies(ctx any, realm any, params any) *MockClientPoliciesClient_GetClientPolicies_Call {
 	return &MockClientPoliciesClient_GetClientPolicies_Call{Call: _e.mock.On("GetClientPolicies", ctx, realm, params)}
 }
 
@@ -110,8 +119,8 @@ func (_c *MockClientPoliciesClient_GetClientPolicies_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockClientPoliciesClient_GetClientPolicies_Call) Return(v *keycloakapi.ClientPoliciesRepresentation, response *keycloakapi.Response, err error) *MockClientPoliciesClient_GetClientPolicies_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientPoliciesClient_GetClientPolicies_Call) Return(clientPoliciesRepresentation *keycloakapi.ClientPoliciesRepresentation, response *keycloakapi.Response, err error) *MockClientPoliciesClient_GetClientPolicies_Call {
+	_c.Call.Return(clientPoliciesRepresentation, response, err)
 	return _c
 }
 
@@ -165,7 +174,7 @@ type MockClientPoliciesClient_GetClientProfiles_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetClientProfilesParams
-func (_e *MockClientPoliciesClient_Expecter) GetClientProfiles(ctx interface{}, realm interface{}, params interface{}) *MockClientPoliciesClient_GetClientProfiles_Call {
+func (_e *MockClientPoliciesClient_Expecter) GetClientProfiles(ctx any, realm any, params any) *MockClientPoliciesClient_GetClientProfiles_Call {
 	return &MockClientPoliciesClient_GetClientProfiles_Call{Call: _e.mock.On("GetClientProfiles", ctx, realm, params)}
 }
 
@@ -192,8 +201,8 @@ func (_c *MockClientPoliciesClient_GetClientProfiles_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockClientPoliciesClient_GetClientProfiles_Call) Return(v *keycloakapi.ClientProfilesRepresentation, response *keycloakapi.Response, err error) *MockClientPoliciesClient_GetClientProfiles_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientPoliciesClient_GetClientProfiles_Call) Return(clientProfilesRepresentation *keycloakapi.ClientProfilesRepresentation, response *keycloakapi.Response, err error) *MockClientPoliciesClient_GetClientProfiles_Call {
+	_c.Call.Return(clientProfilesRepresentation, response, err)
 	return _c
 }
 
@@ -239,7 +248,7 @@ type MockClientPoliciesClient_UpdateClientPolicies_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - policies keycloakapi.ClientPoliciesRepresentation
-func (_e *MockClientPoliciesClient_Expecter) UpdateClientPolicies(ctx interface{}, realm interface{}, policies interface{}) *MockClientPoliciesClient_UpdateClientPolicies_Call {
+func (_e *MockClientPoliciesClient_Expecter) UpdateClientPolicies(ctx any, realm any, policies any) *MockClientPoliciesClient_UpdateClientPolicies_Call {
 	return &MockClientPoliciesClient_UpdateClientPolicies_Call{Call: _e.mock.On("UpdateClientPolicies", ctx, realm, policies)}
 }
 
@@ -313,7 +322,7 @@ type MockClientPoliciesClient_UpdateClientProfiles_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - profiles keycloakapi.ClientProfilesRepresentation
-func (_e *MockClientPoliciesClient_Expecter) UpdateClientProfiles(ctx interface{}, realm interface{}, profiles interface{}) *MockClientPoliciesClient_UpdateClientProfiles_Call {
+func (_e *MockClientPoliciesClient_Expecter) UpdateClientProfiles(ctx any, realm any, profiles any) *MockClientPoliciesClient_UpdateClientProfiles_Call {
 	return &MockClientPoliciesClient_UpdateClientProfiles_Call{Call: _e.mock.On("UpdateClientProfiles", ctx, realm, profiles)}
 }
 

@@ -17,10 +17,19 @@ func NewMockClientsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockClientsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockClientsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -77,7 +86,7 @@ type MockClientsClient_AddClientRoleComposites_Call struct {
 //   - clientUUID string
 //   - roleName string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockClientsClient_Expecter) AddClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}, roles interface{}) *MockClientsClient_AddClientRoleComposites_Call {
+func (_e *MockClientsClient_Expecter) AddClientRoleComposites(ctx any, realm any, clientUUID any, roleName any, roles any) *MockClientsClient_AddClientRoleComposites_Call {
 	return &MockClientsClient_AddClientRoleComposites_Call{Call: _e.mock.On("AddClientRoleComposites", ctx, realm, clientUUID, roleName, roles)}
 }
 
@@ -162,7 +171,7 @@ type MockClientsClient_AddDefaultClientScope_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - scopeID string
-func (_e *MockClientsClient_Expecter) AddDefaultClientScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockClientsClient_AddDefaultClientScope_Call {
+func (_e *MockClientsClient_Expecter) AddDefaultClientScope(ctx any, realm any, clientUUID any, scopeID any) *MockClientsClient_AddDefaultClientScope_Call {
 	return &MockClientsClient_AddDefaultClientScope_Call{Call: _e.mock.On("AddDefaultClientScope", ctx, realm, clientUUID, scopeID)}
 }
 
@@ -242,7 +251,7 @@ type MockClientsClient_AddOptionalClientScope_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - scopeID string
-func (_e *MockClientsClient_Expecter) AddOptionalClientScope(ctx interface{}, realm interface{}, clientUUID interface{}, scopeID interface{}) *MockClientsClient_AddOptionalClientScope_Call {
+func (_e *MockClientsClient_Expecter) AddOptionalClientScope(ctx any, realm any, clientUUID any, scopeID any) *MockClientsClient_AddOptionalClientScope_Call {
 	return &MockClientsClient_AddOptionalClientScope_Call{Call: _e.mock.On("AddOptionalClientScope", ctx, realm, clientUUID, scopeID)}
 }
 
@@ -321,7 +330,7 @@ type MockClientsClient_CreateClient_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - client keycloakapi.ClientRepresentation
-func (_e *MockClientsClient_Expecter) CreateClient(ctx interface{}, realm interface{}, client interface{}) *MockClientsClient_CreateClient_Call {
+func (_e *MockClientsClient_Expecter) CreateClient(ctx any, realm any, client any) *MockClientsClient_CreateClient_Call {
 	return &MockClientsClient_CreateClient_Call{Call: _e.mock.On("CreateClient", ctx, realm, client)}
 }
 
@@ -396,7 +405,7 @@ type MockClientsClient_CreateClientProtocolMapper_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - mapper keycloakapi.ProtocolMapperRepresentation
-func (_e *MockClientsClient_Expecter) CreateClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapper interface{}) *MockClientsClient_CreateClientProtocolMapper_Call {
+func (_e *MockClientsClient_Expecter) CreateClientProtocolMapper(ctx any, realm any, clientUUID any, mapper any) *MockClientsClient_CreateClientProtocolMapper_Call {
 	return &MockClientsClient_CreateClientProtocolMapper_Call{Call: _e.mock.On("CreateClientProtocolMapper", ctx, realm, clientUUID, mapper)}
 }
 
@@ -476,7 +485,7 @@ type MockClientsClient_CreateClientRole_Call struct {
 //   - realm string
 //   - clientID string
 //   - role keycloakapi.RoleRepresentation
-func (_e *MockClientsClient_Expecter) CreateClientRole(ctx interface{}, realm interface{}, clientID interface{}, role interface{}) *MockClientsClient_CreateClientRole_Call {
+func (_e *MockClientsClient_Expecter) CreateClientRole(ctx any, realm any, clientID any, role any) *MockClientsClient_CreateClientRole_Call {
 	return &MockClientsClient_CreateClientRole_Call{Call: _e.mock.On("CreateClientRole", ctx, realm, clientID, role)}
 }
 
@@ -555,7 +564,7 @@ type MockClientsClient_DeleteClient_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) DeleteClient(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_DeleteClient_Call {
+func (_e *MockClientsClient_Expecter) DeleteClient(ctx any, realm any, clientUUID any) *MockClientsClient_DeleteClient_Call {
 	return &MockClientsClient_DeleteClient_Call{Call: _e.mock.On("DeleteClient", ctx, realm, clientUUID)}
 }
 
@@ -630,7 +639,7 @@ type MockClientsClient_DeleteClientProtocolMapper_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - mapperID string
-func (_e *MockClientsClient_Expecter) DeleteClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapperID interface{}) *MockClientsClient_DeleteClientProtocolMapper_Call {
+func (_e *MockClientsClient_Expecter) DeleteClientProtocolMapper(ctx any, realm any, clientUUID any, mapperID any) *MockClientsClient_DeleteClientProtocolMapper_Call {
 	return &MockClientsClient_DeleteClientProtocolMapper_Call{Call: _e.mock.On("DeleteClientProtocolMapper", ctx, realm, clientUUID, mapperID)}
 }
 
@@ -710,7 +719,7 @@ type MockClientsClient_DeleteClientRole_Call struct {
 //   - realm string
 //   - clientID string
 //   - roleName string
-func (_e *MockClientsClient_Expecter) DeleteClientRole(ctx interface{}, realm interface{}, clientID interface{}, roleName interface{}) *MockClientsClient_DeleteClientRole_Call {
+func (_e *MockClientsClient_Expecter) DeleteClientRole(ctx any, realm any, clientID any, roleName any) *MockClientsClient_DeleteClientRole_Call {
 	return &MockClientsClient_DeleteClientRole_Call{Call: _e.mock.On("DeleteClientRole", ctx, realm, clientID, roleName)}
 }
 
@@ -791,7 +800,7 @@ type MockClientsClient_DeleteClientRoleComposites_Call struct {
 //   - clientUUID string
 //   - roleName string
 //   - roles []keycloakapi.RoleRepresentation
-func (_e *MockClientsClient_Expecter) DeleteClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}, roles interface{}) *MockClientsClient_DeleteClientRoleComposites_Call {
+func (_e *MockClientsClient_Expecter) DeleteClientRoleComposites(ctx any, realm any, clientUUID any, roleName any, roles any) *MockClientsClient_DeleteClientRoleComposites_Call {
 	return &MockClientsClient_DeleteClientRoleComposites_Call{Call: _e.mock.On("DeleteClientRoleComposites", ctx, realm, clientUUID, roleName, roles)}
 }
 
@@ -883,7 +892,7 @@ type MockClientsClient_GetClient_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetClient(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClient_Call {
+func (_e *MockClientsClient_Expecter) GetClient(ctx any, realm any, clientUUID any) *MockClientsClient_GetClient_Call {
 	return &MockClientsClient_GetClient_Call{Call: _e.mock.On("GetClient", ctx, realm, clientUUID)}
 }
 
@@ -910,8 +919,8 @@ func (_c *MockClientsClient_GetClient_Call) Run(run func(ctx context.Context, re
 	return _c
 }
 
-func (_c *MockClientsClient_GetClient_Call) Return(v *keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClient_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetClient_Call) Return(clientRepresentation *keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClient_Call {
+	_c.Call.Return(clientRepresentation, response, err)
 	return _c
 }
 
@@ -965,7 +974,7 @@ type MockClientsClient_GetClientByClientID_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientID string
-func (_e *MockClientsClient_Expecter) GetClientByClientID(ctx interface{}, realm interface{}, clientID interface{}) *MockClientsClient_GetClientByClientID_Call {
+func (_e *MockClientsClient_Expecter) GetClientByClientID(ctx any, realm any, clientID any) *MockClientsClient_GetClientByClientID_Call {
 	return &MockClientsClient_GetClientByClientID_Call{Call: _e.mock.On("GetClientByClientID", ctx, realm, clientID)}
 }
 
@@ -992,8 +1001,8 @@ func (_c *MockClientsClient_GetClientByClientID_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientByClientID_Call) Return(v *keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientByClientID_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetClientByClientID_Call) Return(clientRepresentation *keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientByClientID_Call {
+	_c.Call.Return(clientRepresentation, response, err)
 	return _c
 }
 
@@ -1048,7 +1057,7 @@ type MockClientsClient_GetClientInstallationProvider_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - providerID string
-func (_e *MockClientsClient_Expecter) GetClientInstallationProvider(ctx interface{}, realm interface{}, clientUUID interface{}, providerID interface{}) *MockClientsClient_GetClientInstallationProvider_Call {
+func (_e *MockClientsClient_Expecter) GetClientInstallationProvider(ctx any, realm any, clientUUID any, providerID any) *MockClientsClient_GetClientInstallationProvider_Call {
 	return &MockClientsClient_GetClientInstallationProvider_Call{Call: _e.mock.On("GetClientInstallationProvider", ctx, realm, clientUUID, providerID)}
 }
 
@@ -1135,7 +1144,7 @@ type MockClientsClient_GetClientManagementPermissions_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetClientManagementPermissions(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClientManagementPermissions_Call {
+func (_e *MockClientsClient_Expecter) GetClientManagementPermissions(ctx any, realm any, clientUUID any) *MockClientsClient_GetClientManagementPermissions_Call {
 	return &MockClientsClient_GetClientManagementPermissions_Call{Call: _e.mock.On("GetClientManagementPermissions", ctx, realm, clientUUID)}
 }
 
@@ -1162,8 +1171,8 @@ func (_c *MockClientsClient_GetClientManagementPermissions_Call) Run(run func(ct
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockClientsClient_GetClientManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetClientManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockClientsClient_GetClientManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
@@ -1217,7 +1226,7 @@ type MockClientsClient_GetClientProtocolMappers_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetClientProtocolMappers(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClientProtocolMappers_Call {
+func (_e *MockClientsClient_Expecter) GetClientProtocolMappers(ctx any, realm any, clientUUID any) *MockClientsClient_GetClientProtocolMappers_Call {
 	return &MockClientsClient_GetClientProtocolMappers_Call{Call: _e.mock.On("GetClientProtocolMappers", ctx, realm, clientUUID)}
 }
 
@@ -1244,8 +1253,8 @@ func (_c *MockClientsClient_GetClientProtocolMappers_Call) Run(run func(ctx cont
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientProtocolMappers_Call) Return(vs []keycloakapi.ProtocolMapperRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientProtocolMappers_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetClientProtocolMappers_Call) Return(protocolMapperRepresentations []keycloakapi.ProtocolMapperRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientProtocolMappers_Call {
+	_c.Call.Return(protocolMapperRepresentations, response, err)
 	return _c
 }
 
@@ -1300,7 +1309,7 @@ type MockClientsClient_GetClientRole_Call struct {
 //   - realm string
 //   - clientID string
 //   - roleName string
-func (_e *MockClientsClient_Expecter) GetClientRole(ctx interface{}, realm interface{}, clientID interface{}, roleName interface{}) *MockClientsClient_GetClientRole_Call {
+func (_e *MockClientsClient_Expecter) GetClientRole(ctx any, realm any, clientID any, roleName any) *MockClientsClient_GetClientRole_Call {
 	return &MockClientsClient_GetClientRole_Call{Call: _e.mock.On("GetClientRole", ctx, realm, clientID, roleName)}
 }
 
@@ -1332,8 +1341,8 @@ func (_c *MockClientsClient_GetClientRole_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientRole_Call) Return(v *keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRole_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetClientRole_Call) Return(roleRepresentation *keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRole_Call {
+	_c.Call.Return(roleRepresentation, response, err)
 	return _c
 }
 
@@ -1388,7 +1397,7 @@ type MockClientsClient_GetClientRoleComposites_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - roleName string
-func (_e *MockClientsClient_Expecter) GetClientRoleComposites(ctx interface{}, realm interface{}, clientUUID interface{}, roleName interface{}) *MockClientsClient_GetClientRoleComposites_Call {
+func (_e *MockClientsClient_Expecter) GetClientRoleComposites(ctx any, realm any, clientUUID any, roleName any) *MockClientsClient_GetClientRoleComposites_Call {
 	return &MockClientsClient_GetClientRoleComposites_Call{Call: _e.mock.On("GetClientRoleComposites", ctx, realm, clientUUID, roleName)}
 }
 
@@ -1420,8 +1429,8 @@ func (_c *MockClientsClient_GetClientRoleComposites_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientRoleComposites_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRoleComposites_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetClientRoleComposites_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRoleComposites_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -1476,7 +1485,7 @@ type MockClientsClient_GetClientRoles_Call struct {
 //   - realm string
 //   - clientID string
 //   - params *keycloakapi.GetClientRolesParams
-func (_e *MockClientsClient_Expecter) GetClientRoles(ctx interface{}, realm interface{}, clientID interface{}, params interface{}) *MockClientsClient_GetClientRoles_Call {
+func (_e *MockClientsClient_Expecter) GetClientRoles(ctx any, realm any, clientID any, params any) *MockClientsClient_GetClientRoles_Call {
 	return &MockClientsClient_GetClientRoles_Call{Call: _e.mock.On("GetClientRoles", ctx, realm, clientID, params)}
 }
 
@@ -1508,8 +1517,8 @@ func (_c *MockClientsClient_GetClientRoles_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientRoles_Call) Return(vs []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRoles_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetClientRoles_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientRoles_Call {
+	_c.Call.Return(roleRepresentations, response, err)
 	return _c
 }
 
@@ -1563,7 +1572,7 @@ type MockClientsClient_GetClientSecret_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetClientSecret(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetClientSecret_Call {
+func (_e *MockClientsClient_Expecter) GetClientSecret(ctx any, realm any, clientUUID any) *MockClientsClient_GetClientSecret_Call {
 	return &MockClientsClient_GetClientSecret_Call{Call: _e.mock.On("GetClientSecret", ctx, realm, clientUUID)}
 }
 
@@ -1590,8 +1599,8 @@ func (_c *MockClientsClient_GetClientSecret_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientSecret_Call) Return(v *keycloakapi.CredentialRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientSecret_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetClientSecret_Call) Return(credentialRepresentation *keycloakapi.CredentialRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientSecret_Call {
+	_c.Call.Return(credentialRepresentation, response, err)
 	return _c
 }
 
@@ -1646,7 +1655,7 @@ type MockClientsClient_GetClientSessions_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - params *keycloakapi.GetClientSessionsParams
-func (_e *MockClientsClient_Expecter) GetClientSessions(ctx interface{}, realm interface{}, clientUUID interface{}, params interface{}) *MockClientsClient_GetClientSessions_Call {
+func (_e *MockClientsClient_Expecter) GetClientSessions(ctx any, realm any, clientUUID any, params any) *MockClientsClient_GetClientSessions_Call {
 	return &MockClientsClient_GetClientSessions_Call{Call: _e.mock.On("GetClientSessions", ctx, realm, clientUUID, params)}
 }
 
@@ -1678,8 +1687,8 @@ func (_c *MockClientsClient_GetClientSessions_Call) Run(run func(ctx context.Con
 	return _c
 }
 
-func (_c *MockClientsClient_GetClientSessions_Call) Return(vs []keycloakapi.UserSessionRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientSessions_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetClientSessions_Call) Return(userSessionRepresentations []keycloakapi.UserSessionRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientSessions_Call {
+	_c.Call.Return(userSessionRepresentations, response, err)
 	return _c
 }
 
@@ -1723,7 +1732,7 @@ type MockClientsClient_GetClientUUID_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientID string
-func (_e *MockClientsClient_Expecter) GetClientUUID(ctx interface{}, realm interface{}, clientID interface{}) *MockClientsClient_GetClientUUID_Call {
+func (_e *MockClientsClient_Expecter) GetClientUUID(ctx any, realm any, clientID any) *MockClientsClient_GetClientUUID_Call {
 	return &MockClientsClient_GetClientUUID_Call{Call: _e.mock.On("GetClientUUID", ctx, realm, clientID)}
 }
 
@@ -1805,7 +1814,7 @@ type MockClientsClient_GetClients_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetClientsParams
-func (_e *MockClientsClient_Expecter) GetClients(ctx interface{}, realm interface{}, params interface{}) *MockClientsClient_GetClients_Call {
+func (_e *MockClientsClient_Expecter) GetClients(ctx any, realm any, params any) *MockClientsClient_GetClients_Call {
 	return &MockClientsClient_GetClients_Call{Call: _e.mock.On("GetClients", ctx, realm, params)}
 }
 
@@ -1832,8 +1841,8 @@ func (_c *MockClientsClient_GetClients_Call) Run(run func(ctx context.Context, r
 	return _c
 }
 
-func (_c *MockClientsClient_GetClients_Call) Return(vs []keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClients_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetClients_Call) Return(clientRepresentations []keycloakapi.ClientRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClients_Call {
+	_c.Call.Return(clientRepresentations, response, err)
 	return _c
 }
 
@@ -1887,7 +1896,7 @@ type MockClientsClient_GetDefaultClientScopes_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetDefaultClientScopes(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetDefaultClientScopes_Call {
+func (_e *MockClientsClient_Expecter) GetDefaultClientScopes(ctx any, realm any, clientUUID any) *MockClientsClient_GetDefaultClientScopes_Call {
 	return &MockClientsClient_GetDefaultClientScopes_Call{Call: _e.mock.On("GetDefaultClientScopes", ctx, realm, clientUUID)}
 }
 
@@ -1914,8 +1923,8 @@ func (_c *MockClientsClient_GetDefaultClientScopes_Call) Run(run func(ctx contex
 	return _c
 }
 
-func (_c *MockClientsClient_GetDefaultClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetDefaultClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetDefaultClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetDefaultClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -1969,7 +1978,7 @@ type MockClientsClient_GetOptionalClientScopes_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetOptionalClientScopes(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetOptionalClientScopes_Call {
+func (_e *MockClientsClient_Expecter) GetOptionalClientScopes(ctx any, realm any, clientUUID any) *MockClientsClient_GetOptionalClientScopes_Call {
 	return &MockClientsClient_GetOptionalClientScopes_Call{Call: _e.mock.On("GetOptionalClientScopes", ctx, realm, clientUUID)}
 }
 
@@ -1996,8 +2005,8 @@ func (_c *MockClientsClient_GetOptionalClientScopes_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockClientsClient_GetOptionalClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetOptionalClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetOptionalClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetOptionalClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -2050,7 +2059,7 @@ type MockClientsClient_GetRealmClientScopes_Call struct {
 // GetRealmClientScopes is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockClientsClient_Expecter) GetRealmClientScopes(ctx interface{}, realm interface{}) *MockClientsClient_GetRealmClientScopes_Call {
+func (_e *MockClientsClient_Expecter) GetRealmClientScopes(ctx any, realm any) *MockClientsClient_GetRealmClientScopes_Call {
 	return &MockClientsClient_GetRealmClientScopes_Call{Call: _e.mock.On("GetRealmClientScopes", ctx, realm)}
 }
 
@@ -2072,8 +2081,8 @@ func (_c *MockClientsClient_GetRealmClientScopes_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockClientsClient_GetRealmClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetRealmClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientsClient_GetRealmClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetRealmClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -2127,7 +2136,7 @@ type MockClientsClient_GetServiceAccountUser_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) GetServiceAccountUser(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_GetServiceAccountUser_Call {
+func (_e *MockClientsClient_Expecter) GetServiceAccountUser(ctx any, realm any, clientUUID any) *MockClientsClient_GetServiceAccountUser_Call {
 	return &MockClientsClient_GetServiceAccountUser_Call{Call: _e.mock.On("GetServiceAccountUser", ctx, realm, clientUUID)}
 }
 
@@ -2154,8 +2163,8 @@ func (_c *MockClientsClient_GetServiceAccountUser_Call) Run(run func(ctx context
 	return _c
 }
 
-func (_c *MockClientsClient_GetServiceAccountUser_Call) Return(v *keycloakapi.UserRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetServiceAccountUser_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_GetServiceAccountUser_Call) Return(userRepresentation *keycloakapi.UserRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetServiceAccountUser_Call {
+	_c.Call.Return(userRepresentation, response, err)
 	return _c
 }
 
@@ -2209,7 +2218,7 @@ type MockClientsClient_RegenerateClientSecret_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - clientUUID string
-func (_e *MockClientsClient_Expecter) RegenerateClientSecret(ctx interface{}, realm interface{}, clientUUID interface{}) *MockClientsClient_RegenerateClientSecret_Call {
+func (_e *MockClientsClient_Expecter) RegenerateClientSecret(ctx any, realm any, clientUUID any) *MockClientsClient_RegenerateClientSecret_Call {
 	return &MockClientsClient_RegenerateClientSecret_Call{Call: _e.mock.On("RegenerateClientSecret", ctx, realm, clientUUID)}
 }
 
@@ -2236,8 +2245,8 @@ func (_c *MockClientsClient_RegenerateClientSecret_Call) Run(run func(ctx contex
 	return _c
 }
 
-func (_c *MockClientsClient_RegenerateClientSecret_Call) Return(v *keycloakapi.CredentialRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_RegenerateClientSecret_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_RegenerateClientSecret_Call) Return(credentialRepresentation *keycloakapi.CredentialRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_RegenerateClientSecret_Call {
+	_c.Call.Return(credentialRepresentation, response, err)
 	return _c
 }
 
@@ -2284,7 +2293,7 @@ type MockClientsClient_UpdateClient_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - client keycloakapi.ClientRepresentation
-func (_e *MockClientsClient_Expecter) UpdateClient(ctx interface{}, realm interface{}, clientUUID interface{}, client interface{}) *MockClientsClient_UpdateClient_Call {
+func (_e *MockClientsClient_Expecter) UpdateClient(ctx any, realm any, clientUUID any, client any) *MockClientsClient_UpdateClient_Call {
 	return &MockClientsClient_UpdateClient_Call{Call: _e.mock.On("UpdateClient", ctx, realm, clientUUID, client)}
 }
 
@@ -2372,7 +2381,7 @@ type MockClientsClient_UpdateClientManagementPermissions_Call struct {
 //   - realm string
 //   - clientUUID string
 //   - permissions keycloakapi.ManagementPermissionReference
-func (_e *MockClientsClient_Expecter) UpdateClientManagementPermissions(ctx interface{}, realm interface{}, clientUUID interface{}, permissions interface{}) *MockClientsClient_UpdateClientManagementPermissions_Call {
+func (_e *MockClientsClient_Expecter) UpdateClientManagementPermissions(ctx any, realm any, clientUUID any, permissions any) *MockClientsClient_UpdateClientManagementPermissions_Call {
 	return &MockClientsClient_UpdateClientManagementPermissions_Call{Call: _e.mock.On("UpdateClientManagementPermissions", ctx, realm, clientUUID, permissions)}
 }
 
@@ -2404,8 +2413,8 @@ func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) Run(run func
 	return _c
 }
 
-func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockClientsClient_UpdateClientManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientsClient_UpdateClientManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockClientsClient_UpdateClientManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
@@ -2453,7 +2462,7 @@ type MockClientsClient_UpdateClientProtocolMapper_Call struct {
 //   - clientUUID string
 //   - mapperID string
 //   - mapper keycloakapi.ProtocolMapperRepresentation
-func (_e *MockClientsClient_Expecter) UpdateClientProtocolMapper(ctx interface{}, realm interface{}, clientUUID interface{}, mapperID interface{}, mapper interface{}) *MockClientsClient_UpdateClientProtocolMapper_Call {
+func (_e *MockClientsClient_Expecter) UpdateClientProtocolMapper(ctx any, realm any, clientUUID any, mapperID any, mapper any) *MockClientsClient_UpdateClientProtocolMapper_Call {
 	return &MockClientsClient_UpdateClientProtocolMapper_Call{Call: _e.mock.On("UpdateClientProtocolMapper", ctx, realm, clientUUID, mapperID, mapper)}
 }
 
@@ -2539,7 +2548,7 @@ type MockClientsClient_UpdateClientRole_Call struct {
 //   - clientID string
 //   - roleName string
 //   - role keycloakapi.RoleRepresentation
-func (_e *MockClientsClient_Expecter) UpdateClientRole(ctx interface{}, realm interface{}, clientID interface{}, roleName interface{}, role interface{}) *MockClientsClient_UpdateClientRole_Call {
+func (_e *MockClientsClient_Expecter) UpdateClientRole(ctx any, realm any, clientID any, roleName any, role any) *MockClientsClient_UpdateClientRole_Call {
 	return &MockClientsClient_UpdateClientRole_Call{Call: _e.mock.On("UpdateClientRole", ctx, realm, clientID, roleName, role)}
 }
 

@@ -17,10 +17,19 @@ func NewMockServerInfoClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockServerInfoClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockServerInfoClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -72,7 +81,7 @@ type MockServerInfoClient_FeatureFlagEnabled_Call struct {
 // FeatureFlagEnabled is a helper method to define mock.On call
 //   - ctx context.Context
 //   - featureFlag string
-func (_e *MockServerInfoClient_Expecter) FeatureFlagEnabled(ctx interface{}, featureFlag interface{}) *MockServerInfoClient_FeatureFlagEnabled_Call {
+func (_e *MockServerInfoClient_Expecter) FeatureFlagEnabled(ctx any, featureFlag any) *MockServerInfoClient_FeatureFlagEnabled_Call {
 	return &MockServerInfoClient_FeatureFlagEnabled_Call{Call: _e.mock.On("FeatureFlagEnabled", ctx, featureFlag)}
 }
 
@@ -139,7 +148,7 @@ type MockServerInfoClient_GetServerInfo_Call struct {
 
 // GetServerInfo is a helper method to define mock.On call
 //   - ctx context.Context
-func (_e *MockServerInfoClient_Expecter) GetServerInfo(ctx interface{}) *MockServerInfoClient_GetServerInfo_Call {
+func (_e *MockServerInfoClient_Expecter) GetServerInfo(ctx any) *MockServerInfoClient_GetServerInfo_Call {
 	return &MockServerInfoClient_GetServerInfo_Call{Call: _e.mock.On("GetServerInfo", ctx)}
 }
 

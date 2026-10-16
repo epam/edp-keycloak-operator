@@ -17,10 +17,19 @@ func NewMockClientScopesClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockClientScopesClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockClientScopesClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -75,7 +84,7 @@ type MockClientScopesClient_AddRealmDefaultClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) AddRealmDefaultClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_AddRealmDefaultClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) AddRealmDefaultClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_AddRealmDefaultClientScope_Call {
 	return &MockClientScopesClient_AddRealmDefaultClientScope_Call{Call: _e.mock.On("AddRealmDefaultClientScope", ctx, realm, scopeID)}
 }
 
@@ -149,7 +158,7 @@ type MockClientScopesClient_AddRealmOptionalClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) AddRealmOptionalClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_AddRealmOptionalClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) AddRealmOptionalClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_AddRealmOptionalClientScope_Call {
 	return &MockClientScopesClient_AddRealmOptionalClientScope_Call{Call: _e.mock.On("AddRealmOptionalClientScope", ctx, realm, scopeID)}
 }
 
@@ -223,7 +232,7 @@ type MockClientScopesClient_CreateClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scope keycloakapi.ClientScopeRepresentation
-func (_e *MockClientScopesClient_Expecter) CreateClientScope(ctx interface{}, realm interface{}, scope interface{}) *MockClientScopesClient_CreateClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) CreateClientScope(ctx any, realm any, scope any) *MockClientScopesClient_CreateClientScope_Call {
 	return &MockClientScopesClient_CreateClientScope_Call{Call: _e.mock.On("CreateClientScope", ctx, realm, scope)}
 }
 
@@ -298,7 +307,7 @@ type MockClientScopesClient_CreateClientScopeProtocolMapper_Call struct {
 //   - realm string
 //   - scopeID string
 //   - mapper keycloakapi.ProtocolMapperRepresentation
-func (_e *MockClientScopesClient_Expecter) CreateClientScopeProtocolMapper(ctx interface{}, realm interface{}, scopeID interface{}, mapper interface{}) *MockClientScopesClient_CreateClientScopeProtocolMapper_Call {
+func (_e *MockClientScopesClient_Expecter) CreateClientScopeProtocolMapper(ctx any, realm any, scopeID any, mapper any) *MockClientScopesClient_CreateClientScopeProtocolMapper_Call {
 	return &MockClientScopesClient_CreateClientScopeProtocolMapper_Call{Call: _e.mock.On("CreateClientScopeProtocolMapper", ctx, realm, scopeID, mapper)}
 }
 
@@ -377,7 +386,7 @@ type MockClientScopesClient_DeleteClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) DeleteClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_DeleteClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) DeleteClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_DeleteClientScope_Call {
 	return &MockClientScopesClient_DeleteClientScope_Call{Call: _e.mock.On("DeleteClientScope", ctx, realm, scopeID)}
 }
 
@@ -452,7 +461,7 @@ type MockClientScopesClient_DeleteClientScopeProtocolMapper_Call struct {
 //   - realm string
 //   - scopeID string
 //   - mapperID string
-func (_e *MockClientScopesClient_Expecter) DeleteClientScopeProtocolMapper(ctx interface{}, realm interface{}, scopeID interface{}, mapperID interface{}) *MockClientScopesClient_DeleteClientScopeProtocolMapper_Call {
+func (_e *MockClientScopesClient_Expecter) DeleteClientScopeProtocolMapper(ctx any, realm any, scopeID any, mapperID any) *MockClientScopesClient_DeleteClientScopeProtocolMapper_Call {
 	return &MockClientScopesClient_DeleteClientScopeProtocolMapper_Call{Call: _e.mock.On("DeleteClientScopeProtocolMapper", ctx, realm, scopeID, mapperID)}
 }
 
@@ -539,7 +548,7 @@ type MockClientScopesClient_GetClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) GetClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_GetClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) GetClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_GetClientScope_Call {
 	return &MockClientScopesClient_GetClientScope_Call{Call: _e.mock.On("GetClientScope", ctx, realm, scopeID)}
 }
 
@@ -566,8 +575,8 @@ func (_c *MockClientScopesClient_GetClientScope_Call) Run(run func(ctx context.C
 	return _c
 }
 
-func (_c *MockClientScopesClient_GetClientScope_Call) Return(v *keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScope_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockClientScopesClient_GetClientScope_Call) Return(clientScopeRepresentation *keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScope_Call {
+	_c.Call.Return(clientScopeRepresentation, response, err)
 	return _c
 }
 
@@ -621,7 +630,7 @@ type MockClientScopesClient_GetClientScopeProtocolMappers_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) GetClientScopeProtocolMappers(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_GetClientScopeProtocolMappers_Call {
+func (_e *MockClientScopesClient_Expecter) GetClientScopeProtocolMappers(ctx any, realm any, scopeID any) *MockClientScopesClient_GetClientScopeProtocolMappers_Call {
 	return &MockClientScopesClient_GetClientScopeProtocolMappers_Call{Call: _e.mock.On("GetClientScopeProtocolMappers", ctx, realm, scopeID)}
 }
 
@@ -648,8 +657,8 @@ func (_c *MockClientScopesClient_GetClientScopeProtocolMappers_Call) Run(run fun
 	return _c
 }
 
-func (_c *MockClientScopesClient_GetClientScopeProtocolMappers_Call) Return(vs []keycloakapi.ProtocolMapperRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScopeProtocolMappers_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientScopesClient_GetClientScopeProtocolMappers_Call) Return(protocolMapperRepresentations []keycloakapi.ProtocolMapperRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScopeProtocolMappers_Call {
+	_c.Call.Return(protocolMapperRepresentations, response, err)
 	return _c
 }
 
@@ -702,7 +711,7 @@ type MockClientScopesClient_GetClientScopes_Call struct {
 // GetClientScopes is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockClientScopesClient_Expecter) GetClientScopes(ctx interface{}, realm interface{}) *MockClientScopesClient_GetClientScopes_Call {
+func (_e *MockClientScopesClient_Expecter) GetClientScopes(ctx any, realm any) *MockClientScopesClient_GetClientScopes_Call {
 	return &MockClientScopesClient_GetClientScopes_Call{Call: _e.mock.On("GetClientScopes", ctx, realm)}
 }
 
@@ -724,8 +733,8 @@ func (_c *MockClientScopesClient_GetClientScopes_Call) Run(run func(ctx context.
 	return _c
 }
 
-func (_c *MockClientScopesClient_GetClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientScopesClient_GetClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -778,7 +787,7 @@ type MockClientScopesClient_GetRealmDefaultClientScopes_Call struct {
 // GetRealmDefaultClientScopes is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockClientScopesClient_Expecter) GetRealmDefaultClientScopes(ctx interface{}, realm interface{}) *MockClientScopesClient_GetRealmDefaultClientScopes_Call {
+func (_e *MockClientScopesClient_Expecter) GetRealmDefaultClientScopes(ctx any, realm any) *MockClientScopesClient_GetRealmDefaultClientScopes_Call {
 	return &MockClientScopesClient_GetRealmDefaultClientScopes_Call{Call: _e.mock.On("GetRealmDefaultClientScopes", ctx, realm)}
 }
 
@@ -800,8 +809,8 @@ func (_c *MockClientScopesClient_GetRealmDefaultClientScopes_Call) Run(run func(
 	return _c
 }
 
-func (_c *MockClientScopesClient_GetRealmDefaultClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetRealmDefaultClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientScopesClient_GetRealmDefaultClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetRealmDefaultClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -854,7 +863,7 @@ type MockClientScopesClient_GetRealmOptionalClientScopes_Call struct {
 // GetRealmOptionalClientScopes is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockClientScopesClient_Expecter) GetRealmOptionalClientScopes(ctx interface{}, realm interface{}) *MockClientScopesClient_GetRealmOptionalClientScopes_Call {
+func (_e *MockClientScopesClient_Expecter) GetRealmOptionalClientScopes(ctx any, realm any) *MockClientScopesClient_GetRealmOptionalClientScopes_Call {
 	return &MockClientScopesClient_GetRealmOptionalClientScopes_Call{Call: _e.mock.On("GetRealmOptionalClientScopes", ctx, realm)}
 }
 
@@ -876,8 +885,8 @@ func (_c *MockClientScopesClient_GetRealmOptionalClientScopes_Call) Run(run func
 	return _c
 }
 
-func (_c *MockClientScopesClient_GetRealmOptionalClientScopes_Call) Return(vs []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetRealmOptionalClientScopes_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockClientScopesClient_GetRealmOptionalClientScopes_Call) Return(clientScopeRepresentations []keycloakapi.ClientScopeRepresentation, response *keycloakapi.Response, err error) *MockClientScopesClient_GetRealmOptionalClientScopes_Call {
+	_c.Call.Return(clientScopeRepresentations, response, err)
 	return _c
 }
 
@@ -923,7 +932,7 @@ type MockClientScopesClient_RemoveRealmDefaultClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) RemoveRealmDefaultClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_RemoveRealmDefaultClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) RemoveRealmDefaultClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_RemoveRealmDefaultClientScope_Call {
 	return &MockClientScopesClient_RemoveRealmDefaultClientScope_Call{Call: _e.mock.On("RemoveRealmDefaultClientScope", ctx, realm, scopeID)}
 }
 
@@ -997,7 +1006,7 @@ type MockClientScopesClient_RemoveRealmOptionalClientScope_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - scopeID string
-func (_e *MockClientScopesClient_Expecter) RemoveRealmOptionalClientScope(ctx interface{}, realm interface{}, scopeID interface{}) *MockClientScopesClient_RemoveRealmOptionalClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) RemoveRealmOptionalClientScope(ctx any, realm any, scopeID any) *MockClientScopesClient_RemoveRealmOptionalClientScope_Call {
 	return &MockClientScopesClient_RemoveRealmOptionalClientScope_Call{Call: _e.mock.On("RemoveRealmOptionalClientScope", ctx, realm, scopeID)}
 }
 
@@ -1072,7 +1081,7 @@ type MockClientScopesClient_UpdateClientScope_Call struct {
 //   - realm string
 //   - scopeID string
 //   - scope keycloakapi.ClientScopeRepresentation
-func (_e *MockClientScopesClient_Expecter) UpdateClientScope(ctx interface{}, realm interface{}, scopeID interface{}, scope interface{}) *MockClientScopesClient_UpdateClientScope_Call {
+func (_e *MockClientScopesClient_Expecter) UpdateClientScope(ctx any, realm any, scopeID any, scope any) *MockClientScopesClient_UpdateClientScope_Call {
 	return &MockClientScopesClient_UpdateClientScope_Call{Call: _e.mock.On("UpdateClientScope", ctx, realm, scopeID, scope)}
 }
 
@@ -1153,7 +1162,7 @@ type MockClientScopesClient_UpdateClientScopeProtocolMapper_Call struct {
 //   - scopeID string
 //   - mapperID string
 //   - mapper keycloakapi.ProtocolMapperRepresentation
-func (_e *MockClientScopesClient_Expecter) UpdateClientScopeProtocolMapper(ctx interface{}, realm interface{}, scopeID interface{}, mapperID interface{}, mapper interface{}) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
+func (_e *MockClientScopesClient_Expecter) UpdateClientScopeProtocolMapper(ctx any, realm any, scopeID any, mapperID any, mapper any) *MockClientScopesClient_UpdateClientScopeProtocolMapper_Call {
 	return &MockClientScopesClient_UpdateClientScopeProtocolMapper_Call{Call: _e.mock.On("UpdateClientScopeProtocolMapper", ctx, realm, scopeID, mapperID, mapper)}
 }
 

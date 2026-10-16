@@ -22,10 +22,19 @@ func NewMockControllerHelper(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockControllerHelper {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockControllerHelper{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -79,7 +88,7 @@ type MockControllerHelper_CreateKeycloakClientFromClusterKeycloak_Call struct {
 // CreateKeycloakClientFromClusterKeycloak is a helper method to define mock.On call
 //   - ctx context.Context
 //   - clusterKeycloak *v1alpha1.ClusterKeycloak
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromClusterKeycloak(ctx interface{}, clusterKeycloak interface{}) *MockControllerHelper_CreateKeycloakClientFromClusterKeycloak_Call {
+func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromClusterKeycloak(ctx any, clusterKeycloak any) *MockControllerHelper_CreateKeycloakClientFromClusterKeycloak_Call {
 	return &MockControllerHelper_CreateKeycloakClientFromClusterKeycloak_Call{Call: _e.mock.On("CreateKeycloakClientFromClusterKeycloak", ctx, clusterKeycloak)}
 }
 
@@ -147,7 +156,7 @@ type MockControllerHelper_CreateKeycloakClientFromClusterRealm_Call struct {
 // CreateKeycloakClientFromClusterRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm *v1alpha1.ClusterKeycloakRealm
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromClusterRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakClientFromClusterRealm_Call {
+func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromClusterRealm(ctx any, realm any) *MockControllerHelper_CreateKeycloakClientFromClusterRealm_Call {
 	return &MockControllerHelper_CreateKeycloakClientFromClusterRealm_Call{Call: _e.mock.On("CreateKeycloakClientFromClusterRealm", ctx, realm)}
 }
 
@@ -215,7 +224,7 @@ type MockControllerHelper_CreateKeycloakClientFromKeycloak_Call struct {
 // CreateKeycloakClientFromKeycloak is a helper method to define mock.On call
 //   - ctx context.Context
 //   - kc *v1.Keycloak
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromKeycloak(ctx interface{}, kc interface{}) *MockControllerHelper_CreateKeycloakClientFromKeycloak_Call {
+func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromKeycloak(ctx any, kc any) *MockControllerHelper_CreateKeycloakClientFromKeycloak_Call {
 	return &MockControllerHelper_CreateKeycloakClientFromKeycloak_Call{Call: _e.mock.On("CreateKeycloakClientFromKeycloak", ctx, kc)}
 }
 
@@ -283,7 +292,7 @@ type MockControllerHelper_CreateKeycloakClientFromRealm_Call struct {
 // CreateKeycloakClientFromRealm is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm *v1.KeycloakRealm
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromRealm(ctx interface{}, realm interface{}) *MockControllerHelper_CreateKeycloakClientFromRealm_Call {
+func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromRealm(ctx any, realm any) *MockControllerHelper_CreateKeycloakClientFromRealm_Call {
 	return &MockControllerHelper_CreateKeycloakClientFromRealm_Call{Call: _e.mock.On("CreateKeycloakClientFromRealm", ctx, realm)}
 }
 
@@ -351,7 +360,7 @@ type MockControllerHelper_CreateKeycloakClientFromRealmRef_Call struct {
 // CreateKeycloakClientFromRealmRef is a helper method to define mock.On call
 //   - ctx context.Context
 //   - object helper.ObjectWithRealmRef
-func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromRealmRef(ctx interface{}, object interface{}) *MockControllerHelper_CreateKeycloakClientFromRealmRef_Call {
+func (_e *MockControllerHelper_Expecter) CreateKeycloakClientFromRealmRef(ctx any, object any) *MockControllerHelper_CreateKeycloakClientFromRealmRef_Call {
 	return &MockControllerHelper_CreateKeycloakClientFromRealmRef_Call{Call: _e.mock.On("CreateKeycloakClientFromRealmRef", ctx, object)}
 }
 
@@ -417,7 +426,7 @@ type MockControllerHelper_GetRealmNameFromRef_Call struct {
 // GetRealmNameFromRef is a helper method to define mock.On call
 //   - ctx context.Context
 //   - object helper.ObjectWithRealmRef
-func (_e *MockControllerHelper_Expecter) GetRealmNameFromRef(ctx interface{}, object interface{}) *MockControllerHelper_GetRealmNameFromRef_Call {
+func (_e *MockControllerHelper_Expecter) GetRealmNameFromRef(ctx any, object any) *MockControllerHelper_GetRealmNameFromRef_Call {
 	return &MockControllerHelper_GetRealmNameFromRef_Call{Call: _e.mock.On("GetRealmNameFromRef", ctx, object)}
 }
 
@@ -473,7 +482,7 @@ type MockControllerHelper_SetFailureCount_Call struct {
 
 // SetFailureCount is a helper method to define mock.On call
 //   - fc helper.FailureCountable
-func (_e *MockControllerHelper_Expecter) SetFailureCount(fc interface{}) *MockControllerHelper_SetFailureCount_Call {
+func (_e *MockControllerHelper_Expecter) SetFailureCount(fc any) *MockControllerHelper_SetFailureCount_Call {
 	return &MockControllerHelper_SetFailureCount_Call{Call: _e.mock.On("SetFailureCount", fc)}
 }
 
@@ -525,7 +534,7 @@ type MockControllerHelper_SetKeycloakOwnerRef_Call struct {
 // SetKeycloakOwnerRef is a helper method to define mock.On call
 //   - ctx context.Context
 //   - object helper.ObjectWithKeycloakRef
-func (_e *MockControllerHelper_Expecter) SetKeycloakOwnerRef(ctx interface{}, object interface{}) *MockControllerHelper_SetKeycloakOwnerRef_Call {
+func (_e *MockControllerHelper_Expecter) SetKeycloakOwnerRef(ctx any, object any) *MockControllerHelper_SetKeycloakOwnerRef_Call {
 	return &MockControllerHelper_SetKeycloakOwnerRef_Call{Call: _e.mock.On("SetKeycloakOwnerRef", ctx, object)}
 }
 
@@ -582,7 +591,7 @@ type MockControllerHelper_SetRealmOwnerRef_Call struct {
 // SetRealmOwnerRef is a helper method to define mock.On call
 //   - ctx context.Context
 //   - object helper.ObjectWithRealmRef
-func (_e *MockControllerHelper_Expecter) SetRealmOwnerRef(ctx interface{}, object interface{}) *MockControllerHelper_SetRealmOwnerRef_Call {
+func (_e *MockControllerHelper_Expecter) SetRealmOwnerRef(ctx any, object any) *MockControllerHelper_SetRealmOwnerRef_Call {
 	return &MockControllerHelper_SetRealmOwnerRef_Call{Call: _e.mock.On("SetRealmOwnerRef", ctx, object)}
 }
 
@@ -640,7 +649,7 @@ type MockControllerHelper_TryRemoveFinalizer_Call struct {
 //   - ctx context.Context
 //   - obj client.Object
 //   - finalizer string
-func (_e *MockControllerHelper_Expecter) TryRemoveFinalizer(ctx interface{}, obj interface{}, finalizer interface{}) *MockControllerHelper_TryRemoveFinalizer_Call {
+func (_e *MockControllerHelper_Expecter) TryRemoveFinalizer(ctx any, obj any, finalizer any) *MockControllerHelper_TryRemoveFinalizer_Call {
 	return &MockControllerHelper_TryRemoveFinalizer_Call{Call: _e.mock.On("TryRemoveFinalizer", ctx, obj, finalizer)}
 }
 
@@ -713,7 +722,7 @@ type MockControllerHelper_TryToDelete_Call struct {
 //   - obj client.Object
 //   - terminator helper.Terminator
 //   - finalizer string
-func (_e *MockControllerHelper_Expecter) TryToDelete(ctx interface{}, obj interface{}, terminator interface{}, finalizer interface{}) *MockControllerHelper_TryToDelete_Call {
+func (_e *MockControllerHelper_Expecter) TryToDelete(ctx any, obj any, terminator any, finalizer any) *MockControllerHelper_TryToDelete_Call {
 	return &MockControllerHelper_TryToDelete_Call{Call: _e.mock.On("TryToDelete", ctx, obj, terminator, finalizer)}
 }
 

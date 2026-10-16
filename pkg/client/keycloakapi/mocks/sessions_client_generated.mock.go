@@ -17,10 +17,19 @@ func NewMockSessionsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockSessionsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockSessionsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -82,7 +91,7 @@ type MockSessionsClient_GetRealmSessionStats_Call struct {
 // GetRealmSessionStats is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockSessionsClient_Expecter) GetRealmSessionStats(ctx interface{}, realm interface{}) *MockSessionsClient_GetRealmSessionStats_Call {
+func (_e *MockSessionsClient_Expecter) GetRealmSessionStats(ctx any, realm any) *MockSessionsClient_GetRealmSessionStats_Call {
 	return &MockSessionsClient_GetRealmSessionStats_Call{Call: _e.mock.On("GetRealmSessionStats", ctx, realm)}
 }
 
@@ -150,7 +159,7 @@ type MockSessionsClient_LogoutAllSessions_Call struct {
 // LogoutAllSessions is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockSessionsClient_Expecter) LogoutAllSessions(ctx interface{}, realm interface{}) *MockSessionsClient_LogoutAllSessions_Call {
+func (_e *MockSessionsClient_Expecter) LogoutAllSessions(ctx any, realm any) *MockSessionsClient_LogoutAllSessions_Call {
 	return &MockSessionsClient_LogoutAllSessions_Call{Call: _e.mock.On("LogoutAllSessions", ctx, realm)}
 }
 

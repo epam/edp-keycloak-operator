@@ -17,10 +17,19 @@ func NewMockEventsClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockEventsClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockEventsClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -74,7 +83,7 @@ type MockEventsClient_ClearAllBruteForce_Call struct {
 // ClearAllBruteForce is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockEventsClient_Expecter) ClearAllBruteForce(ctx interface{}, realm interface{}) *MockEventsClient_ClearAllBruteForce_Call {
+func (_e *MockEventsClient_Expecter) ClearAllBruteForce(ctx any, realm any) *MockEventsClient_ClearAllBruteForce_Call {
 	return &MockEventsClient_ClearAllBruteForce_Call{Call: _e.mock.On("ClearAllBruteForce", ctx, realm)}
 }
 
@@ -143,7 +152,7 @@ type MockEventsClient_ClearBruteForceForUser_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - userID string
-func (_e *MockEventsClient_Expecter) ClearBruteForceForUser(ctx interface{}, realm interface{}, userID interface{}) *MockEventsClient_ClearBruteForceForUser_Call {
+func (_e *MockEventsClient_Expecter) ClearBruteForceForUser(ctx any, realm any, userID any) *MockEventsClient_ClearBruteForceForUser_Call {
 	return &MockEventsClient_ClearBruteForceForUser_Call{Call: _e.mock.On("ClearBruteForceForUser", ctx, realm, userID)}
 }
 
@@ -216,7 +225,7 @@ type MockEventsClient_DeleteAdminEvents_Call struct {
 // DeleteAdminEvents is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockEventsClient_Expecter) DeleteAdminEvents(ctx interface{}, realm interface{}) *MockEventsClient_DeleteAdminEvents_Call {
+func (_e *MockEventsClient_Expecter) DeleteAdminEvents(ctx any, realm any) *MockEventsClient_DeleteAdminEvents_Call {
 	return &MockEventsClient_DeleteAdminEvents_Call{Call: _e.mock.On("DeleteAdminEvents", ctx, realm)}
 }
 
@@ -284,7 +293,7 @@ type MockEventsClient_DeleteEvents_Call struct {
 // DeleteEvents is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockEventsClient_Expecter) DeleteEvents(ctx interface{}, realm interface{}) *MockEventsClient_DeleteEvents_Call {
+func (_e *MockEventsClient_Expecter) DeleteEvents(ctx any, realm any) *MockEventsClient_DeleteEvents_Call {
 	return &MockEventsClient_DeleteEvents_Call{Call: _e.mock.On("DeleteEvents", ctx, realm)}
 }
 
@@ -361,7 +370,7 @@ type MockEventsClient_GetAdminEvents_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetAdminEventsParams
-func (_e *MockEventsClient_Expecter) GetAdminEvents(ctx interface{}, realm interface{}, params interface{}) *MockEventsClient_GetAdminEvents_Call {
+func (_e *MockEventsClient_Expecter) GetAdminEvents(ctx any, realm any, params any) *MockEventsClient_GetAdminEvents_Call {
 	return &MockEventsClient_GetAdminEvents_Call{Call: _e.mock.On("GetAdminEvents", ctx, realm, params)}
 }
 
@@ -388,8 +397,8 @@ func (_c *MockEventsClient_GetAdminEvents_Call) Run(run func(ctx context.Context
 	return _c
 }
 
-func (_c *MockEventsClient_GetAdminEvents_Call) Return(vs []keycloakapi.AdminEventRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetAdminEvents_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockEventsClient_GetAdminEvents_Call) Return(adminEventRepresentations []keycloakapi.AdminEventRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetAdminEvents_Call {
+	_c.Call.Return(adminEventRepresentations, response, err)
 	return _c
 }
 
@@ -443,7 +452,7 @@ type MockEventsClient_GetBruteForceStatus_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - userID string
-func (_e *MockEventsClient_Expecter) GetBruteForceStatus(ctx interface{}, realm interface{}, userID interface{}) *MockEventsClient_GetBruteForceStatus_Call {
+func (_e *MockEventsClient_Expecter) GetBruteForceStatus(ctx any, realm any, userID any) *MockEventsClient_GetBruteForceStatus_Call {
 	return &MockEventsClient_GetBruteForceStatus_Call{Call: _e.mock.On("GetBruteForceStatus", ctx, realm, userID)}
 }
 
@@ -470,8 +479,8 @@ func (_c *MockEventsClient_GetBruteForceStatus_Call) Run(run func(ctx context.Co
 	return _c
 }
 
-func (_c *MockEventsClient_GetBruteForceStatus_Call) Return(stringToV map[string]any, response *keycloakapi.Response, err error) *MockEventsClient_GetBruteForceStatus_Call {
-	_c.Call.Return(stringToV, response, err)
+func (_c *MockEventsClient_GetBruteForceStatus_Call) Return(stringToAnyMoqParam map[string]any, response *keycloakapi.Response, err error) *MockEventsClient_GetBruteForceStatus_Call {
+	_c.Call.Return(stringToAnyMoqParam, response, err)
 	return _c
 }
 
@@ -525,7 +534,7 @@ type MockEventsClient_GetEvents_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - params *keycloakapi.GetEventsParams
-func (_e *MockEventsClient_Expecter) GetEvents(ctx interface{}, realm interface{}, params interface{}) *MockEventsClient_GetEvents_Call {
+func (_e *MockEventsClient_Expecter) GetEvents(ctx any, realm any, params any) *MockEventsClient_GetEvents_Call {
 	return &MockEventsClient_GetEvents_Call{Call: _e.mock.On("GetEvents", ctx, realm, params)}
 }
 
@@ -552,8 +561,8 @@ func (_c *MockEventsClient_GetEvents_Call) Run(run func(ctx context.Context, rea
 	return _c
 }
 
-func (_c *MockEventsClient_GetEvents_Call) Return(vs []keycloakapi.EventRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetEvents_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockEventsClient_GetEvents_Call) Return(eventRepresentations []keycloakapi.EventRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetEvents_Call {
+	_c.Call.Return(eventRepresentations, response, err)
 	return _c
 }
 
@@ -606,7 +615,7 @@ type MockEventsClient_GetEventsConfig_Call struct {
 // GetEventsConfig is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockEventsClient_Expecter) GetEventsConfig(ctx interface{}, realm interface{}) *MockEventsClient_GetEventsConfig_Call {
+func (_e *MockEventsClient_Expecter) GetEventsConfig(ctx any, realm any) *MockEventsClient_GetEventsConfig_Call {
 	return &MockEventsClient_GetEventsConfig_Call{Call: _e.mock.On("GetEventsConfig", ctx, realm)}
 }
 
@@ -628,8 +637,8 @@ func (_c *MockEventsClient_GetEventsConfig_Call) Run(run func(ctx context.Contex
 	return _c
 }
 
-func (_c *MockEventsClient_GetEventsConfig_Call) Return(v *keycloakapi.RealmEventsConfigRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetEventsConfig_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockEventsClient_GetEventsConfig_Call) Return(realmEventsConfigRepresentation *keycloakapi.RealmEventsConfigRepresentation, response *keycloakapi.Response, err error) *MockEventsClient_GetEventsConfig_Call {
+	_c.Call.Return(realmEventsConfigRepresentation, response, err)
 	return _c
 }
 
@@ -675,7 +684,7 @@ type MockEventsClient_SetEventsConfig_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - cfg keycloakapi.RealmEventsConfigRepresentation
-func (_e *MockEventsClient_Expecter) SetEventsConfig(ctx interface{}, realm interface{}, cfg interface{}) *MockEventsClient_SetEventsConfig_Call {
+func (_e *MockEventsClient_Expecter) SetEventsConfig(ctx any, realm any, cfg any) *MockEventsClient_SetEventsConfig_Call {
 	return &MockEventsClient_SetEventsConfig_Call{Call: _e.mock.On("SetEventsConfig", ctx, realm, cfg)}
 }
 

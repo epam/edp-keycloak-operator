@@ -18,10 +18,19 @@ func NewMockRealmHandler(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockRealmHandler {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockRealmHandler{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -65,7 +74,7 @@ type MockRealmHandler_ServeRequest_Call struct {
 //   - ctx context.Context
 //   - realm *v1.KeycloakRealm
 //   - kClient *keycloakapi.KeycloakClient
-func (_e *MockRealmHandler_Expecter) ServeRequest(ctx interface{}, realm interface{}, kClient interface{}) *MockRealmHandler_ServeRequest_Call {
+func (_e *MockRealmHandler_Expecter) ServeRequest(ctx any, realm any, kClient any) *MockRealmHandler_ServeRequest_Call {
 	return &MockRealmHandler_ServeRequest_Call{Call: _e.mock.On("ServeRequest", ctx, realm, kClient)}
 }
 

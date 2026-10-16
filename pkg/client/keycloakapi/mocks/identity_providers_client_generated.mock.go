@@ -17,10 +17,19 @@ func NewMockIdentityProvidersClient(t interface {
 	mock.TestingT
 	Cleanup(func())
 }) *MockIdentityProvidersClient {
+	if helper, ok := t.(interface{ Helper() }); ok {
+		helper.Helper()
+	}
+
 	mock := &MockIdentityProvidersClient{}
 	mock.Mock.Test(t)
 
-	t.Cleanup(func() { mock.AssertExpectations(t) })
+	t.Cleanup(func() {
+		if helper, ok := t.(interface{ Helper() }); ok {
+			helper.Helper()
+		}
+		mock.AssertExpectations(t)
+	})
 
 	return mock
 }
@@ -76,7 +85,7 @@ type MockIdentityProvidersClient_CreateIDPMapper_Call struct {
 //   - realm string
 //   - alias string
 //   - mapper keycloakapi.IdentityProviderMapperRepresentation
-func (_e *MockIdentityProvidersClient_Expecter) CreateIDPMapper(ctx interface{}, realm interface{}, alias interface{}, mapper interface{}) *MockIdentityProvidersClient_CreateIDPMapper_Call {
+func (_e *MockIdentityProvidersClient_Expecter) CreateIDPMapper(ctx any, realm any, alias any, mapper any) *MockIdentityProvidersClient_CreateIDPMapper_Call {
 	return &MockIdentityProvidersClient_CreateIDPMapper_Call{Call: _e.mock.On("CreateIDPMapper", ctx, realm, alias, mapper)}
 }
 
@@ -155,7 +164,7 @@ type MockIdentityProvidersClient_CreateIdentityProvider_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - idp keycloakapi.IdentityProviderRepresentation
-func (_e *MockIdentityProvidersClient_Expecter) CreateIdentityProvider(ctx interface{}, realm interface{}, idp interface{}) *MockIdentityProvidersClient_CreateIdentityProvider_Call {
+func (_e *MockIdentityProvidersClient_Expecter) CreateIdentityProvider(ctx any, realm any, idp any) *MockIdentityProvidersClient_CreateIdentityProvider_Call {
 	return &MockIdentityProvidersClient_CreateIdentityProvider_Call{Call: _e.mock.On("CreateIdentityProvider", ctx, realm, idp)}
 }
 
@@ -230,7 +239,7 @@ type MockIdentityProvidersClient_DeleteIDPMapper_Call struct {
 //   - realm string
 //   - alias string
 //   - mapperID string
-func (_e *MockIdentityProvidersClient_Expecter) DeleteIDPMapper(ctx interface{}, realm interface{}, alias interface{}, mapperID interface{}) *MockIdentityProvidersClient_DeleteIDPMapper_Call {
+func (_e *MockIdentityProvidersClient_Expecter) DeleteIDPMapper(ctx any, realm any, alias any, mapperID any) *MockIdentityProvidersClient_DeleteIDPMapper_Call {
 	return &MockIdentityProvidersClient_DeleteIDPMapper_Call{Call: _e.mock.On("DeleteIDPMapper", ctx, realm, alias, mapperID)}
 }
 
@@ -309,7 +318,7 @@ type MockIdentityProvidersClient_DeleteIdentityProvider_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - alias string
-func (_e *MockIdentityProvidersClient_Expecter) DeleteIdentityProvider(ctx interface{}, realm interface{}, alias interface{}) *MockIdentityProvidersClient_DeleteIdentityProvider_Call {
+func (_e *MockIdentityProvidersClient_Expecter) DeleteIdentityProvider(ctx any, realm any, alias any) *MockIdentityProvidersClient_DeleteIdentityProvider_Call {
 	return &MockIdentityProvidersClient_DeleteIdentityProvider_Call{Call: _e.mock.On("DeleteIdentityProvider", ctx, realm, alias)}
 }
 
@@ -392,7 +401,7 @@ type MockIdentityProvidersClient_ExportBrokerConfig_Call struct {
 //   - realm string
 //   - alias string
 //   - format string
-func (_e *MockIdentityProvidersClient_Expecter) ExportBrokerConfig(ctx interface{}, realm interface{}, alias interface{}, format interface{}) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
+func (_e *MockIdentityProvidersClient_Expecter) ExportBrokerConfig(ctx any, realm any, alias any, format any) *MockIdentityProvidersClient_ExportBrokerConfig_Call {
 	return &MockIdentityProvidersClient_ExportBrokerConfig_Call{Call: _e.mock.On("ExportBrokerConfig", ctx, realm, alias, format)}
 }
 
@@ -479,7 +488,7 @@ type MockIdentityProvidersClient_GetIDPManagementPermissions_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - alias string
-func (_e *MockIdentityProvidersClient_Expecter) GetIDPManagementPermissions(ctx interface{}, realm interface{}, alias interface{}) *MockIdentityProvidersClient_GetIDPManagementPermissions_Call {
+func (_e *MockIdentityProvidersClient_Expecter) GetIDPManagementPermissions(ctx any, realm any, alias any) *MockIdentityProvidersClient_GetIDPManagementPermissions_Call {
 	return &MockIdentityProvidersClient_GetIDPManagementPermissions_Call{Call: _e.mock.On("GetIDPManagementPermissions", ctx, realm, alias)}
 }
 
@@ -506,8 +515,8 @@ func (_c *MockIdentityProvidersClient_GetIDPManagementPermissions_Call) Run(run 
 	return _c
 }
 
-func (_c *MockIdentityProvidersClient_GetIDPManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIDPManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockIdentityProvidersClient_GetIDPManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIDPManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
@@ -561,7 +570,7 @@ type MockIdentityProvidersClient_GetIDPMappers_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - alias string
-func (_e *MockIdentityProvidersClient_Expecter) GetIDPMappers(ctx interface{}, realm interface{}, alias interface{}) *MockIdentityProvidersClient_GetIDPMappers_Call {
+func (_e *MockIdentityProvidersClient_Expecter) GetIDPMappers(ctx any, realm any, alias any) *MockIdentityProvidersClient_GetIDPMappers_Call {
 	return &MockIdentityProvidersClient_GetIDPMappers_Call{Call: _e.mock.On("GetIDPMappers", ctx, realm, alias)}
 }
 
@@ -588,8 +597,8 @@ func (_c *MockIdentityProvidersClient_GetIDPMappers_Call) Run(run func(ctx conte
 	return _c
 }
 
-func (_c *MockIdentityProvidersClient_GetIDPMappers_Call) Return(vs []keycloakapi.IdentityProviderMapperRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIDPMappers_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockIdentityProvidersClient_GetIDPMappers_Call) Return(identityProviderMapperRepresentations []keycloakapi.IdentityProviderMapperRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIDPMappers_Call {
+	_c.Call.Return(identityProviderMapperRepresentations, response, err)
 	return _c
 }
 
@@ -643,7 +652,7 @@ type MockIdentityProvidersClient_GetIdentityProvider_Call struct {
 //   - ctx context.Context
 //   - realm string
 //   - alias string
-func (_e *MockIdentityProvidersClient_Expecter) GetIdentityProvider(ctx interface{}, realm interface{}, alias interface{}) *MockIdentityProvidersClient_GetIdentityProvider_Call {
+func (_e *MockIdentityProvidersClient_Expecter) GetIdentityProvider(ctx any, realm any, alias any) *MockIdentityProvidersClient_GetIdentityProvider_Call {
 	return &MockIdentityProvidersClient_GetIdentityProvider_Call{Call: _e.mock.On("GetIdentityProvider", ctx, realm, alias)}
 }
 
@@ -670,8 +679,8 @@ func (_c *MockIdentityProvidersClient_GetIdentityProvider_Call) Run(run func(ctx
 	return _c
 }
 
-func (_c *MockIdentityProvidersClient_GetIdentityProvider_Call) Return(v *keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIdentityProvider_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockIdentityProvidersClient_GetIdentityProvider_Call) Return(identityProviderRepresentation *keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIdentityProvider_Call {
+	_c.Call.Return(identityProviderRepresentation, response, err)
 	return _c
 }
 
@@ -724,7 +733,7 @@ type MockIdentityProvidersClient_GetIdentityProviders_Call struct {
 // GetIdentityProviders is a helper method to define mock.On call
 //   - ctx context.Context
 //   - realm string
-func (_e *MockIdentityProvidersClient_Expecter) GetIdentityProviders(ctx interface{}, realm interface{}) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+func (_e *MockIdentityProvidersClient_Expecter) GetIdentityProviders(ctx any, realm any) *MockIdentityProvidersClient_GetIdentityProviders_Call {
 	return &MockIdentityProvidersClient_GetIdentityProviders_Call{Call: _e.mock.On("GetIdentityProviders", ctx, realm)}
 }
 
@@ -746,8 +755,8 @@ func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) Run(run func(ct
 	return _c
 }
 
-func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) Return(vs []keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIdentityProviders_Call {
-	_c.Call.Return(vs, response, err)
+func (_c *MockIdentityProvidersClient_GetIdentityProviders_Call) Return(identityProviderRepresentations []keycloakapi.IdentityProviderRepresentation, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_GetIdentityProviders_Call {
+	_c.Call.Return(identityProviderRepresentations, response, err)
 	return _c
 }
 
@@ -802,7 +811,7 @@ type MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call struct {
 //   - realm string
 //   - alias string
 //   - permissions keycloakapi.ManagementPermissionReference
-func (_e *MockIdentityProvidersClient_Expecter) UpdateIDPManagementPermissions(ctx interface{}, realm interface{}, alias interface{}, permissions interface{}) *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call {
+func (_e *MockIdentityProvidersClient_Expecter) UpdateIDPManagementPermissions(ctx any, realm any, alias any, permissions any) *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call {
 	return &MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call{Call: _e.mock.On("UpdateIDPManagementPermissions", ctx, realm, alias, permissions)}
 }
 
@@ -834,8 +843,8 @@ func (_c *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call) Run(r
 	return _c
 }
 
-func (_c *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call) Return(v *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call {
-	_c.Call.Return(v, response, err)
+func (_c *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call) Return(managementPermissionReference *keycloakapi.ManagementPermissionReference, response *keycloakapi.Response, err error) *MockIdentityProvidersClient_UpdateIDPManagementPermissions_Call {
+	_c.Call.Return(managementPermissionReference, response, err)
 	return _c
 }
 
@@ -883,7 +892,7 @@ type MockIdentityProvidersClient_UpdateIDPMapper_Call struct {
 //   - alias string
 //   - mapperID string
 //   - mapper keycloakapi.IdentityProviderMapperRepresentation
-func (_e *MockIdentityProvidersClient_Expecter) UpdateIDPMapper(ctx interface{}, realm interface{}, alias interface{}, mapperID interface{}, mapper interface{}) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
+func (_e *MockIdentityProvidersClient_Expecter) UpdateIDPMapper(ctx any, realm any, alias any, mapperID any, mapper any) *MockIdentityProvidersClient_UpdateIDPMapper_Call {
 	return &MockIdentityProvidersClient_UpdateIDPMapper_Call{Call: _e.mock.On("UpdateIDPMapper", ctx, realm, alias, mapperID, mapper)}
 }
 
@@ -968,7 +977,7 @@ type MockIdentityProvidersClient_UpdateIdentityProvider_Call struct {
 //   - realm string
 //   - alias string
 //   - idp keycloakapi.IdentityProviderRepresentation
-func (_e *MockIdentityProvidersClient_Expecter) UpdateIdentityProvider(ctx interface{}, realm interface{}, alias interface{}, idp interface{}) *MockIdentityProvidersClient_UpdateIdentityProvider_Call {
+func (_e *MockIdentityProvidersClient_Expecter) UpdateIdentityProvider(ctx any, realm any, alias any, idp any) *MockIdentityProvidersClient_UpdateIdentityProvider_Call {
 	return &MockIdentityProvidersClient_UpdateIdentityProvider_Call{Call: _e.mock.On("UpdateIdentityProvider", ctx, realm, alias, idp)}
 }
 
