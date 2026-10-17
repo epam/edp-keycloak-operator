@@ -10,7 +10,9 @@ import (
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/builder"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -108,13 +110,15 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		clusterRealm.Status.Value = err.Error()
 		requeue := r.helper.SetFailureCount(clusterRealm)
 
+		log.Error(err, "An error has occurred while handling ClusterKeycloakRealm", "requeueAfter", requeue)
+
 		if updateErr := r.client.Status().Update(ctx, clusterRealm); updateErr != nil {
 			return ctrl.Result{}, fmt.Errorf("unable to update cluster realm status: %w", updateErr)
 		}
 
 		return ctrl.Result{
 			RequeueAfter: requeue,
-		}, fmt.Errorf("error during ClusterRealm chain: %w", err)
+		}, nil
 	}
 
 	if err := r.updateSuccessStatus(ctx, clusterRealm, oldStatus); err != nil {
@@ -149,8 +153,12 @@ func (r *ClusterKeycloakRealmReconciler) updateSuccessStatus(
 
 // SetupWithManager sets up the controller with the Manager.
 func (r *ClusterKeycloakRealmReconciler) SetupWithManager(mgr ctrl.Manager) error {
+	pred := predicate.Funcs{
+		UpdateFunc: helper.IsFailuresUpdated,
+	}
+
 	err := ctrl.NewControllerManagedBy(mgr).
-		For(&keycloakAlpha.ClusterKeycloakRealm{}).
+		For(&keycloakAlpha.ClusterKeycloakRealm{}, builder.WithPredicates(pred)).
 		Complete(r)
 
 	if err != nil {
