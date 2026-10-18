@@ -159,14 +159,12 @@ func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, inst
 		}
 	}
 
-	var resultErr error
+	result := reconcile.Result{RequeueAfter: r.successReconcileTimeout}
 
 	if err := chain.MakeChain(kClient, r.client, r.secretRef).Serve(ctx, instance, realmName); err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
 		}
-
-		log.Error(err, "an error has occurred while handling keycloak client", "name", instance.Name)
 
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:               chain.ConditionReady,
@@ -177,7 +175,9 @@ func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, inst
 		})
 
 		instance.Status.Value = err.Error()
-		resultErr = fmt.Errorf("keycloak client chain processing failed: %w", err)
+		result.RequeueAfter = r.helper.SetFailureCount(instance)
+
+		log.Error(err, "an error has occurred while handling keycloak client", "name", instance.Name, "requeueAfter", result.RequeueAfter)
 	} else {
 		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
 			Type:               chain.ConditionReady,
@@ -194,9 +194,5 @@ func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, inst
 		return reconcile.Result{}, fmt.Errorf("unable to update status: %w", err)
 	}
 
-	if resultErr != nil {
-		return reconcile.Result{RequeueAfter: r.helper.SetFailureCount(instance)}, resultErr
-	}
-
-	return reconcile.Result{RequeueAfter: r.successReconcileTimeout}, nil
+	return result, nil
 }
