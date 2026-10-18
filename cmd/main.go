@@ -316,7 +316,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), h)
+	kafCtrl := keycloakauthflow.NewReconcile(mgr.GetClient(), h, secretRefClient)
 	if err = kafCtrl.SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create keycloak-auth-flow controller")
 		os.Exit(1)

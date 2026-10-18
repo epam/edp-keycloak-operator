@@ -81,3 +81,54 @@ spec:
     - authenticator: "auth-otp-form"
       priority: 0
       requirement: "ALTERNATIVE"
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakAuthFlow
+metadata:
+  name: keycloakauthflow-registration
+spec:
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
+  alias: Registration with reCAPTCHA
+  description: Registration flow whose form action reads the reCAPTCHA secret from a Secret.
+  providerId: basic-flow
+  topLevel: true
+  builtIn: false
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakAuthFlow
+metadata:
+  name: keycloakauthflow-registration-form
+spec:
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
+  alias: Registration form with reCAPTCHA
+  providerId: registration-page-form
+  topLevel: false
+  parentName: Registration with reCAPTCHA
+  childType: form-flow
+  childRequirement: REQUIRED
+  builtIn: false
+  authenticationExecutions:
+    - authenticator: "registration-user-creation"
+      priority: 0
+      requirement: "REQUIRED"
+    - authenticator: "registration-recaptcha-action"
+      priority: 1
+      requirement: "REQUIRED"
+      authenticatorConfig:
+        alias: recaptcha
+        config:
+          "site.key": "site-key"
+          # $secretName:secretKey resolves to the value of that key in the Secret below.
+          "secret.key": "$recaptcha-secret:secretKey"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: recaptcha-secret
+type: Opaque
+data:
+  secretKey: "c2VjcmV0"  # base64 encoded value of "secret"

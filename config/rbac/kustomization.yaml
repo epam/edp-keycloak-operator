@@ -23,18 +23,17 @@ resources:
 # not used by the Project itself. You can comment the following lines
 # if you do not want those helpers be installed with your Project.
 #
-# The six kinds below ship viewer roles only (GHSA-wj3g-w873-xwg7). Their specs
-# pair a Secret reference with an author-controlled destination, so write access
-# grants indirect read of any Secret reachable by the operator.
+# Viewer role only. The specs of these kinds pair a Secret
+# reference with an author-controlled destination, so write access grants indirect
+# read of any Secret reachable by the operator.
 - keycloak_viewer_role.yaml
 - clusterkeycloak_viewer_role.yaml
 - keycloakrealm_viewer_role.yaml
 - clusterkeycloakrealm_viewer_role.yaml
 - keycloakrealmidentityprovider_viewer_role.yaml
 - keycloakrealmcomponent_viewer_role.yaml
-- keycloakauthflow_admin_role.yaml
-- keycloakauthflow_editor_role.yaml
 - keycloakauthflow_viewer_role.yaml
+# Admin, editor and viewer roles.
 - keycloakclient_admin_role.yaml
 - keycloakclient_editor_role.yaml
 - keycloakclient_viewer_role.yaml

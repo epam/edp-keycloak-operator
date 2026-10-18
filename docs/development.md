@@ -440,7 +440,7 @@ make manifests
 # into config/rbac/. If the new spec lets its author name a Secret and an outbound
 # destination, delete the admin and editor files and their kustomization.yaml entries
 # and keep the viewer role: write access to such a kind grants indirect read of any
-# Secret the operator can reach (GHSA-wj3g-w873-xwg7).
+# Secret the operator can reach.
 
 # 5. Implement Keycloak integration
 # Add methods to pkg/client/keycloak/ for your resource

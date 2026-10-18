@@ -15,16 +15,25 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
+// configSecretsField is the spec path of the authenticator config in destination guard
+// reports. It is a metric label and must stay static; the execution index goes into the error.
+const configSecretsField = "spec.authenticationExecutions[].authenticatorConfig.config"
+
+type refClient interface {
+	MapConfigSecretsRefs(ctx context.Context, field string, config map[string]string, namespace string) (map[string]string, error)
+}
+
 // SyncAuthFlowExecutions syncs authentication executions for an auth flow.
 // Non-flow executions have no name in Keycloak; they are paired with spec entries by
 // authenticator (duplicates paired by priority order within the group) and only diffs are written.
 // This ports the execution-sync logic from the legacy gocloak adapter.
 type SyncAuthFlowExecutions struct {
-	kClient *keycloakapi.KeycloakClient
+	kClient   *keycloakapi.KeycloakClient
+	secretRef refClient
 }
 
-func NewSyncAuthFlowExecutions(kClient *keycloakapi.KeycloakClient) *SyncAuthFlowExecutions {
-	return &SyncAuthFlowExecutions{kClient: kClient}
+func NewSyncAuthFlowExecutions(kClient *keycloakapi.KeycloakClient, secretRef refClient) *SyncAuthFlowExecutions {
+	return &SyncAuthFlowExecutions{kClient: kClient, secretRef: secretRef}
 }
 
 // executionPair matches an existing Keycloak execution to its spec counterpart.
@@ -37,17 +46,69 @@ func (h *SyncAuthFlowExecutions) Serve(ctx context.Context, flow *keycloakApi.Ke
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing auth flow executions", "alias", flow.Spec.Alias)
 
+	// References and destinations are checked before any execution is read or written; the
+	// flow itself was already written by the previous handler.
+	desired, newHash, err := h.resolveExecutions(ctx, flow)
+	if err != nil {
+		return err
+	}
+
 	execs, _, err := h.kClient.AuthFlows.GetFlowExecutions(ctx, realmName, flow.Spec.Alias)
 	if err != nil {
 		return fmt.Errorf("failed to get flow executions: %w", err)
 	}
 
-	if err := h.syncNonFlowExecutions(ctx, flow, realmName, execs); err != nil {
+	forceUpdate := helper.SpecChanged(flow.Generation, flow.Status.ObservedGeneration) ||
+		newHash != flow.Status.ConfigSecretsHash
+
+	if err := h.syncNonFlowExecutions(ctx, flow, realmName, execs, desired, forceUpdate); err != nil {
 		return err
 	}
 
+	// Stamp only after every config write succeeded. The controller stamps observedGeneration.
+	flow.Status.ConfigSecretsHash = newHash
+
 	// Non-flow writes above never touch flow-type siblings, so the fetched list stays valid.
 	return h.adjustChildFlowsPriority(ctx, flow, realmName, execs)
+}
+
+// resolveExecutions returns deep copies of the non-flow spec entries with the secret
+// references in their authenticator config resolved, and the hash of the referenced secret
+// versions. The spec itself is never mutated.
+func (h *SyncAuthFlowExecutions) resolveExecutions(
+	ctx context.Context, flow *keycloakApi.KeycloakAuthFlow,
+) ([]keycloakApi.AuthenticationExecution, string, error) {
+	desired := make([]keycloakApi.AuthenticationExecution, 0, len(flow.Spec.AuthenticationExecutions))
+	versions := make(map[string]string)
+
+	for i := range flow.Spec.AuthenticationExecutions {
+		if flow.Spec.AuthenticationExecutions[i].AuthenticatorFlow {
+			continue
+		}
+
+		e := flow.Spec.AuthenticationExecutions[i].DeepCopy()
+
+		if e.AuthenticatorConfig != nil {
+			tokens, err := h.secretRef.MapConfigSecretsRefs(ctx, configSecretsField, e.AuthenticatorConfig.Config, flow.Namespace)
+			if err != nil {
+				return nil, "", fmt.Errorf("execution %d (%q): unable to map config secrets: %w", i, e.Authenticator, err)
+			}
+
+			// Key by spec index: the same config key may appear in several executions.
+			for k, v := range tokens {
+				versions[fmt.Sprintf("%d/%s", i, k)] = v
+			}
+		}
+
+		desired = append(desired, *e)
+	}
+
+	// Hash is empty when the flow has no references.
+	if len(versions) == 0 {
+		return desired, "", nil
+	}
+
+	return desired, secretref.ValuesHashSingle(versions), nil
 }
 
 func (h *SyncAuthFlowExecutions) syncNonFlowExecutions(
@@ -55,6 +116,8 @@ func (h *SyncAuthFlowExecutions) syncNonFlowExecutions(
 	flow *keycloakApi.KeycloakAuthFlow,
 	realmName string,
 	execs []keycloakapi.AuthenticationExecutionInfoRepresentation,
+	desired []keycloakApi.AuthenticationExecution,
+	forceUpdate bool,
 ) error {
 	existing := make([]keycloakapi.AuthenticationExecutionInfoRepresentation, 0, len(execs))
 
@@ -71,17 +134,7 @@ func (h *SyncAuthFlowExecutions) syncNonFlowExecutions(
 		existing = append(existing, *e)
 	}
 
-	var desired []keycloakApi.AuthenticationExecution
-
-	for _, e := range flow.Spec.AuthenticationExecutions {
-		if !e.AuthenticatorFlow {
-			desired = append(desired, e)
-		}
-	}
-
 	pairs, unmatchedExisting, unmatchedDesired := pairExecutionsByAuthenticator(existing, desired)
-
-	forceUpdate := helper.SpecChanged(flow.Generation, flow.Status.ObservedGeneration)
 
 	for _, p := range pairs {
 		if err := h.syncPairedExecution(ctx, flow.Spec.Alias, realmName, p, forceUpdate); err != nil {
@@ -241,8 +294,10 @@ func (h *SyncAuthFlowExecutions) updateExecutionConfigIfNeeded(
 	return h.createExecutionConfig(ctx, realmName, execID, desiredConfig)
 }
 
-// configMatchesSpec reports whether the fetched authenticator config already matches the spec.
-// Keycloak masks every config key the provider does not declare as a non-secret property.
+// configMatchesSpec reports whether the fetched authenticator config already matches the
+// resolved spec config. Keycloak masks every config key the provider does not declare as a
+// non-secret property; masked keys are excluded and repaired only by a forced update
+// (generation change or secret rotation).
 func configMatchesSpec(existing *keycloakapi.AuthenticatorConfigRepresentation, desired *keycloakApi.AuthenticatorConfig) bool {
 	return ptr.Deref(existing.Alias, "") == desired.Alias &&
 		secretref.ConfigMatches(ptr.Deref(existing.Config, nil), desired.Config, nil)

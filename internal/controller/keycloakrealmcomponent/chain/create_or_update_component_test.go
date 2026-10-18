@@ -520,7 +520,7 @@ func TestCreateOrUpdateComponent_Serve_ConfigCompare(t *testing.T) {
 		wantUpdate bool
 	}{
 		{
-			name:       "C3 spec list with a ref and a clear value skips the whole key",
+			name:       "spec list with a ref and a clear value skips the whole key",
 			specConfig: map[string][]string{"bindCredential": {"$secret:key", "plain"}},
 			secretRefs: &mutatingSecretRefClient{
 				mutate: func(config map[string][]string) {
@@ -534,7 +534,7 @@ func TestCreateOrUpdateComponent_Serve_ConfigCompare(t *testing.T) {
 			wantUpdate: false,
 		},
 		{
-			name:       "C4 existing list holding the sentinel among clear values skips the key",
+			name:       "existing list holding the sentinel among clear values skips the key",
 			specConfig: map[string][]string{"bindCredential": {"plain"}},
 			secretRefs: &mutatingSecretRefClient{},
 			existing: ptr.To(keycloakapi.MultivaluedHashMapStringString{
@@ -543,7 +543,7 @@ func TestCreateOrUpdateComponent_Serve_ConfigCompare(t *testing.T) {
 			wantUpdate: false,
 		},
 		{
-			name:       "C10 nil existing config with non-ref desired key",
+			name:       "nil existing config with non-ref desired key",
 			specConfig: map[string][]string{"key1": {"val1"}},
 			secretRefs: &mutatingSecretRefClient{},
 			existing:   nil,

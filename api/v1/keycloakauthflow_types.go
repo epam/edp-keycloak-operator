@@ -80,8 +80,12 @@ type AuthenticatorConfig struct {
 	Alias string `json:"alias,omitempty"`
 
 	// Config is configuration for authenticator.
+	// Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.
+	// A value starting with $ (other than ${) is always parsed as a reference.
+	// Under enforceDestinationAllowlist a reference is accepted only in a credential key.
 	// +optional
 	// +nullable.
+	// +kubebuilder:example={"site.key": "site-key", "secret.key": "$recaptcha-secret:secretKey"}
 	Config map[string]string `json:"config,omitempty"`
 }
 
@@ -97,6 +101,10 @@ type KeycloakAuthFlowStatus struct {
 	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ConfigSecretsHash is a hash of referenced secret versions from the last successful authenticator config sync; it contains no secret-derived data.
+	// +optional
+	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true

@@ -55,9 +55,10 @@ func NewSecretRef(k8sClient client.Client, guard *destination.Guard) (*SecretRef
 	return &SecretRef{client: k8sClient, guard: guard}, nil
 }
 
-// MapConfigSecretsRefs maps secret references in config map to actual values. It returns a
-// version token per ref-backed key for status.configSecretsHash. field is the spec path of
-// config in the calling CR, used in violation reports.
+// MapConfigSecretsRefs replaces secret references in config with the Secret values, in place.
+// It returns a version token per ref-backed key for status.configSecretsHash. field is the
+// spec path of config in the calling CR, used in violation reports. Keys are visited in sorted
+// order so a multi-reference error message is stable across reconciles.
 func (s *SecretRef) MapConfigSecretsRefs(
 	ctx context.Context,
 	field string,
@@ -70,7 +71,8 @@ func (s *SecretRef) MapConfigSecretsRefs(
 
 	versions := make(map[string]string)
 
-	for k, v := range config {
+	for _, k := range slices.Sorted(maps.Keys(config)) {
+		v := config[k]
 		if !HasSecretRef(v) {
 			continue
 		}
@@ -87,9 +89,10 @@ func (s *SecretRef) MapConfigSecretsRefs(
 	return versions, nil
 }
 
-// MapComponentConfigSecretsRefs maps secret references in config map to actual values. It
-// returns version tokens per ref-backed key (ref-valued entries only, in spec order). field is
-// the spec path of config in the calling CR, used in violation reports.
+// MapComponentConfigSecretsRefs replaces secret references in config with the Secret values,
+// in place. It returns version tokens per ref-backed key (ref-valued entries only, in spec
+// order). field is the spec path of config in the calling CR, used in violation reports. Keys
+// are visited in sorted order so a multi-reference error message is stable across reconciles.
 func (s *SecretRef) MapComponentConfigSecretsRefs(
 	ctx context.Context,
 	field string,
@@ -102,7 +105,8 @@ func (s *SecretRef) MapComponentConfigSecretsRefs(
 
 	versions := make(map[string][]string)
 
-	for k, values := range config {
+	for _, k := range slices.Sorted(maps.Keys(config)) {
+		values := config[k]
 		for i, v := range values {
 			if !HasSecretRef(v) {
 				continue

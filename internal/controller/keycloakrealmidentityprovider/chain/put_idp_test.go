@@ -256,7 +256,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			wantErr:   require.NoError,
 		},
 		{
-			name: "I4 clear config key drift with masked sibling - update fires",
+			name: "clear config key drift with masked sibling - update fires",
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
 				Spec: func() keycloakApi.KeycloakRealmIdentityProviderSpec {
@@ -290,7 +290,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			wantErr:   require.NoError,
 		},
 		{
-			name: "I5 nil existing config with non-ref desired key - update fires",
+			name: "nil existing config with non-ref desired key - update fires",
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
 				Spec:       inSyncIDPSpec(),
@@ -314,7 +314,7 @@ func TestPutIDP_Serve(t *testing.T) {
 			wantErr:   require.NoError,
 		},
 		{
-			name: "I5 nil existing config with only ref keys - no update",
+			name: "nil existing config with only ref keys - no update",
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				ObjectMeta: metav1.ObjectMeta{Namespace: "default", Generation: 3},
 				Spec: func() keycloakApi.KeycloakRealmIdentityProviderSpec {
