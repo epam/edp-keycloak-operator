@@ -2,6 +2,7 @@ package chain
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 
@@ -1202,16 +1203,46 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		},
 		{
 			name: "explicit RedirectUris overrides WebUrl fallback",
-			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", RedirectUris: []string{"https://example.com/callback"}},
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", RedirectUris: ptr.To([]string{"https://example.com/callback"})},
 			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, []string{"https://example.com/callback"}, *cr.RedirectUris)
 			},
 		},
 		{
 			name: "explicit WebOrigins overrides WebUrl fallback",
-			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", WebOrigins: []string{"https://other.example.com"}},
+			spec: keycloakApi.KeycloakClientSpec{ClientId: "c", WebUrl: "https://example.com", WebOrigins: ptr.To([]string{"https://other.example.com"})},
 			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
 				require.Equal(t, []string{"https://other.example.com"}, *cr.WebOrigins)
+			},
+		},
+		{
+			name: "explicit empty RedirectUris and WebOrigins override WebUrl fallback",
+			spec: keycloakApi.KeycloakClientSpec{
+				ClientId:     "c",
+				WebUrl:       "https://example.com",
+				RedirectUris: ptr.To([]string{}),
+				WebOrigins:   ptr.To([]string{}),
+			},
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
+				require.Equal(t, ptr.To([]string{}), cr.RedirectUris)
+				require.Equal(t, ptr.To([]string{}), cr.WebOrigins)
+
+				body, err := json.Marshal(cr)
+				require.NoError(t, err)
+				require.Contains(t, string(body), `"redirectUris":[]`)
+				require.Contains(t, string(body), `"webOrigins":[]`)
+			},
+		},
+		{
+			name: "explicit empty RedirectUris and WebOrigins without WebUrl",
+			spec: keycloakApi.KeycloakClientSpec{
+				ClientId:     "c",
+				RedirectUris: ptr.To([]string{}),
+				WebOrigins:   ptr.To([]string{}),
+			},
+			check: func(t *testing.T, cr keycloakapi.ClientRepresentation) {
+				require.Equal(t, ptr.To([]string{}), cr.RedirectUris)
+				require.Equal(t, ptr.To([]string{}), cr.WebOrigins)
 			},
 		},
 		{
@@ -1276,6 +1307,91 @@ func TestConvertSpecToClientRepresentation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cr := convertSpecToClientRepresentation(&tt.spec, tt.clientSecret, tt.authFlowOverrides)
 			tt.check(t, cr)
+		})
+	}
+}
+
+func TestPutClient_Serve_KeepsExplicitEmptyListsAcrossSpecUpdate(t *testing.T) {
+	tests := []struct {
+		name       string
+		secret     string
+		wantSecret string
+	}{
+		{
+			name:       "generateSecret Update",
+			secret:     "",
+			wantSecret: secretref.GenerateSecretRef("keycloak-client-"+testClientName+"-secret", keycloakApi.ClientSecretKey),
+		},
+		{
+			name:       "setSecretRef Update",
+			secret:     "client-secret",
+			wantSecret: secretref.GenerateSecretRef("client-secret", keycloakApi.ClientSecretKey),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			s := runtime.NewScheme()
+			require.NoError(t, keycloakApi.AddToScheme(s))
+			require.NoError(t, corev1.AddToScheme(s))
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+				WithObjects(
+					&keycloakApi.KeycloakClient{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:      testClientName,
+							Namespace: testClientNamespace,
+						},
+						Spec: keycloakApi.KeycloakClientSpec{
+							ClientId:     testClientID,
+							Secret:       tt.secret,
+							WebUrl:       "https://example.com",
+							RedirectUris: ptr.To([]string{}),
+							WebOrigins:   ptr.To([]string{}),
+						},
+					},
+				).
+				Build()
+
+			refMock := mocks.NewMockRefClient(t)
+			if tt.secret != "" {
+				refMock.On("GetSecretFromRef", testifymock.Anything, tt.wantSecret, testClientNamespace).
+					Return("secret-value", "secret:client-secret:clientSecret@uid-1@100", nil)
+			}
+
+			var sent keycloakapi.ClientRepresentation
+
+			clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+			clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
+				Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
+				Once()
+			clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+				Run(func(args testifymock.Arguments) {
+					sent = args.Get(2).(keycloakapi.ClientRepresentation)
+				}).
+				Return(&keycloakapi.Response{
+					HTTPResponse: &http.Response{
+						Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+					},
+				}, nil)
+
+			cr := &keycloakApi.KeycloakClient{}
+			key := client.ObjectKey{Name: testClientName, Namespace: testClientNamespace}
+			require.NoError(t, k8sClient.Get(context.Background(), key, cr))
+
+			el := NewPutClient(&keycloakapi.KeycloakClient{Clients: clientsMock}, k8sClient, refMock)
+			require.NoError(t, el.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), cr, "realm", &ClientContext{}))
+
+			require.Equal(t, ptr.To([]string{}), sent.RedirectUris)
+			require.Equal(t, ptr.To([]string{}), sent.WebOrigins)
+
+			stored := &keycloakApi.KeycloakClient{}
+			require.NoError(t, k8sClient.Get(context.Background(), key, stored))
+			require.Equal(t, tt.wantSecret, stored.Spec.Secret)
+			require.Equal(t, ptr.To([]string{}), stored.Spec.RedirectUris)
+			require.Equal(t, ptr.To([]string{}), stored.Spec.WebOrigins)
 		})
 	}
 }

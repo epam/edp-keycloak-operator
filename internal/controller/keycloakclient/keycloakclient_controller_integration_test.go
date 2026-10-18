@@ -64,8 +64,8 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 					"post.logout.redirect.uris": "+",
 				},
 				ClientRoles:             []string{"administrator", "developer"},
-				RedirectUris:            []string{"https://test-keycloak-client-with-secret-ref"},
-				WebOrigins:              []string{"https://test-keycloak-client-with-secret-ref"},
+				RedirectUris:            ptr.To([]string{"https://test-keycloak-client-with-secret-ref"}),
+				WebOrigins:              ptr.To([]string{"https://test-keycloak-client-with-secret-ref"}),
 				Description:             "test description",
 				Enabled:                 true,
 				FullScopeAllowed:        true,
@@ -336,8 +336,8 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				Attributes: map[string]string{
 					"post.logout.redirect.uris": "+",
 				},
-				RedirectUris: []string{"https://test-verify-fields.example.com/*"},
-				WebOrigins:   []string{"https://test-verify-fields.example.com"},
+				RedirectUris: ptr.To([]string{"https://test-verify-fields.example.com/*"}),
+				WebOrigins:   ptr.To([]string{"https://test-verify-fields.example.com"}),
 				AuthenticationFlowBindingOverrides: &keycloakApi.AuthenticationFlowBindingOverrides{
 					Browser:     "browser",
 					DirectGrant: "direct grant",

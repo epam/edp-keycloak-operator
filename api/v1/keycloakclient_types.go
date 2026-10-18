@@ -129,20 +129,23 @@ type KeycloakClientSpec struct {
 	// RedirectUris is a list of valid URI pattern a browser can redirect to after a successful login.
 	// Simple wildcards are allowed such as 'https://example.com/*'.
 	// Relative path can be specified too, such as /my/relative/path/*. Relative paths are relative to the client root URL.
-	// If not specified, spec.webUrl + "/*" will be used.
+	// Omit the field to use spec.webUrl + "/*"; without spec.webUrl Keycloak keeps its current list.
+	// Set it to an empty list to remove every redirect URI.
 	// +nullable
 	// +optional
 	// +kubebuilder:example={"https://example.com/*", "/my/relative/path/*"}
-	RedirectUris []string `json:"redirectUris,omitempty"`
+	RedirectUris *[]string `json:"redirectUris,omitempty"`
 
 	// WebOrigins is a list of allowed CORS origins.
 	// To permit all origins of Valid Redirect URIs, add '+'. This does not include the '*' wildcard though.
 	// To permit all origins, explicitly add '*'.
-	// If not specified, the value from `WebUrl` is used
+	// Omit the field to use spec.webUrl; with the defaulting webhook enabled, [spec.webUrl] is written into the spec.
+	// Without spec.webUrl Keycloak keeps its current list.
+	// Set it to an empty list to remove every origin.
 	// +nullable
 	// +optional
 	// +kubebuilder:example={"https://example.com/*"}
-	WebOrigins []string `json:"webOrigins,omitempty"`
+	WebOrigins *[]string `json:"webOrigins,omitempty"`
 
 	// ImplicitFlowEnabled is a flag to enable support for OpenID Connect redirect based authentication without authorization code.
 	// +optional

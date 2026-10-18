@@ -14,9 +14,18 @@ spec:
   webUrl: https://argocd.example.com
   adminUrl: https://admin.example.com
   homeUrl: /home/
+  # redirectUris and webOrigins have three states.
+  #   omitted    derived from webUrl: redirectUris = webUrl + "/*", webOrigins = webUrl;
+  #              without webUrl Keycloak keeps its current list
+  #   []         every entry is removed in Keycloak
+  #   [a, b]     exactly a and b
+  # Helm: write [] in values.yaml or pass --set-json 'redirectUris=[]';
+  # a {{ if }} guard drops [] entirely.
   redirectUris:
     - /url1/*
     - /url2/*
+  webOrigins:
+    - https://argocd.example.com
   advancedSettings:
     accessTokenLifespan: 300  # Override realm default (seconds)
   clientRolesV2:

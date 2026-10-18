@@ -86,3 +86,20 @@ spec:
         - baz
 status:
   value: "OK"
+
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakClient
+metadata:
+  name: keycloakclient-empty-uris
+spec:
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample
+  clientId: keycloakclient-empty-uris
+  secret: $keycloak-client-keycloakclient-empty-uris-secret:clientSecret
+  webUrl: https://keycloakclient-empty-uris.com
+  redirectUris: []
+  webOrigins: []
+status:
+  value: "OK"
