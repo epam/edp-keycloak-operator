@@ -8,9 +8,10 @@ import (
 )
 
 // ConfigMatches reports whether the fetched config already holds every comparable key of
-// desired. A key is skipped when rawSpec holds a secret ref for it or existing holds the mask
-// sentinel; drift inside a skipped key is repaired only by a forced write. Pass desired as
-// rawSpec when the caller resolves no refs.
+// desired. A key is skipped when existing holds the mask sentinel or rawSpec holds a secret
+// ref for it; drift inside a skipped key is repaired only by a forced write. A nil rawSpec
+// skips sentinel keys only, so a ref-backed key Keycloak returns in clear is compared against
+// its resolved value and its drift is repaired.
 func ConfigMatches(existing, desired, rawSpec map[string]string) bool {
 	comparable := make(map[string]string, len(desired))
 

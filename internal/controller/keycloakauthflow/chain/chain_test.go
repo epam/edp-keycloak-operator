@@ -7,10 +7,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const testRealmName = "test-realm"
@@ -72,7 +75,14 @@ func TestMakeChain_Creates2Handlers(t *testing.T) {
 		AuthFlows: mocks.NewMockAuthFlowsClient(t),
 	}
 
-	ch := MakeChain(kc)
+	secretRef, err := secretref.NewSecretRef(fake.NewClientBuilder().Build(), destination.AllowAll())
+	require.NoError(t, err)
+
+	ch := MakeChain(kc, secretRef)
 	require.NotNil(t, ch)
 	require.Len(t, ch.handlers, 2)
+
+	sync, ok := ch.handlers[1].(*SyncAuthFlowExecutions)
+	require.True(t, ok)
+	assert.Same(t, secretRef, sync.secretRef)
 }

@@ -71,7 +71,14 @@ spec:
                         config:
                           additionalProperties:
                             type: string
-                          description: Config is configuration for authenticator.
+                          description: |-
+                            Config is configuration for authenticator.
+                            Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.
+                            A value starting with $ (other than ${) is always parsed as a reference.
+                            Under enforceDestinationAllowlist a reference is accepted only in a credential key.
+                          example:
+                            secret.key: $recaptcha-secret:secretKey
+                            site.key: site-key
                           type: object
                       type: object
                     authenticatorFlow:
@@ -138,6 +145,11 @@ spec:
           status:
             description: KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
             properties:
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of referenced secret versions
+                  from the last successful authenticator config sync; it contains
+                  no secret-derived data.
+                type: string
               id:
                 description: ID is the Keycloak internal ID of the auth flow.
                 type: string

@@ -17,6 +17,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 	"net"
 	"net/url"
 	"regexp"
@@ -213,7 +214,8 @@ func (g *Guard) ScanConfig(ctx context.Context, field string, config map[string]
 	// Every violation is reported; report returns nil in warn mode and errors.Join drops nils.
 	errs := make([]error, 0, len(config))
 
-	for key, values := range config {
+	for _, key := range slices.Sorted(maps.Keys(config)) {
+		values := config[key]
 		lower := strings.ToLower(key)
 		_, isCredential := credentialKeys[lower]
 		_, isDestination := destinationKeys[lower]

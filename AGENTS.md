@@ -88,7 +88,7 @@ Skip Keycloak writes when actual state matches the spec; track `status.observedG
 ### Sensitive values
 A secret value comes from the spec or a Secret it names as `$name:key`; resolve refs through `pkg/secretref` on a copy of the spec map. The resolved value lives in the write body only: keep it out of the CR, status, events, logs and errors.
 
-Keycloak returns `keycloakapi.MaskedSecretValue` on GET for secret-typed keys and for every key the provider does not declare as non-secret. Skip a key in the no-op compare when the raw spec value is a secret ref or the fetched value is the sentinel; compare the rest as a subset. The sentinel is the key list; a hand-kept list goes stale on the next provider or Keycloak release.
+Keycloak returns `keycloakapi.MaskedSecretValue` on GET for secret-typed keys and, from 26.7, for every key the provider does not declare as non-secret. Compare the resolved spec against the fetched config with `secretref.ConfigMatches`: skip a key when the fetched value is the sentinel, compare the rest as a subset. Pass the raw spec only where the handler must also skip ref-backed keys whose fetched value is clear; a nil raw spec compares them, so drift in a referenced clear key is repaired. The sentinel is the key list; a hand-kept list goes stale on the next provider or Keycloak release.
 
 Build the write body from the resolved spec, so a forced write repairs the masked drift the compare cannot see. Force on generation change and on `status.configSecretsHash` change: `secretref.ValuesHash` over version tokens, stamped even when the write is skipped. A handler that resolves refs without the hash misses Secret rotation.
 
@@ -106,7 +106,7 @@ A sweep is a two-way diff and cannot tell "not mentioned" from "remove". Check n
 ### Scaffolded RBAC helper roles
 `kubebuilder create api` scaffolds `*_admin_role.yaml`, `*_editor_role.yaml` and `*_viewer_role.yaml` per CRD, once. `make manifests` never regenerates them — controller-gen only writes `config/rbac/role.yaml` from the `+kubebuilder:rbac` markers.
 
-Do not ship an admin or editor role for a kind whose spec pairs a Secret reference with an author-controlled destination (GHSA-wj3g-w873-xwg7); write access to such a kind grants indirect read of any Secret reachable by the operator. Keep the viewer role, delete the scaffolded admin and editor files, and drop their `config/rbac/kustomization.yaml` entries.
+Do not ship an admin or editor role for a kind whose spec pairs a Secret reference with an author-controlled destination; write access to such a kind grants indirect read of any Secret reachable by the operator. Keep the viewer role, delete the scaffolded admin and editor files, and drop their `config/rbac/kustomization.yaml` entries.
 
 ## Further Reading
 - `docs/development.md` — local setup, debugging, VS Code config

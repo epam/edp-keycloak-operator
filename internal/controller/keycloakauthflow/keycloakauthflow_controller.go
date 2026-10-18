@@ -18,6 +18,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakauthflow/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 const successRequeueTime = time.Minute * 10
@@ -33,17 +34,19 @@ type Helper interface {
 	CreateKeycloakClientFromRealmRef(ctx context.Context, object helper.ObjectWithRealmRef) (*keycloakapi.KeycloakClient, error)
 }
 
-func NewReconcile(k8sClient client.Client, controllerHelper Helper) *Reconcile {
+func NewReconcile(k8sClient client.Client, controllerHelper Helper, secretRef *secretref.SecretRef) *Reconcile {
 	return &Reconcile{
-		client: k8sClient,
-		helper: controllerHelper,
+		client:    k8sClient,
+		helper:    controllerHelper,
+		secretRef: secretRef,
 	}
 }
 
 // Reconcile reconciles a KeycloakAuthFlow object.
 type Reconcile struct {
-	client client.Client
-	helper Helper
+	client    client.Client
+	helper    Helper
+	secretRef *secretref.SecretRef
 }
 
 func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
@@ -153,7 +156,7 @@ func (r *Reconcile) handleReconciliation(ctx context.Context, instance *keycloak
 
 	oldStatus := instance.Status
 
-	if err := chain.MakeChain(kClient).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(kClient, r.secretRef).Serve(ctx, instance, realmName); err != nil {
 		log.Error(err, "An error has occurred while handling KeycloakAuthFlow")
 
 		resultErr := fmt.Errorf("auth flow chain processing failed: %w", err)

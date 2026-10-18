@@ -3002,7 +3002,10 @@ AuthenticatorConfig is configuration for authenticator.
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
-          Config is configuration for authenticator.<br/>
+          Config is configuration for authenticator.
+Any value can be a reference to k8s secret, in this case value should be in format $secretName:secretKey.
+A value starting with $ (other than ${) is always parsed as a reference.
+Under enforceDestinationAllowlist a reference is accepted only in a credential key.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -3026,6 +3029,13 @@ KeycloakAuthFlowStatus defines the observed state of KeycloakAuthFlow.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>configSecretsHash</b></td>
+        <td>string</td>
+        <td>
+          ConfigSecretsHash is a hash of referenced secret versions from the last successful authenticator config sync; it contains no secret-derived data.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>id</b></td>
         <td>string</td>
         <td>
