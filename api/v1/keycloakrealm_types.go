@@ -19,6 +19,11 @@ type KeycloakRealmSpec struct {
 	KeycloakRef common.KeycloakRef `json:"keycloakRef,omitempty"`
 
 	// Users is a list of users to create in the realm.
+	// Roles listed in users[].realmRoles are created only when the operator creates the realm;
+	// on an existing realm each role must already exist.
+	//
+	// Deprecated: use KeycloakRealmUser and KeycloakRealmRole instead. This field will be removed
+	// in a future API version. Do not manage the same user with both; their role syncs undo each other.
 	// +nullable
 	// +optional
 	Users []User `json:"users,omitempty"`

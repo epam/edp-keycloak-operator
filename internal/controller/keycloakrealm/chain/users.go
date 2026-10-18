@@ -15,6 +15,9 @@ type PutUsers struct {
 	next handler.RealmHandler
 }
 
+// ServeRequest creates the users listed in spec.users.
+//
+// Deprecated: removed together with KeycloakRealmSpec.Users.
 func (h PutUsers) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting users to realm")

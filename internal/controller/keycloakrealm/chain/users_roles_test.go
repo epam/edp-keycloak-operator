@@ -16,8 +16,12 @@ import (
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
-const testRole1 = "role1"
+const (
+	testRole1 = "role1"
+	testUser1 = "user1"
+)
 
+//nolint:staticcheck // covers the deprecated users field
 func TestPutUsersRoles_ServeRequest(t *testing.T) {
 	ctx := context.Background()
 	uid := "user-uid-1"
@@ -191,6 +195,29 @@ func TestPutUsersRoles_ServeRequest(t *testing.T) {
 			},
 			expectError:   true,
 			errorContains: "unable to get realm role",
+		},
+		{
+			name: "error - realm role not found points to KeycloakRealmRole",
+			setupRealm: func() *keycloakApi.KeycloakRealm {
+				return &keycloakApi.KeycloakRealm{
+					Spec: keycloakApi.KeycloakRealmSpec{
+						RealmName: testRealmName,
+						Users: []keycloakApi.User{
+							{Username: testUser1, RealmRoles: []string{testRole1}},
+						},
+					},
+				}
+			},
+			setupMocks: func(mockUsers *v2mocks.MockUsersClient, mockRoles *v2mocks.MockRolesClient, nextHandler *handlermocks.MockRealmHandler) {
+				mockUsers.EXPECT().FindUserByUsername(mock.Anything, testRealmName, testUser1).
+					Return(&keycloakapi.UserRepresentation{Id: ptr.To(uid)}, nil, nil)
+				mockUsers.EXPECT().GetUserRealmRoleMappings(mock.Anything, testRealmName, uid).
+					Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+				mockRoles.EXPECT().GetRealmRole(mock.Anything, testRealmName, testRole1).
+					Return(nil, nil, &keycloakapi.ApiError{Code: 404})
+			},
+			expectError:   true,
+			errorContains: `realm role "role1" not found in realm "` + testRealmName + `"; create it with a KeycloakRealmRole`,
 		},
 		{
 			name: "error - GetRealmRole returns a role without an id",

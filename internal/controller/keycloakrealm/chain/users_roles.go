@@ -13,6 +13,9 @@ type PutUsersRoles struct {
 	next handler.RealmHandler
 }
 
+// ServeRequest assigns spec.users[].realmRoles to the users.
+//
+// Deprecated: removed together with KeycloakRealmSpec.Users.
 func (h PutUsersRoles) ServeRequest(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	rLog := log.WithValues("keycloak users", realm.Spec.Users)
 	rLog.Info("Start putting roles to users")
@@ -70,6 +73,10 @@ func putOneRealmRoleToOneUser(ctx context.Context, realmName, username, role str
 
 	realmRole, _, err := kClient.Roles.GetRealmRole(ctx, realmName, role)
 	if err != nil {
+		if keycloakapi.IsNotFound(err) {
+			return fmt.Errorf("realm role %q not found in realm %q; create it with a KeycloakRealmRole: %w", role, realmName, err)
+		}
+
 		return fmt.Errorf("unable to get realm role: %w", err)
 	}
 

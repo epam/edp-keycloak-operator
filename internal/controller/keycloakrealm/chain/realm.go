@@ -83,6 +83,9 @@ func (h PutRealm) createRealm(ctx context.Context, realm *keycloakApi.KeycloakRe
 	return nil
 }
 
+// putRealmRoles creates the realm roles listed in spec.users[].realmRoles.
+//
+// Deprecated: removed together with KeycloakRealmSpec.Users.
 func (h PutRealm) putRealmRoles(ctx context.Context, realm *keycloakApi.KeycloakRealm, kClient *keycloakapi.KeycloakClient) error {
 	realmName := realm.Spec.RealmName
 	allRoles := make(map[string]struct{})

@@ -20,6 +20,7 @@ import (
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
+//nolint:staticcheck // covers the deprecated users field
 func TestPutRealm_ServeRequest(t *testing.T) {
 	ctx := context.Background()
 	realmName := testRealmName
@@ -258,6 +259,7 @@ func TestPutRealm_ServeRequest(t *testing.T) {
 	}
 }
 
+//nolint:staticcheck // covers the deprecated users field
 func TestPutRealm_putRealmRoles(t *testing.T) {
 	realmName := testRealmName
 

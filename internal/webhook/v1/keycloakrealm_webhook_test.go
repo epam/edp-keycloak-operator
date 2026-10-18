@@ -197,4 +197,46 @@ var _ = Describe("KeycloakRealm Webhook", func() {
 			Expect(warnings).To(HaveLen(1))
 		})
 	})
+
+	Context("Deprecated spec.users (admission warning)", func() {
+		realmWithUsers := func() *keycloakApi.KeycloakRealm {
+			return &keycloakApi.KeycloakRealm{
+				Spec: keycloakApi.KeycloakRealmSpec{
+					Users: []keycloakApi.User{ //nolint:staticcheck // covers the deprecated users field
+						{Username: "alice@example.com", RealmRoles: []string{"developer"}},
+					},
+				},
+			}
+		}
+
+		It("returns a warning from ValidateCreate when spec.users is set", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			warnings, err := v.ValidateCreate(context.Background(), realmWithUsers())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(1))
+			Expect(warnings[0]).To(ContainSubstring("spec.users is deprecated"))
+			Expect(warnings[0]).To(ContainSubstring("KeycloakRealmUser"))
+		})
+
+		It("returns a warning from ValidateUpdate when spec.users is set on the new object", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			warnings, err := v.ValidateUpdate(context.Background(), &keycloakApi.KeycloakRealm{}, realmWithUsers())
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(1))
+			Expect(warnings[0]).To(ContainSubstring("spec.users is deprecated"))
+		})
+
+		It("returns both warnings when spec.users and duplicate internationalization toggles are set", func() {
+			v := NewKeycloakRealmCustomValidator(fake.NewClientBuilder().Build())
+			t := true
+			realm := realmWithUsers()
+			realm.Spec.Themes = &keycloakApi.RealmThemes{
+				InternationalizationEnabled: &t, //nolint:staticcheck // covers the deprecated themes field
+			}
+			realm.Spec.Localization = &keycloakApi.RealmLocalization{InternationalizationEnabled: &t}
+			warnings, err := v.ValidateCreate(context.Background(), realm)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(2))
+		})
+	})
 })

@@ -6504,7 +6504,12 @@ Deletion of attributes and groups is not supported.<br/>
         <td><b><a href="#keycloakrealmspecusersindex">users</a></b></td>
         <td>[]object</td>
         <td>
-          Users is a list of users to create in the realm.<br/>
+          Users is a list of users to create in the realm.
+Roles listed in users[].realmRoles are created only when the operator creates the realm;
+on an existing realm each role must already exist.
+
+Deprecated: use KeycloakRealmUser and KeycloakRealmRole instead. This field will be removed
+in a future API version. Do not manage the same user with both; their role syncs undo each other.<br/>
         </td>
         <td>false</td>
       </tr></tbody>
