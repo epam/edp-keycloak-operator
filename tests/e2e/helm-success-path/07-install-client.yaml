@@ -81,3 +81,17 @@ spec:
       foo:
       - bar
       - baz
+---
+# No spec.secret: generateSecret rewrites the CR with a full Update; both empty lists must survive it.
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakClient
+metadata:
+  name: keycloakclient-empty-uris
+spec:
+  realmRef:
+    kind: KeycloakRealm
+    name: keycloakrealm-sample
+  clientId: keycloakclient-empty-uris
+  webUrl: https://keycloakclient-empty-uris.com
+  redirectUris: []
+  webOrigins: []

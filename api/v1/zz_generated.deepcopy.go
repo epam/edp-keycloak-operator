@@ -670,13 +670,21 @@ func (in *KeycloakClientSpec) DeepCopyInto(out *KeycloakClientSpec) {
 	}
 	if in.RedirectUris != nil {
 		in, out := &in.RedirectUris, &out.RedirectUris
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.WebOrigins != nil {
 		in, out := &in.WebOrigins, &out.WebOrigins
-		*out = make([]string, len(*in))
-		copy(*out, *in)
+		*out = new([]string)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]string, len(*in))
+			copy(*out, *in)
+		}
 	}
 	if in.Authorization != nil {
 		in, out := &in.Authorization, &out.Authorization

@@ -73,9 +73,7 @@ func (r *KeycloakClientCustomDefaulter) applyDefaults(keycloakClient *keycloakAp
 	}
 
 	if keycloakClient.Spec.WebOrigins == nil && keycloakClient.Spec.WebUrl != "" {
-		keycloakClient.Spec.WebOrigins = []string{
-			keycloakClient.Spec.WebUrl,
-		}
+		keycloakClient.Spec.WebOrigins = &[]string{keycloakClient.Spec.WebUrl}
 
 		updated = true
 	}

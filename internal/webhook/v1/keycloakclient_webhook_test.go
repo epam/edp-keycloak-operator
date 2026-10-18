@@ -6,6 +6,7 @@ import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
@@ -116,8 +117,7 @@ var _ = Describe("KeycloakClient Webhook", func() {
 				Should(Succeed())
 
 			// Verify WebOrigins was initialized from WebUrl
-			Expect(createdClient.Spec.WebOrigins).Should(HaveLen(1))
-			Expect(createdClient.Spec.WebOrigins[0]).Should(Equal(testWebUrl))
+			Expect(createdClient.Spec.WebOrigins).Should(Equal(ptr.To([]string{testWebUrl})))
 		})
 
 		It("Should NOT initialize WebOrigins when WebUrl is empty", func() {
@@ -143,7 +143,7 @@ var _ = Describe("KeycloakClient Webhook", func() {
 			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(keycloakClient), createdClient)).
 				Should(Succeed())
 
-			// Verify WebOrigins was NOT initialized (remains nil or empty)
+			// Verify WebOrigins was NOT initialized (remains nil)
 			Expect(createdClient.Spec.WebOrigins).Should(BeNil())
 		})
 
@@ -161,7 +161,7 @@ var _ = Describe("KeycloakClient Webhook", func() {
 						Name: testRealmName,
 					},
 					WebUrl:     testWebUrl,
-					WebOrigins: customOrigins,
+					WebOrigins: ptr.To(customOrigins),
 				},
 			}
 
@@ -172,7 +172,46 @@ var _ = Describe("KeycloakClient Webhook", func() {
 				Should(Succeed())
 
 			// Verify custom WebOrigins were preserved
-			Expect(createdClient.Spec.WebOrigins).Should(Equal(customOrigins))
+			Expect(createdClient.Spec.WebOrigins).Should(Equal(ptr.To(customOrigins)))
+		})
+
+		It("Should keep explicit empty WebOrigins and RedirectUris on create and across a full-object Update", func() {
+			keycloakClient = &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      "test-client-empty-lists",
+					Namespace: testNamespace,
+				},
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientId,
+					RealmRef: common.RealmRef{
+						Kind: keycloakApi.KeycloakRealmKind,
+						Name: testRealmName,
+					},
+					WebUrl:       testWebUrl,
+					WebOrigins:   ptr.To([]string{}),
+					RedirectUris: ptr.To([]string{}),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, keycloakClient)).Should(Succeed())
+
+			createdClient := &keycloakApi.KeycloakClient{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(keycloakClient), createdClient)).
+				Should(Succeed())
+
+			Expect(createdClient.Spec.WebOrigins).Should(Equal(ptr.To([]string{})))
+			Expect(createdClient.Spec.RedirectUris).Should(Equal(ptr.To([]string{})))
+
+			createdClient.Spec.Secret = "$client-secret:secretKey"
+			Expect(k8sClient.Update(ctx, createdClient)).Should(Succeed())
+
+			updatedClient := &keycloakApi.KeycloakClient{}
+			Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(keycloakClient), updatedClient)).
+				Should(Succeed())
+
+			Expect(updatedClient.Spec.Secret).Should(Equal("$client-secret:secretKey"))
+			Expect(updatedClient.Spec.WebOrigins).Should(Equal(ptr.To([]string{})))
+			Expect(updatedClient.Spec.RedirectUris).Should(Equal(ptr.To([]string{})))
 		})
 
 		It("Should migrate ClientRoles to ClientRolesV2", func() {
@@ -385,14 +424,14 @@ var _ = Describe("KeycloakClient Webhook", func() {
 
 			// Verify all defaults were applied
 			Expect(createdClient.Spec.Attributes[ClientAttributeLogoutRedirectUris]).Should(Equal(ClientAttributeLogoutRedirectUrisDefValue))
-			Expect(createdClient.Spec.WebOrigins).Should(Equal([]string{testWebUrl}))
+			Expect(createdClient.Spec.WebOrigins).Should(Equal(ptr.To([]string{testWebUrl})))
 			Expect(createdClient.Spec.ClientRolesV2).Should(HaveLen(2))
 			Expect(createdClient.Spec.ServiceAccount.AttributesV2).Should(HaveLen(1))
 		})
 
 		It("Should NOT modify client when all defaults already set", func() {
 			attributes := map[string]string{ClientAttributeLogoutRedirectUris: ClientAttributeLogoutRedirectUrisDefValue}
-			webOrigins := []string{testWebUrl}
+			webOrigins := ptr.To([]string{testWebUrl})
 			clientRolesV2 := []keycloakApi.ClientRole{{Name: "role1"}}
 			saAttributesV2 := map[string][]string{"attr": {"value"}}
 

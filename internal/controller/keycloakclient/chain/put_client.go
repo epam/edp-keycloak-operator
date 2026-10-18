@@ -348,9 +348,11 @@ func convertSpecToClientRepresentation(
 		cr.Attributes = &attrs
 	}
 
-	if len(spec.RedirectUris) > 0 {
-		uris := make([]string, len(spec.RedirectUris))
-		copy(uris, spec.RedirectUris)
+	// RedirectUris, WebOrigins: nil derives from WebUrl, or omits the key so Keycloak keeps its list.
+	// Non-nil, including empty: sent as-is; an empty list clears it in Keycloak.
+	if spec.RedirectUris != nil {
+		uris := make([]string, len(*spec.RedirectUris))
+		copy(uris, *spec.RedirectUris)
 
 		cr.RedirectUris = &uris
 	} else if spec.WebUrl != "" {
@@ -358,9 +360,9 @@ func convertSpecToClientRepresentation(
 		cr.RedirectUris = &uris
 	}
 
-	if len(spec.WebOrigins) > 0 {
-		origins := make([]string, len(spec.WebOrigins))
-		copy(origins, spec.WebOrigins)
+	if spec.WebOrigins != nil {
+		origins := make([]string, len(*spec.WebOrigins))
+		copy(origins, *spec.WebOrigins)
 
 		cr.WebOrigins = &origins
 	} else if spec.WebUrl != "" {
