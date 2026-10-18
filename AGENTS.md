@@ -19,7 +19,7 @@ internal/controller/{resource}/
 
 internal/controller/helper/ — Shared: Keycloak client factory, finalizers, failure tracking
 
-internal/webhook/v1/ — Admission webhooks for KeycloakClient (defaulting) and KeycloakRealm (validation)
+internal/webhook/v1/ — Admission webhooks: KeycloakClient (defaulting, validation), KeycloakRealm and KeycloakRealmGroup (validation)
 
 pkg/client/keycloakapi/  — oapi-codegen generated Keycloak client
 
@@ -72,7 +72,10 @@ make generate-keycloak-go-client                            # download the Keycl
 ## Conventions
 
 ### CRD scope
-A realm CR sets realm attributes only; each top-level realm collection (users, roles, groups, clients, ...) has its own CRD; a CR embeds only its own sub-objects (client roles, mappers, flow executions).
+Each Keycloak object has one owner: the CR of its kind. A CR embeds only what Keycloak deletes with it, except nested objects of its own kind (separate CR with a parent reference). Anything else it names is a reference: link or unlink it, never create, update or delete it. New lookups fail on a missing referent with an error naming the owning CRD. A field that writes a referent is a leak: deprecate it.
+
+### Deprecating a field
+`Deprecated:` paragraph on the field and on code that exists only for it; tests use `//nolint:staticcheck // reason`. Admission warning of at most 120 characters.
 
 ### Adding a new chain handler
 1. Create `internal/controller/{resource}/chain/my_step.go` implementing the handler interface.

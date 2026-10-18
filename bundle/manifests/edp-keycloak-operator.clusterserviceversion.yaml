@@ -1307,6 +1307,26 @@ spec:
     - v1
     containerPort: 443
     deploymentName: keycloak-operator-controller-manager
+    failurePolicy: Ignore
+    generateName: vkeycloakclient-v1.kb.io
+    rules:
+    - apiGroups:
+      - v1.edp.epam.com
+      apiVersions:
+      - v1
+      operations:
+      - CREATE
+      - UPDATE
+      resources:
+      - keycloakclients
+    sideEffects: None
+    targetPort: 9443
+    type: ValidatingAdmissionWebhook
+    webhookPath: /validate-v1-edp-epam-com-v1-keycloakclient
+  - admissionReviewVersions:
+    - v1
+    containerPort: 443
+    deploymentName: keycloak-operator-controller-manager
     failurePolicy: Fail
     generateName: vkeycloakrealm-v1.kb.io
     rules:

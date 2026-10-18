@@ -40,7 +40,12 @@ type KeycloakClientSpec struct {
 	// +kubebuilder:example="$keycloak-secret:client_secret"
 	Secret string `json:"secret,omitempty"`
 
-	// RealmRoles is a list of realm roles assigned to client.
+	// RealmRoles is a list of realm roles to create in the client's realm.
+	// A role is created only if it does not exist; an existing role is never updated, and removing
+	// an entry does not delete the role. The roles are not assigned to the client.
+	//
+	// Deprecated: use KeycloakRealmRole instead; it takes over a role created by this field.
+	// This field will be removed in a future API version.
 	// +nullable
 	// +optional
 	RealmRoles *[]RealmRole `json:"realmRoles,omitempty"`
@@ -298,7 +303,8 @@ type RealmRole struct {
 	// +optional
 	Name string `json:"name,omitempty"`
 
-	// Composite is a realm composite role name.
+	// Composite is an existing realm role that the created role is added to as a composite.
+	// If a KeycloakRealmRole with composite: true manages it, list the created role in its composites.
 	Composite string `json:"composite"`
 }
 

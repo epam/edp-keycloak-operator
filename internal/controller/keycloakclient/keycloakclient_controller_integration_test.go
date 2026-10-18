@@ -686,7 +686,7 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 				},
 				Public: true,
 				Secret: secretref.GenerateSecretRef(clientSecret.Name, "secretKey"),
-				RealmRoles: &[]keycloakApi.RealmRole{
+				RealmRoles: &[]keycloakApi.RealmRole{ //nolint:staticcheck // covers the deprecated realmRoles field
 					{Name: "test-simple-role", Composite: ""},
 					{Name: "test-composite-role", Composite: "test-composite-base"},
 				},
@@ -711,17 +711,24 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		Expect(simpleRole.Name).ShouldNot(BeNil())
 		Expect(*simpleRole.Name).Should(Equal("test-simple-role"))
 
-		By("Verifying composite realm role in Keycloak")
-		compositeRole, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "test-composite-role")
+		By("Verifying the created realm role is added into its composite")
+		createdRole, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "test-composite-role")
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(compositeRole).ShouldNot(BeNil())
-		Expect(compositeRole.Composite).ShouldNot(BeNil())
-		Expect(*compositeRole.Composite).Should(BeTrue())
+		Expect(createdRole).ShouldNot(BeNil())
+		Expect(ptr.Deref(createdRole.Composite, false)).Should(BeFalse())
 
-		composites, _, err := keycloakAdmin.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-composite-role")
+		createdComposites, _, err := keycloakAdmin.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-composite-role")
 		Expect(err).ShouldNot(HaveOccurred())
-		Expect(composites).Should(HaveLen(1))
-		Expect(*composites[0].Name).Should(Equal("test-composite-base"))
+		Expect(createdComposites).Should(BeEmpty())
+
+		baseRole, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "test-composite-base")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(ptr.Deref(baseRole.Composite, false)).Should(BeTrue())
+
+		baseComposites, _, err := keycloakAdmin.Roles.GetRealmRoleComposites(ctx, KeycloakRealmCR, "test-composite-base")
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(baseComposites).Should(HaveLen(1))
+		Expect(*baseComposites[0].Name).Should(Equal("test-composite-role"))
 	})
 
 	It("Should create KeycloakClient with authorization settings", func() {
