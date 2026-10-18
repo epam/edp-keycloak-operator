@@ -8,6 +8,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/webhook"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 )
@@ -19,6 +20,7 @@ var keycloakclientlog = logf.Log.WithName("keycloakclient-resource")
 func SetupKeycloakClientWebhookWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewWebhookManagedBy(mgr).For(&keycloakApi.KeycloakClient{}).
 		WithDefaulter(&KeycloakClientCustomDefaulter{}).
+		WithValidator(&KeycloakClientCustomValidator{}).
 		Complete()
 }
 
@@ -141,4 +143,51 @@ func (r *KeycloakClientCustomDefaulter) migrateServiceAccountAttributes(keycloak
 	}
 
 	return false
+}
+
+// failurePolicy=ignore: this webhook only returns warnings. Switch to fail in the marker, the Helm chart
+// and the bundle CSV when it starts denying requests.
+// +kubebuilder:webhook:path=/validate-v1-edp-epam-com-v1-keycloakclient,mutating=false,failurePolicy=ignore,sideEffects=None,groups=v1.edp.epam.com,resources=keycloakclients,verbs=create;update,versions=v1,name=vkeycloakclient-v1.kb.io,admissionReviewVersions=v1
+
+// KeycloakClientCustomValidator returns admission warnings for KeycloakClient.
+//
+// Deprecated: removed together with KeycloakClientSpec.RealmRoles.
+type KeycloakClientCustomValidator struct{}
+
+var _ webhook.CustomValidator = &KeycloakClientCustomValidator{}
+
+// deprecatedRealmRolesWarning returns an admission warning when spec.realmRoles is set.
+//
+// Deprecated: removed together with KeycloakClientSpec.RealmRoles.
+func deprecatedRealmRolesWarning(keycloakClient *keycloakApi.KeycloakClient) admission.Warnings {
+	if keycloakClient.Spec.RealmRoles == nil || len(*keycloakClient.Spec.RealmRoles) == 0 {
+		return nil
+	}
+
+	return admission.Warnings{"spec.realmRoles is deprecated; use KeycloakRealmRole"}
+}
+
+// ValidateCreate implements webhook.CustomValidator.
+func (v *KeycloakClientCustomValidator) ValidateCreate(_ context.Context, obj runtime.Object) (admission.Warnings, error) {
+	keycloakClient, ok := obj.(*keycloakApi.KeycloakClient)
+	if !ok {
+		return nil, fmt.Errorf("expected a KeycloakClient object but got %T", obj)
+	}
+
+	return deprecatedRealmRolesWarning(keycloakClient), nil
+}
+
+// ValidateUpdate implements webhook.CustomValidator.
+func (v *KeycloakClientCustomValidator) ValidateUpdate(_ context.Context, _, newObj runtime.Object) (admission.Warnings, error) {
+	keycloakClient, ok := newObj.(*keycloakApi.KeycloakClient)
+	if !ok {
+		return nil, fmt.Errorf("expected a KeycloakClient object but got %T", newObj)
+	}
+
+	return deprecatedRealmRolesWarning(keycloakClient), nil
+}
+
+// ValidateDelete implements webhook.CustomValidator.
+func (v *KeycloakClientCustomValidator) ValidateDelete(_ context.Context, _ runtime.Object) (admission.Warnings, error) {
+	return nil, nil
 }

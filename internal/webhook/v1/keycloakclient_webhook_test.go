@@ -1,10 +1,13 @@
 package v1
 
 import (
+	"context"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"sigs.k8s.io/controller-runtime/pkg/client"
+	"sigs.k8s.io/controller-runtime/pkg/webhook/admission"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -426,6 +429,38 @@ var _ = Describe("KeycloakClient Webhook", func() {
 			Expect(createdClient.Spec.WebOrigins).Should(Equal(webOrigins))
 			Expect(createdClient.Spec.ClientRolesV2).Should(HaveLen(1))
 			Expect(createdClient.Spec.ServiceAccount.AttributesV2).Should(Equal(saAttributesV2))
+		})
+	})
+
+	Context("Deprecated spec.realmRoles (admission warning)", func() {
+		clientWithRealmRoles := func(roles *[]keycloakApi.RealmRole) *keycloakApi.KeycloakClient {
+			return &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					RealmRoles: roles, //nolint:staticcheck // covers the deprecated realmRoles field
+				},
+			}
+		}
+		roles := &[]keycloakApi.RealmRole{{Name: "app-admin", Composite: "administrator"}}
+
+		It("returns a warning from ValidateCreate when spec.realmRoles is set", func() {
+			warnings, err := (&KeycloakClientCustomValidator{}).ValidateCreate(context.Background(), clientWithRealmRoles(roles))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(Equal(admission.Warnings{"spec.realmRoles is deprecated; use KeycloakRealmRole"}))
+		})
+
+		It("returns a warning from ValidateUpdate when spec.realmRoles is set on the new object", func() {
+			warnings, err := (&KeycloakClientCustomValidator{}).ValidateUpdate(
+				context.Background(), clientWithRealmRoles(nil), clientWithRealmRoles(roles))
+			Expect(err).NotTo(HaveOccurred())
+			Expect(warnings).To(HaveLen(1))
+		})
+
+		It("returns no warning when spec.realmRoles is absent or empty", func() {
+			for _, r := range []*[]keycloakApi.RealmRole{nil, {}} {
+				warnings, err := (&KeycloakClientCustomValidator{}).ValidateCreate(context.Background(), clientWithRealmRoles(r))
+				Expect(err).NotTo(HaveOccurred())
+				Expect(warnings).To(BeEmpty())
+			}
 		})
 	})
 })

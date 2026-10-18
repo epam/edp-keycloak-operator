@@ -3340,7 +3340,12 @@ Deprecated: Use ClientRolesV2 instead.<br/>
         <td><b><a href="#keycloakclientspecrealmrolesindex">realmRoles</a></b></td>
         <td>[]object</td>
         <td>
-          RealmRoles is a list of realm roles assigned to client.<br/>
+          RealmRoles is a list of realm roles to create in the client's realm.
+A role is created only if it does not exist; an existing role is never updated, and removing
+an entry does not delete the role. The roles are not assigned to the client.
+
+Deprecated: use KeycloakRealmRole instead; it takes over a role created by this field.
+This field will be removed in a future API version.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -4320,7 +4325,8 @@ Permission is a client permissions configuration
         <td><b>composite</b></td>
         <td>string</td>
         <td>
-          Composite is a realm composite role name.<br/>
+          Composite is an existing realm role that the created role is added to as a composite.
+If a KeycloakRealmRole with composite: true manages it, list the created role in its composites.<br/>
         </td>
         <td>true</td>
       </tr><tr>

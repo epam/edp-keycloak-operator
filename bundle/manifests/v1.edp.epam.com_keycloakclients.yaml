@@ -576,11 +576,19 @@ spec:
                 - name
                 type: object
               realmRoles:
-                description: RealmRoles is a list of realm roles assigned to client.
+                description: |-
+                  RealmRoles is a list of realm roles to create in the client's realm.
+                  A role is created only if it does not exist; an existing role is never updated, and removing
+                  an entry does not delete the role. The roles are not assigned to the client.
+
+                  Deprecated: use KeycloakRealmRole instead; it takes over a role created by this field.
+                  This field will be removed in a future API version.
                 items:
                   properties:
                     composite:
-                      description: Composite is a realm composite role name.
+                      description: |-
+                        Composite is an existing realm role that the created role is added to as a composite.
+                        If a KeycloakRealmRole with composite: true manages it, list the created role in its composites.
                       type: string
                     name:
                       description: Name is a realm role name.

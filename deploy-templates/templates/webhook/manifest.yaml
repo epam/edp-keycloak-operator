@@ -53,6 +53,35 @@ webhooks:
     service:
       name: {{ .Values.name }}-webhook-service
       namespace: {{ .Release.Namespace }}
+      path: /validate-v1-edp-epam-com-v1-keycloakclient
+  failurePolicy: Ignore
+  name: vkeycloakclient-v1.kb.io
+  {{- /* Namespace-scoped webhook validation to prevent cross-namespace conflicts. */ -}}
+  {{- if not .Values.clusterReconciliationEnabled }}
+  namespaceSelector:
+    matchExpressions:
+    - key: kubernetes.io/metadata.name
+      operator: In
+      values:
+      - {{ .Release.Namespace }}
+  {{- end }}
+  rules:
+  - apiGroups:
+    - v1.edp.epam.com
+    apiVersions:
+    - v1
+    operations:
+    - CREATE
+    - UPDATE
+    resources:
+    - keycloakclients
+  sideEffects: None
+- admissionReviewVersions:
+  - v1
+  clientConfig:
+    service:
+      name: {{ .Values.name }}-webhook-service
+      namespace: {{ .Release.Namespace }}
       path: /validate-v1-edp-epam-com-v1-keycloakrealm
   failurePolicy: Fail
   name: vkeycloakrealm-v1.kb.io

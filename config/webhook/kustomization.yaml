@@ -5,11 +5,7 @@ resources:
 configurations:
 - kustomizeconfig.yaml
 
-# [CUSTOM] Namespace-scoped webhook validation to prevent cross-namespace conflicts.
+# [CUSTOM] Namespace-scoped webhooks. Patches select webhooks by name; list every new webhook.
 patches:
-- path: webhook_namespace_patch.yaml
-  target:
-    kind: ValidatingWebhookConfiguration
-- path: webhook_namespace_patch.yaml
-  target:
-    kind: MutatingWebhookConfiguration
+- path: mutating_namespace_patch.yaml
+- path: validating_namespace_patch.yaml
