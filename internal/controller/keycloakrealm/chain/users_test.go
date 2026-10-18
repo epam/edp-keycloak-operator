@@ -18,6 +18,7 @@ import (
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
+//nolint:staticcheck // covers the deprecated users field
 func TestPutUsers_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name          string

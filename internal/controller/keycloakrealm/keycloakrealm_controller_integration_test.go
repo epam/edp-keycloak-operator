@@ -73,7 +73,7 @@ var _ = Describe("KeycloakRealm controller", Ordered, func() {
 					},
 				},
 				FrontendURL: "https://test.com",
-				Users: []keycloakApi.User{
+				Users: []keycloakApi.User{ //nolint:staticcheck // covers the deprecated users field
 					{
 						Username: "keycloakrealm-user@mail.com",
 					},

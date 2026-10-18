@@ -60,6 +60,21 @@ func duplicateInternationalizationWarning(realm *keycloakApi.KeycloakRealm) admi
 	}
 }
 
+// deprecatedUsersWarning returns an admission warning when spec.users is set.
+//
+// Deprecated: removed together with KeycloakRealmSpec.Users.
+func deprecatedUsersWarning(realm *keycloakApi.KeycloakRealm) admission.Warnings {
+	if len(realm.Spec.Users) == 0 {
+		return nil
+	}
+
+	return admission.Warnings{"spec.users is deprecated; use KeycloakRealmUser and KeycloakRealmRole"}
+}
+
+func realmWarnings(realm *keycloakApi.KeycloakRealm) admission.Warnings {
+	return append(duplicateInternationalizationWarning(realm), deprecatedUsersWarning(realm)...)
+}
+
 var _ webhook.CustomValidator = &KeycloakRealmCustomValidator{}
 
 // ValidateCreate implements webhook.CustomValidator so a webhook will be registered for the type KeycloakRealm.
@@ -94,7 +109,7 @@ func (v *KeycloakRealmCustomValidator) ValidateCreate(ctx context.Context, obj r
 		}
 	}
 
-	return duplicateInternationalizationWarning(keycloakrealm), nil
+	return realmWarnings(keycloakrealm), nil
 }
 
 // formatResolvedKeycloakInstance returns a human-readable identity for the Keycloak
@@ -137,7 +152,7 @@ func (v *KeycloakRealmCustomValidator) ValidateUpdate(_ context.Context, oldObj,
 		return nil, fmt.Errorf("expected a KeycloakRealm object but got %T", newObj)
 	}
 
-	return duplicateInternationalizationWarning(keycloakrealm), nil
+	return realmWarnings(keycloakrealm), nil
 }
 
 // ValidateDelete implements webhook.CustomValidator so a webhook will be registered for the type KeycloakRealm.

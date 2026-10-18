@@ -71,6 +71,9 @@ make generate-keycloak-go-client                            # download the Keycl
 
 ## Conventions
 
+### CRD scope
+A realm CR sets realm attributes only; each top-level realm collection (users, roles, groups, clients, ...) has its own CRD; a CR embeds only its own sub-objects (client roles, mappers, flow executions).
+
 ### Adding a new chain handler
 1. Create `internal/controller/{resource}/chain/my_step.go` implementing the handler interface.
 2. Wire it into `chain/chain.go` in the correct call order.
