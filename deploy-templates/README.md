@@ -159,4 +159,5 @@ Development versions are also available from the [snapshot helm chart repository
 | serviceAccount.create | bool | `true` | If true, a ServiceAccount will be created |
 | serviceAccount.labels | object | `{}` | Additional labels to add to the ServiceAccount |
 | serviceAccount.name | string | `"edp-keycloak-operator"` | The name of the ServiceAccount to use. Defaults to "edp-keycloak-operator" |
+| successReconcileTimeout | string | `""` | Interval for periodic reconciliation after a successful reconcile, as a Go duration with a unit (for example "10m"); a bare number is rejected. Applies to KeycloakRealm, KeycloakClient, KeycloakRealmGroup, KeycloakRealmRole and KeycloakRealmRoleBatch. Empty disables periodic reconciliation for these resources: they reconcile only on CR changes, operator restart, or the cache resync (~10h). Other resources use fixed intervals and are not affected. |
 | tolerations | list | `[]` | Node tolerations for server scheduling to nodes with taints |

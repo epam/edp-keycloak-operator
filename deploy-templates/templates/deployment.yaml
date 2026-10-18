@@ -76,6 +76,14 @@ spec:
               value: {{ join "," .Values.allowedDestinationHosts | quote }}
             - name: ENFORCE_DESTINATION_ALLOWLIST
               value: {{ .Values.enforceDestinationAllowlist | quote }}
+            {{- $successReconcileTimeout := .Values.successReconcileTimeout | default "" | toString }}
+            {{- if ne $successReconcileTimeout "" }}
+            {{- if not (regexMatch "^(0|([0-9]+(\\.[0-9]*)?(ns|us|µs|ms|s|m|h))+)$" $successReconcileTimeout) }}
+            {{- fail (printf "successReconcileTimeout must be a Go duration with a unit, for example \"10m\"; got %q" $successReconcileTimeout) }}
+            {{- end }}
+            - name: SUCCESS_RECONCILE_TIMEOUT
+              value: {{ $successReconcileTimeout | quote }}
+            {{- end }}
         {{- if or .Values.extraVolumeMounts .Values.enableWebhooks }}
           volumeMounts:
           {{- if .Values.enableWebhooks }}
