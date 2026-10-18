@@ -11,6 +11,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -50,9 +51,9 @@ var _ = Describe("KeycloakAuthFlow idempotent reconcile", Ordered, func() {
 		}, longWait, interval).Should(Succeed())
 	}
 
-	// execProvider returns the defaultProvider recorded on the flow's single execution,
-	// resolved through the live Keycloak state rather than the CR.
-	execProvider := func(g Gomega) string {
+	// configValue returns one key of the authenticator config on the flow's single execution,
+	// as Keycloak returns it on GET.
+	configValue := func(g Gomega, key string) string {
 		execs, _, err := keycloakApiClient.AuthFlows.GetFlowExecutions(ctx, realmCR, flowAlias)
 		g.Expect(err).ShouldNot(HaveOccurred())
 		g.Expect(execs).ShouldNot(BeEmpty())
@@ -63,7 +64,34 @@ var _ = Describe("KeycloakAuthFlow idempotent reconcile", Ordered, func() {
 		g.Expect(cfg).ShouldNot(BeNil())
 		g.Expect(cfg.Config).ShouldNot(BeNil())
 
-		return (*cfg.Config)["defaultProvider"]
+		return (*cfg.Config)[key]
+	}
+
+	// execProvider returns the defaultProvider recorded on the flow's single execution,
+	// resolved through the live Keycloak state rather than the CR.
+	execProvider := func(g Gomega) string {
+		return configValue(g, "defaultProvider")
+	}
+
+	// tamperConfig reads the flow's live authenticator config, applies mutate, and PUTs it
+	// back through the admin client, bypassing the operator.
+	tamperConfig := func(mutate func(config map[string]string)) {
+		execs, _, err := keycloakApiClient.AuthFlows.GetFlowExecutions(ctx, realmCR, flowAlias)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(execs).ShouldNot(BeEmpty())
+		Expect(execs[0].AuthenticationConfig).ShouldNot(BeNil(), "execution must carry an authenticator config")
+
+		configID := *execs[0].AuthenticationConfig
+
+		cfg, _, err := keycloakApiClient.AuthFlows.GetAuthenticatorConfig(ctx, realmCR, configID)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(cfg).ShouldNot(BeNil())
+		Expect(cfg.Config).ShouldNot(BeNil())
+
+		mutate(*cfg.Config)
+
+		_, err = keycloakApiClient.AuthFlows.UpdateAuthenticatorConfig(ctx, realmCR, configID, *cfg)
+		Expect(err).ShouldNot(HaveOccurred())
 	}
 
 	flowExists := func() bool {
@@ -163,6 +191,78 @@ var _ = Describe("KeycloakAuthFlow idempotent reconcile", Ordered, func() {
 
 	It("Should not write to Keycloak after the edit settles", func() {
 		Expect(recorder.WritesDuring(ctx, settle, nudge)).To(BeEmpty())
+	})
+
+	It("Should write to Keycloak when an undeclared config key is added", func() {
+		// identity-provider-redirector declares only defaultProvider.
+		Expect(recorder.WritesDuring(ctx, 0, func() {
+			updateSpec(func(cr *keycloakApi.KeycloakAuthFlow) {
+				cr.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config["apiToken"] = "plain-token"
+			})
+			waitReady()
+		})).ShouldNot(BeEmpty(), "admin event log recorded nothing for a known write")
+	})
+
+	It("Should not write to Keycloak after an undeclared config key settles", func() {
+		Expect(recorder.WritesDuring(ctx, settle, nudge)).To(BeEmpty())
+	})
+
+	It("Should write to Keycloak when a clear config key is changed out-of-band", func() {
+		// The tamper write happens before the window opens; WritesDuring clears the event
+		// log on entry, so only the operator's repair is recorded.
+		tamperConfig(func(config map[string]string) {
+			config["defaultProvider"] = "provider-tampered"
+		})
+		Expect(execProvider(Default)).To(Equal("provider-tampered"))
+
+		Expect(recorder.WritesDuring(ctx, 0, func() {
+			nudge()
+
+			Eventually(func(g Gomega) {
+				g.Expect(execProvider(g)).To(Equal("provider-v2"))
+			}, longWait, interval).Should(Succeed())
+		})).ShouldNot(BeEmpty(), "a drifted clear key must be written back")
+
+		Expect(execProvider(Default)).To(Equal("provider-v2"))
+	})
+
+	It("Should write to Keycloak only when an out-of-band change to an undeclared config key is visible", func() {
+		// Keycloak >= 26.7 masks undeclared keys; older returns them clear. Branch on the fetched value.
+		masked := configValue(Default, "apiToken") == keycloakapi.MaskedSecretValue
+
+		tamperConfig(func(config map[string]string) {
+			config["apiToken"] = "tampered-token"
+		})
+
+		if masked {
+			// The sentinel hides the drift from the compare; only a spec edit or a forced
+			// write repairs it.
+			Expect(recorder.WritesDuring(ctx, settle, nudge)).To(BeEmpty())
+
+			return
+		}
+
+		Expect(configValue(Default, "apiToken")).To(Equal("tampered-token"))
+
+		Expect(recorder.WritesDuring(ctx, 0, func() {
+			nudge()
+
+			Eventually(func(g Gomega) {
+				g.Expect(configValue(g, "apiToken")).To(Equal("plain-token"))
+			}, longWait, interval).Should(Succeed())
+		})).ShouldNot(BeEmpty(), "a drifted clear key must be written back")
+
+		Expect(configValue(Default, "apiToken")).To(Equal("plain-token"))
+	})
+
+	It("Should write an undeclared config key when its spec value changes", func() {
+		// Leaves Keycloak matching spec for the specs that follow.
+		Expect(recorder.WritesDuring(ctx, 0, func() {
+			updateSpec(func(cr *keycloakApi.KeycloakAuthFlow) {
+				cr.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config["apiToken"] = "plain-token-v2"
+			})
+			waitReady()
+		})).ShouldNot(BeEmpty(), "a spec edit must write the key back")
 	})
 
 	It("Should force one write when observedGeneration is cleared", func() {

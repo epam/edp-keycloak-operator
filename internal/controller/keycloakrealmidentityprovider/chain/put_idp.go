@@ -11,7 +11,6 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -94,8 +93,6 @@ func specToIdentityProviderRepresentation(spec *keycloakApi.KeycloakRealmIdentit
 }
 
 // idpMatchesSpec reports whether the fetched IDP already matches the desired representation.
-// Config keys are excluded from comparison when Keycloak masks them: either the raw spec value
-// is a secret ref, or the fetched value is already the mask sentinel (e.g. a plain-literal secret).
 func idpMatchesSpec(
 	existing *keycloakapi.IdentityProviderRepresentation,
 	desired keycloakapi.IdentityProviderRepresentation,
@@ -116,18 +113,5 @@ func idpMatchesSpec(
 		return false
 	}
 
-	existingConfig := ptr.Deref(existing.Config, nil)
-	desiredConfig := ptr.Deref(desired.Config, nil)
-
-	comparableConfig := make(map[string]string, len(desiredConfig))
-
-	for k, v := range desiredConfig {
-		if secretref.HasSecretRef(rawSpecConfig[k]) || existingConfig[k] == keycloakapi.MaskedSecretValue {
-			continue
-		}
-
-		comparableConfig[k] = v
-	}
-
-	return maputil.ContainsSubset(existingConfig, comparableConfig)
+	return secretref.ConfigMatches(ptr.Deref(existing.Config, nil), ptr.Deref(desired.Config, nil), rawSpecConfig)
 }

@@ -12,7 +12,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/maputil"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 // SyncAuthFlowExecutions syncs authentication executions for an auth flow.
@@ -219,9 +219,7 @@ func (h *SyncAuthFlowExecutions) updateExecutionConfigIfNeeded(
 			return fmt.Errorf("failed to get authenticator config %q: %w", configID, err)
 		}
 
-		if existingCfg != nil &&
-			ptr.Deref(existingCfg.Alias, "") == desiredConfig.Alias &&
-			maputil.ContainsSubset(ptr.Deref(existingCfg.Config, nil), desiredConfig.Config) {
+		if existingCfg != nil && configMatchesSpec(existingCfg, desiredConfig) {
 			return nil
 		}
 	}
@@ -241,6 +239,13 @@ func (h *SyncAuthFlowExecutions) updateExecutionConfigIfNeeded(
 
 	// Dangling config reference: the execution points at a config that no longer exists.
 	return h.createExecutionConfig(ctx, realmName, execID, desiredConfig)
+}
+
+// configMatchesSpec reports whether the fetched authenticator config already matches the spec.
+// Keycloak masks every config key the provider does not declare as a non-secret property.
+func configMatchesSpec(existing *keycloakapi.AuthenticatorConfigRepresentation, desired *keycloakApi.AuthenticatorConfig) bool {
+	return ptr.Deref(existing.Alias, "") == desired.Alias &&
+		secretref.ConfigMatches(ptr.Deref(existing.Config, nil), desired.Config, nil)
 }
 
 // addExecutions posts spec entries that had no matching existing execution.
