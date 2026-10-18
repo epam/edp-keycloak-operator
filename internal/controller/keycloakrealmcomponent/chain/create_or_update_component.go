@@ -3,7 +3,6 @@ package chain
 import (
 	"context"
 	"fmt"
-	"slices"
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -11,7 +10,6 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -112,8 +110,7 @@ func (h *CreateOrUpdateComponent) Serve(
 }
 
 // componentMatchesSpec reports whether the fetched component already matches the desired
-// representation. Config keys are excluded from comparison when Keycloak masks them: either
-// the raw spec value is a secret ref, or the fetched value is already the mask sentinel.
+// representation.
 func componentMatchesSpec(
 	existing *keycloakapi.ComponentRepresentation,
 	desired keycloakapi.ComponentRepresentation,
@@ -129,20 +126,7 @@ func componentMatchesSpec(
 		return false
 	}
 
-	existingConfig := ptr.Deref(existing.Config, nil)
-	desiredConfig := ptr.Deref(desired.Config, nil)
-
-	comparableConfig := make(map[string][]string, len(desiredConfig))
-
-	for k, v := range desiredConfig {
-		if secretref.HasAnySecretRef(rawCfg[k]) || slices.Contains(existingConfig[k], keycloakapi.MaskedSecretValue) {
-			continue
-		}
-
-		comparableConfig[k] = v
-	}
-
-	return maputil.ContainsSubsetMulti(existingConfig, comparableConfig)
+	return secretref.ConfigMatchesMulti(ptr.Deref(existing.Config, nil), ptr.Deref(desired.Config, nil), rawCfg)
 }
 
 // findExisting returns the Keycloak component the CR manages, or nil if none exists.

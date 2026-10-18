@@ -507,6 +507,96 @@ func TestCreateOrUpdateComponent_Serve_MaskedFetchedValueSkipped(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Generation and secret-version hash are in sync in every case: the config compare is the only
+// reason an update can fire.
+func TestCreateOrUpdateComponent_Serve_ConfigCompare(t *testing.T) {
+	refVersions := map[string][]string{"bindCredential": {"secret:secret:key@uid-1@100"}}
+
+	tests := []struct {
+		name       string
+		specConfig map[string][]string
+		secretRefs *mutatingSecretRefClient
+		existing   *keycloakapi.MultivaluedHashMapStringString
+		wantUpdate bool
+	}{
+		{
+			name:       "C3 spec list with a ref and a clear value skips the whole key",
+			specConfig: map[string][]string{"bindCredential": {"$secret:key", "plain"}},
+			secretRefs: &mutatingSecretRefClient{
+				mutate: func(config map[string][]string) {
+					config["bindCredential"] = []string{"resolved-value", "plain"}
+				},
+				versions: refVersions,
+			},
+			existing: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+				"bindCredential": {"other-clear", "different"},
+			}),
+			wantUpdate: false,
+		},
+		{
+			name:       "C4 existing list holding the sentinel among clear values skips the key",
+			specConfig: map[string][]string{"bindCredential": {"plain"}},
+			secretRefs: &mutatingSecretRefClient{},
+			existing: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+				"bindCredential": {"other-clear", keycloakapi.MaskedSecretValue},
+			}),
+			wantUpdate: false,
+		},
+		{
+			name:       "C10 nil existing config with non-ref desired key",
+			specConfig: map[string][]string{"key1": {"val1"}},
+			secretRefs: &mutatingSecretRefClient{},
+			existing:   nil,
+			wantUpdate: true,
+		},
+		{
+			name: "clear multi-valued key drift with masked sibling key",
+			specConfig: map[string][]string{
+				"groups":         {"a", "b"},
+				"bindCredential": {"plain"},
+			},
+			secretRefs: &mutatingSecretRefClient{},
+			existing: ptr.To(keycloakapi.MultivaluedHashMapStringString{
+				"groups":         {"a", "c"},
+				"bindCredential": {keycloakapi.MaskedSecretValue},
+			}),
+			wantUpdate: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockComponents := mocks.NewMockRealmComponentsClient(t)
+			kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+			component := baseComponent()
+			component.Generation = 3
+			component.Status.ObservedGeneration = 3
+			component.Spec.Config = tt.specConfig
+			component.Status.ConfigSecretsHash = secretref.ValuesHash(tt.secretRefs.versions)
+
+			existing := inSyncExisting()
+			existing.Config = tt.existing
+
+			mockComponents.EXPECT().
+				GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+				Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
+
+			if tt.wantUpdate {
+				want := desiredRepr(ptr.To(testComponentID), testRealmID)
+				want.Config = ptr.To(keycloakapi.MultivaluedHashMapStringString(tt.specConfig))
+
+				mockComponents.EXPECT().
+					UpdateComponent(context.Background(), testRealmName, testComponentID, want).
+					Return(nil, nil).Once()
+			}
+
+			h := NewCreateOrUpdateComponent(kClient, tt.secretRefs, testRealmID)
+			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
+		})
+	}
+}
+
 func TestCreateOrUpdateComponent_Serve_ScopedLookupError(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
 	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}

@@ -85,6 +85,15 @@ Each Keycloak object has one owner: the CR of its kind. A CR embeds only what Ke
 ### Reconciliation idempotency
 Skip Keycloak writes when actual state matches the spec; track `status.observedGeneration` and force writes on generation change so spec removals propagate. Never delete-and-recreate child resources — diff by name (reference: `internal/controller/keycloakclientscope/chain/`).
 
+### Sensitive values
+A secret value comes from the spec or a Secret it names as `$name:key`; resolve refs through `pkg/secretref` on a copy of the spec map. The resolved value lives in the write body only: keep it out of the CR, status, events, logs and errors.
+
+Keycloak returns `keycloakapi.MaskedSecretValue` on GET for secret-typed keys and for every key the provider does not declare as non-secret. Skip a key in the no-op compare when the raw spec value is a secret ref or the fetched value is the sentinel; compare the rest as a subset. The sentinel is the key list; a hand-kept list goes stale on the next provider or Keycloak release.
+
+Build the write body from the resolved spec, so a forced write repairs the masked drift the compare cannot see. Force on generation change and on `status.configSecretsHash` change: `secretref.ValuesHash` over version tokens, stamped even when the write is skipped. A handler that resolves refs without the hash misses Secret rotation.
+
+The idempotency suite for such a kind carries one masked key and one ref-backed key, and asserts a write on change and no write on settle.
+
 ### Optional list fields
 `absent` = the resource does not manage that facet, leave Keycloak alone. `[]` = managed, clear every entry. `[a,b]` = managed, exactly a and b. Type such a field `*[]T`; a plain `[]T` cannot express the distinction, and the operator's own full-object `Update` erases an explicit `[]` from etcd. Older plain-slice fields still clear on omission — convert one when you touch it.
 

@@ -202,6 +202,162 @@ func TestSyncAuthFlowExecutions_Serve_ConfigDrift(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Keycloak returns the mask sentinel for every key the provider does not declare as a
+// non-secret property; such keys must not count as drift.
+func TestSyncAuthFlowExecutions_Serve_MaskedConfigKeyInSync(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	const configID = "cfg-1"
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	setIdpRedirectorSpec(flow)
+	flow.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config["apiToken"] = "plain-token"
+
+	existing := nonFlowExec("exec-1", "identity-provider-redirector", "ALTERNATIVE", 10, ptr.To(configID))
+
+	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{existing}, nil, nil)
+
+	existingConfig := map[string]string{
+		"defaultProvider": "github",
+		"apiToken":        keycloakapi.MaskedSecretValue,
+	}
+	mockFlows.EXPECT().GetAuthenticatorConfig(context.Background(), testRealmName, configID).
+		Return(&keycloakapi.AuthenticatorConfigRepresentation{
+			Id:     ptr.To(configID),
+			Alias:  ptr.To("idp-config"),
+			Config: &existingConfig,
+		}, nil, nil)
+
+	h := NewSyncAuthFlowExecutions(kc)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.NoError(t, err)
+}
+
+func TestSyncAuthFlowExecutions_Serve_MaskedConfigKeyAliasDrift(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	const configID = "cfg-1"
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	setIdpRedirectorSpec(flow)
+	flow.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config["apiToken"] = "plain-token"
+
+	existing := nonFlowExec("exec-1", "identity-provider-redirector", "ALTERNATIVE", 10, ptr.To(configID))
+
+	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{existing}, nil, nil)
+
+	existingConfig := map[string]string{
+		"defaultProvider": "github",
+		"apiToken":        keycloakapi.MaskedSecretValue,
+	}
+	mockFlows.EXPECT().GetAuthenticatorConfig(context.Background(), testRealmName, configID).
+		Return(&keycloakapi.AuthenticatorConfigRepresentation{
+			Id:     ptr.To(configID),
+			Alias:  ptr.To("old-alias"),
+			Config: &existingConfig,
+		}, nil, nil)
+
+	desiredConfig := map[string]string{"defaultProvider": "github", "apiToken": "plain-token"}
+	mockFlows.EXPECT().UpdateAuthenticatorConfig(context.Background(), testRealmName, configID,
+		keycloakapi.AuthenticatorConfigRepresentation{
+			Id:     ptr.To(configID),
+			Alias:  ptr.To("idp-config"),
+			Config: &desiredConfig,
+		},
+	).Return(nil, nil)
+
+	h := NewSyncAuthFlowExecutions(kc)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.NoError(t, err)
+}
+
+// The authflow compare passes no rawSpec: every unmasked key is compared, including values
+// that start with "$".
+func TestSyncAuthFlowExecutions_Serve_ConfigCompare(t *testing.T) {
+	const configID = "cfg-1"
+
+	tests := []struct {
+		name       string
+		specConfig map[string]string
+		fetched    *map[string]string
+		wantUpdate bool
+	}{
+		{
+			name:       "A4 clear key drifted while masked sibling present",
+			specConfig: map[string]string{"defaultProvider": "github", "apiToken": "plain-token"},
+			fetched: &map[string]string{
+				"defaultProvider": "gitlab",
+				"apiToken":        keycloakapi.MaskedSecretValue,
+			},
+			wantUpdate: true,
+		},
+		{
+			name:       "A10 spec key absent from fetched config while masked sibling present",
+			specConfig: map[string]string{"defaultProvider": "github", "apiToken": "plain-token"},
+			fetched:    &map[string]string{"apiToken": keycloakapi.MaskedSecretValue},
+			wantUpdate: true,
+		},
+		{
+			name:       "A12 fetched config has nil Config map",
+			specConfig: map[string]string{"defaultProvider": "github"},
+			fetched:    nil,
+			wantUpdate: true,
+		},
+		{
+			name:       "A15 spec value starting with dollar sign equals fetched literal",
+			specConfig: map[string]string{"defaultProvider": "$github"},
+			fetched:    &map[string]string{"defaultProvider": "$github"},
+			wantUpdate: false,
+		},
+		{
+			name:       "A15 spec value starting with dollar sign differs from fetched",
+			specConfig: map[string]string{"defaultProvider": "$github"},
+			fetched:    &map[string]string{"defaultProvider": "gitlab"},
+			wantUpdate: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockFlows := mocks.NewMockAuthFlowsClient(t)
+			kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+			flow := &keycloakApi.KeycloakAuthFlow{}
+			setIdpRedirectorSpec(flow)
+			flow.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config = tt.specConfig
+
+			existing := nonFlowExec("exec-1", "identity-provider-redirector", "ALTERNATIVE", 10, ptr.To(configID))
+
+			mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
+				Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{existing}, nil, nil)
+
+			mockFlows.EXPECT().GetAuthenticatorConfig(context.Background(), testRealmName, configID).
+				Return(&keycloakapi.AuthenticatorConfigRepresentation{
+					Id:     ptr.To(configID),
+					Alias:  ptr.To("idp-config"),
+					Config: tt.fetched,
+				}, nil, nil).Once()
+
+			if tt.wantUpdate {
+				mockFlows.EXPECT().UpdateAuthenticatorConfig(context.Background(), testRealmName, configID,
+					keycloakapi.AuthenticatorConfigRepresentation{
+						Id:     ptr.To(configID),
+						Alias:  ptr.To("idp-config"),
+						Config: &tt.specConfig,
+					},
+				).Return(nil, nil).Once()
+			}
+
+			h := NewSyncAuthFlowExecutions(kc)
+			require.NoError(t, h.Serve(context.Background(), flow, testRealmName))
+		})
+	}
+}
+
 func TestSyncAuthFlowExecutions_Serve_ConfigRemovedFromSpec(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
 	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
@@ -411,6 +567,41 @@ func TestSyncAuthFlowExecutions_Serve_ForceUpdateOnGenerationChange(t *testing.T
 	h := NewSyncAuthFlowExecutions(kc)
 	err := h.Serve(context.Background(), flow, testRealmName)
 	require.NoError(t, err)
+}
+
+// Forced writes bypass the masked-key skip: the PUT body carries the spec value of every key.
+func TestSyncAuthFlowExecutions_Serve_ForceUpdateSendsMaskedKeyValue(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows}
+
+	const configID = "cfg-5"
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	flow.Generation = 2
+	flow.Status.ObservedGeneration = 1
+	setIdpRedirectorSpec(flow)
+	flow.Spec.AuthenticationExecutions[0].AuthenticatorConfig.Config["apiToken"] = "plain-token"
+
+	existing := nonFlowExec("exec-1", "identity-provider-redirector", "ALTERNATIVE", 10, ptr.To(configID))
+
+	mockFlows.EXPECT().GetFlowExecutions(context.Background(), testRealmName, testFlowAlias).
+		Return([]keycloakapi.AuthenticationExecutionInfoRepresentation{existing}, nil, nil)
+
+	var sent keycloakapi.AuthenticatorConfigRepresentation
+
+	mockFlows.EXPECT().UpdateAuthenticatorConfig(context.Background(), testRealmName, configID, mock.Anything).
+		Run(func(_ context.Context, _, _ string, rep keycloakapi.AuthenticatorConfigRepresentation) {
+			sent = rep
+		}).
+		Return(nil, nil).Once()
+
+	h := NewSyncAuthFlowExecutions(kc)
+	require.NoError(t, h.Serve(context.Background(), flow, testRealmName))
+
+	require.NotNil(t, sent.Config)
+	assert.Equal(t, map[string]string{"defaultProvider": "github", "apiToken": "plain-token"}, *sent.Config)
+	assert.Equal(t, ptr.To(configID), sent.Id)
+	assert.Equal(t, ptr.To("idp-config"), sent.Alias)
 }
 
 func TestSyncAuthFlowExecutions_Serve_DanglingConfigRecreated(t *testing.T) {
