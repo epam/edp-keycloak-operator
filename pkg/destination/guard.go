@@ -10,7 +10,9 @@
 //
 // The guard judges only fields this operator version knows: spec.url, spec.smtp.connection.host,
 // and the destination and credential keys listed below. Values in unrecognised config keys are
-// not judged. Egress control for the Keycloak pod itself belongs to a NetworkPolicy.
+// not judged. RBAC on the resource kinds is the primary control: a principal that may write them
+// is trusted with the Secrets of its namespace (deploy-templates/values.yaml). Egress control for
+// the Keycloak pod itself belongs to a NetworkPolicy.
 package destination
 
 import (
