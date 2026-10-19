@@ -58,4 +58,53 @@ var _ = Describe("ClusterKeycloak controller", func() {
 			return createdKeycloak.Status.Connected && createdKeycloak.Status.Value == common.StatusOK
 		}, timeout, interval).Should(BeTrue())
 	})
+
+	It("Should reject tlsServerName with a non-https url", func() {
+		newKeycloak := &keycloakAlpha.ClusterKeycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-keycloak-tls-server-name-http",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakSpec{
+				Url:           "http://keycloak.keycloak.svc.cluster.local:8080",
+				Secret:        "absent-auth-secret",
+				TLSServerName: "keycloak.example.com",
+			},
+		}
+
+		err := k8sClient.Create(ctx, newKeycloak)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("tlsServerName requires an https url"))
+	})
+
+	It("Should reject tlsServerName with a port", func() {
+		newKeycloak := &keycloakAlpha.ClusterKeycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-keycloak-tls-server-name-port",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakSpec{
+				Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+				Secret:        "absent-auth-secret",
+				TLSServerName: "keycloak:8443",
+			},
+		}
+
+		err := k8sClient.Create(ctx, newKeycloak)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("spec.tlsServerName"))
+	})
+
+	It("Should accept tlsServerName with an https url", func() {
+		newKeycloak := &keycloakAlpha.ClusterKeycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-keycloak-tls-server-name-https",
+			},
+			Spec: keycloakAlpha.ClusterKeycloakSpec{
+				Url:           "HTTPS://keycloak.keycloak.svc.cluster.local:8443",
+				Secret:        "absent-auth-secret",
+				TLSServerName: "keycloak.example.com",
+			},
+		}
+		Expect(k8sClient.Create(ctx, newKeycloak)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, newKeycloak)).Should(Succeed())
+	})
 })

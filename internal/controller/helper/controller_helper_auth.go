@@ -43,6 +43,9 @@ type KeycloakAuthData struct {
 	// InsecureSkipVerify controls whether api client verifies the server's certificate chain and host name.
 	InsecureSkipVerify bool
 
+	// TLSServerName is the name used for SNI and server certificate verification instead of the Url host.
+	TLSServerName string
+
 	// AuthSpec is the new auth configuration. When set, takes precedence over SecretName/AdminType.
 	AuthSpec *common.AuthSpec
 }
@@ -99,6 +102,13 @@ func (h *Helper) createKeycloakClientFromAuthData(ctx context.Context, authData 
 		return nil, err
 	}
 
+	// spec.tlsServerName is a destination for an SNI-routing front end.
+	if authData.TLSServerName != "" {
+		if err := h.guard.RequireHost(ctx, "spec.tlsServerName", authData.TLSServerName); err != nil {
+			return nil, err
+		}
+	}
+
 	var options []keycloakClient.ClientOption
 
 	clientID := keycloakClient.DefaultAdminClientID
@@ -132,6 +142,8 @@ func (h *Helper) createKeycloakClientFromAuthData(ctx context.Context, authData 
 	if authData.InsecureSkipVerify {
 		options = append(options, keycloakClient.WithTLSInsecureSkipVerify(true))
 	}
+
+	options = append(options, keycloakClient.WithTLSServerName(authData.TLSServerName))
 
 	kcClient, err := keycloakClient.NewKeycloakClient(ctx, authData.Url, clientID, options...)
 	if err != nil {
@@ -290,6 +302,7 @@ func MakeKeycloakAuthDataFromKeycloak(
 		AdminType:          keycloakCR.Spec.AdminType,
 		KeycloakCRName:     keycloakCR.Name,
 		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
+		TLSServerName:      string(keycloakCR.Spec.TLSServerName),
 		AuthSpec:           keycloakCR.Spec.Auth,
 	}
 
@@ -316,6 +329,7 @@ func MakeKeycloakAuthDataFromClusterKeycloak(
 		AdminType:          keycloakCR.Spec.AdminType,
 		KeycloakCRName:     keycloakCR.Name,
 		InsecureSkipVerify: keycloakCR.Spec.InsecureSkipVerify,
+		TLSServerName:      string(keycloakCR.Spec.TLSServerName),
 		AuthSpec:           keycloakCR.Spec.Auth,
 	}
 

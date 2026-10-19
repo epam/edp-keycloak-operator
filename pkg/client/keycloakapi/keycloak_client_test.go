@@ -9,12 +9,10 @@ import (
 	"crypto/rsa"
 	"crypto/tls"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"io"
-	"math/big"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -31,6 +29,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	ctrl "sigs.k8s.io/controller-runtime"
+
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 const (
@@ -1327,6 +1327,7 @@ func TestNewRestyClient(t *testing.T) {
 	tests := []struct {
 		name                  string
 		tlsInsecureSkipVerify bool
+		tlsServerName         string
 		clientTimeout         int
 		caCert                string
 		tlsClientCert         string
@@ -1356,11 +1357,24 @@ func TestNewRestyClient(t *testing.T) {
 			},
 		},
 		{
+			name:          "with TLS server name",
+			clientTimeout: 60,
+			tlsServerName: "keycloak.example.com",
+			wantErr:       false,
+			validate: func(t *testing.T, client *resty.Client) {
+				transport := client.GetClient().Transport.(*http.Transport)
+				assert.Equal(t, "keycloak.example.com", transport.TLSClientConfig.ServerName)
+				assert.False(t, transport.TLSClientConfig.InsecureSkipVerify)
+			},
+		},
+		{
 			name:          "with CA cert",
 			clientTimeout: 60,
 			caCert: func() string {
-				caCert, _ := createTestCACert(t)
-				return caCert
+				ca, err := fakehttp.NewCA()
+				require.NoError(t, err)
+
+				return ca.CertPEM
 			}(),
 			wantErr: false,
 			validate: func(t *testing.T, client *resty.Client) {
@@ -1372,10 +1386,7 @@ func TestNewRestyClient(t *testing.T) {
 			name:          "with client cert",
 			clientTimeout: 60,
 			setupCerts: func(t *testing.T) (string, string) {
-				_, cert := createTestCACert(t)
-				caCert, _ := x509.ParseCertificate(cert.Certificate[0])
-				clientCert, clientKey := createTestClientCert(t, caCert, cert.PrivateKey.(*rsa.PrivateKey))
-				return clientCert, clientKey
+				return newTestClientCert(t)
 			},
 			wantErr: false,
 			validate: func(t *testing.T, client *resty.Client) {
@@ -1396,15 +1407,16 @@ func TestNewRestyClient(t *testing.T) {
 				clientCert, privateKey = tt.setupCerts(t)
 			}
 
-			client, err := newRestyClient(
-				tt.tlsInsecureSkipVerify,
-				tt.clientTimeout,
-				tt.caCert,
-				clientCert,
-				privateKey,
-				time.Second,
-				10*time.Second,
-			)
+			client, err := newRestyClient(&clientConfig{
+				tlsInsecureSkipVerify: tt.tlsInsecureSkipVerify,
+				tlsServerName:         tt.tlsServerName,
+				clientTimeout:         tt.clientTimeout,
+				caCert:                tt.caCert,
+				tlsClientCert:         clientCert,
+				tlsClientPrivateKey:   privateKey,
+				retryWaitTime:         time.Second,
+				retryMaxWaitTime:      10 * time.Second,
+			})
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -1697,7 +1709,10 @@ func TestClientOptions_AllOptions(t *testing.T) {
 		"X-Test-Header": "test-value",
 	}
 
-	caCertPEM, _ := createTestCACert(t)
+	ca, err := fakehttp.NewCA()
+	require.NoError(t, err)
+
+	caCertPEM := ca.CertPEM
 
 	client, err := NewKeycloakClient(
 		context.Background(),
@@ -1772,10 +1787,7 @@ func TestClientOptions_WithTLSClientCert(t *testing.T) {
 	}))
 	defer server.Close()
 
-	// Create client cert
-	_, tlsCert := createTestCACert(t)
-	caCert, _ := x509.ParseCertificate(tlsCert.Certificate[0])
-	clientCertPEM, clientKeyPEM := createTestClientCert(t, caCert, tlsCert.PrivateKey.(*rsa.PrivateKey))
+	clientCertPEM, clientKeyPEM := newTestClientCert(t)
 
 	client, err := NewKeycloakClient(
 		context.Background(),
@@ -1791,6 +1803,99 @@ func TestClientOptions_WithTLSClientCert(t *testing.T) {
 	// Verify TLS config has certificates
 	transport := client.restyClient.GetClient().Transport.(*http.Transport)
 	assert.NotEmpty(t, transport.TLSClientConfig.Certificates)
+}
+
+func TestClientOptions_WithTLSServerName(t *testing.T) {
+	t.Parallel()
+
+	server, caCertPEM, err := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStartTLS("keycloak.example.com")
+	require.NoError(t, err)
+	t.Cleanup(server.Close)
+
+	tests := []struct {
+		name          string
+		tlsServerName string
+		wantErr       require.ErrorAssertionFunc
+	}{
+		{
+			name:          "url host not in certificate",
+			tlsServerName: "",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorContains(t, err, "x509: cannot validate certificate for 127.0.0.1")
+			},
+		},
+		{
+			name:          "server name in certificate",
+			tlsServerName: "keycloak.example.com",
+			wantErr:       require.NoError,
+		},
+		{
+			name:          "server name not in certificate",
+			tlsServerName: "other.example.com",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorContains(t, err, "not other.example.com")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := NewKeycloakClient(
+				context.Background(),
+				server.GetURL(),
+				testClientID,
+				WithClientSecret(testClientSecret),
+				WithCACert(caCertPEM),
+				WithTLSServerName(tt.tlsServerName),
+			)
+
+			tt.wantErr(t, err)
+		})
+	}
+}
+
+func TestNewKeycloakClient_TLSServerNameSentAsSNI(t *testing.T) {
+	t.Parallel()
+
+	cert, err := fakehttp.NewCA("keycloak.example.com")
+	require.NoError(t, err)
+
+	var sni atomic.Value
+
+	server := httptest.NewUnstartedServer(fakeTokenHandler())
+	server.TLS = &tls.Config{
+		Certificates: []tls.Certificate{cert.TLSCertificate()},
+		GetConfigForClient: func(hello *tls.ClientHelloInfo) (*tls.Config, error) {
+			sni.Store(hello.ServerName)
+
+			return nil, nil
+		},
+	}
+	server.StartTLS()
+	t.Cleanup(server.Close)
+
+	_, err = NewKeycloakClient(
+		context.Background(),
+		server.URL,
+		testClientID,
+		WithClientSecret(testClientSecret),
+		WithCACert(cert.CertPEM),
+		WithTLSServerName("keycloak.example.com"),
+	)
+
+	require.NoError(t, err)
+	assert.Equal(t, "keycloak.example.com", sni.Load())
+}
+
+func fakeTokenHandler() http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(createMockTokenResponseJSON()))
+	})
 }
 
 func TestKeycloakClient_Refresh_BadRequest(t *testing.T) {
@@ -2021,15 +2126,13 @@ func TestNewRestyClient_InvalidCert(t *testing.T) {
 	t.Parallel()
 
 	// Test with invalid client certificate
-	_, err := newRestyClient(
-		false,
-		60,
-		"",
-		"invalid-cert",
-		"invalid-key",
-		time.Second,
-		10*time.Second,
-	)
+	_, err := newRestyClient(&clientConfig{
+		clientTimeout:       60,
+		tlsClientCert:       "invalid-cert",
+		tlsClientPrivateKey: "invalid-key",
+		retryWaitTime:       time.Second,
+		retryMaxWaitTime:    10 * time.Second,
+	})
 
 	require.Error(t, err)
 }
@@ -2403,77 +2506,32 @@ func createTestEd25519Key(t *testing.T) (string, ed25519.PrivateKey) {
 	return string(privateKeyPEM), privateKey
 }
 
-func createTestCACert(t *testing.T) (string, *tls.Certificate) {
+func newTestClientCert(t *testing.T) (string, string) {
 	t.Helper()
 
-	// Generate CA private key
-	caPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	ca, err := fakehttp.NewCA()
 	require.NoError(t, err)
 
-	// Create CA certificate
-	ca := &x509.Certificate{
-		SerialNumber: big.NewInt(2019),
-		Subject: pkix.Name{
-			Organization: []string{"Test CA"},
-		},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().Add(time.Hour * 24),
-		IsCA:                  true,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		BasicConstraintsValid: true,
-	}
-
-	caBytes, err := x509.CreateCertificate(rand.Reader, ca, ca, &caPrivateKey.PublicKey, caPrivateKey)
+	client, err := ca.IssueClient("test-client")
 	require.NoError(t, err)
 
-	caPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: caBytes,
-	})
-
-	caPrivKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(caPrivateKey),
-	})
-
-	cert, err := tls.X509KeyPair(caPEM, caPrivKeyPEM)
-	require.NoError(t, err)
-
-	return string(caPEM), &cert
+	return client.CertPEM, client.KeyPEM
 }
 
-func createTestClientCert(t *testing.T, caCert *x509.Certificate, caPrivateKey *rsa.PrivateKey) (string, string) {
-	t.Helper()
+func TestHostPortFromURL(t *testing.T) {
+	t.Parallel()
 
-	// Generate client private key
-	clientPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
-	require.NoError(t, err)
-
-	// Create client certificate
-	client := &x509.Certificate{
-		SerialNumber: big.NewInt(2020),
-		Subject: pkix.Name{
-			Organization: []string{"Test Client"},
-		},
-		NotBefore:   time.Now(),
-		NotAfter:    time.Now().Add(time.Hour * 24),
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
-		KeyUsage:    x509.KeyUsageDigitalSignature,
+	tests := map[string]string{
+		"https://keycloak.example.com":       "keycloak.example.com:443",
+		"https://keycloak.example.com:8443/": "keycloak.example.com:8443",
+		"http://keycloak.example.com":        "keycloak.example.com:80",
+		"https://[2001:db8::1]:8443":         "[2001:db8::1]:8443",
+		"https://bücher.example:8443":        "xn--bcher-kva.example:8443",
 	}
 
-	clientBytes, err := x509.CreateCertificate(rand.Reader, client, caCert, &clientPrivateKey.PublicKey, caPrivateKey)
-	require.NoError(t, err)
-
-	clientPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "CERTIFICATE",
-		Bytes: clientBytes,
-	})
-
-	clientPrivKeyPEM := pem.EncodeToMemory(&pem.Block{
-		Type:  "RSA PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(clientPrivateKey),
-	})
-
-	return string(clientPEM), string(clientPrivKeyPEM)
+	for rawURL, want := range tests {
+		got, err := hostPortFromURL(rawURL)
+		require.NoError(t, err, rawURL)
+		assert.Equal(t, want, got, rawURL)
+	}
 }

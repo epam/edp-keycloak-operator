@@ -2,6 +2,7 @@ package keycloak
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 	"time"
@@ -11,6 +12,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -81,6 +83,121 @@ var _ = Describe("Keycloak controller", Ordered, func() {
 			return !out.Status.Connected && strings.Contains(out.Status.Value, "failed")
 		}, timeout, interval).Should(BeTrue())
 
+		Expect(k8sClient.Delete(ctx, kc)).Should(Succeed())
+	})
+
+	It("Should reject tlsServerName with a non-https url", func() {
+		kc := &keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "kc-tls-server-name-http",
+				Namespace: testNamespace,
+			},
+			Spec: keycloakApi.KeycloakSpec{
+				Url:           "http://keycloak.keycloak.svc.cluster.local:8080",
+				Secret:        "absent-auth-secret",
+				TLSServerName: "keycloak.example.com",
+			},
+		}
+
+		err := k8sClient.Create(ctx, kc)
+		Expect(err).Should(HaveOccurred())
+		Expect(err.Error()).Should(ContainSubstring("tlsServerName requires an https url"))
+	})
+
+	It("Should reject tlsServerName with a port", func() {
+		for i, name := range []string{
+			"keycloak.example.com:443", "keycloak:8443", "[2001:db8::1]:8443", "cafe:8443:80", "10.0.0.1:8443:",
+		} {
+			kc := &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("kc-tls-server-name-port-%d", i),
+					Namespace: testNamespace,
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+					Secret:        "absent-auth-secret",
+					TLSServerName: common.TLSServerName(name),
+				},
+			}
+
+			err := k8sClient.Create(ctx, kc)
+			Expect(err).Should(HaveOccurred(), name)
+			Expect(err.Error()).Should(ContainSubstring("spec.tlsServerName"), name)
+		}
+	})
+
+	It("Should reject a tlsServerName that is neither a host name nor an IP address", func() {
+		for i, name := range []string{
+			"1:2:3", "999.999.999.999", "010.0.0.1", "[2001:db8::1]", "::ffff:10.0.0.1",
+			"keycloak..example.com", "keycloak.example.com.", "my_host.example.com",
+		} {
+			kc := &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("kc-tls-server-name-invalid-%d", i),
+					Namespace: testNamespace,
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+					Secret:        "absent-auth-secret",
+					TLSServerName: common.TLSServerName(name),
+				},
+			}
+
+			err := k8sClient.Create(ctx, kc)
+			Expect(err).Should(HaveOccurred(), name)
+			Expect(err.Error()).Should(ContainSubstring("spec.tlsServerName"), name)
+		}
+	})
+
+	It("Should treat an empty tlsServerName as unset", func() {
+		// Unstructured keeps an explicit empty string; the typed spec omits it.
+		kc := &unstructured.Unstructured{}
+		kc.SetAPIVersion("v1.edp.epam.com/v1")
+		kc.SetKind("Keycloak")
+		kc.SetName("kc-tls-server-name-empty")
+		kc.SetNamespace(testNamespace)
+		Expect(unstructured.SetNestedMap(kc.Object, map[string]any{
+			"url":           "http://keycloak.keycloak.svc.cluster.local:8080",
+			"secret":        "absent-auth-secret",
+			"tlsServerName": "",
+		}, "spec")).Should(Succeed())
+
+		Expect(k8sClient.Create(ctx, kc)).Should(Succeed())
+		Expect(k8sClient.Delete(ctx, kc)).Should(Succeed())
+	})
+
+	It("Should accept a host name or IP address as tlsServerName", func() {
+		for i, name := range []string{"keycloak", "Keycloak.Example.COM", "10.0.0.1", "2001:db8::1", "2001:DB8::1"} {
+			kc := &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      fmt.Sprintf("kc-tls-server-name-valid-%d", i),
+					Namespace: testNamespace,
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+					Secret:        "absent-auth-secret",
+					TLSServerName: common.TLSServerName(name),
+				},
+			}
+
+			Expect(k8sClient.Create(ctx, kc)).Should(Succeed(), name)
+			Expect(k8sClient.Delete(ctx, kc)).Should(Succeed(), name)
+		}
+	})
+
+	It("Should accept tlsServerName with an https url", func() {
+		kc := &keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "kc-tls-server-name-https",
+				Namespace: testNamespace,
+			},
+			Spec: keycloakApi.KeycloakSpec{
+				Url:           "HTTPS://keycloak.keycloak.svc.cluster.local:8443",
+				Secret:        "absent-auth-secret",
+				TLSServerName: "keycloak.example.com",
+			},
+		}
+		Expect(k8sClient.Create(ctx, kc)).Should(Succeed())
 		Expect(k8sClient.Delete(ctx, kc)).Should(Succeed())
 	})
 

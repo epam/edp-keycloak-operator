@@ -214,6 +214,31 @@ func TestMakeKeycloakAuthDataFromKeycloak(t *testing.T) {
 			},
 			wantErr: require.NoError,
 		},
+		{
+			name: "successfully propagate tls server name",
+			keycloak: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testResourceName,
+					Namespace: defaultNamespace,
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+					Secret:        "admin-secret",
+					TLSServerName: "keycloak.example.com",
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().Build()
+			},
+			want: &KeycloakAuthData{
+				Url:             "https://keycloak.keycloak.svc.cluster.local:8443",
+				SecretName:      "admin-secret",
+				SecretNamespace: defaultNamespace,
+				KeycloakCRName:  testResourceName,
+				TLSServerName:   "keycloak.example.com",
+			},
+			wantErr: require.NoError,
+		},
 	}
 
 	for _, tt := range tests {
@@ -276,6 +301,30 @@ func TestMakeKeycloakAuthDataFromClusterKeycloak(t *testing.T) {
 				SecretNamespace: "ns-with-secrets",
 				KeycloakCRName:  testResourceName,
 				CACert:          "test-ca-cert",
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "successfully propagate tls server name",
+			keycloak: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: testResourceName,
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:           "https://keycloak.keycloak.svc.cluster.local:8443",
+					Secret:        "admin-secret",
+					TLSServerName: "keycloak.example.com",
+				},
+			},
+			k8sClient: func(t *testing.T) client.Client {
+				return fake.NewClientBuilder().Build()
+			},
+			want: &KeycloakAuthData{
+				Url:             "https://keycloak.keycloak.svc.cluster.local:8443",
+				SecretName:      "admin-secret",
+				SecretNamespace: "ns-with-secrets",
+				KeycloakCRName:  testResourceName,
+				TLSServerName:   "keycloak.example.com",
 			},
 			wantErr: require.NoError,
 		},
@@ -782,6 +831,13 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 		mockServer.Close()
 	})
 
+	tlsServer, tlsCACertPEM, err := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStartTLS("keycloak.example.com")
+	require.NoError(t, err)
+
+	t.Cleanup(tlsServer.Close)
+
 	tests := []struct {
 		name      string
 		kc        *keycloakApi.Keycloak
@@ -789,6 +845,45 @@ func TestHelper_CreateKeycloakClientFromKeycloak(t *testing.T) {
 		wantErr   require.ErrorAssertionFunc
 		checkFunc func(t *testing.T, cl *keycloakClient.KeycloakClient)
 	}{
+		{
+			name: "successfully create v2 client with tlsServerName",
+			kc: &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name:      testKeycloakName,
+					Namespace: defaultNamespace,
+				},
+				Spec: keycloakApi.KeycloakSpec{
+					Url:           tlsServer.GetURL(),
+					Secret:        testKeycloakSecretName,
+					TLSServerName: "keycloak.example.com",
+					CACert: &common.SourceRef{
+						SecretKeyRef: &common.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testKeycloakSecretName,
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
+					},
+					Data: map[string][]byte{
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
+						"ca.crt":        []byte(tlsCACertPEM),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakClient.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
 		{
 			name: "successfully create v2 client from keycloak",
 			kc: &keycloakApi.Keycloak{
@@ -1031,6 +1126,13 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 		mockServer.Close()
 	})
 
+	tlsServer, tlsCACertPEM, err := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStartTLS("keycloak.example.com")
+	require.NoError(t, err)
+
+	t.Cleanup(tlsServer.Close)
+
 	tests := []struct {
 		name      string
 		kc        *keycloakAlpha.ClusterKeycloak
@@ -1038,6 +1140,44 @@ func TestHelper_CreateKeycloakClientFromClusterKeycloak(t *testing.T) {
 		wantErr   require.ErrorAssertionFunc
 		checkFunc func(t *testing.T, cl *keycloakClient.KeycloakClient)
 	}{
+		{
+			name: "successfully create v2 client with tlsServerName",
+			kc: &keycloakAlpha.ClusterKeycloak{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-cluster-keycloak",
+				},
+				Spec: keycloakAlpha.ClusterKeycloakSpec{
+					Url:           tlsServer.GetURL(),
+					Secret:        testKeycloakSecretName,
+					TLSServerName: "keycloak.example.com",
+					CACert: &common.SourceRef{
+						SecretKeyRef: &common.SecretKeySelector{
+							LocalObjectReference: corev1.LocalObjectReference{
+								Name: testKeycloakSecretName,
+							},
+							Key: "ca.crt",
+						},
+					},
+				},
+			},
+			objects: []client.Object{
+				&corev1.Secret{
+					ObjectMeta: metav1.ObjectMeta{
+						Name:      testKeycloakSecretName,
+						Namespace: defaultNamespace,
+					},
+					Data: map[string][]byte{
+						"username":      []byte("admin"),
+						testPasswordKey: []byte("admin123"),
+						"ca.crt":        []byte(tlsCACertPEM),
+					},
+				},
+			},
+			wantErr: require.NoError,
+			checkFunc: func(t *testing.T, cl *keycloakClient.KeycloakClient) {
+				require.NotNil(t, cl)
+			},
+		},
 		{
 			name: "successfully create v2 client from cluster keycloak",
 			kc: &keycloakAlpha.ClusterKeycloak{

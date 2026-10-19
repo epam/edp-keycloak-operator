@@ -138,3 +138,23 @@ func TestCreateKeycloakClientFromKeycloak_WarnModeStillConnects(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, received, "password=S3cretValue", "warn mode must not change behaviour")
 }
+
+// A listed spec.url does not permit an unlisted spec.tlsServerName.
+func TestCreateKeycloakClientFromKeycloak_DeniesUnlistedTLSServerName(t *testing.T) {
+	t.Parallel()
+
+	var received string
+
+	server := recordingServer(t, &received)
+	kc := keycloakCRWithPasswordGrant(server.URL)
+	kc.Spec.TLSServerName = "evil.example.com"
+
+	guard, err := destination.New([]string{"127.0.0.1", "keycloak.example.com"}, true)
+	require.NoError(t, err)
+
+	_, err = guardedHelper(t, kc, guard).CreateKeycloakClientFromKeycloak(context.Background(), kc)
+
+	require.ErrorIs(t, err, destination.ErrNotAllowed)
+	require.ErrorContains(t, err, "spec.tlsServerName")
+	assert.Empty(t, received, "nothing may reach an unlisted destination")
+}

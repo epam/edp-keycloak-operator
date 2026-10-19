@@ -1,9 +1,12 @@
 package fakehttp
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/json"
 	"io"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -290,4 +293,81 @@ func TestServerBuilder_AddKeycloakAuthResponders(t *testing.T) {
 			assert.Empty(t, adminBody)
 		})
 	}
+}
+
+func TestServerBuilder_BuildAndStartTLS(t *testing.T) {
+	t.Parallel()
+
+	server, certPEM, err := NewServerBuilder().
+		AddStringResponder("/test", "ok").
+		BuildAndStartTLS("keycloak.example.com")
+	require.NoError(t, err)
+	t.Cleanup(server.Close)
+
+	require.True(t, strings.HasPrefix(server.GetURL(), "https://127.0.0.1:"))
+
+	roots := x509.NewCertPool()
+	require.True(t, roots.AppendCertsFromPEM([]byte(certPEM)))
+
+	get := func(serverName string) (*http.Response, error) {
+		client := &http.Client{Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{RootCAs: roots, ServerName: serverName},
+		}}
+
+		return client.Get(server.GetURL() + "/test")
+	}
+
+	_, err = get("")
+	require.ErrorContains(t, err, "x509")
+
+	resp, err := get("keycloak.example.com")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestServerBuilder_BuildAndStartTLS_IPAddress(t *testing.T) {
+	t.Parallel()
+
+	server, certPEM, err := NewServerBuilder().
+		AddStringResponder("/test", "ok").
+		BuildAndStartTLS("127.0.0.1")
+	require.NoError(t, err)
+	t.Cleanup(server.Close)
+
+	roots := x509.NewCertPool()
+	require.True(t, roots.AppendCertsFromPEM([]byte(certPEM)))
+
+	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{RootCAs: roots}}}
+
+	resp, err := client.Get(server.GetURL() + "/test")
+	require.NoError(t, err)
+
+	t.Cleanup(func() { _ = resp.Body.Close() })
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestCertificate_IssueClient(t *testing.T) {
+	t.Parallel()
+
+	ca, err := NewCA()
+	require.NoError(t, err)
+
+	client, err := ca.IssueClient("operator")
+	require.NoError(t, err)
+
+	_, err = tls.X509KeyPair([]byte(client.CertPEM), []byte(client.KeyPEM))
+	require.NoError(t, err)
+
+	roots := x509.NewCertPool()
+	roots.AddCert(ca.Cert)
+
+	_, err = client.Cert.Verify(x509.VerifyOptions{
+		Roots:     roots,
+		KeyUsages: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth},
+	})
+	require.NoError(t, err)
 }

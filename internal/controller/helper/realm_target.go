@@ -13,10 +13,12 @@ import (
 	keycloakAlpha "github.com/epam/edp-keycloak-operator/api/v1alpha1"
 )
 
-// RealmTarget is the Keycloak server URL plus realm name an object talks to.
+// RealmTarget identifies the Keycloak realm an object talks to.
+// TLSServerName is part of it: an SNI-routing front end selects the server by name.
 type RealmTarget struct {
-	URL       string
-	RealmName string
+	URL           string
+	TLSServerName string
+	RealmName     string
 }
 
 // RealmRefKind returns the realm ref kind; an empty kind is KeycloakRealm.
@@ -48,7 +50,7 @@ func SameRealmRef(a, b ObjectWithRealmRef) bool {
 
 // SameRealmTarget reports whether two objects target the same Keycloak realm.
 // Objects referencing the same realm CR match without API reads; otherwise both refs
-// are resolved to (Keycloak URL, realm name) and compared.
+// are resolved to (Keycloak URL, TLS server name, realm name) and compared.
 func SameRealmTarget(ctx context.Context, k8sClient client.Client, a, b ObjectWithRealmRef) (bool, error) {
 	if SameRealmRef(a, b) {
 		return true, nil
@@ -67,8 +69,8 @@ func SameRealmTarget(ctx context.Context, k8sClient client.Client, a, b ObjectWi
 	return targetA == targetB, nil
 }
 
-// ResolveRealmTarget resolves the realm ref of obj to the Keycloak URL and realm name.
-// The URL has trailing slashes removed.
+// ResolveRealmTarget resolves the realm ref of obj to the Keycloak URL, TLS server name and realm name.
+// The URL has trailing slashes removed; the TLS server name is lowercased without a trailing dot.
 func ResolveRealmTarget(ctx context.Context, k8sClient client.Client, obj ObjectWithRealmRef) (RealmTarget, error) {
 	ref := obj.GetRealmRef()
 
@@ -82,12 +84,14 @@ func ResolveRealmTarget(ctx context.Context, k8sClient client.Client, obj Object
 			return RealmTarget{}, fmt.Errorf("unable to get KeycloakRealm %s/%s: %w", obj.GetNamespace(), ref.Name, err)
 		}
 
-		url, err := resolveKeycloakURL(ctx, k8sClient, realm.Namespace, realm.Spec.KeycloakRef)
+		target, err := resolveKeycloakServer(ctx, k8sClient, realm.Namespace, realm.Spec.KeycloakRef)
 		if err != nil {
 			return RealmTarget{}, err
 		}
 
-		return RealmTarget{URL: url, RealmName: realm.Spec.RealmName}, nil
+		target.RealmName = realm.Spec.RealmName
+
+		return target, nil
 
 	case keycloakAlpha.ClusterKeycloakRealmKind:
 		clusterRealm := &keycloakAlpha.ClusterKeycloakRealm{}
@@ -95,7 +99,7 @@ func ResolveRealmTarget(ctx context.Context, k8sClient client.Client, obj Object
 			return RealmTarget{}, fmt.Errorf("unable to get ClusterKeycloakRealm %s: %w", ref.Name, err)
 		}
 
-		url, err := resolveKeycloakURL(ctx, k8sClient, "", common.KeycloakRef{
+		target, err := resolveKeycloakServer(ctx, k8sClient, "", common.KeycloakRef{
 			Kind: keycloakAlpha.ClusterKeycloakKind,
 			Name: clusterRealm.Spec.ClusterKeycloakRef,
 		})
@@ -103,19 +107,22 @@ func ResolveRealmTarget(ctx context.Context, k8sClient client.Client, obj Object
 			return RealmTarget{}, err
 		}
 
-		return RealmTarget{URL: url, RealmName: clusterRealm.Spec.RealmName}, nil
+		target.RealmName = clusterRealm.Spec.RealmName
+
+		return target, nil
 
 	default:
 		return RealmTarget{}, fmt.Errorf("unknown realm kind: %s", RealmRefKind(ref))
 	}
 }
 
-func resolveKeycloakURL(
+// resolveKeycloakServer returns a RealmTarget without RealmName for the referenced Keycloak.
+func resolveKeycloakServer(
 	ctx context.Context,
 	k8sClient client.Client,
 	namespace string,
 	ref common.KeycloakRef,
-) (string, error) {
+) (RealmTarget, error) {
 	kind := ref.Kind
 	if kind == "" {
 		kind = keycloakApi.KeycloakKind
@@ -128,21 +135,28 @@ func resolveKeycloakURL(
 			Name:      ref.Name,
 			Namespace: namespace,
 		}, kc); err != nil {
-			return "", fmt.Errorf("unable to get Keycloak %s/%s: %w", namespace, ref.Name, err)
+			return RealmTarget{}, fmt.Errorf("unable to get Keycloak %s/%s: %w", namespace, ref.Name, err)
 		}
 
-		return normalizeKeycloakURL(kc.Spec.Url), nil
+		return keycloakServer(kc.Spec.Url, kc.Spec.TLSServerName), nil
 
 	case keycloakAlpha.ClusterKeycloakKind:
 		kc := &keycloakAlpha.ClusterKeycloak{}
 		if err := k8sClient.Get(ctx, types.NamespacedName{Name: ref.Name}, kc); err != nil {
-			return "", fmt.Errorf("unable to get ClusterKeycloak %s: %w", ref.Name, err)
+			return RealmTarget{}, fmt.Errorf("unable to get ClusterKeycloak %s: %w", ref.Name, err)
 		}
 
-		return normalizeKeycloakURL(kc.Spec.Url), nil
+		return keycloakServer(kc.Spec.Url, kc.Spec.TLSServerName), nil
 
 	default:
-		return "", fmt.Errorf("unknown keycloak kind: %s", kind)
+		return RealmTarget{}, fmt.Errorf("unknown keycloak kind: %s", kind)
+	}
+}
+
+func keycloakServer(url string, tlsServerName common.TLSServerName) RealmTarget {
+	return RealmTarget{
+		URL:           normalizeKeycloakURL(url),
+		TLSServerName: strings.TrimSuffix(strings.ToLower(string(tlsServerName)), "."),
 	}
 }
 

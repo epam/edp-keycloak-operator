@@ -68,9 +68,9 @@ clusterReconciliationEnabled: false
 enableOwnerRef: true
 
 # -- Hostnames the operator and Keycloak may reach with credentials resolved from Secrets.
-# Covers Keycloak spec.url, realm spec.smtp.connection.host, and the known destination keys
-# (tokenUrl, connectionUrl, ...) inside identity provider, realm component and authentication
-# flow authenticator config.
+# Covers Keycloak spec.url and spec.tlsServerName, realm spec.smtp.connection.host, and the known
+# destination keys (tokenUrl, connectionUrl, ...) inside identity provider, realm component and
+# authentication flow authenticator config.
 # Values in other config keys, including the keys of custom providers, are not checked.
 # The operator resolves $secretName:secretKey references with its own ServiceAccount, so whoever
 # writes a KeycloakRealmIdentityProvider, KeycloakRealmComponent or KeycloakAuthFlow can send any

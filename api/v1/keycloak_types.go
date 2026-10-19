@@ -7,6 +7,7 @@ import (
 )
 
 // KeycloakSpec defines the desired state of Keycloak.
+// +kubebuilder:validation:XValidation:rule="!has(self.tlsServerName) || size(self.tlsServerName) == 0 || self.url.lowerAscii().startsWith('https://')",message="tlsServerName requires an https url"
 type KeycloakSpec struct {
 	// URL of keycloak service.
 	Url string `json:"url"`
@@ -36,6 +37,14 @@ type KeycloakSpec struct {
 	// accepts any certificate presented by the server and any host name in that
 	// certificate.
 	InsecureSkipVerify bool `json:"insecureSkipVerify,omitempty"`
+
+	// TLSServerName is the name the server certificate is verified against instead of the Url host,
+	// for example when Url is the in-cluster Service. A host name is also sent as SNI; an IP address is not.
+	// The connection address and the Host header are unchanged. Ignored when InsecureSkipVerify is true.
+	// Must be listed in allowedDestinationHosts when that list is set.
+	// +optional
+	// +kubebuilder:example=keycloak.example.com
+	TLSServerName common.TLSServerName `json:"tlsServerName,omitempty"`
 }
 
 const (
