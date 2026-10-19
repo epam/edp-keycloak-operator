@@ -146,6 +146,10 @@ To avoid resources getting stuck during deletion, it is important to delete them
 2. **Then**, remove `KeycloakRealm`/`ClusterKeycloakRealm`.
 3. **Finally**, remove `Keycloak`/`ClusterKeycloak`.
 
+## Security
+
+Secret references, who may author which resources, and the destination allowlist: [docs/security.md](docs/security.md).
+
 ## Local Development
 
 For comprehensive local development setup, testing, debugging, and common development tasks, refer to the [Development Guide](docs/development.md).
