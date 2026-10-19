@@ -59,3 +59,21 @@ metadata:
   name: keycloak-with-ca-cert-configmap
 status:
   connected: true
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-alias-without-tls-server-name
+status:
+  connected: false
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-alias-with-tls-server-name
+status:
+  connected: true

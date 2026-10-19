@@ -194,8 +194,8 @@ func TestResolveRealmTarget_UnknownKind(t *testing.T) {
 	assert.ErrorContains(t, err, "unknown realm kind")
 }
 
-func TestResolveKeycloakURL_EmptyKindDefaultsToKeycloak(t *testing.T) {
-	url, err := resolveKeycloakURL(
+func TestResolveKeycloakServer_EmptyKindDefaultsToKeycloak(t *testing.T) {
+	target, err := resolveKeycloakServer(
 		context.Background(),
 		newRealmTargetClient(t, &keycloakApi.Keycloak{
 			ObjectMeta: metav1.ObjectMeta{Name: "kc", Namespace: "ns-a"},
@@ -205,5 +205,51 @@ func TestResolveKeycloakURL_EmptyKindDefaultsToKeycloak(t *testing.T) {
 		common.KeycloakRef{Name: "kc"},
 	)
 	require.NoError(t, err)
-	assert.Equal(t, "http://kc.example", url)
+	assert.Equal(t, RealmTarget{URL: "http://kc.example"}, target)
+}
+
+// Behind an SNI-routing front end, one url with two TLS server names reaches two servers.
+func TestSameRealmTarget_TLSServerNameSelectsTheServer(t *testing.T) {
+	keycloakWithName := func(name, tlsServerName string) *keycloakApi.Keycloak {
+		return &keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns-a"},
+			Spec: keycloakApi.KeycloakSpec{
+				Url:           "https://sni-gateway.example:8443",
+				TLSServerName: common.TLSServerName(tlsServerName),
+			},
+		}
+	}
+	realmOn := func(name, keycloak string) *keycloakApi.KeycloakRealm {
+		return &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns-a"},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:   "shared",
+				KeycloakRef: common.KeycloakRef{Kind: keycloakApi.KeycloakKind, Name: keycloak},
+			},
+		}
+	}
+
+	tests := []struct {
+		name       string
+		nameA      string
+		nameB      string
+		wantSameAs bool
+	}{
+		{name: "different names", nameA: "kc-a.example.com", nameB: "kc-b.example.com", wantSameAs: false},
+		{name: "same name in another spelling", nameA: "kc-a.example.com", nameB: "KC-A.example.com.", wantSameAs: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cl := newRealmTargetClient(t,
+				keycloakWithName("kc-a", tt.nameA), keycloakWithName("kc-b", tt.nameB),
+				realmOn("realm-a", "kc-a"), realmOn("realm-b", "kc-b"))
+
+			got, err := SameRealmTarget(context.Background(), cl,
+				groupWithRealmRef("ns-a", keycloakApi.KeycloakRealmKind, "realm-a"),
+				groupWithRealmRef("ns-a", keycloakApi.KeycloakRealmKind, "realm-b"))
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantSameAs, got)
+		})
+	}
 }

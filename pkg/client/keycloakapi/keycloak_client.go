@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
@@ -21,6 +22,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
+	"golang.org/x/net/idna"
 	"golang.org/x/net/publicsuffix"
 
 	"github.com/go-resty/resty/v2"
@@ -86,11 +88,13 @@ const (
 
 // clientConfig holds configuration parameters that need to be captured before creating the client
 type clientConfig struct {
+	baseURL               string
 	basePath              string
 	adminUrl              string
 	clientTimeout         int
 	caCert                string
 	tlsInsecureSkipVerify bool
+	tlsServerName         string
 	tlsClientCert         string
 	tlsClientPrivateKey   string
 	logger                logr.Logger
@@ -203,6 +207,16 @@ func WithTLSInsecureSkipVerify(skip bool) ClientOption {
 	}
 }
 
+// WithTLSServerName sets the certificate verification name for the host and port of the base url.
+// A host name is also sent as SNI; an IP address is not (RFC 6066). Other addresses, including an
+// https:// proxy, use the dialed host name; through a proxy the name applies to every target.
+// Empty uses the host of each request.
+func WithTLSServerName(serverName string) ClientOption {
+	return func(c *KeycloakClient, cfg *clientConfig) {
+		cfg.tlsServerName = serverName
+	}
+}
+
 // WithTLSClientCert sets client certificate and private key for mutual TLS
 func WithTLSClientCert(cert, privateKey string) ClientOption {
 	return func(c *KeycloakClient, cfg *clientConfig) {
@@ -258,6 +272,7 @@ func WithLogger(log logr.Logger) ClientOption {
 //   - WithClientTimeout: Set HTTP client timeout (default: 60 seconds)
 //   - WithTLSInsecureSkipVerify: Disable TLS certificate verification
 //   - WithCACert: Set custom CA certificate
+//   - WithTLSServerName: Verify the server certificate against a name other than the url host
 //   - WithTLSClientCert: Set client certificate for mutual TLS
 //   - WithUserAgent: Set custom User-Agent
 //   - WithRedHatSSO: Enable Red Hat SSO mode
@@ -274,6 +289,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 
 	// Initialize configuration with defaults
 	config := &clientConfig{
+		baseURL:               baseURL,
 		clientTimeout:         60, // default timeout in seconds
 		tlsInsecureSkipVerify: false,
 		retryWaitTime:         time.Second,
@@ -334,15 +350,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 		)
 	}
 
-	restyClient, err := newRestyClient(
-		config.tlsInsecureSkipVerify,
-		config.clientTimeout,
-		config.caCert,
-		config.tlsClientCert,
-		config.tlsClientPrivateKey,
-		config.retryWaitTime,
-		config.retryMaxWaitTime,
-	)
+	restyClient, err := newRestyClient(config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create http client: %v", err)
 	}
@@ -738,15 +746,7 @@ func RetryPolicy(resp *resty.Response, err error) bool {
 	return false
 }
 
-func newRestyClient(
-	tlsInsecureSkipVerify bool,
-	clientTimeout int,
-	caCert string,
-	tlsClientCert string,
-	tlsClientPrivateKey string,
-	retryWaitTime time.Duration,
-	retryMaxWaitTime time.Duration,
-) (*resty.Client, error) {
+func newRestyClient(config *clientConfig) (*resty.Client, error) {
 	cookieJar, err := cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
 	})
@@ -754,20 +754,42 @@ func newRestyClient(
 		return nil, err
 	}
 
-	transport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: tlsInsecureSkipVerify},
-		Proxy:           http.ProxyFromEnvironment,
+	transport, err := newHTTPTransport(config)
+	if err != nil {
+		return nil, err
 	}
-	transport.MaxIdleConnsPerHost = 100
 
-	if caCert != "" {
+	restyClient := resty.New().
+		SetTransport(transport).
+		SetTimeout(time.Second * time.Duration(config.clientTimeout)).
+		SetCookieJar(cookieJar).
+		SetRetryCount(5).
+		SetRetryWaitTime(config.retryWaitTime).
+		SetRetryMaxWaitTime(config.retryMaxWaitTime).
+		AddRetryCondition(RetryPolicy)
+
+	return restyClient, nil
+}
+
+func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
+	transport := &http.Transport{
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: config.tlsInsecureSkipVerify,
+			// Applies to the TLS session with the target inside a proxy tunnel.
+			ServerName: config.tlsServerName,
+		},
+		Proxy:               http.ProxyFromEnvironment,
+		MaxIdleConnsPerHost: 100,
+	}
+
+	if config.caCert != "" {
 		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(caCert))
+		caCertPool.AppendCertsFromPEM([]byte(config.caCert))
 		transport.TLSClientConfig.RootCAs = caCertPool
 	}
 
-	if tlsClientCert != "" && tlsClientPrivateKey != "" {
-		clientKeyPairCert, err := tls.X509KeyPair([]byte(tlsClientCert), []byte(tlsClientPrivateKey))
+	if config.tlsClientCert != "" && config.tlsClientPrivateKey != "" {
+		clientKeyPairCert, err := tls.X509KeyPair([]byte(config.tlsClientCert), []byte(config.tlsClientPrivateKey))
 		if err != nil {
 			return nil, err
 		}
@@ -775,16 +797,76 @@ func newRestyClient(
 		transport.TLSClientConfig.Certificates = []tls.Certificate{clientKeyPairCert}
 	}
 
-	restyClient := resty.New().
-		SetTransport(transport).
-		SetTimeout(time.Second * time.Duration(clientTimeout)).
-		SetCookieJar(cookieJar).
-		SetRetryCount(5).
-		SetRetryWaitTime(retryWaitTime).
-		SetRetryMaxWaitTime(retryMaxWaitTime).
-		AddRetryCondition(RetryPolicy)
+	if config.tlsServerName != "" {
+		originAddr, err := hostPortFromURL(config.baseURL)
+		if err != nil {
+			return nil, err
+		}
 
-	return restyClient, nil
+		transport.DialTLSContext = serverNameTLSDialer(transport.TLSClientConfig, config.tlsServerName, originAddr)
+	}
+
+	return transport, nil
+}
+
+// hostPortFromURL returns the address http.Transport dials: the IDNA ASCII host and the scheme default port.
+func hostPortFromURL(rawURL string) (string, error) {
+	u, err := url.Parse(rawURL)
+	if err != nil {
+		return "", fmt.Errorf("unable to parse url: %w", err)
+	}
+
+	host := u.Hostname()
+	if ascii, err := idna.Lookup.ToASCII(host); err == nil {
+		host = ascii
+	}
+
+	port := u.Port()
+	if port == "" {
+		port = "443"
+		if strings.EqualFold(u.Scheme, "http") {
+			port = "80"
+		}
+	}
+
+	return net.JoinHostPort(host, port), nil
+}
+
+// serverNameTLSDialer opens TLS connections with serverName for originAddr and with the dialed host
+// for any other address, including an https:// proxy.
+func serverNameTLSDialer(
+	base *tls.Config,
+	serverName, originAddr string,
+) func(ctx context.Context, network, addr string) (net.Conn, error) {
+	var dialer net.Dialer
+
+	return func(ctx context.Context, network, addr string) (net.Conn, error) {
+		cfg := base.Clone()
+		cfg.ServerName = serverName
+
+		if !strings.EqualFold(addr, originAddr) {
+			host, _, err := net.SplitHostPort(addr)
+			if err != nil {
+				return nil, err
+			}
+
+			cfg.ServerName = host
+		}
+
+		conn, err := dialer.DialContext(ctx, network, addr)
+		if err != nil {
+			return nil, err
+		}
+
+		tlsConn := tls.Client(conn, cfg)
+		if err := tlsConn.HandshakeContext(ctx); err != nil {
+			_ = conn.Close()
+
+			return nil, err
+		}
+
+		return tlsConn, nil
+	}
 }
 
 func (keycloakClient *KeycloakClient) newSignedJWT(

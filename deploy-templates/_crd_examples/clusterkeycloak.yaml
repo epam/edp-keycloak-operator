@@ -37,3 +37,20 @@ spec:
       clientSecretRef:
         name: keycloak-client-secret
         key: client-secret
+
+---
+# In-cluster Service URL; the certificate is issued for the public hostname
+apiVersion: v1.edp.epam.com/v1alpha1
+kind: ClusterKeycloak
+metadata:
+  name: clusterkeycloak-in-cluster
+spec:
+  url: https://keycloak-service.keycloak.svc.cluster.local:8443
+  tlsServerName: keycloak.example.com
+  auth:
+    passwordGrant:
+      username:
+        value: admin
+      passwordRef:
+        name: keycloak-access
+        key: password

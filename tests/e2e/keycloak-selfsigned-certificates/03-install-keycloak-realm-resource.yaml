@@ -1,3 +1,15 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  # status.connected defaults to false; wait for a reconcile that fails on the certificate name.
+  - script: |
+      for i in $(seq 1 40); do
+        value=$(kubectl get keycloak keycloak-alias-without-tls-server-name -n "$NAMESPACE" -o jsonpath='{.status.value}')
+        case "$value" in *x509*) exit 0 ;; esac
+        sleep 2
+      done
+      echo "keycloak-alias-without-tls-server-name: status.value is '$value', want an x509 error" >&2
+      exit 1
 ---
 
 apiVersion: v1.edp.epam.com/v1

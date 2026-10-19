@@ -1784,6 +1784,8 @@ ClusterKeycloak is the Schema for the clusterkeycloaks API.
         <td>object</td>
         <td>
           ClusterKeycloakSpec defines the desired state of ClusterKeycloak.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.tlsServerName) || size(self.tlsServerName) == 0 || self.url.lowerAscii().startsWith('https://'): tlsServerName requires an https url</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -1869,6 +1871,18 @@ certificate.<br/>
         <td>
           Secret is a secret name which contains admin credentials.
 Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tlsServerName</b></td>
+        <td>string</td>
+        <td>
+          TLSServerName is the name the server certificate is verified against instead of the Url host,
+for example when Url is the in-cluster Service. A host name is also sent as SNI; an IP address is not.
+The connection address and the Host header are unchanged. Ignored when InsecureSkipVerify is true.
+Must be listed in allowedDestinationHosts when that list is set.<br/>
+          <br/>
+            <i>Validations</i>:<li>size(self) == 0 || isIP(self) || (!format.dns1123Subdomain().validate(self.lowerAscii()).hasValue() && !self.matches('^[0-9.]+$')): must be a host name or IP address without a port or brackets</li>
         </td>
         <td>false</td>
       </tr></tbody>
@@ -8610,6 +8624,8 @@ Keycloak is the Schema for the keycloaks API.
         <td>object</td>
         <td>
           KeycloakSpec defines the desired state of Keycloak.<br/>
+          <br/>
+            <i>Validations</i>:<li>!has(self.tlsServerName) || size(self.tlsServerName) == 0 || self.url.lowerAscii().startsWith('https://'): tlsServerName requires an https url</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -8692,6 +8708,18 @@ certificate.<br/>
         <td>
           Secret is a secret name which contains admin credentials.
 Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>tlsServerName</b></td>
+        <td>string</td>
+        <td>
+          TLSServerName is the name the server certificate is verified against instead of the Url host,
+for example when Url is the in-cluster Service. A host name is also sent as SNI; an IP address is not.
+The connection address and the Host header are unchanged. Ignored when InsecureSkipVerify is true.
+Must be listed in allowedDestinationHosts when that list is set.<br/>
+          <br/>
+            <i>Validations</i>:<li>size(self) == 0 || isIP(self) || (!format.dns1123Subdomain().validate(self.lowerAscii()).hasValue() && !self.matches('^[0-9.]+$')): must be a host name or IP address without a port or brackets</li>
         </td>
         <td>false</td>
       </tr></tbody>

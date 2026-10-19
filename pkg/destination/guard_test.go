@@ -61,6 +61,13 @@ func TestNew(t *testing.T) {
 			wantErr:   require.NoError,
 		},
 		{
+			name:      "canonicalises an uncompressed IPv6 literal",
+			hosts:     []string{"2001:DB8:0:0:0:0:0:1"},
+			enforce:   true,
+			wantHosts: []string{"2001:db8::1"},
+			wantErr:   require.NoError,
+		},
+		{
 			name:    "entry with a scheme is fatal",
 			hosts:   []string{"https://keycloak.example.com"},
 			enforce: true,
@@ -148,6 +155,11 @@ func TestGuard_RequireHost(t *testing.T) {
 		{name: "listed ipv6 bracketed in a url", value: "ldaps://[2001:db8::1]:636", wantErr: require.NoError},
 		{name: "listed ipv6 bare bracketed with port", value: "[2001:db8::1]:636", wantErr: require.NoError},
 		{name: "listed ipv6 bare unbracketed", value: "2001:db8::1", wantErr: require.NoError},
+		{name: "listed ipv6 uncompressed uppercase", value: "2001:DB8:0:0:0:0:0:1", wantErr: require.NoError},
+		{name: "listed ipv6 uncompressed bracketed", value: "[2001:db8:0:0:0:0:0:1]", wantErr: require.NoError},
+		{name: "listed ipv6 uncompressed in a url", value: "https://[2001:DB8:0::1]:8443/", wantErr: require.NoError},
+		{name: "listed ipv4 as ipv4-mapped ipv6", value: "::ffff:10.0.0.1", wantErr: require.NoError},
+		{name: "unlisted ipv6", value: "2001:db8::2", wantErr: require.Error},
 
 		{name: "unlisted host", value: "https://evil.example.com/", wantErr: require.Error},
 		{
@@ -174,7 +186,7 @@ func TestGuard_RequireHost(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			g, err := New([]string{"keycloak.example.com", "2001:db8::1"}, true)
+			g, err := New([]string{"keycloak.example.com", "2001:db8::1", "10.0.0.1"}, true)
 			require.NoError(t, err)
 
 			tt.wantErr(t, g.RequireHost(context.Background(), "spec.url", tt.value))

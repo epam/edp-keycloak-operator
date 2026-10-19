@@ -8,11 +8,12 @@
 // Covered spec fields are listed in deploy-templates/values.yaml (allowedDestinationHosts);
 // update that list when adding a call site.
 //
-// The guard judges only fields this operator version knows: spec.url, spec.smtp.connection.host,
-// and the destination and credential keys listed below. Values in unrecognised config keys are
-// not judged. RBAC on the resource kinds is the primary control: a principal that may write them
-// is trusted with the Secrets of its namespace (deploy-templates/values.yaml). Egress control for
-// the Keycloak pod itself belongs to a NetworkPolicy.
+// The guard judges only fields this operator version knows: spec.url, spec.tlsServerName,
+// spec.smtp.connection.host, and the destination and credential keys listed below. Values in
+// unrecognised config keys are not judged. RBAC on the resource kinds is the primary control: a
+// principal that may write them is trusted with the Secrets of its namespace
+// (deploy-templates/values.yaml). Egress control for the Keycloak pod itself belongs to a
+// NetworkPolicy.
 package destination
 
 import (
@@ -21,6 +22,7 @@ import (
 	"fmt"
 	"maps"
 	"net"
+	"net/netip"
 	"net/url"
 	"regexp"
 	"slices"
@@ -354,12 +356,18 @@ func hostFromURL(value string) (string, bool) {
 	return canonicalHost(u.Hostname())
 }
 
+// canonicalHost lowercases a host name and writes an IP literal in its shortest form; an IPv4-mapped
+// IPv6 address becomes IPv4.
 func canonicalHost(host string) (string, bool) {
 	host = strings.ToLower(strings.TrimSpace(host))
 	host = strings.TrimSuffix(host, ".")
 
 	if host == "" || len(host) > maxHostLen || !hostPattern.MatchString(host) {
 		return "", false
+	}
+
+	if addr, err := netip.ParseAddr(host); err == nil {
+		return addr.Unmap().String(), true
 	}
 
 	return host, true

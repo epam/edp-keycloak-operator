@@ -8,6 +8,22 @@ data:
   password: "YWRtaW4="
 
 ---
+# The certificate does not name this Service.
+apiVersion: v1
+kind: Service
+metadata:
+  name: test-keycloak-alias
+spec:
+  selector:
+    app: keycloak
+  ports:
+    - protocol: TCP
+      port: 8443
+      targetPort: 8443
+      name: https
+  type: ClusterIP
+
+---
 
 apiVersion: v1.edp.epam.com/v1
 kind: Keycloak
@@ -92,5 +108,34 @@ spec:
   url: https://test-keycloak:8443
   caCert:
     configMapKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-alias-without-tls-server-name
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak-alias:8443
+  caCert:
+    secretKeyRef:
+      name: test-keycloak-certs
+      key: ca.crt
+
+---
+
+apiVersion: v1.edp.epam.com/v1
+kind: Keycloak
+metadata:
+  name: keycloak-alias-with-tls-server-name
+spec:
+  secret: keycloak-secret
+  url: https://test-keycloak-alias:8443
+  tlsServerName: test-keycloak
+  caCert:
+    secretKeyRef:
       name: test-keycloak-certs
       key: ca.crt

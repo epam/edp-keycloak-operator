@@ -1,6 +1,7 @@
 package fakehttp
 
 import (
+	"crypto/tls"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -78,6 +79,17 @@ func (b *ServerBuilder) BuildAndStart() Server {
 	return b.fakeServer
 }
 
+// BuildAndStartTLS starts an HTTPS Server on 127.0.0.1 with a self-signed certificate for names
+// (DNS names or IP addresses) and returns the certificate PEM. Close it with Server.Close.
+func (b *ServerBuilder) BuildAndStartTLS(names ...string) (Server, string, error) {
+	certPEM, err := b.fakeServer.StartTLS(names...)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return b.fakeServer, certPEM, nil
+}
+
 type DefaultServer struct {
 	mux        *http.ServeMux
 	testServer *httptest.Server
@@ -115,6 +127,21 @@ func (s *DefaultServer) addJsonResponder(status int, endpoint string, response a
 
 func (s *DefaultServer) Start() {
 	s.testServer = httptest.NewServer(s.mux)
+}
+
+// StartTLS starts an HTTPS server with a self-signed certificate for names (DNS names or
+// IP addresses) and returns that certificate in PEM.
+func (s *DefaultServer) StartTLS(names ...string) (string, error) {
+	cert, err := NewCA(names...)
+	if err != nil {
+		return "", err
+	}
+
+	s.testServer = httptest.NewUnstartedServer(s.mux)
+	s.testServer.TLS = &tls.Config{Certificates: []tls.Certificate{cert.TLSCertificate()}}
+	s.testServer.StartTLS()
+
+	return cert.CertPEM, nil
 }
 
 func (s *DefaultServer) Close() {
