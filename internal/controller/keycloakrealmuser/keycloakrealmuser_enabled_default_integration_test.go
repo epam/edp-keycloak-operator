@@ -15,6 +15,33 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 )
 
+func newUserCR(name, username string, spec map[string]any) *unstructured.Unstructured {
+	base := map[string]any{
+		"realmRef": map[string]any{
+			"kind": keycloakApi.KeycloakRealmKind,
+			"name": KeycloakRealmCR,
+		},
+		"username":     username,
+		"keepResource": true,
+	}
+	for k, v := range spec {
+		base[k] = v
+	}
+
+	u := &unstructured.Unstructured{}
+	u.SetUnstructuredContent(map[string]any{
+		"apiVersion": keycloakApi.GroupVersion.String(),
+		"kind":       "KeycloakRealmUser",
+		"metadata": map[string]any{
+			"name":      name,
+			"namespace": ns,
+		},
+		"spec": base,
+	})
+
+	return u
+}
+
 // The CRD schema resolves spec.enabled, so these specs build the resource as an unstructured
 // object. A typed KeycloakRealmUserSpec cannot express an absent field: Go sends the zero value
 // and the API server never applies the default.
@@ -22,33 +49,6 @@ var _ = Describe("KeycloakRealmUser spec.enabled defaulting", Ordered, func() {
 	const crdName = "keycloakrealmusers.v1.edp.epam.com"
 
 	var crdClient client.Client
-
-	newUserCR := func(name, username string, spec map[string]any) *unstructured.Unstructured {
-		base := map[string]any{
-			"realmRef": map[string]any{
-				"kind": keycloakApi.KeycloakRealmKind,
-				"name": KeycloakRealmCR,
-			},
-			"username":     username,
-			"keepResource": true,
-		}
-		for k, v := range spec {
-			base[k] = v
-		}
-
-		u := &unstructured.Unstructured{}
-		u.SetUnstructuredContent(map[string]any{
-			"apiVersion": keycloakApi.GroupVersion.String(),
-			"kind":       "KeycloakRealmUser",
-			"metadata": map[string]any{
-				"name":      name,
-				"namespace": ns,
-			},
-			"spec": base,
-		})
-
-		return u
-	}
 
 	getCR := func(name string) *unstructured.Unstructured {
 		got := &unstructured.Unstructured{}

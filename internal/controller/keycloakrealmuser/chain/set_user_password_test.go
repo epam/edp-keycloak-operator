@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -319,6 +320,45 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			wantStatusSecretVersion: "",
 		},
 		{
+			name: "error - passwordSecret without key",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Username:       testUsername,
+					PasswordSecret: &keycloakApi.PasswordSecret{Name: "half-ref"},
+				},
+			},
+			secret: &corev1.Secret{
+				ObjectMeta: metav1.ObjectMeta{Name: "half-ref", Namespace: defaultNamespace},
+				Data:       map[string][]byte{"pwd": []byte("secret-password")},
+			},
+			mockSetup: func(m *v2mocks.MockUsersClient) {},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorIs(t, err, errSecretKeyNotFound)
+			},
+			wantCondition:       true,
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: ReasonSecretKeyMissing,
+		},
+		{
+			name: "error - passwordSecret without name",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Username:       testUsername,
+					Password:       "inline-password",
+					PasswordSecret: &keycloakApi.PasswordSecret{Key: "pwd"},
+				},
+			},
+			mockSetup: func(m *v2mocks.MockUsersClient) {},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.True(t, k8serrors.IsNotFound(err), "expected NotFound, got %v", err)
+			},
+			wantCondition:       true,
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: ReasonSecretNotFound,
+		},
+		{
 			name: "error - secret not found",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
@@ -468,6 +508,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 					assert.Equal(t, tt.wantStatusSecretVersion, tt.user.Status.LastSyncedPasswordSecretVersion)
 				}
 			}
+
 		})
 	}
 }

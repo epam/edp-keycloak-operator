@@ -217,7 +217,7 @@ func (h *SetUserPassword) classifyPasswordError(err error, user *keycloakApi.Key
 func (h *SetUserPassword) getPassword(ctx context.Context, user *keycloakApi.KeycloakRealmUser) (*passwordResult, error) {
 	log := ctrl.LoggerFrom(ctx)
 
-	if user.Spec.PasswordSecret != nil && user.Spec.PasswordSecret.Name != "" && user.Spec.PasswordSecret.Key != "" {
+	if user.Spec.PasswordSecret != nil {
 		secret := &coreV1.Secret{}
 		if err := h.k8sClient.Get(ctx, types.NamespacedName{Name: user.Spec.PasswordSecret.Name, Namespace: user.Namespace}, secret); err != nil {
 			return nil, fmt.Errorf("failed to get secret %s with user password: %w", user.Spec.PasswordSecret.Name, err)

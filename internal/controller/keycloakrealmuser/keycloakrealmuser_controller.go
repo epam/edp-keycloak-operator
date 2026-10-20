@@ -119,6 +119,12 @@ func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.Key
 		updated = true
 	}
 
+	if migrate := migratePasswordSecret(instance); migrate {
+		ctrl.LoggerFrom(ctx).Info("Removing empty passwordSecret")
+
+		updated = true
+	}
+
 	if updated {
 		if err := r.client.Update(ctx, instance); err != nil {
 			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
@@ -202,6 +208,18 @@ func (r *Reconcile) updateKeycloakRealmUserStatus(
 	}
 
 	return nil
+}
+
+// migratePasswordSecret removes passwordSecret when name and key are empty and temporary is false.
+func migratePasswordSecret(user *keycloakApi.KeycloakRealmUser) bool {
+	ps := user.Spec.PasswordSecret
+	if ps == nil || ps.Name != "" || ps.Key != "" || ps.Temporary {
+		return false
+	}
+
+	user.Spec.PasswordSecret = nil
+
+	return true
 }
 
 // migrateAttributes migrates Attributes to AttributesV2 format.
