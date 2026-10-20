@@ -13,7 +13,7 @@ import (
 // findOwnerCR returns the KeycloakRealmGroup, other than self, whose status.ID equals groupID
 // and which targets the same Keycloak realm. Group IDs are unique per Keycloak server only:
 // cloned instances reuse UUIDs, so equal realm refs match directly and differing refs are
-// compared by resolved (URL, TLS server name, realm name) from the informer cache.
+// compared by resolved (endpoint, effective TLS server name, realm name) from the informer cache.
 func findOwnerCR(
 	ctx context.Context,
 	k8sClient client.Client,

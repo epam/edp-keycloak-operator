@@ -3,8 +3,12 @@ package helper
 import (
 	"context"
 	"fmt"
+	"net"
+	"net/netip"
+	"net/url"
 	"strings"
 
+	"golang.org/x/net/idna"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -14,7 +18,10 @@ import (
 )
 
 // RealmTarget identifies the Keycloak realm an object talks to.
-// TLSServerName is part of it: an SNI-routing front end selects the server by name.
+// URL is the canonical endpoint: lowercase scheme and host, IDNA ASCII host, no default port,
+// no userinfo, query or trailing slash.
+// TLSServerName is the effective SNI name: spec.tlsServerName, else the URL host for https,
+// else empty. An SNI-routing front end selects the server by it.
 type RealmTarget struct {
 	URL           string
 	TLSServerName string
@@ -70,7 +77,6 @@ func SameRealmTarget(ctx context.Context, k8sClient client.Client, a, b ObjectWi
 }
 
 // ResolveRealmTarget resolves the realm ref of obj to the Keycloak URL, TLS server name and realm name.
-// The URL has trailing slashes removed; the TLS server name is lowercased without a trailing dot.
 func ResolveRealmTarget(ctx context.Context, k8sClient client.Client, obj ObjectWithRealmRef) (RealmTarget, error) {
 	ref := obj.GetRealmRef()
 
@@ -153,13 +159,69 @@ func resolveKeycloakServer(
 	}
 }
 
-func keycloakServer(url string, tlsServerName common.TLSServerName) RealmTarget {
+// keycloakServer returns the canonical endpoint and effective TLS server name.
+// An unparsable url or one without a host is kept as written, without trailing slashes.
+func keycloakServer(rawURL string, tlsServerName common.TLSServerName) RealmTarget {
+	name := canonicalServerName(string(tlsServerName))
+
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || u.Host == "" {
+		return RealmTarget{URL: strings.TrimRight(rawURL, "/"), TLSServerName: name}
+	}
+
+	scheme := strings.ToLower(u.Scheme)
+	host := canonicalServerName(u.Hostname())
+
+	port := u.Port()
+	if port == defaultPort(scheme) {
+		port = ""
+	}
+
+	if name == "" && scheme == "https" {
+		name = host
+	}
+
 	return RealmTarget{
-		URL:           normalizeKeycloakURL(url),
-		TLSServerName: strings.TrimSuffix(strings.ToLower(string(tlsServerName)), "."),
+		URL:           scheme + "://" + joinHostPort(host, port) + strings.TrimRight(u.EscapedPath(), "/"),
+		TLSServerName: name,
 	}
 }
 
-func normalizeKeycloakURL(url string) string {
-	return strings.TrimRight(url, "/")
+// canonicalServerName matches the name http.Transport sends: IDNA ASCII, lowercase, no trailing dot.
+// An IP address is written in its shortest form; an IPv4-mapped IPv6 address becomes IPv4.
+func canonicalServerName(host string) string {
+	host = strings.TrimSuffix(strings.TrimSpace(host), ".")
+
+	if addr, err := netip.ParseAddr(host); err == nil {
+		return addr.Unmap().String()
+	}
+
+	if ascii, err := idna.Lookup.ToASCII(host); err == nil {
+		host = ascii
+	}
+
+	return strings.ToLower(host)
+}
+
+func defaultPort(scheme string) string {
+	switch scheme {
+	case "https":
+		return "443"
+	case "http":
+		return "80"
+	default:
+		return ""
+	}
+}
+
+func joinHostPort(host, port string) string {
+	if port != "" {
+		return net.JoinHostPort(host, port)
+	}
+
+	if strings.Contains(host, ":") {
+		return "[" + host + "]"
+	}
+
+	return host
 }
