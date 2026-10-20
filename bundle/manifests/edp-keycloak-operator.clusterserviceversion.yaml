@@ -1277,7 +1277,7 @@ spec:
   - email: SupportEPMD-EDP@epam.com
     name: epmd-edp
   maturity: stable
-  minKubeVersion: 1.20.0
+  minKubeVersion: 1.32.0
   provider:
     name: KubeRocketCI
     url: https://docs.kuberocketci.io/

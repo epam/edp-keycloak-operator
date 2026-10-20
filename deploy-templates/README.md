@@ -14,9 +14,10 @@ _**NOTE:** Operator is platform-independent, which is why there is a unified ins
 
 ## Prerequisites
 
-1. Linux machine or Windows Subsystem for Linux instance with [Helm 3](https://helm.sh/docs/intro/install/) installed;
-2. Cluster admin access to the cluster;
-3. [cert-manager](https://cert-manager.io/docs/installation/) installed in the cluster (required for webhook functionality, can be disabled via `enableWebhooks: false`);
+1. Kubernetes 1.32 or later, or OpenShift 4.19 or later;
+2. Linux machine or Windows Subsystem for Linux instance with [Helm 3](https://helm.sh/docs/intro/install/) installed;
+3. Cluster admin access to the cluster;
+4. [cert-manager](https://cert-manager.io/docs/installation/) installed in the cluster (required for webhook functionality, can be disabled via `enableWebhooks: false`);
 
 ## Installation Using Helm Chart
 
@@ -127,6 +128,10 @@ Development versions are also available from the [snapshot helm chart repository
 ## Source Code
 
 * <https://github.com/epam/edp-keycloak-operator>
+
+## Requirements
+
+Kubernetes: `>=1.32.0-0`
 
 ## Values
 
