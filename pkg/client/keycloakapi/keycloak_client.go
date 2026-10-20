@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -12,6 +13,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -352,7 +354,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 
 	restyClient, err := newRestyClient(config)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create http client: %v", err)
+		return nil, fmt.Errorf("failed to create http client: %w", err)
 	}
 
 	keycloakClient.restyClient = restyClient
@@ -360,7 +362,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	if keycloakClient.clientCredentials.AccessToken == "" && keycloakClient.initialLogin {
 		err = keycloakClient.login(ctx)
 		if err != nil {
-			return nil, fmt.Errorf("failed to perform initial login to Keycloak: %v", err)
+			return nil, fmt.Errorf("failed to perform initial login to Keycloak: %w", err)
 		}
 	}
 
@@ -370,7 +372,7 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 		generated.WithHTTPClient(&keycloakDoer{kc: keycloakClient}),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create generated keycloak client: %v", err)
+		return nil, fmt.Errorf("failed to create generated keycloak client: %w", err)
 	}
 
 	keycloakClient.Users = &usersClient{client: generatedClient}
@@ -723,7 +725,7 @@ func (d *keycloakDoer) executeViaResty(req *http.Request) (*http.Response, error
 
 func RetryPolicy(resp *resty.Response, err error) bool {
 	if err != nil {
-		return true
+		return !isPermanentTLSError(err)
 	}
 
 	statusCode := resp.RawResponse.StatusCode
@@ -744,6 +746,72 @@ func RetryPolicy(resp *resty.Response, err error) bool {
 	}
 
 	return false
+}
+
+// permanentTLSAlerts are the alert codes (RFC 8446, section 6) a peer sends when it rejects the
+// handshake on configuration: certificates, protocol versions, cipher suites or the server name.
+var permanentTLSAlerts = map[uint8]struct{}{
+	40:  {}, // handshake_failure
+	42:  {}, // bad_certificate
+	43:  {}, // unsupported_certificate
+	44:  {}, // certificate_revoked
+	45:  {}, // certificate_expired
+	46:  {}, // certificate_unknown
+	48:  {}, // unknown_ca
+	49:  {}, // access_denied
+	70:  {}, // protocol_version
+	71:  {}, // insufficient_security
+	112: {}, // unrecognized_name
+	116: {}, // certificate_required
+}
+
+// isPermanentTLSError reports a TLS failure that repeats with the same configuration: failed certificate
+// verification, a peer that does not speak TLS, or a permanentTLSAlerts alert.
+func isPermanentTLSError(err error) bool {
+	var (
+		certErr   *tls.CertificateVerificationError
+		recordErr tls.RecordHeaderError
+	)
+
+	if errors.As(err, &certErr) || errors.As(err, &recordErr) || errors.Is(err, http.ErrSchemeMismatch) {
+		return true
+	}
+
+	code, ok := remoteTLSAlert(err)
+	if !ok {
+		return false
+	}
+
+	_, permanent := permanentTLSAlerts[code]
+
+	return permanent
+}
+
+// remoteTLSAlert returns the code of a TLS alert received from the peer anywhere in the chain of err.
+// crypto/tls reports it over TCP as *net.OpError{Op: "remote error"} wrapping an unexported uint8 type;
+// tls.AlertError is used for QUIC only.
+func remoteTLSAlert(err error) (uint8, bool) {
+	for err != nil {
+		if opErr, ok := err.(*net.OpError); ok && opErr.Op == "remote error" {
+			if v := reflect.ValueOf(opErr.Err); v.IsValid() && v.Kind() == reflect.Uint8 {
+				return uint8(v.Uint()), true
+			}
+		}
+
+		if multi, ok := err.(interface{ Unwrap() []error }); ok {
+			for _, inner := range multi.Unwrap() {
+				if code, ok := remoteTLSAlert(inner); ok {
+					return code, true
+				}
+			}
+
+			return 0, false
+		}
+
+		err = errors.Unwrap(err)
+	}
+
+	return 0, false
 }
 
 func newRestyClient(config *clientConfig) (*resty.Client, error) {
@@ -784,11 +852,18 @@ func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
 
 	if config.caCert != "" {
 		caCertPool := x509.NewCertPool()
-		caCertPool.AppendCertsFromPEM([]byte(config.caCert))
+		if !caCertPool.AppendCertsFromPEM([]byte(config.caCert)) && config.verifiesServerCertificate() {
+			return nil, errors.New("CA certificate contains no PEM-encoded certificate")
+		}
+
 		transport.TLSClientConfig.RootCAs = caCertPool
 	}
 
-	if config.tlsClientCert != "" && config.tlsClientPrivateKey != "" {
+	if (config.tlsClientCert == "") != (config.tlsClientPrivateKey == "") {
+		return nil, errors.New("TLS client certificate and private key must be set together")
+	}
+
+	if config.tlsClientCert != "" {
 		clientKeyPairCert, err := tls.X509KeyPair([]byte(config.tlsClientCert), []byte(config.tlsClientPrivateKey))
 		if err != nil {
 			return nil, err
@@ -807,6 +882,21 @@ func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
 	}
 
 	return transport, nil
+}
+
+// verifiesServerCertificate reports whether verification is on and the base url or the admin url uses https.
+func (c *clientConfig) verifiesServerCertificate() bool {
+	if c.tlsInsecureSkipVerify {
+		return false
+	}
+
+	for _, raw := range []string{c.baseURL, c.adminUrl} {
+		if u, err := url.Parse(raw); err == nil && strings.EqualFold(u.Scheme, "https") {
+			return true
+		}
+	}
+
+	return false
 }
 
 // hostPortFromURL returns the address http.Transport dials: the IDNA ASCII host and the scheme default port.

@@ -357,6 +357,12 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 		BuildAndStart()
 	defer mockServer.Close()
 
+	tlsServer, tlsCACertPEM, err := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStartTLS("127.0.0.1")
+	require.NoError(t, err)
+	defer tlsServer.Close()
+
 	tests := []struct {
 		name      string
 		realm     *keycloakApi.KeycloakRealm
@@ -431,7 +437,7 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 						Namespace: defaultNamespace,
 					},
 					Spec: keycloakApi.KeycloakSpec{
-						Url:    mockServer.GetURL(),
+						Url:    tlsServer.GetURL(),
 						Secret: testKeycloakSecretName,
 						CACert: &common.SourceRef{
 							SecretKeyRef: &common.SecretKeySelector{
@@ -462,7 +468,7 @@ func TestHelper_CreateKeycloakClientFromRealm(t *testing.T) {
 						Namespace: defaultNamespace,
 					},
 					Data: map[string][]byte{
-						"ca.crt": []byte("-----BEGIN CERTIFICATE-----\ntest-ca-cert\n-----END CERTIFICATE-----"),
+						"ca.crt": []byte(tlsCACertPEM),
 					},
 				},
 			},

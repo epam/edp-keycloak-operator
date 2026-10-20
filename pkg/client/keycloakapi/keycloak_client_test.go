@@ -13,8 +13,11 @@ import (
 	"encoding/pem"
 	"fmt"
 	"io"
+	"log"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -1298,6 +1301,41 @@ func TestRetryPolicy(t *testing.T) {
 			err:         fmt.Errorf("connection failed"),
 			shouldRetry: true,
 		},
+		{
+			name: "certificate verification error",
+			err: &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: &tls.CertificateVerificationError{
+				Err: x509.HostnameError{Host: "127.0.0.1"},
+			}},
+			shouldRetry: false,
+		},
+		{
+			name:        "TLS bad_certificate alert from the peer",
+			err:         &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: &net.OpError{Op: "remote error", Err: testTLSAlert(42)}},
+			shouldRetry: false,
+		},
+		{
+			name: "TLS bad_certificate alert in a nested net.OpError",
+			err: &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: &net.OpError{
+				Op:  "dial",
+				Err: &net.OpError{Op: "remote error", Err: testTLSAlert(42)},
+			}},
+			shouldRetry: false,
+		},
+		{
+			name:        "TLS internal_error alert from the peer",
+			err:         &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: &net.OpError{Op: "remote error", Err: testTLSAlert(80)}},
+			shouldRetry: true,
+		},
+		{
+			name:        "peer does not speak TLS",
+			err:         &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: tls.RecordHeaderError{}},
+			shouldRetry: false,
+		},
+		{
+			name:        "connection refused",
+			err:         &url.Error{Op: "Post", URL: "https://127.0.0.1/token", Err: &net.OpError{Op: "dial"}},
+			shouldRetry: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -1858,6 +1896,83 @@ func TestClientOptions_WithTLSServerName(t *testing.T) {
 	}
 }
 
+func TestNewKeycloakClient_PermanentTLSErrorNotRetried(t *testing.T) {
+	t.Parallel()
+
+	ca, err := fakehttp.NewCA("keycloak.example.com")
+	require.NoError(t, err)
+
+	tests := []struct {
+		name          string
+		serverTLS     *tls.Config
+		tlsServerName string
+		wantErr       string
+	}{
+		{
+			name:      "certificate fails verification",
+			serverTLS: &tls.Config{Certificates: []tls.Certificate{ca.TLSCertificate()}},
+			wantErr:   "x509",
+		},
+		{
+			name: "server rejects the handshake",
+			serverTLS: &tls.Config{
+				Certificates: []tls.Certificate{ca.TLSCertificate()},
+				ClientAuth:   tls.RequireAnyClientCert,
+			},
+			tlsServerName: "keycloak.example.com",
+			wantErr:       "remote error: tls:",
+		},
+		{
+			name:    "server does not speak TLS",
+			wantErr: "server gave HTTP response to HTTPS client",
+		},
+		{
+			name:          "server does not speak TLS, tlsServerName dialer",
+			tlsServerName: "keycloak.example.com",
+			wantErr:       "server gave HTTP response to HTTPS client",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var connections atomic.Int32
+
+			server := httptest.NewUnstartedServer(http.NotFoundHandler())
+			server.Config.ErrorLog = log.New(io.Discard, "", 0)
+			server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+				if state == http.StateNew {
+					connections.Add(1)
+				}
+			}
+
+			if tt.serverTLS != nil {
+				server.TLS = tt.serverTLS
+				server.StartTLS()
+			} else {
+				server.Start()
+			}
+
+			t.Cleanup(server.Close)
+
+			_, err := NewKeycloakClient(
+				context.Background(),
+				"https://"+server.Listener.Addr().String(),
+				testClientID,
+				WithClientSecret(testClientSecret),
+				WithCACert(ca.CertPEM),
+				WithTLSServerName(tt.tlsServerName),
+				WithRetryWaitTime(time.Millisecond),
+				WithRetryMaxWaitTime(time.Millisecond),
+			)
+
+			require.ErrorContains(t, err, tt.wantErr)
+			assert.Equal(t, int32(1), connections.Load(), "the request must not be retried")
+		})
+	}
+}
+
 func TestNewKeycloakClient_TLSServerNameSentAsSNI(t *testing.T) {
 	t.Parallel()
 
@@ -2120,6 +2235,82 @@ func TestKeycloakClient_GetAuthenticationFormData_JWTFromFile_Error(t *testing.T
 
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to read JWT token from file")
+}
+
+func TestNewRestyClient_InvalidCACert(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                  string
+		baseURL               string
+		adminURL              string
+		tlsInsecureSkipVerify bool
+		wantErr               require.ErrorAssertionFunc
+	}{
+		{
+			name:    "https url verifies with the CA",
+			baseURL: "https://keycloak.example.com",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorContains(t, err, "CA certificate contains no PEM-encoded certificate")
+			},
+		},
+		{
+			name:     "https admin url verifies with the CA",
+			baseURL:  "http://keycloak.example.com",
+			adminURL: "HTTPS://admin.example.com",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorContains(t, err, "CA certificate contains no PEM-encoded certificate")
+			},
+		},
+		{
+			name:    "http url does not use the CA",
+			baseURL: "http://keycloak.example.com",
+			wantErr: require.NoError,
+		},
+		{
+			name:                  "insecureSkipVerify does not use the CA",
+			baseURL:               "https://keycloak.example.com",
+			tlsInsecureSkipVerify: true,
+			wantErr:               require.NoError,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := newRestyClient(&clientConfig{
+				baseURL:               tt.baseURL,
+				adminUrl:              tt.adminURL,
+				tlsInsecureSkipVerify: tt.tlsInsecureSkipVerify,
+				clientTimeout:         60,
+				caCert:                "not a certificate",
+				retryWaitTime:         time.Second,
+				retryMaxWaitTime:      10 * time.Second,
+			})
+
+			tt.wantErr(t, err)
+		})
+	}
+}
+
+func TestNewRestyClient_PartialClientCert(t *testing.T) {
+	t.Parallel()
+
+	certPEM, keyPEM := newTestClientCert(t)
+
+	for name, cfg := range map[string]*clientConfig{
+		"certificate without key": {tlsClientCert: certPEM},
+		"key without certificate": {tlsClientPrivateKey: keyPEM},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			_, err := newRestyClient(cfg)
+
+			require.ErrorContains(t, err, "TLS client certificate and private key must be set together")
+		})
+	}
 }
 
 func TestNewRestyClient_InvalidCert(t *testing.T) {
@@ -2535,3 +2726,8 @@ func TestHostPortFromURL(t *testing.T) {
 		assert.Equal(t, want, got, rawURL)
 	}
 }
+
+// testTLSAlert has the shape of the unexported crypto/tls alert type.
+type testTLSAlert uint8
+
+func (a testTLSAlert) Error() string { return fmt.Sprintf("tls: alert(%d)", uint8(a)) }
