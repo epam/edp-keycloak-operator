@@ -1382,6 +1382,10 @@ func TestNewRestyClient(t *testing.T) {
 			validate: func(t *testing.T, client *resty.Client) {
 				assert.NotNil(t, client)
 				assert.Equal(t, 60*time.Second, client.GetClient().Timeout)
+				transport := client.GetClient().Transport.(*http.Transport)
+				assert.Equal(t, 90*time.Second, transport.IdleConnTimeout)
+				assert.Equal(t, 10*time.Second, transport.TLSHandshakeTimeout)
+				assert.NotNil(t, transport.DialContext)
 			},
 		},
 		{
@@ -2731,3 +2735,30 @@ func TestHostPortFromURL(t *testing.T) {
 type testTLSAlert uint8
 
 func (a testTLSAlert) Error() string { return fmt.Sprintf("tls: alert(%d)", uint8(a)) }
+
+func TestServerNameTLSDialer_HandshakeTimeout(t *testing.T) {
+	t.Parallel()
+
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	t.Cleanup(func() { _ = listener.Close() })
+
+	// Accepts and never answers the ClientHello.
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+
+			t.Cleanup(func() { _ = conn.Close() })
+		}
+	}()
+
+	dial := serverNameTLSDialer(&net.Dialer{}, &tls.Config{}, "keycloak.example.com",
+		listener.Addr().String(), 100*time.Millisecond)
+
+	_, err = dial(context.Background(), "tcp", listener.Addr().String())
+
+	require.ErrorIs(t, err, context.DeadlineExceeded)
+}
