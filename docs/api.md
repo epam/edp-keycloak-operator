@@ -1879,7 +1879,8 @@ Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
         <td>
           TLSServerName is the name the server certificate is verified against instead of the Url host,
 for example when Url is the in-cluster Service. A host name is also sent as SNI; an IP address is not.
-The connection address and the Host header are unchanged. Ignored when InsecureSkipVerify is true.
+The connection address and the Host header are unchanged. With InsecureSkipVerify the certificate is not
+verified, but a host name is still sent as SNI.
 Must be listed in allowedDestinationHosts when that list is set.<br/>
           <br/>
             <i>Validations</i>:<li>size(self) == 0 || isIP(self) || (!format.dns1123Subdomain().validate(self.lowerAscii()).hasValue() && !self.matches('^[0-9.]+$')): must be a host name or IP address without a port or brackets</li>
@@ -8716,7 +8717,8 @@ Deprecated: Use Auth instead. When Auth is set, this field is ignored.<br/>
         <td>
           TLSServerName is the name the server certificate is verified against instead of the Url host,
 for example when Url is the in-cluster Service. A host name is also sent as SNI; an IP address is not.
-The connection address and the Host header are unchanged. Ignored when InsecureSkipVerify is true.
+The connection address and the Host header are unchanged. With InsecureSkipVerify the certificate is not
+verified, but a host name is still sent as SNI.
 Must be listed in allowedDestinationHosts when that list is set.<br/>
           <br/>
             <i>Validations</i>:<li>size(self) == 0 || isIP(self) || (!format.dns1123Subdomain().validate(self.lowerAscii()).hasValue() && !self.matches('^[0-9.]+$')): must be a host name or IP address without a port or brackets</li>

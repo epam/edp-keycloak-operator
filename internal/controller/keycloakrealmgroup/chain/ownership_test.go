@@ -77,3 +77,32 @@ func TestFindOwnerCR_ResolutionFailure(t *testing.T) {
 	_, err := findOwnerCR(context.Background(), newFakeK8sClient(t, owner), self, "gid")
 	assert.ErrorContains(t, err, "unable to resolve realm target for ownership check")
 }
+
+func TestFindOwnerCR_UnsetTLSServerNameIsURLHost(t *testing.T) {
+	self := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameB, Namespace: "ns-a"},
+	}
+	self.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	self.Spec.RealmRef.Name = testRealmRefName
+
+	owner := &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{Name: testCRNameA, Namespace: "ns-b"},
+		Status:     keycloakApi.KeycloakRealmGroupStatus{ID: "gid"},
+	}
+	owner.Spec.RealmRef.Kind = keycloakApi.KeycloakRealmKind
+	owner.Spec.RealmRef.Name = testRealmRefName
+
+	named := namespacedKeycloakStack("ns-b", testRealmRefName, "https://shared.example")
+	named[0].(*keycloakApi.Keycloak).Spec.TLSServerName = "shared.example"
+
+	objs := make([]client.Object, 0, 5)
+	objs = append(objs, owner)
+	objs = append(objs, namespacedKeycloakStack("ns-a", testRealmRefName, "https://shared.example")...)
+	objs = append(objs, named...)
+
+	got, err := findOwnerCR(context.Background(), newFakeK8sClient(t, objs...), self, "gid")
+	require.NoError(t, err)
+	require.NotNil(t, got)
+	assert.Equal(t, "ns-b", got.Namespace)
+	assert.Equal(t, testCRNameA, got.Name)
+}

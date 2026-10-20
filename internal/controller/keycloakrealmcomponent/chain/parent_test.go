@@ -195,6 +195,39 @@ func TestResolveParent_ComponentParentResolvedRealmMatch(t *testing.T) {
 	assert.Equal(t, testParentID, got.ID)
 }
 
+func TestResolveParent_ComponentParentUnsetTLSServerNameIsURLHost(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	// The child's Keycloak leaves tlsServerName unset; the parent's sets it to the url host.
+	parent := parentComponentCR(testParentCRName, "Corporate LDAP", testParentID)
+	parent.Spec.RealmRef = common.RealmRef{Kind: keycloakAlpha.ClusterKeycloakRealmKind, Name: "cluster-realm"}
+
+	objs := realmStack(testRealmRef().Name, testRealmName)
+	objs[0].(*keycloakApi.Keycloak).Spec.Url = "https://kc.example"
+
+	objs = append(objs,
+		parent,
+		&keycloakAlpha.ClusterKeycloak{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster-keycloak"},
+			Spec:       keycloakAlpha.ClusterKeycloakSpec{Url: "https://kc.example", TLSServerName: "kc.example"},
+		},
+		&keycloakAlpha.ClusterKeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: "cluster-realm"},
+			Spec:       keycloakAlpha.ClusterKeycloakRealmSpec{ClusterKeycloakRef: "cluster-keycloak", RealmName: testRealmName},
+		},
+	)
+	fakeClient := fake.NewClientBuilder().WithScheme(newScheme(t)).WithObjects(objs...).Build()
+
+	mockComponents.EXPECT().
+		GetComponent(context.Background(), testRealmName, testParentID).
+		Return(&keycloakapi.ComponentRepresentation{Id: ptr.To(testParentID)}, nil, nil)
+
+	got, err := ResolveParent(context.Background(), fakeClient, kClient, componentChild(testParentCRName), testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testParentID, got.ID)
+}
+
 func TestResolveParent_ComponentParentErrors(t *testing.T) {
 	deleting := parentComponentCR("deleting-parent", "Deleting Parent", testParentID)
 	deleting.DeletionTimestamp = ptr.To(metav1.Now())

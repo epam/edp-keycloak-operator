@@ -158,9 +158,78 @@ func TestSameRealmTarget(t *testing.T) {
 	})
 }
 
-func TestNormalizeKeycloakURL(t *testing.T) {
-	assert.Equal(t, "http://kc.example", normalizeKeycloakURL("http://kc.example/"))
-	assert.Equal(t, "http://kc.example", normalizeKeycloakURL("http://kc.example"))
+func TestKeycloakServer(t *testing.T) {
+	tests := []struct {
+		name          string
+		url           string
+		tlsServerName string
+		want          RealmTarget
+	}{
+		{name: "trailing slash", url: "http://kc.example/", want: RealmTarget{URL: "http://kc.example"}},
+		{name: "scheme and host case", url: "HTTP://KC.Example", want: RealmTarget{URL: "http://kc.example"}},
+		{name: "http default port", url: "http://kc.example:80", want: RealmTarget{URL: "http://kc.example"}},
+		{name: "http on 443 keeps the port", url: "http://kc.example:443", want: RealmTarget{URL: "http://kc.example:443"}},
+		{
+			name: "https default port and url host as name",
+			url:  "https://kc.example:443/",
+			want: RealmTarget{URL: "https://kc.example", TLSServerName: "kc.example"},
+		},
+		{
+			name: "non-default port",
+			url:  "https://kc.example:8443",
+			want: RealmTarget{URL: "https://kc.example:8443", TLSServerName: "kc.example"},
+		},
+		{
+			name: "path keeps its case",
+			url:  "https://kc.example/Auth/",
+			want: RealmTarget{URL: "https://kc.example/Auth", TLSServerName: "kc.example"},
+		},
+		{
+			name: "userinfo and query dropped",
+			url:  "https://user@kc.example/?x=1",
+			want: RealmTarget{URL: "https://kc.example", TLSServerName: "kc.example"},
+		},
+		{
+			name: "IDNA host",
+			url:  "https://bücher.example",
+			want: RealmTarget{URL: "https://xn--bcher-kva.example", TLSServerName: "xn--bcher-kva.example"},
+		},
+		{
+			name: "IPv6 host in shortest form",
+			url:  "https://[0:0::1]",
+			want: RealmTarget{URL: "https://[::1]", TLSServerName: "::1"},
+		},
+		{
+			name: "IPv6 host with port",
+			url:  "https://[::1]:8443",
+			want: RealmTarget{URL: "https://[::1]:8443", TLSServerName: "::1"},
+		},
+		{
+			name: "IPv4-mapped host",
+			url:  "https://[::ffff:10.0.0.1]",
+			want: RealmTarget{URL: "https://10.0.0.1", TLSServerName: "10.0.0.1"},
+		},
+		{
+			name:          "explicit name canonicalized",
+			url:           "https://kc-svc.ns.svc:8443",
+			tlsServerName: "KC.Example.",
+			want:          RealmTarget{URL: "https://kc-svc.ns.svc:8443", TLSServerName: "kc.example"},
+		},
+		{
+			name:          "explicit IP name in shortest form",
+			url:           "https://kc-svc.ns.svc",
+			tlsServerName: "0:0::1",
+			want:          RealmTarget{URL: "https://kc-svc.ns.svc", TLSServerName: "::1"},
+		},
+		{name: "url without host kept as written", url: "kc.example/", want: RealmTarget{URL: "kc.example"}},
+		{name: "unparsable url kept as written", url: "http://kc.example:port/", want: RealmTarget{URL: "http://kc.example:port"}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, keycloakServer(tt.url, common.TLSServerName(tt.tlsServerName)))
+		})
+	}
 }
 
 func TestResolveRealmTarget_KeycloakRealm(t *testing.T) {
@@ -209,12 +278,13 @@ func TestResolveKeycloakServer_EmptyKindDefaultsToKeycloak(t *testing.T) {
 }
 
 // Behind an SNI-routing front end, one url with two TLS server names reaches two servers.
+// An unset name is the url host.
 func TestSameRealmTarget_TLSServerNameSelectsTheServer(t *testing.T) {
-	keycloakWithName := func(name, tlsServerName string) *keycloakApi.Keycloak {
+	keycloakWithName := func(name, url, tlsServerName string) *keycloakApi.Keycloak {
 		return &keycloakApi.Keycloak{
 			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns-a"},
 			Spec: keycloakApi.KeycloakSpec{
-				Url:           "https://sni-gateway.example:8443",
+				Url:           url,
 				TLSServerName: common.TLSServerName(tlsServerName),
 			},
 		}
@@ -229,20 +299,52 @@ func TestSameRealmTarget_TLSServerNameSelectsTheServer(t *testing.T) {
 		}
 	}
 
+	const gateway = "https://sni-gateway.example:8443"
+
 	tests := []struct {
 		name       string
+		urlA       string
 		nameA      string
+		urlB       string
 		nameB      string
 		wantSameAs bool
 	}{
-		{name: "different names", nameA: "kc-a.example.com", nameB: "kc-b.example.com", wantSameAs: false},
-		{name: "same name in another spelling", nameA: "kc-a.example.com", nameB: "KC-A.example.com.", wantSameAs: true},
+		{name: "different names", urlA: gateway, nameA: "kc-a.example.com", urlB: gateway, nameB: "kc-b.example.com"},
+		{
+			name: "same name in another spelling",
+			urlA: gateway, nameA: "kc-a.example.com",
+			urlB: gateway, nameB: "KC-A.example.com.",
+			wantSameAs: true,
+		},
+		{
+			name: "unset name and the url host",
+			urlA: "https://kc.example.com", nameA: "",
+			urlB: "https://kc.example.com/", nameB: "kc.example.com",
+			wantSameAs: true,
+		},
+		{
+			name: "unset name and another name",
+			urlA: "https://kc.example.com", nameA: "",
+			urlB: "https://kc.example.com", nameB: "kc-b.example.com",
+		},
+		{
+			name: "unset name and the url IP",
+			urlA: "https://10.0.0.1:8443", nameA: "",
+			urlB: "https://10.0.0.1:8443", nameB: "10.0.0.1",
+			wantSameAs: true,
+		},
+		{
+			name: "default port and host case",
+			urlA: "https://KC.example.com:443", nameA: "",
+			urlB: "https://kc.example.com", nameB: "",
+			wantSameAs: true,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			cl := newRealmTargetClient(t,
-				keycloakWithName("kc-a", tt.nameA), keycloakWithName("kc-b", tt.nameB),
+				keycloakWithName("kc-a", tt.urlA, tt.nameA), keycloakWithName("kc-b", tt.urlB, tt.nameB),
 				realmOn("realm-a", "kc-a"), realmOn("realm-b", "kc-b"))
 
 			got, err := SameRealmTarget(context.Background(), cl,
