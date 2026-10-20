@@ -5,6 +5,7 @@ name: keycloak-operator
 type: application
 version: 1.36.0-SNAPSHOT
 appVersion: 1.36.0-SNAPSHOT
+kubeVersion: ">=1.32.0-0"
 icon: https://docs.kuberocketci.io/img/logo.svg
 keywords:
   - authentication
