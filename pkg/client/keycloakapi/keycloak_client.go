@@ -86,6 +86,12 @@ const (
 
 	// debugVerbosityLevel is the verbosity level for debug-level logs
 	debugVerbosityLevel = 1
+
+	// Values of http.DefaultTransport.
+	dialTimeout         = 30 * time.Second
+	dialKeepAlive       = 30 * time.Second
+	tlsHandshakeTimeout = 10 * time.Second
+	idleConnTimeout     = 90 * time.Second
 )
 
 // clientConfig holds configuration parameters that need to be captured before creating the client
@@ -840,6 +846,8 @@ func newRestyClient(config *clientConfig) (*resty.Client, error) {
 }
 
 func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
+	dialer := &net.Dialer{Timeout: dialTimeout, KeepAlive: dialKeepAlive}
+
 	transport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: config.tlsInsecureSkipVerify,
@@ -847,7 +855,10 @@ func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
 			ServerName: config.tlsServerName,
 		},
 		Proxy:               http.ProxyFromEnvironment,
+		DialContext:         dialer.DialContext,
+		TLSHandshakeTimeout: tlsHandshakeTimeout,
 		MaxIdleConnsPerHost: 100,
+		IdleConnTimeout:     idleConnTimeout,
 	}
 
 	if config.caCert != "" {
@@ -878,7 +889,9 @@ func newHTTPTransport(config *clientConfig) (*http.Transport, error) {
 			return nil, err
 		}
 
-		transport.DialTLSContext = serverNameTLSDialer(transport.TLSClientConfig, config.tlsServerName, originAddr)
+		transport.DialTLSContext = serverNameTLSDialer(
+			dialer, transport.TLSClientConfig, config.tlsServerName, originAddr, tlsHandshakeTimeout,
+		)
 	}
 
 	return transport, nil
@@ -922,14 +935,14 @@ func hostPortFromURL(rawURL string) (string, error) {
 	return net.JoinHostPort(host, port), nil
 }
 
-// serverNameTLSDialer opens TLS connections with serverName for originAddr and with the dialed host
-// for any other address, including an https:// proxy.
+// serverNameTLSDialer uses serverName for originAddr and the dialed host for any other address.
+// It bounds the handshake itself: http.Transport skips TLSHandshakeTimeout for DialTLSContext.
 func serverNameTLSDialer(
+	dialer *net.Dialer,
 	base *tls.Config,
 	serverName, originAddr string,
+	handshakeTimeout time.Duration,
 ) func(ctx context.Context, network, addr string) (net.Conn, error) {
-	var dialer net.Dialer
-
 	return func(ctx context.Context, network, addr string) (net.Conn, error) {
 		cfg := base.Clone()
 		cfg.ServerName = serverName
@@ -948,8 +961,11 @@ func serverNameTLSDialer(
 			return nil, err
 		}
 
+		handshakeCtx, cancel := context.WithTimeout(ctx, handshakeTimeout)
+		defer cancel()
+
 		tlsConn := tls.Client(conn, cfg)
-		if err := tlsConn.HandshakeContext(ctx); err != nil {
+		if err := tlsConn.HandshakeContext(handshakeCtx); err != nil {
 			_ = conn.Close()
 
 			return nil, err
