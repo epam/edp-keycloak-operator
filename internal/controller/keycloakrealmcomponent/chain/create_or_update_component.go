@@ -6,6 +6,7 @@ import (
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
@@ -15,17 +16,20 @@ import (
 
 // CreateOrUpdateComponent creates or updates a realm component in Keycloak.
 type CreateOrUpdateComponent struct {
+	k8sClient       client.Client
 	kClient         *keycloakapi.KeycloakClient
 	secretRefClient SecretRefClient
 	parentID        string
 }
 
 func NewCreateOrUpdateComponent(
+	k8sClient client.Client,
 	kClient *keycloakapi.KeycloakClient,
 	secretRefClient SecretRefClient,
 	parentID string,
 ) *CreateOrUpdateComponent {
 	return &CreateOrUpdateComponent{
+		k8sClient:       k8sClient,
 		kClient:         kClient,
 		secretRefClient: secretRefClient,
 		parentID:        parentID,
@@ -66,7 +70,7 @@ func (h *CreateOrUpdateComponent) Serve(
 		ParentId:     ptr.To(h.parentID),
 	}
 
-	existing, err := h.findExisting(ctx, component, realmName)
+	existing, foundByName, err := h.findExisting(ctx, component, realmName)
 	if err != nil {
 		return err
 	}
@@ -84,10 +88,28 @@ func (h *CreateOrUpdateComponent) Serve(
 
 		log.Info("Realm component created")
 	} else {
-		if existing.Id != nil {
-			component.Status.ID = *existing.Id
-			repr.Id = existing.Id
+		if existing.Id == nil {
+			return fmt.Errorf("realm component %q has no id", spec.Name)
 		}
+
+		// status.ID is assigned only after the ownership check.
+		if foundByName {
+			owner, err := findOwnerCR(ctx, h.k8sClient, component, *existing.Id)
+			if err != nil {
+				return fmt.Errorf("unable to check realm component ownership for %q: %w", spec.Name, err)
+			}
+
+			if owner != nil {
+				return fmt.Errorf(
+					"realm component %q (id %s) is already managed by KeycloakRealmComponent %s/%s; "+
+						"refusing to adopt it - check for a duplicate spec.name/parentRef/providerType",
+					spec.Name, *existing.Id, owner.Namespace, owner.Name,
+				)
+			}
+		}
+
+		component.Status.ID = *existing.Id
+		repr.Id = existing.Id
 
 		needsUpdate := helper.SpecChanged(component.Generation, component.Status.ObservedGeneration) ||
 			newHash != component.Status.ConfigSecretsHash ||
@@ -130,25 +152,31 @@ func componentMatchesSpec(
 }
 
 // findExisting returns the Keycloak component the CR manages, or nil if none exists.
+// foundByName is true when the component came from the name lookup, including the fallback after a stale status.id.
 // status.id wins when it still exists, whatever its current name, parent or providerType.
 // Otherwise the component is matched by exact spec.name and spec.providerType under the resolved parent.
 func (h *CreateOrUpdateComponent) findExisting(
 	ctx context.Context,
 	component *keycloakApi.KeycloakRealmComponent,
 	realmName string,
-) (*keycloakapi.ComponentRepresentation, error) {
+) (existing *keycloakapi.ComponentRepresentation, foundByName bool, err error) {
 	if id := component.Status.ID; id != "" {
-		existing, _, err := h.kClient.RealmComponents.GetComponent(ctx, realmName, id)
+		byID, _, err := h.kClient.RealmComponents.GetComponent(ctx, realmName, id)
 		if err != nil && !keycloakapi.IsNotFound(err) {
-			return nil, fmt.Errorf("failed to get component %s: %w", id, err)
+			return nil, false, fmt.Errorf("failed to get component %s: %w", id, err)
 		}
 
-		if err == nil && existing != nil {
-			return existing, nil
+		if err == nil && byID != nil {
+			return byID, false, nil
 		}
 	}
 
-	return findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, h.parentID, component.Spec.ProviderType)
+	byName, err := findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, h.parentID, component.Spec.ProviderType)
+	if err != nil {
+		return nil, false, err
+	}
+
+	return byName, byName != nil, nil
 }
 
 // findComponentUnderParent returns the component with exactly name and providerType under parentID, or nil.

@@ -230,7 +230,7 @@ func (r *RealmComponentReconciler) handleReconciliation(
 		return reconcile.Result{}, err
 	}
 
-	if err := chain.MakeChain(kClient, r.secretRefClient, parent.ID).Serve(ctx, instance, realmName); err != nil {
+	if err := chain.MakeChain(r.client, kClient, r.secretRefClient, parent.ID).Serve(ctx, instance, realmName); err != nil {
 		resultErr := fmt.Errorf("realm component chain processing failed: %w", err)
 		instance.Status.Value = resultErr.Error()
 
