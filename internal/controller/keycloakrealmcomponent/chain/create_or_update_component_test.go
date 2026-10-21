@@ -12,7 +12,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -69,6 +71,45 @@ func newScheme(t *testing.T) *runtime.Scheme {
 	require.NoError(t, keycloakAlpha.AddToScheme(s))
 
 	return s
+}
+
+func newFakeK8sClient(t *testing.T, objs ...client.Object) client.Client {
+	t.Helper()
+
+	return fake.NewClientBuilder().WithScheme(newScheme(t)).WithObjects(objs...).Build()
+}
+
+// namespacedKeycloakStack returns the Keycloak and KeycloakRealm that testRealmRef() resolves to in ns.
+func namespacedKeycloakStack(ns, url string) []client.Object {
+	return []client.Object{
+		&keycloakApi.Keycloak{
+			ObjectMeta: metav1.ObjectMeta{Name: "keycloak", Namespace: ns},
+			Spec:       keycloakApi.KeycloakSpec{Url: url},
+		},
+		&keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: testRealmRef().Name, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName: testRealmName,
+				KeycloakRef: common.KeycloakRef{
+					Kind: keycloakApi.KeycloakKind,
+					Name: "keycloak",
+				},
+			},
+		},
+	}
+}
+
+func ownerComponent(ns, name, id string) *keycloakApi.KeycloakRealmComponent {
+	return &keycloakApi.KeycloakRealmComponent{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+		Spec: keycloakApi.KeycloakComponentSpec{
+			Name:         testComponentName,
+			ProviderID:   testProviderID,
+			ProviderType: testProviderType,
+			RealmRef:     testRealmRef(),
+		},
+		Status: keycloakApi.KeycloakComponentStatus{ID: id},
+	}
 }
 
 func baseComponent() *keycloakApi.KeycloakRealmComponent {
@@ -140,7 +181,7 @@ func TestCreateOrUpdateComponent_Serve_CreateNew(t *testing.T) {
 		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
 		Return(createdResponse(testComponentID), nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.Equal(t, testComponentID, component.Status.ID)
@@ -166,7 +207,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 		UpdateComponent(context.Background(), testRealmName, testComponentID, desiredRepr(ptr.To(testComponentID), testRealmID)).
 		Return(nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.Equal(t, testComponentID, component.Status.ID)
@@ -194,7 +235,7 @@ func TestCreateOrUpdateComponent_Serve_TopLevelParentIdAutoFillDoesNotForceUpdat
 	parent, err := ResolveParent(context.Background(), fakeClient, kClient, component, testRealmName)
 	require.NoError(t, err)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, parent.ID)
+	h := NewCreateOrUpdateComponent(fakeClient, kClient, &fakeSecretRefClient{}, parent.ID)
 	err = h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.Equal(t, testComponentID, component.Status.ID)
@@ -218,7 +259,7 @@ func TestCreateOrUpdateComponent_Serve_SkipUpdateWhenInSync(t *testing.T) {
 		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
 		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.Equal(t, testComponentID, component.Status.ID)
@@ -258,7 +299,7 @@ func TestCreateOrUpdateComponent_Serve_ParentIdAlwaysCompared(t *testing.T) {
 				UpdateComponent(context.Background(), testRealmName, testComponentID, desiredRepr(ptr.To(testComponentID), tt.desiredParent)).
 				Return(nil, nil)
 
-			h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, tt.desiredParent)
+			h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, tt.desiredParent)
 			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 		})
 	}
@@ -287,7 +328,7 @@ func TestCreateOrUpdateComponent_Serve_FoundByStatusID(t *testing.T) {
 		UpdateComponent(context.Background(), testRealmName, testComponentID, desiredRepr(ptr.To(testComponentID), "new-parent-id")).
 		Return(nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, "new-parent-id")
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, "new-parent-id")
 	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 	assert.Equal(t, testComponentID, component.Status.ID)
 }
@@ -312,7 +353,7 @@ func TestCreateOrUpdateComponent_Serve_StaleStatusIDFallsBackToScopedLookup(t *t
 		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
 		Return([]keycloakapi.ComponentRepresentation{other, inSyncExisting()}, nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 	assert.Equal(t, testComponentID, component.Status.ID)
 }
@@ -336,7 +377,7 @@ func TestCreateOrUpdateComponent_Serve_StaleStatusIDNotFoundCreates(t *testing.T
 		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
 		Return(createdResponse("new-id"), nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 	assert.Equal(t, "new-id", component.Status.ID)
 }
@@ -352,7 +393,7 @@ func TestCreateOrUpdateComponent_Serve_GetByStatusIDError(t *testing.T) {
 		GetComponent(context.Background(), testRealmName, testComponentID).
 		Return(nil, nil, errors.New("api error"))
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to get component "+testComponentID)
@@ -382,7 +423,7 @@ func TestCreateOrUpdateComponent_Serve_SameNameUnderDifferentParents(t *testing.
 			component := baseComponent()
 			component.Status.ConfigSecretsHash = noSecretRefsHash
 
-			h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, parentID)
+			h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, parentID)
 			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 			assert.Equal(t, wantID, component.Status.ID)
 		})
@@ -479,7 +520,7 @@ func TestCreateOrUpdateComponent_Serve_LookupMatchesProviderType(t *testing.T) {
 					Return(createdResponse(tt.wantID), nil)
 			}
 
-			h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+			h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 			assert.Equal(t, tt.wantID, component.Status.ID)
 		})
@@ -507,7 +548,7 @@ func TestCreateOrUpdateComponent_Serve_ForceUpdateOnGenerationBump(t *testing.T)
 		UpdateComponent(context.Background(), testRealmName, testComponentID, mock.Anything).
 		Return(nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 }
@@ -540,7 +581,7 @@ func TestCreateOrUpdateComponent_Serve_SecretRefConfigKeySkipped(t *testing.T) {
 		versions: secretVersions,
 	}
 
-	h := NewCreateOrUpdateComponent(kClient, secretRefClient, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, secretRefClient, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 }
@@ -575,7 +616,7 @@ func TestCreateOrUpdateComponent_Serve_HashDriftForcesUpdate(t *testing.T) {
 		versions: map[string][]string{"bindCredential": {"secret:secret:key@uid-1@101"}},
 	}
 
-	h := NewCreateOrUpdateComponent(kClient, secretRefClient, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, secretRefClient, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 	assert.NotEqual(t, "stale-hash", component.Status.ConfigSecretsHash)
@@ -601,7 +642,7 @@ func TestCreateOrUpdateComponent_Serve_MaskedFetchedValueSkipped(t *testing.T) {
 		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
 		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.NoError(t, err)
 }
@@ -690,7 +731,7 @@ func TestCreateOrUpdateComponent_Serve_ConfigCompare(t *testing.T) {
 					Return(nil, nil).Once()
 			}
 
-			h := NewCreateOrUpdateComponent(kClient, tt.secretRefs, testRealmID)
+			h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, tt.secretRefs, testRealmID)
 			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 		})
 	}
@@ -706,7 +747,7 @@ func TestCreateOrUpdateComponent_Serve_ScopedLookupError(t *testing.T) {
 		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
 		Return(nil, nil, errors.New("api error"))
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to find component")
@@ -726,7 +767,7 @@ func TestCreateOrUpdateComponent_Serve_CreateError(t *testing.T) {
 		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
 		Return(nil, errors.New("create error"))
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to create realm component")
@@ -748,7 +789,7 @@ func TestCreateOrUpdateComponent_Serve_CreateWithoutLocationHeader(t *testing.T)
 		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
 		Return(&keycloakapi.Response{HTTPResponse: &http.Response{Header: http.Header{}}}, nil)
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "Location header missing or empty")
@@ -775,7 +816,7 @@ func TestCreateOrUpdateComponent_Serve_UpdateError(t *testing.T) {
 		UpdateComponent(context.Background(), testRealmName, testComponentID, desiredRepr(ptr.To(testComponentID), testRealmID)).
 		Return(nil, errors.New("update error"))
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update realm component")
@@ -786,8 +827,159 @@ func TestCreateOrUpdateComponent_Serve_SecretRefError(t *testing.T) {
 
 	component := baseComponent()
 
-	h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{err: errors.New("secret error")}, testRealmID)
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{err: errors.New("secret error")}, testRealmID)
 	err := h.Serve(context.Background(), component, testRealmName)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "unable to map config secrets")
+}
+
+func TestCreateOrUpdateComponent_Serve_RefusesComponentOwnedByAnotherCR(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	owner := ownerComponent(testNamespace, "owner", testComponentID)
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{inSyncExisting()}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t, owner), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "already managed by KeycloakRealmComponent "+testNamespace+"/owner")
+	assert.Empty(t, component.Status.ID)
+	assert.Empty(t, component.Status.ConfigSecretsHash)
+}
+
+func TestCreateOrUpdateComponent_Serve_StaleStatusIDRefusedKeepsStaleID(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Status.ID = "stale-id"
+	owner := ownerComponent(testNamespace, "owner", testComponentID)
+
+	mockComponents.EXPECT().
+		GetComponent(context.Background(), testRealmName, "stale-id").
+		Return(nil, nil, &keycloakapi.ApiError{Code: http.StatusNotFound})
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{inSyncExisting()}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t, owner), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "already managed by KeycloakRealmComponent "+testNamespace+"/owner")
+	assert.Equal(t, "stale-id", component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_AdoptsUnownedComponentByName(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Status.ConfigSecretsHash = noSecretRefsHash
+
+	existing := inSyncExisting()
+	existing.Config = ptr.To(keycloakapi.MultivaluedHashMapStringString{})
+
+	other := ownerComponent(testNamespace, "other", "another-id")
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t, other), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testComponentID, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_FoundByNameWithoutIDIsError(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	existing := inSyncExisting()
+	existing.Id = nil
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "has no id")
+	assert.Empty(t, component.Status.ID)
+}
+
+// Known limit: the by-ID path skips the ownership check.
+func TestCreateOrUpdateComponent_Serve_ByIDPathSkipsOwnershipCheck(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Status.ID = testComponentID
+	component.Status.ConfigSecretsHash = noSecretRefsHash
+
+	existing := inSyncExisting()
+	existing.Config = ptr.To(keycloakapi.MultivaluedHashMapStringString{})
+	owner := ownerComponent(testNamespace, "owner", testComponentID)
+
+	mockComponents.EXPECT().
+		GetComponent(context.Background(), testRealmName, testComponentID).
+		Return(&existing, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t, owner), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.NoError(t, err)
+	assert.Equal(t, testComponentID, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_OwnershipListError(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{inSyncExisting()}, nil, nil)
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(newScheme(t)).
+		WithInterceptorFuncs(interceptor.Funcs{
+			List: func(context.Context, client.WithWatch, client.ObjectList, ...client.ListOption) error {
+				return errors.New("list failed")
+			},
+		}).
+		Build()
+
+	h := NewCreateOrUpdateComponent(k8sClient, kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "unable to check realm component ownership")
+	assert.Empty(t, component.Status.ID)
+}
+
+func TestCreateOrUpdateComponent_Serve_RefusesChildDuplicateUnderSameParent(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	const parentID = "parent-comp-id"
+
+	component := baseComponent()
+	component.Spec.ParentRef = &keycloakApi.ParentComponent{Kind: keycloakApi.KeycloakRealmComponentKind, Name: "parent"}
+	owner := ownerComponent(testNamespace, "owner-child", testComponentID)
+
+	existing := inSyncExisting()
+	existing.ParentId = ptr.To(parentID)
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(parentID)).
+		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t, owner), kClient, &fakeSecretRefClient{}, parentID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "already managed by KeycloakRealmComponent "+testNamespace+"/owner-child")
+	assert.Empty(t, component.Status.ID)
 }
