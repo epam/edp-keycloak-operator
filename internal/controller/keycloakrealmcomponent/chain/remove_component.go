@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
@@ -13,11 +14,12 @@ import (
 
 // RemoveComponent deletes a realm component from Keycloak.
 type RemoveComponent struct {
-	kClient *keycloakapi.KeycloakClient
+	k8sClient client.Client
+	kClient   *keycloakapi.KeycloakClient
 }
 
-func NewRemoveComponent(kClient *keycloakapi.KeycloakClient) *RemoveComponent {
-	return &RemoveComponent{kClient: kClient}
+func NewRemoveComponent(k8sClient client.Client, kClient *keycloakapi.KeycloakClient) *RemoveComponent {
+	return &RemoveComponent{k8sClient: k8sClient, kClient: kClient}
 }
 
 func (h *RemoveComponent) Serve(
@@ -35,8 +37,9 @@ func (h *RemoveComponent) Serve(
 	}
 
 	componentID := component.Status.ID
+	foundByName := componentID == ""
 
-	if componentID == "" {
+	if foundByName {
 		if ref := component.Spec.ParentRef; ref != nil && parentRefKind(ref) == keycloakApi.KeycloakRealmComponentKind {
 			log.Info("Realm component has no ID in status and a component parent, skipping deletion")
 
@@ -62,6 +65,28 @@ func (h *RemoveComponent) Serve(
 		}
 
 		componentID = *existing.Id
+	}
+
+	owner, err := findOwnerCR(ctx, h.k8sClient, component, componentID)
+	if err != nil {
+		return fmt.Errorf("unable to check realm component ownership for deletion: %w", err)
+	}
+
+	if owner != nil && foundByName {
+		log.Info("Realm component is managed by another resource, skipping deletion",
+			"owner", owner.Namespace+"/"+owner.Name, "componentID", componentID)
+
+		return nil
+	}
+
+	if owner != nil {
+		return fmt.Errorf(
+			"realm component %q (id %s) is managed by KeycloakRealmComponent %s/%s; refusing to delete it - "+
+				"remove the duplicate claim, or set annotation %s=true on KeycloakRealmComponent %s/%s "+
+				"to remove this resource and keep the Keycloak component",
+			component.Spec.Name, componentID, owner.Namespace, owner.Name,
+			objectmeta.PreserveResourcesOnDeletionAnnotation, component.Namespace, component.Name,
+		)
 	}
 
 	if _, err := h.kClient.RealmComponents.DeleteComponent(ctx, realmName, componentID); err != nil {
