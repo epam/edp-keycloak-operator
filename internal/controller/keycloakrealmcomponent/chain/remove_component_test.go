@@ -63,7 +63,43 @@ func TestRemoveComponent_Serve(t *testing.T) {
 			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
 				realmFound(realms)
 				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).
-					Return([]keycloakapi.ComponentRepresentation{{Id: ptr.To(testComponentID), Name: ptr.To(testComponentName)}}, nil, nil)
+					Return([]keycloakapi.ComponentRepresentation{{
+						Id:           ptr.To(testComponentID),
+						Name:         ptr.To(testComponentName),
+						ProviderType: ptr.To(testProviderType),
+					}}, nil, nil)
+				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).Return(nil, nil)
+			},
+		},
+		{
+			name: "no status.id: same name of another providerType is not deleted",
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+					Return([]keycloakapi.ComponentRepresentation{{
+						Id:           ptr.To(otherTypeID),
+						Name:         ptr.To(testComponentName),
+						ProviderType: ptr.To(otherProviderType),
+					}}, nil, nil)
+			},
+		},
+		{
+			name: "no status.id: deletes the component of its own providerType",
+			setup: func(components *mocks.MockRealmComponentsClient, realms *mocks.MockRealmClient) {
+				realmFound(realms)
+				components.EXPECT().GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+					Return([]keycloakapi.ComponentRepresentation{
+						{
+							Id:           ptr.To(otherTypeID),
+							Name:         ptr.To(testComponentName),
+							ProviderType: ptr.To(otherProviderType),
+						},
+						{
+							Id:           ptr.To(testComponentID),
+							Name:         ptr.To(testComponentName),
+							ProviderType: ptr.To(testProviderType),
+						},
+					}, nil, nil)
 				components.EXPECT().DeleteComponent(context.Background(), testRealmName, testComponentID).Return(nil, nil)
 			},
 		},
@@ -115,8 +151,12 @@ func TestRemoveComponent_Serve(t *testing.T) {
 
 			component := &keycloakApi.KeycloakRealmComponent{
 				ObjectMeta: metav1.ObjectMeta{Name: testComponentName, Annotations: tt.annotations},
-				Spec:       keycloakApi.KeycloakComponentSpec{Name: testComponentName, ParentRef: tt.parentRef},
-				Status:     keycloakApi.KeycloakComponentStatus{ID: tt.statusID},
+				Spec: keycloakApi.KeycloakComponentSpec{
+					Name:         testComponentName,
+					ProviderType: testProviderType,
+					ParentRef:    tt.parentRef,
+				},
+				Status: keycloakApi.KeycloakComponentStatus{ID: tt.statusID},
 			}
 
 			kClient := &keycloakapi.KeycloakClient{RealmComponents: components, Realms: realms}

@@ -48,7 +48,9 @@ func (h *RemoveComponent) Serve(
 			return fmt.Errorf("failed to resolve realm for deletion: %w", err)
 		}
 
-		existing, err := findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, realm.ID)
+		existing, err := findComponentUnderParent(
+			ctx, h.kClient, realmName, component.Spec.Name, realm.ID, component.Spec.ProviderType,
+		)
 		if err != nil {
 			return fmt.Errorf("failed to find component for deletion: %w", err)
 		}

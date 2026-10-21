@@ -130,8 +130,8 @@ func componentMatchesSpec(
 }
 
 // findExisting returns the Keycloak component the CR manages, or nil if none exists.
-// status.id wins when it still exists, whatever its current name or parent.
-// Otherwise the component is matched by exact spec.name under the resolved parent.
+// status.id wins when it still exists, whatever its current name, parent or providerType.
+// Otherwise the component is matched by exact spec.name and spec.providerType under the resolved parent.
 func (h *CreateOrUpdateComponent) findExisting(
 	ctx context.Context,
 	component *keycloakApi.KeycloakRealmComponent,
@@ -148,16 +148,16 @@ func (h *CreateOrUpdateComponent) findExisting(
 		}
 	}
 
-	return findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, h.parentID)
+	return findComponentUnderParent(ctx, h.kClient, realmName, component.Spec.Name, h.parentID, component.Spec.ProviderType)
 }
 
-// findComponentUnderParent returns the component with exactly name under parentID, or nil.
-// Keycloak's parent filter defaults to the realm ID, so passing the realm ID selects top-level
-// components.
+// findComponentUnderParent returns the component with exactly name and providerType under parentID, or nil.
+// Keycloak stores top-level components with the realm ID as parentId, so the realm ID selects them.
+// Component names are not unique in Keycloak; providerType separates components of different types.
 func findComponentUnderParent(
 	ctx context.Context,
 	kClient *keycloakapi.KeycloakClient,
-	realmName, name, parentID string,
+	realmName, name, parentID, providerType string,
 ) (*keycloakapi.ComponentRepresentation, error) {
 	components, _, err := kClient.RealmComponents.GetComponents(ctx, realmName, &keycloakapi.GetComponentsParams{
 		Name:   &name,
@@ -168,7 +168,8 @@ func findComponentUnderParent(
 	}
 
 	for i := range components {
-		if ptr.Deref(components[i].Name, "") == name {
+		if ptr.Deref(components[i].Name, "") == name &&
+			ptr.Deref(components[i].ProviderType, "") == providerType {
 			return &components[i], nil
 		}
 	}
