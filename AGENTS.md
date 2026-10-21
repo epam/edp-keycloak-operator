@@ -80,7 +80,7 @@ Each Keycloak object has one owner: the CR of its kind. A CR embeds only what Ke
 ### Adding a new chain handler
 1. Create `internal/controller/{resource}/chain/my_step.go` implementing the handler interface.
 2. Wire it into `chain/chain.go` in the correct call order.
-3. Add a `_test.go` alongside it; use Ginkgo + Gomega.
+3. Add a `_test.go` alongside it; use testify table tests and mockery mocks. Ginkgo + Gomega is for the envtest suites.
 
 ### Reconciliation idempotency
 Skip Keycloak writes when actual state matches the spec; track `status.observedGeneration` and force writes on generation change so spec removals propagate. Never delete-and-recreate child resources — diff by name (reference: `internal/controller/keycloakclientscope/chain/`).

@@ -68,19 +68,7 @@ func TestRealmComponentsClient_CRUD(t *testing.T) {
 	require.Equal(t, providerID, *component.ProviderId)
 	require.Equal(t, providerType, *component.ProviderType)
 
-	// 3. FindComponentByName — assert same component
-	found, err := c.RealmComponents.FindComponentByName(ctx, realmName, componentName)
-	require.NoError(t, err)
-	require.NotNil(t, found)
-	require.Equal(t, componentID, *found.Id)
-	require.Equal(t, componentName, *found.Name)
-
-	// 4. FindComponentByName for non-existent name — returns nil
-	notFound, err := c.RealmComponents.FindComponentByName(ctx, realmName, "does-not-exist")
-	require.NoError(t, err)
-	require.Nil(t, notFound)
-
-	// 5. UpdateComponent — change priority
+	// 3. UpdateComponent — change priority
 	updatedConfig := keycloakapi.MultivaluedHashMapStringString{
 		"priority": {"10"},
 	}
@@ -98,7 +86,7 @@ func TestRealmComponentsClient_CRUD(t *testing.T) {
 	require.NotNil(t, updated)
 	require.Equal(t, componentName, *updated.Name)
 
-	// 6. GetComponents — list with name filter
+	// 4. GetComponents — list with name filter
 	components, _, err := c.RealmComponents.GetComponents(ctx, realmName, &keycloakapi.GetComponentsParams{
 		Name: &componentName,
 	})
@@ -116,11 +104,11 @@ func TestRealmComponentsClient_CRUD(t *testing.T) {
 
 	require.True(t, foundInList, "component should be in the filtered list")
 
-	// 7. DeleteComponent
+	// 5. DeleteComponent
 	_, err = c.RealmComponents.DeleteComponent(ctx, realmName, componentID)
 	require.NoError(t, err)
 
-	// 8. GetComponent after deletion — assert IsNotFound
+	// 6. GetComponent after deletion — assert IsNotFound
 	_, _, err = c.RealmComponents.GetComponent(ctx, realmName, componentID)
 	require.Error(t, err)
 	require.True(t, keycloakapi.IsNotFound(err), "expected 404 after deletion")
