@@ -174,7 +174,7 @@ func (r *RealmComponentReconciler) handleDeletion(
 ) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(instance, common.FinalizerName) ||
 		controllerutil.ContainsFinalizer(instance, legacyFinalizerName) {
-		if err := chain.NewRemoveComponent(kClient).Serve(ctx, instance, realmName); err != nil {
+		if err := chain.NewRemoveComponent(r.client, kClient).Serve(ctx, instance, realmName); err != nil {
 			return ctrl.Result{}, fmt.Errorf("failed to remove realm component: %w", err)
 		}
 
