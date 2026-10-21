@@ -17,6 +17,8 @@ spec:
   keycloakRef:
     name: keycloak
     kind: Keycloak
+  userProfileConfig:
+    unmanagedAttributePolicy: ADMIN_EDIT
   realmEventConfig:
     adminEventsDetailsEnabled: false
     adminEventsEnabled: true

@@ -181,6 +181,7 @@ var _ = BeforeSuite(func() {
 				Kind: keycloakApi.KeycloakKind,
 				Name: keycloak.Name,
 			},
+			UserProfileConfig: &common.UserProfileConfig{UnmanagedAttributePolicy: "ADMIN_EDIT"},
 		},
 	}
 	Expect(k8sClient.Create(ctx, keycloakRealm)).Should(Succeed())

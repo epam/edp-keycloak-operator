@@ -12,6 +12,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -1090,5 +1091,81 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			err := k8sClient.Get(ctx, types.NamespacedName{Name: testRealm.Name, Namespace: ns}, &r)
 			return k8sErrors.IsNotFound(err)
 		}, time.Minute, time.Second*5).Should(BeTrue())
+	})
+})
+
+// Keycloak stores service account attributes under any unmanagedAttributePolicy.
+var _ = Describe("KeycloakClient service account attributes without a user profile policy", func() {
+	It("Should store service account attributes in a realm without userProfileConfig", func() {
+		realmName := testutils.RealmName("test-kc-sa-attrs")
+		clientID := "sa-attrs-client"
+
+		realm := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: realmName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:   realmName,
+				KeycloakRef: common.KeycloakRef{Kind: keycloakApi.KeycloakKind, Name: KeycloakCR},
+			},
+		}
+		Expect(k8sClient.Create(ctx, realm)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, realm))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: realmName, Namespace: ns}, &keycloakApi.KeycloakRealm{}),
+				)
+			}, time.Minute, interval).Should(BeTrue())
+		})
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: realmName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Available).Should(BeTrue())
+		}, time.Second*30, interval).Should(Succeed())
+
+		profile, _, err := keycloakAdmin.Users.GetUsersProfile(ctx, realmName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(profile.UnmanagedAttributePolicy).Should(BeNil(), "the realm must not allow unmanaged attributes")
+
+		kcClient := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{Name: clientID, Namespace: ns},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: clientID,
+				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmName},
+				ServiceAccount: &keycloakApi.ServiceAccount{
+					Enabled:      true,
+					AttributesV2: map[string][]string{"team": {"blue"}},
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, kcClient)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, kcClient))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: clientID, Namespace: ns}, &keycloakApi.KeycloakClient{}),
+				)
+			}, time.Minute, interval).Should(BeTrue())
+		})
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakClient{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: clientID, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+
+			saCond := meta.FindStatusCondition(got.Status.Conditions, chain.ConditionServiceAccountSynced)
+			g.Expect(saCond).ShouldNot(BeNil())
+			g.Expect(saCond.Status).Should(Equal(metav1.ConditionTrue))
+
+			existing, _, err := keycloakAdmin.Clients.GetClientByClientID(ctx, realmName, clientID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(existing).ShouldNot(BeNil())
+
+			saUser, _, err := keycloakAdmin.Clients.GetServiceAccountUser(ctx, realmName, *existing.Id)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(saUser).ShouldNot(BeNil())
+			g.Expect(saUser.Attributes).ShouldNot(BeNil())
+			g.Expect(*saUser.Attributes).Should(HaveKeyWithValue("team", []string{"blue"}))
+		}, time.Second*40, interval).Should(Succeed())
 	})
 })

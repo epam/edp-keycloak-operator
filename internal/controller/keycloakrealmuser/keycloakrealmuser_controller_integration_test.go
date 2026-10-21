@@ -1,6 +1,7 @@
 package keycloakrealmuser
 
 import (
+	"fmt"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -12,12 +13,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser/chain"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
@@ -210,6 +213,12 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				}
 			}
 			g.Expect(realmManagementClientRoleNames).Should(ContainElement("create-client"))
+
+			storedUser, _, err := keycloakApiClient.Users.GetUser(ctx, KeycloakRealmCR, *foundUser.Id)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(storedUser).ShouldNot(BeNil())
+			g.Expect(storedUser.Attributes).ShouldNot(BeNil())
+			g.Expect(*storedUser.Attributes).Should(HaveKeyWithValue("attr1", []string{"test-value"}))
 
 			// Verify group membership - both plain name and slash-prefixed path groups
 			userGroups, _, err := keycloakApiClient.Users.GetUserGroups(ctx, KeycloakRealmCR, *foundUser.Id)
@@ -793,5 +802,235 @@ var _ = Describe("KeycloakRealmUser unmanaged groups", Ordered, func() {
 		Eventually(func(g Gomega) {
 			g.Expect(groupNames()).ShouldNot(ContainElement(groupName))
 		}, timeout, interval).Should(Succeed())
+	})
+})
+
+var _ = Describe("KeycloakRealmUser attributes and the realm user profile", Ordered, func() {
+	const (
+		userCR          = "attrs-user"
+		keepFalseUserCR = "attrs-keep-false-user"
+		undeclaredKey   = "baz"
+		policyErrorPart = "unmanagedAttributePolicy"
+	)
+
+	realmCR := testutils.RealmName("test-user-attrs")
+
+	newRealm := func(name string, profile *common.UserProfileConfig) *keycloakApi.KeycloakRealm {
+		return &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:         name,
+				KeycloakRef:       common.KeycloakRef{Kind: keycloakApi.KeycloakKind, Name: KeycloakCR},
+				UserProfileConfig: profile,
+			},
+		}
+	}
+
+	createRealm := func(realm *keycloakApi.KeycloakRealm) {
+		Expect(k8sClient.Create(ctx, realm)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, realm))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: realm.Name, Namespace: ns}, &keycloakApi.KeycloakRealm{}),
+				)
+			}, testutils.LongWait, interval).Should(BeTrue())
+		})
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: realm.Name, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Available).Should(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+	}
+
+	createUser := func(name, realmName, username string, keepResource bool, roles *[]string, attrs map[string][]string) {
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmName},
+				Username:     username,
+				Enabled:      true,
+				KeepResource: keepResource,
+				Roles:        roles,
+				AttributesV2: attrs,
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, user))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, &keycloakApi.KeycloakRealmUser{}),
+				)
+			}, testutils.LongWait, interval).Should(BeTrue())
+		})
+	}
+
+	statusOf := func(g Gomega, name string) string {
+		got := &keycloakApi.KeycloakRealmUser{}
+		g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, got)).Should(Succeed())
+
+		return got.Status.Value
+	}
+
+	storedAttributes := func(g Gomega, realmName, username string) map[string][]string {
+		found, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmName, username)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(found).ShouldNot(BeNil())
+
+		stored, _, err := keycloakApiClient.Users.GetUser(ctx, realmName, *found.Id)
+		g.Expect(err).ShouldNot(HaveOccurred())
+
+		return ptr.Deref(stored.Attributes, nil)
+	}
+
+	setPolicy := func(policy string) {
+		realm := &keycloakApi.KeycloakRealm{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: realmCR, Namespace: ns}, realm)).Should(Succeed())
+
+		patch := client.MergeFrom(realm.DeepCopy())
+		realm.Spec.UserProfileConfig = &common.UserProfileConfig{UnmanagedAttributePolicy: policy}
+		Expect(k8sClient.Patch(ctx, realm, patch)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			profile, _, err := keycloakApiClient.Users.GetUsersProfile(ctx, realmCR)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(profile.UnmanagedAttributePolicy).ShouldNot(BeNil())
+			g.Expect(string(*profile.UnmanagedAttributePolicy)).Should(Equal(policy))
+		}, testutils.LongWait, interval).Should(Succeed())
+	}
+
+	// A keepResource=false CR may already be deleted by a retry; nothing to nudge then.
+	nudge := func(name string) {
+		Eventually(func(g Gomega) {
+			err := testutils.Nudge(
+				ctx, k8sClient, types.NamespacedName{Name: name, Namespace: ns}, &keycloakApi.KeycloakRealmUser{},
+			)
+			if !k8sErrors.IsNotFound(err) {
+				g.Expect(err).ShouldNot(HaveOccurred())
+			}
+		}, testutils.LongWait, interval).Should(Succeed())
+	}
+
+	BeforeAll(func() {
+		createRealm(newRealm(realmCR, nil))
+
+		createUser(userCR, realmCR, userCR, true, ptr.To([]string{"offline_access"}),
+			map[string][]string{undeclaredKey: {"jazz", "rock"}})
+		createUser(keepFalseUserCR, realmCR, keepFalseUserCR, false, nil, map[string][]string{undeclaredKey: {"jazz"}})
+	})
+
+	It("Should report attributes the realm user profile does not allow and still sync roles", func() {
+		Eventually(func(g Gomega) {
+			status := statusOf(g, userCR)
+			g.Expect(status).Should(ContainSubstring(policyErrorPart))
+			g.Expect(status).Should(ContainSubstring(`"baz"`))
+			g.Expect(status).Should(ContainSubstring("KeycloakRealm " + realmCR))
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			found, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmCR, userCR)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			roles, _, err := keycloakApiClient.Users.GetUserRealmRoleMappings(ctx, realmCR, *found.Id)
+			g.Expect(err).ShouldNot(HaveOccurred())
+
+			names := make([]string, 0, len(roles))
+			for _, r := range roles {
+				names = append(names, ptr.Deref(r.Name, ""))
+			}
+
+			g.Expect(names).Should(ContainElement("offline_access"))
+			g.Expect(storedAttributes(g, realmCR, userCR)).ShouldNot(HaveKey(undeclaredKey))
+		}, testutils.LongWait, interval).Should(Succeed())
+	})
+
+	It("Should keep a keepResource=false CR while attributes are not stored", func() {
+		Eventually(func(g Gomega) {
+			g.Expect(statusOf(g, keepFalseUserCR)).Should(ContainSubstring(policyErrorPart))
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		Consistently(func(g Gomega) {
+			g.Expect(k8sClient.Get(
+				ctx, types.NamespacedName{Name: keepFalseUserCR, Namespace: ns}, &keycloakApi.KeycloakRealmUser{},
+			)).Should(Succeed())
+		}, time.Second*3, interval).Should(Succeed())
+	})
+
+	It("Should become OK, store the attributes and delete the keepResource=false CR once the realm allows them", func() {
+		setPolicy("ADMIN_EDIT")
+		nudge(userCR)
+		nudge(keepFalseUserCR)
+
+		Eventually(func(g Gomega) {
+			g.Expect(statusOf(g, userCR)).Should(Equal(common.StatusOK))
+			g.Expect(storedAttributes(g, realmCR, userCR)).Should(HaveKeyWithValue(undeclaredKey, ConsistOf("jazz", "rock")))
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		Eventually(func() bool {
+			return k8sErrors.IsNotFound(k8sClient.Get(
+				ctx, types.NamespacedName{Name: keepFalseUserCR, Namespace: ns}, &keycloakApi.KeycloakRealmUser{},
+			))
+		}, testutils.LongWait, interval).Should(BeTrue())
+	})
+
+	It("Should report a value change Keycloak ignores under ADMIN_VIEW", func() {
+		// Keycloak < 26.5 stores unmanaged attributes under ADMIN_VIEW.
+		info, err := keycloakApiClient.GetServerInfo(ctx)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var major, minor int
+
+		_, err = fmt.Sscanf(info.SystemInfo.ServerVersion, "%d.%d", &major, &minor)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		if major < 26 || (major == 26 && minor < 5) {
+			Skip("Keycloak < 26.5 stores unmanaged attributes under ADMIN_VIEW, server " + info.SystemInfo.ServerVersion)
+		}
+
+		setPolicy("ADMIN_VIEW")
+
+		got := &keycloakApi.KeycloakRealmUser{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: userCR, Namespace: ns}, got)).Should(Succeed())
+
+		patch := client.MergeFrom(got.DeepCopy())
+		got.Spec.AttributesV2 = map[string][]string{undeclaredKey: {"changed"}}
+		Expect(k8sClient.Patch(ctx, got, patch)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			status := statusOf(g, userCR)
+			g.Expect(status).Should(ContainSubstring(policyErrorPart))
+			g.Expect(status).Should(ContainSubstring(`"baz"`))
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(storedAttributes(g, realmCR, userCR)).Should(HaveKeyWithValue(undeclaredKey, ConsistOf("jazz", "rock")))
+		}, testutils.LongWait, interval).Should(Succeed())
+	})
+
+	It("Should accept an attribute declared in the user profile with admin edit, without a policy", func() {
+		declaredRealmCR := testutils.RealmName("test-user-attrs-declared")
+
+		createRealm(newRealm(declaredRealmCR, &common.UserProfileConfig{
+			Attributes: []common.UserProfileAttribute{
+				{
+					Name: "team",
+					Permissions: &common.UserProfileAttributePermissions{
+						Edit: []string{"admin"},
+						View: []string{"admin"},
+					},
+				},
+			},
+		}))
+
+		createUser("attrs-declared-user", declaredRealmCR, "attrs-declared-user", true, nil, map[string][]string{"team": {"blue"}})
+
+		Eventually(func(g Gomega) {
+			g.Expect(statusOf(g, "attrs-declared-user")).Should(Equal(common.StatusOK))
+			g.Expect(storedAttributes(g, declaredRealmCR, "attrs-declared-user")).
+				Should(HaveKeyWithValue("team", []string{"blue"}))
+		}, testutils.LongWait, interval).Should(Succeed())
 	})
 })
