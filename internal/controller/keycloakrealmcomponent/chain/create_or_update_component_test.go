@@ -29,6 +29,8 @@ const (
 	testRealmID       = "realm-internal-id"
 	testProviderID    = "ldap"
 	testProviderType  = "org.keycloak.storage.UserStorageProvider"
+	otherProviderType = "org.keycloak.keys.KeyProvider"
+	otherTypeID       = "other-type-id"
 	testNamespace     = "test-ns"
 )
 
@@ -383,6 +385,103 @@ func TestCreateOrUpdateComponent_Serve_SameNameUnderDifferentParents(t *testing.
 			h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, parentID)
 			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
 			assert.Equal(t, wantID, component.Status.ID)
+		})
+	}
+}
+
+func TestCreateOrUpdateComponent_Serve_LookupMatchesProviderType(t *testing.T) {
+	otherType := func() keycloakapi.ComponentRepresentation {
+		c := inSyncExisting()
+		c.Id = ptr.To(otherTypeID)
+		c.ProviderType = ptr.To(otherProviderType)
+
+		return c
+	}
+
+	tests := []struct {
+		name         string
+		statusID     string
+		providerType string
+		listed       []keycloakapi.ComponentRepresentation
+		wantCreate   bool
+		wantID       string
+	}{
+		{
+			name:         "same name of another providerType is not adopted",
+			providerType: testProviderType,
+			listed:       []keycloakapi.ComponentRepresentation{otherType()},
+			wantCreate:   true,
+			wantID:       "new-id",
+		},
+		{
+			name:         "the component of its own providerType is picked after another type",
+			providerType: testProviderType,
+			listed:       []keycloakapi.ComponentRepresentation{otherType(), inSyncExisting()},
+			wantID:       testComponentID,
+		},
+		{
+			name:         "component without providerType is not adopted",
+			providerType: testProviderType,
+			listed: func() []keycloakapi.ComponentRepresentation {
+				c := inSyncExisting()
+				c.ProviderType = nil
+
+				return []keycloakapi.ComponentRepresentation{c}
+			}(),
+			wantCreate: true,
+			wantID:     "new-id",
+		},
+		{
+			name:         "stale status.id with only another providerType creates",
+			statusID:     "stale-id",
+			providerType: testProviderType,
+			listed:       []keycloakapi.ComponentRepresentation{otherType()},
+			wantCreate:   true,
+			wantID:       "new-id",
+		},
+		{
+			name:         "empty providerType does not adopt a typed component",
+			providerType: "",
+			listed:       []keycloakapi.ComponentRepresentation{inSyncExisting()},
+			wantCreate:   true,
+			wantID:       "new-id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockComponents := mocks.NewMockRealmComponentsClient(t)
+			kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+			component := baseComponent()
+			component.Generation = 1
+			component.Status.ObservedGeneration = 1
+			component.Status.ConfigSecretsHash = noSecretRefsHash
+			component.Status.ID = tt.statusID
+			component.Spec.ProviderType = tt.providerType
+
+			if tt.statusID != "" {
+				mockComponents.EXPECT().
+					GetComponent(context.Background(), testRealmName, tt.statusID).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+			}
+
+			mockComponents.EXPECT().
+				GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+				Return(tt.listed, nil, nil)
+
+			if tt.wantCreate {
+				want := desiredRepr(nil, testRealmID)
+				want.ProviderType = ptr.To(tt.providerType)
+
+				mockComponents.EXPECT().
+					CreateComponent(context.Background(), testRealmName, want).
+					Return(createdResponse(tt.wantID), nil)
+			}
+
+			h := NewCreateOrUpdateComponent(kClient, &fakeSecretRefClient{}, testRealmID)
+			require.NoError(t, h.Serve(context.Background(), component, testRealmName))
+			assert.Equal(t, tt.wantID, component.Status.ID)
 		})
 	}
 }
