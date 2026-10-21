@@ -73,6 +73,7 @@ func MakeChain(
 		NewSyncUserRoles(kClient),
 		NewSyncUserGroups(kClient),
 		NewSyncUserIdentityProviders(kClient),
+		NewVerifyUserAttributes(kClient),
 		NewCleanupResource(k8sClient),
 	)
 

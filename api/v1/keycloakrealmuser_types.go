@@ -73,8 +73,12 @@ type KeycloakRealmUserSpec struct {
 	// +optional
 	Attributes map[string]string `json:"attributes,omitempty"`
 
-	// AttributesV2 is a map of service account attributes.
-	// Each attribute can have multiple values.
+	// AttributesV2 is a map of user attributes. Each attribute can have multiple values.
+	// Keycloak 24 and later store only attributes the realm user profile allows. Realms created on
+	// Keycloak 24+ allow none by default: set userProfileConfig.unmanagedAttributePolicy to ADMIN_EDIT
+	// or ENABLED on the realm, or declare the attributes in userProfileConfig.attributes.
+	// Values Keycloak did not store as specified are reported in status; removal of a whole attribute is not checked.
+	// locale is stored only when the realm has internationalization enabled.
 	// +nullable
 	// +optional
 	AttributesV2 map[string][]string `json:"attributesV2,omitempty"`

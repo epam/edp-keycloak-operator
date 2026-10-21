@@ -37,6 +37,7 @@ spec:
   groups:
     - developers
     - /parent/child
+  # Needs the realm to allow them: KeycloakRealm spec.userProfileConfig.
   attributesV2:
     department: ["IT"]
     location: ["Winterfell"]
