@@ -2,7 +2,6 @@ package keycloakapi
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/generated"
 )
@@ -68,24 +67,6 @@ func (c *realmComponentsClient) GetComponent(
 	}
 
 	return res.JSON200, response, nil
-}
-
-func (c *realmComponentsClient) FindComponentByName(
-	ctx context.Context,
-	realm, componentName string,
-) (*ComponentRepresentation, error) {
-	components, _, err := c.GetComponents(ctx, realm, &GetComponentsParams{Name: &componentName})
-	if err != nil {
-		return nil, fmt.Errorf("failed to get components: %w", err)
-	}
-
-	for i := range components {
-		if components[i].Name != nil && *components[i].Name == componentName {
-			return &components[i], nil
-		}
-	}
-
-	return nil, nil
 }
 
 func (c *realmComponentsClient) CreateComponent(

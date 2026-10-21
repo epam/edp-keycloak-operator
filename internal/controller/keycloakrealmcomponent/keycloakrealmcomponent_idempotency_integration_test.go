@@ -43,17 +43,28 @@ var _ = Describe("KeycloakRealmComponent idempotent reconcile", Ordered, func() 
 		}, longWait, interval).Should(Succeed())
 	}
 
-	waitReady := func() {
+	waitReady := func() string {
+		var id string
+
 		Eventually(func(g Gomega) {
 			cr := &keycloakApi.KeycloakRealmComponent{}
 			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).To(Succeed())
 			g.Expect(cr.Status.Value).To(Equal(common.StatusOK))
 			g.Expect(cr.Status.ObservedGeneration).To(Equal(cr.Generation))
+			g.Expect(cr.Status.ID).ShouldNot(BeEmpty())
+
+			if componentID != "" {
+				g.Expect(cr.Status.ID).To(Equal(componentID), "component must not be recreated")
+			}
+
+			id = cr.Status.ID
 		}, longWait, interval).Should(Succeed())
+
+		return id
 	}
 
 	kcComponent := func() *keycloakapi.ComponentRepresentation {
-		rep, err := keycloakApiClient.RealmComponents.FindComponentByName(ctx, KeycloakRealmCR, componentName)
+		rep, _, err := keycloakApiClient.RealmComponents.GetComponent(ctx, KeycloakRealmCR, componentID)
 		Expect(err).ShouldNot(HaveOccurred())
 		Expect(rep).ShouldNot(BeNil())
 
@@ -79,11 +90,10 @@ var _ = Describe("KeycloakRealmComponent idempotent reconcile", Ordered, func() 
 			},
 		}
 		Expect(k8sClient.Create(ctx, cr)).To(Succeed())
-		waitReady()
+		componentID = waitReady()
 
 		created := kcComponent()
-		componentID = ptr.Deref(created.Id, "")
-		Expect(componentID).ShouldNot(BeEmpty())
+		Expect(ptr.Deref(created.Id, "")).To(Equal(componentID))
 		Expect((*created.Config)["max-clients"]).To(ConsistOf("100"))
 
 		// Sibling specs share the realm; report only this component's events.
@@ -155,9 +165,9 @@ var _ = Describe("KeycloakRealmComponent idempotent reconcile", Ordered, func() 
 		}, longWait, interval).Should(BeTrue())
 
 		Eventually(func(g Gomega) {
-			rep, err := keycloakApiClient.RealmComponents.FindComponentByName(ctx, KeycloakRealmCR, componentName)
-			g.Expect(err).ShouldNot(HaveOccurred())
-			g.Expect(rep).To(BeNil(), "component must be gone from Keycloak")
+			_, _, err := keycloakApiClient.RealmComponents.GetComponent(ctx, KeycloakRealmCR, componentID)
+			g.Expect(err).To(HaveOccurred())
+			g.Expect(keycloakapi.IsNotFound(err)).To(BeTrue(), "component must be gone from Keycloak")
 		}, longWait, interval).Should(Succeed())
 	})
 })

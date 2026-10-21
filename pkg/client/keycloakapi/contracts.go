@@ -464,9 +464,6 @@ type RealmComponentsClient interface {
 	) ([]ComponentRepresentation, *Response, error)
 	// GetComponent retrieves a single realm component by its Keycloak UUID.
 	GetComponent(ctx context.Context, realm, componentID string) (*ComponentRepresentation, *Response, error)
-	// FindComponentByName searches for a realm component by name. Returns a nil representation
-	// and a nil error when no component matches; callers must nil-check the result.
-	FindComponentByName(ctx context.Context, realm, componentName string) (*ComponentRepresentation, error)
 	// CreateComponent creates a new realm component.
 	CreateComponent(ctx context.Context, realm string, component ComponentRepresentation) (*Response, error)
 	// UpdateComponent updates an existing realm component.
