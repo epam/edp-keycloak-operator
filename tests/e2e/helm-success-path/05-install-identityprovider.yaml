@@ -59,7 +59,7 @@ spec:
   mappers:
     - name: "mymapper"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
-      identityProviderAlias: "github"
+      identityProviderAlias: "facebook"
       config:
         attribute: "foo"
         "attribute.value": "bar"

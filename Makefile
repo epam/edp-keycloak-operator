@@ -31,7 +31,7 @@ E2E_IMAGE_TAG?="latest"
 
 TEST_KEYCLOAK_URL?=""
 # Keep in sync with the newest entry of the CI integration-test matrix in .github/workflows/pr.yaml.
-KEYCLOAK_TEST_VERSION?=26.7
+KEYCLOAK_TEST_VERSION?=26.8
 
 override LDFLAGS += \
   -X ${PACKAGE}.version=${VERSION} \

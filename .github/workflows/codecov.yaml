@@ -6,7 +6,7 @@ on:
 
 env:
   GOLANG_VERSION: '1.26'
-  KEYCLOAK_VERSION: '26.7'
+  KEYCLOAK_VERSION: '26.8'
 
 jobs:
 
