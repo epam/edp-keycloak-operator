@@ -73,9 +73,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	cfg = testutils.StartEnvTest(testEnv)
+	DeferCleanup(cancel)
 
 	scheme := runtime.NewScheme()
 	Expect(keycloakApi.AddToScheme(scheme)).NotTo(HaveOccurred())
@@ -165,11 +164,4 @@ var _ = BeforeSuite(func() {
 		keycloakapi.WithPasswordGrant("admin", "admin"),
 	)
 	Expect(err).ShouldNot(HaveOccurred(), "failed to create keycloak client")
-})
-
-var _ = AfterSuite(func() {
-	cancel()
-	By("tearing down the test environment")
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
 })

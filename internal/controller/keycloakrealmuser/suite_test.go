@@ -85,9 +85,8 @@ var _ = BeforeSuite(func() {
 		BinaryAssetsDirectory: testutils.GetFirstFoundEnvTestBinaryDir(),
 	}
 
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	cfg = testutils.StartEnvTest(testEnv)
+	DeferCleanup(cancel)
 
 	scheme := runtime.NewScheme()
 	Expect(keycloakApi.AddToScheme(scheme)).NotTo(HaveOccurred())
@@ -203,8 +202,4 @@ var _ = AfterSuite(func() {
 			return k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, &keycloakApi.KeycloakRealm{}) != nil
 		}, timeout, interval).Should(BeTrue())
 	}
-
-	cancel()
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
 })
