@@ -302,6 +302,26 @@ type ClientsClient interface {
 	DeleteClientRoleComposites(
 		ctx context.Context, realm, clientUUID, roleName string, roles []RoleRepresentation,
 	) (*Response, error)
+	// GetRealmScopeMappings returns the realm roles in the scope of the client clientUUID.
+	GetRealmScopeMappings(ctx context.Context, realm, clientUUID string) ([]RoleRepresentation, *Response, error)
+	// AddRealmScopeMappings adds realm roles to the scope of the client clientUUID. Roles need name and id.
+	AddRealmScopeMappings(ctx context.Context, realm, clientUUID string, roles []RoleRepresentation) (*Response, error)
+	// DeleteRealmScopeMappings removes realm roles from the scope of the client clientUUID.
+	// roles must be non-empty: Keycloak removes every realm scope mapping when the body is null.
+	DeleteRealmScopeMappings(ctx context.Context, realm, clientUUID string, roles []RoleRepresentation) (*Response, error)
+	// GetClientScopeMappings returns the roles of the client roleClientUUID in the scope of the client clientUUID.
+	GetClientScopeMappings(
+		ctx context.Context, realm, clientUUID, roleClientUUID string,
+	) ([]RoleRepresentation, *Response, error)
+	// AddClientScopeMappings adds roles of the client roleClientUUID to the scope of the client clientUUID.
+	AddClientScopeMappings(
+		ctx context.Context, realm, clientUUID, roleClientUUID string, roles []RoleRepresentation,
+	) (*Response, error)
+	// DeleteClientScopeMappings removes roles of the client roleClientUUID from the scope of the client clientUUID.
+	// roles must be non-empty: Keycloak removes every mapping of that client when the body is null.
+	DeleteClientScopeMappings(
+		ctx context.Context, realm, clientUUID, roleClientUUID string, roles []RoleRepresentation,
+	) (*Response, error)
 	// GetDefaultClientScopes returns the default client scopes assigned to a client.
 	GetDefaultClientScopes(ctx context.Context, realm, clientUUID string) ([]ClientScopeRepresentation, *Response, error)
 	// AddDefaultClientScope assigns a default client scope to a client.

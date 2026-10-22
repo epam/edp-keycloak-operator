@@ -133,6 +133,92 @@ func (_c *MockClientsClient_AddClientRoleComposites_Call) RunAndReturn(run func(
 	return _c
 }
 
+// AddClientScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) AddClientScopeMappings(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleClientUUID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddClientScopeMappings")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_AddClientScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddClientScopeMappings'
+type MockClientsClient_AddClientScopeMappings_Call struct {
+	*mock.Call
+}
+
+// AddClientScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleClientUUID string
+//   - roles []keycloakapi.RoleRepresentation
+func (_e *MockClientsClient_Expecter) AddClientScopeMappings(ctx any, realm any, clientUUID any, roleClientUUID any, roles any) *MockClientsClient_AddClientScopeMappings_Call {
+	return &MockClientsClient_AddClientScopeMappings_Call{Call: _e.mock.On("AddClientScopeMappings", ctx, realm, clientUUID, roleClientUUID, roles)}
+}
+
+func (_c *MockClientsClient_AddClientScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation)) *MockClientsClient_AddClientScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []keycloakapi.RoleRepresentation
+		if args[4] != nil {
+			arg4 = args[4].([]keycloakapi.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_AddClientScopeMappings_Call) Return(response *keycloakapi.Response, err error) *MockClientsClient_AddClientScopeMappings_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_AddClientScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)) *MockClientsClient_AddClientScopeMappings_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // AddDefaultClientScope provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) AddDefaultClientScope(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakapi.Response, error) {
 	ret := _mock.Called(ctx, realm, clientUUID, scopeID)
@@ -289,6 +375,86 @@ func (_c *MockClientsClient_AddOptionalClientScope_Call) Return(response *keyclo
 }
 
 func (_c *MockClientsClient_AddOptionalClientScope_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, scopeID string) (*keycloakapi.Response, error)) *MockClientsClient_AddOptionalClientScope_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// AddRealmScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) AddRealmScopeMappings(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for AddRealmScopeMappings")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_AddRealmScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'AddRealmScopeMappings'
+type MockClientsClient_AddRealmScopeMappings_Call struct {
+	*mock.Call
+}
+
+// AddRealmScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roles []keycloakapi.RoleRepresentation
+func (_e *MockClientsClient_Expecter) AddRealmScopeMappings(ctx any, realm any, clientUUID any, roles any) *MockClientsClient_AddRealmScopeMappings_Call {
+	return &MockClientsClient_AddRealmScopeMappings_Call{Call: _e.mock.On("AddRealmScopeMappings", ctx, realm, clientUUID, roles)}
+}
+
+func (_c *MockClientsClient_AddRealmScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation)) *MockClientsClient_AddRealmScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []keycloakapi.RoleRepresentation
+		if args[3] != nil {
+			arg3 = args[3].([]keycloakapi.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_AddRealmScopeMappings_Call) Return(response *keycloakapi.Response, err error) *MockClientsClient_AddRealmScopeMappings_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_AddRealmScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)) *MockClientsClient_AddRealmScopeMappings_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -843,6 +1009,172 @@ func (_c *MockClientsClient_DeleteClientRoleComposites_Call) Return(response *ke
 }
 
 func (_c *MockClientsClient_DeleteClientRoleComposites_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleName string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)) *MockClientsClient_DeleteClientRoleComposites_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteClientScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) DeleteClientScopeMappings(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleClientUUID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteClientScopeMappings")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, []keycloakapi.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleClientUUID, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_DeleteClientScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteClientScopeMappings'
+type MockClientsClient_DeleteClientScopeMappings_Call struct {
+	*mock.Call
+}
+
+// DeleteClientScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleClientUUID string
+//   - roles []keycloakapi.RoleRepresentation
+func (_e *MockClientsClient_Expecter) DeleteClientScopeMappings(ctx any, realm any, clientUUID any, roleClientUUID any, roles any) *MockClientsClient_DeleteClientScopeMappings_Call {
+	return &MockClientsClient_DeleteClientScopeMappings_Call{Call: _e.mock.On("DeleteClientScopeMappings", ctx, realm, clientUUID, roleClientUUID, roles)}
+}
+
+func (_c *MockClientsClient_DeleteClientScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation)) *MockClientsClient_DeleteClientScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 []keycloakapi.RoleRepresentation
+		if args[4] != nil {
+			arg4 = args[4].([]keycloakapi.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientScopeMappings_Call) Return(response *keycloakapi.Response, err error) *MockClientsClient_DeleteClientScopeMappings_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteClientScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)) *MockClientsClient_DeleteClientScopeMappings_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// DeleteRealmScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) DeleteRealmScopeMappings(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roles)
+
+	if len(ret) == 0 {
+		panic("no return value specified for DeleteRealmScopeMappings")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roles)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roles)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, []keycloakapi.RoleRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roles)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockClientsClient_DeleteRealmScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteRealmScopeMappings'
+type MockClientsClient_DeleteRealmScopeMappings_Call struct {
+	*mock.Call
+}
+
+// DeleteRealmScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roles []keycloakapi.RoleRepresentation
+func (_e *MockClientsClient_Expecter) DeleteRealmScopeMappings(ctx any, realm any, clientUUID any, roles any) *MockClientsClient_DeleteRealmScopeMappings_Call {
+	return &MockClientsClient_DeleteRealmScopeMappings_Call{Call: _e.mock.On("DeleteRealmScopeMappings", ctx, realm, clientUUID, roles)}
+}
+
+func (_c *MockClientsClient_DeleteRealmScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation)) *MockClientsClient_DeleteRealmScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 []keycloakapi.RoleRepresentation
+		if args[3] != nil {
+			arg3 = args[3].([]keycloakapi.RoleRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteRealmScopeMappings_Call) Return(response *keycloakapi.Response, err error) *MockClientsClient_DeleteRealmScopeMappings_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_DeleteRealmScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roles []keycloakapi.RoleRepresentation) (*keycloakapi.Response, error)) *MockClientsClient_DeleteRealmScopeMappings_Call {
 	_c.Call.Return(run)
 	return _c
 }
@@ -1527,6 +1859,94 @@ func (_c *MockClientsClient_GetClientRoles_Call) RunAndReturn(run func(ctx conte
 	return _c
 }
 
+// GetClientScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetClientScopeMappings(ctx context.Context, realm string, clientUUID string, roleClientUUID string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID, roleClientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetClientScopeMappings")
+	}
+
+	var r0 []keycloakapi.RoleRepresentation
+	var r1 *keycloakapi.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID, roleClientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string) []keycloakapi.RoleRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID, roleClientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakapi.RoleRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string) *keycloakapi.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID, roleClientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID, roleClientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetClientScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetClientScopeMappings'
+type MockClientsClient_GetClientScopeMappings_Call struct {
+	*mock.Call
+}
+
+// GetClientScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+//   - roleClientUUID string
+func (_e *MockClientsClient_Expecter) GetClientScopeMappings(ctx any, realm any, clientUUID any, roleClientUUID any) *MockClientsClient_GetClientScopeMappings_Call {
+	return &MockClientsClient_GetClientScopeMappings_Call{Call: _e.mock.On("GetClientScopeMappings", ctx, realm, clientUUID, roleClientUUID)}
+}
+
+func (_c *MockClientsClient_GetClientScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string)) *MockClientsClient_GetClientScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientScopeMappings_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetClientScopeMappings_Call {
+	_c.Call.Return(roleRepresentations, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetClientScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string, roleClientUUID string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error)) *MockClientsClient_GetClientScopeMappings_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetClientSecret provides a mock function for the type MockClientsClient
 func (_mock *MockClientsClient) GetClientSecret(ctx context.Context, realm string, clientUUID string) (*keycloakapi.CredentialRepresentation, *keycloakapi.Response, error) {
 	ret := _mock.Called(ctx, realm, clientUUID)
@@ -2087,6 +2507,88 @@ func (_c *MockClientsClient_GetRealmClientScopes_Call) Return(clientScopeReprese
 }
 
 func (_c *MockClientsClient_GetRealmClientScopes_Call) RunAndReturn(run func(ctx context.Context, realm string) ([]keycloakapi.ClientScopeRepresentation, *keycloakapi.Response, error)) *MockClientsClient_GetRealmClientScopes_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetRealmScopeMappings provides a mock function for the type MockClientsClient
+func (_mock *MockClientsClient) GetRealmScopeMappings(ctx context.Context, realm string, clientUUID string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, clientUUID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetRealmScopeMappings")
+	}
+
+	var r0 []keycloakapi.RoleRepresentation
+	var r1 *keycloakapi.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, clientUUID)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) []keycloakapi.RoleRepresentation); ok {
+		r0 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]keycloakapi.RoleRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakapi.Response); ok {
+		r1 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, clientUUID)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockClientsClient_GetRealmScopeMappings_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetRealmScopeMappings'
+type MockClientsClient_GetRealmScopeMappings_Call struct {
+	*mock.Call
+}
+
+// GetRealmScopeMappings is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - clientUUID string
+func (_e *MockClientsClient_Expecter) GetRealmScopeMappings(ctx any, realm any, clientUUID any) *MockClientsClient_GetRealmScopeMappings_Call {
+	return &MockClientsClient_GetRealmScopeMappings_Call{Call: _e.mock.On("GetRealmScopeMappings", ctx, realm, clientUUID)}
+}
+
+func (_c *MockClientsClient_GetRealmScopeMappings_Call) Run(run func(ctx context.Context, realm string, clientUUID string)) *MockClientsClient_GetRealmScopeMappings_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockClientsClient_GetRealmScopeMappings_Call) Return(roleRepresentations []keycloakapi.RoleRepresentation, response *keycloakapi.Response, err error) *MockClientsClient_GetRealmScopeMappings_Call {
+	_c.Call.Return(roleRepresentations, response, err)
+	return _c
+}
+
+func (_c *MockClientsClient_GetRealmScopeMappings_Call) RunAndReturn(run func(ctx context.Context, realm string, clientUUID string) ([]keycloakapi.RoleRepresentation, *keycloakapi.Response, error)) *MockClientsClient_GetRealmScopeMappings_Call {
 	_c.Call.Return(run)
 	return _c
 }
