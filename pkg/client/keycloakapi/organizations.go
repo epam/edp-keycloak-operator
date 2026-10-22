@@ -349,7 +349,7 @@ func (c *organizationsClient) InviteNewOrganizationMember(
 	}
 
 	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(
-		ctx, realm, orgID, body,
+		ctx, realm, orgID, nil, body,
 	)
 	if err != nil {
 		return nil, err

@@ -2741,6 +2741,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyEvaluationResponse'
+        "403":
+          description: Forbidden
         "500":
           description: Internal Server Error
     parameters:
@@ -2912,6 +2914,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PolicyEvaluationResponse'
+        "403":
+          description: Forbidden
         "500":
           description: Internal Server Error
     parameters:
@@ -3793,8 +3797,7 @@ paths:
     post:
       tags:
       - Client Attribute Certificate
-      summary: "Get a keystore file for the client, containing private key and public\
-        \ certificate"
+      summary: "Get a keystore file for the client, containing the public certificate"
       requestBody:
         content:
           application/json:
@@ -3808,6 +3811,7 @@ paths:
               schema:
                 format: binary
                 type: string
+      deprecated: true
     parameters:
     - name: realm
       in: path
@@ -3838,6 +3842,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CertificateRepresentation'
+      deprecated: true
     parameters:
     - name: realm
       in: path
@@ -3878,6 +3883,7 @@ paths:
               schema:
                 format: binary
                 type: string
+      deprecated: true
     parameters:
     - name: realm
       in: path
@@ -3900,7 +3906,7 @@ paths:
     post:
       tags:
       - Client Attribute Certificate
-      summary: Upload certificate and eventually private key
+      summary: "Upload only certificate, not private key"
       responses:
         "200":
           description: OK
@@ -3908,6 +3914,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CertificateRepresentation'
+      deprecated: true
     parameters:
     - name: realm
       in: path
@@ -4456,6 +4463,9 @@ paths:
       responses:
         "204":
           description: No Content
+        "400":
+          description: "Bad Request - node hostname is missing, contains reserved\
+            \ characters, or is rejected by client policy"
     parameters:
     - name: realm
       in: path
@@ -5214,7 +5224,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/UserRepresentation'
+                  $ref: '#/components/schemas/GroupRepresentation'
         "403":
           description: Forbidden
         "404":
@@ -7551,6 +7561,12 @@ paths:
           format: int32
           default: "0"
           type: integer
+      - name: identityProvider
+        in: query
+        description: "The alias of an identity provider, to only return the organizations\
+          \ linked to it. Cannot be combined with 'q'"
+        schema:
+          type: string
       - name: max
         in: query
         description: The maximum number of results to be returned - defaults to 10
@@ -7617,6 +7633,12 @@ paths:
           or not
         schema:
           type: boolean
+      - name: identityProvider
+        in: query
+        description: "The alias of an identity provider, to only count the organizations\
+          \ linked to it. Cannot be combined with 'q'"
+        schema:
+          type: string
       - name: q
         in: query
         description: "A query to search for custom attributes, in the format 'key1:value2\
@@ -7848,6 +7870,12 @@ paths:
         schema:
           pattern: .*
           type: string
+      - name: briefRepresentation
+        in: query
+        description: "Whether to return a brief representation (default: true)"
+        schema:
+          default: true
+          type: boolean
       - name: subGroupsCount
         in: query
         description: "Whether to return the count of subgroups (default: false)"
@@ -8567,6 +8595,35 @@ paths:
           description: Forbidden
         "404":
           description: Not Found
+    put:
+      tags:
+      - Organizations
+      summary: Updates the per-association config for the identity provider linked
+        to the organization
+      description: "Updates the autoMembership and membershipType settings for the\
+        \ link between the organization and the identity provider with the given alias.\
+        \ If the provider is not linked to the organization, a NOT_FOUND error is\
+        \ returned"
+      parameters:
+      - name: alias
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrganizationIdentityProviderLinkRepresentation'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
     delete:
       tags:
       - Organizations
@@ -8986,7 +9043,17 @@ paths:
       summary: "Invites an existing user or sends a registration link to a new user,\
         \ based on the provided e-mail address."
       description: "If the user with the given e-mail address exists, it sends an\
-        \ invitation link, otherwise it sends a registration link."
+        \ invitation link, otherwise it sends a registration link. The client_id query\
+        \ parameter is optional. If no client_id is provided, the account client is\
+        \ used. After accepting the invitation the user is redirected to the selected\
+        \ client's home URL; for the account client the organization redirect URL\
+        \ is used instead when configured."
+      parameters:
+      - name: client_id
+        in: query
+        description: Client id
+        schema:
+          type: string
       requestBody:
         content:
           application/x-www-form-urlencoded:
@@ -9128,6 +9195,43 @@ paths:
           description: Bad Request
         "403":
           description: Forbidden
+    parameters:
+    - name: realm
+      in: path
+      description: realm name (not id!)
+      required: true
+      schema:
+        type: string
+    - name: org-id
+      in: path
+      required: true
+      schema:
+        type: string
+  /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type:
+    put:
+      tags:
+      - Organizations
+      summary: Updates the membership type of the member with the specified id
+      parameters:
+      - name: member-id
+        in: path
+        required: true
+        schema:
+          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MembershipType'
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+        "403":
+          description: Forbidden
+        "404":
+          description: Not Found
     parameters:
     - name: realm
       in: path
@@ -9875,7 +9979,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/UserRepresentation'
+                  $ref: '#/components/schemas/GroupRepresentation'
         "403":
           description: Forbidden
         "404":
@@ -12476,6 +12580,8 @@ components:
         configuration:
           description: Configuration settings as a JSON object
           type: object
+          allOf:
+          - $ref: '#/components/schemas/RawJsonValue'
           additionalProperties: true
     ClientPolicyExecutorRepresentation:
       type: object
@@ -12485,6 +12591,8 @@ components:
         configuration:
           description: Configuration settings as a JSON object
           type: object
+          allOf:
+          - $ref: '#/components/schemas/RawJsonValue'
           additionalProperties: true
     ClientPolicyRepresentation:
       type: object
@@ -13166,8 +13274,10 @@ components:
           type: string
         postBrokerLoginFlowAlias:
           type: string
-        organizationId:
-          type: string
+        organizationLinks:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrganizationIdentityProviderLinkRepresentation'
         config:
           type: object
           additionalProperties:
@@ -13178,6 +13288,10 @@ components:
             type: string
         updateProfileFirstLogin:
           type: boolean
+          deprecated: true
+        organizationId:
+          type: string
+          writeOnly: true
           deprecated: true
     IssuedVerifiableCredentialRepresentation:
       type: object
@@ -13544,6 +13658,19 @@ components:
           type: string
         verified:
           type: boolean
+        identityProviderAlias:
+          type: string
+        autoRedirect:
+          type: boolean
+    OrganizationIdentityProviderLinkRepresentation:
+      type: object
+      properties:
+        organizationId:
+          type: string
+        autoMembership:
+          type: boolean
+        membershipType:
+          type: string
     OrganizationInvitationRepresentation:
       type: object
       properties:
@@ -13804,6 +13931,12 @@ components:
         tokens-not-before:
           format: int32
           type: integer
+    RawJsonValue:
+      type: object
+      properties:
+        value: {}
+        empty:
+          type: boolean
     RealmEventsConfigRepresentation:
       type: object
       properties:
