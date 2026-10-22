@@ -41,6 +41,7 @@ func (h *CreateOrganization) ServeRequest(ctx context.Context, organization *key
 	if err == nil && existingOrg != nil {
 		// Organization exists, update it
 		orgRepresentation.Id = existingOrg.Id
+		orgRepresentation.Domains = preserveDomainSettings(existingOrg.Domains, organization.Spec.Domains)
 		organization.Status.OrganizationID = ptr.Deref(existingOrg.Id, "")
 
 		needsUpdate, matchErr := h.orgNeedsUpdate(ctx, realmName, existingOrg, organization)
@@ -107,6 +108,40 @@ func specToOrganizationRepresentation(org *keycloakApi.KeycloakOrganization) key
 	return rep
 }
 
+// preserveDomainSettings builds the domain list of an update from the spec names.
+// Domains Keycloak stores are sent as fetched; new names are sent by name only.
+func preserveDomainSettings(
+	current *[]keycloakapi.OrganizationDomainRepresentation,
+	desired []string,
+) *[]keycloakapi.OrganizationDomainRepresentation {
+	if len(desired) == 0 {
+		return nil
+	}
+
+	stored := maputil.SliceToMapSelf(ptr.Deref(current, nil), domainKey)
+	domains := make([]keycloakapi.OrganizationDomainRepresentation, 0, len(desired))
+
+	for _, name := range desired {
+		if d, ok := stored[keycloakapi.OrganizationDomainName(name)]; ok {
+			domains = append(domains, d)
+
+			continue
+		}
+
+		domains = append(domains, keycloakapi.OrganizationDomainRepresentation{Name: ptr.To(name)})
+	}
+
+	return &domains
+}
+
+func domainKey(d keycloakapi.OrganizationDomainRepresentation) (string, bool) {
+	if d.Name == nil {
+		return "", false
+	}
+
+	return keycloakapi.OrganizationDomainName(*d.Name), true
+}
+
 // orgNeedsUpdate reports whether organization must be written to Keycloak. A spec edit
 // (generation bump) always forces the write. Otherwise the brief fields already available from
 // existing (the list representation backing GetOrganizationByAlias) are compared first; only
@@ -157,12 +192,16 @@ func briefOrgMatchesSpec(existing *keycloakapi.OrganizationRepresentation, org *
 	existingDomainNames := make([]string, 0, len(existingDomains))
 
 	for _, d := range existingDomains {
-		existingDomainNames = append(existingDomainNames, ptr.Deref(d.Name, ""))
+		existingDomainNames = append(existingDomainNames, keycloakapi.OrganizationDomainName(ptr.Deref(d.Name, "")))
 	}
 
 	// Keycloak dedups domains server-side: dedup the spec list too so accidental spec
 	// duplicates don't permanently look like drift.
-	specDomains := slices.Clone(org.Spec.Domains)
+	specDomains := make([]string, 0, len(org.Spec.Domains))
+	for _, d := range org.Spec.Domains {
+		specDomains = append(specDomains, keycloakapi.OrganizationDomainName(d))
+	}
+
 	slices.Sort(specDomains)
 	specDomains = slices.Compact(specDomains)
 

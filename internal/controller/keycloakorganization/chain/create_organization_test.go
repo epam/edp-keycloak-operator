@@ -5,6 +5,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -15,15 +16,17 @@ import (
 	keycloakapimocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
+type serveRequestCase struct {
+	name           string
+	organization   *keycloakApi.KeycloakOrganization
+	realmName      string
+	keycloakClient func(t *testing.T) keycloakapi.OrganizationsClient
+	wantErr        require.ErrorAssertionFunc
+	expectedOrgID  string
+}
+
 func TestCreateOrganization_ServeRequest(t *testing.T) {
-	tests := []struct {
-		name           string
-		organization   *keycloakApi.KeycloakOrganization
-		realmName      string
-		keycloakClient func(t *testing.T) keycloakapi.OrganizationsClient
-		wantErr        require.ErrorAssertionFunc
-		expectedOrgID  string
-	}{
+	tests := []serveRequestCase{
 		{
 			name: "successfully create new organization",
 			organization: &keycloakApi.KeycloakOrganization{
@@ -598,6 +601,67 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			wantErr:       require.NoError,
 			expectedOrgID: "existing-id-123",
 		},
+		domainSettingsCase("update sends stored domains as fetched", true,
+			[]string{"a.example.test", "b.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test")},
+			},
+			&[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test")},
+			}),
+		domainSettingsCase("added domain is sent by name only", true,
+			[]string{"a.example.test", "b.example.test", "c.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test")},
+			},
+			&[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test")},
+				{Name: ptr.To("c.example.test")},
+			}),
+		domainSettingsCase("removed domain is not sent", true,
+			[]string{"a.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test"), Verified: ptr.To(true)},
+			},
+			&[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+			}),
+		domainSettingsCase("spec domain in mixed case or padded matches the stored domain", true,
+			[]string{"A.Example.test", " b.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test"), Verified: ptr.To(true)},
+			},
+			&[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("b.example.test"), Verified: ptr.To(true)},
+			}),
+		domainSettingsCase("duplicated spec domain sends the fetched copy", true,
+			[]string{"a.example.test", "A.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+			},
+			&[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+				{Name: ptr.To("a.example.test"), Verified: ptr.To(true)},
+			}),
+		domainSettingsCase("fetched organization without domains", true,
+			[]string{"a.example.test"},
+			nil,
+			&[]keycloakapi.OrganizationDomainRepresentation{{Name: ptr.To("a.example.test")}}),
+		domainSettingsCase("mixed-case spec domain in sync with the stored domain is not written", false,
+			[]string{" A.Example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{{Name: ptr.To("a.example.test")}},
+			nil),
+		domainSettingsCase("case-variant duplicates in spec are in sync with the stored domain", false,
+			[]string{"a.example.test", "A.example.test"},
+			[]keycloakapi.OrganizationDomainRepresentation{{Name: ptr.To("a.example.test")}},
+			nil),
 	}
 
 	for _, tt := range tests {
@@ -735,6 +799,109 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			rep := specToOrganizationRepresentation(tt.org)
 			tt.verify(t, rep)
+		})
+	}
+}
+
+// domainSettingsCase builds an update-path case for an existing organization. forced bumps
+// the generation past the observed one. A nil wantDomains means no UpdateOrganization call is expected.
+func domainSettingsCase(
+	name string,
+	forced bool,
+	specDomains []string,
+	stored []keycloakapi.OrganizationDomainRepresentation,
+	wantDomains *[]keycloakapi.OrganizationDomainRepresentation,
+) serveRequestCase {
+	const (
+		alias = "domain-settings-org"
+		orgID = "domain-settings-id"
+	)
+
+	generation := int64(1)
+	if forced {
+		generation = 2
+	}
+
+	return serveRequestCase{
+		name: name,
+		organization: &keycloakApi.KeycloakOrganization{
+			ObjectMeta: metav1.ObjectMeta{Generation: generation},
+			Spec: keycloakApi.KeycloakOrganizationSpec{
+				Name:    "Domain Settings Org",
+				Alias:   alias,
+				Domains: specDomains,
+			},
+			Status: keycloakApi.KeycloakOrganizationStatus{ObservedGeneration: 1},
+		},
+		realmName: testRealmName,
+		keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+			client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+			existing := &keycloakapi.OrganizationRepresentation{
+				Id:    ptr.To(orgID),
+				Name:  ptr.To("Domain Settings Org"),
+				Alias: ptr.To(alias),
+			}
+			if stored != nil {
+				existing.Domains = &stored
+			}
+
+			client.On("GetOrganizationByAlias", mock.Anything, testRealmName, alias).
+				Return(existing, (*keycloakapi.Response)(nil), nil).Once()
+
+			if wantDomains != nil {
+				client.On("UpdateOrganization", mock.Anything, testRealmName, orgID, mock.Anything).
+					Run(func(args mock.Arguments) {
+						sent, ok := args.Get(3).(keycloakapi.OrganizationRepresentation)
+						require.True(t, ok)
+						assert.Equal(t, wantDomains, sent.Domains)
+					}).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+			}
+
+			return client
+		},
+		wantErr:       require.NoError,
+		expectedOrgID: orgID,
+	}
+}
+
+func TestPreserveDomainSettings(t *testing.T) {
+	t.Parallel()
+
+	verifiedA := keycloakapi.OrganizationDomainRepresentation{Name: ptr.To("a.example.test"), Verified: ptr.To(true)}
+
+	tests := []struct {
+		name    string
+		current *[]keycloakapi.OrganizationDomainRepresentation
+		desired []string
+		want    *[]keycloakapi.OrganizationDomainRepresentation
+	}{
+		{name: "empty desired", current: &[]keycloakapi.OrganizationDomainRepresentation{verifiedA}, desired: nil, want: nil},
+		{
+			name: "fetched element without name is skipped",
+			current: &[]keycloakapi.OrganizationDomainRepresentation{
+				{Verified: ptr.To(true)},
+			},
+			desired: []string{"a.example.test"},
+			want:    &[]keycloakapi.OrganizationDomainRepresentation{{Name: ptr.To("a.example.test")}},
+		},
+		{
+			name:    "spec order is kept",
+			current: &[]keycloakapi.OrganizationDomainRepresentation{verifiedA, {Name: ptr.To("b.example.test")}},
+			desired: []string{"b.example.test", "a.example.test"},
+			want: &[]keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("b.example.test")},
+				verifiedA,
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, preserveDomainSettings(tt.current, tt.desired))
 		})
 	}
 }
