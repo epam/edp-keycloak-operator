@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"k8s.io/utils/ptr"
 
@@ -19,6 +20,11 @@ type (
 	InviteExistingOrganizationMemberRequest = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody //nolint:lll // generated type alias
 	InviteNewOrganizationMemberRequest      = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody         //nolint:lll // generated type alias
 )
+
+// OrganizationDomainName returns name trimmed and lower-cased; matches Keycloak for ASCII names.
+func OrganizationDomainName(name string) string {
+	return strings.ToLower(strings.TrimSpace(name))
+}
 
 type organizationsClient struct {
 	client generated.ClientWithResponsesInterface
