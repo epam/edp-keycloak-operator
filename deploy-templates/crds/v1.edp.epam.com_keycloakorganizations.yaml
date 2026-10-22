@@ -87,7 +87,7 @@ spec:
               identityProviders:
                 description: |-
                   IdentityProviders is a list of identity providers associated with the organization.
-                  One identity provider can't be assigned to multiple organizations.
+                  Before Keycloak 26.8 an identity provider belongs to one organization only; from 26.8 it can belong to several.
                 items:
                   description: OrgIdentityProvider defines an identity provider for
                     an organization.

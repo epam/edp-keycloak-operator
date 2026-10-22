@@ -43,3 +43,18 @@ The allowlist narrows the trust boundary above; it does not replace RBAC.
 
 Keycloak itself dials the addresses in identity provider, component and authenticator config. Restrict
 Keycloak pod egress with a NetworkPolicy; the operator does not control it.
+
+## Identity provider admin role mappers
+
+Keycloak 26.8 returns 403 on a mapper create or update that grants an admin role or an admin group, unless the
+identity provider config has `allowAdminRoleMapping` set to `true`.
+
+- Set `spec.config.allowAdminRoleMapping: "true"` on the `KeycloakRealmIdentityProvider` that carries such a mapper.
+- Setting or changing `allowAdminRoleMapping` requires the `manage-realm` role on the realm. Other identity provider
+  and mapper writes require `manage-identity-providers`.
+- The operator sends `spec.config` as the whole identity provider config. Omitting the key while Keycloak stores
+  `true` counts as a change: without `manage-realm` every identity provider update returns 403; with it, the flag is
+  disabled and the next mapper write returns 403. Keep the key in the spec while the mapper exists.
+- Keycloak 26.8 returns 400 when a mapper's `identityProviderAlias` differs from the alias of its identity provider.
+  Omit the field to use the parent alias.
+- Keycloak 26.8 rejects a change of `providerId` on an existing identity provider.

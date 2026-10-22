@@ -58,6 +58,8 @@ To install the Keycloak Operator, follow the steps below:
 
 1. Create a User in the Keycloak `Master` realm, and assign a `create-realm` role.
 
+    Supported Keycloak versions: 26.4 to 26.8. The user holds the realm-management roles on realms it created only. On other realms it needs `manage-clients`, `manage-identity-providers` and, for `allowAdminRoleMapping`, `manage-realm`.
+
 2. Insert newly created user credentials into Kubernetes secret:
 
     ```yaml
@@ -150,6 +152,8 @@ To avoid resources getting stuck during deletion, it is important to delete them
 ## Security
 
 Secret references, who may author which resources, and the destination allowlist: [docs/security.md](docs/security.md).
+
+Changes that need action when you upgrade Keycloak or the operator: [docs/upgrade-notes.md](docs/upgrade-notes.md).
 
 ## Local Development
 

@@ -40,7 +40,7 @@ type KeycloakOrganizationSpec struct {
 	Attributes map[string][]string `json:"attributes,omitempty"`
 
 	// IdentityProviders is a list of identity providers associated with the organization.
-	// One identity provider can't be assigned to multiple organizations.
+	// Before Keycloak 26.8 an identity provider belongs to one organization only; from 26.8 it can belong to several.
 	// +optional
 	// +nullable
 	IdentityProviders []OrgIdentityProvider `json:"identityProviders,omitempty"`

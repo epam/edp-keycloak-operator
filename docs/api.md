@@ -2591,7 +2591,7 @@ The name should be unique across Organizations.<br/>
         <td>[]object</td>
         <td>
           IdentityProviders is a list of identity providers associated with the organization.
-One identity provider can't be assigned to multiple organizations.<br/>
+Before Keycloak 26.8 an identity provider belongs to one organization only; from 26.8 it can belong to several.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -5754,7 +5754,9 @@ RealmRef is reference to Realm custom resource.
         <td><b>identityProviderAlias</b></td>
         <td>string</td>
         <td>
-          IdentityProviderAlias is a identity provider alias.<br/>
+          IdentityProviderAlias is a identity provider alias.
+Defaults to the alias of the parent identity provider.
+Keycloak 26.8 returns 400 when it differs from the parent alias.<br/>
         </td>
         <td>false</td>
       </tr><tr>
