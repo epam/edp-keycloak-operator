@@ -799,3 +799,147 @@ func (c *clientsClient) GetClientInstallationProvider(
 
 	return res.Body, response, nil
 }
+
+func (c *clientsClient) GetRealmScopeMappings(
+	ctx context.Context,
+	realm, clientUUID string,
+) ([]RoleRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmClientsClientUuidScopeMappingsRealmWithResponse(ctx, realm, clientUUID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *clientsClient) AddRealmScopeMappings(
+	ctx context.Context,
+	realm, clientUUID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmClientsClientUuidScopeMappingsRealmWithResponse(ctx, realm, clientUUID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *clientsClient) DeleteRealmScopeMappings(
+	ctx context.Context,
+	realm, clientUUID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmClientsClientUuidScopeMappingsRealmWithResponse(ctx, realm, clientUUID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *clientsClient) GetClientScopeMappings(
+	ctx context.Context,
+	realm, clientUUID, roleClientUUID string,
+) ([]RoleRepresentation, *Response, error) {
+	res, err := c.client.GetAdminRealmsRealmClientsClientUuidScopeMappingsClientsClientWithResponse(ctx, realm, clientUUID, roleClientUUID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil {
+		return nil, response, nil
+	}
+
+	return *res.JSON200, response, nil
+}
+
+func (c *clientsClient) AddClientScopeMappings(
+	ctx context.Context,
+	realm, clientUUID, roleClientUUID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.PostAdminRealmsRealmClientsClientUuidScopeMappingsClientsClientWithResponse(ctx, realm, clientUUID, roleClientUUID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *clientsClient) DeleteClientScopeMappings(
+	ctx context.Context,
+	realm, clientUUID, roleClientUUID string,
+	roles []RoleRepresentation,
+) (*Response, error) {
+	res, err := c.client.DeleteAdminRealmsRealmClientsClientUuidScopeMappingsClientsClientWithResponse(ctx, realm, clientUUID, roleClientUUID, roles)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}

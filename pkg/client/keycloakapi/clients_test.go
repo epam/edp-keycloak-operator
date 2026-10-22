@@ -1515,3 +1515,119 @@ func TestClientsClient_GetClientInstallationProvider(t *testing.T) {
 	require.NotNil(t, resp)
 	require.NotEmpty(t, data, "installation JSON should not be empty")
 }
+
+func TestClientsClient_ScopeMappings(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+	realmName := fmt.Sprintf("test-realm-cli-scope-map-%d", time.Now().UnixNano())
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{Realm: &realmName, Enabled: &enabled})
+	require.NoError(t, err)
+
+	protocol := protocolOpenIDConnect
+	createClient := func(clientID string) string {
+		resp, cErr := c.Clients.CreateClient(ctx, realmName, keycloakapi.ClientRepresentation{
+			ClientId: &clientID,
+			Protocol: &protocol,
+		})
+		require.NoError(t, cErr)
+
+		id := keycloakapi.GetResourceIDFromResponse(resp)
+		require.NotEmpty(t, id)
+
+		return id
+	}
+
+	ownerUUID := createClient("scope-owner")
+	roleOwnerUUID := createClient("scope-role-owner")
+
+	realmRoleName := "scope-realm-role"
+	_, err = c.Roles.CreateRealmRole(ctx, realmName, keycloakapi.RoleRepresentation{Name: &realmRoleName})
+	require.NoError(t, err)
+
+	clientRoleName := "scope-client-role"
+	_, err = c.Clients.CreateClientRole(ctx, realmName, roleOwnerUUID, keycloakapi.RoleRepresentation{Name: &clientRoleName})
+	require.NoError(t, err)
+
+	names := func(roles []keycloakapi.RoleRepresentation) []string {
+		out := make([]string, 0, len(roles))
+
+		for _, r := range roles {
+			require.NotNil(t, r.Name)
+			out = append(out, *r.Name)
+		}
+
+		return out
+	}
+
+	t.Run("Realm roles", func(t *testing.T) {
+		role, _, gErr := c.Roles.GetRealmRole(ctx, realmName, realmRoleName)
+		require.NoError(t, gErr)
+
+		roleWithID, gErr := keycloakapi.RequireRealmRoleWithID(role, realmName, realmRoleName)
+		require.NoError(t, gErr)
+
+		before, _, gErr := c.Clients.GetRealmScopeMappings(ctx, realmName, ownerUUID)
+		require.NoError(t, gErr)
+		require.Empty(t, before)
+
+		_, gErr = c.Clients.AddRealmScopeMappings(ctx, realmName, ownerUUID, []keycloakapi.RoleRepresentation{roleWithID})
+		require.NoError(t, gErr)
+
+		got, resp, gErr := c.Clients.GetRealmScopeMappings(ctx, realmName, ownerUUID)
+		require.NoError(t, gErr)
+		require.NotNil(t, resp)
+		require.Equal(t, []string{realmRoleName}, names(got))
+
+		_, gErr = c.Clients.DeleteRealmScopeMappings(ctx, realmName, ownerUUID, got)
+		require.NoError(t, gErr)
+
+		got, _, gErr = c.Clients.GetRealmScopeMappings(ctx, realmName, ownerUUID)
+		require.NoError(t, gErr)
+		require.Empty(t, got)
+	})
+
+	t.Run("Client roles", func(t *testing.T) {
+		role, _, gErr := c.Clients.GetClientRole(ctx, realmName, roleOwnerUUID, clientRoleName)
+		require.NoError(t, gErr)
+
+		roleWithID, gErr := keycloakapi.RequireClientRoleWithID(role, roleOwnerUUID, clientRoleName)
+		require.NoError(t, gErr)
+
+		before, _, gErr := c.Clients.GetClientScopeMappings(ctx, realmName, ownerUUID, roleOwnerUUID)
+		require.NoError(t, gErr)
+		require.Empty(t, before)
+
+		_, gErr = c.Clients.AddClientScopeMappings(
+			ctx, realmName, ownerUUID, roleOwnerUUID, []keycloakapi.RoleRepresentation{roleWithID},
+		)
+		require.NoError(t, gErr)
+
+		got, resp, gErr := c.Clients.GetClientScopeMappings(ctx, realmName, ownerUUID, roleOwnerUUID)
+		require.NoError(t, gErr)
+		require.NotNil(t, resp)
+		require.Equal(t, []string{clientRoleName}, names(got))
+
+		_, gErr = c.Clients.DeleteClientScopeMappings(ctx, realmName, ownerUUID, roleOwnerUUID, got)
+		require.NoError(t, gErr)
+
+		got, _, gErr = c.Clients.GetClientScopeMappings(ctx, realmName, ownerUUID, roleOwnerUUID)
+		require.NoError(t, gErr)
+		require.Empty(t, got)
+	})
+}
