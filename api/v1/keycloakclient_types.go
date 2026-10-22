@@ -188,6 +188,11 @@ type KeycloakClientSpec struct {
 	// +kubebuilder:default=true
 	FullScopeAllowed bool `json:"fullScopeAllowed"`
 
+	// ScopeMappings lists the roles in this client's scope (dedicated scope). They limit token
+	// roles only when fullScopeAllowed is false. Omit the field to leave scope mappings unmanaged.
+	// +optional
+	ScopeMappings *ScopeMappings `json:"scopeMappings,omitempty"`
+
 	// Name is a client name.
 	// +optional
 	Name string `json:"name,omitempty"`
@@ -252,6 +257,21 @@ type ServiceAccount struct {
 	// +nullable
 	// +optional
 	Groups []string `json:"groups,omitempty"`
+}
+
+type ScopeMappings struct {
+	// RealmRoles is a list of realm role names in the client's scope.
+	// Omit the field to leave realm scope mappings unmanaged; set it to an empty list to remove
+	// every realm scope mapping. The roles must exist; create them with KeycloakRealmRole.
+	// +nullable
+	// +optional
+	RealmRoles *[]string `json:"realmRoles,omitempty"`
+
+	// ClientRoles lists client roles in the client's scope, per client that owns them.
+	// A client not listed keeps its scope mappings. Each clientId appears at most once.
+	// +nullable
+	// +optional
+	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
 }
 
 type UserClientRole struct {

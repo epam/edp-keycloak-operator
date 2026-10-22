@@ -104,5 +104,7 @@ func TestMakeChain(t *testing.T) {
 
 	c := MakeChain(&keycloakapi.KeycloakClient{}, k8sClient, secretRefClient)
 
-	require.Len(t, c.handlers, 11)
+	require.Len(t, c.handlers, 12)
+	require.IsType(t, &ServiceAccount{}, c.handlers[5])
+	require.IsType(t, &ScopeMappings{}, c.handlers[6])
 }

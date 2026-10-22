@@ -66,6 +66,19 @@ spec:
       - clientId: realm-management
         roles:
           - view-users
+  # Scope mappings limit token roles only when fullScopeAllowed is false.
+  fullScopeAllowed: false
+  # realmRoles and clientRoles[].roles have three states.
+  #   omitted    not managed; Keycloak keeps what it has
+  #   []         managed; every mapping is removed
+  #   [a, b]     managed; exactly a and b remain
+  scopeMappings:
+    realmRoles:
+      - offline_access
+    clientRoles:
+      - clientId: realm-management
+        roles:
+          - view-users
   authorization:
     scopes:
       - scope1
