@@ -304,6 +304,80 @@ func TestOrganizationsClient_IdentityProviders(t *testing.T) {
 	require.Empty(t, idps)
 }
 
+func TestOrganizationsClient_DomainRoutingFields(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newOrganizationsTestRealm(t)
+	ctx := context.Background()
+
+	info, err := c.GetServerInfo(ctx)
+	require.NoError(t, err)
+
+	supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+	require.NoError(t, err)
+
+	if !supported {
+		t.Skip("organization domain routing fields need Keycloak >= 26.8, server " + info.SystemInfo.ServerVersion)
+	}
+
+	idpAlias := fmt.Sprintf("domain-routing-idp-%d", time.Now().UnixNano())
+
+	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakapi.IdentityProviderRepresentation{
+		Alias:      &idpAlias,
+		ProviderId: ptr.To(testGithubProviderID),
+		Enabled:    ptr.To(true),
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	alias := fmt.Sprintf("domain-routing-org-%d", time.Now().UnixNano())
+	orgName := "Domain Routing Organization"
+	domain := "routing.example.test"
+
+	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
+		Name:    &orgName,
+		Alias:   &alias,
+		Domains: &[]keycloakapi.OrganizationDomainRepresentation{{Name: &domain}},
+	})
+	require.NoError(t, err)
+
+	org, _, err := c.Organizations.GetOrganizationByAlias(ctx, realmName, alias)
+	require.NoError(t, err)
+
+	orgID := ptr.Deref(org.Id, "")
+	require.NotEmpty(t, orgID)
+
+	_, err = c.Organizations.LinkIdentityProviderToOrganization(ctx, realmName, orgID, idpAlias)
+	require.NoError(t, err)
+
+	_, err = c.Organizations.UpdateOrganization(ctx, realmName, orgID, keycloakapi.OrganizationRepresentation{
+		Id:    &orgID,
+		Name:  &orgName,
+		Alias: &alias,
+		Domains: &[]keycloakapi.OrganizationDomainRepresentation{{
+			Name:                  &domain,
+			Verified:              ptr.To(true),
+			IdentityProviderAlias: &idpAlias,
+			AutoRedirect:          ptr.To(true),
+		}},
+	})
+	require.NoError(t, err)
+
+	got, _, err := c.Organizations.GetOrganizationByAlias(ctx, realmName, alias)
+	require.NoError(t, err)
+	require.NotNil(t, got.Domains)
+	require.Len(t, *got.Domains, 1)
+
+	gotDomain := (*got.Domains)[0]
+	require.Equal(t, domain, ptr.Deref(gotDomain.Name, ""))
+	require.True(t, ptr.Deref(gotDomain.Verified, false))
+	require.Equal(t, idpAlias, ptr.Deref(gotDomain.IdentityProviderAlias, ""))
+	require.True(t, ptr.Deref(gotDomain.AutoRedirect, false))
+}
+
 func TestOrganizationsClient_Members(t *testing.T) {
 	t.Parallel()
 

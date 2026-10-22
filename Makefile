@@ -179,7 +179,7 @@ $(OAPICODEGEN): $(LOCALBIN)
 	$(call go-install-tool,$(OAPICODEGEN),github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen,$(OAPICODEGEN_VERSION))
 
 # Keycloak release the OpenAPI spec is downloaded from. Keep in step with KEYCLOAK_TEST_VERSION.
-KEYCLOAK_VERSION ?= 26.7.3
+KEYCLOAK_VERSION ?= 26.8.1
 .PHONY: generate-keycloak-go-client
 generate-keycloak-go-client: oapi-codegen ## Download the Keycloak OpenAPI spec and regenerate the Go client
 	curl -fsSL -o pkg/client/keycloakapi/openapi/openapi.yaml https://www.keycloak.org/docs-api/$(KEYCLOAK_VERSION)/rest-api/openapi.yaml

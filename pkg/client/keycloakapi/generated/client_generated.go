@@ -514,14 +514,28 @@ type ClientPolicyConditionRepresentation struct {
 	Condition *string `json:"condition,omitempty"`
 
 	// Configuration Configuration settings as a JSON object
-	Configuration *map[string]interface{} `json:"configuration,omitempty"`
+	Configuration *ClientPolicyConditionRepresentation_Configuration `json:"configuration,omitempty"`
+}
+
+// ClientPolicyConditionRepresentation_Configuration Configuration settings as a JSON object
+type ClientPolicyConditionRepresentation_Configuration struct {
+	Empty                *bool                  `json:"empty,omitempty"`
+	Value                interface{}            `json:"value,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // ClientPolicyExecutorRepresentation defines model for ClientPolicyExecutorRepresentation.
 type ClientPolicyExecutorRepresentation struct {
 	// Configuration Configuration settings as a JSON object
-	Configuration *map[string]interface{} `json:"configuration,omitempty"`
-	Executor      *string                 `json:"executor,omitempty"`
+	Configuration *ClientPolicyExecutorRepresentation_Configuration `json:"configuration,omitempty"`
+	Executor      *string                                           `json:"executor,omitempty"`
+}
+
+// ClientPolicyExecutorRepresentation_Configuration Configuration settings as a JSON object
+type ClientPolicyExecutorRepresentation_Configuration struct {
+	Empty                *bool                  `json:"empty,omitempty"`
+	Value                interface{}            `json:"value,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
 }
 
 // ClientPolicyRepresentation defines model for ClientPolicyRepresentation.
@@ -871,12 +885,14 @@ type IdentityProviderRepresentation struct {
 	HideOnLogin               *bool              `json:"hideOnLogin,omitempty"`
 	InternalId                *string            `json:"internalId,omitempty"`
 	LinkOnly                  *bool              `json:"linkOnly,omitempty"`
-	OrganizationId            *string            `json:"organizationId,omitempty"`
-	PostBrokerLoginFlowAlias  *string            `json:"postBrokerLoginFlowAlias,omitempty"`
-	ProviderId                *string            `json:"providerId,omitempty"`
-	StoreToken                *bool              `json:"storeToken,omitempty"`
-	TrustEmail                *bool              `json:"trustEmail,omitempty"`
-	Types                     *[]string          `json:"types,omitempty"`
+	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
+	OrganizationId           *string                                           `json:"organizationId,omitempty"`
+	OrganizationLinks        *[]OrganizationIdentityProviderLinkRepresentation `json:"organizationLinks,omitempty"`
+	PostBrokerLoginFlowAlias *string                                           `json:"postBrokerLoginFlowAlias,omitempty"`
+	ProviderId               *string                                           `json:"providerId,omitempty"`
+	StoreToken               *bool                                             `json:"storeToken,omitempty"`
+	TrustEmail               *bool                                             `json:"trustEmail,omitempty"`
+	Types                    *[]string                                         `json:"types,omitempty"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	UpdateProfileFirstLogin *bool `json:"updateProfileFirstLogin,omitempty"`
 	// Deprecated: this property has been marked as deprecated upstream, but no `x-deprecated-reason` was set
@@ -1052,8 +1068,17 @@ type OAuthClientRepresentation struct {
 
 // OrganizationDomainRepresentation defines model for OrganizationDomainRepresentation.
 type OrganizationDomainRepresentation struct {
-	Name     *string `json:"name,omitempty"`
-	Verified *bool   `json:"verified,omitempty"`
+	AutoRedirect          *bool   `json:"autoRedirect,omitempty"`
+	IdentityProviderAlias *string `json:"identityProviderAlias,omitempty"`
+	Name                  *string `json:"name,omitempty"`
+	Verified              *bool   `json:"verified,omitempty"`
+}
+
+// OrganizationIdentityProviderLinkRepresentation defines model for OrganizationIdentityProviderLinkRepresentation.
+type OrganizationIdentityProviderLinkRepresentation struct {
+	AutoMembership *bool   `json:"autoMembership,omitempty"`
+	MembershipType *string `json:"membershipType,omitempty"`
+	OrganizationId *string `json:"organizationId,omitempty"`
 }
 
 // OrganizationInvitationRepresentation defines model for OrganizationInvitationRepresentation.
@@ -1187,6 +1212,12 @@ type PublishedRealmRepresentation struct {
 	Realm           *string `json:"realm,omitempty"`
 	TokenService    *string `json:"token-service,omitempty"`
 	TokensNotBefore *int32  `json:"tokens-not-before,omitempty"`
+}
+
+// RawJsonValue defines model for RawJsonValue.
+type RawJsonValue struct {
+	Empty *bool       `json:"empty,omitempty"`
+	Value interface{} `json:"value,omitempty"`
 }
 
 // RealmEventsConfigRepresentation defines model for RealmEventsConfigRepresentation.
@@ -2350,6 +2381,9 @@ type GetAdminRealmsRealmOrganizationsParams struct {
 	// First The position of the first result to be processed (pagination offset)
 	First *int32 `form:"first,omitempty" json:"first,omitempty"`
 
+	// IdentityProvider The alias of an identity provider, to only return the organizations linked to it. Cannot be combined with 'q'
+	IdentityProvider *string `form:"identityProvider,omitempty" json:"identityProvider,omitempty"`
+
 	// Max The maximum number of results to be returned - defaults to 10
 	Max *int32 `form:"max,omitempty" json:"max,omitempty"`
 
@@ -2364,6 +2398,9 @@ type GetAdminRealmsRealmOrganizationsParams struct {
 type GetAdminRealmsRealmOrganizationsCountParams struct {
 	// Exact Boolean which defines whether the param 'search' must match exactly or not
 	Exact *bool `form:"exact,omitempty" json:"exact,omitempty"`
+
+	// IdentityProvider The alias of an identity provider, to only count the organizations linked to it. Cannot be combined with 'q'
+	IdentityProvider *string `form:"identityProvider,omitempty" json:"identityProvider,omitempty"`
 
 	// Q A query to search for custom attributes, in the format 'key1:value2 key2:value2'
 	Q *string `form:"q,omitempty" json:"q,omitempty"`
@@ -2392,6 +2429,9 @@ type GetAdminRealmsRealmOrganizationsOrgIdGroupsParams struct {
 
 // GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathParams defines parameters for GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPath.
 type GetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathParams struct {
+	// BriefRepresentation Whether to return a brief representation (default: true)
+	BriefRepresentation *bool `form:"briefRepresentation,omitempty" json:"briefRepresentation,omitempty"`
+
 	// SubGroupsCount Whether to return the count of subgroups (default: false)
 	SubGroupsCount *bool `form:"subGroupsCount,omitempty" json:"subGroupsCount,omitempty"`
 }
@@ -2528,6 +2568,12 @@ type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataBody struct 
 	Email     *string `form:"email,omitempty" json:"email,omitempty"`
 	FirstName *string `form:"firstName,omitempty" json:"firstName,omitempty"`
 	LastName  *string `form:"lastName,omitempty" json:"lastName,omitempty"`
+}
+
+// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams defines parameters for PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser.
+type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams struct {
+	// ClientId Client id
+	ClientId *string `form:"client_id,omitempty" json:"client_id,omitempty"`
 }
 
 // GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams defines parameters for GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups.
@@ -2987,9 +3033,13 @@ type PostAdminRealmsRealmClientsClientUuidAuthzResourceServerScopeJSONRequestBod
 type PutAdminRealmsRealmClientsClientUuidAuthzResourceServerScopeScopeIdJSONRequestBody = ScopeRepresentation
 
 // PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody defines body for PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody = KeyStoreConfig
 
 // PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody defines body for PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload for application/json ContentType.
+//
+// Deprecated: this type has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 type PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody = KeyStoreConfig
 
 // PutAdminRealmsRealmClientsClientUuidManagementPermissionsJSONRequestBody defines body for PutAdminRealmsRealmClientsClientUuidManagementPermissions for application/json ContentType.
@@ -3121,6 +3171,9 @@ type PostAdminRealmsRealmOrganizationsOrgIdGroupsGroupIdRoleMappingsRealmJSONReq
 // PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdIdentityProviders for application/json ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONRequestBody = PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersJSONBody
 
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody defines body for PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias for application/json ContentType.
+type PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody = OrganizationIdentityProviderLinkRepresentation
+
 // PostAdminRealmsRealmOrganizationsOrgIdMembersJSONRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdMembers for application/json ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdMembersJSONRequestBody = PostAdminRealmsRealmOrganizationsOrgIdMembersJSONBody
 
@@ -3129,6 +3182,9 @@ type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequ
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody defines body for PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser for application/x-www-form-urlencoded ContentType.
 type PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataBody
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody defines body for PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType for application/json ContentType.
+type PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody = MembershipType
 
 // PostAdminRealmsRealmPartialImportJSONRequestBody defines body for PostAdminRealmsRealmPartialImport for application/json ContentType.
 type PostAdminRealmsRealmPartialImportJSONRequestBody = PostAdminRealmsRealmPartialImportJSONBody
@@ -3214,6 +3270,168 @@ type PostAdminRealmsRealmWorkflowsJSONRequestBody = WorkflowRepresentation
 
 // PutAdminRealmsRealmWorkflowsIdJSONRequestBody defines body for PutAdminRealmsRealmWorkflowsId for application/json ContentType.
 type PutAdminRealmsRealmWorkflowsIdJSONRequestBody = WorkflowRepresentation
+
+// Getter for additional properties for ClientPolicyConditionRepresentation_Configuration. Returns the specified
+// element and whether it was found
+func (a ClientPolicyConditionRepresentation_Configuration) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientPolicyConditionRepresentation_Configuration
+func (a *ClientPolicyConditionRepresentation_Configuration) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientPolicyConditionRepresentation_Configuration to handle AdditionalProperties
+func (a *ClientPolicyConditionRepresentation_Configuration) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["empty"]; found {
+		err = json.Unmarshal(raw, &a.Empty)
+		if err != nil {
+			return fmt.Errorf("error reading 'empty': %w", err)
+		}
+		delete(object, "empty")
+	}
+
+	if raw, found := object["value"]; found {
+		err = json.Unmarshal(raw, &a.Value)
+		if err != nil {
+			return fmt.Errorf("error reading 'value': %w", err)
+		}
+		delete(object, "value")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientPolicyConditionRepresentation_Configuration to handle AdditionalProperties
+func (a ClientPolicyConditionRepresentation_Configuration) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Empty != nil {
+		object["empty"], err = json.Marshal(a.Empty)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'empty': %w", err)
+		}
+	}
+
+	object["value"], err = json.Marshal(a.Value)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'value': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
+
+// Getter for additional properties for ClientPolicyExecutorRepresentation_Configuration. Returns the specified
+// element and whether it was found
+func (a ClientPolicyExecutorRepresentation_Configuration) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for ClientPolicyExecutorRepresentation_Configuration
+func (a *ClientPolicyExecutorRepresentation_Configuration) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for ClientPolicyExecutorRepresentation_Configuration to handle AdditionalProperties
+func (a *ClientPolicyExecutorRepresentation_Configuration) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["empty"]; found {
+		err = json.Unmarshal(raw, &a.Empty)
+		if err != nil {
+			return fmt.Errorf("error reading 'empty': %w", err)
+		}
+		delete(object, "empty")
+	}
+
+	if raw, found := object["value"]; found {
+		err = json.Unmarshal(raw, &a.Value)
+		if err != nil {
+			return fmt.Errorf("error reading 'value': %w", err)
+		}
+		delete(object, "value")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for ClientPolicyExecutorRepresentation_Configuration to handle AdditionalProperties
+func (a ClientPolicyExecutorRepresentation_Configuration) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Empty != nil {
+		object["empty"], err = json.Marshal(a.Empty)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'empty': %w", err)
+		}
+	}
+
+	object["value"], err = json.Marshal(a.Value)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'value': %w", err)
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // RequestEditorFn is the function signature for the RequestEditor callback function
 type RequestEditorFn func(ctx context.Context, req *http.Request) error
@@ -4376,23 +4594,29 @@ type ClientInterface interface {
 	// Corresponds with GET /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr} (the `GetAdminRealmsRealmClientsClientUuidCertificatesAttr` operationId).
 	GetAdminRealmsRealmClientsClientUuidCertificatesAttr(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody Get a keystore file for the client, containing private key and public certificate
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody Get a keystore file for the client, containing the public certificate
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload Get a keystore file for the client, containing private key and public certificate
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload Get a keystore file for the client, containing the public certificate
 	//
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate Generate a new certificate with new key pair
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBody Generate a new keypair and certificate, and get the private key file
@@ -4403,6 +4627,8 @@ type ClientInterface interface {
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBody(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload Generate a new keypair and certificate, and get the private key file
@@ -4413,11 +4639,15 @@ type ClientInterface interface {
 	// Takes a body of the `application/json` content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload Upload certificate and eventually private key
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload Upload only certificate, not private key
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/upload (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadCertificate Upload only certificate, not private key
@@ -5627,6 +5857,24 @@ type ClientInterface interface {
 	// Corresponds with GET /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody Updates the per-association config for the identity provider linked to the organization
+	//
+	// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias Updates the per-association config for the identity provider linked to the organization
+	//
+	// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups Returns organization groups for the identity provider
 	//
 	// Returns organization groups that can be used in identity provider mappers. Only returns groups if the identity provider is associated with the organization.
@@ -5698,21 +5946,21 @@ type ClientInterface interface {
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 	//
-	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 	//
 	// Takes any type of body and a specified content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 	//
-	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 	//
 	// Takes a body of the `application/x-www-form-urlencoded` content type.
 	//
 	// Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberId Removes the user with the specified id from the organization
 	//
@@ -5734,6 +5982,20 @@ type ClientInterface interface {
 	//
 	// Corresponds with GET /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/groups (the `GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups` operationId).
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody Updates the membership type of the member with the specified id
+	//
+	// Takes any type of body and a specified content type.
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType Updates the membership type of the member with the specified id
+	//
+	// Takes a body of the `application/json` content type.
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizations Returns the organizations associated with the user that has the specified id
 	//
@@ -9463,11 +9725,12 @@ func (c *Client) GetAdminRealmsRealmClientsClientUuidCertificatesAttr(ctx contex
 	return c.Client.Do(req)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody Get a keystore file for the client, containing private key and public certificate
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody Get a keystore file for the client, containing the public certificate
 //
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadRequestWithBody(c.Server, realm, clientUuid, attr, contentType, body)
 	if err != nil {
@@ -9480,11 +9743,12 @@ func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWi
 	return c.Client.Do(req)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload Get a keystore file for the client, containing private key and public certificate
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload Get a keystore file for the client, containing the public certificate
 //
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadRequest(c.Server, realm, clientUuid, attr, body)
 	if err != nil {
@@ -9500,6 +9764,7 @@ func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload(c
 // PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate Generate a new certificate with new key pair
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateRequest(c.Server, realm, clientUuid, attr)
 	if err != nil {
@@ -9520,6 +9785,7 @@ func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate(c
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBody(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadRequestWithBody(c.Server, realm, clientUuid, attr, contentType, body)
 	if err != nil {
@@ -9540,6 +9806,7 @@ func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAn
 // Takes a body of the `application/json` content type.
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadRequest(c.Server, realm, clientUuid, attr, body)
 	if err != nil {
@@ -9552,9 +9819,10 @@ func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAn
 	return c.Client.Do(req)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload Upload certificate and eventually private key
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload Upload only certificate, not private key
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/upload (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *Client) PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewPostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadRequest(c.Server, realm, clientUuid, attr)
 	if err != nil {
@@ -12863,6 +13131,44 @@ func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx
 	return c.Client.Do(req)
 }
 
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody Updates the per-association config for the identity provider linked to the organization
+//
+// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(c.Server, realm, orgId, alias, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias Updates the per-association config for the identity provider linked to the organization
+//
+// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(c.Server, realm, orgId, alias, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 // GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups Returns organization groups for the identity provider
 //
 // Returns organization groups that can be used in identity provider mappers. Only returns groups if the identity provider is associated with the organization.
@@ -13044,13 +13350,13 @@ func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUser
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 //
-// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 //
 // Takes any type of body and a specified content type.
 //
 // Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(c.Server, realm, orgId, contentType, body)
+func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(c.Server, realm, orgId, params, contentType, body)
 	if err != nil {
 		return nil, err
 	}
@@ -13063,13 +13369,13 @@ func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 //
-// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 //
 // Takes a body of the `application/x-www-form-urlencoded` content type.
 //
 // Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
-	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(c.Server, realm, orgId, body)
+func (c *Client) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(c.Server, realm, orgId, params, body)
 	if err != nil {
 		return nil, err
 	}
@@ -13121,6 +13427,40 @@ func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdMembersMemberId(ctx contex
 // Corresponds with GET /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/groups (the `GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups` operationId).
 func (c *Client) GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsRequest(c.Server, realm, orgId, memberId, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody Updates the membership type of the member with the specified id
+//
+// Takes any type of body and a specified content type.
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(c.Server, realm, orgId, memberId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType Updates the membership type of the member with the specified id
+//
+// Takes a body of the `application/json` content type.
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+func (c *Client) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest(c.Server, realm, orgId, memberId, body)
 	if err != nil {
 		return nil, err
 	}
@@ -31284,6 +31624,18 @@ func NewGetAdminRealmsRealmOrganizationsRequest(server string, realm string, par
 
 		}
 
+		if params.IdentityProvider != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "identityProvider", *params.IdentityProvider, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
 		if params.Max != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "max", *params.Max, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "integer", Format: "int32"}); err != nil {
@@ -31419,6 +31771,18 @@ func NewGetAdminRealmsRealmOrganizationsCountRequest(server string, realm string
 		if params.Exact != nil {
 
 			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "exact", *params.Exact, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if params.IdentityProvider != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "identityProvider", *params.IdentityProvider, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
 				return nil, err
 			} else {
 				for _, qp := range strings.Split(queryFrag, "&") {
@@ -31924,6 +32288,18 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdGroupsGroupByPathPathRequest(server
 		// styled parameters, preserving literal commas as delimiters
 		// per the OpenAPI spec (e.g. "color=blue,black,brown").
 		var rawQueryFragments []string
+
+		if params.BriefRepresentation != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "briefRepresentation", *params.BriefRepresentation, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "boolean", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
 
 		if params.SubGroupsCount != nil {
 
@@ -33388,6 +33764,67 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(serve
 	return req, nil
 }
 
+// NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest calls the generic PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias builder with application/json body
+func NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequest(server string, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(server, realm, orgId, alias, "application/json", bodyReader)
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody constructs an http.Request for the PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias method, with any body, and a specified content type
+func NewPutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasRequestWithBody(server string, realm string, orgId string, alias string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "realm", realm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "org-id", orgId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "alias", alias, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/admin/realms/%s/organizations/%s/identity-providers/%s", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
 // NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsRequest constructs an http.Request for the GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroups method
 func NewGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsRequest(server string, realm string, orgId string, alias string, params *GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsParams) (*http.Request, error) {
 	var err error
@@ -34097,18 +34534,18 @@ func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserRequestWi
 }
 
 // NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody calls the generic PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser builder with application/x-www-form-urlencoded body
-func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(server string, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody) (*http.Request, error) {
+func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithFormdataBody(server string, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody) (*http.Request, error) {
 	var bodyReader io.Reader
 	bodyStr, err := runtime.MarshalForm(body, nil)
 	if err != nil {
 		return nil, err
 	}
 	bodyReader = strings.NewReader(bodyStr.Encode())
-	return NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server, realm, orgId, "application/x-www-form-urlencoded", bodyReader)
+	return NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server, realm, orgId, params, "application/x-www-form-urlencoded", bodyReader)
 }
 
 // NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody constructs an http.Request for the PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser method, with any body, and a specified content type
-func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server string, realm string, orgId string, contentType string, body io.Reader) (*http.Request, error) {
+func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(server string, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader) (*http.Request, error) {
 	var err error
 
 	var pathParam0 string
@@ -34138,6 +34575,33 @@ func NewPostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserRequestWithBody(s
 	queryURL, err := serverURL.Parse(operationPath)
 	if err != nil {
 		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if params.ClientId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithOptions("form", true, "client_id", *params.ClientId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+				return nil, err
+			} else {
+				for _, qp := range strings.Split(queryFrag, "&") {
+					rawQueryFragments = append(rawQueryFragments, qp)
+				}
+			}
+
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
 	}
 
 	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
@@ -34353,6 +34817,67 @@ func NewGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsRequest(server
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest calls the generic PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType builder with application/json body
+func NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequest(server string, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(server, realm, orgId, memberId, "application/json", bodyReader)
+}
+
+// NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody constructs an http.Request for the PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType method, with any body, and a specified content type
+func NewPutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeRequestWithBody(server string, realm string, orgId string, memberId string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "realm", realm, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "org-id", orgId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "member-id", memberId, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/admin/realms/%s/organizations/%s/members/%s/membership-type", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -40772,18 +41297,22 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr} (the `GetAdminRealmsRealmClientsClientUuidCertificatesAttr` operationId).
 	GetAdminRealmsRealmClientsClientUuidCertificatesAttrWithResponse(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmClientsClientUuidCertificatesAttrResponse, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse Get a keystore file for the client, containing private key and public certificate
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse Get a keystore file for the client, containing the public certificate
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadResponse, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse Get a keystore file for the client, containing private key and public certificate
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse Get a keystore file for the client, containing the public certificate
 	//
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadResponse, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateWithResponse Generate a new certificate with new key pair
@@ -40791,6 +41320,8 @@ type ClientWithResponsesInterface interface {
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateWithResponse(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateResponse, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBodyWithResponse Generate a new keypair and certificate, and get the private key file
@@ -40801,6 +41332,8 @@ type ClientWithResponsesInterface interface {
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBodyWithResponse(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadResponse, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithResponse Generate a new keypair and certificate, and get the private key file
@@ -40811,13 +41344,17 @@ type ClientWithResponsesInterface interface {
 	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadResponse, error)
 
-	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse Upload certificate and eventually private key
+	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse Upload only certificate, not private key
 	//
 	// Returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/upload (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload` operationId).
+	//
+	// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 	PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadResponse, error)
 
 	// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadCertificateWithResponse Upload only certificate, not private key
@@ -42281,6 +42818,24 @@ type ClientWithResponsesInterface interface {
 	// Corresponds with GET /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
 	GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
 
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse Updates the per-association config for the identity provider linked to the organization
+	//
+	// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse Updates the per-association config for the identity provider linked to the organization
+	//
+	// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error)
+
 	// GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse Returns organization groups for the identity provider
 	//
 	// Returns organization groups that can be used in identity provider mappers. Only returns groups if the identity provider is associated with the organization.
@@ -42366,21 +42921,21 @@ type ClientWithResponsesInterface interface {
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 	//
-	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 	//
 	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
 
 	// PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 	//
-	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+	// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 	//
 	// Takes a body of the `application/x-www-form-urlencoded` content type, and returns a wrapper object for the known response body format(s).
 	//
 	// Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
+	PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error)
 
 	// DeleteAdminRealmsRealmOrganizationsOrgIdMembersMemberIdWithResponse Removes the user with the specified id from the organization
 	//
@@ -42408,6 +42963,20 @@ type ClientWithResponsesInterface interface {
 	//
 	// Corresponds with GET /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/groups (the `GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroups` operationId).
 	GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsWithResponse(ctx context.Context, realm string, orgId string, memberId string, params *GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsParams, reqEditors ...RequestEditorFn) (*GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse Updates the membership type of the member with the specified id
+	//
+	// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error)
+
+	// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse Updates the membership type of the member with the specified id
+	//
+	// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+	//
+	// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+	PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error)
 
 	// GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsWithResponse Returns the organizations associated with the user that has the specified id
 	//
@@ -50503,11 +51072,11 @@ type GetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]UserRepresentation
+	JSON200 *[]GroupRepresentation
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse) GetJSON200() *[]UserRepresentation {
+func (r GetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse) GetJSON200() *[]GroupRepresentation {
 	return r.JSON200
 }
 
@@ -55144,6 +55713,40 @@ func (r GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) Con
 	return ""
 }
 
+type PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// GetBody returns the raw response body bytes
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -55629,6 +56232,40 @@ func (r GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse) Stat
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// GetBody returns the raw response body bytes
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) GetBody() []byte {
+	return r.Body
+}
+
+// Status returns HTTPResponse.Status
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -56560,11 +57197,11 @@ type GetAdminRealmsRealmRolesRoleNameGroupsResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
 	// JSON200 the response for an HTTP 200 `application/json` response
-	JSON200 *[]UserRepresentation
+	JSON200 *[]GroupRepresentation
 }
 
 // GetJSON200 returns the response for an HTTP 200 `application/json` response
-func (r GetAdminRealmsRealmRolesRoleNameGroupsResponse) GetJSON200() *[]UserRepresentation {
+func (r GetAdminRealmsRealmRolesRoleNameGroupsResponse) GetJSON200() *[]GroupRepresentation {
 	return r.JSON200
 }
 
@@ -61377,11 +62014,13 @@ func (c *ClientWithResponses) GetAdminRealmsRealmClientsClientUuidCertificatesAt
 	return ParseGetAdminRealmsRealmClientsClientUuidCertificatesAttrResponse(rsp)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse Get a keystore file for the client, containing private key and public certificate
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse Get a keystore file for the client, containing the public certificate
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+//
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBodyWithResponse(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithBody(ctx, realm, clientUuid, attr, contentType, body, reqEditors...)
 	if err != nil {
@@ -61390,11 +62029,12 @@ func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesA
 	return ParsePostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadResponse(rsp)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse Get a keystore file for the client, containing private key and public certificate
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse Get a keystore file for the client, containing the public certificate
 //
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownloadResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrDownload(ctx, realm, clientUuid, attr, body, reqEditors...)
 	if err != nil {
@@ -61408,6 +62048,8 @@ func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesA
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate` operationId).
+//
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateWithResponse(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerate(ctx, realm, clientUuid, attr, reqEditors...)
 	if err != nil {
@@ -61424,6 +62066,8 @@ func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesA
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+//
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBodyWithResponse(ctx context.Context, realm string, clientUuid string, attr string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithBody(ctx, realm, clientUuid, attr, contentType, body, reqEditors...)
 	if err != nil {
@@ -61440,6 +62084,7 @@ func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesA
 // Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/generate-and-download (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload` operationId).
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, body PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadJSONRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownload(ctx, realm, clientUuid, attr, body, reqEditors...)
 	if err != nil {
@@ -61448,11 +62093,13 @@ func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesA
 	return ParsePostAdminRealmsRealmClientsClientUuidCertificatesAttrGenerateAndDownloadResponse(rsp)
 }
 
-// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse Upload certificate and eventually private key
+// PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse Upload only certificate, not private key
 //
 // Returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/clients/{client-uuid}/certificates/{attr}/upload (the `PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload` operationId).
+//
+// Deprecated: this operation has been marked as deprecated upstream, but no `x-deprecated-reason` was set
 func (c *ClientWithResponses) PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadWithResponse(ctx context.Context, realm string, clientUuid string, attr string, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmClientsClientUuidCertificatesAttrUploadResponse, error) {
 	rsp, err := c.PostAdminRealmsRealmClientsClientUuidCertificatesAttrUpload(ctx, realm, clientUuid, attr, reqEditors...)
 	if err != nil {
@@ -64176,6 +64823,36 @@ func (c *ClientWithResponses) GetAdminRealmsRealmOrganizationsOrgIdIdentityProvi
 	return ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
 }
 
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse Updates the per-association config for the identity provider linked to the organization
+//
+// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBodyWithResponse(ctx context.Context, realm string, orgId string, alias string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithBody(ctx, realm, orgId, alias, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse Updates the per-association config for the identity provider linked to the organization
+//
+// Updates the autoMembership and membershipType settings for the link between the organization and the identity provider with the given alias. If the provider is not linked to the organization, a NOT_FOUND error is returned
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/identity-providers/{alias} (the `PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias` operationId).
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(ctx context.Context, realm string, orgId string, alias string, body PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAlias(ctx, realm, orgId, alias, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp)
+}
+
 // GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse Returns organization groups for the identity provider
 //
 // Returns organization groups that can be used in identity provider mappers. Only returns groups if the identity provider is associated with the organization.
@@ -64327,13 +65004,13 @@ func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInvit
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 //
-// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 //
 // Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
-	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx, realm, orgId, contentType, body, reqEditors...)
+func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
+	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithBody(ctx, realm, orgId, params, contentType, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -64342,13 +65019,13 @@ func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInvit
 
 // PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse Invites an existing user or sends a registration link to a new user, based on the provided e-mail address.
 //
-// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link.
+// If the user with the given e-mail address exists, it sends an invitation link, otherwise it sends a registration link. The client_id query parameter is optional. If no client_id is provided, the account client is used. After accepting the invitation the user is redirected to the selected client's home URL; for the account client the organization redirect URL is used instead when configured.
 //
 // Takes a body of the `application/x-www-form-urlencoded` content type, and returns a wrapper object for the known response body format(s).
 //
 // Corresponds with POST /admin/realms/{realm}/organizations/{org-id}/members/invite-user (the `PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUser` operationId).
-func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
-	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx, realm, orgId, body, reqEditors...)
+func (c *ClientWithResponses) PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBodyWithResponse(ctx context.Context, realm string, orgId string, params *PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserParams, body PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody, reqEditors ...RequestEditorFn) (*PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserResponse, error) {
+	rsp, err := c.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserWithFormdataBody(ctx, realm, orgId, params, body, reqEditors...)
 	if err != nil {
 		return nil, err
 	}
@@ -64398,6 +65075,32 @@ func (c *ClientWithResponses) GetAdminRealmsRealmOrganizationsOrgIdMembersMember
 		return nil, err
 	}
 	return ParseGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse(rsp)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse Updates the membership type of the member with the specified id
+//
+// Takes any type of body and a specified content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBodyWithResponse(ctx context.Context, realm string, orgId string, memberId string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithBody(ctx, realm, orgId, memberId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp)
+}
+
+// PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse Updates the membership type of the member with the specified id
+//
+// Takes a body of the `application/json` content type, and returns a wrapper object for the known response body format(s).
+//
+// Corresponds with PUT /admin/realms/{realm}/organizations/{org-id}/members/{member-id}/membership-type (the `PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType` operationId).
+func (c *ClientWithResponses) PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse(ctx context.Context, realm string, orgId string, memberId string, body PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeJSONRequestBody, reqEditors ...RequestEditorFn) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	rsp, err := c.PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipType(ctx, realm, orgId, memberId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp)
 }
 
 // GetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdOrganizationsWithResponse Returns the organizations associated with the user that has the specified id
@@ -68394,6 +69097,9 @@ func ParsePostAdminRealmsRealmClientsClientUuidAuthzResourceServerPermissionEval
 		}
 		response.JSON200 = &dest
 
+	case rsp.StatusCode == 403:
+		break // No content-type
+
 	case rsp.StatusCode == 500:
 		break // No content-type
 
@@ -68525,6 +69231,9 @@ func ParsePostAdminRealmsRealmClientsClientUuidAuthzResourceServerPolicyEvaluate
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case rsp.StatusCode == 403:
+		break // No content-type
 
 	case rsp.StatusCode == 500:
 		break // No content-type
@@ -70183,7 +70892,7 @@ func ParseGetAdminRealmsRealmClientsClientUuidRolesRoleNameGroupsResponse(rsp *h
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []UserRepresentation
+		var dest []GroupRepresentation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
@@ -72959,6 +73668,22 @@ func ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rs
 	return response, nil
 }
 
+// ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse parses an HTTP response from a PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse call
+func ParsePutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse(rsp *http.Response) (*PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
 // ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse parses an HTTP response from a GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsWithResponse call
 func ParseGetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse(rsp *http.Response) (*GetAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasGroupsResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -73265,6 +73990,22 @@ func ParseGetAdminRealmsRealmOrganizationsOrgIdMembersMemberIdGroupsResponse(rsp
 	case rsp.StatusCode == 403:
 		break // No content-type
 
+	}
+
+	return response, nil
+}
+
+// ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse parses an HTTP response from a PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeWithResponse call
+func ParsePutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse(rsp *http.Response) (*PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutAdminRealmsRealmOrganizationsOrgIdMembersMemberIdMembershipTypeResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
 	}
 
 	return response, nil
@@ -73885,7 +74626,7 @@ func ParseGetAdminRealmsRealmRolesRoleNameGroupsResponse(rsp *http.Response) (*G
 
 	switch {
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
-		var dest []UserRepresentation
+		var dest []GroupRepresentation
 		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
 			return nil, err
 		}
