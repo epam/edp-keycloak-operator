@@ -278,7 +278,7 @@ spec:
                           - roles
                           type: object
                         timePolicy:
-                          description: ScopePolicy is a scope policy settings.
+                          description: TimePolicy is a time policy settings.
                           properties:
                             dayMonth:
                               description: |-
