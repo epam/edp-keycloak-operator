@@ -84,6 +84,8 @@ type KeycloakRealmIdentityProviderSpec struct {
 
 type IdentityProviderMapper struct {
 	// IdentityProviderAlias is a identity provider alias.
+	// Defaults to the alias of the parent identity provider.
+	// Keycloak 26.8 returns 400 when it differs from the parent alias.
 	// +optional
 	IdentityProviderAlias string `json:"identityProviderAlias,omitempty"`
 

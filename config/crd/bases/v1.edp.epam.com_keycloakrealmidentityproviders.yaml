@@ -104,7 +104,10 @@ spec:
                       nullable: true
                       type: object
                     identityProviderAlias:
-                      description: IdentityProviderAlias is a identity provider alias.
+                      description: |-
+                        IdentityProviderAlias is a identity provider alias.
+                        Defaults to the alias of the parent identity provider.
+                        Keycloak 26.8 returns 400 when it differs from the parent alias.
                       type: string
                     identityProviderMapper:
                       description: IdentityProviderMapper is a identity provider mapper.
