@@ -3785,7 +3785,7 @@ Policy represents a client authorization policy.
         <td><b><a href="#keycloakclientspecauthorizationpoliciesindextimepolicy">timePolicy</a></b></td>
         <td>object</td>
         <td>
-          ScopePolicy is a scope policy settings.<br/>
+          TimePolicy is a time policy settings.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3991,7 +3991,7 @@ RoleDefinition represents a role in a RolePolicyData.
 
 
 
-ScopePolicy is a scope policy settings.
+TimePolicy is a time policy settings.
 
 <table>
     <thead>

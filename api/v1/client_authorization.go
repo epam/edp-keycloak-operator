@@ -58,15 +58,11 @@ type Policy struct {
 	// RolePolicy is a role policy settings.
 	RolePolicy *RolePolicyData `json:"rolePolicy,omitempty"`
 
-	// ScopePolicy is a scope policy settings.
+	// TimePolicy is a time policy settings.
 	TimePolicy *TimePolicyData `json:"timePolicy,omitempty"`
 
 	// UserPolicy is a user policy settings.
 	UserPolicy *UserPolicyData `json:"userPolicy,omitempty"`
-}
-
-type ScopePolicyData struct {
-	Scopes []string `json:"scopes"`
 }
 
 // RolePolicyData represents role based policies.
