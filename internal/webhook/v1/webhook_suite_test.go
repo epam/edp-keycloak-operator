@@ -65,9 +65,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	// cfg is defined in this file globally.
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	cfg = testutils.StartEnvTest(testEnv)
+	DeferCleanup(cancel)
 
 	k8sClient, err = client.New(cfg, client.Options{Scheme: scheme.Scheme})
 	Expect(err).NotTo(HaveOccurred())
@@ -129,11 +128,4 @@ var _ = BeforeSuite(func() {
 		},
 	}
 	Expect(client.IgnoreAlreadyExists(k8sClient.Create(ctx, &ns2))).Should(Succeed(), "failed to create namespace ns2")
-})
-
-var _ = AfterSuite(func() {
-	By("tearing down the test environment")
-	cancel()
-	err := testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
 })

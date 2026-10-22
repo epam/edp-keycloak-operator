@@ -4,6 +4,11 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/onsi/ginkgo/v2"
+	"github.com/onsi/gomega"
+
+	"k8s.io/client-go/rest"
+	"sigs.k8s.io/controller-runtime/pkg/envtest"
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 )
 
@@ -23,4 +28,19 @@ func GetFirstFoundEnvTestBinaryDir() string {
 	}
 
 	return ""
+}
+
+// StartEnvTest starts env and registers its Stop with DeferCleanup, so the
+// control plane stops after AfterSuite even when AfterSuite fails.
+// Call it inside a Ginkgo node.
+func StartEnvTest(env *envtest.Environment) *rest.Config {
+	ginkgo.GinkgoHelper()
+
+	cfg, err := env.Start()
+	gomega.Expect(err).NotTo(gomega.HaveOccurred())
+	gomega.Expect(cfg).NotTo(gomega.BeNil())
+
+	ginkgo.DeferCleanup(env.Stop)
+
+	return cfg
 }

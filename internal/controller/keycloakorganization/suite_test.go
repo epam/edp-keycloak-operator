@@ -78,9 +78,8 @@ var _ = BeforeSuite(func() {
 	}
 
 	var err error
-	cfg, err = testEnv.Start()
-	Expect(err).NotTo(HaveOccurred())
-	Expect(cfg).NotTo(BeNil())
+	cfg = testutils.StartEnvTest(testEnv)
+	DeferCleanup(cancel)
 
 	scheme := runtime.NewScheme()
 	Expect(keycloakApi.AddToScheme(scheme)).NotTo(HaveOccurred())
@@ -209,9 +208,4 @@ var _ = AfterSuite(func() {
 		getErr := k8sClient.Get(ctx, types.NamespacedName{Name: KeycloakRealmCR, Namespace: ns}, deletedKeycloakRealm)
 		return getErr != nil
 	}, time.Second*5, time.Second).Should(BeTrue())
-
-	cancel()
-	By("Tearing down the test environment")
-	err = testEnv.Stop()
-	Expect(err).NotTo(HaveOccurred())
 })
