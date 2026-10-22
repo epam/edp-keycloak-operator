@@ -7,6 +7,7 @@ linters:
     - copyloopvar
     - dupl
     - errcheck
+    - forbidigo
     - ginkgolinter
     - goconst
     - gocyclo
@@ -23,6 +24,10 @@ linters:
     - unused
     - wsl
   settings:
+    forbidigo:
+      forbid:
+        - pattern: ^testEnv\.(Start|Stop)$
+          msg: use testutils.StartEnvTest, which registers Stop with DeferCleanup
     goconst:
       min-occurrences: 20
     revive:
@@ -34,6 +39,9 @@ linters:
   exclusions:
     generated: lax
     rules:
+      - linters:
+          - forbidigo
+        path: pkg/testutils/
       - linters:
           - lll
         path: api/*
