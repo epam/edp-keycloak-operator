@@ -618,6 +618,44 @@ spec:
                   type: string
                 nullable: true
                 type: array
+              scopeMappings:
+                description: |-
+                  ScopeMappings lists the roles in this client's scope (dedicated scope). They limit token
+                  roles only when fullScopeAllowed is false. Omit the field to leave scope mappings unmanaged.
+                properties:
+                  clientRoles:
+                    description: |-
+                      ClientRoles lists client roles in the client's scope, per client that owns them.
+                      A client not listed keeps its scope mappings. Each clientId appears at most once.
+                    items:
+                      properties:
+                        clientId:
+                          description: ClientID is a client ID.
+                          type: string
+                        roles:
+                          description: |-
+                            Roles is a list of client roles names assigned to user.
+                            Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+                            remove every mapping for the client.
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                      required:
+                      - clientId
+                      type: object
+                    nullable: true
+                    type: array
+                  realmRoles:
+                    description: |-
+                      RealmRoles is a list of realm role names in the client's scope.
+                      Omit the field to leave realm scope mappings unmanaged; set it to an empty list to remove
+                      every realm scope mapping. The roles must exist; create them with KeycloakRealmRole.
+                    items:
+                      type: string
+                    nullable: true
+                    type: array
+                type: object
               secret:
                 description: |-
                   Secret is kubernetes secret name where the client's secret will be stored.

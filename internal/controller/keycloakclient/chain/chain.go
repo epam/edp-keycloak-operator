@@ -76,6 +76,7 @@ func MakeChain(
 		NewPutClientScope(kClient, k8sClient),
 		NewPutProtocolMappers(kClient, k8sClient),
 		NewServiceAccount(kClient, k8sClient),
+		NewScopeMappings(kClient, k8sClient),
 		NewProcessScope(kClient, k8sClient),
 		NewProcessResources(kClient, k8sClient),
 		NewProcessPolicy(kClient, k8sClient),

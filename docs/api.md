@@ -3394,6 +3394,14 @@ Set it to an empty list to remove every redirect URI.<br/>
         </td>
         <td>false</td>
       </tr><tr>
+        <td><b><a href="#keycloakclientspecscopemappings">scopeMappings</a></b></td>
+        <td>object</td>
+        <td>
+          ScopeMappings lists the roles in this client's scope (dedicated scope). They limit token
+roles only when fullScopeAllowed is false. Omit the field to leave scope mappings unmanaged.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
         <td><b>secret</b></td>
         <td>string</td>
         <td>
@@ -4362,6 +4370,80 @@ If a KeycloakRealmRole with composite: true manages it, list the created role in
         <td>string</td>
         <td>
           Name is a realm role name.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.scopeMappings
+<sup><sup>[↩ Parent](#keycloakclientspec)</sup></sup>
+
+
+
+ScopeMappings lists the roles in this client's scope (dedicated scope). They limit token
+roles only when fullScopeAllowed is false. Omit the field to leave scope mappings unmanaged.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecscopemappingsclientrolesindex">clientRoles</a></b></td>
+        <td>[]object</td>
+        <td>
+          ClientRoles lists client roles in the client's scope, per client that owns them.
+A client not listed keeps its scope mappings. Each clientId appears at most once.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>realmRoles</b></td>
+        <td>[]string</td>
+        <td>
+          RealmRoles is a list of realm role names in the client's scope.
+Omit the field to leave realm scope mappings unmanaged; set it to an empty list to remove
+every realm scope mapping. The roles must exist; create them with KeycloakRealmRole.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.scopeMappings.clientRoles[index]
+<sup><sup>[↩ Parent](#keycloakclientspecscopemappings)</sup></sup>
+
+
+
+
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>clientId</b></td>
+        <td>string</td>
+        <td>
+          ClientID is a client ID.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>roles</b></td>
+        <td>[]string</td>
+        <td>
+          Roles is a list of client roles names assigned to user.
+Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+remove every mapping for the client.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

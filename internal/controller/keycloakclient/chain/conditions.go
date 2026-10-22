@@ -23,6 +23,7 @@ const (
 	ConditionClientScopesSynced                  = "ClientScopesSynced"                  // PutClientScope
 	ConditionProtocolMappersSynced               = "ProtocolMappersSynced"               // PutProtocolMappers
 	ConditionServiceAccountSynced                = "ServiceAccountSynced"                // ServiceAccount
+	ConditionScopeMappingsSynced                 = "ScopeMappingsSynced"                 // ScopeMappings
 	ConditionAuthorizationScopesSynced           = "AuthorizationScopesSynced"           // ProcessScope
 	ConditionAuthorizationResourcesSynced        = "AuthorizationResourcesSynced"        // ProcessResources
 	ConditionAuthorizationPoliciesSynced         = "AuthorizationPoliciesSynced"         // ProcessPolicy
@@ -37,6 +38,7 @@ const (
 	ReasonClientScopesSynced                  = "ClientScopesSynced"
 	ReasonProtocolMappersSynced               = "ProtocolMappersSynced"
 	ReasonServiceAccountSynced                = "ServiceAccountSynced"
+	ReasonScopeMappingsSynced                 = "ScopeMappingsSynced"
 	ReasonAuthorizationScopesSynced           = "AuthorizationScopesSynced"
 	ReasonAuthorizationResourcesSynced        = "AuthorizationResourcesSynced"
 	ReasonAuthorizationPoliciesSynced         = "AuthorizationPoliciesSynced"
