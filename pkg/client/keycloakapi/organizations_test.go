@@ -378,6 +378,81 @@ func TestOrganizationsClient_DomainRoutingFields(t *testing.T) {
 	require.True(t, ptr.Deref(gotDomain.AutoRedirect, false))
 }
 
+func TestOrganizationsClient_UpdateIdentityProviderLink(t *testing.T) {
+	t.Parallel()
+
+	c, realmName := newOrganizationsTestRealm(t)
+	ctx := context.Background()
+
+	info, err := c.GetServerInfo(ctx)
+	require.NoError(t, err)
+
+	supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+	require.NoError(t, err)
+
+	if !supported {
+		t.Skip("organization identity provider link update needs Keycloak >= 26.8, server " +
+			info.SystemInfo.ServerVersion)
+	}
+
+	idpAlias := fmt.Sprintf("link-update-idp-%d", time.Now().UnixNano())
+
+	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakapi.IdentityProviderRepresentation{
+		Alias:      &idpAlias,
+		ProviderId: ptr.To(testGithubProviderID),
+		Enabled:    ptr.To(true),
+		Config: &map[string]string{
+			"clientId":     "test-client-id",
+			"clientSecret": "test-client-secret",
+		},
+	})
+	require.NoError(t, err)
+
+	alias := fmt.Sprintf("link-update-org-%d", time.Now().UnixNano())
+
+	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
+		Name:    ptr.To("Link Update Organization"),
+		Alias:   &alias,
+		Domains: &[]keycloakapi.OrganizationDomainRepresentation{{Name: ptr.To("link-update.example.test")}},
+	})
+	require.NoError(t, err)
+
+	org, _, err := c.Organizations.GetOrganizationByAlias(ctx, realmName, alias)
+	require.NoError(t, err)
+
+	orgID := ptr.Deref(org.Id, "")
+	require.NotEmpty(t, orgID)
+
+	_, err = c.Organizations.UpdateOrganizationIdentityProviderLink(ctx, realmName, orgID, idpAlias,
+		keycloakapi.OrganizationIdentityProviderLinkRepresentation{
+			AutoMembership: ptr.To(true),
+			MembershipType: ptr.To("UNMANAGED"),
+		})
+	require.Error(t, err, "link does not exist yet")
+	require.True(t, keycloakapi.IsNotFound(err))
+
+	_, err = c.Organizations.LinkIdentityProviderToOrganization(ctx, realmName, orgID, idpAlias)
+	require.NoError(t, err)
+
+	_, err = c.Organizations.UpdateOrganizationIdentityProviderLink(ctx, realmName, orgID, idpAlias,
+		keycloakapi.OrganizationIdentityProviderLinkRepresentation{
+			AutoMembership: ptr.To(false),
+			MembershipType: ptr.To("UNMANAGED"),
+		})
+	require.NoError(t, err)
+
+	idps, _, err := c.Organizations.GetOrganizationIdentityProviders(ctx, realmName, orgID)
+	require.NoError(t, err)
+	require.Len(t, idps, 1)
+	require.NotNil(t, idps[0].OrganizationLinks)
+	require.Len(t, *idps[0].OrganizationLinks, 1)
+
+	link := (*idps[0].OrganizationLinks)[0]
+	require.Equal(t, orgID, ptr.Deref(link.OrganizationId, ""))
+	require.False(t, ptr.Deref(link.AutoMembership, true))
+	require.Equal(t, "UNMANAGED", ptr.Deref(link.MembershipType, ""))
+}
+
 func TestOrganizationsClient_Members(t *testing.T) {
 	t.Parallel()
 

@@ -12,13 +12,14 @@ import (
 )
 
 type (
-	OrganizationRepresentation              = generated.OrganizationRepresentation
-	OrganizationDomainRepresentation        = generated.OrganizationDomainRepresentation
-	GetOrganizationsParams                  = generated.GetAdminRealmsRealmOrganizationsParams
-	MemberRepresentation                    = generated.MemberRepresentation
-	GetOrganizationMembersParams            = generated.GetAdminRealmsRealmOrganizationsOrgIdMembersParams
-	InviteExistingOrganizationMemberRequest = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody //nolint:lll // generated type alias
-	InviteNewOrganizationMemberRequest      = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody         //nolint:lll // generated type alias
+	OrganizationRepresentation                     = generated.OrganizationRepresentation
+	OrganizationDomainRepresentation               = generated.OrganizationDomainRepresentation
+	OrganizationIdentityProviderLinkRepresentation = generated.OrganizationIdentityProviderLinkRepresentation
+	GetOrganizationsParams                         = generated.GetAdminRealmsRealmOrganizationsParams
+	MemberRepresentation                           = generated.MemberRepresentation
+	GetOrganizationMembersParams                   = generated.GetAdminRealmsRealmOrganizationsOrgIdMembersParams
+	InviteExistingOrganizationMemberRequest        = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteExistingUserFormdataRequestBody //nolint:lll // generated type alias
+	InviteNewOrganizationMemberRequest             = generated.PostAdminRealmsRealmOrganizationsOrgIdMembersInviteUserFormdataRequestBody         //nolint:lll // generated type alias
 )
 
 // OrganizationDomainName returns name trimmed and lower-cased; matches Keycloak for ASCII names.
@@ -203,6 +204,30 @@ func (c *organizationsClient) LinkIdentityProviderToOrganization(
 	realm, orgID, alias string,
 ) (*Response, error) {
 	res, err := c.client.PostAdminRealmsRealmOrganizationsOrgIdIdentityProvidersWithResponse(ctx, realm, orgID, alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if res == nil {
+		return nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return response, err
+	}
+
+	return response, nil
+}
+
+func (c *organizationsClient) UpdateOrganizationIdentityProviderLink(
+	ctx context.Context,
+	realm, orgID, alias string,
+	link OrganizationIdentityProviderLinkRepresentation,
+) (*Response, error) {
+	res, err := c.client.PutAdminRealmsRealmOrganizationsOrgIdIdentityProvidersAliasWithResponse(
+		ctx, realm, orgID, alias, link)
 	if err != nil {
 		return nil, err
 	}
