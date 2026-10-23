@@ -20,6 +20,9 @@ spec:
       - "us-east"
   identityProviders:
     - alias: "test-org-idp"
+      # Keycloak 26.8 or later:
+      # autoMembership: false
+      # membershipType: UNMANAGED
   realmRef:
     kind: KeycloakRealm
     name: test-org-realm

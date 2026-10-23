@@ -26,3 +26,4 @@ See [security.md](security.md) for details on `allowAdminRoleMapping`.
 | `KeycloakOrganization` | An update keeps the Keycloak-side settings of domains that the spec still lists: `verified`, and from 26.8 `identityProviderAlias` and `autoRedirect`. A spec edit no longer resets them. |
 | `KeycloakOrganization` | Domain names are compared trimmed and in lower case. A spec in mixed case no longer writes to Keycloak on every reconcile. |
 | `KeycloakOrganization` | From 26.8 an identity provider can belong to several organizations. |
+| `KeycloakOrganization` | `identityProviders[].autoMembership` and `membershipType` (Keycloak 26.8 or later) are applied to the organization link and repaired on drift. Fields left out keep the Keycloak value, and a change sends both fields. |

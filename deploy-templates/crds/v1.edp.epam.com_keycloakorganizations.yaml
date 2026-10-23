@@ -96,6 +96,20 @@ spec:
                       description: Alias is the unique identifier for the identity
                         provider within the organization.
                       type: string
+                    autoMembership:
+                      description: |-
+                        AutoMembership makes users who authenticate through the identity provider members of the organization.
+                        Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.
+                      type: boolean
+                    membershipType:
+                      description: |-
+                        MembershipType is MANAGED or UNMANAGED. MANAGED requires autoMembership true, and only one
+                        organization can hold MANAGED for an identity provider.
+                        Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.
+                      enum:
+                      - MANAGED
+                      - UNMANAGED
+                      type: string
                   required:
                   - alias
                   type: object
