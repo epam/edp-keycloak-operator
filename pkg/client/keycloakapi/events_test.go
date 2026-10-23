@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +27,7 @@ func newEventsTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, string) {
 	)
 	require.NoError(t, err)
 
-	realmName := fmt.Sprintf("test-realm-events-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-events")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
@@ -129,7 +127,7 @@ func TestEventsClient_BruteForce(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a user for brute-force testing.
-	username := fmt.Sprintf("bf-user-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("bf-user")
 
 	userResp, err := c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,

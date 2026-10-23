@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -30,7 +28,7 @@ func newIdentityProvidersTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, s
 	)
 	require.NoError(t, err)
 
-	realmName := fmt.Sprintf("test-realm-idp-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-idp")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -53,7 +51,7 @@ func TestIdentityProvidersClient_CreateIdentityProvider(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp")
 	displayName := "Test GitHub IdP"
 	providerID := testGithubProviderID
 	enabled := true
@@ -80,7 +78,7 @@ func TestIdentityProvidersClient_CreateIdentityProvider_Conflict(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("conflict-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("conflict-idp")
 	displayName := "Conflict IdP"
 	providerID := testGithubProviderID
 	enabled := true
@@ -113,7 +111,7 @@ func TestIdentityProvidersClient_GetAndDeleteIdentityProvider(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-idp-get-del-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp-get-del")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -164,7 +162,7 @@ func TestIdentityProvidersClient_UpdateIdentityProvider(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-idp-update-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp-update")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -205,7 +203,7 @@ func TestIdentityProvidersClient_Mappers(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-idp-mappers-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp-mappers")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -264,7 +262,7 @@ func TestIdentityProvidersClient_ManagementPermissions(t *testing.T) {
 
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-idp-perms-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp-perms")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -312,7 +310,7 @@ func TestIdentityProvidersClient_GetIdentityProviders(t *testing.T) {
 	ctx := context.Background()
 
 	// Create an IDP.
-	alias := fmt.Sprintf("list-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("list-idp")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -353,7 +351,7 @@ func TestIdentityProvidersClient_UpdateIDPMapper(t *testing.T) {
 	ctx := context.Background()
 
 	// Create an IDP.
-	alias := fmt.Sprintf("mapper-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("mapper-idp")
 	providerID := testGithubProviderID
 	enabled := true
 
@@ -421,7 +419,7 @@ func TestIdentityProvidersClient_ExportBrokerConfig(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a SAML IDP for export testing.
-	alias := fmt.Sprintf("export-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("export-idp")
 	providerID := "saml"
 	enabled := true
 

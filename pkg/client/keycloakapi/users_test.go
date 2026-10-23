@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -29,7 +28,7 @@ func TestUsersClient_UserProfile_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-user-profile-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-user-profile")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -153,7 +152,7 @@ func TestUsersClient_FindUserByUsername(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-find-user-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-find-user")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -235,7 +234,7 @@ func TestUsersClient_CreateUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-create-user-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-create-user")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -284,7 +283,7 @@ func TestUsersClient_CreateUser_Conflict(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-create-user-conflict-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-create-user-conflict")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -329,7 +328,7 @@ func TestUsersClient_GetUserRealmRoleMappings(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-user-role-mappings-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-user-role-mappings")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -451,7 +450,7 @@ func TestUsersClient_GetUserGroups(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-user-groups-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-user-groups")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -530,7 +529,7 @@ func TestUsersClient_AddUserToGroup(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-add-user-group-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-add-user-group")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -632,7 +631,7 @@ func TestUsersClient_RemoveUserFromGroup(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-remove-user-group-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-remove-user-group")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -718,7 +717,7 @@ func TestUsersClient_UpdateAndDeleteUser(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-upd-del-user-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-upd-del-user")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -800,7 +799,7 @@ func TestUsersClient_SetUserPassword(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-set-pwd-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-set-pwd")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -845,7 +844,7 @@ func TestUsersClient_UserClientRoleMappings(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-user-cli-roles-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-user-cli-roles")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -856,7 +855,7 @@ func TestUsersClient_UserClientRoleMappings(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create client
-	clientID := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
+	clientID := testutils.UniqueName("test-client")
 	protocol := protocolOpenIDConnect
 	clientResp, err := c.Clients.CreateClient(ctx, realmName, keycloakapi.ClientRepresentation{
 		ClientId: &clientID,
@@ -943,7 +942,7 @@ func TestUsersClient_UserFederatedIdentities(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-fed-id-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-fed-id")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -954,7 +953,7 @@ func TestUsersClient_UserFederatedIdentities(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create an identity provider
-	alias := fmt.Sprintf("test-idp-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-idp")
 	providerID := "github"
 
 	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakapi.IdentityProviderRepresentation{
@@ -1299,7 +1298,7 @@ func newUsersTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, string) {
 	)
 	require.NoError(t, err)
 
-	realmName := fmt.Sprintf("test-realm-users-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-users")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
@@ -1320,7 +1319,7 @@ func createTestUser(
 ) (string, string) {
 	t.Helper()
 
-	username := fmt.Sprintf("test-user-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("test-user")
 
 	resp, err := c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,

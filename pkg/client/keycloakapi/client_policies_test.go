@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -26,7 +24,7 @@ func newClientPoliciesTestRealm(t *testing.T, suffix string) (*keycloakapi.Keycl
 	)
 	require.NoError(t, err)
 
-	realmName := fmt.Sprintf("test-realm-cp-%s-%d", suffix, time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-cp-" + suffix)
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)

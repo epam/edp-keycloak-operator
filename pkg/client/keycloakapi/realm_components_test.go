@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -27,7 +25,7 @@ func TestRealmComponentsClient_CRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-rc-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-rc-crud")
 	enabled := true
 
 	t.Cleanup(func() {

@@ -3,7 +3,6 @@ package keycloakapi_test
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"testing"
 	"time"
 
@@ -31,7 +30,7 @@ func createAuthzClient(
 	authzEnabled := true
 	serviceAccountsEnabled := true
 	protocol := protocolOpenIDConnect
-	clientID := fmt.Sprintf("authz-client-%d", time.Now().UnixNano())
+	clientID := testutils.UniqueName("authz-client")
 	bearerOnly := false
 	publicClient := false
 
@@ -66,7 +65,7 @@ func TestAuthorizationClient_ScopeCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-scope-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-scope")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -81,7 +80,7 @@ func TestAuthorizationClient_ScopeCRUD(t *testing.T) {
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
-	scopeName := fmt.Sprintf("test-scope-%d", time.Now().UnixNano())
+	scopeName := testutils.UniqueName("test-scope")
 
 	// Create scope — ID comes from the response body, not Location header
 	resp, err := kc.Authorization.CreateScope(ctx, realmName, clientUUID, keycloakapi.ScopeRepresentation{
@@ -143,7 +142,7 @@ func TestAuthorizationClient_ResourceCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-res-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-res")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -158,7 +157,7 @@ func TestAuthorizationClient_ResourceCRUD(t *testing.T) {
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
-	resourceName := fmt.Sprintf("test-resource-%d", time.Now().UnixNano())
+	resourceName := testutils.UniqueName("test-resource")
 	resourceType := "urn:test:resource:test"
 
 	// Create resource
@@ -243,7 +242,7 @@ func TestAuthorizationClient_PolicyCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-policy-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-policy")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -265,7 +264,7 @@ func TestAuthorizationClient_PolicyCRUD(t *testing.T) {
 
 	baseline := len(policies)
 
-	policyName := fmt.Sprintf("test-policy-%d", time.Now().UnixNano())
+	policyName := testutils.UniqueName("test-policy")
 	policyType := "time"
 	logic := keycloakapi.Logic("POSITIVE")
 	decisionStrategy := keycloakapi.DecisionStrategy("UNANIMOUS")
@@ -325,7 +324,7 @@ func createPlainClient(
 
 	enabled := true
 	protocol := protocolOpenIDConnect
-	clientID := fmt.Sprintf("plain-client-%d", time.Now().UnixNano())
+	clientID := testutils.UniqueName("plain-client")
 
 	resp, err := kc.Clients.CreateClient(ctx, realmName, keycloakapi.ClientRepresentation{
 		ClientId: &clientID,
@@ -354,7 +353,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-policy-types-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-policy-types")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -372,7 +371,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	// --- Prerequisites ---
 
 	// Realm role
-	roleName := fmt.Sprintf("policy-role-%d", time.Now().UnixNano())
+	roleName := testutils.UniqueName("policy-role")
 	_, err = kc.Roles.CreateRealmRole(ctx, realmName, keycloakapi.RoleRepresentation{Name: &roleName})
 	require.NoError(t, err)
 
@@ -381,7 +380,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	require.NotNil(t, role.Id)
 
 	// Group
-	groupName := fmt.Sprintf("policy-group-%d", time.Now().UnixNano())
+	groupName := testutils.UniqueName("policy-group")
 	groupResp, err := kc.Groups.CreateGroup(ctx, realmName, keycloakapi.GroupRepresentation{Name: &groupName})
 	require.NoError(t, err)
 
@@ -392,7 +391,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	plainClientUUID := createPlainClient(t, kc, ctx, realmName)
 
 	// User (for user policy)
-	username := fmt.Sprintf("policy-user-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("policy-user")
 	userResp, err := kc.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{Username: &username})
 	require.NoError(t, err)
 
@@ -400,7 +399,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	require.NotEmpty(t, userID)
 
 	// Seed time policy (required by the aggregate sub-test)
-	seedName := fmt.Sprintf("seed-time-policy-%d", time.Now().UnixNano())
+	seedName := testutils.UniqueName("seed-time-policy")
 	seedBody := keycloakapi.TimePolicyBody{
 		PolicyBodyBase: keycloakapi.PolicyBodyBase{
 			Name: seedName,
@@ -420,7 +419,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("time", func(t *testing.T) {
 		t.Parallel()
 
-		name := fmt.Sprintf("time-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("time-policy")
 		body := keycloakapi.TimePolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -462,7 +461,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("aggregate", func(t *testing.T) {
 		t.Parallel()
 
-		name := fmt.Sprintf("aggregate-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("aggregate-policy")
 		body := keycloakapi.AggregatePolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -501,7 +500,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("client", func(t *testing.T) { //nolint:dupl // each policy subtest uses a distinct body type
 		t.Parallel()
 
-		name := fmt.Sprintf("client-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("client-policy")
 		body := keycloakapi.ClientPolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -541,7 +540,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("group", func(t *testing.T) {
 		t.Parallel()
 
-		name := fmt.Sprintf("group-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("group-policy")
 		body := keycloakapi.GroupPolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -585,7 +584,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("role", func(t *testing.T) {
 		t.Parallel()
 
-		name := fmt.Sprintf("role-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("role-policy")
 		body := keycloakapi.RolePolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -629,7 +628,7 @@ func TestAuthorizationClient_PolicyTypes(t *testing.T) {
 	t.Run("user", func(t *testing.T) { //nolint:dupl // each policy subtest uses a distinct body type
 		t.Parallel()
 
-		name := fmt.Sprintf("user-policy-%d", time.Now().UnixNano())
+		name := testutils.UniqueName("user-policy")
 		body := keycloakapi.UserPolicyBody{
 			PolicyBodyBase: keycloakapi.PolicyBodyBase{
 				Name:             name,
@@ -680,7 +679,7 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-perm-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-perm")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -702,7 +701,7 @@ func TestAuthorizationClient_PermissionCRUD(t *testing.T) {
 
 	baseline := len(permissions)
 
-	permName := fmt.Sprintf("test-permission-%d", time.Now().UnixNano())
+	permName := testutils.UniqueName("test-permission")
 	permType := permissionTypeScope
 	decisionStrategy := keycloakapi.DecisionStrategy("UNANIMOUS")
 
@@ -765,7 +764,7 @@ func TestAuthorizationClient_PoliciesAndPermissionsAreSeparateLists(t *testing.T
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-split-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-split")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -783,7 +782,7 @@ func TestAuthorizationClient_PoliciesAndPermissionsAreSeparateLists(t *testing.T
 	decisionStrategy := keycloakapi.DecisionStrategy("UNANIMOUS")
 	logic := keycloakapi.Logic("POSITIVE")
 
-	policyName := fmt.Sprintf("split-policy-%d", time.Now().UnixNano())
+	policyName := testutils.UniqueName("split-policy")
 	policyType := "time"
 
 	_, _, err = kc.Authorization.CreatePolicy(ctx, realmName, clientUUID, policyType, keycloakapi.PolicyRepresentation{
@@ -794,7 +793,7 @@ func TestAuthorizationClient_PoliciesAndPermissionsAreSeparateLists(t *testing.T
 	})
 	require.NoError(t, err)
 
-	permName := fmt.Sprintf("split-permission-%d", time.Now().UnixNano())
+	permName := testutils.UniqueName("split-permission")
 	permType := permissionTypeScope
 
 	_, _, err = kc.Authorization.CreatePermission(ctx, realmName, clientUUID, permType, keycloakapi.PolicyRepresentation{
@@ -842,7 +841,7 @@ func TestAuthorizationClient_GetResource(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-getres-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-getres")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -857,7 +856,7 @@ func TestAuthorizationClient_GetResource(t *testing.T) {
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
-	resourceName := fmt.Sprintf("test-getresource-%d", time.Now().UnixNano())
+	resourceName := testutils.UniqueName("test-getresource")
 
 	created, _, err := kc.Authorization.CreateResource(ctx, realmName, clientUUID, keycloakapi.ResourceRepresentation{
 		Name: &resourceName,
@@ -887,7 +886,7 @@ func TestAuthorizationClient_GetAndUpdateScope(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-authz-getscope-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-authz-getscope")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -902,7 +901,7 @@ func TestAuthorizationClient_GetAndUpdateScope(t *testing.T) {
 
 	clientUUID := createAuthzClient(t, kc, ctx, realmName)
 
-	scopeName := fmt.Sprintf("test-getscope-%d", time.Now().UnixNano())
+	scopeName := testutils.UniqueName("test-getscope")
 
 	createResp, err := kc.Authorization.CreateScope(ctx, realmName, clientUUID, keycloakapi.ScopeRepresentation{
 		Name: &scopeName,

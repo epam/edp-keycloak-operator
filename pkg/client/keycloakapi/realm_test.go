@@ -2,7 +2,6 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -29,7 +28,7 @@ func TestRealmClient_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-realm-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-realm-crud")
 	displayName := "Test Realm for CRUD"
 	enabled := true
 
@@ -178,7 +177,7 @@ func TestRealmClient_SetRealmBrowserFlow(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-browser-flow-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-browser-flow")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -238,7 +237,7 @@ func TestRealmClient_GetAuthenticationFlows(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-auth-flows-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-auth-flows")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -346,7 +345,7 @@ func TestRealmClient_GetRealmKeys(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-keys-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-keys")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
@@ -380,7 +379,7 @@ func TestRealmClient_GetRealmLocalization(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-localization-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-localization")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
@@ -414,7 +413,7 @@ func TestRealmClient_PostRealmLocalization(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-localization-post-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-localization-post")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)

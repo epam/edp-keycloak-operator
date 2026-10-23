@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -28,7 +27,7 @@ func newOrganizationsTestRealm(t *testing.T) (*keycloakapi.KeycloakClient, strin
 	)
 	require.NoError(t, err)
 
-	realmName := fmt.Sprintf("test-realm-org-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-org")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -51,7 +50,7 @@ func TestOrganizationsClient_CRUD(t *testing.T) {
 	c, realmName := newOrganizationsTestRealm(t)
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("test-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("test-org")
 	orgName := "Test Organization"
 	orgDescription := "Test organization description"
 	redirectURL := "https://example.com/redirect"
@@ -147,7 +146,7 @@ func TestOrganizationsClient_GetOrganizationByAlias(t *testing.T) {
 	c, realmName := newOrganizationsTestRealm(t)
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("alias-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("alias-org")
 	orgName := "Alias Test Organization"
 
 	// Create organization
@@ -204,7 +203,7 @@ func TestOrganizationsClient_CreateOrganization_Conflict(t *testing.T) {
 	c, realmName := newOrganizationsTestRealm(t)
 	ctx := context.Background()
 
-	alias := fmt.Sprintf("conflict-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("conflict-org")
 	orgName := "Conflict Organization"
 
 	org := keycloakapi.OrganizationRepresentation{
@@ -243,7 +242,7 @@ func TestOrganizationsClient_IdentityProviders(t *testing.T) {
 	ctx := context.Background()
 
 	// Create an identity provider in the realm
-	idpAlias := fmt.Sprintf("test-idp-%d", time.Now().UnixNano())
+	idpAlias := testutils.UniqueName("test-idp")
 	displayName := "Test IdP"
 	providerID := testGithubProviderID
 	enabled := true
@@ -261,7 +260,7 @@ func TestOrganizationsClient_IdentityProviders(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create organization
-	alias := fmt.Sprintf("idp-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("idp-org")
 	orgName := "IdP Organization"
 
 	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
@@ -320,7 +319,7 @@ func TestOrganizationsClient_DomainRoutingFields(t *testing.T) {
 		t.Skip("organization domain routing fields need Keycloak >= 26.8, server " + info.SystemInfo.ServerVersion)
 	}
 
-	idpAlias := fmt.Sprintf("domain-routing-idp-%d", time.Now().UnixNano())
+	idpAlias := testutils.UniqueName("domain-routing-idp")
 
 	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakapi.IdentityProviderRepresentation{
 		Alias:      &idpAlias,
@@ -333,7 +332,7 @@ func TestOrganizationsClient_DomainRoutingFields(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	alias := fmt.Sprintf("domain-routing-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("domain-routing-org")
 	orgName := "Domain Routing Organization"
 	domain := "routing.example.test"
 
@@ -395,7 +394,7 @@ func TestOrganizationsClient_UpdateIdentityProviderLink(t *testing.T) {
 			info.SystemInfo.ServerVersion)
 	}
 
-	idpAlias := fmt.Sprintf("link-update-idp-%d", time.Now().UnixNano())
+	idpAlias := testutils.UniqueName("link-update-idp")
 
 	_, err = c.IdentityProviders.CreateIdentityProvider(ctx, realmName, keycloakapi.IdentityProviderRepresentation{
 		Alias:      &idpAlias,
@@ -408,7 +407,7 @@ func TestOrganizationsClient_UpdateIdentityProviderLink(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	alias := fmt.Sprintf("link-update-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("link-update-org")
 
 	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
 		Name:    ptr.To("Link Update Organization"),
@@ -460,7 +459,7 @@ func TestOrganizationsClient_Members(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a user in the realm.
-	username := fmt.Sprintf("org-member-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("org-member")
 
 	userResp, err := c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,
@@ -473,7 +472,7 @@ func TestOrganizationsClient_Members(t *testing.T) {
 	require.NotEmpty(t, userID)
 
 	// Create an organization.
-	alias := fmt.Sprintf("member-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("member-org")
 
 	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
 		Name:  ptr.To("Member Test Org"),
@@ -524,7 +523,7 @@ func TestOrganizationsClient_InviteExistingMember(t *testing.T) {
 	ctx := context.Background()
 
 	// Create a user.
-	username := fmt.Sprintf("invite-existing-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("invite-existing")
 
 	userResp, err := c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,
@@ -537,7 +536,7 @@ func TestOrganizationsClient_InviteExistingMember(t *testing.T) {
 	require.NotEmpty(t, userID)
 
 	// Create an organization.
-	alias := fmt.Sprintf("invite-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("invite-org")
 
 	_, err = c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
 		Name:  ptr.To("Invite Test Org"),
@@ -567,7 +566,7 @@ func TestOrganizationsClient_InviteNewMember(t *testing.T) {
 	ctx := context.Background()
 
 	// Create an organization.
-	alias := fmt.Sprintf("invite-new-org-%d", time.Now().UnixNano())
+	alias := testutils.UniqueName("invite-new-org")
 
 	_, err := c.Organizations.CreateOrganization(ctx, realmName, keycloakapi.OrganizationRepresentation{
 		Name:  ptr.To("Invite New Org"),
