@@ -15,6 +15,8 @@ Check before you upgrade Keycloak:
 | `KeycloakRealmIdentityProvider` mapper with `identityProviderAlias` | Returns 400 when the alias differs from the alias of the identity provider. | Remove the field or set it to the identity provider alias. |
 | `KeycloakRealmIdentityProvider` with changed `providerId` | Rejected on an existing identity provider. | Create a new identity provider. |
 
+| `Keycloak`, `ClusterKeycloak` with `spec.tlsServerName` | Returns 421 when the TLS server name differs from the `Host` of the request, the server has no proxy headers configured, and `Host` is not the Keycloak `hostname` or `hostname-admin`. | Set the Keycloak `hostname` option to the host of `spec.url`, or configure proxy headers on the server. |
+
 See [security.md](security.md) for details on `allowAdminRoleMapping`.
 
 ## Operator behavior changes

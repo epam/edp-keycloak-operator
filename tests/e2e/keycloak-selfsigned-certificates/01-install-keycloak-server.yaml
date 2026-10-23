@@ -32,6 +32,7 @@ spec:
           args:
             - "start-dev"
             - "--https-port=8443"
+            - "--hostname=test-keycloak-alias"
             - "--https-certificate-file=/etc/certs/tls.crt"
             - "--https-certificate-key-file=/etc/certs/tls.key"
           ports:
