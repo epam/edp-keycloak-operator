@@ -2665,6 +2665,25 @@ OrgIdentityProvider defines an identity provider for an organization.
           Alias is the unique identifier for the identity provider within the organization.<br/>
         </td>
         <td>true</td>
+      </tr><tr>
+        <td><b>autoMembership</b></td>
+        <td>boolean</td>
+        <td>
+          AutoMembership makes users who authenticate through the identity provider members of the organization.
+Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>membershipType</b></td>
+        <td>enum</td>
+        <td>
+          MembershipType is MANAGED or UNMANAGED. MANAGED requires autoMembership true, and only one
+organization can hold MANAGED for an identity provider.
+Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.<br/>
+          <br/>
+            <i>Enum</i>: MANAGED, UNMANAGED<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

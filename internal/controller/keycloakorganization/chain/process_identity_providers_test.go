@@ -379,3 +379,163 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 		})
 	}
 }
+
+func linkedIdP(autoMembership bool, membershipType string) keycloakapi.IdentityProviderRepresentation {
+	return keycloakapi.IdentityProviderRepresentation{
+		Alias: ptr.To("idp1"),
+		OrganizationLinks: &[]keycloakapi.OrganizationIdentityProviderLinkRepresentation{{
+			OrganizationId: ptr.To("org-123"),
+			AutoMembership: ptr.To(autoMembership),
+			MembershipType: ptr.To(membershipType),
+		}},
+	}
+}
+
+func linkBody(autoMembership bool, membershipType string) keycloakapi.OrganizationIdentityProviderLinkRepresentation {
+	return keycloakapi.OrganizationIdentityProviderLinkRepresentation{
+		AutoMembership: ptr.To(autoMembership),
+		MembershipType: ptr.To(membershipType),
+	}
+}
+
+func TestProcessIdentityProviders_LinkSettings(t *testing.T) {
+	t.Parallel()
+
+	getIdPs := func(client *keycloakapimocks.MockOrganizationsClient, idps ...keycloakapi.IdentityProviderRepresentation) {
+		client.On("GetOrganizationIdentityProviders", mock.Anything, testRealmName, "org-123").
+			Return(idps, (*keycloakapi.Response)(nil), nil).Once()
+	}
+
+	org := func(idps ...keycloakApi.OrgIdentityProvider) *keycloakApi.KeycloakOrganization {
+		return &keycloakApi.KeycloakOrganization{
+			Spec:   keycloakApi.KeycloakOrganizationSpec{IdentityProviders: idps},
+			Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: "org-123"},
+		}
+	}
+
+	tests := []struct {
+		name         string
+		organization *keycloakApi.KeycloakOrganization
+		setup        func(orgs *keycloakapimocks.MockOrganizationsClient, idps *keycloakapimocks.MockIdentityProvidersClient)
+		wantErrText  string
+	}{
+		{
+			name:         "new link with settings is re-read and updated",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, idps *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs)
+				idps.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(&keycloakapi.IdentityProviderRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+				orgs.On("LinkIdentityProviderToOrganization", mock.Anything, testRealmName, "org-123", "idp1").
+					Return((*keycloakapi.Response)(nil), nil).Once()
+				getIdPs(orgs, linkedIdP(true, "UNMANAGED"))
+				orgs.On("UpdateOrganizationIdentityProviderLink", mock.Anything, testRealmName, "org-123", "idp1",
+					linkBody(false, "UNMANAGED")).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+			},
+		},
+		{
+			name: "settled link is not written",
+			organization: org(keycloakApi.OrgIdentityProvider{
+				Alias: "idp1", AutoMembership: ptr.To(false), MembershipType: ptr.To("UNMANAGED"),
+			}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, linkedIdP(false, "UNMANAGED"))
+			},
+		},
+		{
+			name:         "drift is repaired and the other field comes from Keycloak",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, linkedIdP(true, "UNMANAGED"))
+				orgs.On("UpdateOrganizationIdentityProviderLink", mock.Anything, testRealmName, "org-123", "idp1",
+					linkBody(false, "UNMANAGED")).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+			},
+		},
+		{
+			name:         "only membershipType set",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", MembershipType: ptr.To("MANAGED")}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, linkedIdP(true, "UNMANAGED"))
+				orgs.On("UpdateOrganizationIdentityProviderLink", mock.Anything, testRealmName, "org-123", "idp1",
+					linkBody(true, "MANAGED")).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+			},
+		},
+		{
+			name:         "autoMembership false with fetched MANAGED sends the pair and surfaces the Keycloak error",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, linkedIdP(true, "MANAGED"))
+				orgs.On("UpdateOrganizationIdentityProviderLink", mock.Anything, testRealmName, "org-123", "idp1",
+					linkBody(false, "MANAGED")).
+					Return((*keycloakapi.Response)(nil), &keycloakapi.ApiError{
+						Code: http.StatusBadRequest, Message: "Auto-membership must be enabled when membership type is MANAGED",
+					}).Once()
+			},
+			wantErrText: `unable to update link settings of identity provider "idp1"`,
+		},
+		{
+			name:         "no organization links is an error without a PUT",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("idp1")})
+			},
+			wantErrText: "require Keycloak 26.8 or later",
+		},
+		{
+			name:         "link of another organization is ignored",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				other := linkedIdP(true, "UNMANAGED")
+				(*other.OrganizationLinks)[0].OrganizationId = ptr.To("org-other")
+				getIdPs(orgs, other)
+			},
+			wantErrText: "require Keycloak 26.8 or later",
+		},
+		{
+			name:         "link update returns 404",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1", AutoMembership: ptr.To(false)}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, _ *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs, linkedIdP(true, "UNMANAGED"))
+				orgs.On("UpdateOrganizationIdentityProviderLink", mock.Anything, testRealmName, "org-123", "idp1",
+					linkBody(false, "UNMANAGED")).
+					Return((*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: http.StatusNotFound, Message: "not found"}).Once()
+			},
+			wantErrText: "unable to update link settings",
+		},
+		{
+			name:         "no settings in spec: no re-read and no PUT",
+			organization: org(keycloakApi.OrgIdentityProvider{Alias: "idp1"}),
+			setup: func(orgs *keycloakapimocks.MockOrganizationsClient, idps *keycloakapimocks.MockIdentityProvidersClient) {
+				getIdPs(orgs)
+				idps.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(&keycloakapi.IdentityProviderRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+				orgs.On("LinkIdentityProviderToOrganization", mock.Anything, testRealmName, "org-123", "idp1").
+					Return((*keycloakapi.Response)(nil), nil).Once()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			orgs := keycloakapimocks.NewMockOrganizationsClient(t)
+			idps := keycloakapimocks.NewMockIdentityProvidersClient(t)
+			tt.setup(orgs, idps)
+
+			kc := &keycloakapi.KeycloakClient{}
+			kc.Organizations = orgs
+			kc.IdentityProviders = idps
+
+			err := NewProcessIdentityProviders(kc).ServeRequest(context.Background(), tt.organization, testRealmName)
+
+			if tt.wantErrText != "" {
+				require.ErrorContains(t, err, tt.wantErrText)
+				return
+			}
+
+			require.NoError(t, err)
+		})
+	}
+}

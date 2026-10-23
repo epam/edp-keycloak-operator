@@ -55,6 +55,18 @@ type OrgIdentityProvider struct {
 	// Alias is the unique identifier for the identity provider within the organization.
 	// +required
 	Alias string `json:"alias"`
+
+	// AutoMembership makes users who authenticate through the identity provider members of the organization.
+	// Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.
+	// +optional
+	AutoMembership *bool `json:"autoMembership,omitempty"`
+
+	// MembershipType is MANAGED or UNMANAGED. MANAGED requires autoMembership true, and only one
+	// organization can hold MANAGED for an identity provider.
+	// Requires Keycloak 26.8 or later. Omitted: the value stored in Keycloak is kept.
+	// +kubebuilder:validation:Enum=MANAGED;UNMANAGED
+	// +optional
+	MembershipType *string `json:"membershipType,omitempty"`
 }
 
 // KeycloakOrganizationStatus defines the observed state of Organization.
