@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -28,7 +26,7 @@ func TestAuthFlowsClient_CRUD(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-crud")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -41,7 +39,7 @@ func TestAuthFlowsClient_CRUD(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	flowAlias := fmt.Sprintf("test-flow-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-flow")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -131,7 +129,7 @@ func TestAuthFlowsClient_Executions(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-exec-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-exec")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -145,7 +143,7 @@ func TestAuthFlowsClient_Executions(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a custom flow to add executions to
-	flowAlias := fmt.Sprintf("test-flow-exec-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-flow-exec")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -242,7 +240,7 @@ func TestAuthFlowsClient_ChildFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-child-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-child")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -256,7 +254,7 @@ func TestAuthFlowsClient_ChildFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create parent flow
-	flowAlias := fmt.Sprintf("test-parent-flow-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-parent-flow")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -314,7 +312,7 @@ func TestAuthFlowsClient_ExecutionConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-cfg-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-cfg")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -328,7 +326,7 @@ func TestAuthFlowsClient_ExecutionConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a flow
-	flowAlias := fmt.Sprintf("test-flow-cfg-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-flow-cfg")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -402,7 +400,7 @@ func TestAuthFlowsClient_GetAuthenticatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-getcfg-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-getcfg")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -416,7 +414,7 @@ func TestAuthFlowsClient_GetAuthenticatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a flow and add a configurable execution.
-	flowAlias := fmt.Sprintf("test-flow-getcfg-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-flow-getcfg")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -494,7 +492,7 @@ func TestAuthFlowsClient_GetAuthFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-getflow-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-getflow")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -508,7 +506,7 @@ func TestAuthFlowsClient_GetAuthFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a flow and then fetch it by ID.
-	flowAlias := fmt.Sprintf("test-get-flow-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("test-get-flow")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -549,7 +547,7 @@ func TestAuthFlowsClient_CopyAuthFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-copy-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-copy")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -562,7 +560,7 @@ func TestAuthFlowsClient_CopyAuthFlow(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	newFlowAlias := fmt.Sprintf("copy-of-browser-%d", time.Now().UnixNano())
+	newFlowAlias := testutils.UniqueName("copy-of-browser")
 
 	resp, err := c.AuthFlows.CopyAuthFlow(ctx, realmName, "browser", newFlowAlias)
 	require.NoError(t, err)
@@ -598,7 +596,7 @@ func TestAuthFlowsClient_UpdateAndDeleteAuthenticatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-updcfg-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-updcfg")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -612,7 +610,7 @@ func TestAuthFlowsClient_UpdateAndDeleteAuthenticatorConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a flow with an execution that supports config (conditional-otp).
-	flowAlias := fmt.Sprintf("cfg-flow-%d", time.Now().UnixNano())
+	flowAlias := testutils.UniqueName("cfg-flow")
 	topLevel := true
 	builtIn := false
 	providerID := basicFlowProviderID
@@ -715,7 +713,7 @@ func TestAuthFlowsClient_RequiredActions(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-af-reqaction-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-af-reqaction")
 	enabled := true
 
 	t.Cleanup(func() {

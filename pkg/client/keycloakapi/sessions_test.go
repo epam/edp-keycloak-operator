@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 	"k8s.io/utils/ptr"
@@ -26,7 +24,7 @@ func TestSessionsClient_GetRealmSessionStats(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-sessions-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-sessions")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
@@ -58,7 +56,7 @@ func TestSessionsClient_LogoutAllSessions(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-logout-all-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-logout-all")
 
 	t.Cleanup(func() {
 		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)

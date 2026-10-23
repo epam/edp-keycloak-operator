@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
@@ -26,7 +24,7 @@ func TestRolesClient_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-role-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-role-crud")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -187,7 +185,7 @@ func TestRolesClient_CreateRealmRole_Conflict(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-role-conflict-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-role-conflict")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -235,7 +233,7 @@ func TestRolesClient_UpdateAndComposites(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-role-composites-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-role-composites")
 	enabled := true
 
 	t.Cleanup(func() {

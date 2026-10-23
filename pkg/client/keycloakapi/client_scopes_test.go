@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 
@@ -26,7 +24,7 @@ func TestClientScopesClient_CRUD(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-cs-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-cs-crud")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -114,7 +112,7 @@ func TestClientScopesClient_RealmScopeType(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-cs-type-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-cs-type")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -187,7 +185,7 @@ func TestClientScopesClient_ProtocolMappers(t *testing.T) {
 
 	ctx := context.Background()
 
-	realmName := fmt.Sprintf("test-realm-cs-mappers-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-cs-mappers")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -272,7 +270,7 @@ func TestClientScopesClient_UpdateClientScopeProtocolMapper(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-cs-updmapper-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-cs-updmapper")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -286,7 +284,7 @@ func TestClientScopesClient_UpdateClientScopeProtocolMapper(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a client scope.
-	scopeName := fmt.Sprintf("test-scope-updmapper-%d", time.Now().UnixNano())
+	scopeName := testutils.UniqueName("test-scope-updmapper")
 	protocol := "openid-connect"
 
 	resp, err := c.ClientScopes.CreateClientScope(ctx, realmName, keycloakapi.ClientScopeRepresentation{

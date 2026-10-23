@@ -2,9 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
-	"fmt"
 	"testing"
-	"time"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
@@ -30,7 +28,7 @@ func TestGroupsClient_CRUD(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-crud-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-crud")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -141,7 +139,7 @@ func TestGroupsClient_ChildGroups(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-child-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-child")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -346,7 +344,7 @@ func TestGroupsClient_GetGroups_WithParams(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-params-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-params")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -439,7 +437,7 @@ func TestGroupsClient_RealmRoleMappings(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-realm-roles-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-realm-roles")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -585,7 +583,7 @@ func TestGroupsClient_ClientRoleMappings(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-client-roles-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-client-roles")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -612,7 +610,7 @@ func TestGroupsClient_ClientRoleMappings(t *testing.T) {
 
 	// 1. Create test client
 	t.Run("Create Test Client", func(t *testing.T) {
-		clientId := fmt.Sprintf("test-client-%d", time.Now().UnixNano())
+		clientId := testutils.UniqueName("test-client")
 		clientName := "Test Client for Role Mapping"
 		publicClient := false
 		client := keycloakapi.ClientRepresentation{
@@ -766,7 +764,7 @@ func TestGroupsClient_FindGroupByName(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-find-grp-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-find-grp")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -864,7 +862,7 @@ func TestGroupsClient_FindChildGroupByName(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-find-child-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-find-child")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -979,7 +977,7 @@ func TestGroupsClient_FindGroupByName_MultiLevel(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-multilevel-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-multilevel")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -1160,7 +1158,7 @@ func TestGroupsClient_GetGroupByPath(t *testing.T) {
 	ctx := context.Background()
 
 	// Generate unique realm name to avoid conflicts
-	realmName := fmt.Sprintf("test-realm-grp-path-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-path")
 	enabled := true
 
 	// Ensure cleanup happens even if test fails
@@ -1299,7 +1297,7 @@ func TestGroupsClient_CountGroups(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-grp-count-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-count")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -1313,7 +1311,7 @@ func TestGroupsClient_CountGroups(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a group so count > 0.
-	groupName := fmt.Sprintf("count-group-%d", time.Now().UnixNano())
+	groupName := testutils.UniqueName("count-group")
 
 	_, err = c.Groups.CreateGroup(ctx, realmName, keycloakapi.GroupRepresentation{
 		Name: &groupName,
@@ -1344,7 +1342,7 @@ func TestGroupsClient_GetGroupMembers(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-grp-members-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-members")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -1358,7 +1356,7 @@ func TestGroupsClient_GetGroupMembers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Create a group.
-	groupName := fmt.Sprintf("members-group-%d", time.Now().UnixNano())
+	groupName := testutils.UniqueName("members-group")
 
 	groupResp, err := c.Groups.CreateGroup(ctx, realmName, keycloakapi.GroupRepresentation{
 		Name: &groupName,
@@ -1368,7 +1366,7 @@ func TestGroupsClient_GetGroupMembers(t *testing.T) {
 	groupID := keycloakapi.GetResourceIDFromResponse(groupResp)
 
 	// Create a user and add to the group.
-	username := fmt.Sprintf("grp-member-%d", time.Now().UnixNano())
+	username := testutils.UniqueName("grp-member")
 
 	userResp, err := c.Users.CreateUser(ctx, realmName, keycloakapi.UserRepresentation{
 		Username: &username,
@@ -1402,7 +1400,7 @@ func TestGroupsClient_GroupManagementPermissions(t *testing.T) {
 	require.NoError(t, err)
 
 	ctx := context.Background()
-	realmName := fmt.Sprintf("test-realm-grp-perms-%d", time.Now().UnixNano())
+	realmName := testutils.UniqueName("test-realm-grp-perms")
 	enabled := true
 
 	t.Cleanup(func() {
@@ -1415,7 +1413,7 @@ func TestGroupsClient_GroupManagementPermissions(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	groupName := fmt.Sprintf("perms-group-%d", time.Now().UnixNano())
+	groupName := testutils.UniqueName("perms-group")
 
 	groupResp, err := c.Groups.CreateGroup(ctx, realmName, keycloakapi.GroupRepresentation{
 		Name: &groupName,

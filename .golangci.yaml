@@ -28,6 +28,8 @@ linters:
       forbid:
         - pattern: ^testEnv\.(Start|Stop)$
           msg: use testutils.StartEnvTest, which registers Stop with DeferCleanup
+        - pattern: \.Unix(Nano|Micro|Milli)$
+          msg: in tests use testutils.UniqueName
     goconst:
       min-occurrences: 20
     revive:

@@ -85,6 +85,9 @@ Each Keycloak object has one owner: the CR of its kind. A CR embeds only what Ke
 ### Reconciliation idempotency
 Skip Keycloak writes when actual state matches the spec; track `status.observedGeneration` and force writes on generation change so spec removals propagate. Never delete-and-recreate child resources — diff by name (reference: `internal/controller/keycloakclientscope/chain/`).
 
+### Test names
+Keycloak at `TEST_KEYCLOAK_URL` is shared by all test binaries; names are global there. `testutils.RealmName(base)`: one name per base per test binary, for names several specs or a CR and its realm share. `testutils.UniqueName(prefix)`: a new name per call, for objects one test creates. Prefix: lowercase letters, digits, hyphens, at most 32 characters. No clock values in names: `UnixNano`, `UnixMicro` and `UnixMilli` are rejected by forbidigo outside `pkg/testutils/`.
+
 ### Sensitive values
 A secret value comes from the spec or a Secret it names as `$name:key`; resolve refs through `pkg/secretref` on a copy of the spec map. The resolved value lives in the write body only: keep it out of the CR, status, events, logs and errors.
 
