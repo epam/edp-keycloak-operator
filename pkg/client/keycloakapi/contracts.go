@@ -520,6 +520,14 @@ type OrganizationsClient interface {
 	) ([]IdentityProviderRepresentation, *Response, error)
 	// LinkIdentityProviderToOrganization links an identity provider to an organization by alias.
 	LinkIdentityProviderToOrganization(ctx context.Context, realm, orgID, alias string) (*Response, error)
+	// UpdateOrganizationIdentityProviderLink sets autoMembership and membershipType of an existing link.
+	// Requires Keycloak 26.8 or later. Sends both fields: Keycloak resets an omitted one to its default
+	// (autoMembership true, membershipType UNMANAGED).
+	UpdateOrganizationIdentityProviderLink(
+		ctx context.Context,
+		realm, orgID, alias string,
+		link OrganizationIdentityProviderLinkRepresentation,
+	) (*Response, error)
 	// UnlinkIdentityProviderFromOrganization unlinks an identity provider from an organization.
 	UnlinkIdentityProviderFromOrganization(ctx context.Context, realm, orgID, alias string) (*Response, error)
 	// GetOrganizationMembers lists members of an organization.

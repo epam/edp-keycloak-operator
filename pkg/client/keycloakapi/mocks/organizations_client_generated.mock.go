@@ -1182,3 +1182,89 @@ func (_c *MockOrganizationsClient_UpdateOrganization_Call) RunAndReturn(run func
 	_c.Call.Return(run)
 	return _c
 }
+
+// UpdateOrganizationIdentityProviderLink provides a mock function for the type MockOrganizationsClient
+func (_mock *MockOrganizationsClient) UpdateOrganizationIdentityProviderLink(ctx context.Context, realm string, orgID string, alias string, link keycloakapi.OrganizationIdentityProviderLinkRepresentation) (*keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, orgID, alias, link)
+
+	if len(ret) == 0 {
+		panic("no return value specified for UpdateOrganizationIdentityProviderLink")
+	}
+
+	var r0 *keycloakapi.Response
+	var r1 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakapi.OrganizationIdentityProviderLinkRepresentation) (*keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, orgID, alias, link)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string, string, keycloakapi.OrganizationIdentityProviderLinkRepresentation) *keycloakapi.Response); ok {
+		r0 = returnFunc(ctx, realm, orgID, alias, link)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string, string, keycloakapi.OrganizationIdentityProviderLinkRepresentation) error); ok {
+		r1 = returnFunc(ctx, realm, orgID, alias, link)
+	} else {
+		r1 = ret.Error(1)
+	}
+	return r0, r1
+}
+
+// MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'UpdateOrganizationIdentityProviderLink'
+type MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call struct {
+	*mock.Call
+}
+
+// UpdateOrganizationIdentityProviderLink is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - orgID string
+//   - alias string
+//   - link keycloakapi.OrganizationIdentityProviderLinkRepresentation
+func (_e *MockOrganizationsClient_Expecter) UpdateOrganizationIdentityProviderLink(ctx any, realm any, orgID any, alias any, link any) *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call {
+	return &MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call{Call: _e.mock.On("UpdateOrganizationIdentityProviderLink", ctx, realm, orgID, alias, link)}
+}
+
+func (_c *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call) Run(run func(ctx context.Context, realm string, orgID string, alias string, link keycloakapi.OrganizationIdentityProviderLinkRepresentation)) *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		var arg3 string
+		if args[3] != nil {
+			arg3 = args[3].(string)
+		}
+		var arg4 keycloakapi.OrganizationIdentityProviderLinkRepresentation
+		if args[4] != nil {
+			arg4 = args[4].(keycloakapi.OrganizationIdentityProviderLinkRepresentation)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+			arg3,
+			arg4,
+		)
+	})
+	return _c
+}
+
+func (_c *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call) Return(response *keycloakapi.Response, err error) *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call {
+	_c.Call.Return(response, err)
+	return _c
+}
+
+func (_c *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call) RunAndReturn(run func(ctx context.Context, realm string, orgID string, alias string, link keycloakapi.OrganizationIdentityProviderLinkRepresentation) (*keycloakapi.Response, error)) *MockOrganizationsClient_UpdateOrganizationIdentityProviderLink_Call {
+	_c.Call.Return(run)
+	return _c
+}
