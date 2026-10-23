@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"errors"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/mock"
@@ -22,7 +23,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 		organization   *keycloakApi.KeycloakOrganization
 		realmName      string
 		keycloakClient func(t *testing.T) keycloakapi.OrganizationsClient
+		idpClient      func(t *testing.T) keycloakapi.IdentityProvidersClient
 		wantErr        require.ErrorAssertionFunc
+		wantErrText    string
 	}{
 		{
 			name: "success - link new identity providers",
@@ -48,6 +51,17 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 					Return((*keycloakapi.Response)(nil), nil).Once()
 				client.On("LinkIdentityProviderToOrganization", mock.Anything, testRealmName, "org-123", "idp2").
 					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				client := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(&keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("idp1")}, (*keycloakapi.Response)(nil), nil).Once()
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp2").
+					Return(&keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("idp2")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -112,6 +126,14 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 					Return((*keycloakapi.Response)(nil), nil).Once()
 				client.On("UnlinkIdentityProviderFromOrganization", mock.Anything, testRealmName, "org-123", "idp2").
 					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				client := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp3").
+					Return(&keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("idp3")}, (*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
@@ -209,6 +231,14 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 
 				return client
 			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				client := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(&keycloakapi.IdentityProviderRepresentation{Alias: ptr.To("idp1")}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
 			wantErr: require.Error,
 		},
 		{
@@ -239,6 +269,62 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 				return client
 			},
 			wantErr: require.Error,
+		},
+		{
+			name: "error - identity provider missing in realm",
+			organization: &keycloakApi.KeycloakOrganization{
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: "idp1"}},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: "org-123"},
+			},
+			realmName: testRealmName,
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationIdentityProviders", mock.Anything, testRealmName, "org-123").
+					Return([]keycloakapi.IdentityProviderRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				client := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(nil, (*keycloakapi.Response)(nil), &keycloakapi.ApiError{Code: http.StatusNotFound, Message: "not found"}).Once()
+
+				return client
+			},
+			wantErr:     require.Error,
+			wantErrText: `identity provider "idp1" not found in realm "test-realm"; create it with a KeycloakRealmIdentityProvider`,
+		},
+		{
+			name: "error - GetIdentityProvider fails",
+			organization: &keycloakApi.KeycloakOrganization{
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: "idp1"}},
+				},
+				Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: "org-123"},
+			},
+			realmName: testRealmName,
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				client := keycloakapimocks.NewMockOrganizationsClient(t)
+
+				client.On("GetOrganizationIdentityProviders", mock.Anything, testRealmName, "org-123").
+					Return([]keycloakapi.IdentityProviderRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+
+				return client
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				client := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+				client.On("GetIdentityProvider", mock.Anything, testRealmName, "idp1").
+					Return(nil, (*keycloakapi.Response)(nil), errors.New("boom")).Once()
+
+				return client
+			},
+			wantErr:     require.Error,
+			wantErrText: `unable to get identity provider "idp1": boom`,
 		},
 		{
 			name: "success - empty identity providers list",
@@ -276,11 +362,20 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			orgClient := tt.keycloakClient(t)
 			kc := &keycloakapi.KeycloakClient{}
 			kc.Organizations = orgClient
+			kc.IdentityProviders = keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+			if tt.idpClient != nil {
+				kc.IdentityProviders = tt.idpClient(t)
+			}
 
 			handler := NewProcessIdentityProviders(kc)
 			err := handler.ServeRequest(context.Background(), tt.organization, tt.realmName)
 
 			tt.wantErr(t, err)
+
+			if tt.wantErrText != "" {
+				require.ErrorContains(t, err, tt.wantErrText)
+			}
 		})
 	}
 }
