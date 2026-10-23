@@ -12,11 +12,13 @@ import (
 
 type ProcessIdentityProviders struct {
 	keycloakClient keycloakapi.OrganizationsClient
+	idpClient      keycloakapi.IdentityProvidersClient
 }
 
 func NewProcessIdentityProviders(kc *keycloakapi.KeycloakClient) *ProcessIdentityProviders {
 	return &ProcessIdentityProviders{
 		keycloakClient: kc.Organizations,
+		idpClient:      kc.IdentityProviders,
 	}
 }
 
@@ -71,6 +73,10 @@ func (h *ProcessIdentityProviders) ServeRequest(
 			continue
 		}
 
+		if err := h.requireIdentityProvider(ctx, realmName, specIdP.Alias); err != nil {
+			return err
+		}
+
 		if _, err := h.keycloakClient.LinkIdentityProviderToOrganization(ctx, realmName, organization.Status.OrganizationID, specIdP.Alias); err != nil {
 			return fmt.Errorf("unable to link identity provider %s to organization: %w", specIdP.Alias, err)
 		}
@@ -79,6 +85,20 @@ func (h *ProcessIdentityProviders) ServeRequest(
 	}
 
 	log.Info("Processing identity providers completed successfully")
+
+	return nil
+}
+
+func (h *ProcessIdentityProviders) requireIdentityProvider(ctx context.Context, realmName, alias string) error {
+	if _, _, err := h.idpClient.GetIdentityProvider(ctx, realmName, alias); err != nil {
+		if keycloakapi.IsNotFound(err) {
+			return fmt.Errorf(
+				"identity provider %q not found in realm %q; create it with a KeycloakRealmIdentityProvider: %w",
+				alias, realmName, err)
+		}
+
+		return fmt.Errorf("unable to get identity provider %q: %w", alias, err)
+	}
 
 	return nil
 }
