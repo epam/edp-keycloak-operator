@@ -109,7 +109,12 @@ var _ = Describe("KeycloakOrganization domainsV2", Ordered, func() {
 			recorder = recorder.Scoped("organizations/" + orgID)
 		})
 
-		It("Should migrate domains to domainsV2 with one organization write and keep verified", func() {
+		nudge := func() {
+			Expect(testutils.Nudge(ctx, k8sClient, key, &v1alpha1.KeycloakOrganization{})).To(Succeed())
+		}
+
+		It("Should migrate domains to domainsV2 and keep the domain verified", func() {
+			// The forced write repeats after a failed or stale observedGeneration stamp: assert at least one write, never an exact count.
 			Expect(recorder.WritesDuring(ctx, 0, func() {
 				cr := &v1alpha1.KeycloakOrganization{
 					ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
@@ -123,12 +128,16 @@ var _ = Describe("KeycloakOrganization domainsV2", Ordered, func() {
 				}
 				Expect(k8sClient.Create(ctx, cr)).To(Succeed())
 				waitReady(key)
-			})).To(HaveLen(1))
+			})).ShouldNot(BeEmpty(), "migrating domains must write the organization")
 
 			stored := &v1alpha1.KeycloakOrganization{}
 			Expect(k8sClient.Get(ctx, key, stored)).To(Succeed())
 			Expect(stored.Spec.DomainsV2).To(Equal(orgDomains(domain)))
 			Expect(ptr.Deref(kcDomain(orgID, domain).Verified, false)).To(BeTrue())
+		})
+
+		It("Should not write to Keycloak after settling on a migrated CR", func() {
+			Expect(recorder.WritesDuring(ctx, settle, nudge)).To(BeEmpty())
 		})
 
 		It("Should ignore later edits of domains", func() {
