@@ -35,7 +35,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Alias:       "test-org",
 					Description: "Test organization",
 					RedirectURL: "https://example.com/redirect",
-					Domains:     []string{"example.com", "test.com"},
+					DomainsV2:   domainsV2("example.com", "test.com"),
 					Attributes: map[string][]string{
 						"attr1": {"value1"},
 						"attr2": {"value2", "value3"},
@@ -63,14 +63,14 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 				// Third call: GetOrganizationByAlias returns the created organization
 				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "test-org").
 					Return(&keycloakapi.OrganizationRepresentation{
-						Id:    ptr.To("org-123"),
+						Id:    ptr.To(testOrgID),
 						Alias: ptr.To("test-org"),
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
 				return client
 			},
 			wantErr:       require.NoError,
-			expectedOrgID: "org-123",
+			expectedOrgID: testOrgID,
 		},
 		{
 			name: "successfully update existing organization",
@@ -80,7 +80,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Alias:       "existing-org",
 					Description: "Updated organization",
 					RedirectURL: "https://updated.com/redirect",
-					Domains:     []string{"updated.com"},
+					DomainsV2:   domainsV2("updated.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -116,7 +116,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Alias:       "in-sync-org",
 					Description: "In sync description",
 					RedirectURL: "https://in-sync.com/redirect",
-					Domains:     []string{"a.com", "b.com"},
+					DomainsV2:   domainsV2("a.com", "b.com"),
 					Attributes: map[string][]string{
 						"dept": {"eng", "qa"},
 					},
@@ -171,7 +171,7 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 					Name:        "Brief Drift Org",
 					Alias:       "brief-drift-org",
 					Description: "New description",
-					Domains:     []string{"a.com"},
+					DomainsV2:   domainsV2("a.com"),
 					Attributes: map[string][]string{
 						"dept": {"eng"},
 					},
@@ -210,9 +210,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 1},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "No Attrs Org",
-					Alias:   "no-attrs-org",
-					Domains: []string{"a.com"},
+					Name:      "No Attrs Org",
+					Alias:     "no-attrs-org",
+					DomainsV2: domainsV2("a.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					ObservedGeneration: 1,
@@ -244,9 +244,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 1},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "By Id Error Org",
-					Alias:   "by-id-error-org",
-					Domains: []string{"a.com"},
+					Name:      "By Id Error Org",
+					Alias:     "by-id-error-org",
+					DomainsV2: domainsV2("a.com"),
 					Attributes: map[string][]string{
 						"dept": {"eng"},
 					},
@@ -277,13 +277,13 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			wantErr: require.Error,
 		},
 		{
-			name: "generation bump forces update even when in sync",
+			name: "generation bump forces update even when in sync and keeps the disabled state",
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 4},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "In Sync Org",
-					Alias:   "in-sync-org-gen",
-					Domains: []string{"a.com"},
+					Name:      "In Sync Org",
+					Alias:     "in-sync-org-gen",
+					DomainsV2: domainsV2("a.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					ObservedGeneration: 3,
@@ -295,15 +295,19 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 
 				client.On("GetOrganizationByAlias", mock.Anything, testRealmName, "in-sync-org-gen").
 					Return(&keycloakapi.OrganizationRepresentation{
-						Id:    ptr.To("gen-bump-id"),
-						Name:  ptr.To("In Sync Org"),
-						Alias: ptr.To("in-sync-org-gen"),
+						Id:      ptr.To("gen-bump-id"),
+						Name:    ptr.To("In Sync Org"),
+						Alias:   ptr.To("in-sync-org-gen"),
+						Enabled: ptr.To(false),
 						Domains: &[]keycloakapi.OrganizationDomainRepresentation{
 							{Name: ptr.To("a.com")},
 						},
 					}, (*keycloakapi.Response)(nil), nil).Once()
 
-				client.On("UpdateOrganization", mock.Anything, testRealmName, "gen-bump-id", mock.Anything).
+				client.On("UpdateOrganization", mock.Anything, testRealmName, "gen-bump-id",
+					mock.MatchedBy(func(org keycloakapi.OrganizationRepresentation) bool {
+						return org.Enabled != nil && !*org.Enabled
+					})).
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
@@ -316,9 +320,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 1},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Domain Drop Org",
-					Alias:   "domain-drop-org",
-					Domains: []string{"a.com"},
+					Name:      "Domain Drop Org",
+					Alias:     "domain-drop-org",
+					DomainsV2: domainsV2("a.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					ObservedGeneration: 1,
@@ -352,9 +356,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 1},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Dup Domain Org",
-					Alias:   "dup-domain-org",
-					Domains: []string{"a.com", "a.com"},
+					Name:      "Dup Domain Org",
+					Alias:     "dup-domain-org",
+					DomainsV2: domainsV2("a.com", "a.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					ObservedGeneration: 1,
@@ -385,9 +389,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			organization: &keycloakApi.KeycloakOrganization{
 				ObjectMeta: metav1.ObjectMeta{Generation: 1},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Attr Change Org",
-					Alias:   "attr-change-org",
-					Domains: []string{"a.com"},
+					Name:      "Attr Change Org",
+					Alias:     "attr-change-org",
+					DomainsV2: domainsV2("a.com"),
 					Attributes: map[string][]string{
 						"dept": {"eng"},
 					},
@@ -433,9 +437,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "error when GetOrganizationByAlias fails with non-not-found error",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"example.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("example.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -453,9 +457,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "error when CreateOrganization fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"example.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("example.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -478,9 +482,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "error when UpdateOrganization fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Updated Organization",
-					Alias:   "existing-org",
-					Domains: []string{"example.com"},
+					Name:      "Updated Organization",
+					Alias:     "existing-org",
+					DomainsV2: domainsV2("example.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -506,9 +510,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "error when GetOrganizationByAlias fails after creation",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"example.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("example.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -535,9 +539,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "organization with minimal required fields",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Minimal Org",
-					Alias:   "minimal-org",
-					Domains: []string{"minimal.com"},
+					Name:      "Minimal Org",
+					Alias:     "minimal-org",
+					DomainsV2: domainsV2("minimal.com"),
 				},
 			},
 			realmName: testRealmName,
@@ -571,9 +575,9 @@ func TestCreateOrganization_ServeRequest(t *testing.T) {
 			name: "organization with existing ID in status",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Existing Org",
-					Alias:   "existing-org-with-id",
-					Domains: []string{"existing.com"},
+					Name:      "Existing Org",
+					Alias:     "existing-org-with-id",
+					DomainsV2: domainsV2("existing.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "existing-id-123",
@@ -696,7 +700,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 					Alias:       "test-org",
 					Description: "A description",
 					RedirectURL: "https://example.com/redirect",
-					Domains:     []string{"example.com", "test.com"},
+					DomainsV2:   domainsV2("example.com", "test.com"),
 					Attributes: map[string][]string{
 						"dept": {"eng"},
 						"loc":  {"us", "eu"},
@@ -731,9 +735,9 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 			name: "minimal spec - optional fields absent",
 			org: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Minimal Org",
-					Alias:   "minimal-org",
-					Domains: []string{"minimal.com"},
+					Name:      "Minimal Org",
+					Alias:     "minimal-org",
+					DomainsV2: domainsV2("minimal.com"),
 				},
 			},
 			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
@@ -750,12 +754,31 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 			},
 		},
 		{
+			name: "names read from domainsV2; legacy domains ignored",
+			org: &keycloakApi.KeycloakOrganization{
+				Spec: keycloakApi.KeycloakOrganizationSpec{
+					Name:      "V2 Org",
+					Alias:     "v2-org",
+					DomainsV2: domainsV2("v2.com"),
+					//nolint:staticcheck // legacy field under test
+					Domains: []string{"legacy.com"},
+				},
+			},
+			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
+				t.Helper()
+
+				require.NotNil(t, rep.Domains)
+				require.Len(t, *rep.Domains, 1)
+				require.Equal(t, "v2.com", ptr.Deref((*rep.Domains)[0].Name, ""))
+			},
+		},
+		{
 			name: "nil domains",
 			org: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "No Domains Org",
-					Alias:   "no-domains-org",
-					Domains: nil,
+					Name:      "No Domains Org",
+					Alias:     "no-domains-org",
+					DomainsV2: nil,
 				},
 			},
 			verify: func(t *testing.T, rep keycloakapi.OrganizationRepresentation) {
@@ -769,7 +792,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 				Spec: keycloakApi.KeycloakOrganizationSpec{
 					Name:       "No Attrs Org",
 					Alias:      "no-attrs-org",
-					Domains:    []string{"no-attrs.com"},
+					DomainsV2:  domainsV2("no-attrs.com"),
 					Attributes: nil,
 				},
 			},
@@ -784,7 +807,7 @@ func TestSpecToOrganizationRepresentation(t *testing.T) {
 				Spec: keycloakApi.KeycloakOrganizationSpec{
 					Name:       "Empty Attrs Org",
 					Alias:      "empty-attrs-org",
-					Domains:    []string{"empty-attrs.com"},
+					DomainsV2:  domainsV2("empty-attrs.com"),
 					Attributes: map[string][]string{},
 				},
 			},
@@ -827,9 +850,9 @@ func domainSettingsCase(
 		organization: &keycloakApi.KeycloakOrganization{
 			ObjectMeta: metav1.ObjectMeta{Generation: generation},
 			Spec: keycloakApi.KeycloakOrganizationSpec{
-				Name:    "Domain Settings Org",
-				Alias:   alias,
-				Domains: specDomains,
+				Name:      "Domain Settings Org",
+				Alias:     alias,
+				DomainsV2: domainsV2(specDomains...),
 			},
 			Status: keycloakApi.KeycloakOrganizationStatus{ObservedGeneration: 1},
 		},

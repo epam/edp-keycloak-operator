@@ -16,6 +16,27 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
+var _ = Describe("KeycloakOrganization link settings admission", func() {
+	It("Should reject an unknown membershipType", func() {
+		cr := &v1alpha1.KeycloakOrganization{
+			ObjectMeta: metav1.ObjectMeta{Name: "linkset-invalid", Namespace: ns},
+			Spec: v1alpha1.KeycloakOrganizationSpec{
+				Name:      "Invalid",
+				Alias:     "linkset-invalid",
+				DomainsV2: orgDomains("linkset-invalid.example.test"),
+				RealmRef:  common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				IdentityProviders: []v1alpha1.OrgIdentityProvider{
+					{Alias: "linkset-idp", MembershipType: ptr.To("SEMI")},
+				},
+			},
+		}
+
+		err := k8sClient.Create(ctx, cr)
+		Expect(err).Should(HaveOccurred())
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue())
+	})
+})
+
 var _ = Describe("KeycloakOrganization link settings", Ordered, func() {
 	const (
 		crName   = "linkset-org"
@@ -88,33 +109,14 @@ var _ = Describe("KeycloakOrganization link settings", Ordered, func() {
 		}
 	})
 
-	It("Should reject an unknown membershipType", func() {
-		cr := &v1alpha1.KeycloakOrganization{
-			ObjectMeta: metav1.ObjectMeta{Name: "linkset-invalid", Namespace: ns},
-			Spec: v1alpha1.KeycloakOrganizationSpec{
-				Name:     "Invalid",
-				Alias:    "linkset-invalid",
-				Domains:  []string{"linkset-invalid.example.test"},
-				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
-				IdentityProviders: []v1alpha1.OrgIdentityProvider{
-					{Alias: idpAlias, MembershipType: ptr.To("SEMI")},
-				},
-			},
-		}
-
-		err := k8sClient.Create(ctx, cr)
-		Expect(err).Should(HaveOccurred())
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue())
-	})
-
 	It("Should link the identity provider with autoMembership false in one pass", func() {
 		cr := &v1alpha1.KeycloakOrganization{
 			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
 			Spec: v1alpha1.KeycloakOrganizationSpec{
-				Name:     "Link Settings Org",
-				Alias:    orgAlias,
-				Domains:  []string{"linkset.example.test"},
-				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+				Name:      "Link Settings Org",
+				Alias:     orgAlias,
+				DomainsV2: orgDomains("linkset.example.test"),
+				RealmRef:  common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
 				IdentityProviders: []v1alpha1.OrgIdentityProvider{
 					{Alias: idpAlias, AutoMembership: ptr.To(false)},
 				},

@@ -105,7 +105,7 @@ var _ = Describe("KeycloakOrganization domain settings", Ordered, func() {
 				Name:        "Domain Settings Org",
 				Alias:       orgAlias,
 				Description: "domset v1",
-				Domains:     []string{domainA, domainB},
+				DomainsV2:   orgDomains(domainA, domainB),
 				RealmRef:    common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
 			},
 		}
@@ -132,7 +132,7 @@ var _ = Describe("KeycloakOrganization domain settings", Ordered, func() {
 
 	It("Should send an added domain by name only and keep the others", func() {
 		updateSpec(func(cr *v1alpha1.KeycloakOrganization) {
-			cr.Spec.Domains = []string{domainA, domainB, domainC}
+			cr.Spec.DomainsV2 = orgDomains(domainA, domainB, domainC)
 		})
 		waitReady()
 
@@ -152,7 +152,7 @@ var _ = Describe("KeycloakOrganization domain settings", Ordered, func() {
 		setVerified(domainA, true)
 
 		updateSpec(func(cr *v1alpha1.KeycloakOrganization) {
-			cr.Spec.Domains = []string{"DomSet-A.Example.test", domainB, domainC}
+			cr.Spec.DomainsV2 = orgDomains("DomSet-A.Example.test", domainB, domainC)
 		})
 		waitReady()
 

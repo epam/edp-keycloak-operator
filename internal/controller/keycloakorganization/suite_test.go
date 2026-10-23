@@ -209,3 +209,12 @@ var _ = AfterSuite(func() {
 		return getErr != nil
 	}, time.Second*5, time.Second).Should(BeTrue())
 })
+
+func orgDomains(names ...string) []v1alpha1.OrgDomain {
+	domains := make([]v1alpha1.OrgDomain, 0, len(names))
+	for _, name := range names {
+		domains = append(domains, v1alpha1.OrgDomain{Name: name})
+	}
+
+	return domains
+}

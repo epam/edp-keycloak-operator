@@ -7,9 +7,13 @@ metadata:
 spec:
   name: "Test Organization"
   alias: "test-org"
-  domains:
-    - "example.com"
-    - "test.com"
+  domainsV2:
+    - name: "example.com"
+      verified: true
+      # Keycloak 26.8 or later; must name an entry of identityProviders:
+      # identityProviderAlias: "test-org-idp"
+      # autoRedirect: true
+    - name: "test.com"
   redirectUrl: "https://example.com/redirect"
   description: "Test organization"
   attributes:

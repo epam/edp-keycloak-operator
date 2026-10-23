@@ -31,9 +31,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					Name: "test-org",
 				},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("test.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "",
@@ -55,9 +55,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					},
 				},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("test.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "org-123",
@@ -76,9 +76,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					Name: "test-org",
 				},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("test.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "org-123",
@@ -100,9 +100,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					Name: "test-org",
 				},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("test.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "org-123",
@@ -124,9 +124,9 @@ func TestRemoveOrganization_ServeRequest(t *testing.T) {
 					Name: "test-org",
 				},
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					Name:    "Test Organization",
-					Alias:   "test-org",
-					Domains: []string{"test.com"},
+					Name:      "Test Organization",
+					Alias:     "test-org",
+					DomainsV2: domainsV2("test.com"),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "org-123",

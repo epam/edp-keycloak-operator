@@ -79,7 +79,50 @@ func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile
 		return r.handleDeletion(ctx, organization, kClient, realmName)
 	}
 
+	if updated, err := r.applyDefaults(ctx, organization); err != nil {
+		return reconcile.Result{}, err
+	} else if updated {
+		return reconcile.Result{}, nil
+	}
+
 	return r.handleReconciliation(ctx, organization, kClient, realmName)
+}
+
+func (r *ReconcileOrganization) applyDefaults(
+	ctx context.Context,
+	organization *keycloakApi.KeycloakOrganization,
+) (bool, error) {
+	if !migrateDomains(organization) {
+		return false, nil
+	}
+
+	if err := r.client.Update(ctx, organization); err != nil {
+		return false, fmt.Errorf("failed to migrate domains to domainsV2: %w", err)
+	}
+
+	if len(organization.Spec.DomainsV2) == 0 {
+		return false, errors.New(
+			"spec.domainsV2 was not persisted: upgrade the KeycloakOrganization CRD, Helm does not upgrade CRDs")
+	}
+
+	return true, nil
+}
+
+// migrateDomains copies domains to domainsV2 when domainsV2 is empty. domains stays unchanged.
+//
+// Deprecated: exists only for the deprecated domains field.
+func migrateDomains(organization *keycloakApi.KeycloakOrganization) bool {
+	//nolint:staticcheck // migrates the deprecated domains field to domainsV2
+	if len(organization.Spec.DomainsV2) > 0 || len(organization.Spec.Domains) == 0 {
+		return false
+	}
+
+	//nolint:staticcheck // migrates the deprecated domains field to domainsV2
+	for _, name := range organization.Spec.Domains {
+		organization.Spec.DomainsV2 = append(organization.Spec.DomainsV2, keycloakApi.OrgDomain{Name: name})
+	}
+
+	return true
 }
 
 func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakOrganization, *keycloakapi.KeycloakClient, string, error) {

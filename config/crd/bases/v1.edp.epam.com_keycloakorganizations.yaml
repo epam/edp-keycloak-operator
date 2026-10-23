@@ -80,8 +80,44 @@ spec:
                 description: |-
                   Domains is a list of email domains associated with the organization.
                   Each domain should be unique across Organizations.
+
+                  Deprecated: Use DomainsV2 instead. The operator copies domains to domainsV2 once and then
+                  reads only domainsV2; later edits of domains are ignored.
                 items:
                   type: string
+                minItems: 1
+                type: array
+              domainsV2:
+                description: |-
+                  DomainsV2 is a list of email domains associated with the organization, with per-domain settings.
+                  Each domain should be unique across Organizations.
+                  Settings left out keep the value stored in Keycloak.
+                items:
+                  description: OrgDomain defines an email domain of an organization.
+                  properties:
+                    autoRedirect:
+                      description: |-
+                        AutoRedirect sends users of the domain to identityProviderAlias at login.
+                        Requires Keycloak 26.8 or later. Has no effect without identityProviderAlias.
+                        Omitted: the value stored in Keycloak is kept.
+                      type: boolean
+                    identityProviderAlias:
+                      description: |-
+                        IdentityProviderAlias routes users of the domain to an identity provider.
+                        Requires Keycloak 26.8 or later. Must be the alias of an entry of spec.identityProviders.
+                        Omitted: the value stored in Keycloak is kept. Empty string: the routing is cleared.
+                      type: string
+                    name:
+                      description: Name is the domain name.
+                      minLength: 1
+                      type: string
+                    verified:
+                      description: 'Verified marks the domain as verified. Omitted:
+                        the value stored in Keycloak is kept.'
+                      type: boolean
+                  required:
+                  - name
+                  type: object
                 minItems: 1
                 type: array
               identityProviders:
@@ -141,10 +177,12 @@ spec:
                 type: string
             required:
             - alias
-            - domains
             - name
             - realmRef
             type: object
+            x-kubernetes-validations:
+            - message: one of domains or domainsV2 must be set
+              rule: has(self.domains) || has(self.domainsV2)
           status:
             description: KeycloakOrganizationStatus defines the observed state of
               Organization.

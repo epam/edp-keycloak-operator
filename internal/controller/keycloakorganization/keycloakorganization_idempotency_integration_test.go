@@ -87,7 +87,7 @@ var _ = Describe("KeycloakOrganization idempotent reconcile", Ordered, func() {
 				Name:        "Idem Org",
 				Alias:       orgAlias,
 				Description: "idem org v1",
-				Domains:     []string{"idem-a.example.test", "idem-b.example.test"},
+				DomainsV2:   orgDomains("idem-a.example.test", "idem-b.example.test"),
 				RealmRef:    common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
 			},
 		}
@@ -136,7 +136,7 @@ var _ = Describe("KeycloakOrganization idempotent reconcile", Ordered, func() {
 
 	It("Should keep the existing domains when a domain is added", func() {
 		updateSpec(func(cr *v1alpha1.KeycloakOrganization) {
-			cr.Spec.Domains = append(cr.Spec.Domains, "idem-c.example.test")
+			cr.Spec.DomainsV2 = append(cr.Spec.DomainsV2, v1alpha1.OrgDomain{Name: "idem-c.example.test"})
 		})
 		waitReady()
 
@@ -148,7 +148,7 @@ var _ = Describe("KeycloakOrganization idempotent reconcile", Ordered, func() {
 
 	It("Should remove a domain from Keycloak when it is removed from spec", func() {
 		updateSpec(func(cr *v1alpha1.KeycloakOrganization) {
-			cr.Spec.Domains = []string{"idem-a.example.test"}
+			cr.Spec.DomainsV2 = orgDomains("idem-a.example.test")
 		})
 		waitReady()
 
