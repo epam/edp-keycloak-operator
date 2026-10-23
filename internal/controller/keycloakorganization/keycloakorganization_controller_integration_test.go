@@ -69,7 +69,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 				},
 				Name:        "Test Organization",
 				Alias:       "test-org",
-				Domains:     []string{"example.com", "test.com"},
+				DomainsV2:   orgDomains("example.com", "test.com"),
 				RedirectURL: "https://example.com/redirect",
 				Description: "Test organization for integration tests",
 				Attributes: map[string][]string{
@@ -124,7 +124,7 @@ var _ = Describe("Organization controller", Ordered, func() {
 		By("Updating Organization")
 		org.Spec.Name = "Updated Test Organization"
 		org.Spec.Description = "Updated test organization description"
-		org.Spec.Domains = []string{"example.com", "updated.com"}
+		org.Spec.DomainsV2 = orgDomains("example.com", "updated.com")
 		org.Spec.RedirectURL = "https://updated.com/redirect"
 		org.Spec.Attributes = map[string][]string{
 			"department": {"engineering"},
@@ -194,9 +194,9 @@ var _ = Describe("Organization controller", Ordered, func() {
 					Kind: "KeycloakRealm",
 					Name: KeycloakRealmCR,
 				},
-				Name:    "Preserve Test Organization",
-				Alias:   "preserve-test-org",
-				Domains: []string{"preserve.com"},
+				Name:      "Preserve Test Organization",
+				Alias:     "preserve-test-org",
+				DomainsV2: orgDomains("preserve.com"),
 			},
 		}
 		Expect(k8sClient.Create(ctx, org)).Should(Succeed())
@@ -233,9 +233,9 @@ var _ = Describe("Organization controller", Ordered, func() {
 					Kind: "KeycloakRealm",
 					Name: "invalid-realm",
 				},
-				Name:    "Invalid Realm Organization",
-				Alias:   "invalid-realm-org",
-				Domains: []string{"invalid.com"},
+				Name:      "Invalid Realm Organization",
+				Alias:     "invalid-realm-org",
+				DomainsV2: orgDomains("invalid.com"),
 			},
 		}
 		Expect(k8sClient.Create(ctx, org)).Should(Succeed())
@@ -264,9 +264,9 @@ var _ = Describe("Organization controller", Ordered, func() {
 					Kind: v1.KeycloakRealmKind,
 					Name: KeycloakRealmCR,
 				},
-				Name:    "Duplicate Domain Test Organization 1",
-				Alias:   "duplicate-domain-test-org-1",
-				Domains: []string{"duplicate-domain.com"},
+				Name:      "Duplicate Domain Test Organization 1",
+				Alias:     "duplicate-domain-test-org-1",
+				DomainsV2: orgDomains("duplicate-domain.com"),
 			},
 		}
 		Expect(k8sClient.Create(ctx, org1)).Should(Succeed())
@@ -289,9 +289,9 @@ var _ = Describe("Organization controller", Ordered, func() {
 					Kind: v1.KeycloakRealmKind,
 					Name: KeycloakRealmCR,
 				},
-				Name:    "Duplicate Domain Test Organization 2",
-				Alias:   "duplicate-domain-test-org-2",
-				Domains: []string{"duplicate-domain.com", "unique-domain.com"},
+				Name:      "Duplicate Domain Test Organization 2",
+				Alias:     "duplicate-domain-test-org-2",
+				DomainsV2: orgDomains("duplicate-domain.com", "unique-domain.com"),
 			},
 		}
 		Expect(k8sClient.Create(ctx, org2)).Should(Succeed())

@@ -2509,6 +2509,8 @@ KeycloakOrganization is the Schema for the organizations API.
         <td>object</td>
         <td>
           KeycloakOrganizationSpec defines the desired state of Organization.<br/>
+          <br/>
+            <i>Validations</i>:<li>has(self.domains) || has(self.domainsV2): one of domains or domainsV2 must be set</li>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2550,14 +2552,6 @@ Alias is immutable after creation.<br/>
         </td>
         <td>true</td>
       </tr><tr>
-        <td><b>domains</b></td>
-        <td>[]string</td>
-        <td>
-          Domains is a list of email domains associated with the organization.
-Each domain should be unique across Organizations.<br/>
-        </td>
-        <td>true</td>
-      </tr><tr>
         <td><b>name</b></td>
         <td>string</td>
         <td>
@@ -2584,6 +2578,26 @@ The name should be unique across Organizations.<br/>
         <td>string</td>
         <td>
           Description is an optional description of the organization.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>domains</b></td>
+        <td>[]string</td>
+        <td>
+          Domains is a list of email domains associated with the organization.
+Each domain should be unique across Organizations.
+
+Deprecated: Use DomainsV2 instead. The operator copies domains to domainsV2 once and then
+reads only domainsV2; later edits of domains are ignored.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakorganizationspecdomainsv2index">domainsV2</a></b></td>
+        <td>[]object</td>
+        <td>
+          DomainsV2 is a list of email domains associated with the organization, with per-domain settings.
+Each domain should be unique across Organizations.
+Settings left out keep the value stored in Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -2636,6 +2650,58 @@ RealmRef is reference to Realm custom resource.
           <br/>
             <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
             <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakOrganization.spec.domainsV2[index]
+<sup><sup>[↩ Parent](#keycloakorganizationspec)</sup></sup>
+
+
+
+OrgDomain defines an email domain of an organization.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the domain name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>autoRedirect</b></td>
+        <td>boolean</td>
+        <td>
+          AutoRedirect sends users of the domain to identityProviderAlias at login.
+Requires Keycloak 26.8 or later. Has no effect without identityProviderAlias.
+Omitted: the value stored in Keycloak is kept.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>identityProviderAlias</b></td>
+        <td>string</td>
+        <td>
+          IdentityProviderAlias routes users of the domain to an identity provider.
+Requires Keycloak 26.8 or later. Must be the alias of an entry of spec.identityProviders.
+Omitted: the value stored in Keycloak is kept. Empty string: the routing is cleared.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>verified</b></td>
+        <td>boolean</td>
+        <td>
+          Verified marks the domain as verified. Omitted: the value stored in Keycloak is kept.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

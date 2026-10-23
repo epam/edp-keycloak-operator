@@ -7,6 +7,7 @@ import (
 )
 
 // KeycloakOrganizationSpec defines the desired state of Organization.
+// +kubebuilder:validation:XValidation:rule="has(self.domains) || has(self.domainsV2)",message="one of domains or domainsV2 must be set"
 type KeycloakOrganizationSpec struct {
 	// Name is the unique name of the organization.
 	// The name should be unique across Organizations.
@@ -22,9 +23,19 @@ type KeycloakOrganizationSpec struct {
 
 	// Domains is a list of email domains associated with the organization.
 	// Each domain should be unique across Organizations.
-	// +required
+	//
+	// Deprecated: Use DomainsV2 instead. The operator copies domains to domainsV2 once and then
+	// reads only domainsV2; later edits of domains are ignored.
+	// +optional
 	// +kubebuilder:validation:MinItems=1
-	Domains []string `json:"domains"`
+	Domains []string `json:"domains,omitempty"`
+
+	// DomainsV2 is a list of email domains associated with the organization, with per-domain settings.
+	// Each domain should be unique across Organizations.
+	// Settings left out keep the value stored in Keycloak.
+	// +optional
+	// +kubebuilder:validation:MinItems=1
+	DomainsV2 []OrgDomain `json:"domainsV2,omitempty"`
 
 	// RedirectURL is the optional redirect URL for the organization.
 	// +optional
@@ -48,6 +59,30 @@ type KeycloakOrganizationSpec struct {
 	// RealmRef is reference to Realm custom resource.
 	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
+}
+
+// OrgDomain defines an email domain of an organization.
+type OrgDomain struct {
+	// Name is the domain name.
+	// +required
+	// +kubebuilder:validation:MinLength=1
+	Name string `json:"name"`
+
+	// Verified marks the domain as verified. Omitted: the value stored in Keycloak is kept.
+	// +optional
+	Verified *bool `json:"verified,omitempty"`
+
+	// IdentityProviderAlias routes users of the domain to an identity provider.
+	// Requires Keycloak 26.8 or later. Must be the alias of an entry of spec.identityProviders.
+	// Omitted: the value stored in Keycloak is kept. Empty string: the routing is cleared.
+	// +optional
+	IdentityProviderAlias *string `json:"identityProviderAlias,omitempty"`
+
+	// AutoRedirect sends users of the domain to identityProviderAlias at login.
+	// Requires Keycloak 26.8 or later. Has no effect without identityProviderAlias.
+	// Omitted: the value stored in Keycloak is kept.
+	// +optional
+	AutoRedirect *bool `json:"autoRedirect,omitempty"`
 }
 
 // OrgIdentityProvider defines an identity provider for an organization.

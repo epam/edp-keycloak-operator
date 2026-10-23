@@ -33,8 +33,10 @@ type Handler interface {
 func MakeChain(kc *keycloakapi.KeycloakClient) Chain {
 	return &chain{
 		handlers: []Handler{
+			NewValidateDomainSettings(),
 			NewCreateOrganization(kc),
 			NewProcessIdentityProviders(kc),
+			NewProcessDomainSettings(kc),
 		},
 	}
 }

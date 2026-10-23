@@ -49,23 +49,34 @@ func (h *ProcessIdentityProviders) ServeRequest(
 		specIdPMap[specIdP.Alias] = true
 	}
 
-	// Build a set of currently linked identity providers and unlink any that are no longer in the spec.
 	currentIdPMap := make(map[string]bool, len(currentIdPs))
 
 	for _, idp := range currentIdPs {
-		if idp.Alias == nil {
+		if idp.Alias != nil {
+			currentIdPMap[*idp.Alias] = true
+		}
+	}
+
+	for _, specIdP := range organization.Spec.IdentityProviders {
+		if currentIdPMap[specIdP.Alias] {
 			continue
 		}
 
-		currentIdPMap[*idp.Alias] = true
-
-		if !specIdPMap[*idp.Alias] {
-			if _, err := h.keycloakClient.UnlinkIdentityProviderFromOrganization(ctx, realmName, organization.Status.OrganizationID, *idp.Alias); err != nil {
-				return fmt.Errorf("unable to unlink identity provider %s from organization: %w", *idp.Alias, err)
-			}
-
-			log.Info("Identity provider unlinked from organization", "alias", *idp.Alias)
+		if err := h.requireIdentityProvider(ctx, realmName, specIdP.Alias); err != nil {
+			return err
 		}
+	}
+
+	for _, idp := range currentIdPs {
+		if idp.Alias == nil || specIdPMap[*idp.Alias] {
+			continue
+		}
+
+		if _, err := h.keycloakClient.UnlinkIdentityProviderFromOrganization(ctx, realmName, organization.Status.OrganizationID, *idp.Alias); err != nil {
+			return fmt.Errorf("unable to unlink identity provider %s from organization: %w", *idp.Alias, err)
+		}
+
+		log.Info("Identity provider unlinked from organization", "alias", *idp.Alias)
 	}
 
 	// Link identity providers from the spec that are not yet linked.
@@ -75,10 +86,6 @@ func (h *ProcessIdentityProviders) ServeRequest(
 		if currentIdPMap[specIdP.Alias] {
 			log.Info("Identity provider already linked to organization", "alias", specIdP.Alias)
 			continue
-		}
-
-		if err := h.requireIdentityProvider(ctx, realmName, specIdP.Alias); err != nil {
-			return err
 		}
 
 		if _, err := h.keycloakClient.LinkIdentityProviderToOrganization(ctx, realmName, organization.Status.OrganizationID, specIdP.Alias); err != nil {
@@ -118,7 +125,7 @@ func hasLinkSettings(idp keycloakApi.OrgIdentityProvider) bool {
 }
 
 // syncLinkSettings writes autoMembership and membershipType of links whose spec sets either field.
-// Keycloak resets an omitted field to its default, so the PUT always carries both.
+// The PUT carries both fields.
 func (h *ProcessIdentityProviders) syncLinkSettings(
 	ctx context.Context,
 	organization *keycloakApi.KeycloakOrganization,
