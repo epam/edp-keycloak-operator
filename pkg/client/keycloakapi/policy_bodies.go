@@ -22,6 +22,18 @@ type ClientPolicyBody struct {
 	Clients []string `json:"clients"`
 }
 
+// ClientScopeDefinition represents a client scope reference inside a client scope policy.
+type ClientScopeDefinition struct {
+	ID       string `json:"id"`
+	Required bool   `json:"required"`
+}
+
+// ClientScopePolicyBody is the request body for a client scope policy.
+type ClientScopePolicyBody struct {
+	PolicyBodyBase
+	ClientScopes []ClientScopeDefinition `json:"clientScopes"`
+}
+
 // GroupDefinition represents a group reference inside a group policy.
 type GroupDefinition struct {
 	ID             string `json:"id"`

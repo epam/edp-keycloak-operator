@@ -24,6 +24,15 @@ func TestProcessPolicy_Serve(t *testing.T) {
 	require.NoError(t, keycloakApi.AddToScheme(s))
 	require.NoError(t, corev1.AddToScheme(s))
 
+	isExpectedClientScopeBody := func(b *keycloakapi.ClientScopePolicyBody) bool {
+		return b.Name == "client-scope-policy" &&
+			b.Type == keycloakApi.PolicyTypeClientScope &&
+			b.Description == "Client scope policy" &&
+			len(b.ClientScopes) == 2 &&
+			b.ClientScopes[0] == keycloakapi.ClientScopeDefinition{ID: "scope1-id", Required: true} &&
+			b.ClientScopes[1] == keycloakapi.ClientScopeDefinition{ID: "scope2-id", Required: false}
+	}
+
 	tests := []struct {
 		name           string
 		keycloakClient *keycloakApi.KeycloakClient
@@ -472,6 +481,269 @@ func TestProcessPolicy_Serve(t *testing.T) {
 			wantErr: func(t require.TestingT, err error, i ...any) {
 				require.Error(t, err)
 				require.Contains(t, err.Error(), "failed to create policy")
+			},
+		},
+		{
+			name: "client scope policy created with scope IDs",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name:        "client-scope-policy",
+								Description: "Client scope policy",
+								Type:        keycloakApi.PolicyTypeClientScope,
+								ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+									ClientScopes: []keycloakApi.ClientScopeDefinition{
+										{Name: "scope1", Required: true},
+										{Name: "scope2"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				clientsMock.On("GetRealmClientScopes", mock.Anything, "master").
+					Return([]keycloakapi.ClientScopeRepresentation{
+						{Id: ptr.To("scope1-id"), Name: ptr.To("scope1")},
+						{Id: ptr.To("scope2-id"), Name: ptr.To("scope2")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				authzMock.On("CreatePolicy", mock.Anything, "master", testClientID, "client-scope", mock.MatchedBy(isExpectedClientScopeBody)).
+					Return((*keycloakapi.PolicyRepresentation)(nil), (*keycloakapi.Response)(nil), nil).Once()
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "client scope policy updated with scope IDs",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name:        "client-scope-policy",
+								Description: "Client scope policy",
+								Type:        keycloakApi.PolicyTypeClientScope,
+								ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+									ClientScopes: []keycloakApi.ClientScopeDefinition{
+										{Name: "scope1", Required: true},
+										{Name: "scope2"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+						{Id: ptr.To("cs-policy-id"), Name: ptr.To("client-scope-policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				clientsMock.On("GetRealmClientScopes", mock.Anything, "master").
+					Return([]keycloakapi.ClientScopeRepresentation{
+						{Id: ptr.To("scope1-id"), Name: ptr.To("scope1")},
+						{Id: ptr.To("scope2-id"), Name: ptr.To("scope2")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				authzMock.On("UpdatePolicy", mock.Anything, "master", testClientID, "client-scope", "cs-policy-id", mock.MatchedBy(isExpectedClientScopeBody)).
+					Return((*keycloakapi.Response)(nil), nil).Once()
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "client scope not found in realm",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name:        "client-scope-policy",
+								Description: "Client scope policy",
+								Type:        keycloakApi.PolicyTypeClientScope,
+								ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+									ClientScopes: []keycloakApi.ClientScopeDefinition{
+										{Name: "missing"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				clientsMock.On("GetRealmClientScopes", mock.Anything, "master").
+					Return([]keycloakapi.ClientScopeRepresentation{
+						{Id: ptr.To("other-id"), Name: ptr.To("other")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), `client scope "missing" not found in realm "master"; create it with a KeycloakClientScope`)
+			},
+		},
+		{
+			name: "client scopes without name or ID are not matched",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name: "client-scope-policy",
+								Type: keycloakApi.PolicyTypeClientScope,
+								ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+									ClientScopes: []keycloakApi.ClientScopeDefinition{
+										{Name: "scope1"},
+										{Name: "no-id"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				clientsMock.On("GetRealmClientScopes", mock.Anything, "master").
+					Return([]keycloakapi.ClientScopeRepresentation{
+						{Id: ptr.To("no-name-id")},
+						{Name: ptr.To("no-id")},
+						{Id: ptr.To("scope1-id"), Name: ptr.To("scope1")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), `client scope "no-id" not found in realm "master"; create it with a KeycloakClientScope`)
+			},
+		},
+		{
+			name: "client scope policy spec is not specified",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name: "client-scope-policy",
+								Type: keycloakApi.PolicyTypeClientScope,
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "clientScopePolicy spec is not specified")
+			},
+		},
+		{
+			name: "failed to get client scopes",
+			keycloakClient: &keycloakApi.KeycloakClient{
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientName,
+					Authorization: &keycloakApi.Authorization{
+						Policies: []keycloakApi.Policy{
+							{
+								Name: "client-scope-policy",
+								Type: keycloakApi.PolicyTypeClientScope,
+								ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+									ClientScopes: []keycloakApi.ClientScopeDefinition{
+										{Name: "scope1"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			kClient: func(t *testing.T) *keycloakapi.KeycloakClient {
+				clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+				authzMock := keycloakapiMocks.NewMockAuthorizationClient(t)
+
+				authzMock.On("GetPolicies", mock.Anything, "master", testClientID).
+					Return([]keycloakapi.AbstractPolicyRepresentation{
+						{Id: ptr.To("default-policy-id"), Name: ptr.To("Default Policy")},
+					}, (*keycloakapi.Response)(nil), nil)
+
+				clientsMock.On("GetRealmClientScopes", mock.Anything, "master").
+					Return(([]keycloakapi.ClientScopeRepresentation)(nil), (*keycloakapi.Response)(nil), errors.New("boom"))
+
+				return &keycloakapi.KeycloakClient{
+					Clients:       clientsMock,
+					Authorization: authzMock,
+				}
+			},
+			wantErr: func(t require.TestingT, err error, i ...any) {
+				require.Error(t, err)
+				require.Contains(t, err.Error(), "failed to get client scopes")
 			},
 		},
 		{

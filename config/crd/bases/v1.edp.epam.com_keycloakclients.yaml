@@ -194,6 +194,38 @@ spec:
                           required:
                           - clients
                           type: object
+                        clientScopePolicy:
+                          description: ClientScopePolicy is a client scope policy
+                            settings.
+                          properties:
+                            clientScopes:
+                              description: ClientScopes is a list of realm client
+                                scopes. Each client scope must exist in the realm;
+                                manage it with a KeycloakClientScope.
+                              example:
+                              - name: scope1
+                                required: true
+                              - name: scope2
+                              items:
+                                description: ClientScopeDefinition represents a client
+                                  scope in a ClientScopePolicyData.
+                                properties:
+                                  name:
+                                    description: Name is a realm client scope name.
+                                    example: scope1
+                                    type: string
+                                  required:
+                                    description: Required is a flag that specifies
+                                      whether the client scope is required.
+                                    type: boolean
+                                required:
+                                - name
+                                type: object
+                              minItems: 1
+                              type: array
+                          required:
+                          - clientScopes
+                          type: object
                         decisionStrategy:
                           default: UNANIMOUS
                           description: DecisionStrategy is a policy decision strategy.
@@ -341,6 +373,7 @@ spec:
                           enum:
                           - aggregate
                           - client
+                          - client-scope
                           - group
                           - role
                           - time

@@ -188,6 +188,8 @@ func (h *ProcessPolicy) toPolicyBody(
 		return h.toAggregatePolicyBody(policy, existingPolicies, base)
 	case keycloakApi.PolicyTypeClient:
 		return h.toClientPolicyBody(ctx, policy, realm, base)
+	case keycloakApi.PolicyTypeClientScope:
+		return h.toClientScopePolicyBody(ctx, policy, realm, base)
 	case keycloakApi.PolicyTypeGroup:
 		return h.toGroupPolicyBody(ctx, policy, realm, base)
 	case keycloakApi.PolicyTypeRole:
@@ -258,6 +260,46 @@ func (h *ProcessPolicy) toClientPolicyBody(ctx context.Context, policy *keycloak
 	}
 
 	return &keycloakapi.ClientPolicyBody{PolicyBodyBase: base, Clients: clients}, nil
+}
+
+func (h *ProcessPolicy) toClientScopePolicyBody(
+	ctx context.Context,
+	policy *keycloakApi.Policy,
+	realm string,
+	base keycloakapi.PolicyBodyBase,
+) (any, error) {
+	if policy.ClientScopePolicy == nil {
+		return nil, fmt.Errorf("clientScopePolicy spec is not specified")
+	}
+
+	scopes, _, err := h.kClient.Clients.GetRealmClientScopes(ctx, realm)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client scopes: %w", err)
+	}
+
+	scopeNameToID := maputil.SliceToMap(scopes,
+		func(s keycloakapi.ClientScopeRepresentation) (string, bool) {
+			if s.Name == nil || s.Id == nil {
+				return "", false
+			}
+
+			return *s.Name, true
+		},
+		func(s keycloakapi.ClientScopeRepresentation) string { return *s.Id },
+	)
+
+	clientScopes := make([]keycloakapi.ClientScopeDefinition, 0, len(policy.ClientScopePolicy.ClientScopes))
+
+	for _, cs := range policy.ClientScopePolicy.ClientScopes {
+		id, ok := scopeNameToID[cs.Name]
+		if !ok {
+			return nil, fmt.Errorf("client scope %q not found in realm %q; create it with a KeycloakClientScope", cs.Name, realm)
+		}
+
+		clientScopes = append(clientScopes, keycloakapi.ClientScopeDefinition{ID: id, Required: cs.Required})
+	}
+
+	return &keycloakapi.ClientScopePolicyBody{PolicyBodyBase: base, ClientScopes: clientScopes}, nil
 }
 
 func (h *ProcessPolicy) toGroupPolicyBody(ctx context.Context, policy *keycloakApi.Policy, realm string, base keycloakapi.PolicyBodyBase) (any, error) {
