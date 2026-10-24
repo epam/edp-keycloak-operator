@@ -3808,7 +3808,7 @@ Policy represents a client authorization policy.
         <td>
           Type is a policy type.<br/>
           <br/>
-            <i>Enum</i>: aggregate, client, group, role, time, user<br/>
+            <i>Enum</i>: aggregate, client, client-scope, group, role, time, user<br/>
         </td>
         <td>true</td>
       </tr><tr>
@@ -3823,6 +3823,13 @@ Policy represents a client authorization policy.
         <td>object</td>
         <td>
           ClientPolicy is a client policy settings.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexclientscopepolicy">clientScopePolicy</a></b></td>
+        <td>object</td>
+        <td>
+          ClientScopePolicy is a client scope policy settings.<br/>
         </td>
         <td>false</td>
       </tr><tr>
@@ -3935,6 +3942,67 @@ ClientPolicy is a client policy settings.
           Clients is a list of client names. Specifies which client(s) are allowed by this policy.<br/>
         </td>
         <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].clientScopePolicy
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindex)</sup></sup>
+
+
+
+ClientScopePolicy is a client scope policy settings.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b><a href="#keycloakclientspecauthorizationpoliciesindexclientscopepolicyclientscopesindex">clientScopes</a></b></td>
+        <td>[]object</td>
+        <td>
+          ClientScopes is a list of realm client scopes. Each client scope must exist in the realm; manage it with a KeycloakClientScope.<br/>
+        </td>
+        <td>true</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakClient.spec.authorization.policies[index].clientScopePolicy.clientScopes[index]
+<sup><sup>[↩ Parent](#keycloakclientspecauthorizationpoliciesindexclientscopepolicy)</sup></sup>
+
+
+
+ClientScopeDefinition represents a client scope in a ClientScopePolicyData.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is a realm client scope name.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>required</b></td>
+        <td>boolean</td>
+        <td>
+          Required is a flag that specifies whether the client scope is required.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 

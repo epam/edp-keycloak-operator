@@ -1,6 +1,7 @@
 package keycloakclient
 
 import (
+	"encoding/json"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -764,6 +765,14 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 		})
 		Expect(keycloakapi.SkipConflict(err)).ShouldNot(HaveOccurred())
 
+		By("Creating client scope for policy")
+		clientScopeName := testutils.UniqueName("policy-client-scope")
+		_, err = keycloakAdmin.ClientScopes.CreateClientScope(ctx, KeycloakRealmCR, keycloakapi.ClientScopeRepresentation{
+			Name:     ptr.To(clientScopeName),
+			Protocol: ptr.To("openid-connect"),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
 		By("Creating a KeycloakClient")
 		keycloakClient := &keycloakApi.KeycloakClient{
 			ObjectMeta: metav1.ObjectMeta{
@@ -795,6 +804,17 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 							Logic:            keycloakApi.PolicyLogicPositive,
 							ClientPolicy: &keycloakApi.ClientPolicyData{
 								Clients: []string{"account"},
+							},
+						},
+						{
+							Name:             "client-scope-policy",
+							Type:             keycloakApi.PolicyTypeClientScope,
+							DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+							Logic:            keycloakApi.PolicyLogicPositive,
+							ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+								ClientScopes: []keycloakApi.ClientScopeDefinition{
+									{Name: clientScopeName, Required: true},
+								},
 							},
 						},
 						{
@@ -938,7 +958,44 @@ var _ = Describe("KeycloakClient controller", Ordered, func() {
 			}
 		}
 
-		Expect(policyNames).Should(ContainElements("client-policy", "group-policy", "role-policy", "time-policy", "user-policy", "aggregate-policy"))
+		Expect(policyNames).Should(ContainElements("client-policy", "client-scope-policy", "group-policy", "role-policy", "time-policy", "user-policy", "aggregate-policy"))
+
+		By("Verifying client scope policy body in Keycloak")
+		realmScopes, _, err := keycloakAdmin.ClientScopes.GetClientScopes(ctx, KeycloakRealmCR)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var clientScopeID string
+
+		for _, s := range realmScopes {
+			if s.Name != nil && *s.Name == clientScopeName && s.Id != nil {
+				clientScopeID = *s.Id
+
+				break
+			}
+		}
+
+		Expect(clientScopeID).ShouldNot(BeEmpty())
+
+		var clientScopePolicyID string
+
+		for _, p := range policies {
+			if p.Name != nil && *p.Name == "client-scope-policy" && p.Id != nil {
+				clientScopePolicyID = *p.Id
+
+				break
+			}
+		}
+
+		Expect(clientScopePolicyID).ShouldNot(BeEmpty())
+
+		policyResp, err := keycloakAdmin.Authorization.GetPolicy(ctx, KeycloakRealmCR, authClientUUID, "client-scope", clientScopePolicyID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		var clientScopePolicy keycloakapi.ClientScopePolicyBody
+		Expect(json.Unmarshal(policyResp.Body, &clientScopePolicy)).Should(Succeed())
+		Expect(clientScopePolicy.ClientScopes).Should(Equal([]keycloakapi.ClientScopeDefinition{
+			{ID: clientScopeID, Required: true},
+		}))
 
 		By("Adding client permissions")
 

@@ -70,6 +70,13 @@ spec:
           clients:
             - client1
             - client2
+      - type: client-scope
+        name: client-scope-policy
+        description: "Client scope policy"
+        clientScopePolicy:
+          clientScopes:
+            - name: groups
+              required: true
       - type: group
         name: group-policy
         description: "Group policy"

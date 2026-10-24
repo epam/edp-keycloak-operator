@@ -1,12 +1,13 @@
 package v1
 
 const (
-	PolicyTypeAggregate = "aggregate"
-	PolicyTypeClient    = "client"
-	PolicyTypeGroup     = "group"
-	PolicyTypeRole      = "role"
-	PolicyTypeTime      = "time"
-	PolicyTypeUser      = "user"
+	PolicyTypeAggregate   = "aggregate"
+	PolicyTypeClient      = "client"
+	PolicyTypeClientScope = "client-scope"
+	PolicyTypeGroup       = "group"
+	PolicyTypeRole        = "role"
+	PolicyTypeTime        = "time"
+	PolicyTypeUser        = "user"
 
 	PolicyDecisionStrategyUnanimous   = "UNANIMOUS"
 	PolicyDecisionStrategyAffirmative = "AFFIRMATIVE"
@@ -23,7 +24,7 @@ const (
 type Policy struct {
 	// Type is a policy type.
 	// +required
-	// +kubebuilder:validation:Enum=aggregate;client;group;role;time;user
+	// +kubebuilder:validation:Enum=aggregate;client;client-scope;group;role;time;user
 	Type string `json:"type"`
 
 	// Name is a policy name.
@@ -51,6 +52,9 @@ type Policy struct {
 
 	// ClientPolicy is a client policy settings.
 	ClientPolicy *ClientPolicyData `json:"clientPolicy,omitempty"`
+
+	// ClientScopePolicy is a client scope policy settings.
+	ClientScopePolicy *ClientScopePolicyData `json:"clientScopePolicy,omitempty"`
 
 	// GroupPolicy is a group policy settings.
 	GroupPolicy *GroupPolicyData `json:"groupPolicy,omitempty"`
@@ -91,6 +95,27 @@ type ClientPolicyData struct {
 	// +required
 	// +kubebuilder:example={clients1,clients2}
 	Clients []string `json:"clients"`
+}
+
+// ClientScopePolicyData represents client scope based policies.
+type ClientScopePolicyData struct {
+	// ClientScopes is a list of realm client scopes. Each client scope must exist in the realm; manage it with a KeycloakClientScope.
+	// +required
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:example={{name:"scope1",required:true},{name:"scope2"}}
+	ClientScopes []ClientScopeDefinition `json:"clientScopes"`
+}
+
+// ClientScopeDefinition represents a client scope in a ClientScopePolicyData.
+type ClientScopeDefinition struct {
+	// Name is a realm client scope name.
+	// +required
+	// +kubebuilder:example="scope1"
+	Name string `json:"name"`
+
+	// Required is a flag that specifies whether the client scope is required.
+	// +optional
+	Required bool `json:"required,omitempty"`
 }
 
 // TimePolicyData represents time based policies.
