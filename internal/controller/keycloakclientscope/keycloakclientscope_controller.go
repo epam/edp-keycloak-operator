@@ -2,12 +2,10 @@ package keycloakclientscope
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/equality"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -21,6 +19,8 @@ import (
 )
 
 const successRequeueTime = time.Minute * 10
+
+const kind = "KeycloakClientScope"
 
 // Deprecated: legacyFinalizerName is the old finalizer used before migration to common.FinalizerName.
 // Kept to ensure existing resources carrying the old finalizer can be deleted cleanly.
@@ -61,85 +61,22 @@ func (r *Reconcile) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch
 
 // Reconcile is a loop for reconciling KeycloakClientScope object.
-func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling KeycloakClientScope")
-
-	instance := &keycloakApi.KeycloakClientScope{}
-	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-
-		return reconcile.Result{}, fmt.Errorf("failed to get KeycloakClientScope: %w", err)
-	}
-
-	kClient, realmName, stop, err := r.initializeReconciliation(ctx, instance)
-	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
-		}
-
-		return reconcile.Result{}, r.updateErrorStatus(ctx, instance, err)
-	}
-
-	if stop {
-		return reconcile.Result{}, nil
-	}
-
-	if instance.GetDeletionTimestamp() != nil {
-		return r.handleDeletion(ctx, instance, kClient, realmName)
-	}
-
-	return r.handleReconciliation(ctx, instance, kClient, realmName)
+func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
+	return helper.ReconcileRealmRef(ctx, r.client, request, &keycloakApi.KeycloakClientScope{}, helper.RealmRefReconcile[*keycloakApi.KeycloakClientScope]{
+		Kind:                 kind,
+		Helper:               r.helper,
+		Finalizers:           []string{common.FinalizerName, legacyFinalizerName},
+		Remove:               r.removeFromKeycloak,
+		HandleReconciliation: r.handleReconciliation,
+	})
 }
 
-// initializeReconciliation returns stop=true when the finalizers were removed because the realm is gone.
-func (r *Reconcile) initializeReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClientScope) (*keycloakapi.KeycloakClient, string, bool, error) {
-	if err := r.helper.SetRealmOwnerRef(ctx, instance); err != nil {
-		return nil, "", false, fmt.Errorf("unable to set realm owner ref: %w", err)
+func (r *Reconcile) removeFromKeycloak(ctx context.Context, instance *keycloakApi.KeycloakClientScope, kClient *keycloakapi.KeycloakClient, realmName string) error {
+	if err := chain.NewRemoveScope(kClient).Serve(ctx, instance, realmName); err != nil {
+		return fmt.Errorf("failed to remove client scope: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
-	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
-			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, common.FinalizerName, legacyFinalizerName)
-			if removeErr != nil {
-				return nil, "", false, removeErr
-			}
-
-			if stop {
-				return nil, "", true, nil
-			}
-		}
-
-		return nil, "", false, fmt.Errorf("failed to create Keycloak client: %w", err)
-	}
-
-	realmName, err := r.helper.GetRealmNameFromRef(ctx, instance)
-	if err != nil {
-		return nil, "", false, fmt.Errorf("unable to get realm name from ref: %w", err)
-	}
-
-	return kClient, realmName, false, nil
-}
-
-func (r *Reconcile) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakClientScope, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
-	if controllerutil.ContainsFinalizer(instance, common.FinalizerName) || controllerutil.ContainsFinalizer(instance, legacyFinalizerName) {
-		if err := chain.NewRemoveScope(kClient).Serve(ctx, instance, realmName); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to remove client scope: %w", err))
-		}
-
-		original := instance.DeepCopy()
-		controllerutil.RemoveFinalizer(instance, common.FinalizerName)
-		controllerutil.RemoveFinalizer(instance, legacyFinalizerName)
-
-		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to update KeycloakClientScope after finalizer removal: %w", err))
-		}
-	}
-
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *Reconcile) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClientScope, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
@@ -148,7 +85,7 @@ func (r *Reconcile) handleReconciliation(ctx context.Context, instance *keycloak
 	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {
 		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to add finalizer to KeycloakClientScope: %w", err))
+			return ctrl.Result{}, helper.UpdateErrorStatus(ctx, r.client, kind, instance, fmt.Errorf("failed to add finalizer to KeycloakClientScope: %w", err))
 		}
 	}
 
@@ -189,18 +126,4 @@ func (r *Reconcile) updateClientScopeStatus(ctx context.Context, instance *keycl
 	}
 
 	return nil
-}
-
-// updateErrorStatus writes err to status.value and returns err, or the status write error.
-func (r *Reconcile) updateErrorStatus(ctx context.Context, instance *keycloakApi.KeycloakClientScope, err error) error {
-	ctrl.LoggerFrom(ctx).Error(err, "An error has occurred while handling KeycloakClientScope")
-
-	oldStatus := instance.Status
-	instance.Status.Value = err.Error()
-
-	if statusErr := r.updateClientScopeStatus(ctx, instance, oldStatus); statusErr != nil {
-		return fmt.Errorf("failed to update KeycloakClientScope status: %w", statusErr)
-	}
-
-	return err
 }

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/equality"
-	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -30,6 +29,8 @@ import (
 )
 
 const (
+	kind = keycloakApi.KeycloakRealmComponentKind
+
 	successRequeueTime = time.Minute * 10
 
 	// parentNotReadyRequeueTime is the fallback when a parent is expected to appear; the watch on
@@ -102,90 +103,21 @@ func (r *RealmComponentReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 // Reconcile is a loop for reconciling KeycloakRealmComponent object.
 func (r *RealmComponentReconciler) Reconcile(ctx context.Context, request reconcile.Request) (reconcile.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-	log.Info("Reconciling KeycloakRealmComponent")
-
-	instance := &keycloakApi.KeycloakRealmComponent{}
-	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return reconcile.Result{}, nil
-		}
-
-		return reconcile.Result{}, fmt.Errorf("failed to get KeycloakRealmComponent: %w", err)
-	}
-
-	kClient, realmName, stop, err := r.initializeReconciliation(ctx, instance)
-	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
-		}
-
-		return reconcile.Result{}, r.updateErrorStatus(ctx, instance, err)
-	}
-
-	if stop {
-		return reconcile.Result{}, nil
-	}
-
-	if instance.GetDeletionTimestamp() != nil {
-		return r.handleDeletion(ctx, instance, kClient, realmName)
-	}
-
-	return r.handleReconciliation(ctx, instance, kClient, realmName)
+	return helper.ReconcileRealmRef(ctx, r.client, request, &keycloakApi.KeycloakRealmComponent{}, helper.RealmRefReconcile[*keycloakApi.KeycloakRealmComponent]{
+		Kind:                 kind,
+		Helper:               r.helper,
+		Finalizers:           []string{common.FinalizerName, legacyFinalizerName},
+		Remove:               r.removeFromKeycloak,
+		HandleReconciliation: r.handleReconciliation,
+	})
 }
 
-// initializeReconciliation returns stop=true when the finalizers were removed because the realm is gone.
-func (r *RealmComponentReconciler) initializeReconciliation(ctx context.Context, instance *keycloakApi.KeycloakRealmComponent) (*keycloakapi.KeycloakClient, string, bool, error) {
-	if err := r.helper.SetRealmOwnerRef(ctx, instance); err != nil {
-		return nil, "", false, fmt.Errorf("unable to set realm owner ref: %w", err)
+func (r *RealmComponentReconciler) removeFromKeycloak(ctx context.Context, instance *keycloakApi.KeycloakRealmComponent, kClient *keycloakapi.KeycloakClient, realmName string) error {
+	if err := chain.NewRemoveComponent(r.client, kClient).Serve(ctx, instance, realmName); err != nil {
+		return fmt.Errorf("failed to remove realm component: %w", err)
 	}
 
-	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
-	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
-			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, common.FinalizerName, legacyFinalizerName)
-			if removeErr != nil {
-				return nil, "", false, removeErr
-			}
-
-			if stop {
-				return nil, "", true, nil
-			}
-		}
-
-		return nil, "", false, fmt.Errorf("failed to create Keycloak client: %w", err)
-	}
-
-	realmName, err := r.helper.GetRealmNameFromRef(ctx, instance)
-	if err != nil {
-		return nil, "", false, fmt.Errorf("unable to get realm name from ref: %w", err)
-	}
-
-	return kClient, realmName, false, nil
-}
-
-func (r *RealmComponentReconciler) handleDeletion(
-	ctx context.Context,
-	instance *keycloakApi.KeycloakRealmComponent,
-	kClient *keycloakapi.KeycloakClient,
-	realmName string,
-) (reconcile.Result, error) {
-	if controllerutil.ContainsFinalizer(instance, common.FinalizerName) ||
-		controllerutil.ContainsFinalizer(instance, legacyFinalizerName) {
-		if err := chain.NewRemoveComponent(r.client, kClient).Serve(ctx, instance, realmName); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to remove realm component: %w", err))
-		}
-
-		original := instance.DeepCopy()
-		controllerutil.RemoveFinalizer(instance, common.FinalizerName)
-		controllerutil.RemoveFinalizer(instance, legacyFinalizerName)
-
-		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to update KeycloakRealmComponent after finalizer removal: %w", err))
-		}
-	}
-
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *RealmComponentReconciler) handleReconciliation(
@@ -199,7 +131,7 @@ func (r *RealmComponentReconciler) handleReconciliation(
 	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, common.FinalizerName) {
 		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, r.updateErrorStatus(ctx, instance, fmt.Errorf("failed to add finalizer to KeycloakRealmComponent: %w", err))
+			return ctrl.Result{}, helper.UpdateErrorStatus(ctx, r.client, kind, instance, fmt.Errorf("failed to add finalizer to KeycloakRealmComponent: %w", err))
 		}
 	}
 
@@ -225,7 +157,7 @@ func (r *RealmComponentReconciler) handleReconciliation(
 
 	// Runs before the chain: the patch decodes the server object into instance, status included.
 	if err := r.syncParentOwnerReference(ctx, instance, parent.CR); err != nil {
-		return reconcile.Result{}, r.updateErrorStatus(ctx, instance, err)
+		return reconcile.Result{}, helper.UpdateErrorStatus(ctx, r.client, kind, instance, err)
 	}
 
 	if err := chain.MakeChain(r.client, kClient, r.secretRefClient, parent.ID).Serve(ctx, instance, realmName); err != nil {
@@ -376,18 +308,4 @@ func parentIDChangedPredicate() predicate.Funcs {
 			return okOld && okNew && oldComponent.Status.ID != newComponent.Status.ID
 		},
 	}
-}
-
-// updateErrorStatus writes err to status.value and returns err, or the status write error.
-func (r *RealmComponentReconciler) updateErrorStatus(ctx context.Context, instance *keycloakApi.KeycloakRealmComponent, err error) error {
-	ctrl.LoggerFrom(ctx).Error(err, "An error has occurred while handling KeycloakRealmComponent")
-
-	oldStatus := instance.Status
-	instance.Status.Value = err.Error()
-
-	if statusErr := r.updateStatus(ctx, instance, oldStatus); statusErr != nil {
-		return fmt.Errorf("failed to update KeycloakRealmComponent status: %w", statusErr)
-	}
-
-	return err
 }

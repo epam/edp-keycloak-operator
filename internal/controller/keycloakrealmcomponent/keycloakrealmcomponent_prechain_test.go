@@ -170,7 +170,7 @@ func TestReconcile_PreChainErrorWritesStatus(t *testing.T) {
 			if tt.deleting {
 				now := metav1.Now()
 				obj.DeletionTimestamp = &now
-				obj.Finalizers = []string{common.FinalizerName}
+				obj.Finalizers = []string{common.FinalizerName, legacyFinalizerName}
 			}
 
 			writes := 0
