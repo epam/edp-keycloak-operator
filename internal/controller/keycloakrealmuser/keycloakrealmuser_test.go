@@ -3,17 +3,24 @@ package keycloakrealmuser
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"testing"
 
+	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	ctrl "sigs.k8s.io/controller-runtime"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
 )
 
 func TestReconcileKeycloakRealmUser_migrateAttributes(t *testing.T) {
@@ -238,6 +245,96 @@ func TestReconcile_applyDefaults_enabled(t *testing.T) {
 			require.NoError(t, err)
 			assert.Equal(t, tt.wantPresent, found)
 			assert.Equal(t, tt.wantValue, value)
+		})
+	}
+}
+
+func TestReconcile_ApplyDefaultsErrorWritesStatus(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		statusFails bool
+		runs        int
+		wantValue   string
+		wantErrMsg  string
+		wantWrites  int
+	}{
+		{
+			name:       "update error is written to status",
+			wantValue:  "failed to update KeycloakRealmUser default values",
+			wantErrMsg: "failed to update KeycloakRealmUser default values",
+			wantWrites: 1,
+		},
+		{
+			name:       "same error twice writes once",
+			runs:       2,
+			wantValue:  "failed to update KeycloakRealmUser default values",
+			wantErrMsg: "failed to update KeycloakRealmUser default values",
+			wantWrites: 1,
+		},
+		{
+			name:        "status write conflict returns the status error and stores nothing",
+			statusFails: true,
+			wantValue:   "OK",
+			wantErrMsg:  "failed to update KeycloakRealmUser status",
+			wantWrites:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			scheme := runtime.NewScheme()
+			require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+			key := client.ObjectKey{Namespace: "default", Name: "user"}
+			user := &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Attributes: map[string]string{"foo": "bar"},
+				},
+				Status: keycloakApi.KeycloakRealmUserStatus{Value: "OK"},
+			}
+
+			writes := 0
+
+			cl := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithStatusSubresource(&keycloakApi.KeycloakRealmUser{}).
+				WithObjects(user).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Update: func(context.Context, client.WithWatch, client.Object, ...client.UpdateOption) error {
+						return k8sErrors.NewInternalError(errors.New("update denied"))
+					},
+					SubResourceUpdate: func(
+						ctx context.Context, c client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption,
+					) error {
+						writes++
+
+						if tt.statusFails {
+							return k8sErrors.NewConflict(keycloakApi.GroupVersion.WithResource("keycloakrealmusers").GroupResource(), obj.GetName(), errors.New("conflict"))
+						}
+
+						return c.SubResource(subResourceName).Update(ctx, obj, opts...)
+					},
+				}).
+				Build()
+
+			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+			r := NewReconcile(cl, helpermock.NewMockControllerHelper(t))
+
+			for range max(tt.runs, 1) {
+				_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+				require.ErrorContains(t, err, tt.wantErrMsg)
+			}
+
+			assert.Equal(t, tt.wantWrites, writes)
+
+			got := &keycloakApi.KeycloakRealmUser{}
+			require.NoError(t, cl.Get(ctx, key, got))
+			assert.Contains(t, got.Status.Value, tt.wantValue)
 		})
 	}
 }

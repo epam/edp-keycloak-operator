@@ -81,6 +81,14 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 	oldStatus := instance.Status
 
 	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
+		log.Error(err, "An error has occurred while applying KeycloakRealmUser defaults")
+
+		instance.Status.Value = err.Error()
+
+		if statusErr := r.updateKeycloakRealmUserStatus(ctx, &instance, oldStatus); statusErr != nil {
+			return ctrl.Result{}, statusErr
+		}
+
 		return reconcile.Result{}, err
 	} else if updated {
 		return reconcile.Result{}, nil
@@ -127,7 +135,7 @@ func (r *Reconcile) applyDefaults(ctx context.Context, instance *keycloakApi.Key
 
 	if updated {
 		if err := r.client.Update(ctx, instance); err != nil {
-			return false, fmt.Errorf("failed to update keycloak client default values: %w", err)
+			return false, fmt.Errorf("failed to update KeycloakRealmUser default values: %w", err)
 		}
 
 		return true, nil
