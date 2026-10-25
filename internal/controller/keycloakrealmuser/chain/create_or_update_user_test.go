@@ -21,6 +21,48 @@ func TestNewCreateOrUpdateUser(t *testing.T) {
 	require.NotNil(t, h)
 }
 
+func enabledUser(enabled *bool) *keycloakApi.KeycloakRealmUser {
+	return &keycloakApi.KeycloakRealmUser{
+		ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace},
+		Spec:       keycloakApi.KeycloakRealmUserSpec{Username: testUsername, Enabled: enabled},
+	}
+}
+
+func createRep(enabled *bool) keycloakapi.UserRepresentation {
+	return keycloakapi.UserRepresentation{
+		Username:        ptr.To(testUsername),
+		Enabled:         enabled,
+		EmailVerified:   ptr.To(false),
+		FirstName:       ptr.To(""),
+		LastName:        ptr.To(""),
+		RequiredActions: ptr.To([]string(nil)),
+		Email:           ptr.To(""),
+	}
+}
+
+func createdResponse(userID string) *keycloakapi.Response {
+	return &keycloakapi.Response{
+		HTTPResponse: &http.Response{
+			Header: http.Header{"Location": []string{"http://keycloak/users/" + userID}},
+		},
+	}
+}
+
+func existingRep(enabled *bool) *keycloakapi.UserRepresentation {
+	return &keycloakapi.UserRepresentation{
+		Id:       ptr.To("existing-user-id"),
+		Username: ptr.To(testUsername),
+		Enabled:  enabled,
+	}
+}
+
+func updateRep(enabled *bool) *keycloakapi.UserRepresentation {
+	rep := createRep(enabled)
+	rep.Id = ptr.To("existing-user-id")
+
+	return &rep
+}
+
 func TestCreateOrUpdateUser_Serve(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -41,7 +83,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					Email:         "test@example.com",
 					FirstName:     "Test",
 					LastName:      "User",
-					Enabled:       true,
+					Enabled:       ptr.To(true),
 					EmailVerified: true,
 				},
 			},
@@ -56,11 +98,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					LastName:        ptr.To("User"),
 					RequiredActions: ptr.To([]string(nil)),
 					Email:           ptr.To("test@example.com"),
-				}).Return(&keycloakapi.Response{
-					HTTPResponse: &http.Response{
-						Header: http.Header{"Location": []string{"http://keycloak/users/user-123"}},
-					},
-				}, nil)
+				}).Return(createdResponse("user-123"), nil)
 			},
 			wantErr:    require.NoError,
 			expectedID: "user-123",
@@ -82,17 +120,13 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					Return(nil, nil, keycloakapi.ErrNotFound)
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
 					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
+					Enabled:         ptr.To(true),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
 					RequiredActions: ptr.To([]string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}),
 					Email:           ptr.To(""),
-				}).Return(&keycloakapi.Response{
-					HTTPResponse: &http.Response{
-						Header: http.Header{"Location": []string{"http://keycloak/users/user-456"}},
-					},
-				}, nil)
+				}).Return(createdResponse("user-456"), nil)
 			},
 			wantErr:    require.NoError,
 			expectedID: "user-456",
@@ -109,7 +143,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					Email:         "updated@example.com",
 					FirstName:     "Updated",
 					LastName:      "User",
-					Enabled:       true,
+					Enabled:       ptr.To(true),
 					EmailVerified: true,
 				},
 			},
@@ -159,7 +193,6 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
 					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
@@ -185,19 +218,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
-					EmailVerified:   ptr.To(false),
-					FirstName:       ptr.To(""),
-					LastName:        ptr.To(""),
-					RequiredActions: ptr.To([]string(nil)),
-					Email:           ptr.To(""),
-				}).Return(&keycloakapi.Response{
-					HTTPResponse: &http.Response{
-						Header: http.Header{"Location": []string{"http://keycloak/users/user-add-only"}},
-					},
-				}, nil)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(true))).Return(createdResponse("user-add-only"), nil)
 			},
 			wantErr:    require.NoError,
 			expectedID: "user-add-only",
@@ -236,15 +257,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
-					EmailVerified:   ptr.To(false),
-					FirstName:       ptr.To(""),
-					LastName:        ptr.To(""),
-					RequiredActions: ptr.To([]string(nil)),
-					Email:           ptr.To(""),
-				}).Return(nil, errors.New("keycloak api error"))
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(true))).Return(nil, errors.New("keycloak api error"))
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -269,16 +282,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
-					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
-					EmailVerified:   ptr.To(false),
-					FirstName:       ptr.To(""),
-					LastName:        ptr.To(""),
-					RequiredActions: ptr.To([]string(nil)),
-					Email:           ptr.To(""),
-				}).Return(nil, errors.New("keycloak api error"))
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).Return(nil, errors.New("keycloak api error"))
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -299,15 +303,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(nil, nil, keycloakapi.ErrNotFound)
-				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
-					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
-					EmailVerified:   ptr.To(false),
-					FirstName:       ptr.To(""),
-					LastName:        ptr.To(""),
-					RequiredActions: ptr.To([]string(nil)),
-					Email:           ptr.To(""),
-				}).Return(&keycloakapi.Response{
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(true))).Return(&keycloakapi.Response{
 					HTTPResponse: &http.Response{Header: http.Header{}},
 				}, nil)
 			},
@@ -334,18 +330,14 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				attrs := map[string][]string{"dept": {"engineering"}}
 				m.EXPECT().CreateUser(context.Background(), "test-realm", keycloakapi.UserRepresentation{
 					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
+					Enabled:         ptr.To(true),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
 					RequiredActions: ptr.To([]string(nil)),
 					Email:           ptr.To(""),
 					Attributes:      &attrs,
-				}).Return(&keycloakapi.Response{
-					HTTPResponse: &http.Response{
-						Header: http.Header{"Location": []string{"http://keycloak/users/user-attr-123"}},
-					},
-				}, nil)
+				}).Return(createdResponse("user-attr-123"), nil)
 			},
 			wantErr:    require.NoError,
 			expectedID: "user-attr-123",
@@ -378,7 +370,6 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
 					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
@@ -423,7 +414,6 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
 					Id:              ptr.To("existing-user-id"),
 					Username:        ptr.To(testUsername),
-					Enabled:         ptr.To(false),
 					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
@@ -431,6 +421,90 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					Email:           ptr.To(""),
 					Attributes:      &mergedAttrs,
 				}).Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "create - enabled omitted is sent as true",
+			user: enabledUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(true))).
+					Return(createdResponse("user-h1"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-h1",
+		},
+		{
+			name: "create - enabled false is sent as false",
+			user: enabledUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(false))).
+					Return(createdResponse("user-h2"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-h2",
+		},
+		{
+			name: "create - enabled true is sent as true",
+			user: enabledUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRep(ptr.To(true))).
+					Return(createdResponse("user-h3"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-h3",
+		},
+		{
+			name: "update - enabled omitted sends no enabled when fetched true",
+			user: enabledUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "update - enabled omitted sends no enabled when fetched false",
+			user: enabledUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "update - enabled false overrides fetched true",
+			user: enabledUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(false))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "update - enabled true overrides fetched false",
+			user: enabledUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(true))).
+					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
 			expectedID: "existing-user-id",

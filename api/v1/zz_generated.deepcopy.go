@@ -1646,6 +1646,11 @@ func (in *KeycloakRealmUserList) DeepCopyObject() runtime.Object {
 func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 	*out = *in
 	out.RealmRef = in.RealmRef
+	if in.Enabled != nil {
+		in, out := &in.Enabled, &out.Enabled
+		*out = new(bool)
+		**out = **in
+	}
 	if in.RequiredUserActions != nil {
 		in, out := &in.RequiredUserActions, &out.RequiredUserActions
 		*out = make([]string, len(*in))
