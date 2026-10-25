@@ -115,6 +115,8 @@ type KeycloakOrganizationStatus struct {
 	OrganizationID string `json:"organizationId,omitempty"`
 
 	// Error is the error message if the reconciliation failed.
+	//
+	// Deprecated: Not written by the operator; status.value holds the error message.
 	// +optional
 	Error string `json:"error,omitempty"`
 
@@ -128,6 +130,7 @@ func (in *KeycloakOrganizationStatus) SetOK() {
 	in.Error = ""
 }
 
+// Deprecated: status.value holds the error message; SetError has no caller.
 func (in *KeycloakOrganizationStatus) SetError(err string) {
 	in.Value = common.StatusError
 	in.Error = err

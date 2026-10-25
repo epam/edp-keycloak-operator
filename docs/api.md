@@ -2774,7 +2774,9 @@ KeycloakOrganizationStatus defines the observed state of Organization.
         <td><b>error</b></td>
         <td>string</td>
         <td>
-          Error is the error message if the reconciliation failed.<br/>
+          Error is the error message if the reconciliation failed.
+
+Deprecated: Not written by the operator; status.value holds the error message.<br/>
         </td>
         <td>false</td>
       </tr><tr>
