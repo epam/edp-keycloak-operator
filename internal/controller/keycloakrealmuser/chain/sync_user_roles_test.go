@@ -13,6 +13,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 func TestNewSyncUserRoles(t *testing.T) {
@@ -110,8 +111,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			userCtx: &UserContext{UserID: "user-4"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
 				// client lookup
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				// current client role mappings
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-4", "client-uuid-1").
 					Return(nil, nil, nil)
@@ -138,8 +139,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-5"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-5", "client-uuid-1").
 					Return([]keycloakapi.RoleRepresentation{
 						{Id: ptr.To("crid1"), Name: ptr.To("crole1")},
@@ -203,8 +204,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-crole-missing"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-missing", "client-uuid-1").
 					Return(nil, nil, nil)
 				// No role, no error.
@@ -228,8 +229,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-crole-idless"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-idless", "client-uuid-1").
 					Return(nil, nil, nil)
 				// No AddUserClientRoles expectation: reaching it fails the test.
@@ -253,8 +254,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-crole-other"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-crole-other", "client-uuid-1").
 					Return(nil, nil, nil)
 				// No AddUserClientRoles expectation: reaching it fails the test.
@@ -298,12 +299,12 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-err3"},
 			mockSetup: func(u *v2mocks.MockUsersClient, r *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("no-such-client")}).
-					Return(nil, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "no-such-client").
+					Return(nil, nil, keycloakapi.ErrNotFound)
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), "unable to sync user client roles")
+				assert.EqualError(t, err, `unable to sync user client roles: unable to get client "no-such-client": not found`)
 			},
 		},
 		{
@@ -349,8 +350,8 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			},
 			userCtx: &UserContext{UserID: "user-clear-client"},
 			mockSetup: func(u *v2mocks.MockUsersClient, _ *v2mocks.MockRolesClient, c *v2mocks.MockClientsClient) {
-				c.EXPECT().GetClients(context.Background(), "test-realm", &keycloakapi.GetClientsParams{ClientId: ptr.To("client1")}).
-					Return([]keycloakapi.ClientRepresentation{{Id: ptr.To("client-uuid-1")}}, nil, nil)
+				c.EXPECT().GetClientByClientID(context.Background(), "test-realm", "client1").
+					Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 				u.EXPECT().GetUserClientRoleMappings(context.Background(), "test-realm", "user-clear-client", "client-uuid-1").
 					Return([]keycloakapi.RoleRepresentation{{Id: ptr.To("crid1"), Name: ptr.To("crole1")}}, nil, nil)
 				u.EXPECT().DeleteUserClientRoles(context.Background(), "test-realm", "user-clear-client", "client-uuid-1",
@@ -397,6 +398,64 @@ func TestSyncUserRoles_Serve(t *testing.T) {
 			)
 
 			tt.wantErr(t, err)
+		})
+	}
+}
+
+// Fake Keycloak answers 400 on every path of the realm's first client.
+func TestSyncUserRoles_Serve_EmptyClientID(t *testing.T) {
+	tests := []struct {
+		name    string
+		roles   *[]string
+		wantErr string
+	}{
+		{
+			name:    "roles to assign",
+			roles:   ptr.To([]string{"manage-account"}),
+			wantErr: `unable to sync user client roles: unable to get client "": not found`,
+		},
+		{
+			name:    "empty roles must not clear the mappings of another client",
+			roles:   ptr.To([]string{}),
+			wantErr: `unable to sync user client roles: unable to get client "": not found`,
+		},
+		{
+			name: "unmanaged entry is skipped",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := fakehttp.NewServerBuilder().
+				AddKeycloakAuthResponders().
+				AddJsonResponderWithCode(200, "/admin/realms/test-realm/clients", []keycloakapi.ClientRepresentation{
+					{Id: ptr.To("account-uuid"), ClientId: ptr.To("account")},
+				}).
+				AddStringResponderWithCode(400, "/admin/realms/test-realm/users/u1/role-mappings/clients/account-uuid", "{}").
+				AddStringResponderWithCode(400, "/admin/realms/test-realm/clients/account-uuid/roles/manage-account", "{}").
+				BuildAndStart()
+			t.Cleanup(server.Close)
+
+			kClient, err := keycloakapi.NewKeycloakClient(
+				context.Background(), server.GetURL(), "admin-cli", keycloakapi.WithClientSecret("secret"),
+			)
+			require.NoError(t, err)
+
+			user := &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "u", Namespace: defaultNamespace},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					ClientRoles: []keycloakApi.UserClientRole{{ClientID: "", Roles: tt.roles}},
+				},
+			}
+
+			err = NewSyncUserRoles(kClient).Serve(context.Background(), user, "test-realm", &UserContext{UserID: "u1"})
+
+			if tt.wantErr == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.EqualError(t, err, tt.wantErr)
 		})
 	}
 }

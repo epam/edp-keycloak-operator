@@ -17,6 +17,7 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	keycloakapiMocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 )
 
 func TestServiceAccount_Serve(t *testing.T) {
@@ -982,6 +983,80 @@ func TestServiceAccount_Serve(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 			}
+		})
+	}
+}
+
+// Fake Keycloak answers 400 on every path of the realm's first client.
+func TestServiceAccount_Serve_EmptyClientID(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	tests := []struct {
+		name          string
+		roles         *[]string
+		expectedError string
+	}{
+		{
+			name:          "roles to assign",
+			roles:         ptr.To([]string{"manage-account"}),
+			expectedError: `unable to sync service account client roles: unable to get client "": not found`,
+		},
+		{
+			name:          "unmanaged entry is skipped",
+			expectedError: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server := fakehttp.NewServerBuilder().
+				AddKeycloakAuthResponders().
+				AddJsonResponderWithCode(200, "/admin/realms/test-realm/clients", []keycloakapi.ClientRepresentation{
+					{Id: ptr.To("account-uuid"), ClientId: ptr.To("account")},
+				}).
+				AddJsonResponderWithCode(
+					200, "/admin/realms/test-realm/clients/client-uuid/service-account-user",
+					keycloakapi.UserRepresentation{Id: ptr.To("sa-user-id")},
+				).
+				AddStringResponderWithCode(400, "/admin/realms/test-realm/users/sa-user-id/role-mappings/clients/account-uuid", "{}").
+				AddStringResponderWithCode(400, "/admin/realms/test-realm/clients/account-uuid/roles/manage-account", "{}").
+				BuildAndStart()
+			t.Cleanup(server.Close)
+
+			kClient, err := keycloakapi.NewKeycloakClient(
+				context.Background(), server.GetURL(), "admin-cli", keycloakapi.WithClientSecret("secret"),
+			)
+			require.NoError(t, err)
+
+			keycloakClient := &keycloakApi.KeycloakClient{
+				ObjectMeta: metav1.ObjectMeta{Name: testClientName, Namespace: testClientNamespace},
+				Spec: keycloakApi.KeycloakClientSpec{
+					ClientId: testClientID,
+					ServiceAccount: &keycloakApi.ServiceAccount{
+						Enabled:     true,
+						ClientRoles: []keycloakApi.UserClientRole{{ClientID: "", Roles: tt.roles}},
+					},
+				},
+				Status: keycloakApi.KeycloakClientStatus{ClientID: testClientUUID},
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithObjects(keycloakClient).
+				WithStatusSubresource(keycloakClient).
+				Build()
+
+			err = NewServiceAccount(kClient, k8sClient).
+				Serve(context.Background(), keycloakClient, testRealmName, &ClientContext{ClientUUID: "client-uuid"})
+
+			if tt.expectedError == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.EqualError(t, err, tt.expectedError)
 		})
 	}
 }

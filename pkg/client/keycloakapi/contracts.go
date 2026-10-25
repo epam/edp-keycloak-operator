@@ -262,7 +262,7 @@ type ClientsClient interface {
 	UpdateClient(ctx context.Context, realm, clientUUID string, client ClientRepresentation) (*Response, error)
 	// DeleteClient deletes a client identified by its Keycloak UUID.
 	DeleteClient(ctx context.Context, realm, clientUUID string) (*Response, error)
-	// GetClientByClientID looks up a client by its human-readable clientId string.
+	// GetClientByClientID returns the client whose clientId equals clientID; ErrNotFound for a blank or unknown clientID.
 	GetClientByClientID(ctx context.Context, realm, clientID string) (*ClientRepresentation, *Response, error)
 	// GetClientUUID returns the Keycloak UUID for the client with the given human-readable clientId.
 	GetClientUUID(ctx context.Context, realm, clientID string) (string, error)

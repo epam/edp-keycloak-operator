@@ -119,12 +119,9 @@ func TestSyncComposites_Serve_AddClientComposites(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{
-		{Id: ptr.To("client-uuid-1")},
-	}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
 		context.Background(), "test-realm", "client-uuid-1", "client-role-1",
@@ -181,15 +178,15 @@ func TestSyncComposites_Serve_ClientNotFound(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(nil, nil, keycloakapi.ErrNotFound)
 
 	h := NewSyncComposites(kClient)
 	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "client missing-client not found")
+	require.ErrorIs(t, err, keycloakapi.ErrNotFound)
+	assert.Contains(t, err.Error(), `failed to get client "missing-client"`)
 }
 
 func TestSyncComposites_Serve_GetRealmRoleError(t *testing.T) {
@@ -287,12 +284,9 @@ func TestSyncComposites_Serve_ClientRoleMissing(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{
-		{Id: ptr.To("client-uuid-1")},
-	}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 
 	// No role, no error.
 	mockClients.EXPECT().GetClientRole(
@@ -323,12 +317,9 @@ func TestSyncComposites_Serve_ClientRoleWithoutID(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{
-		{Id: ptr.To("client-uuid-1")},
-	}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 
 	// No AddRealmRoleComposites expectation: reaching it fails the test.
 	mockClients.EXPECT().GetClientRole(
@@ -359,12 +350,9 @@ func TestSyncComposites_Serve_GetClientRoleError(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{
-		{Id: ptr.To("client-uuid-1")},
-	}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(&keycloakapi.ClientRepresentation{Id: ptr.To("client-uuid-1")}, nil, nil)
 
 	mockClients.EXPECT().GetClientRole(
 		context.Background(), "test-realm", "client-uuid-1", "role1",
@@ -462,7 +450,7 @@ func TestSyncComposites_Serve_DeleteStaleError(t *testing.T) {
 	assert.Contains(t, err.Error(), "failed to delete stale composite roles")
 }
 
-func TestSyncComposites_Serve_GetClientsError(t *testing.T) {
+func TestSyncComposites_Serve_GetClientByClientIDError(t *testing.T) {
 	mockRoles := mocks.NewMockRolesClient(t)
 	mockClients := mocks.NewMockClientsClient(t)
 	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
@@ -480,9 +468,8 @@ func TestSyncComposites_Serve_GetClientsError(t *testing.T) {
 		context.Background(), "test-realm", testParentRoleName,
 	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
 	).Return(nil, nil, errors.New("api error"))
 
 	h := NewSyncComposites(kClient)
@@ -520,12 +507,9 @@ func TestSyncComposites_Serve_ClientCompositeAlreadyPresent(t *testing.T) {
 		},
 	}, nil, nil)
 
-	mockClients.EXPECT().GetClients(
-		context.Background(), "test-realm",
-		&keycloakapi.GetClientsParams{ClientId: &clientName},
-	).Return([]keycloakapi.ClientRepresentation{
-		{Id: ptr.To(clientUUID)},
-	}, nil, nil)
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", clientName,
+	).Return(&keycloakapi.ClientRepresentation{Id: ptr.To(clientUUID)}, nil, nil)
 
 	// GetClientRole and AddRealmRoleComposites must NOT be called.
 	h := NewSyncComposites(kClient)
@@ -577,4 +561,30 @@ func TestSyncComposites_Serve_Mixed(t *testing.T) {
 	h := NewSyncComposites(kClient)
 	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
 	require.NoError(t, err)
+}
+
+func TestSyncComposites_Serve_EmptyClientName(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles, Clients: mockClients}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testParentRoleName
+	role.Spec.Composite = true
+	role.Spec.CompositesClientRoles = map[string][]keycloakApi.Composite{
+		"": {{Name: "manage-account"}},
+	}
+
+	mockRoles.EXPECT().GetRealmRoleComposites(
+		context.Background(), "test-realm", testParentRoleName,
+	).Return([]keycloakapi.RoleRepresentation{}, nil, nil)
+
+	mockClients.EXPECT().GetClientByClientID(
+		context.Background(), "test-realm", "",
+	).Return(nil, nil, keycloakapi.ErrNotFound)
+
+	h := NewSyncComposites(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
+	require.ErrorIs(t, err, keycloakapi.ErrNotFound)
+	assert.EqualError(t, err, `failed to get client "": not found`)
 }

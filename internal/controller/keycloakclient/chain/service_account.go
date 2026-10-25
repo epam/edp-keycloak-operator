@@ -206,7 +206,7 @@ func (h *ServiceAccount) syncClientRoles(
 		// Get UUID of the target client
 		targetClient, _, err := h.kClient.Clients.GetClientByClientID(ctx, realmName, targetClientID)
 		if err != nil {
-			return fmt.Errorf("unable to get client %s: %w", targetClientID, err)
+			return fmt.Errorf("unable to get client %q: %w", targetClientID, err)
 		}
 
 		if targetClient == nil || targetClient.Id == nil {
