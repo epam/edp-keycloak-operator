@@ -76,7 +76,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	}
 
 	if err := r.helper.SetKeycloakOwnerRef(ctx, clusterRealm); err != nil {
-		return ctrl.Result{}, fmt.Errorf("unable to set keycloak owner ref: %w", err)
+		return r.handleError(ctx, clusterRealm, fmt.Errorf("unable to set keycloak owner ref: %w", err))
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromClusterRealm(ctx, clusterRealm)
@@ -87,7 +87,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 			}, nil
 		}
 
-		return ctrl.Result{}, fmt.Errorf("failed to create keycloak v2 client for realm: %w", err)
+		return r.handleError(ctx, clusterRealm, fmt.Errorf("failed to create keycloak v2 client for realm: %w", err))
 	}
 
 	if deleted, err := r.helper.TryToDelete(
@@ -96,7 +96,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		keycloakrealm.MakeTerminator(clusterRealm.Spec.RealmName, kClient.Realms, objectmeta.PreserveResourcesOnDeletion(clusterRealm)),
 		keyCloakRealmOperatorFinalizerName,
 	); err != nil {
-		return ctrl.Result{}, fmt.Errorf("failed to delete realm %w", err)
+		return r.handleError(ctx, clusterRealm, fmt.Errorf("failed to delete realm: %w", err))
 	} else if deleted {
 		return reconcile.Result{}, nil
 	}
@@ -106,19 +106,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 	oldStatus := clusterRealm.Status
 
 	if err := chain.MakeChain(r.client, r.operatorNamespace, r.guard).ServeRequest(ctx, clusterRealm, kClient); err != nil {
-		clusterRealm.Status.Available = false
-		clusterRealm.Status.Value = err.Error()
-		requeue := r.helper.SetFailureCount(clusterRealm)
-
-		log.Error(err, "An error has occurred while handling ClusterKeycloakRealm", "requeueAfter", requeue)
-
-		if updateErr := r.client.Status().Update(ctx, clusterRealm); updateErr != nil {
-			return ctrl.Result{}, fmt.Errorf("unable to update cluster realm status: %w", updateErr)
-		}
-
-		return ctrl.Result{
-			RequeueAfter: requeue,
-		}, nil
+		return r.handleError(ctx, clusterRealm, err)
 	}
 
 	if err := r.updateSuccessStatus(ctx, clusterRealm, oldStatus); err != nil {
@@ -127,6 +115,27 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 
 	return ctrl.Result{
 		RequeueAfter: successConnectionRetryPeriod,
+	}, nil
+}
+
+// handleError records err in status and requeues with the failure-count backoff.
+func (r *ClusterKeycloakRealmReconciler) handleError(
+	ctx context.Context,
+	clusterRealm *keycloakAlpha.ClusterKeycloakRealm,
+	err error,
+) (ctrl.Result, error) {
+	clusterRealm.Status.Available = false
+	clusterRealm.Status.Value = err.Error()
+	requeue := r.helper.SetFailureCount(clusterRealm)
+
+	ctrl.LoggerFrom(ctx).Error(err, "An error has occurred while handling ClusterKeycloakRealm", "requeueAfter", requeue)
+
+	if updateErr := r.client.Status().Update(ctx, clusterRealm); updateErr != nil {
+		return ctrl.Result{}, fmt.Errorf("unable to update cluster realm status: %w", updateErr)
+	}
+
+	return ctrl.Result{
+		RequeueAfter: requeue,
 	}, nil
 }
 
