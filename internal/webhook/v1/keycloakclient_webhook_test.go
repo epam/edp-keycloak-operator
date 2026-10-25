@@ -5,6 +5,7 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -501,5 +502,57 @@ var _ = Describe("KeycloakClient Webhook", func() {
 				Expect(warnings).To(BeEmpty())
 			}
 		})
+	})
+})
+
+var _ = Describe("KeycloakClient clientRoles admission", func() {
+	newClient := func(name string, mutate func(*keycloakApi.KeycloakClientSpec)) *keycloakApi.KeycloakClient {
+		c := &keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns1"},
+			Spec: keycloakApi.KeycloakClientSpec{
+				ClientId: name,
+				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "test-realm"},
+			},
+		}
+		mutate(&c.Spec)
+
+		return c
+	}
+
+	It("Should reject an empty clientId in serviceAccount.clientRoles", func() {
+		c := newClient("sa-empty-client-id", func(s *keycloakApi.KeycloakClientSpec) {
+			s.ServiceAccount = &keycloakApi.ServiceAccount{
+				Enabled:     true,
+				ClientRoles: []keycloakApi.UserClientRole{{ClientID: "", Roles: ptr.To([]string{"manage-account"})}},
+			}
+		})
+
+		err := k8sClient.Create(ctx, c)
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring("spec.serviceAccount.clientRoles[0].clientId"))
+	})
+
+	It("Should reject an empty clientId in scopeMappings.clientRoles", func() {
+		c := newClient("scope-empty-client-id", func(s *keycloakApi.KeycloakClientSpec) {
+			s.ScopeMappings = &keycloakApi.ScopeMappings{
+				ClientRoles: []keycloakApi.UserClientRole{{Roles: ptr.To([]string{"x"})}},
+			}
+		})
+
+		err := k8sClient.Create(ctx, c)
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring("spec.scopeMappings.clientRoles[0].clientId"))
+	})
+
+	It("Should accept a non-empty clientId", func() {
+		c := newClient("roles-valid-client-id", func(s *keycloakApi.KeycloakClientSpec) {
+			s.ServiceAccount = &keycloakApi.ServiceAccount{
+				Enabled:     true,
+				ClientRoles: []keycloakApi.UserClientRole{{ClientID: "account", Roles: ptr.To([]string{"manage-account"})}},
+			}
+		})
+
+		Expect(k8sClient.Create(ctx, c)).To(Succeed())
+		Expect(k8sClient.Delete(ctx, c)).To(Succeed())
 	})
 })

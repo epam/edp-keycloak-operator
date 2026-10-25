@@ -276,6 +276,7 @@ type ScopeMappings struct {
 
 type UserClientRole struct {
 	// ClientID is a client ID.
+	// +kubebuilder:validation:MinLength=1
 	ClientID string `json:"clientId"`
 
 	// Roles is a list of client roles names assigned to user.
