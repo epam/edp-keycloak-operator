@@ -78,34 +78,39 @@ func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconci
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling KeycloakClient")
 
-	instance, kClient, realmName, err := r.initializeReconciliation(ctx, request)
-	if err != nil {
-		return reconcile.Result{}, err
+	instance := &keycloakApi.KeycloakClient{}
+	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
+		return reconcile.Result{}, fmt.Errorf("failed to get KeycloakClient: %w", err)
 	}
 
-	if instance == nil {
+	kClient, realmName, stop, err := r.initializeReconciliation(ctx, instance)
+	if err != nil {
+		return r.handleError(ctx, instance, err)
+	}
+
+	if stop {
 		return reconcile.Result{}, nil
 	}
 
 	if instance.GetDeletionTimestamp() != nil {
-		return r.handleDeletion(ctx, instance, kClient, realmName)
+		if err := r.handleDeletion(ctx, instance, kClient, realmName); err != nil {
+			return r.handleError(ctx, instance, err)
+		}
+
+		return reconcile.Result{}, nil
 	}
 
 	return r.handleReconciliation(ctx, instance, kClient, realmName)
 }
 
-func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakClient, *keycloakapi.KeycloakClient, string, error) {
-	instance := &keycloakApi.KeycloakClient{}
-	if err := r.client.Get(ctx, request.NamespacedName, instance); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, nil, "", nil
-		}
-
-		return nil, nil, "", fmt.Errorf("failed to get KeycloakClient: %w", err)
-	}
-
+// initializeReconciliation returns stop=true when the finalizer was removed because the realm is gone.
+func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClient) (*keycloakapi.KeycloakClient, string, bool, error) {
 	if err := r.helper.SetRealmOwnerRef(ctx, instance); err != nil {
-		return nil, nil, "", fmt.Errorf("unable to set realm owner ref: %w", err)
+		return nil, "", false, fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, instance)
@@ -113,86 +118,94 @@ func (r *ReconcileKeycloakClient) initializeReconciliation(ctx context.Context, 
 		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && instance.GetDeletionTimestamp() != nil {
 			stop, removeErr := helper.RemoveFinalizersOnRealmNotFound(ctx, r.client, instance, keyCloakClientOperatorFinalizerName)
 			if removeErr != nil {
-				return nil, nil, "", removeErr
+				return nil, "", false, removeErr
 			}
 
 			if stop {
-				return nil, nil, "", nil
+				return nil, "", true, nil
 			}
 		}
 
-		return nil, nil, "", fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
+		return nil, "", false, fmt.Errorf("unable to create keycloak client from realm ref: %w", err)
 	}
 
 	realmName, err := r.helper.GetRealmNameFromRef(ctx, instance)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("unable to get realm name from ref: %w", err)
+		return nil, "", false, fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	return instance, kClient, realmName, nil
+	return kClient, realmName, false, nil
 }
 
-func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
+// handleError records err in status and requeues with the failure-count backoff.
+// ErrKeycloakIsNotAvailable requeues without a status write.
+func (r *ReconcileKeycloakClient) handleError(ctx context.Context, instance *keycloakApi.KeycloakClient, err error) (reconcile.Result, error) {
+	if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+		return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
+	}
+
+	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+		Type:               chain.ConditionReady,
+		Status:             metav1.ConditionFalse,
+		Reason:             chain.ReasonKeycloakAPIError,
+		Message:            fmt.Sprintf("Reconciliation failed: %s", err.Error()),
+		ObservedGeneration: instance.Generation,
+	})
+
+	instance.Status.Value = err.Error()
+	requeueAfter := r.helper.SetFailureCount(instance)
+
+	ctrl.LoggerFrom(ctx).Error(err, "an error has occurred while handling keycloak client", "name", instance.Name, "requeueAfter", requeueAfter)
+
+	if statusErr := r.client.Status().Update(ctx, instance); statusErr != nil {
+		return reconcile.Result{}, fmt.Errorf("unable to update status: %w", statusErr)
+	}
+
+	return reconcile.Result{RequeueAfter: requeueAfter}, nil
+}
+
+func (r *ReconcileKeycloakClient) handleDeletion(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) error {
 	if controllerutil.ContainsFinalizer(instance, keyCloakClientOperatorFinalizerName) {
 		if err := chain.NewRemoveClient(kClient).Serve(ctx, instance, realmName); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to remove keycloak client: %w", err)
+			return fmt.Errorf("failed to remove keycloak client: %w", err)
 		}
 
 		original := instance.DeepCopy()
 		controllerutil.RemoveFinalizer(instance, keyCloakClientOperatorFinalizerName)
 
 		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update keycloak client after finalizer removal: %w", err)
+			return fmt.Errorf("failed to update keycloak client after finalizer removal: %w", err)
 		}
 	}
 
-	return ctrl.Result{}, nil
+	return nil
 }
 
 func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, instance *keycloakApi.KeycloakClient, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
-	log := ctrl.LoggerFrom(ctx)
-
 	original := instance.DeepCopy()
 	if controllerutil.AddFinalizer(instance, keyCloakClientOperatorFinalizerName) {
 		if err := helper.PatchObject(ctx, r.client, original, instance); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to keycloak client: %w", err)
+			return r.handleError(ctx, instance, fmt.Errorf("failed to add finalizer to keycloak client: %w", err))
 		}
 	}
-
-	result := reconcile.Result{RequeueAfter: r.successReconcileTimeout}
 
 	if err := chain.MakeChain(kClient, r.client, r.secretRef).Serve(ctx, instance, realmName); err != nil {
-		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
-			return ctrl.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
-		}
-
-		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
-			Type:               chain.ConditionReady,
-			Status:             metav1.ConditionFalse,
-			Reason:             chain.ReasonKeycloakAPIError,
-			Message:            fmt.Sprintf("Reconciliation failed: %s", err.Error()),
-			ObservedGeneration: instance.Generation,
-		})
-
-		instance.Status.Value = err.Error()
-		result.RequeueAfter = r.helper.SetFailureCount(instance)
-
-		log.Error(err, "an error has occurred while handling keycloak client", "name", instance.Name, "requeueAfter", result.RequeueAfter)
-	} else {
-		meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
-			Type:               chain.ConditionReady,
-			Status:             metav1.ConditionTrue,
-			Reason:             chain.ReasonReconciliationSucceeded,
-			Message:            "KeycloakClient reconciliation completed successfully",
-			ObservedGeneration: instance.Generation,
-		})
-
-		helper.SetSuccessStatus(instance)
+		return r.handleError(ctx, instance, err)
 	}
+
+	meta.SetStatusCondition(&instance.Status.Conditions, metav1.Condition{
+		Type:               chain.ConditionReady,
+		Status:             metav1.ConditionTrue,
+		Reason:             chain.ReasonReconciliationSucceeded,
+		Message:            "KeycloakClient reconciliation completed successfully",
+		ObservedGeneration: instance.Generation,
+	})
+
+	helper.SetSuccessStatus(instance)
 
 	if err := r.client.Status().Update(ctx, instance); err != nil {
 		return reconcile.Result{}, fmt.Errorf("unable to update status: %w", err)
 	}
 
-	return result, nil
+	return reconcile.Result{RequeueAfter: r.successReconcileTimeout}, nil
 }
