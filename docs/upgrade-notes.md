@@ -144,6 +144,32 @@ time.
 and the reconcile of each `KeycloakOrganization` with `spec.domains` fails with an error that asks for
 the CRD upgrade. The old CRDs also drop `Keycloak` `spec.tlsServerName` and `status.value`. Use the [operator upgrade procedure](#operator-upgrade-procedure).
 
+**7. Empty or blank `clientId` in `clientRoles` and empty or blank `compositesClientRoles` keys**
+
+The API server now rejects an empty `clientId` in `KeycloakRealmUser` and `KeycloakRealmGroup` `clientRoles` and
+in `KeycloakClient` `serviceAccount.clientRoles` and `scopeMappings.clientRoles`. It does not reject a blank
+`clientId` (spaces only) or an empty or blank `compositesClientRoles` key. For a user or service-account entry
+with `roles`, operator versions 1.33.0 to 1.35.0 assigned the roles of the first client of the realm, and
+`roles: []` removed all roles of that client. For a composite `KeycloakRealmRole` with an empty or blank
+`compositesClientRoles` key, they added composites from that client. The first client is the one with the
+lowest `clientId` in sort order, because Keycloak orders the client list by `clientId`. In a default realm it
+is `account`. 1.36.0 fails the reconcile of such an entry or key.
+
+```sh
+for k in keycloakrealmusers keycloakrealmgroups; do kubectl get $k -A -o json | jq -r '.items[] | select([.spec.clientRoles[]? | select((.clientId // "") | test("^\\s*$"))] | length > 0) | "\(.kind) \(.metadata.namespace)/\(.metadata.name)"'; done
+kubectl get keycloakclients -A -o json | jq -r '.items[] | select([.spec.serviceAccount.clientRoles[]?, .spec.scopeMappings.clientRoles[]? | select((.clientId // "") | test("^\\s*$"))] | length > 0) | "\(.kind) \(.metadata.namespace)/\(.metadata.name)"'
+kubectl get keycloakrealmroles -A -o json | jq -r '.items[] | select(.spec.compositesClientRoles // {} | any(keys[]; test("^\\s*$"))) | "\(.kind) \(.metadata.namespace)/\(.metadata.name)"'
+```
+
+Fix the listed resources before you upgrade. An entry with an empty `clientId` that is already stored stays
+stored, but any later change to the list, including the operator's own update, is rejected while the entry is
+empty. Set `clientId` in the listed resources, and set or remove the blank key in the listed roles, in the
+cluster and in the manifests in Git. For each listed user and service account, find the first client with
+`GET /admin/realms/<realm>/clients?first=0&max=1`. Check the client roles of that client in Keycloak, not only
+of `account`, remove the roles that you did not assign, and assign again the roles that a `roles: []` entry
+removed. The operator does not do either. For a listed role, the operator removes the composites from that
+client after you fix the key. If you set `composite: false` instead, remove those composites by hand.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))

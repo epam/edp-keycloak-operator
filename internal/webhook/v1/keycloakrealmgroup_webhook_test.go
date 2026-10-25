@@ -3,7 +3,9 @@ package v1
 import (
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -228,5 +230,17 @@ var _ = Describe("KeycloakRealmGroup Webhook", func() {
 			_, err = validator.ValidateUpdate(ctx, preexistingDuplicate, renamed)
 			Expect(err).ShouldNot(HaveOccurred(), "renaming a duplicate into a free slot must be allowed")
 		})
+	})
+})
+
+var _ = Describe("KeycloakRealmGroup clientRoles admission", func() {
+	It("Should reject an empty clientId in clientRoles", func() {
+		g := newRealmGroup("ns1", "group-empty-client-id", "empty-client-id", func(g *keycloakApi.KeycloakRealmGroup) {
+			g.Spec.ClientRoles = []keycloakApi.UserClientRole{{ClientID: "", Roles: ptr.To([]string{"r"})}}
+		})
+
+		err := k8sClient.Create(ctx, g)
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring("spec.clientRoles[0].clientId"))
 	})
 })

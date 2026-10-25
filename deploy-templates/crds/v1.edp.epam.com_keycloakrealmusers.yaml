@@ -72,6 +72,7 @@ spec:
                   properties:
                     clientId:
                       description: ClientID is a client ID.
+                      minLength: 1
                       type: string
                     roles:
                       description: |-
