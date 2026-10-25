@@ -188,7 +188,10 @@ spec:
               Organization.
             properties:
               error:
-                description: Error is the error message if the reconciliation failed.
+                description: |-
+                  Error is the error message if the reconciliation failed.
+
+                  Deprecated: Not written by the operator; status.value holds the error message.
                 type: string
               observedGeneration:
                 description: ObservedGeneration is the generation last successfully
