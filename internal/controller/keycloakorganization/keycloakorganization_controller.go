@@ -66,12 +66,25 @@ func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Reconciling Organization")
 
-	organization, kClient, realmName, err := r.initializeReconciliation(ctx, request)
-	if err != nil {
-		return reconcile.Result{}, err
+	organization := &keycloakApi.KeycloakOrganization{}
+	if err := r.client.Get(ctx, request.NamespacedName, organization); err != nil {
+		if k8sErrors.IsNotFound(err) {
+			return reconcile.Result{}, nil
+		}
+
+		return reconcile.Result{}, fmt.Errorf("failed to get KeycloakOrganization: %w", err)
 	}
 
-	if organization == nil {
+	kClient, realmName, stop, err := r.initializeReconciliation(ctx, organization)
+	if err != nil {
+		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
+			return reconcile.Result{RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod}, nil
+		}
+
+		return reconcile.Result{}, r.updateErrorStatus(ctx, organization, err)
+	}
+
+	if stop {
 		return reconcile.Result{}, nil
 	}
 
@@ -135,17 +148,9 @@ func migrateDomains(organization *keycloakApi.KeycloakOrganization) bool {
 	return true
 }
 
-func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, request reconcile.Request) (*keycloakApi.KeycloakOrganization, *keycloakapi.KeycloakClient, string, error) {
+// initializeReconciliation returns stop=true when the finalizer was removed because the realm is gone.
+func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, organization *keycloakApi.KeycloakOrganization) (*keycloakapi.KeycloakClient, string, bool, error) {
 	log := ctrl.LoggerFrom(ctx)
-
-	organization := &keycloakApi.KeycloakOrganization{}
-	if err := r.client.Get(ctx, request.NamespacedName, organization); err != nil {
-		if k8sErrors.IsNotFound(err) {
-			return nil, nil, "", nil
-		}
-
-		return nil, nil, "", fmt.Errorf("failed to get KeycloakOrganization: %w", err)
-	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, organization)
 	if err != nil {
@@ -156,38 +161,38 @@ func (r *ReconcileOrganization) initializeReconciliation(ctx context.Context, re
 				original := organization.DeepCopy()
 				if controllerutil.RemoveFinalizer(organization, common.FinalizerName) {
 					if updateErr := helper.PatchObject(ctx, r.client, original, organization); updateErr != nil {
-						return nil, nil, "", fmt.Errorf("failed to remove finalizer: %w", updateErr)
+						return nil, "", false, fmt.Errorf("failed to remove finalizer: %w", updateErr)
 					}
 				}
 
 				log.Info("Finalizer removed")
 
-				return nil, nil, "", nil
+				return nil, "", true, nil
 			}
 		}
 
-		return nil, nil, "", fmt.Errorf("failed to create Keycloak client: %w", err)
+		return nil, "", false, fmt.Errorf("failed to create Keycloak client: %w", err)
 	}
 
 	realmName, err := r.helper.GetRealmNameFromRef(ctx, organization)
 	if err != nil {
-		return nil, nil, "", fmt.Errorf("unable to get realm name from ref: %w", err)
+		return nil, "", false, fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	return organization, kClient, realmName, nil
+	return kClient, realmName, false, nil
 }
 
 func (r *ReconcileOrganization) handleDeletion(ctx context.Context, organization *keycloakApi.KeycloakOrganization, kClient *keycloakapi.KeycloakClient, realmName string) (reconcile.Result, error) {
 	if controllerutil.ContainsFinalizer(organization, common.FinalizerName) {
 		if err := chain.NewRemoveOrganization(kClient).ServeRequest(ctx, organization, realmName); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to remove organization: %w", err)
+			return ctrl.Result{}, r.updateErrorStatus(ctx, organization, fmt.Errorf("failed to remove organization: %w", err))
 		}
 
 		original := organization.DeepCopy()
 		controllerutil.RemoveFinalizer(organization, common.FinalizerName)
 
 		if err := helper.PatchObject(ctx, r.client, original, organization); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to update organization after finalizer removal: %w", err)
+			return ctrl.Result{}, r.updateErrorStatus(ctx, organization, fmt.Errorf("failed to update organization after finalizer removal: %w", err))
 		}
 	}
 
@@ -200,7 +205,7 @@ func (r *ReconcileOrganization) handleReconciliation(ctx context.Context, organi
 	original := organization.DeepCopy()
 	if controllerutil.AddFinalizer(organization, common.FinalizerName) {
 		if err := helper.PatchObject(ctx, r.client, original, organization); err != nil {
-			return ctrl.Result{}, fmt.Errorf("failed to add finalizer to organization: %w", err)
+			return ctrl.Result{}, r.updateErrorStatus(ctx, organization, fmt.Errorf("failed to add finalizer to organization: %w", err))
 		}
 	}
 
@@ -240,4 +245,18 @@ func (r *ReconcileOrganization) updateOrganizationStatus(ctx context.Context, or
 	}
 
 	return nil
+}
+
+// updateErrorStatus writes err to status.value and returns err, or the status write error.
+func (r *ReconcileOrganization) updateErrorStatus(ctx context.Context, organization *keycloakApi.KeycloakOrganization, err error) error {
+	ctrl.LoggerFrom(ctx).Error(err, "An error has occurred while handling Organization")
+
+	oldStatus := organization.Status
+	organization.Status.Value = err.Error()
+
+	if statusErr := r.updateOrganizationStatus(ctx, organization, oldStatus); statusErr != nil {
+		return fmt.Errorf("failed to update organization status: %w", statusErr)
+	}
+
+	return err
 }
