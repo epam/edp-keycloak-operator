@@ -79,7 +79,17 @@ func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile
 		return r.handleDeletion(ctx, organization, kClient, realmName)
 	}
 
+	oldStatus := organization.Status.DeepCopy()
+
 	if updated, err := r.applyDefaults(ctx, organization); err != nil {
+		log.Error(err, "An error has occurred while applying Organization defaults")
+
+		organization.Status.Value = err.Error()
+
+		if statusErr := r.updateOrganizationStatus(ctx, organization, *oldStatus); statusErr != nil {
+			return reconcile.Result{}, fmt.Errorf("failed to update organization status: %w", statusErr)
+		}
+
 		return reconcile.Result{}, err
 	} else if updated {
 		return reconcile.Result{}, nil
