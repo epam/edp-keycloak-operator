@@ -3,6 +3,7 @@ package keycloakapi
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/generated"
 )
@@ -264,12 +265,17 @@ func (c *clientsClient) UpdateClient(
 	return response, nil
 }
 
-// GetClientByClientID looks up a client by its clientId string (not UUID).
+// GetClientByClientID returns the client whose clientId equals clientID.
+// A blank clientID returns ErrNotFound without a request.
 func (c *clientsClient) GetClientByClientID(
 	ctx context.Context,
 	realm string,
 	clientID string,
 ) (*ClientRepresentation, *Response, error) {
+	if strings.TrimSpace(clientID) == "" {
+		return nil, nil, ErrNotFound
+	}
+
 	params := &GetClientsParams{ClientId: &clientID}
 
 	clients, resp, err := c.GetClients(ctx, realm, params)
@@ -277,11 +283,23 @@ func (c *clientsClient) GetClientByClientID(
 		return nil, resp, err
 	}
 
-	if len(clients) == 0 {
+	client := findClientInList(clients, clientID)
+	if client == nil {
 		return nil, resp, ErrNotFound
 	}
 
-	return &clients[0], resp, nil
+	return client, resp, nil
+}
+
+// findClientInList returns the client with the given clientId. Skips clients without an ID.
+func findClientInList(clients []ClientRepresentation, clientID string) *ClientRepresentation {
+	for i := range clients {
+		if clients[i].Id != nil && clients[i].ClientId != nil && *clients[i].ClientId == clientID {
+			return &clients[i]
+		}
+	}
+
+	return nil
 }
 
 // GetClientUUID returns the UUID of the client identified by clientID, or an error if not found.

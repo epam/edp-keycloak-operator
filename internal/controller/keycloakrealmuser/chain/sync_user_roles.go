@@ -134,16 +134,16 @@ func (h *SyncUserRoles) syncClientRoles(
 
 		desiredRoleNames := *cr.Roles
 
-		clients, _, err := h.kClient.Clients.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{ClientId: &cr.ClientID})
+		client, _, err := h.kClient.Clients.GetClientByClientID(ctx, realmName, cr.ClientID)
 		if err != nil {
 			return fmt.Errorf("unable to get client %q: %w", cr.ClientID, err)
 		}
 
-		if len(clients) == 0 || clients[0].Id == nil {
+		if client == nil || client.Id == nil {
 			return fmt.Errorf("client %q not found", cr.ClientID)
 		}
 
-		clientUUID := *clients[0].Id
+		clientUUID := *client.Id
 
 		currentRoles, _, err := h.kClient.Users.GetUserClientRoleMappings(ctx, realmName, userID, clientUUID)
 		if err != nil {

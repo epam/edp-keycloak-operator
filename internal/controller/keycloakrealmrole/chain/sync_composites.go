@@ -76,18 +76,16 @@ func (h *SyncComposites) Serve(
 	}
 
 	for clientName, composites := range spec.CompositesClientRoles {
-		clients, _, err := clientsClient.GetClients(ctx, realmName, &keycloakapi.GetClientsParams{
-			ClientId: &clientName,
-		})
+		client, _, err := clientsClient.GetClientByClientID(ctx, realmName, clientName)
 		if err != nil {
-			return fmt.Errorf("failed to get client %s: %w", clientName, err)
+			return fmt.Errorf("failed to get client %q: %w", clientName, err)
 		}
 
-		if len(clients) == 0 || clients[0].Id == nil {
-			return fmt.Errorf("client %s not found", clientName)
+		if client == nil || client.Id == nil {
+			return fmt.Errorf("client %q not found", clientName)
 		}
 
-		clientUUID := *clients[0].Id
+		clientUUID := *client.Id
 
 		for _, composite := range composites {
 			roleName := composite.Name

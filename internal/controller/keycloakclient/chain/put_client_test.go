@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 
 	"errors"
@@ -1394,4 +1396,69 @@ func TestPutClient_Serve_KeepsExplicitEmptyListsAcrossSpecUpdate(t *testing.T) {
 			require.Equal(t, ptr.To([]string{}), stored.Spec.WebOrigins)
 		})
 	}
+}
+
+func TestPutClient_Serve_BlankClientIDCreatesWithoutLookup(t *testing.T) {
+	var (
+		mu       sync.Mutex
+		requests []string
+	)
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/realms/master/protocol/openid-connect/token":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{"access_token":"token","refresh_token":"refresh","token_type":"Bearer"}`))
+		case "/admin/realms/master":
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`{}`))
+		default:
+			mu.Lock()
+			requests = append(requests, r.Method+" "+r.URL.Path)
+			mu.Unlock()
+
+			if r.Method == http.MethodPost {
+				w.Header().Set("Location", "http://host/admin/realms/"+testRealmName+"/clients/created-uuid")
+				w.WriteHeader(http.StatusCreated)
+
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = w.Write([]byte(`[{"id":"account-uuid","clientId":"account"}]`))
+		}
+	}))
+	t.Cleanup(server.Close)
+
+	kClient, err := keycloakapi.NewKeycloakClient(
+		context.Background(), server.URL, "admin-cli", keycloakapi.WithClientSecret("secret"),
+	)
+	require.NoError(t, err)
+
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	cr := &keycloakApi.KeycloakClient{
+		ObjectMeta: metav1.ObjectMeta{Name: testClientName, Namespace: testClientNamespace},
+		Spec:       keycloakApi.KeycloakClientSpec{ClientId: " ", Public: true},
+	}
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(s).
+		WithObjects(cr).
+		WithStatusSubresource(cr).
+		Build()
+
+	clientCtx := &ClientContext{}
+
+	err = NewPutClient(kClient, k8sClient, mocks.NewMockRefClient(t)).
+		Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), cr, testRealmName, clientCtx)
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	require.Equal(t, []string{"POST /admin/realms/" + testRealmName + "/clients"}, requests)
+	require.Equal(t, "created-uuid", clientCtx.ClientUUID)
 }
