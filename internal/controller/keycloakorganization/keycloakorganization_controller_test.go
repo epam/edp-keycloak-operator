@@ -104,13 +104,7 @@ func TestReconcileOrganization_applyDefaults(t *testing.T) {
 			}
 
 			if tt.prune {
-				builder = builder.WithInterceptorFuncs(interceptor.Funcs{
-					Update: func(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
-						obj.(*keycloakApi.KeycloakOrganization).Spec.DomainsV2 = nil
-
-						return c.Update(ctx, obj, opts...)
-					},
-				})
+				builder = builder.WithInterceptorFuncs(interceptor.Funcs{Update: pruneDomainsV2Update})
 			}
 
 			k8sClient := builder.Build()
@@ -140,6 +134,12 @@ func TestReconcileOrganization_applyDefaults(t *testing.T) {
 			require.Equal(t, tt.wantV2, stored.Spec.DomainsV2)
 		})
 	}
+}
+
+func pruneDomainsV2Update(ctx context.Context, c client.WithWatch, obj client.Object, opts ...client.UpdateOption) error {
+	obj.(*keycloakApi.KeycloakOrganization).Spec.DomainsV2 = nil
+
+	return c.Update(ctx, obj, opts...)
 }
 
 func k8sConflict(obj client.Object) error {
@@ -188,4 +188,121 @@ func TestReconcileOrganization_DeletingSkipsMigration(t *testing.T) {
 	stored := &keycloakApi.KeycloakOrganization{}
 	require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: "org", Namespace: "ns"}, stored))
 	require.Empty(t, stored.Spec.DomainsV2)
+}
+
+func TestReconcileOrganization_ReconcileDefaultsError(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	nn := types.NamespacedName{Name: "org", Namespace: "ns"}
+
+	newOrg := func() *keycloakApi.KeycloakOrganization {
+		return &keycloakApi.KeycloakOrganization{
+			ObjectMeta: metav1.ObjectMeta{Name: "org", Namespace: "ns"},
+			Spec: keycloakApi.KeycloakOrganizationSpec{
+				Name: "Org", Alias: "org",
+				RealmRef: common.RealmRef{Kind: "KeycloakRealm", Name: "realm"},
+				//nolint:staticcheck // legacy field under test
+				Domains: []string{"a.com"},
+			},
+			Status: keycloakApi.KeycloakOrganizationStatus{Value: "OK"},
+		}
+	}
+
+	invalidUpdate := func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.UpdateOption) error {
+		return k8sErrors.NewInvalid(
+			schema.GroupKind{Group: "v1.edp.epam.com", Kind: "KeycloakOrganization"}, obj.GetName(), nil)
+	}
+
+	tests := []struct {
+		name        string
+		update      func(context.Context, client.WithWatch, client.Object, ...client.UpdateOption) error
+		statusFails bool
+		runs        int
+		wantErrMsg  string
+		wantInvalid bool
+		wantWrites  int
+	}{
+		{
+			name:       "CRD without domainsV2 reports the error in status",
+			update:     pruneDomainsV2Update,
+			runs:       1,
+			wantErrMsg: "was not persisted",
+			wantWrites: 1,
+		},
+		{
+			name:        "rejected migration update reports the error in status",
+			update:      invalidUpdate,
+			runs:        1,
+			wantErrMsg:  "failed to migrate domains",
+			wantInvalid: true,
+			wantWrites:  1,
+		},
+		{
+			name:       "repeated failure with unchanged status writes status once",
+			update:     pruneDomainsV2Update,
+			runs:       2,
+			wantErrMsg: "was not persisted",
+			wantWrites: 1,
+		},
+		{
+			name:        "status write failure is returned and status stays unchanged",
+			update:      pruneDomainsV2Update,
+			statusFails: true,
+			runs:        1,
+			wantErrMsg:  "failed to update organization status",
+			wantWrites:  1,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			writes := 0
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(newOrg()).
+				WithStatusSubresource(&keycloakApi.KeycloakOrganization{}).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Update: tt.update,
+					SubResourceUpdate: func(
+						ctx context.Context, c client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption,
+					) error {
+						writes++
+
+						if tt.statusFails {
+							return k8sConflict(obj)
+						}
+
+						return c.SubResource(subResourceName).Update(ctx, obj, opts...)
+					},
+				}).
+				Build()
+			r := NewReconcileOrganization(k8sClient, fakeHelper{})
+
+			var err error
+
+			for range tt.runs {
+				_, err = r.Reconcile(context.Background(), reconcile.Request{NamespacedName: nn})
+				require.ErrorContains(t, err, tt.wantErrMsg)
+			}
+
+			require.Equal(t, tt.wantInvalid, k8sErrors.IsInvalid(err))
+
+			stored := &keycloakApi.KeycloakOrganization{}
+			require.NoError(t, k8sClient.Get(context.Background(), nn, stored))
+
+			wantStatus := "OK"
+			if !tt.statusFails {
+				wantStatus = err.Error()
+			}
+
+			require.Equal(t, wantStatus, stored.Status.Value)
+			require.Equal(t, tt.wantWrites, writes)
+		})
+	}
 }
