@@ -8487,9 +8487,7 @@ locale is stored only when the realm has internationalization enabled.<br/>
         <td>boolean</td>
         <td>
           Enabled is a user enabled flag.
-Omit the field to create an enabled user.<br/>
-          <br/>
-            <i>Default</i>: true<br/>
+Omitted: a new user is created enabled; the operator does not change the flag of an existing user.<br/>
         </td>
         <td>false</td>
       </tr><tr>

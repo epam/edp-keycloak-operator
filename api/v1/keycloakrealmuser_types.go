@@ -28,10 +28,9 @@ type KeycloakRealmUserSpec struct {
 	LastName string `json:"lastName,omitempty"`
 
 	// Enabled is a user enabled flag.
-	// Omit the field to create an enabled user.
+	// Omitted: a new user is created enabled; the operator does not change the flag of an existing user.
 	// +optional
-	// +kubebuilder:default=true
-	Enabled bool `json:"enabled"`
+	Enabled *bool `json:"enabled,omitempty"`
 
 	// EmailVerified is a user email verified flag.
 	// +optional

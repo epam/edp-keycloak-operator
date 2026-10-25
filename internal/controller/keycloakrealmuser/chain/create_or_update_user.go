@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"slices"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -44,7 +45,7 @@ func (h *CreateOrUpdateUser) Serve(
 		// User does not exist — create
 		newUser := keycloakapi.UserRepresentation{
 			Username:        &userSpec.Username,
-			Enabled:         &userSpec.Enabled,
+			Enabled:         ptr.To(ptr.Deref(userSpec.Enabled, true)),
 			EmailVerified:   &userSpec.EmailVerified,
 			FirstName:       &userSpec.FirstName,
 			LastName:        &userSpec.LastName,
@@ -76,7 +77,10 @@ func (h *CreateOrUpdateUser) Serve(
 	// User exists — update
 	requiredActions := preserveUpdatePasswordAction(existing.RequiredActions, userSpec.RequiredUserActions)
 	existing.Username = &userSpec.Username
-	existing.Enabled = &userSpec.Enabled
+
+	// nil: omitted, Keycloak keeps its value.
+	existing.Enabled = userSpec.Enabled
+
 	existing.EmailVerified = &userSpec.EmailVerified
 	existing.FirstName = &userSpec.FirstName
 	existing.LastName = &userSpec.LastName

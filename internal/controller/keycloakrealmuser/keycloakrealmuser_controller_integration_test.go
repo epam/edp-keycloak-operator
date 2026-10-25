@@ -117,7 +117,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				Email:         "test-user@mail.com",
 				FirstName:     "test-first-name",
 				LastName:      "test-last-name",
-				Enabled:       true,
+				Enabled:       ptr.To(true),
 				EmailVerified: true,
 				RequiredUserActions: []string{
 					"VERIFY_EMAIL",
@@ -266,7 +266,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				Email:     "test-user-with-password@mail.com",
 				FirstName: "test-first-name",
 				LastName:  "test-last-name",
-				Enabled:   true,
+				Enabled:   ptr.To(true),
 				PasswordSecret: &keycloakApi.PasswordSecret{
 					Name:      passwordSecret.Name,
 					Key:       "password",
@@ -316,7 +316,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				Email:     "test-user-with-temp-password@mail.com",
 				FirstName: "test-first-name",
 				LastName:  "test-last-name",
-				Enabled:   true,
+				Enabled:   ptr.To(true),
 				PasswordSecret: &keycloakApi.PasswordSecret{
 					Name:      userSecretName,
 					Key:       "password",
@@ -695,7 +695,7 @@ var _ = Describe("KeycloakRealmUser unmanaged roles", Ordered, func() {
 			Spec: keycloakApi.KeycloakRealmUserSpec{
 				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
 				Username:     username,
-				Enabled:      true,
+				Enabled:      ptr.To(true),
 				KeepResource: true,
 			},
 		})).Should(Succeed())
@@ -778,7 +778,7 @@ var _ = Describe("KeycloakRealmUser unmanaged groups", Ordered, func() {
 			Spec: keycloakApi.KeycloakRealmUserSpec{
 				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
 				Username:     username,
-				Enabled:      true,
+				Enabled:      ptr.To(true),
 				KeepResource: true,
 			},
 		})).Should(Succeed())
@@ -850,7 +850,7 @@ var _ = Describe("KeycloakRealmUser attributes and the realm user profile", Orde
 			Spec: keycloakApi.KeycloakRealmUserSpec{
 				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmName},
 				Username:     username,
-				Enabled:      true,
+				Enabled:      ptr.To(true),
 				KeepResource: keepResource,
 				Roles:        roles,
 				AttributesV2: attrs,

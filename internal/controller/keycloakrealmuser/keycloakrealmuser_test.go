@@ -2,11 +2,13 @@ package keycloakrealmuser
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -183,6 +185,59 @@ func TestReconcile_applyDefaults_passwordSecret(t *testing.T) {
 			got := &keycloakApi.KeycloakRealmUser{}
 			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: "user", Namespace: "default"}, got))
 			assert.Equal(t, tt.wantSecret, got.Spec.PasswordSecret)
+		})
+	}
+}
+
+func TestReconcile_applyDefaults_enabled(t *testing.T) {
+	tests := []struct {
+		name        string
+		specJSON    string
+		wantPresent bool
+		wantValue   bool
+	}{
+		{
+			name:     "absent stays absent",
+			specJSON: `{"username":"u","passwordSecret":{"name":"","key":""}}`,
+		},
+		{
+			name:        "false is kept",
+			specJSON:    `{"username":"u","enabled":false,"passwordSecret":{"name":"","key":""}}`,
+			wantPresent: true,
+			wantValue:   false,
+		},
+		{
+			name:        "true is kept",
+			specJSON:    `{"username":"u","enabled":true,"passwordSecret":{"name":"","key":""}}`,
+			wantPresent: true,
+			wantValue:   true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			scheme := runtime.NewScheme()
+			require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+			user := &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: "user", Namespace: "default"},
+			}
+			require.NoError(t, json.Unmarshal([]byte(tt.specJSON), &user.Spec))
+
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(user).Build()
+
+			updated, err := NewReconcile(k8sClient, nil).applyDefaults(context.Background(), user)
+			require.NoError(t, err)
+			require.True(t, updated, "the passwordSecret stub must force the full-object update")
+
+			got := &unstructured.Unstructured{}
+			got.SetGroupVersionKind(keycloakApi.GroupVersion.WithKind("KeycloakRealmUser"))
+			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: "user", Namespace: "default"}, got))
+
+			value, found, err := unstructured.NestedBool(got.Object, "spec", "enabled")
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantPresent, found)
+			assert.Equal(t, tt.wantValue, value)
 		})
 	}
 }
