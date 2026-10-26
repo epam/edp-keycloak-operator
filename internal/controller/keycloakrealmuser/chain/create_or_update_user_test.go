@@ -486,6 +486,42 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			expectedID: "existing-user-id",
 		},
 		{
+			name: "update - enabled true sends no enabled when fetched true",
+			user: enabledUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "update - enabled false is sent when fetched nil",
+			user: enabledUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(nil), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(false))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
+			name: "update - enabled false sends no enabled when fetched false",
+			user: enabledUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRep(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "existing-user-id",
+		},
+		{
 			name: "update - enabled false overrides fetched true",
 			user: enabledUser(ptr.To(false)),
 			mockSetup: func(m *v2mocks.MockUsersClient) {

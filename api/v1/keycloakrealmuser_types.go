@@ -29,6 +29,7 @@ type KeycloakRealmUserSpec struct {
 
 	// Enabled is a user enabled flag.
 	// Omitted: a new user is created enabled; the operator does not change the flag of an existing user.
+	// Set: written on create, and on update when it differs from Keycloak.
 	// +optional
 	Enabled *bool `json:"enabled,omitempty"`
 

@@ -2,10 +2,16 @@ package keycloakrealmuser
 
 import (
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"strings"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -192,5 +198,133 @@ var _ = Describe("KeycloakRealmUser spec.enabled", func() {
 		nudge(crName, crName, "n1")
 
 		Expect(keycloakUserEnabled(crName)).Should(BeTrue())
+	})
+})
+
+var _ = Describe("KeycloakRealmUser spec.enabled and brute-force protection", func() {
+	It("Should keep login failures and the temporary lockout when spec.enabled matches Keycloak", func() {
+		realmName := testutils.RealmName("test-user-brute-force")
+		userCR := testutils.UniqueName("bf-user")
+
+		realm := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: realmName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:   realmName,
+				KeycloakRef: common.KeycloakRef{Kind: keycloakApi.KeycloakKind, Name: KeycloakCR},
+				BruteForceDetection: &common.BruteForceDetection{
+					BruteForceProtected:          ptr.To(true),
+					PermanentLockout:             ptr.To(false),
+					FailureFactor:                ptr.To(2),
+					WaitIncrementSeconds:         ptr.To(900),
+					MaxFailureWaitSeconds:        ptr.To(900),
+					MinimumQuickLoginWaitSeconds: ptr.To(900),
+				},
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, realm)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, realm))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: realmName, Namespace: ns}, &keycloakApi.KeycloakRealm{}),
+				)
+			}, testutils.LongWait, interval).Should(BeTrue())
+		})
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: realmName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Available).Should(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		user := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{Name: userCR, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef:     common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmName},
+				Username:     userCR,
+				Enabled:      ptr.To(true),
+				KeepResource: true,
+			},
+		}
+
+		Expect(k8sClient.Create(ctx, user)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, user))).Should(Succeed())
+			Eventually(func() bool {
+				return k8sErrors.IsNotFound(
+					k8sClient.Get(ctx, types.NamespacedName{Name: userCR, Namespace: ns}, &keycloakApi.KeycloakRealmUser{}),
+				)
+			}, testutils.LongWait, interval).Should(BeTrue())
+		})
+
+		keycloakUser := func(g Gomega) *keycloakapi.UserRepresentation {
+			u, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmName, userCR)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(u).ShouldNot(BeNil())
+
+			return u
+		}
+
+		var userID string
+
+		Eventually(func(g Gomega) {
+			cr := &keycloakApi.KeycloakRealmUser{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: userCR, Namespace: ns}, cr)).Should(Succeed())
+			g.Expect(cr.Status.Value).Should(Equal(common.StatusOK))
+
+			userID = ptr.Deref(keycloakUser(g).Id, "")
+			g.Expect(userID).ShouldNot(BeEmpty())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		_, err := keycloakApiClient.Users.SetUserPassword(ctx, realmName, userID, keycloakapi.CredentialRepresentation{
+			Type:      ptr.To("password"),
+			Value:     ptr.To("Passw0rd-1"),
+			Temporary: ptr.To(false),
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", os.Getenv("TEST_KEYCLOAK_URL"), realmName)
+
+		for range 2 {
+			form := url.Values{
+				"client_id":  {keycloakapi.DefaultAdminClientID},
+				"grant_type": {"password"},
+				"username":   {userCR},
+				"password":   {"wrong-password"},
+			}
+
+			req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+			Expect(reqErr).ShouldNot(HaveOccurred())
+			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+			resp, postErr := http.DefaultClient.Do(req)
+			Expect(postErr).ShouldNot(HaveOccurred())
+			Expect(resp.Body.Close()).Should(Succeed())
+			Expect(resp.StatusCode).Should(BeElementOf(http.StatusBadRequest, http.StatusUnauthorized))
+		}
+
+		assertLockedOut := func(g Gomega) {
+			status, _, statusErr := keycloakApiClient.Events.GetBruteForceStatus(ctx, realmName, userID)
+			g.Expect(statusErr).ShouldNot(HaveOccurred())
+			g.Expect(status).Should(HaveKeyWithValue("numFailures", BeEquivalentTo(2)))
+			g.Expect(status).Should(HaveKeyWithValue("disabled", BeTrue()))
+		}
+
+		Eventually(assertLockedOut, testutils.LongWait, interval).Should(Succeed())
+
+		nudge := func(firstName string) {
+			patch := fmt.Sprintf(`{"spec":{"firstName":%q}}`, firstName)
+			Expect(k8sClient.Patch(ctx, user, client.RawPatch(types.MergePatchType, []byte(patch)))).Should(Succeed())
+
+			Eventually(func(g Gomega) {
+				g.Expect(ptr.Deref(keycloakUser(g).FirstName, "")).Should(Equal(firstName))
+			}, timeout, interval).Should(Succeed())
+		}
+
+		nudge("n1")
+		nudge("n2")
+
+		Consistently(assertLockedOut, testutils.Settle, interval).Should(Succeed())
 	})
 })

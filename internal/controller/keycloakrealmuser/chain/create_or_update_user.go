@@ -78,8 +78,8 @@ func (h *CreateOrUpdateUser) Serve(
 	requiredActions := preserveUpdatePasswordAction(existing.RequiredActions, userSpec.RequiredUserActions)
 	existing.Username = &userSpec.Username
 
-	// nil: omitted, Keycloak keeps its value.
-	existing.Enabled = userSpec.Enabled
+	// Keycloak clears login failures of a locked user on a PUT with enabled: true. Send enabled only on change.
+	existing.Enabled = enabledUpdate(userSpec.Enabled, existing.Enabled)
 
 	existing.EmailVerified = &userSpec.EmailVerified
 	existing.FirstName = &userSpec.FirstName
@@ -100,6 +100,15 @@ func (h *CreateOrUpdateUser) Serve(
 	log.Info("User updated successfully", "userID", *existing.Id)
 
 	return nil
+}
+
+// enabledUpdate returns the enabled value to send, or nil when the spec leaves it unset or equals Keycloak.
+func enabledUpdate(spec, fetched *bool) *bool {
+	if ptr.Equal(spec, fetched) {
+		return nil
+	}
+
+	return spec
 }
 
 // makeUserAttributes merges desired attributes into existing ones respecting addOnly semantics.

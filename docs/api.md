@@ -8489,7 +8489,8 @@ locale is stored only when the realm has internationalization enabled.<br/>
         <td>boolean</td>
         <td>
           Enabled is a user enabled flag.
-Omitted: a new user is created enabled; the operator does not change the flag of an existing user.<br/>
+Omitted: a new user is created enabled; the operator does not change the flag of an existing user.
+Set: written on create, and on update when it differs from Keycloak.<br/>
         </td>
         <td>false</td>
       </tr><tr>
