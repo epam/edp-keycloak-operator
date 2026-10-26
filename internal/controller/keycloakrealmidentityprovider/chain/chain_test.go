@@ -127,6 +127,7 @@ func TestMakeChain_RejectsForeignMapperAliasBeforeAnyCall(t *testing.T) {
 		Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
 			Alias: testIDPAlias,
 			Mappers: []keycloakApi.IdentityProviderMapper{
+				//nolint:staticcheck // covers the deprecated identityProviderAlias
 				{Name: "m1", IdentityProviderAlias: "other"},
 			},
 		},
@@ -134,7 +135,6 @@ func TestMakeChain_RejectsForeignMapperAliasBeforeAnyCall(t *testing.T) {
 
 	err = c.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), idp, "realm")
 	require.Error(t, err)
-	require.Contains(t, err.Error(), `mappers[0] "m1": identityProviderAlias "other" does not match spec.alias "test-idp"`)
-	idpClient.AssertNotCalled(t, "GetIdentityProvider")
+	require.Contains(t, err.Error(), `mappers[0] "m1": identityProviderAlias "other" does not match spec.alias "`+testIDPAlias+`"`)
 	require.Empty(t, idpClient.Calls)
 }

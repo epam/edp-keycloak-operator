@@ -14,27 +14,24 @@ func TestValidateMapperAliases_Serve(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		alias    string
 		mappers  []keycloakApi.IdentityProviderMapper
 		wantErr  bool
 		contains []string
 		excludes []string
 	}{
-		{name: "mappers omitted", alias: testIDPAlias, mappers: nil},
-		{name: "empty mappers list", alias: testIDPAlias, mappers: []keycloakApi.IdentityProviderMapper{}},
+		{name: "mappers omitted", mappers: nil},
 		{
 			name:    "alias empty",
-			alias:   testIDPAlias,
 			mappers: []keycloakApi.IdentityProviderMapper{{Name: "m1"}},
 		},
 		{
-			name:    "alias equals spec.alias",
-			alias:   testIDPAlias,
+			name: "alias equals spec.alias",
+			//nolint:staticcheck // covers the deprecated identityProviderAlias
 			mappers: []keycloakApi.IdentityProviderMapper{{Name: "m1", IdentityProviderAlias: testIDPAlias}},
 		},
 		{
-			name:    "alias of another identity provider",
-			alias:   testIDPAlias,
+			name: "alias of another identity provider",
+			//nolint:staticcheck // covers the deprecated identityProviderAlias
 			mappers: []keycloakApi.IdentityProviderMapper{{Name: "m1", IdentityProviderAlias: "other"}},
 			wantErr: true,
 			contains: []string{
@@ -42,8 +39,8 @@ func TestValidateMapperAliases_Serve(t *testing.T) {
 			},
 		},
 		{
-			name:    "alias differs in case",
-			alias:   testIDPAlias,
+			name: "alias differs in case",
+			//nolint:staticcheck // covers the deprecated identityProviderAlias
 			mappers: []keycloakApi.IdentityProviderMapper{{Name: "m1", IdentityProviderAlias: "Test-IDP"}},
 			wantErr: true,
 			contains: []string{
@@ -51,12 +48,14 @@ func TestValidateMapperAliases_Serve(t *testing.T) {
 			},
 		},
 		{
-			name:  "first offender only",
-			alias: testIDPAlias,
+			name: "first offender only",
 			mappers: []keycloakApi.IdentityProviderMapper{
 				{Name: "m1"},
+				//nolint:staticcheck // covers the deprecated identityProviderAlias
 				{Name: "m2", IdentityProviderAlias: "x"},
+				//nolint:staticcheck // covers the deprecated identityProviderAlias
 				{Name: "m3", IdentityProviderAlias: testIDPAlias},
+				//nolint:staticcheck // covers the deprecated identityProviderAlias
 				{Name: "m4", IdentityProviderAlias: "y"},
 			},
 			wantErr:  true,
@@ -70,7 +69,7 @@ func TestValidateMapperAliases_Serve(t *testing.T) {
 			t.Parallel()
 
 			idp := &keycloakApi.KeycloakRealmIdentityProvider{
-				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{Alias: tt.alias, Mappers: tt.mappers},
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{Alias: testIDPAlias, Mappers: tt.mappers},
 			}
 
 			err := NewValidateMapperAliases().Serve(context.Background(), idp, "realm")

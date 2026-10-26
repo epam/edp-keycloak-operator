@@ -263,6 +263,7 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
 					Alias: testIDPAlias,
 					Mappers: []keycloakApi.IdentityProviderMapper{
+						//nolint:staticcheck // covers the deprecated identityProviderAlias
 						{Name: "m1", IdentityProviderMapper: testMapperType, IdentityProviderAlias: "other"},
 					},
 				},
@@ -288,8 +289,9 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 						{
 							Name:                   "mapper1",
 							IdentityProviderMapper: testMapperType,
-							IdentityProviderAlias:  "other",
-							Config:                 map[string]string{"attribute": "test"},
+							//nolint:staticcheck // covers the deprecated identityProviderAlias
+							IdentityProviderAlias: "other",
+							Config:                map[string]string{"attribute": "test"},
 						},
 					},
 				},
