@@ -286,7 +286,8 @@ var _ = Describe("KeycloakRealmUser spec.enabled and brute-force protection", fu
 
 		tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", os.Getenv("TEST_KEYCLOAK_URL"), realmName)
 
-		for range 2 {
+		// Keycloak counts overlapping failed logins once: wait for each failure to be recorded.
+		for failures := 1; failures <= 2; failures++ {
 			form := url.Values{
 				"client_id":  {keycloakapi.DefaultAdminClientID},
 				"grant_type": {"password"},
@@ -302,6 +303,12 @@ var _ = Describe("KeycloakRealmUser spec.enabled and brute-force protection", fu
 			Expect(postErr).ShouldNot(HaveOccurred())
 			Expect(resp.Body.Close()).Should(Succeed())
 			Expect(resp.StatusCode).Should(BeElementOf(http.StatusBadRequest, http.StatusUnauthorized))
+
+			Eventually(func(g Gomega) {
+				status, _, statusErr := keycloakApiClient.Events.GetBruteForceStatus(ctx, realmName, userID)
+				g.Expect(statusErr).ShouldNot(HaveOccurred())
+				g.Expect(status).Should(HaveKeyWithValue("numFailures", BeEquivalentTo(failures)))
+			}, testutils.LongWait, interval).Should(Succeed())
 		}
 
 		assertLockedOut := func(g Gomega) {
