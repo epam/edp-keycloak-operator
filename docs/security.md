@@ -55,6 +55,7 @@ identity provider config has `allowAdminRoleMapping` set to `true`.
 - The operator sends `spec.config` as the whole identity provider config. Omitting the key while Keycloak stores
   `true` counts as a change: without `manage-realm` every identity provider update returns 403; with it, the flag is
   disabled and the next mapper write returns 403. Keep the key in the spec while the mapper exists.
-- Keycloak 26.8 returns 400 when a mapper's `identityProviderAlias` differs from the alias of its identity provider.
-  Omit the field to use the parent alias.
+- A mapper's `identityProviderAlias` is deprecated. A value other than `spec.alias` fails the reconcile before any
+  Keycloak write, so a mapper can no longer be pointed at another identity provider alias through
+  `identityProviderAlias`. Omit the field.
 - Keycloak 26.8 rejects a change of `providerId` on an existing identity provider.
