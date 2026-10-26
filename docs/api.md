@@ -5911,7 +5911,9 @@ RealmRef is reference to Realm custom resource.
         <td>
           IdentityProviderAlias is the alias of the identity provider that owns the mapper.
 Leave it empty or set it to spec.alias. Any other value fails the reconcile before any Keycloak write.
-The operator always sends spec.alias.<br/>
+The operator always sends spec.alias.
+
+Deprecated: omit this field. It will be removed in a future API version.<br/>
         </td>
         <td>false</td>
       </tr><tr>

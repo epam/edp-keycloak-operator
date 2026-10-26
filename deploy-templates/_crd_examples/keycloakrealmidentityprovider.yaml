@@ -20,7 +20,6 @@ spec:
   mappers:
     - name: "test-33221"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
-      identityProviderAlias: "github"
       config:
         attribute: "foo"
         "attribute.value": "bar"

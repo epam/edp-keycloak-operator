@@ -19,13 +19,11 @@ spec:
   mappers:
     - name: "test3212"
       identityProviderMapper: "oidc-hardcoded-role-idp-mapper"
-      identityProviderAlias: "github"
       config:
         role: "role-tr"
         syncMode: "INHERIT"
     - name: "test-33221"
       identityProviderMapper: "hardcoded-attribute-idp-mapper"
-      identityProviderAlias: "github"
       config:
         attribute: "foo"
         "attribute.value": "bar"

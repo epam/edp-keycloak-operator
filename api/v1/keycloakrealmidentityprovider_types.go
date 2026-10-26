@@ -86,6 +86,8 @@ type IdentityProviderMapper struct {
 	// IdentityProviderAlias is the alias of the identity provider that owns the mapper.
 	// Leave it empty or set it to spec.alias. Any other value fails the reconcile before any Keycloak write.
 	// The operator always sends spec.alias.
+	//
+	// Deprecated: omit this field. It will be removed in a future API version.
 	// +optional
 	IdentityProviderAlias string `json:"identityProviderAlias,omitempty"`
 
