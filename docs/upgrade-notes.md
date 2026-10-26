@@ -170,6 +170,51 @@ of `account`, remove the roles that you did not assign, and assign again the rol
 removed. The operator does not do either. For a listed role, the operator removes the composites from that
 client after you fix the key. If you set `composite: false` instead, remove those composites by hand.
 
+**8. `KeycloakRealmIdentityProvider` with `mappers[].identityProviderAlias`**
+
+1.36.0 fails the reconcile before any Keycloak write when a mapper sets `identityProviderAlias` to a value other
+than `spec.alias`. The field is deprecated. The operator always uses `spec.alias`. Until the field is fixed, the
+operator does not create or update the identity provider, so other spec changes and rotated Secret values in
+`spec.config` are not sent.
+
+With Keycloak 26.4 to 26.7, 1.35.0 and earlier created such a mapper under the other alias, also when no identity provider has
+that alias. The resource cannot see that mapper, and each later reconcile failed with "Failed to add mapper". The
+mapper stays in Keycloak after the upgrade, and it applies to logins through the identity provider of that alias.
+
+Find the affected resources:
+
+```sh
+kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select(.spec.alias as $a | [.spec.mappers[]? | select((.identityProviderAlias // "") != "" and .identityProviderAlias != $a)] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+Find every resource that sets the field:
+
+```sh
+kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select([.spec.mappers[]? | select((.identityProviderAlias // "") != "")] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+For each resource from the first list, do steps 1 and 2. For each resource from the second list, do step 1.
+
+1. Remove `identityProviderAlias` from each mapper in the resource and in its manifests in Git. Do this first: with
+   1.35.0 or earlier and the old spec, the next reconcile creates a deleted mapper again.
+2. With Keycloak 26.4 to 26.7, delete the mapper that 1.35.0 or earlier created under the other alias `<X>`:
+   - If an identity provider with alias `<X>` exists, list its mappers and delete the one with the name from the
+     resource:
+     `GET /admin/realms/<realm>/identity-provider/instances/<X>/mappers`, then
+     `DELETE /admin/realms/<realm>/identity-provider/instances/<X>/mappers/<id>` (returns 204).
+   - If no identity provider has alias `<X>`, the list returns 404. Create a temporary, disabled identity provider
+     with alias `<X>`, list its mappers, delete the mapper, then delete the temporary identity provider. Create it
+     with `POST /admin/realms/<realm>/identity-provider/instances` and this body (returns 201 on Keycloak 26.7.3):
+     `{"alias":"<X>","providerId":"keycloak-oidc","enabled":false,"config":{"clientId":"x","clientSecret":"y","authorizationUrl":"https://example.invalid/auth","tokenUrl":"https://example.invalid/token"}}`.
+     Or, if you
+     know the mapper ID, delete it through the path of any existing identity provider:
+     `DELETE /admin/realms/<realm>/identity-provider/instances/<any-existing-alias>/mappers/<id>`.
+     Keycloak looks up the mapper by ID only.
+
+After the upgrade to 1.36.0, a resource with alias `<X>` that lists its mappers (`mappers` set, also `[]`) removes
+the orphan mapper from `<X>` on its next reconcile, because the name is not in that list. 1.35.0 skips the removal
+when `mappers` is `[]`.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
@@ -246,6 +291,7 @@ Check each listed user in Keycloak. Where the user must be enabled, set `enabled
 | `KeycloakOrganization` | All | A `domainsV2[].identityProviderAlias` that is not in `identityProviders`, or the same domain two times with different settings, fails the reconcile before any Keycloak write. |
 | `KeycloakOrganization` | All | An update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled after an operator write. 1.35.0 enabled it again. |
 | `KeycloakOrganization` | All | A link to an identity provider that is not in the realm fails before the link request. The error names `KeycloakRealmIdentityProvider`. |
+| `KeycloakRealmIdentityProvider` | All | `mappers[].identityProviderAlias` is deprecated. A value other than `spec.alias` fails the reconcile before any Keycloak write. Until you remove the value, the identity provider is not created or updated, and a rotated Secret in `spec.config` is not sent. |
 
 ## Keycloak upgrades
 
@@ -263,3 +309,4 @@ after the Keycloak upgrade. The status of the resource shows the Keycloak messag
 | `KeycloakRealmIdentityProvider` with a mapper that grants an admin role or an admin group | Returns 403 unless `spec.config.allowAdminRoleMapping` is `"true"`. | Set the key. The operator account needs `manage-realm` on the realm. Keep the key in the spec while the mapper exists. See [security.md](security.md). |
 | `KeycloakRealmIdentityProvider` with changed `providerId` | Rejected on an existing identity provider. | Create a new identity provider. |
 | `Keycloak`, `ClusterKeycloak` with `spec.tlsServerName` | Returns 421 when all of these are true: the TLS server name is not the `Host` of the request, the server has no proxy headers, and `Host` is not the Keycloak `hostname` or `hostname-admin`. | Set the Keycloak `hostname` option to the host of `spec.url`, or configure proxy headers on the server. |
+| `KeycloakRealmIdentityProvider` with `mappers[].identityProviderAlias` other than `spec.alias` | Returns 400. | Remove the field. 1.36.0 rejects the value before the request. See 1.35.0 to 1.36.0, item 8. |
