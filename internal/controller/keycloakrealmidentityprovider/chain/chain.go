@@ -61,6 +61,7 @@ func MakeChain(
 	c := &Chain{}
 
 	c.Use(
+		NewValidateMapperAliases(),
 		NewPutIDP(kClient.IdentityProviders, secretRef),
 		NewPutIDPMappers(kClient.IdentityProviders),
 		NewPutAdminFineGrainedPermissions(kClient),

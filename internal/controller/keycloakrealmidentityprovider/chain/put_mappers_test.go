@@ -258,6 +258,54 @@ func TestPutIDPMappers_Serve(t *testing.T) {
 			wantErr: require.NoError,
 		},
 		{
+			name: "create sends spec.alias even when the mapper names another alias",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias: testIDPAlias,
+					Mappers: []keycloakApi.IdentityProviderMapper{
+						{Name: "m1", IdentityProviderMapper: testMapperType, IdentityProviderAlias: "other"},
+					},
+				},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIDPMappers", mock.Anything, "realm", testIDPAlias).
+					Return([]keycloakapi.IdentityProviderMapperRepresentation{}, (*keycloakapi.Response)(nil), nil).Once()
+				m.On("CreateIDPMapper", mock.Anything, "realm", testIDPAlias, mock.MatchedBy(func(mapper keycloakapi.IdentityProviderMapperRepresentation) bool {
+					return mapper.IdentityProviderAlias != nil && *mapper.IdentityProviderAlias == testIDPAlias
+				})).Return((*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "in-sync mapper is not updated when the spec names another alias",
+			idp: &keycloakApi.KeycloakRealmIdentityProvider{
+				ObjectMeta: metav1.ObjectMeta{Generation: 3},
+				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+					Alias: testIDPAlias,
+					Mappers: []keycloakApi.IdentityProviderMapper{
+						{
+							Name:                   "mapper1",
+							IdentityProviderMapper: testMapperType,
+							IdentityProviderAlias:  "other",
+							Config:                 map[string]string{"attribute": "test"},
+						},
+					},
+				},
+				Status: keycloakApi.KeycloakRealmIdentityProviderStatus{ObservedGeneration: 3},
+			},
+			idpClient: func(t *testing.T) keycloakapi.IdentityProvidersClient {
+				m := keycloakapimocks.NewMockIdentityProvidersClient(t)
+				m.On("GetIDPMappers", mock.Anything, "realm", testIDPAlias).
+					Return([]keycloakapi.IdentityProviderMapperRepresentation{
+						attrMapperRepr("mapper1-id", "mapper1", "test"),
+					}, (*keycloakapi.Response)(nil), nil).Once()
+				return m
+			},
+			wantErr: require.NoError,
+		},
+		{
 			name: "existing mapper with nil name and nil id are handled safely",
 			idp: &keycloakApi.KeycloakRealmIdentityProvider{
 				Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{

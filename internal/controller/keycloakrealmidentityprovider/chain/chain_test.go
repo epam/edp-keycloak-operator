@@ -14,6 +14,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	keycloakapimocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/destination"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
@@ -104,5 +105,36 @@ func TestMakeChain(t *testing.T) {
 
 	c := MakeChain(&keycloakapi.KeycloakClient{}, k8sClient, secretRefClient)
 
-	require.Len(t, c.handlers, 3)
+	require.Len(t, c.handlers, 4)
+	require.IsType(t, &ValidateMapperAliases{}, c.handlers[0])
+}
+
+func TestMakeChain_RejectsForeignMapperAliasBeforeAnyCall(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	k8sClient := fake.NewClientBuilder().WithScheme(s).Build()
+
+	secretRefClient, err := secretref.NewSecretRef(k8sClient, destination.AllowAll())
+	require.NoError(t, err)
+
+	idpClient := keycloakapimocks.NewMockIdentityProvidersClient(t)
+
+	c := MakeChain(&keycloakapi.KeycloakClient{IdentityProviders: idpClient}, k8sClient, secretRefClient)
+
+	idp := &keycloakApi.KeycloakRealmIdentityProvider{
+		Spec: keycloakApi.KeycloakRealmIdentityProviderSpec{
+			Alias: testIDPAlias,
+			Mappers: []keycloakApi.IdentityProviderMapper{
+				{Name: "m1", IdentityProviderAlias: "other"},
+			},
+		},
+	}
+
+	err = c.Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), idp, "realm")
+	require.Error(t, err)
+	require.Contains(t, err.Error(), `mappers[0] "m1": identityProviderAlias "other" does not match spec.alias "test-idp"`)
+	idpClient.AssertNotCalled(t, "GetIdentityProvider")
+	require.Empty(t, idpClient.Calls)
 }

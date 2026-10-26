@@ -55,12 +55,7 @@ func (h *PutIDPMappers) Serve(ctx context.Context, keycloakRealmIDP *keycloakApi
 	forceUpdate := helper.SpecChanged(keycloakRealmIDP.Generation, keycloakRealmIDP.Status.ObservedGeneration)
 
 	for _, specMapper := range keycloakRealmIDP.Spec.Mappers {
-		mapperAlias := specMapper.IdentityProviderAlias
-		if mapperAlias == "" {
-			mapperAlias = alias
-		}
-
-		desired := specToIDPMapperRepresentation(&specMapper, mapperAlias)
+		desired := specToIDPMapperRepresentation(&specMapper, alias)
 
 		existing, exists := existingByName[specMapper.Name]
 		if !exists {
