@@ -102,6 +102,8 @@ type ClientScopePolicyData struct {
 	// ClientScopes is a list of realm client scopes. Each client scope must exist in the realm; manage it with a KeycloakClientScope.
 	// +required
 	// +kubebuilder:validation:MinItems=1
+	// +listType=map
+	// +listMapKey=name
 	// +kubebuilder:example={{name:"scope1",required:true},{name:"scope2"}}
 	ClientScopes []ClientScopeDefinition `json:"clientScopes"`
 }
