@@ -505,20 +505,20 @@ var _ = Describe("KeycloakClient Webhook", func() {
 	})
 })
 
-var _ = Describe("KeycloakClient clientRoles admission", func() {
-	newClient := func(name string, mutate func(*keycloakApi.KeycloakClientSpec)) *keycloakApi.KeycloakClient {
-		c := &keycloakApi.KeycloakClient{
-			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns1"},
-			Spec: keycloakApi.KeycloakClientSpec{
-				ClientId: name,
-				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "test-realm"},
-			},
-		}
-		mutate(&c.Spec)
-
-		return c
+func newClient(name string, mutate func(*keycloakApi.KeycloakClientSpec)) *keycloakApi.KeycloakClient {
+	c := &keycloakApi.KeycloakClient{
+		ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: "ns1"},
+		Spec: keycloakApi.KeycloakClientSpec{
+			ClientId: name,
+			RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "test-realm"},
+		},
 	}
+	mutate(&c.Spec)
 
+	return c
+}
+
+var _ = Describe("KeycloakClient clientRoles admission", func() {
 	It("Should reject an empty clientId in serviceAccount.clientRoles", func() {
 		c := newClient("sa-empty-client-id", func(s *keycloakApi.KeycloakClientSpec) {
 			s.ServiceAccount = &keycloakApi.ServiceAccount{
@@ -554,5 +554,117 @@ var _ = Describe("KeycloakClient clientRoles admission", func() {
 
 		Expect(k8sClient.Create(ctx, c)).To(Succeed())
 		Expect(k8sClient.Delete(ctx, c)).To(Succeed())
+	})
+})
+
+var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
+	newClientWithPolicies := func(name string, policies ...keycloakApi.Policy) *keycloakApi.KeycloakClient {
+		return newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
+			s.Authorization = &keycloakApi.Authorization{Policies: policies}
+		})
+	}
+
+	scopePolicy := func(scopes ...keycloakApi.ClientScopeDefinition) keycloakApi.Policy {
+		return keycloakApi.Policy{
+			Type:             keycloakApi.PolicyTypeClientScope,
+			Name:             "p",
+			DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+			Logic:            keycloakApi.PolicyLogicPositive,
+			ClientScopePolicy: &keycloakApi.ClientScopePolicyData{
+				ClientScopes: scopes,
+			},
+		}
+	}
+
+	create := func(c *keycloakApi.KeycloakClient) error {
+		err := k8sClient.Create(ctx, c)
+
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, c))).To(Succeed())
+		})
+
+		return err
+	}
+
+	const policyPath = "spec.authorization.policies[0].clientScopePolicy.clientScopes"
+
+	DescribeTable("Should reject a repeated client scope name",
+		func(name string, scopes ...keycloakApi.ClientScopeDefinition) {
+			err := create(newClientWithPolicies(name, scopePolicy(scopes...)))
+
+			Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+			Expect(err.Error()).To(ContainSubstring(policyPath + "[1]"))
+			Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+			Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+		},
+		Entry("required then default", "csp-dup-1",
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
+			keycloakApi.ClientScopeDefinition{Name: "a"}),
+		Entry("default then required", "csp-dup-2",
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true}),
+		Entry("identical required", "csp-dup-3",
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true}),
+		Entry("identical default", "csp-dup-4",
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+			keycloakApi.ClientScopeDefinition{Name: "a"}),
+	)
+
+	It("Should report the first repeat of each name", func() {
+		err := create(newClientWithPolicies("csp-dup-5", scopePolicy(
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+			keycloakApi.ClientScopeDefinition{Name: "b"},
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+			keycloakApi.ClientScopeDefinition{Name: "b"},
+		)))
+
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring("clientScopes[2]"))
+		Expect(err.Error()).To(ContainSubstring("clientScopes[3]"))
+	})
+
+	It("Should reject duplicates in a later policy", func() {
+		valid := scopePolicy(keycloakApi.ClientScopeDefinition{Name: "a"})
+		dup := scopePolicy(
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+		)
+		dup.Name = "p2"
+
+		err := create(newClientWithPolicies("csp-dup-6", valid, dup))
+
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring("policies[1].clientScopePolicy.clientScopes[1]"))
+		Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+	})
+
+	It("Should reject an update that adds a duplicate", func() {
+		c := newClientWithPolicies("csp-dup-7", scopePolicy(
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
+			keycloakApi.ClientScopeDefinition{Name: "b"},
+		))
+		Expect(create(c)).To(Succeed())
+
+		scopes := &c.Spec.Authorization.Policies[0].ClientScopePolicy.ClientScopes
+		*scopes = append(*scopes, keycloakApi.ClientScopeDefinition{Name: "a"})
+
+		err := k8sClient.Update(ctx, c)
+
+		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+		Expect(err.Error()).To(ContainSubstring(policyPath + "[2]"))
+	})
+
+	It("Should accept distinct names", func() {
+		Expect(create(newClientWithPolicies("csp-ok-1", scopePolicy(
+			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
+			keycloakApi.ClientScopeDefinition{Name: "b"},
+		)))).To(Succeed())
+	})
+
+	It("Should accept a single entry", func() {
+		Expect(create(newClientWithPolicies("csp-ok-2", scopePolicy(
+			keycloakApi.ClientScopeDefinition{Name: "a"},
+		)))).To(Succeed())
 	})
 })
