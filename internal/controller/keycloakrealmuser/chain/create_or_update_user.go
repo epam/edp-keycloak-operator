@@ -46,7 +46,7 @@ func (h *CreateOrUpdateUser) Serve(
 		newUser := keycloakapi.UserRepresentation{
 			Username:        &userSpec.Username,
 			Enabled:         ptr.To(ptr.Deref(userSpec.Enabled, true)),
-			EmailVerified:   &userSpec.EmailVerified,
+			EmailVerified:   ptr.To(ptr.Deref(userSpec.EmailVerified, false)),
 			FirstName:       &userSpec.FirstName,
 			LastName:        &userSpec.LastName,
 			RequiredActions: &userSpec.RequiredUserActions,
@@ -79,9 +79,9 @@ func (h *CreateOrUpdateUser) Serve(
 	existing.Username = &userSpec.Username
 
 	// Keycloak clears login failures of a locked user on a PUT with enabled: true. Send enabled only on change.
-	existing.Enabled = enabledUpdate(userSpec.Enabled, existing.Enabled)
+	existing.Enabled = boolUpdate(userSpec.Enabled, existing.Enabled)
 
-	existing.EmailVerified = &userSpec.EmailVerified
+	existing.EmailVerified = boolUpdate(userSpec.EmailVerified, existing.EmailVerified)
 	existing.FirstName = &userSpec.FirstName
 	existing.LastName = &userSpec.LastName
 	existing.RequiredActions = &requiredActions
@@ -102,8 +102,8 @@ func (h *CreateOrUpdateUser) Serve(
 	return nil
 }
 
-// enabledUpdate returns the enabled value to send, or nil when the spec leaves it unset or equals Keycloak.
-func enabledUpdate(spec, fetched *bool) *bool {
+// boolUpdate returns the value to send, or nil when the spec leaves it unset or equals Keycloak.
+func boolUpdate(spec, fetched *bool) *bool {
 	if ptr.Equal(spec, fetched) {
 		return nil
 	}

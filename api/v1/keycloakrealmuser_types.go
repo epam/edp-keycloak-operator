@@ -34,8 +34,10 @@ type KeycloakRealmUserSpec struct {
 	Enabled *bool `json:"enabled,omitempty"`
 
 	// EmailVerified is a user email verified flag.
+	// Omitted: a new user is created unverified; the operator does not change the flag of an existing user.
+	// Set: written on create, and on update when it differs from Keycloak.
 	// +optional
-	EmailVerified bool `json:"emailVerified,omitempty"`
+	EmailVerified *bool `json:"emailVerified,omitempty"`
 
 	// RequiredUserActions is required action when user log in, example: CONFIGURE_TOTP, UPDATE_PASSWORD, UPDATE_PROFILE, VERIFY_EMAIL.
 	// +nullable

@@ -16,6 +16,8 @@ import (
 	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 )
 
+const existingUserID = "existing-user-id"
+
 func TestNewCreateOrUpdateUser(t *testing.T) {
 	h := NewCreateOrUpdateUser(nil, nil)
 	require.NotNil(t, h)
@@ -50,7 +52,7 @@ func createdResponse(userID string) *keycloakapi.Response {
 
 func existingRep(enabled *bool) *keycloakapi.UserRepresentation {
 	return &keycloakapi.UserRepresentation{
-		Id:       ptr.To("existing-user-id"),
+		Id:       ptr.To(existingUserID),
 		Username: ptr.To(testUsername),
 		Enabled:  enabled,
 	}
@@ -58,9 +60,38 @@ func existingRep(enabled *bool) *keycloakapi.UserRepresentation {
 
 func updateRep(enabled *bool) *keycloakapi.UserRepresentation {
 	rep := createRep(enabled)
-	rep.Id = ptr.To("existing-user-id")
+	rep.Id = ptr.To(existingUserID)
+	rep.EmailVerified = nil
 
 	return &rep
+}
+
+func emailVerifiedUser(emailVerified *bool) *keycloakApi.KeycloakRealmUser {
+	user := enabledUser(nil)
+	user.Spec.EmailVerified = emailVerified
+
+	return user
+}
+
+func createRepEmailVerified(emailVerified bool) keycloakapi.UserRepresentation {
+	rep := createRep(ptr.To(true))
+	rep.EmailVerified = ptr.To(emailVerified)
+
+	return rep
+}
+
+func existingRepEmailVerified(emailVerified *bool) *keycloakapi.UserRepresentation {
+	rep := existingRep(nil)
+	rep.EmailVerified = emailVerified
+
+	return rep
+}
+
+func updateRepEmailVerified(emailVerified *bool) *keycloakapi.UserRepresentation {
+	rep := updateRep(nil)
+	rep.EmailVerified = emailVerified
+
+	return rep
 }
 
 func TestCreateOrUpdateUser_Serve(t *testing.T) {
@@ -84,7 +115,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					FirstName:     "Test",
 					LastName:      "User",
 					Enabled:       ptr.To(true),
-					EmailVerified: true,
+					EmailVerified: ptr.To(true),
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
@@ -144,19 +175,19 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					FirstName:     "Updated",
 					LastName:      "User",
 					Enabled:       ptr.To(true),
-					EmailVerified: true,
+					EmailVerified: ptr.To(true),
 				},
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
-					Id:       ptr.To("existing-user-id"),
+					Id:       ptr.To(existingUserID),
 					Username: ptr.To(testUsername),
 					Email:    ptr.To("old@example.com"),
 				}
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, keycloakapi.UserRepresentation{
+					Id:              ptr.To(existingUserID),
 					Username:        ptr.To(testUsername),
 					Enabled:         ptr.To(true),
 					EmailVerified:   ptr.To(true),
@@ -167,7 +198,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}).Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "success - update user preserves UPDATE_PASSWORD action",
@@ -183,17 +214,16 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
+					Id:              ptr.To(existingUserID),
 					Username:        ptr.To(testUsername),
 					RequiredActions: ptr.To([]string{"UPDATE_PASSWORD", "VERIFY_EMAIL"}),
 				}
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				// UPDATE_PASSWORD should be preserved
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, keycloakapi.UserRepresentation{
+					Id:              ptr.To(existingUserID),
 					Username:        ptr.To(testUsername),
-					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
 					RequiredActions: ptr.To([]string{"VERIFY_EMAIL", "UPDATE_PASSWORD"}),
@@ -201,7 +231,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}).Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "success - create user with add-only reconciliation strategy",
@@ -277,12 +307,12 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			},
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				existingUser := &keycloakapi.UserRepresentation{
-					Id:       ptr.To("existing-user-id"),
+					Id:       ptr.To(existingUserID),
 					Username: ptr.To(testUsername),
 				}
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).Return(nil, errors.New("keycloak api error"))
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(nil)).Return(nil, errors.New("keycloak api error"))
 			},
 			wantErr: func(t require.TestingT, err error, _ ...any) {
 				require.Error(t, err)
@@ -360,17 +390,16 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					"stale": {"should-be-removed"},
 				}
 				existingUser := &keycloakapi.UserRepresentation{
-					Id:         ptr.To("existing-user-id"),
+					Id:         ptr.To(existingUserID),
 					Username:   ptr.To(testUsername),
 					Attributes: &existingAttrs,
 				}
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingUser, nil, nil)
 				mergedAttrs := map[string][]string{"dept": {"engineering"}}
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, keycloakapi.UserRepresentation{
+					Id:              ptr.To(existingUserID),
 					Username:        ptr.To(testUsername),
-					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
 					RequiredActions: ptr.To([]string(nil)),
@@ -379,7 +408,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}).Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "success - update user with attributes (addOnly merges without removing)",
@@ -400,7 +429,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					"extra": {"kept"},
 				}
 				existingUser := &keycloakapi.UserRepresentation{
-					Id:         ptr.To("existing-user-id"),
+					Id:         ptr.To(existingUserID),
 					Username:   ptr.To(testUsername),
 					Attributes: &existingAttrs,
 				}
@@ -411,10 +440,9 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 					"dept":  {"existing-val", "engineering"},
 					"extra": {"kept"},
 				}
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", keycloakapi.UserRepresentation{
-					Id:              ptr.To("existing-user-id"),
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, keycloakapi.UserRepresentation{
+					Id:              ptr.To(existingUserID),
 					Username:        ptr.To(testUsername),
-					EmailVerified:   ptr.To(false),
 					FirstName:       ptr.To(""),
 					LastName:        ptr.To(""),
 					RequiredActions: ptr.To([]string(nil)),
@@ -423,7 +451,7 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 				}).Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "create - enabled omitted is sent as true",
@@ -467,11 +495,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(true)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(nil)).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled omitted sends no enabled when fetched false",
@@ -479,11 +507,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(false)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(nil)).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled true sends no enabled when fetched true",
@@ -491,11 +519,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(true)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(nil)).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled false is sent when fetched nil",
@@ -503,11 +531,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(nil), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(false))).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(ptr.To(false))).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled false sends no enabled when fetched false",
@@ -515,11 +543,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(false)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(nil)).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(nil)).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled false overrides fetched true",
@@ -527,11 +555,11 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(true)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(false))).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(ptr.To(false))).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
 		},
 		{
 			name: "update - enabled true overrides fetched false",
@@ -539,11 +567,143 @@ func TestCreateOrUpdateUser_Serve(t *testing.T) {
 			mockSetup: func(m *v2mocks.MockUsersClient) {
 				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
 					Return(existingRep(ptr.To(false)), nil, nil)
-				m.EXPECT().UpdateUser(context.Background(), "test-realm", "existing-user-id", *updateRep(ptr.To(true))).
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRep(ptr.To(true))).
 					Return(nil, nil)
 			},
 			wantErr:    require.NoError,
-			expectedID: "existing-user-id",
+			expectedID: existingUserID,
+		},
+		{
+			name: "create - emailVerified omitted is sent as false",
+			user: emailVerifiedUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRepEmailVerified(false)).
+					Return(createdResponse("user-ev"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-ev",
+		},
+		{
+			name: "create - emailVerified false is sent as false",
+			user: emailVerifiedUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRepEmailVerified(false)).
+					Return(createdResponse("user-ev"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-ev",
+		},
+		{
+			name: "create - emailVerified true is sent as true",
+			user: emailVerifiedUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(nil, nil, keycloakapi.ErrNotFound)
+				m.EXPECT().CreateUser(context.Background(), "test-realm", createRepEmailVerified(true)).
+					Return(createdResponse("user-ev"), nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: "user-ev",
+		},
+		{
+			name: "update - emailVerified omitted sends no emailVerified when fetched true",
+			user: emailVerifiedUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified omitted sends no emailVerified when fetched false",
+			user: emailVerifiedUser(nil),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified true sends no emailVerified when fetched true",
+			user: emailVerifiedUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified true is sent when fetched false",
+			user: emailVerifiedUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(ptr.To(true))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified true is sent when fetched nil",
+			user: emailVerifiedUser(ptr.To(true)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(nil), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(ptr.To(true))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified false sends no emailVerified when fetched false",
+			user: emailVerifiedUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(false)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(nil)).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified false overrides fetched true",
+			user: emailVerifiedUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(ptr.To(true)), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(ptr.To(false))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
+		},
+		{
+			name: "update - emailVerified false is sent when fetched nil",
+			user: emailVerifiedUser(ptr.To(false)),
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().FindUserByUsername(context.Background(), "test-realm", testUsername).
+					Return(existingRepEmailVerified(nil), nil, nil)
+				m.EXPECT().UpdateUser(context.Background(), "test-realm", existingUserID, *updateRepEmailVerified(ptr.To(false))).
+					Return(nil, nil)
+			},
+			wantErr:    require.NoError,
+			expectedID: existingUserID,
 		},
 	}
 
