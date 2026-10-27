@@ -118,7 +118,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 				FirstName:     "test-first-name",
 				LastName:      "test-last-name",
 				Enabled:       ptr.To(true),
-				EmailVerified: true,
+				EmailVerified: ptr.To(true),
 				RequiredUserActions: []string{
 					"VERIFY_EMAIL",
 				},

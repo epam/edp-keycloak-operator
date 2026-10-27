@@ -14,6 +14,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
@@ -196,28 +197,36 @@ func TestReconcile_applyDefaults_passwordSecret(t *testing.T) {
 	}
 }
 
-func TestReconcile_applyDefaults_enabled(t *testing.T) {
+func TestReconcile_applyDefaults_optionalBools(t *testing.T) {
 	tests := []struct {
-		name        string
-		specJSON    string
-		wantPresent bool
-		wantValue   bool
+		name              string
+		specJSON          string
+		wantEnabled       *bool
+		wantEmailVerified *bool
 	}{
 		{
 			name:     "absent stays absent",
 			specJSON: `{"username":"u","passwordSecret":{"name":"","key":""}}`,
 		},
 		{
-			name:        "false is kept",
+			name:        "enabled false is kept",
 			specJSON:    `{"username":"u","enabled":false,"passwordSecret":{"name":"","key":""}}`,
-			wantPresent: true,
-			wantValue:   false,
+			wantEnabled: ptr.To(false),
 		},
 		{
-			name:        "true is kept",
+			name:        "enabled true is kept",
 			specJSON:    `{"username":"u","enabled":true,"passwordSecret":{"name":"","key":""}}`,
-			wantPresent: true,
-			wantValue:   true,
+			wantEnabled: ptr.To(true),
+		},
+		{
+			name:              "emailVerified false is kept",
+			specJSON:          `{"username":"u","emailVerified":false,"passwordSecret":{"name":"","key":""}}`,
+			wantEmailVerified: ptr.To(false),
+		},
+		{
+			name:              "emailVerified true is kept",
+			specJSON:          `{"username":"u","emailVerified":true,"passwordSecret":{"name":"","key":""}}`,
+			wantEmailVerified: ptr.To(true),
 		},
 	}
 
@@ -241,10 +250,12 @@ func TestReconcile_applyDefaults_enabled(t *testing.T) {
 			got.SetGroupVersionKind(keycloakApi.GroupVersion.WithKind("KeycloakRealmUser"))
 			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: "user", Namespace: "default"}, got))
 
-			value, found, err := unstructured.NestedBool(got.Object, "spec", "enabled")
-			require.NoError(t, err)
-			assert.Equal(t, tt.wantPresent, found)
-			assert.Equal(t, tt.wantValue, value)
+			for field, want := range map[string]*bool{"enabled": tt.wantEnabled, "emailVerified": tt.wantEmailVerified} {
+				value, found, err := unstructured.NestedBool(got.Object, "spec", field)
+				require.NoError(t, err)
+				assert.Equal(t, want != nil, found, field)
+				assert.Equal(t, ptr.Deref(want, false), value, field)
+			}
 		})
 	}
 }

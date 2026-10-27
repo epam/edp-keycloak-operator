@@ -1651,6 +1651,11 @@ func (in *KeycloakRealmUserSpec) DeepCopyInto(out *KeycloakRealmUserSpec) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.EmailVerified != nil {
+		in, out := &in.EmailVerified, &out.EmailVerified
+		*out = new(bool)
+		**out = **in
+	}
 	if in.RequiredUserActions != nil {
 		in, out := &in.RequiredUserActions, &out.RequiredUserActions
 		*out = make([]string, len(*in))
