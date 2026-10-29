@@ -186,21 +186,6 @@ func (in *KeycloakRealm) GetKeycloakRef() common.KeycloakRef {
 	return in.Spec.KeycloakRef
 }
 
-type SSORealmMapper struct {
-	// IdentityProviderMapper specifies the identity provider mapper to use.
-	// +optional
-	IdentityProviderMapper string `json:"identityProviderMapper,omitempty"`
-
-	// Name specifies the name of the SSO realm mapper.
-	// +optional
-	Name string `json:"name,omitempty"`
-
-	// Config is a map of configuration options for the SSO realm mapper.
-	// +nullable
-	// +optional
-	Config map[string]string `json:"config,omitempty"`
-}
-
 // RealmLogin defines the login settings for the realm.
 type RealmLogin struct {
 	// UserRegistration enables/disables the registration page. A link for registration will show on the login page too.
