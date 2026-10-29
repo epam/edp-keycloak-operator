@@ -5899,6 +5899,21 @@ RealmRef is reference to Realm custom resource.
         </tr>
     </thead>
     <tbody><tr>
+        <td><b>identityProviderMapper</b></td>
+        <td>string</td>
+        <td>
+          IdentityProviderMapper is the mapper type (Keycloak provider ID), for example hardcoded-attribute-idp-mapper.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name is the mapper name. The operator matches Keycloak mappers by name.
+Must be unique in the list; a duplicate fails the reconcile.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
         <td><b>config</b></td>
         <td>map[string]string</td>
         <td>
@@ -5914,20 +5929,6 @@ Leave it empty or set it to spec.alias. Any other value fails the reconcile befo
 The operator always sends spec.alias.
 
 Deprecated: omit this field. It will be removed in a future API version.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>identityProviderMapper</b></td>
-        <td>string</td>
-        <td>
-          IdentityProviderMapper is a identity provider mapper.<br/>
-        </td>
-        <td>false</td>
-      </tr><tr>
-        <td><b>name</b></td>
-        <td>string</td>
-        <td>
-          Name is a name of identity provider mapper.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

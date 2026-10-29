@@ -112,11 +112,19 @@ spec:
                         Deprecated: omit this field. It will be removed in a future API version.
                       type: string
                     identityProviderMapper:
-                      description: IdentityProviderMapper is a identity provider mapper.
+                      description: IdentityProviderMapper is the mapper type (Keycloak
+                        provider ID), for example hardcoded-attribute-idp-mapper.
+                      minLength: 1
                       type: string
                     name:
-                      description: Name is a name of identity provider mapper.
+                      description: |-
+                        Name is the mapper name. The operator matches Keycloak mappers by name.
+                        Must be unique in the list; a duplicate fails the reconcile.
+                      minLength: 1
                       type: string
+                  required:
+                  - identityProviderMapper
+                  - name
                   type: object
                 nullable: true
                 type: array

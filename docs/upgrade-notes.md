@@ -215,6 +215,33 @@ After the upgrade to 1.36.0, a resource with alias `<X>` that lists its mappers 
 the orphan mapper from `<X>` on its next reconcile, because the name is not in that list. 1.35.0 skips the removal
 when `mappers` is `[]`.
 
+**9. `KeycloakRealmIdentityProvider` mapper without `name` or `identityProviderMapper`**
+
+The API server now rejects a mapper with an empty or missing `name` or `identityProviderMapper` (the mapper
+type). It does not reject blank values (spaces only). Before, an empty name failed the reconcile of all mappers
+of the resource, and an empty mapper type was sent to Keycloak as it is.
+
+```sh
+kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select([.spec.mappers[]? | select(((.name // "") | test("^\\s*$")) or ((.identityProviderMapper // "") | test("^\\s*$")))] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+The query also lists blank values (spaces only), which the operator sends to Keycloak as they are.
+
+Fix the listed resources in the cluster and in the manifests in Git: set the name and the mapper type. The next
+reconcile acts per case; no manual cleanup in Keycloak is needed.
+
+- Empty or missing name: creates the mapper.
+- Blank name: creates a mapper under the new name and removes the old one.
+- Empty mapper type: updates the mapper in place.
+
+An entry that is already stored stays stored; any later change to `mappers` is rejected while the entry is empty or
+missing. This needs CRD validation ratcheting, on by default since Kubernetes 1.30. Without it, every write to a stored entry is validated, so the operator's
+finalizer patches fail and a delete stays in Terminating; fix the entry before you delete the resource. A Go client that reads and updates
+the whole resource is rejected while a stored entry has an explicit empty value; use a patch or fix the entry.
+
+A mapper with an empty mapper type can break broker login through that identity provider. This comes from the
+Keycloak source and is not tested.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
@@ -293,6 +320,7 @@ Check each listed user in Keycloak. Where the user must be enabled, set `enabled
 | `KeycloakOrganization` | All | An update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled after an operator write. 1.35.0 enabled it again. |
 | `KeycloakOrganization` | All | A link to an identity provider that is not in the realm fails before the link request. The error names `KeycloakRealmIdentityProvider`. |
 | `KeycloakRealmIdentityProvider` | All | `mappers[].identityProviderAlias` is deprecated. A value other than `spec.alias` fails the reconcile before any Keycloak write. Until you remove the value, the identity provider is not created or updated, and a rotated Secret in `spec.config` is not sent. |
+| `KeycloakRealmIdentityProvider` | All | `mappers[].name` and `mappers[].identityProviderMapper` are required and must not be empty. Blank values (spaces only) are admitted. |
 
 ## Keycloak upgrades
 
