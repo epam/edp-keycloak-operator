@@ -125,6 +125,7 @@ spec:
                             type: string
                           nullable: true
                           type: array
+                          x-kubernetes-list-type: set
                         resources:
                           description: |-
                             Resources is a list of resources names.
@@ -136,6 +137,7 @@ spec:
                             type: string
                           nullable: true
                           type: array
+                          x-kubernetes-list-type: set
                         scopes:
                           description: |-
                             Scopes is a list of authorization scopes names.
@@ -147,6 +149,7 @@ spec:
                             type: string
                           nullable: true
                           type: array
+                          x-kubernetes-list-type: set
                         type:
                           description: Type is a permission type.
                           enum:
@@ -176,6 +179,7 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: set
                           required:
                           - policies
                           type: object
@@ -191,6 +195,7 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: set
                           required:
                           - clients
                           type: object
@@ -400,6 +405,7 @@ spec:
                               items:
                                 type: string
                               type: array
+                              x-kubernetes-list-type: set
                           required:
                           - users
                           type: object
@@ -459,6 +465,7 @@ spec:
                     items:
                       type: string
                     type: array
+                    x-kubernetes-list-type: set
                 type: object
               authorizationServicesEnabled:
                 description: AuthorizationServicesEnabled enable/disable fine-grained
