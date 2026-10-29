@@ -107,7 +107,11 @@ var _ = Describe("KeycloakClientScope idempotent reconcile", Ordered, func() {
 				Protocol:    "openid-connect",
 				Description: "idem scope v1",
 				Type:        "none",
-				Attributes:  map[string]string{"include.in.token.scope": "true"},
+				Attributes: map[string]string{
+					"include.in.token.scope": "true",
+					"gui.order":              "",
+					"consent.screen.text":    " ",
+				},
 				ProtocolMappers: []keycloakApi.ProtocolMapper{
 					mapper("pm-a", "claim-a"),
 					mapper("pm-b", "claim-b"),
@@ -151,6 +155,22 @@ var _ = Describe("KeycloakClientScope idempotent reconcile", Ordered, func() {
 
 			Eventually(func(g Gomega) {
 				g.Expect(ptr.Deref(kcScope().Description, "")).To(Equal("idem scope v1"))
+			}, longWait, interval).Should(Succeed())
+		})).ShouldNot(BeEmpty(), "admin event log recorded nothing for a known write")
+	})
+
+	It("Should heal external drift on a blank attribute", func() {
+		Expect(recorder.WritesDuring(ctx, 0, func() {
+			rep := kcScope()
+			Expect(rep.Attributes).ShouldNot(BeNil())
+			(*rep.Attributes)["gui.order"] = "7"
+			_, err := keycloakApiClient.ClientScopes.UpdateClientScope(ctx, KeycloakRealmCR, scopeID, *rep)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			nudge()
+
+			Eventually(func(g Gomega) {
+				g.Expect(ptr.Deref(kcScope().Attributes, nil)["gui.order"]).To(BeEmpty())
 			}, longWait, interval).Should(Succeed())
 		})).ShouldNot(BeEmpty(), "admin event log recorded nothing for a known write")
 	})
