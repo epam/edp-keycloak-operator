@@ -109,9 +109,13 @@ func (h *SyncClientRoles) syncOneClientRoles(
 		// Client not in mappings yet, resolve UUID.
 		var err error
 
-		clientUUID, err = resolveClientUUID(ctx, kClient, realm, clientIDStr)
+		clientUUID, err = kClient.Clients.GetClientUUID(ctx, realm, clientIDStr)
 		if err != nil {
-			return err
+			if keycloakapi.IsNotFound(err) {
+				return fmt.Errorf("client %q not found in realm %q: %w", clientIDStr, realm, err)
+			}
+
+			return fmt.Errorf("unable to get client %q: %w", clientIDStr, err)
 		}
 		// currentRoles remains empty (no roles currently assigned).
 	}
@@ -168,26 +172,4 @@ func (h *SyncClientRoles) syncOneClientRoles(
 	}
 
 	return nil
-}
-
-// resolveClientUUID resolves a Keycloak client_id string to its internal UUID.
-func resolveClientUUID(
-	ctx context.Context,
-	kClient *keycloakapi.KeycloakClient,
-	realm, clientIDStr string,
-) (string, error) {
-	clients, _, err := kClient.Clients.GetClients(ctx, realm, &keycloakapi.GetClientsParams{
-		ClientId: &clientIDStr,
-	})
-	if err != nil {
-		return "", fmt.Errorf("unable to get clients: %w", err)
-	}
-
-	for _, c := range clients {
-		if c.ClientId != nil && *c.ClientId == clientIDStr && c.Id != nil {
-			return *c.Id, nil
-		}
-	}
-
-	return "", fmt.Errorf("client %q not found in realm %q", clientIDStr, realm)
 }
