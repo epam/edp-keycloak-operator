@@ -724,6 +724,45 @@ func TestMergeRealmRepresentation(t *testing.T) {
 		assert.Equal(t, ptr.To(int32(900)), base.MaxFailureWaitSeconds)
 		assert.Equal(t, ptr.To(int32(1)), base.MaxTemporaryLockouts)
 	})
+
+	t.Run("supportedLocales with duplicates equal to base as a set keep base", func(t *testing.T) {
+		orig := &[]string{"en"}
+		base := keycloakapi.RealmRepresentation{SupportedLocales: orig}
+		overlayLocales := []string{"en", "en"}
+		overlay := keycloakapi.RealmRepresentation{SupportedLocales: &overlayLocales}
+
+		MergeRealmRepresentation(&base, &overlay)
+
+		assert.Same(t, orig, base.SupportedLocales)
+		assert.Equal(t, []string{"en", "en"}, overlayLocales)
+	})
+}
+
+func TestEqualStringSets(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name string
+		a    []string
+		b    []string
+		want bool
+	}{
+		{name: "duplicates on both sides collapse", a: []string{"a", "a", "b"}, b: []string{"a", "b", "b"}, want: true},
+		{name: "duplicates do not mask a missing element", a: []string{"a", "a"}, b: []string{"a", "b"}, want: false},
+		{name: "nil equals empty", a: nil, b: []string{}, want: true},
+		{name: "duplicates on the first argument only", a: []string{"en", "en"}, b: []string{"en"}, want: true},
+		{name: "duplicates on the second argument only", a: []string{"en"}, b: []string{"en", "en"}, want: true},
+		{name: "order is ignored", a: []string{"b", "a"}, b: []string{"a", "b"}, want: true},
+		{name: "different sets are not equal", a: []string{"a"}, b: []string{"b"}, want: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			assert.Equal(t, tt.want, equalStringSets(tt.a, tt.b))
+		})
+	}
 }
 
 func TestApplyRealmEventConfig(t *testing.T) {
@@ -797,6 +836,34 @@ func TestApplyRealmEventConfig(t *testing.T) {
 				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
 					Return(&keycloakapi.RealmEventsConfigRepresentation{
 						EventsListeners: &[]string{"email", "jboss-logging"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// SetEventsConfig is intentionally not stubbed here.
+			name: "in sync — enabledEventTypes differ only by duplicates, no write",
+			cfg: &common.RealmEventConfig{
+				EnabledEventTypes: []string{"LOGIN", "LOGIN", "LOGOUT"},
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EnabledEventTypes: &[]string{"LOGOUT", "LOGIN"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// SetEventsConfig is intentionally not stubbed here.
+			name: "in sync — eventsListeners differ only by duplicates, no write",
+			cfg: &common.RealmEventConfig{
+				EventsListeners: []string{"jboss-logging", "jboss-logging"},
+			},
+			setupMock: func(m *v2mocks.MockEventsClient) {
+				m.EXPECT().GetEventsConfig(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmEventsConfigRepresentation{
+						EventsListeners: &[]string{"jboss-logging"},
 					}, nil, nil)
 			},
 			wantErr: require.NoError,
@@ -1026,6 +1093,36 @@ func TestApplyRealmSettings(t *testing.T) {
 					}, nil, nil)
 				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
 					return rep.SupportedLocales != nil && slices.Equal(*rep.SupportedLocales, []string{"en", "fr"})
+				})).Return(nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			// UpdateRealm is intentionally not stubbed here.
+			name: "in sync — supportedLocales differ only by duplicates, no write",
+			overlay: keycloakapi.RealmRepresentation{
+				SupportedLocales: &[]string{"en", "en", "de"},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{
+						SupportedLocales: &[]string{"de", "en"},
+					}, nil, nil)
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "drift — supportedLocales with duplicates differ as sets, write applied",
+			overlay: keycloakapi.RealmRepresentation{
+				SupportedLocales: &[]string{"en", "en"},
+			},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").
+					Return(&keycloakapi.RealmRepresentation{
+						SupportedLocales: &[]string{"de", "en"},
+					}, nil, nil)
+				m.EXPECT().UpdateRealm(mock.Anything, "test-realm", mock.MatchedBy(func(rep keycloakapi.RealmRepresentation) bool {
+					return rep.SupportedLocales != nil && slices.Equal(*rep.SupportedLocales, []string{"en", "en"})
 				})).Return(nil, nil)
 			},
 			wantErr: require.NoError,
