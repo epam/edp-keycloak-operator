@@ -91,12 +91,15 @@ type IdentityProviderMapper struct {
 	// +optional
 	IdentityProviderAlias string `json:"identityProviderAlias,omitempty"`
 
-	// IdentityProviderMapper is a identity provider mapper.
-	// +optional
+	// IdentityProviderMapper is the mapper type (Keycloak provider ID), for example hardcoded-attribute-idp-mapper.
+	// +required
+	// +kubebuilder:validation:MinLength=1
 	IdentityProviderMapper string `json:"identityProviderMapper,omitempty"`
 
-	// Name is a name of identity provider mapper.
-	// +optional
+	// Name is the mapper name. The operator matches Keycloak mappers by name.
+	// Must be unique in the list; a duplicate fails the reconcile.
+	// +required
+	// +kubebuilder:validation:MinLength=1
 	Name string `json:"name,omitempty"`
 
 	// Config is a map of identity provider mapper configuration.
