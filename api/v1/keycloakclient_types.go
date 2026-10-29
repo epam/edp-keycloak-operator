@@ -336,10 +336,16 @@ type Authorization struct {
 	// +listType=set
 	Scopes []string `json:"scopes,omitempty"`
 
+	// +listType=map
+	// +listMapKey=name
 	Policies []Policy `json:"policies,omitempty"`
 
+	// +listType=map
+	// +listMapKey=name
 	Permissions []Permission `json:"permissions,omitempty"`
 
+	// +listType=map
+	// +listMapKey=name
 	Resources []Resource `json:"resources,omitempty"`
 }
 
