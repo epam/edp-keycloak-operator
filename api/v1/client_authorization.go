@@ -73,6 +73,8 @@ type Policy struct {
 type RolePolicyData struct {
 	// Roles is a list of role.
 	// +required
+	// +listType=map
+	// +listMapKey=name
 	// +kubebuilder:example={roles:{{name:"role1",required:true},{name:"role2"}}}
 	Roles []RoleDefinition `json:"roles"`
 }
@@ -196,6 +198,8 @@ type AggregatedPolicyData struct {
 type GroupPolicyData struct {
 	// Groups is a list of group names. Specifies which group(s) are allowed by this policy.
 	// +required
+	// +listType=map
+	// +listMapKey=name
 	// +kubebuilder:example=`{"groups":[{"name":"group1","extendChildren":true},{"name":"group2"}]}`
 	Groups []GroupDefinition `json:"groups,omitempty"`
 
