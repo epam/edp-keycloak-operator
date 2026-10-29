@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   creationTimestamp: null
   name: keycloakrealms.v1.edp.epam.com
 spec:
@@ -319,7 +319,9 @@ spec:
                     x-kubernetes-list-type: set
                 type: object
               realmName:
-                description: RealmName specifies the name of the realm.
+                description: |-
+                  RealmName specifies the name of the realm.
+                  The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.
                 type: string
                 x-kubernetes-validations:
                 - message: Value is immutable
@@ -791,7 +793,13 @@ spec:
                     type: string
                 type: object
               users:
-                description: Users is a list of users to create in the realm.
+                description: |-
+                  Users is a list of users to create in the realm.
+                  Roles listed in users[].realmRoles are created only when the operator creates the realm;
+                  on an existing realm each role must already exist.
+
+                  Deprecated: use KeycloakRealmUser and KeycloakRealmRole instead. This field will be removed
+                  in a future API version. Do not manage the same user with both; their role syncs undo each other.
                 items:
                   properties:
                     realmRoles:

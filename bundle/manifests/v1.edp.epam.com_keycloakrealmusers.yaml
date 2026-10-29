@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   creationTimestamp: null
   name: keycloakrealmusers.v1.edp.epam.com
 spec:
@@ -58,8 +58,12 @@ spec:
                     type: string
                   type: array
                 description: |-
-                  AttributesV2 is a map of service account attributes.
-                  Each attribute can have multiple values.
+                  AttributesV2 is a map of user attributes. Each attribute can have multiple values.
+                  Keycloak 24 and later store only attributes the realm user profile allows. Realms created on
+                  Keycloak 24+ allow none by default: set userProfileConfig.unmanagedAttributePolicy to ADMIN_EDIT
+                  or ENABLED on the realm, or declare the attributes in userProfileConfig.attributes.
+                  Values Keycloak did not store as specified are reported in status; removal of a whole attribute is not checked.
+                  locale is stored only when the realm has internationalization enabled.
                 nullable: true
                 type: object
               clientRoles:
@@ -68,6 +72,7 @@ spec:
                   properties:
                     clientId:
                       description: ClientID is a client ID.
+                      minLength: 1
                       type: string
                     roles:
                       description: |-
@@ -87,13 +92,16 @@ spec:
                 description: Email is a user email.
                 type: string
               emailVerified:
-                description: EmailVerified is a user email verified flag.
+                description: |-
+                  EmailVerified is a user email verified flag.
+                  Omitted: a new user is created unverified; the operator does not change the flag of an existing user.
+                  Set: written on create, and on update when it differs from Keycloak.
                 type: boolean
               enabled:
-                default: true
                 description: |-
                   Enabled is a user enabled flag.
-                  Omit the field to create an enabled user.
+                  Omitted: a new user is created enabled; the operator does not change the flag of an existing user.
+                  Set: written on create, and on update when it differs from Keycloak.
                 type: boolean
               firstName:
                 description: FirstName is a user first name.

@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   creationTimestamp: null
   name: keycloakclients.v1.edp.epam.com
 spec:
@@ -194,6 +194,41 @@ spec:
                           required:
                           - clients
                           type: object
+                        clientScopePolicy:
+                          description: ClientScopePolicy is a client scope policy
+                            settings.
+                          properties:
+                            clientScopes:
+                              description: ClientScopes is a list of realm client
+                                scopes. Each client scope must exist in the realm;
+                                manage it with a KeycloakClientScope.
+                              example:
+                              - name: scope1
+                                required: true
+                              - name: scope2
+                              items:
+                                description: ClientScopeDefinition represents a client
+                                  scope in a ClientScopePolicyData.
+                                properties:
+                                  name:
+                                    description: Name is a realm client scope name.
+                                    example: scope1
+                                    type: string
+                                  required:
+                                    description: Required is a flag that specifies
+                                      whether the client scope is required.
+                                    type: boolean
+                                required:
+                                - name
+                                type: object
+                              minItems: 1
+                              type: array
+                              x-kubernetes-list-map-keys:
+                              - name
+                              x-kubernetes-list-type: map
+                          required:
+                          - clientScopes
+                          type: object
                         decisionStrategy:
                           default: UNANIMOUS
                           description: DecisionStrategy is a policy decision strategy.
@@ -278,7 +313,7 @@ spec:
                           - roles
                           type: object
                         timePolicy:
-                          description: ScopePolicy is a scope policy settings.
+                          description: TimePolicy is a time policy settings.
                           properties:
                             dayMonth:
                               description: |-
@@ -341,6 +376,7 @@ spec:
                           enum:
                           - aggregate
                           - client
+                          - client-scope
                           - group
                           - role
                           - time
@@ -618,6 +654,45 @@ spec:
                   type: string
                 nullable: true
                 type: array
+              scopeMappings:
+                description: |-
+                  ScopeMappings lists the roles in this client's scope (dedicated scope). They limit token
+                  roles only when fullScopeAllowed is false. Omit the field to leave scope mappings unmanaged.
+                properties:
+                  clientRoles:
+                    description: |-
+                      ClientRoles lists client roles in the client's scope, per client that owns them.
+                      A client not listed keeps its scope mappings. Each clientId appears at most once.
+                    items:
+                      properties:
+                        clientId:
+                          description: ClientID is a client ID.
+                          minLength: 1
+                          type: string
+                        roles:
+                          description: |-
+                            Roles is a list of client roles names assigned to user.
+                            Omit the field to leave this client's role mappings unmanaged; set it to an empty list to
+                            remove every mapping for the client.
+                          items:
+                            type: string
+                          nullable: true
+                          type: array
+                      required:
+                      - clientId
+                      type: object
+                    nullable: true
+                    type: array
+                  realmRoles:
+                    description: |-
+                      RealmRoles is a list of realm role names in the client's scope.
+                      Omit the field to leave realm scope mappings unmanaged; set it to an empty list to remove
+                      every realm scope mapping. The roles must exist; create them with KeycloakRealmRole.
+                    items:
+                      type: string
+                    nullable: true
+                    type: array
+                type: object
               secret:
                 description: |-
                   Secret is kubernetes secret name where the client's secret will be stored.
@@ -655,6 +730,7 @@ spec:
                       properties:
                         clientId:
                           description: ClientID is a client ID.
+                          minLength: 1
                           type: string
                         roles:
                           description: |-
