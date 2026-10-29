@@ -339,9 +339,9 @@ func mergeRealmAppearance(base, overlay *keycloakapi.RealmRepresentation) {
 	mergePtr(&base.DefaultLocale, &overlay.DefaultLocale)
 }
 
-// mergeStringSet replaces base only when the sets differ: Keycloak stores supportedLocales,
-// enabledEventTypes and eventsListeners as sets and returns them in arbitrary order, so an
-// order-only difference must not defeat the snapshot compare.
+// mergeStringSet replaces base only when base and overlay differ as sets: order and duplicate
+// entries are ignored. Keycloak stores supportedLocales, enabledEventTypes and eventsListeners
+// as sets.
 func mergeStringSet(base **[]string, overlay *[]string) {
 	if overlay == nil {
 		return
@@ -355,15 +355,11 @@ func mergeStringSet(base **[]string, overlay *[]string) {
 }
 
 func equalStringSets(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-
 	as, bs := slices.Clone(a), slices.Clone(b)
 	slices.Sort(as)
 	slices.Sort(bs)
 
-	return slices.Equal(as, bs)
+	return slices.Equal(slices.Compact(as), slices.Compact(bs))
 }
 
 func mergeRealmTokenSettings(base, overlay *keycloakapi.RealmRepresentation) {
