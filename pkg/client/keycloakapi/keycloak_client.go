@@ -286,7 +286,10 @@ func WithLogger(log logr.Logger) ClientOption {
 //   - WithRedHatSSO: Enable Red Hat SSO mode
 //   - WithAdditionalHeaders: Add custom headers
 //   - WithLogger: Set a custom logger (default: uses context logger or discard)
+//
+// Trailing slashes in baseURL, the admin URL and the base path are ignored.
 func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...ClientOption) (*KeycloakClient, error) {
+	baseURL = strings.TrimRight(baseURL, "/")
 	if baseURL == "" {
 		return nil, fmt.Errorf("url is required")
 	}
@@ -333,6 +336,9 @@ func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...Cl
 	} else {
 		keycloakClient.logger = logr.Discard()
 	}
+
+	config.basePath = strings.TrimRight(config.basePath, "/")
+	config.adminUrl = strings.TrimRight(config.adminUrl, "/")
 
 	// Apply basePath and adminUrl from config
 	keycloakClient.authUrl = baseURL + config.basePath

@@ -71,6 +71,30 @@ func TestNewKeycloakClient(t *testing.T) {
 			errContains: "url is required",
 		},
 		{
+			name:     "url of a single slash",
+			url:      "/",
+			clientID: testClientID,
+			opts: []ClientOption{
+				WithClientSecret(testClientSecret),
+				WithRetryWaitTime(time.Millisecond),
+				WithRetryMaxWaitTime(time.Millisecond),
+			},
+			wantErr:     true,
+			errContains: "url is required",
+		},
+		{
+			name:     "url of only slashes",
+			url:      "//",
+			clientID: testClientID,
+			opts: []ClientOption{
+				WithClientSecret(testClientSecret),
+				WithRetryWaitTime(time.Millisecond),
+				WithRetryMaxWaitTime(time.Millisecond),
+			},
+			wantErr:     true,
+			errContains: "url is required",
+		},
+		{
 			name:        "missing clientId",
 			url:         "http://localhost",
 			clientID:    "",
@@ -300,6 +324,190 @@ func TestNewKeycloakClient(t *testing.T) {
 			assert.NotNil(t, client.Realms)
 		})
 	}
+}
+
+func TestNewKeycloakClient_TrailingSlash(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		urlSuffix     string
+		opts          func() []ClientOption
+		wantTokenPath string
+		wantAdminPath string
+	}{
+		{
+			name:          "no slash",
+			urlSuffix:     "",
+			wantTokenPath: "/realms/master/protocol/openid-connect/token",
+		},
+		{
+			name:          "single slash",
+			urlSuffix:     "/",
+			wantTokenPath: "/realms/master/protocol/openid-connect/token",
+		},
+		{
+			name:          "double slash",
+			urlSuffix:     "//",
+			wantTokenPath: "/realms/master/protocol/openid-connect/token",
+		},
+		{
+			name:          "path prefix with slash",
+			urlSuffix:     "/auth/",
+			wantTokenPath: "/auth/realms/master/protocol/openid-connect/token",
+			wantAdminPath: "/auth",
+		},
+		{
+			name:      "base path option with slash in url",
+			urlSuffix: "/",
+			opts: func() []ClientOption {
+				return []ClientOption{WithBasePath("/auth")}
+			},
+			wantTokenPath: "/auth/realms/master/protocol/openid-connect/token",
+			wantAdminPath: "/auth",
+		},
+		{
+			name:      "base path option with trailing slash",
+			urlSuffix: "",
+			opts: func() []ClientOption {
+				return []ClientOption{WithBasePath("/auth/")}
+			},
+			wantTokenPath: "/auth/realms/master/protocol/openid-connect/token",
+			wantAdminPath: "/auth",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			var (
+				mu    sync.Mutex
+				paths = map[string]string{}
+			)
+
+			// Use a plain http.HandlerFunc: http.ServeMux redirects "//x" to the cleaned path.
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				mu.Lock()
+				defer mu.Unlock()
+
+				w.Header().Set("Content-Type", "application/json")
+
+				switch {
+				case strings.HasSuffix(r.URL.Path, "/protocol/openid-connect/token"):
+					paths["token"] = r.URL.Path
+
+					_, _ = w.Write([]byte(createMockTokenResponseJSON()))
+				case strings.HasSuffix(r.URL.Path, "/admin/serverinfo"):
+					paths["serverinfo"] = r.URL.Path
+
+					_, _ = w.Write([]byte("{}"))
+				case strings.HasSuffix(r.URL.Path, "/admin/realms/master"):
+					paths["realm"] = r.URL.Path
+
+					_, _ = w.Write([]byte("{}"))
+				default:
+					w.WriteHeader(http.StatusNotFound)
+				}
+			}))
+			defer server.Close()
+
+			opts := []ClientOption{
+				WithClientSecret(testClientSecret),
+				WithRetryWaitTime(time.Millisecond),
+				WithRetryMaxWaitTime(time.Millisecond),
+			}
+			if tt.opts != nil {
+				opts = append(opts, tt.opts()...)
+			}
+
+			ctx := context.Background()
+
+			client, err := NewKeycloakClient(ctx, server.URL+tt.urlSuffix, testClientID, opts...)
+			require.NoError(t, err)
+
+			_, err = client.Server.GetServerInfo(ctx)
+			require.NoError(t, err)
+
+			_, _, err = client.Realms.GetRealm(ctx, MasterRealm)
+			require.NoError(t, err)
+
+			mu.Lock()
+			defer mu.Unlock()
+
+			assert.Equal(t, tt.wantTokenPath, paths["token"])
+			assert.Equal(t, tt.wantAdminPath+"/admin/serverinfo", paths["serverinfo"])
+			assert.Equal(t, tt.wantAdminPath+"/admin/realms/master", paths["realm"])
+		})
+	}
+}
+
+func TestNewKeycloakClient_TrailingSlash_AdminURL(t *testing.T) {
+	t.Parallel()
+
+	var (
+		mu    sync.Mutex
+		paths = map[string]string{}
+	)
+
+	// Use a plain http.HandlerFunc: http.ServeMux redirects "//x" to the cleaned path.
+	record := func(w http.ResponseWriter, key, body string, r *http.Request) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		paths[key] = r.URL.Path
+
+		w.Header().Set("Content-Type", "application/json")
+
+		_, _ = w.Write([]byte(body))
+	}
+
+	baseServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/protocol/openid-connect/token") {
+			record(w, "token", createMockTokenResponseJSON(), r)
+			return
+		}
+
+		record(w, "base-other", "{}", r)
+	}))
+	defer baseServer.Close()
+
+	adminServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch {
+		case strings.HasSuffix(r.URL.Path, "/admin/serverinfo"):
+			record(w, "serverinfo", "{}", r)
+		case strings.HasSuffix(r.URL.Path, "/admin/realms/master"):
+			record(w, "realm", "{}", r)
+		default:
+			record(w, "admin-other", "{}", r)
+		}
+	}))
+	defer adminServer.Close()
+
+	ctx := context.Background()
+
+	client, err := NewKeycloakClient(ctx, baseServer.URL, testClientID,
+		WithClientSecret(testClientSecret),
+		WithAdminURL(adminServer.URL+"/"),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	_, err = client.Server.GetServerInfo(ctx)
+	require.NoError(t, err)
+
+	_, _, err = client.Realms.GetRealm(ctx, MasterRealm)
+	require.NoError(t, err)
+
+	mu.Lock()
+	defer mu.Unlock()
+
+	assert.Equal(t, "/realms/master/protocol/openid-connect/token", paths["token"])
+	assert.Equal(t, "/admin/serverinfo", paths["serverinfo"])
+	assert.Equal(t, "/admin/realms/master", paths["realm"])
+	assert.NotContains(t, paths, "base-other")
+	assert.NotContains(t, paths, "admin-other")
 }
 
 func TestKeycloakClient_Login_PasswordGrant(t *testing.T) {
