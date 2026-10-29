@@ -242,6 +242,37 @@ the whole resource is rejected while a stored entry has an explicit empty value;
 A mapper with an empty mapper type can break broker login through that identity provider. This comes from the
 Keycloak source and is not tested.
 
+**10. `KeycloakClient` with duplicate authorization entries**
+
+In `spec.authorization`, `policies`, `permissions` and `resources` are now keyed by `name`, and so are
+`rolePolicy.roles` and `groupPolicy.groups` of each policy. `scopes`, `clientPolicy.clients`,
+`userPolicy.users`, `aggregatedPolicy.policies` and the `policies`, `resources` and `scopes` of each permission
+are now sets. The API server rejects a repeated name or entry.
+
+```sh
+kubectl get keycloakclients -A -o json | jq -r '.items[] | select([.spec.authorization // {} | (.scopes, ((.policies, .permissions, .resources) | select(. != null) | map(.name)), (.policies[]? | ((.rolePolicy.roles, .groupPolicy.groups) | select(. != null) | map(.name)), .clientPolicy.clients, .userPolicy.users, .aggregatedPolicy.policies), (.permissions[]? | .policies, .resources, .scopes)) | select(. != null) | length != (unique | length)] | any) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+Stored duplicates in 1.35.0:
+
+- Fail the reconcile: repeated `roles`, permission names and resource names. A repeated resource name also stops
+  the policies and permissions from being created.
+- Do not fail it: repeated policy names (Keycloak holds the last entry), repeated groups (two rows in Keycloak),
+  repeated `scopes` (a create call on every reconcile) and the other string lists (one entry in Keycloak).
+
+Remove the duplicate entries from the listed resources and from their manifests in Git. For policies,
+permissions and resources that share a name, keep one entry. The operator writes the value of the kept entry on
+the next reconcile.
+
+If you apply the manifests with server-side apply (Flux, or Argo CD with `ServerSideApply=true`), fix the
+manifests in Git before you replace the CRDs. With the new CRDs, the API server rejects an apply of a manifest
+that repeats a name or an entry with HTTP 500 `duplicate entries for key`. This also happens when the manifest
+has not changed.
+
+An update of a resource that already stores a duplicate is accepted, including a client-side `kubectl apply`.
+While the resource stores any duplicate, the API server also accepts new duplicates in it. The query finds that
+resource.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
@@ -321,6 +352,7 @@ Check each listed user in Keycloak. Where the user must be enabled, set `enabled
 | `KeycloakOrganization` | All | A link to an identity provider that is not in the realm fails before the link request. The error names `KeycloakRealmIdentityProvider`. |
 | `KeycloakRealmIdentityProvider` | All | `mappers[].identityProviderAlias` is deprecated. A value other than `spec.alias` fails the reconcile before any Keycloak write. Until you remove the value, the identity provider is not created or updated, and a rotated Secret in `spec.config` is not sent. |
 | `KeycloakRealmIdentityProvider` | All | `mappers[].name` and `mappers[].identityProviderMapper` are required and must not be empty. Blank values (spaces only) are admitted. |
+| `KeycloakClient` | All | `spec.authorization` lists reject duplicate names and entries (see 1.35.0 to 1.36.0, item 10). With server-side apply, these lists merge by name or value between field managers; before, one field manager owned the whole list. A duplicate name or entry in an applied manifest fails with HTTP 500 "duplicate entries for key". |
 
 ## Keycloak upgrades
 
