@@ -191,6 +191,19 @@ metadata:
                   "type": "client"
                 },
                 {
+                  "clientScopePolicy": {
+                    "clientScopes": [
+                      {
+                        "name": "groups",
+                        "required": true
+                      }
+                    ]
+                  },
+                  "description": "Client scope policy",
+                  "name": "client-scope-policy",
+                  "type": "client-scope"
+                },
+                {
                   "description": "Group policy",
                   "groupPolicy": {
                     "groups": [
@@ -610,7 +623,6 @@ metadata:
                   "role": "role-tr",
                   "syncMode": "INHERIT"
                 },
-                "identityProviderAlias": "github",
                 "identityProviderMapper": "oidc-hardcoded-role-idp-mapper",
                 "name": "test3212"
               },
@@ -620,7 +632,6 @@ metadata:
                   "attribute.value": "bar",
                   "syncMode": "IMPORT"
                 },
-                "identityProviderAlias": "github",
                 "identityProviderMapper": "hardcoded-attribute-idp-mapper",
                 "name": "test-33221"
               }
@@ -863,9 +874,14 @@ metadata:
               ]
             },
             "description": "Test organization",
-            "domains": [
-              "example.com",
-              "test.com"
+            "domainsV2": [
+              {
+                "name": "example.com",
+                "verified": true
+              },
+              {
+                "name": "test.com"
+              }
             ],
             "identityProviders": [
               {
@@ -884,7 +900,7 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.36.0
-    createdAt: "2026-09-02T19:17:09Z"
+    createdAt: "2026-10-29T12:04:29Z"
     description: An Operator for managing Keycloak
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"

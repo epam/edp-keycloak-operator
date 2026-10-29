@@ -2,7 +2,7 @@ apiVersion: apiextensions.k8s.io/v1
 kind: CustomResourceDefinition
 metadata:
   annotations:
-    controller-gen.kubebuilder.io/version: v0.18.0
+    controller-gen.kubebuilder.io/version: v0.23.0
   creationTimestamp: null
   name: clusterkeycloakrealms.v1.edp.epam.com
 spec:
@@ -305,7 +305,9 @@ spec:
                     x-kubernetes-list-type: set
                 type: object
               realmName:
-                description: RealmName specifies the name of the realm.
+                description: |-
+                  RealmName specifies the name of the realm.
+                  The master realm is never deleted from Keycloak; removing its custom resource only stops managing it.
                 type: string
               sessions:
                 description: Sessions defines the session settings for the realm.
