@@ -127,13 +127,6 @@ spec:
           groups:
             - name: group1
               extendChildren: true
-      - type: role
-        name: role-policy
-        description: "Role policy"
-        rolePolicy:
-          roles:
-            - name: developer
-              required: true
       - type: time
         name: time-policy
         description: "Time policy"

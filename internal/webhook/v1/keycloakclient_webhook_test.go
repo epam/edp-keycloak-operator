@@ -518,6 +518,31 @@ func newClient(name string, mutate func(*keycloakApi.KeycloakClientSpec)) *keycl
 	return c
 }
 
+func newClientWithPolicies(name string, policies ...keycloakApi.Policy) *keycloakApi.KeycloakClient {
+	return newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
+		s.Authorization = &keycloakApi.Authorization{Policies: policies}
+	})
+}
+
+func createClient(c *keycloakApi.KeycloakClient) error {
+	err := k8sClient.Create(ctx, c)
+
+	DeferCleanup(func() {
+		Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, c))).To(Succeed())
+	})
+
+	return err
+}
+
+func expectDuplicate(err error, path string) {
+	GinkgoHelper()
+
+	Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
+	Expect(err.Error()).To(ContainSubstring(path))
+	Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+	Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+}
+
 var _ = Describe("KeycloakClient clientRoles admission", func() {
 	It("Should reject an empty clientId in serviceAccount.clientRoles", func() {
 		c := newClient("sa-empty-client-id", func(s *keycloakApi.KeycloakClientSpec) {
@@ -558,12 +583,6 @@ var _ = Describe("KeycloakClient clientRoles admission", func() {
 })
 
 var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
-	newClientWithPolicies := func(name string, policies ...keycloakApi.Policy) *keycloakApi.KeycloakClient {
-		return newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
-			s.Authorization = &keycloakApi.Authorization{Policies: policies}
-		})
-	}
-
 	scopePolicy := func(scopes ...keycloakApi.ClientScopeDefinition) keycloakApi.Policy {
 		return keycloakApi.Policy{
 			Type:             keycloakApi.PolicyTypeClientScope,
@@ -576,26 +595,13 @@ var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
 		}
 	}
 
-	create := func(c *keycloakApi.KeycloakClient) error {
-		err := k8sClient.Create(ctx, c)
-
-		DeferCleanup(func() {
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, c))).To(Succeed())
-		})
-
-		return err
-	}
-
 	const policyPath = "spec.authorization.policies[0].clientScopePolicy.clientScopes"
 
 	DescribeTable("Should reject a repeated client scope name",
 		func(name string, scopes ...keycloakApi.ClientScopeDefinition) {
-			err := create(newClientWithPolicies(name, scopePolicy(scopes...)))
+			err := createClient(newClientWithPolicies(name, scopePolicy(scopes...)))
 
-			Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-			Expect(err.Error()).To(ContainSubstring(policyPath + "[1]"))
-			Expect(err.Error()).To(ContainSubstring("Duplicate value"))
-			Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+			expectDuplicate(err, policyPath+"[1]")
 		},
 		Entry("required then default", "csp-dup-1",
 			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
@@ -612,15 +618,14 @@ var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
 	)
 
 	It("Should report the first repeat of each name", func() {
-		err := create(newClientWithPolicies("csp-dup-5", scopePolicy(
+		err := createClient(newClientWithPolicies("csp-dup-5", scopePolicy(
 			keycloakApi.ClientScopeDefinition{Name: "a"},
 			keycloakApi.ClientScopeDefinition{Name: "b"},
 			keycloakApi.ClientScopeDefinition{Name: "a"},
 			keycloakApi.ClientScopeDefinition{Name: "b"},
 		)))
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring("clientScopes[2]"))
+		expectDuplicate(err, "clientScopes[2]")
 		Expect(err.Error()).To(ContainSubstring("clientScopes[3]"))
 	})
 
@@ -632,11 +637,9 @@ var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
 		)
 		dup.Name = "p2"
 
-		err := create(newClientWithPolicies("csp-dup-6", valid, dup))
+		err := createClient(newClientWithPolicies("csp-dup-6", valid, dup))
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring("policies[1].clientScopePolicy.clientScopes[1]"))
-		Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+		expectDuplicate(err, "policies[1].clientScopePolicy.clientScopes[1]")
 	})
 
 	It("Should reject an update that adds a duplicate", func() {
@@ -644,38 +647,31 @@ var _ = Describe("KeycloakClient clientScopePolicy admission", func() {
 			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
 			keycloakApi.ClientScopeDefinition{Name: "b"},
 		))
-		Expect(create(c)).To(Succeed())
+		Expect(createClient(c)).To(Succeed())
 
 		scopes := &c.Spec.Authorization.Policies[0].ClientScopePolicy.ClientScopes
 		*scopes = append(*scopes, keycloakApi.ClientScopeDefinition{Name: "a"})
 
 		err := k8sClient.Update(ctx, c)
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring(policyPath + "[2]"))
+		expectDuplicate(err, policyPath+"[2]")
 	})
 
 	It("Should accept distinct names", func() {
-		Expect(create(newClientWithPolicies("csp-ok-1", scopePolicy(
+		Expect(createClient(newClientWithPolicies("csp-ok-1", scopePolicy(
 			keycloakApi.ClientScopeDefinition{Name: "a", Required: true},
 			keycloakApi.ClientScopeDefinition{Name: "b"},
 		)))).To(Succeed())
 	})
 
 	It("Should accept a single entry", func() {
-		Expect(create(newClientWithPolicies("csp-ok-2", scopePolicy(
+		Expect(createClient(newClientWithPolicies("csp-ok-2", scopePolicy(
 			keycloakApi.ClientScopeDefinition{Name: "a"},
 		)))).To(Succeed())
 	})
 })
 
 var _ = Describe("KeycloakClient role and group policy admission", func() {
-	newClientWithPolicies := func(name string, policies ...keycloakApi.Policy) *keycloakApi.KeycloakClient {
-		return newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
-			s.Authorization = &keycloakApi.Authorization{Policies: policies}
-		})
-	}
-
 	rolePolicy := func(roles ...keycloakApi.RoleDefinition) keycloakApi.Policy {
 		return keycloakApi.Policy{
 			Type:             keycloakApi.PolicyTypeRole,
@@ -696,16 +692,6 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 		}
 	}
 
-	create := func(c *keycloakApi.KeycloakClient) error {
-		err := k8sClient.Create(ctx, c)
-
-		DeferCleanup(func() {
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, c))).To(Succeed())
-		})
-
-		return err
-	}
-
 	const (
 		rolesPath  = "spec.authorization.policies[0].rolePolicy.roles"
 		groupsPath = "spec.authorization.policies[0].groupPolicy.groups"
@@ -713,12 +699,9 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 
 	DescribeTable("Should reject a repeated role name",
 		func(name string, roles ...keycloakApi.RoleDefinition) {
-			err := create(newClientWithPolicies(name, rolePolicy(roles...)))
+			err := createClient(newClientWithPolicies(name, rolePolicy(roles...)))
 
-			Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-			Expect(err.Error()).To(ContainSubstring(rolesPath + "[1]"))
-			Expect(err.Error()).To(ContainSubstring("Duplicate value"))
-			Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+			expectDuplicate(err, rolesPath+"[1]")
 		},
 		Entry("required then default", "rgp-role-dup-1",
 			keycloakApi.RoleDefinition{Name: "a", Required: true},
@@ -733,12 +716,9 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 
 	DescribeTable("Should reject a repeated group name",
 		func(name string, groups ...keycloakApi.GroupDefinition) {
-			err := create(newClientWithPolicies(name, groupPolicy(groups...)))
+			err := createClient(newClientWithPolicies(name, groupPolicy(groups...)))
 
-			Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-			Expect(err.Error()).To(ContainSubstring(groupsPath + "[1]"))
-			Expect(err.Error()).To(ContainSubstring("Duplicate value"))
-			Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+			expectDuplicate(err, groupsPath+"[1]")
 		},
 		Entry("extendChildren then default", "rgp-group-dup-1",
 			keycloakApi.GroupDefinition{Name: "g", ExtendChildren: true},
@@ -749,15 +729,14 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 	)
 
 	It("Should report the first repeat of each role name", func() {
-		err := create(newClientWithPolicies("rgp-role-dup-4", rolePolicy(
+		err := createClient(newClientWithPolicies("rgp-role-dup-4", rolePolicy(
 			keycloakApi.RoleDefinition{Name: "a"},
 			keycloakApi.RoleDefinition{Name: "b"},
 			keycloakApi.RoleDefinition{Name: "a"},
 			keycloakApi.RoleDefinition{Name: "b"},
 		)))
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring("roles[2]"))
+		expectDuplicate(err, "roles[2]")
 		Expect(err.Error()).To(ContainSubstring("roles[3]"))
 	})
 
@@ -769,11 +748,9 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 		)
 		dup.Name = "p2"
 
-		err := create(newClientWithPolicies("rgp-role-dup-5", valid, dup))
+		err := createClient(newClientWithPolicies("rgp-role-dup-5", valid, dup))
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring("policies[1].rolePolicy.roles[1]"))
-		Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+		expectDuplicate(err, "policies[1].rolePolicy.roles[1]")
 	})
 
 	It("Should reject an update that adds a duplicate role", func() {
@@ -781,15 +758,14 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 			keycloakApi.RoleDefinition{Name: "a", Required: true},
 			keycloakApi.RoleDefinition{Name: "b"},
 		))
-		Expect(create(c)).To(Succeed())
+		Expect(createClient(c)).To(Succeed())
 
 		roles := &c.Spec.Authorization.Policies[0].RolePolicy.Roles
 		*roles = append(*roles, keycloakApi.RoleDefinition{Name: "a"})
 
 		err := k8sClient.Update(ctx, c)
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring(rolesPath + "[2]"))
+		expectDuplicate(err, rolesPath+"[2]")
 	})
 
 	It("Should accept distinct role and group names", func() {
@@ -805,17 +781,7 @@ var _ = Describe("KeycloakClient role and group policy admission", func() {
 		)
 		groups.Name = "p-group"
 
-		Expect(create(newClientWithPolicies("rgp-ok-1", roles, groups))).To(Succeed())
-	})
-
-	It("Should accept a single role and a single group", func() {
-		roles := rolePolicy(keycloakApi.RoleDefinition{Name: "a"})
-		roles.Name = "p-role"
-
-		groups := groupPolicy(keycloakApi.GroupDefinition{Name: "g"})
-		groups.Name = "p-group"
-
-		Expect(create(newClientWithPolicies("rgp-ok-2", roles, groups))).To(Succeed())
+		Expect(createClient(newClientWithPolicies("rgp-ok-1", roles, groups))).To(Succeed())
 	})
 })
 
@@ -844,27 +810,14 @@ var _ = Describe("KeycloakClient authorization set admission", func() {
 		return p
 	}
 
-	create := func(c *keycloakApi.KeycloakClient) error {
-		err := k8sClient.Create(ctx, c)
-
-		DeferCleanup(func() {
-			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, c))).To(Succeed())
-		})
-
-		return err
-	}
-
 	DescribeTable("Should reject a repeated entry",
 		func(name, path string, mutate func(*keycloakApi.Authorization)) {
-			err := create(newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
+			err := createClient(newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
 				s.Authorization = &keycloakApi.Authorization{}
 				mutate(s.Authorization)
 			}))
 
-			Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-			Expect(err.Error()).To(ContainSubstring(path + "[1]"))
-			Expect(err.Error()).To(ContainSubstring("Duplicate value"))
-			Expect(err.Error()).NotTo(ContainSubstring("admission webhook"))
+			expectDuplicate(err, path+"[1]")
 		},
 		Entry("scopes", "az-set-dup-1", "spec.authorization.scopes",
 			func(a *keycloakApi.Authorization) { a.Scopes = []string{"s", "s"} }),
@@ -906,7 +859,7 @@ var _ = Describe("KeycloakClient authorization set admission", func() {
 			}),
 	)
 
-	It("Should accept distinct entries and a null permission list", func() {
+	It("Should accept distinct entries and a permission without lists", func() {
 		c := newClient("az-set-ok-1", func(s *keycloakApi.KeycloakClientSpec) {
 			s.Authorization = &keycloakApi.Authorization{
 				Scopes: []string{"s1", "s2"},
@@ -937,21 +890,134 @@ var _ = Describe("KeycloakClient authorization set admission", func() {
 			}
 		})
 
-		Expect(create(c)).To(Succeed())
+		Expect(createClient(c)).To(Succeed())
 	})
 
 	It("Should reject an update that adds a duplicate scope", func() {
 		c := newClient("az-set-dup-8", func(s *keycloakApi.KeycloakClientSpec) {
 			s.Authorization = &keycloakApi.Authorization{Scopes: []string{"s1", "s2"}}
 		})
-		Expect(create(c)).To(Succeed())
+		Expect(createClient(c)).To(Succeed())
 
 		c.Spec.Authorization.Scopes = append(c.Spec.Authorization.Scopes, "s1")
 
 		err := k8sClient.Update(ctx, c)
 
-		Expect(k8sErrors.IsInvalid(err)).To(BeTrue(), "got: %v", err)
-		Expect(err.Error()).To(ContainSubstring("spec.authorization.scopes[2]"))
-		Expect(err.Error()).To(ContainSubstring("Duplicate value"))
+		expectDuplicate(err, "spec.authorization.scopes[2]")
+	})
+})
+
+var _ = Describe("KeycloakClient authorization name admission", func() {
+	rolePolicy := func(name string) keycloakApi.Policy {
+		return keycloakApi.Policy{
+			Type:             keycloakApi.PolicyTypeRole,
+			Name:             name,
+			DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+			Logic:            keycloakApi.PolicyLogicPositive,
+			RolePolicy:       &keycloakApi.RolePolicyData{Roles: []keycloakApi.RoleDefinition{{Name: "r"}}},
+		}
+	}
+
+	timePolicy := func(name string) keycloakApi.Policy {
+		return keycloakApi.Policy{
+			Type:             keycloakApi.PolicyTypeTime,
+			Name:             name,
+			DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+			Logic:            keycloakApi.PolicyLogicPositive,
+			TimePolicy: &keycloakApi.TimePolicyData{
+				NotBefore:    "2024-01-01 00:00:00",
+				NotOnOrAfter: "2024-12-31 00:00:00",
+			},
+		}
+	}
+
+	aggregatePolicy := func(name string, policies ...string) keycloakApi.Policy {
+		return keycloakApi.Policy{
+			Type:             keycloakApi.PolicyTypeAggregate,
+			Name:             name,
+			DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+			Logic:            keycloakApi.PolicyLogicPositive,
+			AggregatedPolicy: &keycloakApi.AggregatedPolicyData{Policies: policies},
+		}
+	}
+
+	permission := func(name string) keycloakApi.Permission {
+		return keycloakApi.Permission{
+			Name:             name,
+			Type:             keycloakApi.PermissionTypeScope,
+			DecisionStrategy: keycloakApi.PolicyDecisionStrategyUnanimous,
+			Logic:            keycloakApi.PolicyLogicPositive,
+		}
+	}
+
+	resource := func(name string) keycloakApi.Resource {
+		return keycloakApi.Resource{Name: name, DisplayName: name}
+	}
+
+	newClientWithAuthorization := func(name string, authz keycloakApi.Authorization) *keycloakApi.KeycloakClient {
+		return newClient(name, func(s *keycloakApi.KeycloakClientSpec) {
+			s.Authorization = &authz
+		})
+	}
+
+	DescribeTable("Should reject a repeated name",
+		func(name, path string, authz keycloakApi.Authorization) {
+			err := createClient(newClientWithAuthorization(name, authz))
+
+			expectDuplicate(err, path+"[1]")
+		},
+		Entry("policies of one type", "az-name-dup-1", "spec.authorization.policies",
+			keycloakApi.Authorization{Policies: []keycloakApi.Policy{rolePolicy("x"), rolePolicy("x")}}),
+		Entry("policies of different types", "az-name-dup-2", "spec.authorization.policies",
+			keycloakApi.Authorization{Policies: []keycloakApi.Policy{timePolicy("x"), rolePolicy("x")}}),
+		Entry("permissions", "az-name-dup-3", "spec.authorization.permissions",
+			keycloakApi.Authorization{Permissions: []keycloakApi.Permission{permission("x"), permission("x")}}),
+		Entry("resources", "az-name-dup-4", "spec.authorization.resources",
+			keycloakApi.Authorization{Resources: []keycloakApi.Resource{resource("x"), resource("x")}}),
+	)
+
+	It("Should reject an update that adds a policy with an existing name", func() {
+		c := newClientWithAuthorization("az-name-dup-5", keycloakApi.Authorization{
+			Policies: []keycloakApi.Policy{rolePolicy("a"), rolePolicy("b")},
+		})
+		Expect(createClient(c)).To(Succeed())
+
+		c.Spec.Authorization.Policies = append(c.Spec.Authorization.Policies, timePolicy("a"))
+
+		err := k8sClient.Update(ctx, c)
+
+		expectDuplicate(err, "spec.authorization.policies[2]")
+	})
+
+	It("Should accept a policy and a permission with the same name", func() {
+		// Keycloak keeps policies and permissions in one name store; no list marker spans two lists.
+		c := newClientWithAuthorization("az-name-ok-1", keycloakApi.Authorization{
+			Policies:    []keycloakApi.Policy{rolePolicy("x")},
+			Permissions: []keycloakApi.Permission{permission("x")},
+			Resources:   []keycloakApi.Resource{resource("x")},
+		})
+
+		Expect(createClient(c)).To(Succeed())
+	})
+
+	It("Should keep the order of the stored policy list", func() {
+		c := newClientWithAuthorization("az-name-ok-2", keycloakApi.Authorization{
+			Policies: []keycloakApi.Policy{
+				aggregatePolicy("agg", "later"),
+				rolePolicy("later"),
+			},
+		})
+
+		Expect(createClient(c)).To(Succeed())
+
+		stored := &keycloakApi.KeycloakClient{}
+		Expect(k8sClient.Get(ctx, client.ObjectKeyFromObject(c), stored)).To(Succeed())
+
+		names := make([]string, 0, len(stored.Spec.Authorization.Policies))
+		for _, p := range stored.Spec.Authorization.Policies {
+			names = append(names, p.Name)
+		}
+
+		Expect(names).To(Equal([]string{"agg", "later"}))
 	})
 })
