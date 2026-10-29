@@ -333,6 +333,7 @@ type RealmRole struct {
 }
 
 type Authorization struct {
+	// +listType=set
 	Scopes []string `json:"scopes,omitempty"`
 
 	Policies []Policy `json:"policies,omitempty"`

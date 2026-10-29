@@ -95,6 +95,7 @@ type RoleDefinition struct {
 type ClientPolicyData struct {
 	// Clients is a list of client names. Specifies which client(s) are allowed by this policy.
 	// +required
+	// +listType=set
 	// +kubebuilder:example={clients1,clients2}
 	Clients []string `json:"clients"`
 }
@@ -181,6 +182,7 @@ type TimePolicyData struct {
 type UserPolicyData struct {
 	// Users is a list of usernames. Specifies which user(s) are allowed by this policy.
 	// +required
+	// +listType=set
 	// +kubebuilder:example={users1,users2}
 	Users []string `json:"users"`
 }
@@ -190,6 +192,7 @@ type AggregatedPolicyData struct {
 	// Policies is a list of aggregated policies names.
 	// Specifies all the policies that must be applied to the scopes defined by this policy or permission.
 	// +required
+	// +listType=set
 	// +kubebuilder:example={policies:{policy1,policy2}}
 	Policies []string `json:"policies"`
 }
@@ -252,6 +255,7 @@ type Permission struct {
 	// Specifies all the policies that must be applied to the scopes defined by this policy or permission.
 	// +optional
 	// +nullable
+	// +listType=set
 	// +kubebuilder:example={policy1,policy2}
 	Policies []string `json:"policies,omitempty"`
 
@@ -259,6 +263,7 @@ type Permission struct {
 	// Specifies that this permission must be applied to all resource instances of a given type.
 	// +optional
 	// +nullable
+	// +listType=set
 	// +kubebuilder:example={resource1,resource2}
 	Resources []string `json:"resources,omitempty"`
 
@@ -266,6 +271,7 @@ type Permission struct {
 	// Specifies that this permission must be applied to one or more scopes.
 	// +optional
 	// +nullable
+	// +listType=set
 	// +kubebuilder:example={scope1,scope2}
 	Scopes []string `json:"scopes,omitempty"`
 }
