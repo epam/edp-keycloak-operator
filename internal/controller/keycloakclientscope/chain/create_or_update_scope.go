@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -10,7 +11,6 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
-	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type CreateOrUpdateScope struct {
@@ -83,7 +83,32 @@ func clientScopeMatchesSpec(existing *keycloakapi.ClientScopeRepresentation, spe
 	return ptr.Deref(existing.Name, "") == spec.Name &&
 		ptr.Deref(existing.Protocol, "") == spec.Protocol &&
 		ptr.Deref(existing.Description, "") == spec.Description &&
-		maputil.ContainsSubset(ptr.Deref(existing.Attributes, nil), spec.Attributes)
+		clientScopeAttributesMatch(ptr.Deref(existing.Attributes, nil), spec.Attributes)
+}
+
+// clientScopeAttributesMatch requires every spec key to be present and equal in existing,
+// except a blank spec value, which also matches an absent key:
+// Keycloak 26.8+ does not store blank client scope attributes, earlier versions store them as is.
+func clientScopeAttributesMatch(existing, spec map[string]string) bool {
+	for k, v := range spec {
+		ev, ok := existing[k]
+		if ok && ev == v {
+			continue
+		}
+
+		if !ok && isJavaTrimBlank(v) {
+			continue
+		}
+
+		return false
+	}
+
+	return true
+}
+
+// isJavaTrimBlank matches "".equals(s.trim()): every rune is <= U+0020.
+func isJavaTrimBlank(s string) bool {
+	return strings.IndexFunc(s, func(r rune) bool { return r > ' ' }) < 0
 }
 
 func (h *CreateOrUpdateScope) findScopeByName(
