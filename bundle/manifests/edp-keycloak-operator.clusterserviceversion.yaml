@@ -217,19 +217,6 @@ metadata:
                   "type": "group"
                 },
                 {
-                  "description": "Role policy",
-                  "name": "role-policy",
-                  "rolePolicy": {
-                    "roles": [
-                      {
-                        "name": "developer",
-                        "required": true
-                      }
-                    ]
-                  },
-                  "type": "role"
-                },
-                {
                   "description": "Time policy",
                   "name": "time-policy",
                   "timePolicy": {
@@ -900,7 +887,7 @@ metadata:
     capabilities: Deep Insights
     categories: Security
     containerImage: docker.io/epamedp/keycloak-operator:1.36.0
-    createdAt: "2026-10-29T15:05:38Z"
+    createdAt: "2026-10-30T10:07:46Z"
     description: An Operator for managing Keycloak
     features.operators.openshift.io/cnf: "false"
     features.operators.openshift.io/cni: "false"
