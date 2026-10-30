@@ -84,7 +84,12 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 		return result, resultErr
 	}
 
-	if err := r.tryReconcile(ctx, &instance); err != nil {
+	deleted, err := r.tryReconcile(ctx, &instance)
+	if deleted {
+		return ctrl.Result{}, nil
+	}
+
+	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{
 				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
@@ -110,37 +115,38 @@ func (r *ReconcileKeycloakRealmGroup) Reconcile(ctx context.Context, request rec
 	return result, resultErr
 }
 
-func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloakRealmGroup *keycloakApi.KeycloakRealmGroup) error {
+// tryReconcile returns deleted when the object is deleting and the operator has no cleanup left.
+func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloakRealmGroup *keycloakApi.KeycloakRealmGroup) (deleted bool, err error) {
 	// TODO: Move this validation to a validating webhook when webhook is configured.
 	// Validate that SubGroups and ParentGroup are not used together.
 	if len(keycloakRealmGroup.Spec.SubGroups) > 0 && keycloakRealmGroup.Spec.ParentGroup != nil {
-		return fmt.Errorf("cannot use both SubGroups (deprecated) and ParentGroup fields - migrate to ParentGroup approach")
+		return false, fmt.Errorf("cannot use both SubGroups (deprecated) and ParentGroup fields - migrate to ParentGroup approach")
 	}
 
-	err := r.helper.SetRealmOwnerRef(ctx, keycloakRealmGroup)
+	err = r.helper.SetRealmOwnerRef(ctx, keycloakRealmGroup)
 	if err != nil {
-		return fmt.Errorf("unable to set realm owner ref: %w", err)
+		return false, fmt.Errorf("unable to set realm owner ref: %w", err)
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealmRef(ctx, keycloakRealmGroup)
 	if err != nil {
-		if errors.Is(err, helper.ErrKeycloakRealmNotFound) {
+		if errors.Is(err, helper.ErrKeycloakRealmNotFound) && keycloakRealmGroup.GetDeletionTimestamp() != nil {
 			if removeErr := r.helper.TryRemoveFinalizer(ctx, keycloakRealmGroup, keyCloakRealmGroupOperatorFinalizerName); removeErr != nil {
-				return fmt.Errorf("unable to remove finalizer: %w", removeErr)
+				return false, fmt.Errorf("unable to remove finalizer: %w", removeErr)
 			}
 
-			return nil
+			return true, nil
 		}
 
-		return fmt.Errorf("unable to create keycloak v2 client from realm ref: %w", err)
+		return false, fmt.Errorf("unable to create keycloak v2 client from realm ref: %w", err)
 	}
 
 	realmName, err := r.helper.GetRealmNameFromRef(ctx, keycloakRealmGroup)
 	if err != nil {
-		return fmt.Errorf("unable to get realm name from ref: %w", err)
+		return false, fmt.Errorf("unable to get realm name from ref: %w", err)
 	}
 
-	deleted, err := r.helper.TryToDelete(
+	deleted, err = r.helper.TryToDelete(
 		ctx,
 		keycloakRealmGroup,
 		makeTerminator(
@@ -153,16 +159,16 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		keyCloakRealmGroupOperatorFinalizerName,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete keycloak realm group: %w", err)
+		return false, fmt.Errorf("failed to delete keycloak realm group: %w", err)
 	}
 
 	if deleted {
-		return nil
+		return true, nil
 	}
 
 	parentGroupID, err := r.resolveParentGroupID(ctx, keycloakRealmGroup)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	groupCtx := &chain.GroupContext{
@@ -172,12 +178,12 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 	}
 
 	if err := chain.MakeChain(r.client).Serve(ctx, keycloakRealmGroup, kClient, groupCtx); err != nil {
-		return fmt.Errorf("error during realm group chain: %w", err)
+		return false, fmt.Errorf("error during realm group chain: %w", err)
 	}
 
 	keycloakRealmGroup.Status.ID = groupCtx.GroupID
 
-	return nil
+	return false, nil
 }
 
 // resolveParentGroupID resolves the parent group's Keycloak ID from the ParentGroup reference.
