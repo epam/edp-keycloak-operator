@@ -21,6 +21,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 const (
@@ -420,4 +421,98 @@ func TestUpdateErrorStatus_EqualValueIsNotWritten(t *testing.T) {
 
 	require.ErrorIs(t, err, boom)
 	assert.Zero(t, writes)
+}
+
+func TestReconcileRealmRef_DeletingWithoutRealmOwnerRef(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	key := client.ObjectKey{Namespace: "default", Name: "scope"}
+
+	tests := []struct {
+		name       string
+		deleting   bool
+		wantGone   bool
+		wantErrMsg string
+	}{
+		{
+			name:     "deleting resource whose realm is gone releases its finalizers",
+			deleting: true,
+			wantGone: true,
+		},
+		{
+			name:       "live resource whose realm is gone fails on the owner reference",
+			wantErrMsg: "unable to set realm owner ref",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			obj := &keycloakApi.KeycloakClientScope{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace:  key.Namespace,
+					Name:       key.Name,
+					Finalizers: []string{common.FinalizerName, testLegacyFinal},
+				},
+				Spec: keycloakApi.KeycloakClientScopeSpec{
+					RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "missing-realm"},
+				},
+				Status: keycloakApi.KeycloakClientScopeStatus{Value: common.StatusOK},
+			}
+
+			if tt.deleting {
+				now := metav1.Now()
+				obj.DeletionTimestamp = &now
+			}
+
+			cl := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithStatusSubresource(&keycloakApi.KeycloakClientScope{}).
+				WithObjects(obj).
+				Build()
+
+			h, err := MakeHelper(cl, scheme, "default", destination.AllowAll(), EnableOwnerRef(true))
+			require.NoError(t, err)
+
+			removed := 0
+			cfg := RealmRefReconcile[*keycloakApi.KeycloakClientScope]{
+				Kind:       testKind,
+				Helper:     h,
+				Finalizers: []string{common.FinalizerName, testLegacyFinal},
+				Remove: func(context.Context, *keycloakApi.KeycloakClientScope, *keycloakapi.KeycloakClient, string) error {
+					removed++
+
+					return nil
+				},
+				HandleReconciliation: func(context.Context, *keycloakApi.KeycloakClientScope, *keycloakapi.KeycloakClient, string) (reconcile.Result, error) {
+					return reconcile.Result{}, nil
+				},
+			}
+
+			ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+
+			_, err = ReconcileRealmRef(ctx, cl, reconcile.Request{NamespacedName: key}, &keycloakApi.KeycloakClientScope{}, cfg)
+
+			assert.Zero(t, removed)
+
+			got := &keycloakApi.KeycloakClientScope{}
+			getErr := cl.Get(ctx, key, got)
+
+			if tt.wantGone {
+				require.NoError(t, err)
+				require.True(t, k8sErrors.IsNotFound(getErr))
+
+				return
+			}
+
+			require.ErrorContains(t, err, tt.wantErrMsg)
+			require.NoError(t, getErr)
+			assert.Contains(t, got.Status.Value, tt.wantErrMsg)
+			assert.ElementsMatch(t, []string{common.FinalizerName, testLegacyFinal}, got.Finalizers)
+		})
+	}
 }

@@ -21,6 +21,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
@@ -382,4 +383,48 @@ func TestReconcile_PreChainErrorWritesStatus(t *testing.T) {
 			assert.Contains(t, ready.Message, tt.wantValue)
 		})
 	}
+}
+
+func TestReconcile_DeletingRealmGoneWithOwnerRefEnabled(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	now := metav1.Now()
+	key := client.ObjectKey{Namespace: "default", Name: "client"}
+	kc := &keycloakApi.KeycloakClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         key.Namespace,
+			Name:              key.Name,
+			DeletionTimestamp: &now,
+			Finalizers:        []string{keyCloakClientOperatorFinalizerName},
+		},
+		Spec: keycloakApi.KeycloakClientSpec{
+			ClientId: "client",
+			RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "missing-realm"},
+		},
+	}
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+		WithObjects(kc).
+		Build()
+
+	h, err := helper.MakeHelper(cl, scheme, "default", destination.AllowAll(), helper.EnableOwnerRef(true))
+	require.NoError(t, err)
+
+	secretRef, err := secretref.NewSecretRef(cl, destination.AllowAll())
+	require.NoError(t, err)
+
+	ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+	r := NewReconcileKeycloakClient(cl, h, secretRef)
+
+	res, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	require.NoError(t, err)
+	assert.Zero(t, res)
+
+	err = cl.Get(ctx, key, &keycloakApi.KeycloakClient{})
+	require.True(t, k8sErrors.IsNotFound(err), "client must be released, got: %v", err)
 }

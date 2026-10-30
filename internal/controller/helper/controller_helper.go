@@ -165,11 +165,18 @@ func (h *Helper) SetKeycloakOwnerRef(ctx context.Context, object ObjectWithKeycl
 	}
 }
 
-// SetRealmOwnerRef sets owner reference for object.
+// SetRealmOwnerRef sets the realm controller reference on object.
+// It does nothing when owner references are disabled, when object is being deleted,
+// or when object already has a controller.
 //
 //nolint:dupl,cyclop
 func (h *Helper) SetRealmOwnerRef(ctx context.Context, object ObjectWithRealmRef) error {
 	if !h.enableOwnerRef {
+		return nil
+	}
+
+	// Deleting objects skip the realm lookup so the realm-not-found finalizer release runs when the realm CR is gone.
+	if !object.GetDeletionTimestamp().IsZero() {
 		return nil
 	}
 

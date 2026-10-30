@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
@@ -290,4 +291,63 @@ func TestReconcileKeycloakRealmRoleBatch_ReconcileFailure(t *testing.T) {
 		t.Log(checkBatch.Status.Value)
 		t.Fatal("batch status not updated on failure")
 	}
+}
+
+func TestReconcileKeycloakRealmRoleBatch_DeletingRealmGoneWithOwnerRefEnabled(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+	utilruntime.Must(corev1.AddToScheme(scheme))
+
+	ns := "ns3"
+	now := metav1.Time{Time: time.Now()}
+	batch := keycloakApi.KeycloakRealmRoleBatch{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:              "gone-realm-batch",
+			Namespace:         ns,
+			DeletionTimestamp: &now,
+			Finalizers:        []string{keyCloakRealmRoleBatchOperatorFinalizerName},
+		},
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{
+			RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "missing-realm"},
+			Roles:    []keycloakApi.BatchRole{{Name: "sub-role1"}},
+		},
+	}
+	role := keycloakApi.KeycloakRealmRole{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      batch.FormattedRoleName("sub-role1"),
+			Namespace: ns,
+			OwnerReferences: []metav1.OwnerReference{
+				{Name: batch.Name, Kind: batch.Kind, UID: batch.UID},
+			},
+		},
+		Spec: keycloakApi.KeycloakRealmRoleSpec{Name: "sub-role1"},
+	}
+
+	client := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithRuntimeObjects(&batch, &role).
+		WithStatusSubresource(&batch).
+		Build()
+
+	controllerHelper, err := helper.MakeHelper(client, scheme, "default", destination.AllowAll(), helper.EnableOwnerRef(true))
+	require.NoError(t, err)
+
+	rkr := ReconcileKeycloakRealmRoleBatch{
+		client: client,
+		helper: controllerHelper,
+	}
+
+	ctx := ctrl.LoggerInto(context.Background(), newTestLogr())
+	key := types.NamespacedName{Name: batch.Name, Namespace: ns}
+
+	_, err = rkr.Reconcile(ctx, reconcile.Request{NamespacedName: key})
+	require.NoError(t, err)
+
+	err = client.Get(ctx, key, &keycloakApi.KeycloakRealmRoleBatch{})
+	require.True(t, k8sErrors.IsNotFound(err), "batch must be released, got: %v", err)
+
+	var roles keycloakApi.KeycloakRealmRoleList
+
+	require.NoError(t, client.List(ctx, &roles))
+	assert.Empty(t, roles.Items, "child roles are not deleted")
 }
