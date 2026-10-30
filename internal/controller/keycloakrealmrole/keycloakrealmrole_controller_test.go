@@ -50,11 +50,15 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 		})
 	}
 
-	expectClient := func(h *helpermock.MockControllerHelper, roles *v2mocks.MockRolesClient) {
+	expectClient := func(h *helpermock.MockControllerHelper, roles *v2mocks.MockRolesClient) *v2mocks.MockRealmClient {
+		realms := v2mocks.NewMockRealmClient(t)
+
 		h.EXPECT().SetRealmOwnerRef(mock.Anything, mock.Anything).Return(nil)
 		h.EXPECT().CreateKeycloakClientFromRealmRef(mock.Anything, mock.Anything).
-			Return(&keycloakapi.KeycloakClient{Roles: roles}, nil)
+			Return(&keycloakapi.KeycloakClient{Roles: roles, Realms: realms}, nil)
 		h.EXPECT().GetRealmNameFromRef(mock.Anything, mock.Anything).Return("realm", nil)
+
+		return realms
 	}
 
 	expectRealmGone := func(h *helpermock.MockControllerHelper) {
@@ -190,10 +194,16 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 			name:       "live, chain ok, success status and id written",
 			finalizers: []string{keyCloakRealmRoleOperatorFinalizerName},
 			setup: func(_ *testing.T, h *helpermock.MockControllerHelper, rolesClient *v2mocks.MockRolesClient, _ client.Client) {
-				expectClient(h, rolesClient)
+				realms := expectClient(h, rolesClient)
 				rolesClient.EXPECT().GetRealmRole(mock.Anything, "realm", "role").
 					Return(&keycloakapi.RoleRepresentation{Id: ptr.To("new-role-id"), Name: ptr.To("role")}, nil, nil)
 				rolesClient.EXPECT().UpdateRealmRole(mock.Anything, "realm", "role", mock.Anything).Return(nil, nil)
+				realms.EXPECT().GetRealm(mock.Anything, "realm").
+					Return(&keycloakapi.RealmRepresentation{
+						DefaultRole: &keycloakapi.RoleRepresentation{Name: ptr.To("default-roles-realm")},
+					}, nil, nil)
+				rolesClient.EXPECT().GetRealmRoleComposites(mock.Anything, "realm", "default-roles-realm").
+					Return([]keycloakapi.RoleRepresentation{}, nil, nil)
 			},
 			wantWrites: 1,
 			wantStatus: &keycloakApi.KeycloakRealmRoleStatus{Value: common.StatusOK, ID: "new-role-id"},

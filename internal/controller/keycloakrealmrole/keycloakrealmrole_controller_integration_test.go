@@ -1,6 +1,9 @@
 package keycloakrealmrole
 
 import (
+	"fmt"
+	"slices"
+	"strings"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -10,10 +13,12 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
 var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
@@ -226,5 +231,192 @@ var _ = Describe("KeycloakRealmRole controller", Ordered, func() {
 
 			return createdRole.Status.Value != common.StatusOK
 		}, timeout, interval).Should(BeTrue(), "KeycloakRealmRole should be in failed state")
+	})
+})
+
+var _ = Describe("KeycloakRealmRole isDefault sync", func() {
+	var (
+		upperRealmCR   = testutils.RealmName("role-upper-realm")
+		upperRealmName = "Upper-" + testutils.RealmName("role-upper")
+		step           int
+	)
+
+	defaultRoleOf := func(g Gomega, realm string) string {
+		kcRealm, _, err := keycloakApiClient.Realms.GetRealm(ctx, realm)
+		g.Expect(err).ShouldNot(HaveOccurred())
+		g.Expect(kcRealm).ShouldNot(BeNil())
+		g.Expect(kcRealm.DefaultRole).ShouldNot(BeNil())
+
+		return ptr.Deref(kcRealm.DefaultRole.Name, "")
+	}
+
+	isMember := func(g Gomega, realm, roleName string) bool {
+		composites, _, err := keycloakApiClient.Roles.GetRealmRoleComposites(ctx, realm, defaultRoleOf(g, realm))
+		g.Expect(err).ShouldNot(HaveOccurred())
+
+		return slices.ContainsFunc(composites, func(r keycloakapi.RoleRepresentation) bool {
+			return !ptr.Deref(r.ClientRole, false) && ptr.Deref(r.Name, "") == roleName
+		})
+	}
+
+	newRole := func(crName, realmCR, roleName string, isDefault bool) *keycloakApi.KeycloakRealmRole {
+		return &keycloakApi.KeycloakRealmRole{
+			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmRoleSpec{
+				Name:      roleName,
+				RealmRef:  common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmCR},
+				IsDefault: isDefault,
+			},
+		}
+	}
+
+	waitStatusOK := func(crName string) {
+		Eventually(func(g Gomega) {
+			cr := &keycloakApi.KeycloakRealmRole{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).To(Succeed())
+			g.Expect(cr.Status.Value).To(Equal(common.StatusOK))
+		}, testutils.LongWait, interval).Should(Succeed())
+	}
+
+	waitGone := func(key types.NamespacedName, obj client.Object) {
+		Eventually(func() bool {
+			return k8sErrors.IsNotFound(k8sClient.Get(ctx, key, obj))
+		}, testutils.LongWait, interval).Should(BeTrue())
+	}
+
+	// Description patch triggers a reconcile (generation change).
+	patchSpec := func(crName string, mutate func(*keycloakApi.KeycloakRealmRole)) {
+		cr := &keycloakApi.KeycloakRealmRole{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).To(Succeed())
+
+		base := cr.DeepCopy()
+		step++
+		cr.Spec.Description = fmt.Sprintf("step %d", step)
+		mutate(cr)
+
+		Expect(k8sClient.Patch(ctx, cr, client.MergeFrom(base))).To(Succeed())
+	}
+
+	It("Should write the default role membership only on a difference", func() {
+		crName := testutils.UniqueName("default-role")
+		roleName := testutils.UniqueName("default-role")
+		outsideRole := testutils.UniqueName("outside-role")
+
+		var defaultRole string
+
+		Eventually(func(g Gomega) {
+			defaultRole = defaultRoleOf(g, KeycloakRealmCR)
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		recorder := testutils.NewAdminEventRecorder(keycloakApiClient, KeycloakRealmCR).
+			Scoped(defaultRole + "/composites")
+		Expect(recorder.Enable(ctx)).To(Succeed())
+
+		By("Adding a role that the operator does not own to the default role")
+		_, err := keycloakApiClient.Roles.CreateRealmRole(ctx, KeycloakRealmCR,
+			keycloakapi.RoleRepresentation{Name: ptr.To(outsideRole)})
+		Expect(err).ShouldNot(HaveOccurred())
+		DeferCleanup(func() {
+			_, delErr := keycloakApiClient.Roles.DeleteRealmRole(ctx, KeycloakRealmCR, outsideRole)
+			if delErr != nil {
+				Expect(keycloakapi.IsNotFound(delErr)).To(BeTrue())
+			}
+		})
+
+		outside, _, err := keycloakApiClient.Roles.GetRealmRole(ctx, KeycloakRealmCR, outsideRole)
+		Expect(err).ShouldNot(HaveOccurred())
+		_, err = keycloakApiClient.Roles.AddRealmRoleComposites(ctx, KeycloakRealmCR, defaultRole,
+			[]keycloakapi.RoleRepresentation{{Id: outside.Id, Name: outside.Name}})
+		Expect(err).ShouldNot(HaveOccurred())
+
+		By("Creating a role with isDefault true")
+		Expect(k8sClient.Create(ctx, newRole(crName, KeycloakRealmCR, roleName, true))).To(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, newRole(crName, KeycloakRealmCR, roleName, true)))).To(Succeed())
+			waitGone(types.NamespacedName{Name: crName, Namespace: ns}, &keycloakApi.KeycloakRealmRole{})
+		})
+		waitStatusOK(crName)
+		Eventually(func(g Gomega) {
+			g.Expect(isMember(g, KeycloakRealmCR, roleName)).To(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		By("Reconciling a settled role writes nothing")
+		const settledDescription = "settled"
+
+		events, err := recorder.WritesDuring(ctx, testutils.Settle, func() {
+			patchSpec(crName, func(r *keycloakApi.KeycloakRealmRole) { r.Spec.Description = settledDescription })
+			Eventually(func(g Gomega) {
+				kcRole, _, getErr := keycloakApiClient.Roles.GetRealmRole(ctx, KeycloakRealmCR, roleName)
+				g.Expect(getErr).ShouldNot(HaveOccurred())
+				g.Expect(ptr.Deref(kcRole.Description, "")).To(Equal(settledDescription))
+			}, testutils.LongWait, interval).Should(Succeed())
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).To(BeEmpty())
+
+		By("Setting isDefault false removes the membership with one DELETE")
+		events, err = recorder.WritesDuring(ctx, testutils.Settle, func() {
+			patchSpec(crName, func(r *keycloakApi.KeycloakRealmRole) { r.Spec.IsDefault = false })
+			Eventually(func(g Gomega) {
+				g.Expect(isMember(g, KeycloakRealmCR, roleName)).To(BeFalse())
+			}, testutils.LongWait, interval).Should(Succeed())
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).To(HaveLen(1), "recorded: %s", events.GomegaString())
+		Expect(ptr.Deref(events[0].OperationType, "")).To(Equal("DELETE"))
+
+		By("Setting isDefault true adds the membership with one CREATE")
+		events, err = recorder.WritesDuring(ctx, testutils.Settle, func() {
+			patchSpec(crName, func(r *keycloakApi.KeycloakRealmRole) { r.Spec.IsDefault = true })
+			Eventually(func(g Gomega) {
+				g.Expect(isMember(g, KeycloakRealmCR, roleName)).To(BeTrue())
+			}, testutils.LongWait, interval).Should(Succeed())
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).To(HaveLen(1), "recorded: %s", events.GomegaString())
+		Expect(ptr.Deref(events[0].OperationType, "")).To(Equal("CREATE"))
+
+		By("Leaving the other members of the default role untouched")
+		Eventually(func(g Gomega) {
+			g.Expect(isMember(g, KeycloakRealmCR, outsideRole)).To(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+	})
+
+	It("Should resolve the default role of a realm with an upper-case name", func() {
+		Expect(strings.ToLower(upperRealmName)).NotTo(Equal(upperRealmName))
+
+		realmCR := &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: upperRealmCR, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:   upperRealmName,
+				KeycloakRef: common.KeycloakRef{Name: KeycloakCR},
+			},
+		}
+		Expect(k8sClient.Create(ctx, realmCR)).To(Succeed())
+
+		crName := testutils.UniqueName("default-role-upper")
+		roleName := testutils.UniqueName("default-role-upper")
+		roleCR := newRole(crName, upperRealmCR, roleName, true)
+
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, roleCR))).To(Succeed())
+			waitGone(types.NamespacedName{Name: crName, Namespace: ns}, &keycloakApi.KeycloakRealmRole{})
+
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, realmCR))).To(Succeed())
+			waitGone(types.NamespacedName{Name: upperRealmCR, Namespace: ns}, &keycloakApi.KeycloakRealm{})
+		})
+
+		Eventually(func(g Gomega) {
+			created := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: upperRealmCR, Namespace: ns}, created)).To(Succeed())
+			g.Expect(created.Status.Available).To(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		Expect(k8sClient.Create(ctx, roleCR)).To(Succeed())
+		waitStatusOK(crName)
+		Eventually(func(g Gomega) {
+			g.Expect(defaultRoleOf(g, upperRealmName)).To(Equal("default-roles-" + strings.ToLower(upperRealmName)))
+			g.Expect(isMember(g, upperRealmName, roleName)).To(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
 	})
 })

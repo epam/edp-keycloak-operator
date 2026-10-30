@@ -230,6 +230,57 @@ entry with HTTP 500 `duplicate entries for key`, also when the manifest has not 
 A resource that stores a duplicate accepts updates, including a client-side `kubectl apply` and new
 duplicates. The query finds it.
 
+**11. `KeycloakRealmRole` and `KeycloakRealmRoleBatch`: realm default roles**
+
+1.36.0 makes the realm default roles (`default-roles-<realm>`) match `isDefault` of each `KeycloakRealmRole`.
+An omitted `isDefault` is the same as `false`.
+
+| `isDefault` | 1.35.0 | 1.36.0 |
+|---|---|---|
+| Omitted or `false` | No change. | Removes the role from the default roles. |
+| `true` | Adds the role. Fails in a realm with upper-case letters in its name. | Adds the role. |
+
+Every user of the realm has the default roles. A change applies to all users of the realm, not only to new
+users. A user keeps a removed role only when the role is also assigned to the user or to a group of the user.
+The change applies on the first reconcile after the upgrade. It needs no spec change.
+
+The operator does not change:
+
+- A role that is not in the default roles.
+- A realm role that no `KeycloakRealmRole` manages.
+- A client role in the default roles.
+
+You are affected when a `KeycloakRealmRole` does not set `isDefault: true` and its role is in the default
+roles. These add a role to the default roles: the admin console (**Realm settings** > **User registration**),
+a realm import, and Keycloak (`offline_access` and `uma_authorization` in each new realm). A
+`KeycloakRealmRole` for `offline_access` without `isDefault: true` removes `offline_access` from all users.
+Offline tokens then fail for them.
+
+Find the affected roles:
+
+1. List the roles without `isDefault: true`. The columns are the Keycloak realm, the role name and the
+   resource. A `KeycloakRealmRoleBatch` creates `KeycloakRealmRole` resources, so the list includes its roles.
+
+   ```sh
+   { kubectl get keycloakrealms,clusterkeycloakrealms -A -o json; kubectl get keycloakrealmroles -A -o json; } | jq -rs '(.[0].items | map({key: "\(.kind)/\(.metadata.namespace // "")/\(.metadata.name)", value: .spec.realmName}) | from_entries) as $realms | .[1].items[] | select(.spec.isDefault != true) | (.spec.realmRef.kind // "KeycloakRealm") as $k | ($realms["\($k)/\(if $k == "KeycloakRealm" then .metadata.namespace else "" end)/\(.spec.realmRef.name)"] // "<realm not found>") as $realm | "\($realm) \(.spec.name) \(.metadata.namespace)/\(.metadata.name)"'
+   ```
+
+2. For each realm in the list, get the default roles from Keycloak:
+   - `GET /admin/realms/<realm>` returns the default role name in `defaultRole.name`.
+   - `GET /admin/realms/<realm>/roles/<defaultRole.name>/composites/realm` returns the default roles.
+3. A role in both lists is affected. A role only in the first list is not affected.
+
+For each affected role:
+
+- To keep the role a default role, set `isDefault: true` in the resource and in its manifests in Git before
+  you upgrade.
+- For a role of a `KeycloakRealmRoleBatch`, set `isDefault: true` in the batch entry and in the child
+  `KeycloakRealmRole`. An edit of a batch entry does not reach a child that exists.
+- To remove the role from the default roles, do nothing.
+
+For each role with `isDefault: true` in a realm with upper-case letters in its name: 1.36.0 adds the role to
+the default roles, and all users of the realm get it. To prevent this, remove `isDefault` before you upgrade.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
@@ -301,6 +352,8 @@ Check each listed user in Keycloak. Where the email must be verified, set `email
 | `KeycloakRealm`, `ClusterKeycloakRealm` | All | `smtpServer.port` has no default. The operator sends the port only when you set it. Keycloak then uses 465 with SSL and 25 without. A resource that the old CRD defaulted to 25 keeps the stored 25. |
 | `KeycloakRealm`, `ClusterKeycloakRealm` | All | `displayName`, `displayNameHtml`, `organizationsEnabled` and `realmEventConfig.adminEventsExpiration` are not managed when you omit them. The operator keeps the Keycloak value. An explicit empty string, `false` or `0` is still written. A resource created under the old CRD has `organizationsEnabled: false` stored. It keeps managing the flag until you remove the field from the spec. |
 | `KeycloakOrganization` | All | An update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled after an operator write. 1.35.0 enabled it again. |
+| `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault` is always managed. `true` adds the role to the realm default roles. Omitted or `false` removes it. The change applies to all users of the realm. The operator writes only when the membership differs. An edit of a batch entry does not reach a child that exists. See item 11 in "Before you upgrade". |
+| `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault: true` works in a realm with upper-case letters in its name. The operator reads the default role name from Keycloak. |
 
 ## Keycloak upgrades
 
