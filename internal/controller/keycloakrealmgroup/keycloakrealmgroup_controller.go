@@ -159,7 +159,7 @@ func (r *ReconcileKeycloakRealmGroup) tryReconcile(ctx context.Context, keycloak
 		keyCloakRealmGroupOperatorFinalizerName,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to delete keycloak realm group: %w", err)
+		return false, err
 	}
 
 	if deleted {
