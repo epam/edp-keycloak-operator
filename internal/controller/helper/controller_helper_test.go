@@ -12,12 +12,14 @@ import (
 	testifymock "github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
@@ -1026,4 +1028,65 @@ func TestMakeHelper_RejectsNilGuard(t *testing.T) {
 
 	require.ErrorIs(t, err, destination.ErrGuardRequired,
 		"a nil guard must fail at wiring time, not fail open at runtime")
+}
+
+func TestHelper_TryToDelete_PatchError(t *testing.T) {
+	t.Parallel()
+
+	gr := corev1.Resource("secrets")
+
+	tests := []struct {
+		name     string
+		deleting bool
+		patchErr error
+		wantMsg  string
+		wantType func(error) bool
+	}{
+		{
+			name:     "finalizer add refused",
+			patchErr: k8sErrors.NewForbidden(gr, "s", errors.New("patch denied")),
+			wantMsg:  "failed to add finalizer: unable to patch object: ",
+			wantType: k8sErrors.IsForbidden,
+		},
+		{
+			name:     "finalizer add conflict",
+			patchErr: k8sErrors.NewConflict(gr, "s", errors.New("stale")),
+			wantMsg:  "failed to add finalizer: unable to patch object: ",
+			wantType: k8sErrors.IsConflict,
+		},
+		{
+			name:     "finalizer removal refused",
+			deleting: true,
+			patchErr: k8sErrors.NewForbidden(gr, "s", errors.New("patch denied")),
+			wantMsg:  "failed to remove finalizer: unable to patch object: ",
+			wantType: k8sErrors.IsForbidden,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			secret := &corev1.Secret{ObjectMeta: metav1.ObjectMeta{Name: "s", Namespace: "default"}}
+
+			if tt.deleting {
+				secret.Finalizers = []string{"fin"}
+				secret.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			}
+
+			h := Helper{client: fake.NewClientBuilder().
+				WithInterceptorFuncs(interceptor.Funcs{
+					Patch: func(context.Context, client.WithWatch, client.Object, client.Patch, ...client.PatchOption) error {
+						return tt.patchErr
+					},
+				}).
+				Build()}
+
+			isDeleted, err := h.TryToDelete(context.Background(), secret, &testTerminator{log: logr.Discard()}, "fin")
+
+			require.EqualError(t, err, tt.wantMsg+tt.patchErr.Error())
+			assert.True(t, tt.wantType(err))
+			assert.False(t, isDeleted)
+		})
+	}
 }

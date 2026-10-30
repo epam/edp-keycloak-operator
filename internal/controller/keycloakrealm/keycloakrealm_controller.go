@@ -151,7 +151,7 @@ func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keyclo
 		keyCloakRealmOperatorFinalizerName,
 	)
 	if err != nil {
-		return false, fmt.Errorf("failed to delete realm: %w", err)
+		return false, err
 	}
 
 	if deleted {

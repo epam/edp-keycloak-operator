@@ -96,7 +96,7 @@ func (r *ClusterKeycloakRealmReconciler) Reconcile(ctx context.Context, req ctrl
 		keycloakrealm.MakeTerminator(clusterRealm.Spec.RealmName, kClient.Realms, objectmeta.PreserveResourcesOnDeletion(clusterRealm)),
 		keyCloakRealmOperatorFinalizerName,
 	); err != nil {
-		return r.handleError(ctx, clusterRealm, fmt.Errorf("failed to delete realm: %w", err))
+		return r.handleError(ctx, clusterRealm, err)
 	} else if deleted {
 		return reconcile.Result{}, nil
 	}
