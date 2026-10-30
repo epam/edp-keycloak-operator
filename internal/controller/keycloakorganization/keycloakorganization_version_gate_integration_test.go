@@ -77,7 +77,7 @@ var _ = Describe("KeycloakOrganization Keycloak 26.8 field gate", Ordered, func(
 				Spec: v1alpha1.KeycloakOrganizationSpec{
 					Name: name, Alias: name, RealmRef: realmRef,
 					DomainsV2:         []v1alpha1.OrgDomain{{Name: name + ".example.test", IdentityProviderAlias: ptr.To(idpAlias)}},
-					IdentityProviders: []v1alpha1.OrgIdentityProvider{{Alias: idpAlias}},
+					IdentityProviders: ptr.To([]v1alpha1.OrgIdentityProvider{{Alias: idpAlias}}),
 				},
 			}
 			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
@@ -133,7 +133,7 @@ var _ = Describe("KeycloakOrganization Keycloak 26.8 field gate", Ordered, func(
 
 			Eventually(func(g Gomega) {
 				stored := getOrg(key)
-				stored.Spec.IdentityProviders = []v1alpha1.OrgIdentityProvider{{Alias: idpAlias}}
+				stored.Spec.IdentityProviders = ptr.To([]v1alpha1.OrgIdentityProvider{{Alias: idpAlias}})
 				stored.Spec.DomainsV2[0].IdentityProviderAlias = ptr.To(idpAlias)
 				stored.Spec.DomainsV2[0].AutoRedirect = ptr.To(true)
 				g.Expect(k8sClient.Update(ctx, stored)).To(Succeed())

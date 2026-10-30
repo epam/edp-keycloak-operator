@@ -16,13 +16,24 @@ func TestValidateDomainSettings_ServeRequest(t *testing.T) {
 	tests := []struct {
 		name    string
 		domains []keycloakApi.OrgDomain
-		idps    []keycloakApi.OrgIdentityProvider
+		idps    *[]keycloakApi.OrgIdentityProvider
 		wantErr string
 	}{
 		{
 			name:    "alias in identityProviders",
 			domains: []keycloakApi.OrgDomain{{Name: "a.com", IdentityProviderAlias: ptr.To(testIdPAlias)}},
-			idps:    []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}},
+			idps:    ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}}),
+		},
+		{
+			name:    "alias with absent identityProviders",
+			domains: []keycloakApi.OrgDomain{{Name: "a.com", IdentityProviderAlias: ptr.To(testIdPAlias)}},
+			wantErr: `domainsV2[0] "a.com": identityProviderAlias "idp1" is not in spec.identityProviders`,
+		},
+		{
+			name:    "alias with empty identityProviders",
+			domains: []keycloakApi.OrgDomain{{Name: testDomain, IdentityProviderAlias: ptr.To(testIdPAlias)}},
+			idps:    ptr.To([]keycloakApi.OrgIdentityProvider{}),
+			wantErr: `domainsV2[0] "a.com": identityProviderAlias "idp1" is not in spec.identityProviders`,
 		},
 		{
 			name:    "empty alias needs no provider",
@@ -31,7 +42,7 @@ func TestValidateDomainSettings_ServeRequest(t *testing.T) {
 		{
 			name:    "alias missing in identityProviders",
 			domains: []keycloakApi.OrgDomain{{Name: "x.com"}, {Name: "a.com", IdentityProviderAlias: ptr.To(testIdPAlias)}},
-			idps:    []keycloakApi.OrgIdentityProvider{{Alias: "idp2"}},
+			idps:    ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: "idp2"}}),
 			wantErr: `domainsV2[1] "a.com": identityProviderAlias "idp1" is not in spec.identityProviders`,
 		},
 		{

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1alpha1"
@@ -69,7 +70,7 @@ func firstGatedField(organization *keycloakApi.KeycloakOrganization) string {
 		}
 	}
 
-	for i, idp := range organization.Spec.IdentityProviders {
+	for i, idp := range ptr.Deref(organization.Spec.IdentityProviders, nil) {
 		if !hasLinkSettings(idp) {
 			continue
 		}

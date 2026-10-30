@@ -31,10 +31,10 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "success - link new identity providers",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
 						{Alias: "idp2"},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -71,9 +71,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "success - unlink removed identity providers",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -103,10 +103,10 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "success - mixed scenario: link new and unlink removed",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
 						{Alias: "idp3"},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -143,10 +143,10 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "success - no changes needed",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
 						{Alias: "idp2"},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -170,9 +170,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - organization ID not set",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: "",
@@ -188,9 +188,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - GetOrganizationIdentityProviders fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -211,9 +211,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - LinkIdentityProviderToOrganization fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -245,9 +245,9 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - UnlinkIdentityProviderFromOrganization fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{
 						{Alias: testIdPAlias},
-					},
+					}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -274,7 +274,7 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - identity provider missing in realm",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}},
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: testOrgID},
 			},
@@ -302,7 +302,7 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - missing new identity provider unlinks nothing",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: "idp2"}},
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: "idp2"}}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: testOrgID},
 			},
@@ -332,7 +332,7 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "error - GetIdentityProvider fails",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}},
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: testOrgID},
 			},
@@ -360,7 +360,7 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 			name: "success - empty identity providers list",
 			organization: &keycloakApi.KeycloakOrganization{
 				Spec: keycloakApi.KeycloakOrganizationSpec{
-					IdentityProviders: []keycloakApi.OrgIdentityProvider{},
+					IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{}),
 				},
 				Status: keycloakApi.KeycloakOrganizationStatus{
 					OrganizationID: testOrgID,
@@ -382,6 +382,19 @@ func TestProcessIdentityProviders_ServeRequest(t *testing.T) {
 					Return((*keycloakapi.Response)(nil), nil).Once()
 
 				return client
+			},
+			wantErr: require.NoError,
+		},
+		{
+			name: "absent identity providers: no Keycloak call",
+			organization: &keycloakApi.KeycloakOrganization{
+				Status: keycloakApi.KeycloakOrganizationStatus{
+					OrganizationID: testOrgID,
+				},
+			},
+			realmName: testRealmName,
+			keycloakClient: func(t *testing.T) keycloakapi.OrganizationsClient {
+				return keycloakapimocks.NewMockOrganizationsClient(t)
 			},
 			wantErr: require.NoError,
 		},
@@ -438,7 +451,7 @@ func TestProcessIdentityProviders_LinkSettings(t *testing.T) {
 
 	org := func(idps ...keycloakApi.OrgIdentityProvider) *keycloakApi.KeycloakOrganization {
 		return &keycloakApi.KeycloakOrganization{
-			Spec:   keycloakApi.KeycloakOrganizationSpec{IdentityProviders: idps},
+			Spec:   keycloakApi.KeycloakOrganizationSpec{IdentityProviders: &idps},
 			Status: keycloakApi.KeycloakOrganizationStatus{OrganizationID: testOrgID},
 		}
 	}

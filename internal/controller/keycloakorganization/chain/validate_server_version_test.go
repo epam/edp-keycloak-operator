@@ -24,7 +24,7 @@ func TestValidateServerVersion_ServeRequest(t *testing.T) {
 	const domain = "d.example"
 
 	aliasDomain := []keycloakApi.OrgDomain{{Name: domain, IdentityProviderAlias: ptr.To(testIdPAlias)}}
-	idps := []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}}
+	idps := ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}})
 
 	tests := []struct {
 		name      string
@@ -85,14 +85,14 @@ func TestValidateServerVersion_ServeRequest(t *testing.T) {
 		},
 		{
 			name:      "autoMembership false on 26.7.5",
-			spec:      keycloakApi.KeycloakOrganizationSpec{IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(false)}}},
+			spec:      keycloakApi.KeycloakOrganizationSpec{IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(false)}})},
 			version:   "26.7.5",
 			wantCall:  true,
 			wantError: `identityProviders[0] "idp1": autoMembership requires Keycloak 26.8 or later, server version is 26.7.5`,
 		},
 		{
 			name:      "membershipType on 26.7.5",
-			spec:      keycloakApi.KeycloakOrganizationSpec{IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, MembershipType: ptr.To("UNMANAGED")}}},
+			spec:      keycloakApi.KeycloakOrganizationSpec{IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, MembershipType: ptr.To("UNMANAGED")}})},
 			version:   "26.7.5",
 			wantCall:  true,
 			wantError: `identityProviders[0] "idp1": membershipType requires Keycloak 26.8 or later, server version is 26.7.5`,
@@ -101,7 +101,7 @@ func TestValidateServerVersion_ServeRequest(t *testing.T) {
 			name: "domain field is named before link field",
 			spec: keycloakApi.KeycloakOrganizationSpec{
 				DomainsV2:         aliasDomain,
-				IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(true)}},
+				IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(true)}}),
 			},
 			version:   "26.7.5",
 			wantCall:  true,

@@ -53,7 +53,7 @@ func TestMakeChain_GatedFieldFailsBeforeAnyOrganizationCall(t *testing.T) {
 			spec: keycloakApi.KeycloakOrganizationSpec{
 				Name: "Org", Alias: "org",
 				DomainsV2:         []keycloakApi.OrgDomain{{Name: "d.example", IdentityProviderAlias: ptr.To(testIdPAlias)}},
-				IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}},
+				IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias}}),
 			},
 			wantError: "identityProviderAlias requires Keycloak 26.8 or later, server version is 26.7.5",
 		},
@@ -62,7 +62,7 @@ func TestMakeChain_GatedFieldFailsBeforeAnyOrganizationCall(t *testing.T) {
 			spec: keycloakApi.KeycloakOrganizationSpec{
 				Name: "Org", Alias: "org",
 				DomainsV2:         []keycloakApi.OrgDomain{{Name: "d.example", Verified: ptr.To(true)}},
-				IdentityProviders: []keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(true)}},
+				IdentityProviders: ptr.To([]keycloakApi.OrgIdentityProvider{{Alias: testIdPAlias, AutoMembership: ptr.To(true)}}),
 			},
 			wantError: "autoMembership requires Keycloak 26.8 or later, server version is 26.7.5",
 		},

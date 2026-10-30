@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
@@ -132,6 +133,68 @@ func TestReconcileOrganization_applyDefaults(t *testing.T) {
 			stored := &keycloakApi.KeycloakOrganization{}
 			require.NoError(t, k8sClient.Get(context.Background(), types.NamespacedName{Name: "org", Namespace: "ns"}, stored))
 			require.Equal(t, tt.wantV2, stored.Spec.DomainsV2)
+		})
+	}
+}
+
+func TestReconcileOrganization_identityProvidersTypeRoundTrip(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	tests := []struct {
+		name    string
+		present bool
+	}{
+		{name: "explicit [] survives the typed round trip", present: true},
+		{name: "absent stays absent", present: false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			spec := map[string]any{
+				"name":     "Org",
+				"alias":    "org",
+				"domains":  []any{"a.com"},
+				"realmRef": map[string]any{"kind": "KeycloakRealm", "name": "realm"},
+			}
+			if tt.present {
+				spec["identityProviders"] = []any{}
+			}
+
+			seed := &unstructured.Unstructured{Object: map[string]any{
+				"apiVersion": keycloakApi.GroupVersion.String(),
+				"kind":       "KeycloakOrganization",
+				"metadata":   map[string]any{"name": "org", "namespace": "ns"},
+				"spec":       spec,
+			}}
+
+			k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(seed).Build()
+			r := NewReconcileOrganization(k8sClient, nil)
+			nn := types.NamespacedName{Name: "org", Namespace: "ns"}
+
+			org := &keycloakApi.KeycloakOrganization{}
+			require.NoError(t, k8sClient.Get(context.Background(), nn, org))
+
+			updated, err := r.applyDefaults(context.Background(), org)
+			require.NoError(t, err)
+			require.True(t, updated)
+
+			stored := &unstructured.Unstructured{}
+			stored.SetGroupVersionKind(keycloakApi.GroupVersion.WithKind("KeycloakOrganization"))
+			require.NoError(t, k8sClient.Get(context.Background(), nn, stored))
+
+			idps, found, err := unstructured.NestedSlice(stored.Object, "spec", "identityProviders")
+			require.NoError(t, err)
+			require.Equal(t, tt.present, found)
+			require.Empty(t, idps)
+
+			domainsV2, _, err := unstructured.NestedSlice(stored.Object, "spec", "domainsV2")
+			require.NoError(t, err)
+			require.Equal(t, []any{map[string]any{"name": "a.com"}}, domainsV2)
 		})
 	}
 }

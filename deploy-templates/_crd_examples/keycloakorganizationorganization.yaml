@@ -22,6 +22,11 @@ spec:
       - "qa"
     location:
       - "us-east"
+  # identityProviders has three states.
+  #   omitted    the operator does not manage the links; Keycloak keeps what it has
+  #   []         the operator manages the links and unlinks every identity provider
+  #   [a, b]     the operator manages the links; the organization ends up with exactly a and b
+  # Helm: write [] in values.yaml or pass --set-json 'identityProviders=[]'.
   identityProviders:
     - alias: "test-org-idp"
       # Keycloak 26.8 or later:

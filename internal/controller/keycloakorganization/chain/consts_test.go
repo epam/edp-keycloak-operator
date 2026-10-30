@@ -6,6 +6,7 @@ const (
 	testRealmName = "test-realm"
 	testOrgID     = "org-123"
 	testIdPAlias  = "idp1"
+	testDomain    = "a.com"
 )
 
 func domainsV2(names ...string) []keycloakApi.OrgDomain {
