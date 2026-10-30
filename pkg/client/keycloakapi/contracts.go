@@ -124,7 +124,7 @@ type IdentityProvidersClient interface {
 type RealmClient interface {
 	// GetRealms lists all realms visible to the authenticated user.
 	GetRealms(ctx context.Context) ([]RealmRepresentation, *Response, error)
-	// GetRealm retrieves a realm by name.
+	// GetRealm retrieves a realm by name. A 2xx response without a realm JSON body returns a nil realm and a nil error.
 	GetRealm(ctx context.Context, realm string) (*RealmRepresentation, *Response, error)
 	// CreateRealm creates a new realm.
 	CreateRealm(ctx context.Context, realmRep RealmRepresentation) (*Response, error)

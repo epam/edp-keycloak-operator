@@ -116,6 +116,10 @@ func ApplyRealmSettings(
 		return fmt.Errorf("unable to get realm: %w", err)
 	}
 
+	if current == nil {
+		return fmt.Errorf("unable to get realm: %w", keycloakapi.ErrNilRealmRepresentation)
+	}
+
 	before, beforeErr := json.Marshal(current)
 
 	MergeRealmRepresentation(current, &overlay)

@@ -14,7 +14,7 @@ var ErrNilResponse = errors.New("nil response from Keycloak")
 // ErrNotFound is returned by Find* methods when the searched resource does not exist.
 var ErrNotFound = errors.New("not found")
 
-// ErrNilRealmRepresentation is returned by RealmID for a 2xx response without a realm JSON body.
+// ErrNilRealmRepresentation marks a nil realm representation from a 2xx realm GET without a realm JSON body. RealmID and the GetRealm callers return it.
 var ErrNilRealmRepresentation = errors.New("empty realm representation; the response was not a realm JSON")
 
 // ErrRealmIDMissing is returned by RealmID for a representation without an id. Keycloak omits the id

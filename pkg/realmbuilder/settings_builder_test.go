@@ -1165,6 +1165,16 @@ func TestApplyRealmSettings(t *testing.T) {
 				assert.Contains(t, err.Error(), "unable to update realm settings")
 			},
 		},
+		{
+			name:    "GetRealm returns no realm body — error, no write",
+			overlay: keycloakapi.RealmRepresentation{DisplayName: ptr.To("My Realm")},
+			setupMock: func(m *v2mocks.MockRealmClient) {
+				m.EXPECT().GetRealm(mock.Anything, "test-realm").Return(nil, nil, nil)
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorIs(t, err, keycloakapi.ErrNilRealmRepresentation)
+			},
+		},
 	}
 
 	for _, tt := range tests {

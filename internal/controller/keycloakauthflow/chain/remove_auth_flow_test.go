@@ -67,6 +67,23 @@ func TestRemoveAuthFlow_Serve_TopLevel_Success(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestRemoveAuthFlow_Serve_TopLevel_NilRealmBody(t *testing.T) {
+	mockFlows := mocks.NewMockAuthFlowsClient(t)
+	mockRealms := mocks.NewMockRealmClient(t)
+	kc := &keycloakapi.KeycloakClient{AuthFlows: mockFlows, Realms: mockRealms}
+	k8sClient := fake.NewClientBuilder().WithScheme(newScheme(t)).Build()
+
+	flow := &keycloakApi.KeycloakAuthFlow{}
+	flow.Spec.Alias = testFlowAlias
+	flow.Status.ID = testFlowID
+
+	mockRealms.EXPECT().GetRealm(context.Background(), testRealmName).Return(nil, nil, nil)
+
+	h := NewRemoveAuthFlow(kc, k8sClient)
+	err := h.Serve(context.Background(), flow, testRealmName)
+	require.ErrorIs(t, err, keycloakapi.ErrNilRealmRepresentation)
+}
+
 func TestRemoveAuthFlow_Serve_TopLevel_BrowserFlowUnset(t *testing.T) {
 	mockFlows := mocks.NewMockAuthFlowsClient(t)
 	mockRealms := mocks.NewMockRealmClient(t)
