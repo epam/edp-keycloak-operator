@@ -119,6 +119,20 @@ func TestHelper_TryToDelete(t *testing.T) {
 	}
 }
 
+func deletingGroup(realmKind, realmName string) *keycloakApi.KeycloakRealmGroup {
+	return &keycloakApi.KeycloakRealmGroup{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         testResourceName,
+			Name:              testGroupName,
+			DeletionTimestamp: &metav1.Time{Time: time.Now()},
+			Finalizers:        []string{"test-finalizer"},
+		},
+		Spec: keycloakApi.KeycloakRealmGroupSpec{
+			RealmRef: common.RealmRef{Kind: realmKind, Name: realmName},
+		},
+	}
+}
+
 func TestHelper_SetRealmOwnerRef(t *testing.T) {
 	scheme := runtime.NewScheme()
 	require.NoError(t, keycloakApi.AddToScheme(scheme))
@@ -290,6 +304,65 @@ func TestHelper_SetRealmOwnerRef(t *testing.T) {
 					Name:      testGroupName,
 				}, group)
 				require.NoError(t, err)
+				require.Nil(t, metav1.GetControllerOf(group))
+			},
+		},
+		{
+			name: "deleting object, KeycloakRealm not found: no error",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					return fake.NewClientBuilder().WithScheme(scheme).Build()
+				},
+				enableOwnerRef: true,
+			},
+			args: args{
+				object: deletingGroup(keycloakApi.KeycloakRealmKind, "nonexistent"),
+			},
+			wantErr: require.NoError,
+			want:    func(t *testing.T, k8sCl client.Client) {},
+		},
+		{
+			name: "deleting object, ClusterKeycloakRealm not found: no error",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					return fake.NewClientBuilder().WithScheme(scheme).Build()
+				},
+				enableOwnerRef: true,
+			},
+			args: args{
+				object: deletingGroup(keycloakApiAlpha.ClusterKeycloakRealmKind, "nonexistent"),
+			},
+			wantErr: require.NoError,
+			want:    func(t *testing.T, k8sCl client.Client) {},
+		},
+		{
+			name: "deleting object, realm present: no owner reference written",
+			fields: fields{
+				client: func(t *testing.T) client.Client {
+					realm := &keycloakApi.KeycloakRealm{
+						ObjectMeta: metav1.ObjectMeta{
+							Namespace: testResourceName,
+							Name:      "realm",
+						},
+					}
+
+					return fake.NewClientBuilder().
+						WithScheme(scheme).
+						WithObjects(realm, deletingGroup(keycloakApi.KeycloakRealmKind, "realm")).
+						Build()
+				},
+				enableOwnerRef: true,
+			},
+			args: args{
+				object: deletingGroup(keycloakApi.KeycloakRealmKind, "realm"),
+			},
+			wantErr: require.NoError,
+			want: func(t *testing.T, k8sCl client.Client) {
+				group := &keycloakApi.KeycloakRealmGroup{}
+				require.NoError(t, k8sCl.Get(context.Background(), types.NamespacedName{
+					Namespace: testResourceName,
+					Name:      testGroupName,
+				}, group))
 				require.Nil(t, metav1.GetControllerOf(group))
 			},
 		},

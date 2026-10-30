@@ -20,8 +20,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
 	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
+	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
+	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
 func TestReconcileKeycloakRealmUser_migrateAttributes(t *testing.T) {
@@ -348,4 +351,44 @@ func TestReconcile_ApplyDefaultsErrorWritesStatus(t *testing.T) {
 			assert.Contains(t, got.Status.Value, tt.wantValue)
 		})
 	}
+}
+
+func TestReconcile_DeletingRealmGoneWithOwnerRefEnabled(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	now := metav1.Now()
+	key := client.ObjectKey{Namespace: "default", Name: "user"}
+	user := &keycloakApi.KeycloakRealmUser{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace:         key.Namespace,
+			Name:              key.Name,
+			DeletionTimestamp: &now,
+			Finalizers:        []string{finalizerName},
+		},
+		Spec: keycloakApi.KeycloakRealmUserSpec{
+			Username: "user",
+			RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: "missing-realm"},
+		},
+		// A non-OK status makes the reconcile write status on the deleted object after the release.
+		Status: keycloakApi.KeycloakRealmUserStatus{Value: common.StatusOK},
+	}
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&keycloakApi.KeycloakRealmUser{}).
+		WithObjects(user).
+		Build()
+
+	h, err := helper.MakeHelper(cl, scheme, "default", destination.AllowAll(), helper.EnableOwnerRef(true))
+	require.NoError(t, err)
+
+	ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+
+	_, err = NewReconcile(cl, h).Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	require.NoError(t, err)
+
+	err = cl.Get(ctx, key, &keycloakApi.KeycloakRealmUser{})
+	require.True(t, k8sErrors.IsNotFound(err), "user must be released, got: %v", err)
 }
