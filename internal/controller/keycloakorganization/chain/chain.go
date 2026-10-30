@@ -34,6 +34,7 @@ func MakeChain(kc *keycloakapi.KeycloakClient) Chain {
 	return &chain{
 		handlers: []Handler{
 			NewValidateDomainSettings(),
+			NewValidateServerVersion(kc),
 			NewCreateOrganization(kc),
 			NewProcessIdentityProviders(kc),
 			NewProcessDomainSettings(kc),
