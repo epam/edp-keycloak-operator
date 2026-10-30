@@ -13,6 +13,7 @@ import (
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -75,7 +76,7 @@ var _ = Describe("KeycloakRealmIdentityProvider admin role mapper", Ordered, fun
 		info, err := keycloakApiClient.GetServerInfo(ctx)
 		Expect(err).NotTo(HaveOccurred())
 
-		supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+		supported, err := keycloakapi.ServerVersionAtLeast(info, 26, 8)
 		Expect(err).NotTo(HaveOccurred())
 
 		if !supported {
