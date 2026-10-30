@@ -289,6 +289,64 @@ var _ = Describe("KeycloakOrganization domainsV2", Ordered, func() {
 			waitReady(key)
 
 			Expect(ptr.Deref(kcDomain(orgID, domain).IdentityProviderAlias, "")).To(BeEmpty())
+			Expect(ptr.Deref(kcDomain(orgID, domain).AutoRedirect, false)).To(BeFalse())
+		})
+
+		It("Should not write to Keycloak after the routing is cleared", func() {
+			Expect(recorder.WritesDuring(ctx, settle, nudge)).To(BeEmpty())
+		})
+	})
+
+	Context("autoRedirect false before Keycloak 26.8", Ordered, func() {
+		const (
+			crName = "domv2-no-redirect"
+			domain = "domv2-no-redirect.example.test"
+		)
+
+		key := types.NamespacedName{Name: crName, Namespace: ns}
+
+		var recorder *testutils.AdminEventRecorder
+
+		BeforeAll(func() {
+			info, err := keycloakAdminClient.GetServerInfo(ctx)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			supported, err := keycloakapi.ServerVersionAtLeast(info, 26, 8)
+			Expect(err).ShouldNot(HaveOccurred())
+
+			if supported {
+				Skip("covers Keycloak older than 26.8, server " + info.SystemInfo.ServerVersion)
+			}
+
+			DeferCleanup(func() { remove(key) })
+
+			recorder = testutils.NewAdminEventRecorder(keycloakAdminClient, KeycloakRealmCR)
+			Expect(recorder.Enable(ctx)).To(Succeed())
+		})
+
+		It("Should apply verified without sending autoRedirect", func() {
+			cr := &v1alpha1.KeycloakOrganization{
+				ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+				Spec: v1alpha1.KeycloakOrganizationSpec{
+					Name: "No Redirect Org", Alias: crName, RealmRef: realmRef,
+					DomainsV2: []v1alpha1.OrgDomain{{Name: domain, Verified: ptr.To(true), AutoRedirect: ptr.To(false)}},
+				},
+			}
+			Expect(k8sClient.Create(ctx, cr)).To(Succeed())
+			waitReady(key)
+
+			stored := &v1alpha1.KeycloakOrganization{}
+			Expect(k8sClient.Get(ctx, key, stored)).To(Succeed())
+			Expect(stored.Status.OrganizationID).ShouldNot(BeEmpty())
+
+			recorder = recorder.Scoped("organizations/" + stored.Status.OrganizationID)
+			Expect(ptr.Deref(kcDomain(stored.Status.OrganizationID, domain).Verified, false)).To(BeTrue())
+		})
+
+		It("Should not write to Keycloak after settling", func() {
+			Expect(recorder.WritesDuring(ctx, settle, func() {
+				Expect(testutils.Nudge(ctx, k8sClient, key, &v1alpha1.KeycloakOrganization{})).To(Succeed())
+			})).To(BeEmpty())
 		})
 	})
 })

@@ -109,6 +109,33 @@ func TestProcessDomainSettings_ServeRequest(t *testing.T) {
 			orgID:   testOrgID,
 		},
 		{
+			name:    "autoRedirect false is omitted from the body",
+			domains: []keycloakApi.OrgDomain{{Name: "a.com", AutoRedirect: ptr.To(false)}},
+			fetched: fetchedOrg(domain("a.com", true, "", true)),
+			wantGet: true,
+			wantPut: []keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.com"), Verified: ptr.To(true)},
+			},
+			orgID: testOrgID,
+		},
+		{
+			name:    "autoRedirect false matches a stored false: no PUT",
+			domains: []keycloakApi.OrgDomain{{Name: "a.com", AutoRedirect: ptr.To(false)}},
+			fetched: fetchedOrg(domain("a.com", true, "", false)),
+			wantGet: true,
+			orgID:   testOrgID,
+		},
+		{
+			name:    "autoRedirect false with verified on a server without the key",
+			domains: []keycloakApi.OrgDomain{{Name: "a.com", Verified: ptr.To(true), AutoRedirect: ptr.To(false)}},
+			fetched: fetchedOrg(keycloakapi.OrganizationDomainRepresentation{Name: ptr.To("a.com")}),
+			wantGet: true,
+			wantPut: []keycloakapi.OrganizationDomainRepresentation{
+				{Name: ptr.To("a.com"), Verified: ptr.To(true)},
+			},
+			orgID: testOrgID,
+		},
+		{
 			name:      "GET fails",
 			domains:   []keycloakApi.OrgDomain{{Name: "a.com", Verified: ptr.To(true)}},
 			getErr:    errors.New("boom"),

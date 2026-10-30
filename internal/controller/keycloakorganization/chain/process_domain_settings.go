@@ -105,8 +105,12 @@ func mergeDomainSettings(
 		}
 	}
 
+	// Keycloak older than 26.8 rejects the autoRedirect key, also as false; 26.8 stores an omitted value as false.
 	if spec.AutoRedirect != nil {
-		d.AutoRedirect = spec.AutoRedirect
+		d.AutoRedirect = nil
+		if *spec.AutoRedirect {
+			d.AutoRedirect = spec.AutoRedirect
+		}
 	}
 
 	return d
