@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -40,14 +41,15 @@ func (h *PutAdminFineGrainedPermissions) Serve(ctx context.Context, keycloakClie
 
 	clientUUID := clientCtx.ClientUUID
 
-	if err := h.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakClient, realmName, clientUUID); err != nil {
+	clientPermissions, err := h.putKeycloakClientAdminFineGrainedPermissions(ctx, keycloakClient, realmName, clientUUID)
+	if err != nil {
 		h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync admin fine-grained permissions: %s", err.Error()))
 
 		return fmt.Errorf("unable to put keycloak client admin fine grained permissions: %w", err)
 	}
 
 	if keycloakClient.Spec.AdminFineGrainedPermissionsEnabled && keycloakClient.Spec.Permission != nil {
-		if err := h.putKeycloakClientAdminPermissionPolicies(ctx, keycloakClient, realmName, clientUUID); err != nil {
+		if err := h.putKeycloakClientAdminPermissionPolicies(ctx, keycloakClient, realmName, clientUUID, clientPermissions); err != nil {
 			h.setFailureCondition(ctx, keycloakClient, fmt.Sprintf("Failed to sync admin fine-grained permissions: %s", err.Error()))
 
 			return fmt.Errorf("unable to put keycloak client admin permission policies: %w", err)
@@ -87,24 +89,44 @@ func (h *PutAdminFineGrainedPermissions) setSuccessCondition(ctx context.Context
 	}
 }
 
-func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string) error {
+// Returns the management permissions state: the fetched one when enabled matches the spec, otherwise the PUT response.
+func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminFineGrainedPermissions(
+	ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string,
+) (*keycloakapi.ManagementPermissionReference, error) {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client admin fine grained permissions")
+
+	current, _, err := h.kClient.Clients.GetClientManagementPermissions(ctx, realmName, clientUUID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client management permissions: %w", err)
+	}
+
+	if current != nil && ptr.Deref(current.Enabled, false) == keycloakClient.Spec.AdminFineGrainedPermissionsEnabled {
+		reqLog.Info("Client admin fine grained permissions are already in sync, skipping update")
+
+		return current, nil
+	}
 
 	managementPermissions := keycloakapi.ManagementPermissionReference{
 		Enabled: &keycloakClient.Spec.AdminFineGrainedPermissionsEnabled,
 	}
 
-	if _, _, err := h.kClient.Clients.UpdateClientManagementPermissions(ctx, realmName, clientUUID, managementPermissions); err != nil {
-		return fmt.Errorf("unable to update client management permissions: %w", err)
+	updated, _, err := h.kClient.Clients.UpdateClientManagementPermissions(ctx, realmName, clientUUID, managementPermissions)
+	if err != nil {
+		return nil, fmt.Errorf("unable to update client management permissions: %w", err)
 	}
 
 	reqLog.Info("End put keycloak client admin fine grained permissions")
 
-	return nil
+	return updated, nil
 }
 
-func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicies(ctx context.Context, keycloakClient *keycloakApi.KeycloakClient, realmName, clientUUID string) error {
+func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicies(
+	ctx context.Context,
+	keycloakClient *keycloakApi.KeycloakClient,
+	realmName, clientUUID string,
+	existingClientPermissions *keycloakapi.ManagementPermissionReference,
+) error {
 	reqLog := ctrl.LoggerFrom(ctx)
 	reqLog.Info("Start put keycloak client admin permission policies")
 
@@ -121,11 +143,6 @@ func (h *PutAdminFineGrainedPermissions) putKeycloakClientAdminPermissionPolicie
 	realmManagementPermissions := maputil.SliceToMapSelf(realmManagementPermissionsList, func(p keycloakapi.AbstractPolicyRepresentation) (string, bool) {
 		return *p.Name, p.Name != nil
 	})
-
-	existingClientPermissions, _, err := h.kClient.Clients.GetClientManagementPermissions(ctx, realmName, clientUUID)
-	if err != nil {
-		return fmt.Errorf("failed to get client permissions: %w", err)
-	}
 
 	if existingClientPermissions == nil || existingClientPermissions.ScopePermissions == nil {
 		return fmt.Errorf("client management permissions or scope permissions are nil")
