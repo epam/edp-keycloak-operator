@@ -99,7 +99,12 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 	// and the DeepEqual guard below must compare against the persisted status.
 	oldStatus := instance.Status
 
-	if err := r.tryReconcile(ctx, instance); err != nil {
+	deleted, err := r.tryReconcile(ctx, instance)
+	if deleted {
+		return ctrl.Result{}, nil
+	}
+
+	if err != nil {
 		if errors.Is(err, helper.ErrKeycloakIsNotAvailable) {
 			return ctrl.Result{
 				RequeueAfter: helper.RequeueOnKeycloakNotAvailablePeriod,
@@ -128,33 +133,34 @@ func (r *ReconcileKeycloakRealm) Reconcile(ctx context.Context, request reconcil
 	return result, resultErr
 }
 
-func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keycloakApi.KeycloakRealm) error {
+// tryReconcile returns deleted when the object is deleting and the operator has no cleanup left.
+func (r *ReconcileKeycloakRealm) tryReconcile(ctx context.Context, realm *keycloakApi.KeycloakRealm) (deleted bool, err error) {
 	if err := r.helper.SetKeycloakOwnerRef(ctx, realm); err != nil {
-		return fmt.Errorf("failed to set keycloak owner reference: %w", err)
+		return false, fmt.Errorf("failed to set keycloak owner reference: %w", err)
 	}
 
 	kClient, err := r.helper.CreateKeycloakClientFromRealm(ctx, realm)
 	if err != nil {
-		return fmt.Errorf("failed to create keycloak v2 client for realm: %w", err)
+		return false, fmt.Errorf("failed to create keycloak v2 client for realm: %w", err)
 	}
 
-	deleted, err := r.helper.TryToDelete(
+	deleted, err = r.helper.TryToDelete(
 		ctx,
 		realm,
 		makeTerminator(realm.Spec.RealmName, kClient.Realms, objectmeta.PreserveResourcesOnDeletion(realm)),
 		keyCloakRealmOperatorFinalizerName,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to delete realm: %w", err)
+		return false, fmt.Errorf("failed to delete realm: %w", err)
 	}
 
 	if deleted {
-		return nil
+		return true, nil
 	}
 
 	if err := r.chain.ServeRequest(ctx, realm, kClient); err != nil {
-		return fmt.Errorf("error during realm chain: %w", err)
+		return false, fmt.Errorf("error during realm chain: %w", err)
 	}
 
-	return nil
+	return false, nil
 }
