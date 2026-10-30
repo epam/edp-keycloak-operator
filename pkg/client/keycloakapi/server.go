@@ -3,9 +3,11 @@ package keycloakapi
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 type SystemInfo struct {
@@ -93,4 +95,21 @@ func (keycloakClient *KeycloakClient) FeatureFlagEnabled(ctx context.Context, fe
 	}
 
 	return false, nil
+}
+
+// ServerVersionAtLeast reports whether info.SystemInfo.ServerVersion is at least major.minor.
+// Only the leading "<major>.<minor>" is parsed; any suffix is ignored.
+// Returns an error when info is nil, or the version string is absent or does not start with "<major>.<minor>".
+func ServerVersionAtLeast(info *ServerInfo, major, minor int) (bool, error) {
+	if info == nil {
+		return false, errors.New("server info is nil")
+	}
+
+	var gotMajor, gotMinor int
+
+	if _, err := fmt.Sscanf(strings.TrimSpace(info.SystemInfo.ServerVersion), "%d.%d", &gotMajor, &gotMinor); err != nil {
+		return false, fmt.Errorf("parse server version %q: %w", info.SystemInfo.ServerVersion, err)
+	}
+
+	return gotMajor > major || (gotMajor == major && gotMinor >= minor), nil
 }

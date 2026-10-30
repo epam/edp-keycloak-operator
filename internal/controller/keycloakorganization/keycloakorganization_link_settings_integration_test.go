@@ -87,7 +87,7 @@ var _ = Describe("KeycloakOrganization link settings", Ordered, func() {
 		info, err := keycloakAdminClient.GetServerInfo(ctx)
 		Expect(err).ShouldNot(HaveOccurred())
 
-		supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+		supported, err := keycloakapi.ServerVersionAtLeast(info, 26, 8)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		if !supported {

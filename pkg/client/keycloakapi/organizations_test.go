@@ -312,7 +312,7 @@ func TestOrganizationsClient_DomainRoutingFields(t *testing.T) {
 	info, err := c.GetServerInfo(ctx)
 	require.NoError(t, err)
 
-	supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+	supported, err := keycloakapi.ServerVersionAtLeast(info, 26, 8)
 	require.NoError(t, err)
 
 	if !supported {
@@ -386,7 +386,7 @@ func TestOrganizationsClient_UpdateIdentityProviderLink(t *testing.T) {
 	info, err := c.GetServerInfo(ctx)
 	require.NoError(t, err)
 
-	supported, err := testutils.ServerVersionAtLeast(info, 26, 8)
+	supported, err := keycloakapi.ServerVersionAtLeast(info, 26, 8)
 	require.NoError(t, err)
 
 	if !supported {
