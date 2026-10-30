@@ -86,6 +86,10 @@ func ConfigureRealmEmail(ctx context.Context, p RealmEmailParams) (string, error
 		return "", fmt.Errorf("unable to get realm %v: %w", p.RealmName, err)
 	}
 
+	if current == nil {
+		return "", fmt.Errorf("unable to get realm %v: %w", p.RealmName, keycloakapi.ErrNilRealmRepresentation)
+	}
+
 	emailMap, passwordVersion, err := convertEmailSpecToMap(ctx, p.EmailSpec, p.SecretsNamespace, p.K8sClient)
 	if err != nil {
 		return "", err

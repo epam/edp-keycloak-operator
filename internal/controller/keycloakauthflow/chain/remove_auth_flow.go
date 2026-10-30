@@ -145,6 +145,10 @@ func (h *RemoveAuthFlow) unsetBrowserFlow(ctx context.Context, realmName, flowAl
 		return fmt.Errorf("failed to get realm: %w", err)
 	}
 
+	if realm == nil {
+		return fmt.Errorf("failed to get realm: %w", keycloakapi.ErrNilRealmRepresentation)
+	}
+
 	if realm.BrowserFlow == nil || *realm.BrowserFlow != flowAlias {
 		return nil
 	}

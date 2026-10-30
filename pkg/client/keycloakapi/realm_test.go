@@ -2,6 +2,7 @@ package keycloakapi_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"k8s.io/utils/ptr"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/fakehttp"
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
@@ -435,4 +437,48 @@ func TestRealmClient_PostRealmLocalization(t *testing.T) {
 	require.NotNil(t, resp)
 	require.NotNil(t, got)
 	assert.Equal(t, "customTestValue", got["customTestKey"])
+}
+
+func TestRealmClient_SetRealmBrowserFlow_NonJSONBody(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name  string
+		build func() *fakehttp.ServerBuilder
+	}{
+		{
+			name: "200 html body",
+			build: func() *fakehttp.ServerBuilder {
+				return fakehttp.NewServerBuilder().
+					AddKeycloakAuthResponders().
+					AddStringResponder("/admin/realms/test-realm", "<html>proxy</html>")
+			},
+		},
+		{
+			name: "204 empty",
+			build: func() *fakehttp.ServerBuilder {
+				return fakehttp.NewServerBuilder().
+					AddKeycloakAuthResponders().
+					AddStringResponderWithCode(http.StatusNoContent, "/admin/realms/test-realm", "")
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			server := tt.build().BuildAndStart()
+			t.Cleanup(server.Close)
+
+			ctx := context.Background()
+
+			kc, err := keycloakapi.NewKeycloakClient(ctx, server.GetURL(), "admin-cli", keycloakapi.WithClientSecret("secret"))
+			require.NoError(t, err)
+
+			resp, err := kc.Realms.SetRealmBrowserFlow(ctx, "test-realm", "browser")
+			require.ErrorIs(t, err, keycloakapi.ErrNilRealmRepresentation)
+			require.NotNil(t, resp)
+		})
+	}
 }

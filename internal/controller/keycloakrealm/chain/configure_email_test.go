@@ -357,6 +357,22 @@ func TestConfigureRealmEmail(t *testing.T) {
 			wantHash: resolvedHash,
 			wantErr:  require.NoError,
 		},
+		{
+			name:       "GetRealm returns no realm body — error, no write",
+			storedHash: resolvedHash,
+			forceWrite: false,
+			k8sClient:  newK8sClient(t, "password"),
+			realmClient: func(t *testing.T) keycloakapi.RealmClient {
+				m := v2mocks.NewMockRealmClient(t)
+				m.EXPECT().GetRealm(mock.Anything, "realm").Return(nil, nil, nil)
+
+				return m
+			},
+			wantHash: "",
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.ErrorIs(t, err, keycloakapi.ErrNilRealmRepresentation)
+			},
+		},
 	}
 
 	for _, tt := range tests {
