@@ -376,6 +376,14 @@ type KeycloakClientStatus struct {
 	// +optional
 	FailureCount int64 `json:"failureCount,omitempty"`
 
+	// ObservedGeneration is the generation last successfully reconciled to Keycloak.
+	// +optional
+	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
+
+	// ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.
+	// +optional
+	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
+
 	// Conditions represent the latest available observations of an object's state.
 	// +optional
 	// +nullable

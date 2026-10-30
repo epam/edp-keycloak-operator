@@ -33,6 +33,7 @@ import (
 )
 
 // Chain failure persists the incremented failureCount and returns a nil error with RequeueAfter from SetFailureCount.
+// observedGeneration stays unchanged; the success stamp is asserted by the idempotency integration suite (waitReady).
 func TestReconcile_ChainFailureRequeuesAfterBackoff(t *testing.T) {
 	t.Parallel()
 
@@ -42,12 +43,12 @@ func TestReconcile_ChainFailureRequeuesAfterBackoff(t *testing.T) {
 
 	key := client.ObjectKey{Namespace: "default", Name: "client"}
 	kc := &keycloakApi.KeycloakClient{
-		ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name},
+		ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name, Generation: 2},
 		Spec: keycloakApi.KeycloakClientSpec{
 			ClientId: "client",
 			Secret:   secretref.GenerateSecretRef("missing-secret", "key"),
 		},
-		Status: keycloakApi.KeycloakClientStatus{FailureCount: 2},
+		Status: keycloakApi.KeycloakClientStatus{FailureCount: 2, ObservedGeneration: 1},
 	}
 	cl := fake.NewClientBuilder().
 		WithScheme(scheme).
@@ -81,6 +82,7 @@ func TestReconcile_ChainFailureRequeuesAfterBackoff(t *testing.T) {
 	require.NoError(t, cl.Get(ctx, key, got))
 	assert.Equal(t, int64(3), got.Status.FailureCount)
 	assert.Contains(t, got.Status.Value, "missing-secret")
+	assert.Equal(t, int64(1), got.Status.ObservedGeneration, "a failed chain must not advance observedGeneration")
 
 	ready := meta.FindStatusCondition(got.Status.Conditions, chain.ConditionReady)
 	require.NotNil(t, ready)

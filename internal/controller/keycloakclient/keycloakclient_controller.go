@@ -201,6 +201,8 @@ func (r *ReconcileKeycloakClient) handleReconciliation(ctx context.Context, inst
 		ObservedGeneration: instance.Generation,
 	})
 
+	instance.Status.ObservedGeneration = instance.Generation
+
 	helper.SetSuccessStatus(instance)
 
 	if err := r.client.Status().Update(ctx, instance); err != nil {
