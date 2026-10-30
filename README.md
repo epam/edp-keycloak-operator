@@ -149,6 +149,20 @@ To avoid resources getting stuck during deletion, it is important to delete them
 2. **Then**, remove `KeycloakRealm`/`ClusterKeycloakRealm`.
 3. **Finally**, remove `Keycloak`/`ClusterKeycloak`.
 
+#### Known limits
+
+- **`Keycloak`**: the operator does not watch the credential Secret. A connected `Keycloak` is checked again only on a change of the resource, an operator restart or the cache resync (about 10 hours). `status.connected` can stay `true` after a Secret change. To check at once, change an annotation of the resource. `ClusterKeycloak` is checked every 30 minutes.
+- **`KeycloakClient`**: `spec.enabled` is always managed. Omitted means `true`. A client that you disable in Keycloak is enabled again on the next reconcile. To keep the client disabled, set `enabled: false`. With an empty `successReconcileTimeout` (chart default), the next reconcile comes after a change of the resource, an operator restart or the cache resync.
+- **`KeycloakClient`, `KeycloakRealmIdentityProvider`**: the resource is the source of truth for the boolean flags that the operator sends. An omitted flag, such as `public`, `bearerOnly` or `trustEmail`, is written as `false`. `standardFlowEnabled` and `fullScopeAllowed` of `KeycloakClient` default to `true`. Adopting an existing client or identity provider overwrites its flags. A flag changed in the Keycloak UI is overwritten on the next reconcile. Copy the Keycloak values into the resource before adoption and after a change in the Keycloak UI.
+- **`KeycloakClient`**: when webhooks are enabled (chart default), the defaulting webhook stores `webOrigins: [<webUrl>]` in a resource with `webUrl` and without `webOrigins`. A later change of `webUrl` does not change the stored `webOrigins`. After you change `webUrl`, set `webOrigins` to the new value.
+- **`KeycloakClient`**: realm roles that the deprecated `spec.realmRoles` created stay in Keycloak after you delete the resource. To manage such a role, create a `KeycloakRealmRole` with the same name.
+- **`KeycloakOrganization`** (Keycloak 26.8): only one organization can hold `membershipType: MANAGED` for an identity provider. In a second organization with `MANAGED`, the link stays `UNMANAGED`. Its reconcile fails before the domain settings. The status shows the Keycloak message.
+- **`KeycloakRealmComponent`**: removing a key from `spec.config` does not remove it in Keycloak. For some providers, such as `rsa-generated`, set the key to `[]`, wait for the reconcile, then remove it from the spec.
+- **`KeycloakRealmComponent`**: some providers, such as `rsa-generated`, drop `spec.config` keys that they do not declare. The operator then updates such a component on each reconcile, every 10 minutes. Remove such keys from the spec.
+- **`KeycloakRealmGroup`**: `spec.clientRoles` is managed also when you omit it. The operator removes the client role mappings of each client that `clientRoles` does not list, also mappings added in Keycloak. To keep the mappings of a client, list the client without `roles`.
+- **`KeycloakRealmUser`**: a user disabled in Keycloak, also by permanent lockout, is enabled again when `spec.enabled` is `true`. Keycloak then clears its login failures.
+- **Metrics (Helm chart)**: the operator serves `/metrics` on port 8443 with authentication and authorization. The endpoint uses a self-signed certificate. The chart does not grant the operator `tokenreviews` and `subjectaccessreviews`, and creates no metrics Service. A scrape fails. To scrape, bind the rules of [config/rbac/metrics_auth_role.yaml](config/rbac/metrics_auth_role.yaml) to the operator service account, and bind [config/rbac/metrics_reader_role.yaml](config/rbac/metrics_reader_role.yaml) to the scraper.
+
 ## Security
 
 Secret references, who may author which resources, and the destination allowlist: [docs/security.md](docs/security.md).
