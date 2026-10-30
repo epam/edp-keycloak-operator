@@ -177,15 +177,15 @@ func TestReconcile_PreChainErrorWritesStatus(t *testing.T) {
 			wantWrites:  1,
 		},
 		{
-			name: "try to delete error",
+			name: "finalizer add error",
 			setup: func(h *helpermock.MockControllerHelper) {
 				h.EXPECT().SetKeycloakOwnerRef(mock.Anything, mock.Anything).Return(nil)
 				h.EXPECT().CreateKeycloakClientFromClusterRealm(mock.Anything, mock.Anything).
 					Return(&keycloakapi.KeycloakClient{}, nil)
 				h.EXPECT().TryToDelete(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					Return(false, errors.New("finalizer patch failed"))
+					Return(false, errors.New("failed to add finalizer: patch refused"))
 			},
-			wantValue:   "failed to delete realm: finalizer patch failed",
+			wantValue:   "failed to add finalizer: patch refused",
 			wantRequeue: backoff,
 			wantWrites:  1,
 		},
@@ -196,10 +196,10 @@ func TestReconcile_PreChainErrorWritesStatus(t *testing.T) {
 				h.EXPECT().CreateKeycloakClientFromClusterRealm(mock.Anything, mock.Anything).
 					Return(&keycloakapi.KeycloakClient{}, nil)
 				h.EXPECT().TryToDelete(mock.Anything, mock.Anything, mock.Anything, mock.Anything).
-					Return(false, errors.New("realm delete failed"))
+					Return(false, errors.New("error during keycloak resource deletion: realm delete failed"))
 			},
 			deleting:    true,
-			wantValue:   "failed to delete realm: realm delete failed",
+			wantValue:   "error during keycloak resource deletion: realm delete failed",
 			wantRequeue: backoff,
 			wantWrites:  1,
 		},

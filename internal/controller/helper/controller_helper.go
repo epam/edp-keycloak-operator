@@ -284,7 +284,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 			logger.Info("Adding finalizer to instance")
 
 			if err := PatchObject(ctx, h.client, original, obj); err != nil {
-				return false, fmt.Errorf("unable to update deletable object: %w", err)
+				return false, fmt.Errorf("failed to add finalizer: %w", err)
 			}
 		}
 
@@ -304,7 +304,7 @@ func (h *Helper) TryToDelete(ctx context.Context, obj client.Object, terminator 
 	original := deepCopyObject(obj)
 	if controllerutil.RemoveFinalizer(obj, finalizer) {
 		if err := PatchObject(ctx, h.client, original, obj); err != nil {
-			return false, fmt.Errorf("unable to update instance: %w", err)
+			return false, fmt.Errorf("failed to remove finalizer: %w", err)
 		}
 	}
 

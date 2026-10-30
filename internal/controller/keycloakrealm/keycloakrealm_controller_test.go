@@ -129,7 +129,7 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 			},
 			wantRequeue:     backoff,
 			wantWrites:      1,
-			wantValue:       "failed to delete realm: delete failed",
+			wantValue:       "delete failed",
 			wantObservedGen: 1,
 		},
 		{
@@ -150,8 +150,24 @@ func TestReconcileKeycloakRealm_Reconcile(t *testing.T) {
 			},
 			wantRequeue:     backoff,
 			wantWrites:      1,
-			wantValue:       "failed to delete realm: finalizer patch failed",
+			wantValue:       "finalizer patch failed",
 			wantObservedGen: 1,
+		},
+		{
+			name:       "live, finalizer add fails, error status written",
+			finalizers: []string{keyCloakRealmOperatorFinalizerName},
+			generation: 3,
+			status:     keycloakApi.KeycloakRealmStatus{Available: true, Value: common.StatusOK, ObservedGeneration: 3},
+			setup: func(_ *testing.T, h *helpermock.MockControllerHelper, _ *handlermocks.MockRealmHandler, _ client.Client) {
+				expectClient(h)
+				h.EXPECT().TryToDelete(mock.Anything, mock.Anything, mock.Anything, keyCloakRealmOperatorFinalizerName).
+					Return(false, errors.New("failed to add finalizer: patch refused"))
+				expectBackoff(h)
+			},
+			wantRequeue:     backoff,
+			wantWrites:      1,
+			wantValue:       "failed to add finalizer: patch refused",
+			wantObservedGen: 3,
 		},
 		{
 			name:       "keycloak unavailable, requeue without status write",
