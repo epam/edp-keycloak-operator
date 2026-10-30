@@ -18,6 +18,8 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	k8sCLient "sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
+	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
 	"github.com/go-logr/logr"
@@ -350,4 +352,51 @@ func TestReconcileKeycloakRealmRoleBatch_DeletingRealmGoneWithOwnerRefEnabled(t 
 
 	require.NoError(t, client.List(ctx, &roles))
 	assert.Empty(t, roles.Items, "child roles are not deleted")
+}
+
+func TestReconcileKeycloakRealmRoleBatch_FinalizerAddRefused(t *testing.T) {
+	scheme := runtime.NewScheme()
+	utilruntime.Must(keycloakApi.AddToScheme(scheme))
+
+	ns := "ns-fin"
+	batch := keycloakApi.KeycloakRealmRoleBatch{
+		ObjectMeta: metav1.ObjectMeta{Name: "batch1", Namespace: ns},
+		Spec: keycloakApi.KeycloakRealmRoleBatchSpec{
+			Roles: []keycloakApi.BatchRole{{Name: "role1"}},
+		},
+	}
+
+	forbidden := k8sErrors.NewForbidden(
+		keycloakApi.GroupVersion.WithResource("keycloakrealmrolebatches").GroupResource(), batch.Name, fmt.Errorf("patch denied"))
+
+	cl := fake.NewClientBuilder().WithScheme(scheme).
+		WithRuntimeObjects(&batch).
+		WithStatusSubresource(&batch).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Patch: func(ctx context.Context, c k8sCLient.WithWatch, obj k8sCLient.Object, patch k8sCLient.Patch, opts ...k8sCLient.PatchOption) error {
+				if b, ok := obj.(*keycloakApi.KeycloakRealmRoleBatch); ok &&
+					controllerutil.ContainsFinalizer(b, keyCloakRealmRoleBatchOperatorFinalizerName) {
+					return forbidden
+				}
+
+				return c.Patch(ctx, obj, patch, opts...)
+			},
+		}).
+		Build()
+
+	controllerHelper, err := helper.MakeHelper(cl, scheme, "default", destination.AllowAll())
+	require.NoError(t, err)
+
+	rkr := ReconcileKeycloakRealmRoleBatch{client: cl, helper: controllerHelper}
+	key := types.NamespacedName{Name: batch.Name, Namespace: ns}
+
+	_, err = rkr.Reconcile(ctrl.LoggerInto(context.Background(), newTestLogr()), reconcile.Request{NamespacedName: key})
+	require.NoError(t, err)
+
+	var got keycloakApi.KeycloakRealmRoleBatch
+
+	require.NoError(t, cl.Get(context.Background(), key, &got))
+
+	assert.Equal(t, "failed to add finalizer: unable to patch object: "+forbidden.Error(), got.Status.Value)
+	assert.False(t, controllerutil.ContainsFinalizer(&got, keyCloakRealmRoleBatchOperatorFinalizerName))
 }

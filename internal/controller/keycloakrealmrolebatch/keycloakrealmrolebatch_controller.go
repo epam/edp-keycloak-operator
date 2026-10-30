@@ -210,14 +210,12 @@ func (r *ReconcileKeycloakRealmRoleBatch) tryReconcile(ctx context.Context, batc
 		return fmt.Errorf("unable to delete roles: %w", err)
 	}
 
-	if _, err := r.helper.TryToDelete(
+	_, err = r.helper.TryToDelete(
 		ctx,
 		batch,
 		makeTerminator(r.client, createdRoles, objectmeta.PreserveResourcesOnDeletion(batch)),
 		keyCloakRealmRoleBatchOperatorFinalizerName,
-	); err != nil {
-		return fmt.Errorf("unable to delete keycloak realm role batch: %w", err)
-	}
+	)
 
-	return nil
+	return err
 }
