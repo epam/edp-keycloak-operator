@@ -36,7 +36,6 @@ var _ = Describe("KeycloakClient authz idempotent reconcile", Ordered, func() {
 		policyName     = "authz-policy"
 		permissionName = "authz-permission"
 		permissionDesc = "authz permission v1"
-		settle         = testutils.Settle
 		longWait       = testutils.LongWait
 	)
 
@@ -221,15 +220,17 @@ var _ = Describe("KeycloakClient authz idempotent reconcile", Ordered, func() {
 		permissionsBefore := idsByName(permissions())
 		policiesBefore := idsByName(policies())
 
-		events, err := recorder.WritesDuring(ctx, settle, nudge)
+		// Clearing observedGeneration returns after the reconcile has finished. The policy and
+		// permission handlers write on every reconcile, so this UPDATE proves the reconcile reached
+		// Keycloak and the assertions below are not vacuous.
+		events, err := recorder.WritesDuring(ctx, 0, func() {
+			Expect(testutils.ClearObservedGeneration(ctx, k8sClient,
+				types.NamespacedName{Name: crName, Namespace: ns}, &keycloakApi.KeycloakClient{})).To(Succeed())
+		})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		// Nudge returns before the reconcile lands and WritesDuring only sleeps, so an empty
-		// window means either "no writes" or "nothing ran". The policy and permission handlers
-		// write on every reconcile, so this UPDATE proves the reconcile reached Keycloak inside
-		// the settle window and the assertions below are not vacuous.
-		Expect(eventsMatching(events, "", "UPDATE")).ShouldNot(BeEmpty(),
-			"no UPDATE recorded for a forced reconcile: the reconcile did not reach Keycloak within %s", settle)
+		Expect(eventsMatching(events, "/authz/", "UPDATE")).ShouldNot(BeEmpty(),
+			"no authorization UPDATE recorded for a forced reconcile")
 
 		Expect(idsByName(permissions())).To(Equal(permissionsBefore),
 			"permissions must be updated in place, not deleted and recreated")

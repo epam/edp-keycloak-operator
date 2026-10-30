@@ -70,6 +70,12 @@ var _ = Describe("KeycloakClient scope mappings", Ordered, func() {
 		Expect(testutils.Nudge(ctx, k8sClient, key, &keycloakApi.KeycloakClient{})).To(Succeed())
 	}
 
+	// A converged client emits no client UPDATE on a plain nudge. Clearing observedGeneration
+	// forces the client PUT and returns after the reconcile has finished.
+	forceReconcile := func() {
+		Expect(testutils.ClearObservedGeneration(ctx, k8sClient, key, &keycloakApi.KeycloakClient{})).To(Succeed())
+	}
+
 	names := func(roles []keycloakapi.RoleRepresentation) []string {
 		out := make([]string, 0, len(roles))
 		for _, r := range roles {
@@ -186,7 +192,7 @@ var _ = Describe("KeycloakClient scope mappings", Ordered, func() {
 	})
 
 	It("Should not write on a settled reconcile", func() {
-		events, err := recorder.WritesDuring(ctx, settle, nudge)
+		events, err := recorder.WritesDuring(ctx, 0, forceReconcile)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(clientUpdates(events)).To(BeNumerically(">", 0),
@@ -201,11 +207,12 @@ var _ = Describe("KeycloakClient scope mappings", Ordered, func() {
 		mappable, err := keycloakapi.RequireRealmRoleWithID(role, KeycloakRealmCR, "offline_access")
 		Expect(err).ShouldNot(HaveOccurred())
 
-		_, err = keycloakAdmin.Clients.AddRealmScopeMappings(ctx, KeycloakRealmCR, clientUUID,
-			[]keycloakapi.RoleRepresentation{mappable})
-		Expect(err).ShouldNot(HaveOccurred())
-
 		events, err := recorder.WritesDuring(ctx, 0, func() {
+			// Inside the window: quiesce clears events written before it.
+			_, addErr := keycloakAdmin.Clients.AddRealmScopeMappings(ctx, KeycloakRealmCR, clientUUID,
+				[]keycloakapi.RoleRepresentation{mappable})
+			Expect(addErr).ShouldNot(HaveOccurred())
+
 			nudge()
 
 			Eventually(func(g Gomega) {
@@ -234,7 +241,7 @@ var _ = Describe("KeycloakClient scope mappings", Ordered, func() {
 		patchSpec(func(spec *keycloakApi.KeycloakClientSpec) { spec.ScopeMappings = nil })
 
 		// The reconcile triggered by the patch must finish before the manual mapping exists.
-		_, err := recorder.WritesDuring(ctx, settle, nudge)
+		_, err := recorder.WritesDuring(ctx, 0, forceReconcile)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		role, _, err := keycloakAdmin.Roles.GetRealmRole(ctx, KeycloakRealmCR, "offline_access")
@@ -247,7 +254,7 @@ var _ = Describe("KeycloakClient scope mappings", Ordered, func() {
 			[]keycloakapi.RoleRepresentation{mappable})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		events, err := recorder.WritesDuring(ctx, settle, nudge)
+		events, err := recorder.WritesDuring(ctx, 0, forceReconcile)
 		Expect(err).ShouldNot(HaveOccurred())
 
 		Expect(clientUpdates(events)).To(BeNumerically(">", 0),

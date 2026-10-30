@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"sync"
 	"testing"
 
@@ -1461,4 +1462,596 @@ func TestPutClient_Serve_BlankClientIDCreatesWithoutLookup(t *testing.T) {
 
 	require.Equal(t, []string{"POST /admin/realms/" + testRealmName + "/clients"}, requests)
 	require.Equal(t, "created-uuid", clientCtx.ClientUUID)
+}
+
+const testSecretVersion = "secret:s:k@uid@1"
+
+func idempotencyCR() *keycloakApi.KeycloakClient {
+	return &keycloakApi.KeycloakClient{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:       testClientName,
+			Namespace:  testClientNamespace,
+			Generation: 2,
+		},
+		Spec: keycloakApi.KeycloakClientSpec{
+			ClientId:            testClientID,
+			Secret:              secretref.GenerateSecretRef("s", "k"),
+			WebUrl:              "https://example.com",
+			Enabled:             true,
+			StandardFlowEnabled: true,
+			Attributes:          map[string]string{"a": "b"},
+			RedirectUris:        ptr.To([]string{"https://example.com/b", "https://example.com/a"}),
+		},
+		Status: keycloakApi.KeycloakClientStatus{
+			ObservedGeneration: 2,
+			ConfigSecretsHash:  clientSecretsHash(testSecretVersion),
+		},
+	}
+}
+
+// existingFor returns the representation Keycloak would return for the CR: the PUT body plus Id.
+func existingFor(t *testing.T, cr *keycloakApi.KeycloakClient) *keycloakapi.ClientRepresentation {
+	t.Helper()
+
+	rep := deepCopyClientRepresentation(t, convertSpecToClientRepresentation(&cr.Spec, "val", nil))
+	rep.Id = ptr.To("123")
+
+	return &rep
+}
+
+// deepCopyClientRepresentation returns a copy that shares no pointer, map or slice with rep.
+func deepCopyClientRepresentation(t *testing.T, rep keycloakapi.ClientRepresentation) keycloakapi.ClientRepresentation {
+	t.Helper()
+
+	raw, err := json.Marshal(rep)
+	require.NoError(t, err)
+
+	var out keycloakapi.ClientRepresentation
+
+	require.NoError(t, json.Unmarshal(raw, &out))
+
+	return out
+}
+
+// serveExisting runs PutClient against an existing client and reports whether UpdateClient was called.
+func serveExisting(
+	t *testing.T,
+	cr *keycloakApi.KeycloakClient,
+	existing *keycloakapi.ClientRepresentation,
+	wantUpdate bool,
+	updateErr error,
+) (*keycloakApi.KeycloakClient, error) {
+	t.Helper()
+
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+		WithObjects(cr.DeepCopy()).
+		Build()
+
+	refMock := mocks.NewMockRefClient(t)
+	if !cr.Spec.Public {
+		refMock.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
+			Return("val", testSecretVersion, nil)
+	}
+
+	clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+	clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
+		Return(existing, (*keycloakapi.Response)(nil), nil).
+		Once()
+
+	if wantUpdate {
+		clientsMock.On("UpdateClient", testifymock.Anything, "realm", "123", testifymock.Anything).
+			Return((*keycloakapi.Response)(nil), updateErr).
+			Once()
+	}
+
+	kc := &keycloakapi.KeycloakClient{Clients: clientsMock}
+
+	if cr.Spec.AuthenticationFlowBindingOverrides != nil {
+		realmsMock := keycloakapiMocks.NewMockRealmClient(t)
+		realmsMock.On("GetAuthenticationFlows", testifymock.Anything, "realm").
+			Return([]keycloakapi.AuthenticationFlowRepresentation{
+				{Alias: ptr.To("flow"), Id: ptr.To("flow-id")},
+			}, (*keycloakapi.Response)(nil), nil)
+
+		kc.Realms = realmsMock
+	}
+
+	err := NewPutClient(kc, k8sClient, refMock).
+		Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), cr, "realm", &ClientContext{})
+
+	return cr, err
+}
+
+func TestPutClient_Serve_SkipsUpdateWhenConverged(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		mutateCR func(cr *keycloakApi.KeycloakClient)
+		existing func(rep *keycloakapi.ClientRepresentation)
+		wantHash string
+	}{
+		{
+			name:     "confidential, spec-built representation",
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "confidential, GET-shaped representation",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Protocol = ptr.To("openid-connect")
+				rep.Attributes = ptr.To(map[string]string{
+					"a":                           "b",
+					"realm_client":                "false",
+					"client.secret.creation.time": "1700000000",
+					"post.logout.redirect.uris":   "+",
+				})
+				rep.Access = ptr.To(map[string]bool{"view": true})
+				rep.DefaultClientScopes = ptr.To([]string{"profile"})
+				rep.OptionalClientScopes = ptr.To([]string{"phone"})
+				rep.NodeReRegistrationTimeout = ptr.To(int32(-1))
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "public",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Public = true
+				cr.Spec.Secret = ""
+				cr.Status.ConfigSecretsHash = ""
+			},
+			wantHash: "",
+		},
+		{
+			name: "fetched secret masked",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Secret = ptr.To(keycloakapi.MaskedSecretValue)
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "masked fetched attribute",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Attributes["secret.attr"] = "desired"
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": "b", "secret.attr": keycloakapi.MaskedSecretValue})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "non-breaking space entry kept by Keycloak",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.RedirectUris = ptr.To([]string{"\u00a0", "https://a/*"})
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.RedirectUris = ptr.To([]string{"\u00a0", "https://a/*"})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "uri order and duplicates",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.RedirectUris = ptr.To([]string{"https://example.com/a", "https://example.com/b", "https://example.com/a"})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "extra fetched attribute",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": "b", "extra": "x"})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "blank desired attribute absent in fetched",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Attributes["blank"] = " "
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": "b"})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "realm_client equal to computed value",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Attributes["realm_client"] = "false"
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": "b", "realm_client": "false"})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "protocol nil in body",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Protocol = ptr.To("openid-connect")
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "public with authorizationServicesEnabled",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Public = true
+				cr.Spec.Secret = ""
+				cr.Status.ConfigSecretsHash = ""
+				cr.Spec.AuthorizationServicesEnabled = true
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.AuthorizationServicesEnabled = ptr.To(false)
+			},
+			wantHash: "",
+		},
+		{
+			name: "bearer-only with authorizationServicesEnabled",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.BearerOnly = true
+				cr.Spec.AuthorizationServicesEnabled = true
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.AuthorizationServicesEnabled = ptr.To(false)
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+		{
+			name: "blank uri and origin entries",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.RedirectUris = ptr.To([]string{"", "https://a/*"})
+				cr.Spec.WebOrigins = ptr.To([]string{""})
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.RedirectUris = ptr.To([]string{"https://a/*"})
+				rep.WebOrigins = ptr.To([]string{})
+			},
+			wantHash: clientSecretsHash(testSecretVersion),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cr := idempotencyCR()
+			if tt.mutateCR != nil {
+				tt.mutateCR(cr)
+			}
+
+			existing := existingFor(t, cr)
+			if tt.existing != nil {
+				tt.existing(existing)
+			}
+
+			got, err := serveExisting(t, cr, existing, false, nil)
+			require.NoError(t, err)
+			require.Equal(t, tt.wantHash, got.Status.ConfigSecretsHash)
+		})
+	}
+}
+
+func TestPutClient_Serve_UpdatesWhenNeeded(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		mutateCR func(cr *keycloakApi.KeycloakClient)
+		existing func(rep *keycloakapi.ClientRepresentation)
+	}{
+		{
+			name: "generation differs from observed",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Status.ObservedGeneration = 1
+			},
+		},
+		{
+			name: "hash differs only",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Status.ConfigSecretsHash = "stale"
+			},
+		},
+		{
+			name: "description drift",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Description = ptr.To("drift")
+			},
+		},
+		{
+			name: "enabled drift",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Enabled = ptr.To(false)
+			},
+		},
+		{
+			name: "authorizationServicesEnabled false in Keycloak",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.AuthorizationServicesEnabled = true
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.AuthorizationServicesEnabled = ptr.To(false)
+			},
+		},
+		{
+			name: "clear secret differs",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Secret = ptr.To("other")
+			},
+		},
+		{
+			name: "uri set differs",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.RedirectUris = ptr.To([]string{"https://example.com/a"})
+			},
+		},
+		{
+			name: "webOrigins differ",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.WebOrigins = ptr.To([]string{"https://example.com"})
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.WebOrigins = ptr.To([]string{"https://other.example.com"})
+			},
+		},
+		{
+			name: "explicit empty redirectUris against populated client",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.RedirectUris = ptr.To([]string{})
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.RedirectUris = ptr.To([]string{"https://example.com/a"})
+			},
+		},
+		{
+			name: "explicit empty webOrigins against populated client",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.WebOrigins = ptr.To([]string{})
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.WebOrigins = ptr.To([]string{"https://example.com"})
+			},
+		},
+		{
+			name: "masked attribute does not hide other drift",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": keycloakapi.MaskedSecretValue, "b": "x"})
+			},
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.Attributes["b"] = "y"
+			},
+		},
+		{
+			name: "attribute value differs",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = ptr.To(map[string]string{"a": "changed"})
+			},
+		},
+		{
+			name: "attribute missing",
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.Attributes = nil
+			},
+		},
+		{
+			name: "flow override differs",
+			mutateCR: func(cr *keycloakApi.KeycloakClient) {
+				cr.Spec.AuthenticationFlowBindingOverrides = &keycloakApi.AuthenticationFlowBindingOverrides{Browser: "flow"}
+			},
+			existing: func(rep *keycloakapi.ClientRepresentation) {
+				rep.AuthenticationFlowBindingOverrides = ptr.To(map[string]string{"browser": "other-id"})
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			cr := idempotencyCR()
+			if tt.mutateCR != nil {
+				tt.mutateCR(cr)
+			}
+
+			flows := map[string]string(nil)
+			if cr.Spec.AuthenticationFlowBindingOverrides != nil {
+				flows = map[string]string{browserAuthFlow: "flow-id"}
+			}
+
+			rep := deepCopyClientRepresentation(t, convertSpecToClientRepresentation(&cr.Spec, "val", flows))
+			rep.Id = ptr.To("123")
+
+			existing := &rep
+			if cr.Spec.AuthenticationFlowBindingOverrides != nil {
+				existing.AuthenticationFlowBindingOverrides = ptr.To(map[string]string{browserAuthFlow: "flow-id"})
+			}
+
+			if tt.existing != nil {
+				tt.existing(existing)
+			}
+
+			_, err := serveExisting(t, cr, existing, true, nil)
+			require.NoError(t, err)
+		})
+	}
+}
+
+func TestPutClient_Serve_UpdateErrorKeepsHash(t *testing.T) {
+	t.Parallel()
+
+	cr := idempotencyCR()
+	cr.Status.ObservedGeneration = 1
+	cr.Status.ConfigSecretsHash = "old"
+
+	_, err := serveExisting(t, cr, existingFor(t, cr), true, errors.New("update failed"))
+	require.Error(t, err)
+	require.Equal(t, "old", cr.Status.ConfigSecretsHash)
+}
+
+func TestPutClient_Serve_StampsHashOnCreate(t *testing.T) {
+	t.Parallel()
+
+	newClients := func(t *testing.T) *keycloakapiMocks.MockClientsClient {
+		clientsMock := keycloakapiMocks.NewMockClientsClient(t)
+		clientsMock.On("GetClientByClientID", testifymock.Anything, "realm", testClientID).
+			Return((*keycloakapi.ClientRepresentation)(nil), (*keycloakapi.Response)(nil), keycloakapi.ErrNotFound).
+			Once()
+		clientsMock.On("CreateClient", testifymock.Anything, "realm", testifymock.Anything).
+			Return(&keycloakapi.Response{
+				HTTPResponse: &http.Response{
+					Header: http.Header{"Location": []string{"http://host/admin/realms/realm/clients/123"}},
+				},
+			}, nil)
+
+		return clientsMock
+	}
+
+	newK8s := func(t *testing.T, cr *keycloakApi.KeycloakClient) client.Client {
+		s := runtime.NewScheme()
+		require.NoError(t, keycloakApi.AddToScheme(s))
+		require.NoError(t, corev1.AddToScheme(s))
+
+		return fake.NewClientBuilder().
+			WithScheme(s).
+			WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+			WithObjects(cr.DeepCopy()).
+			Build()
+	}
+
+	t.Run("create path", func(t *testing.T) {
+		t.Parallel()
+
+		cr := idempotencyCR()
+		cr.Status = keycloakApi.KeycloakClientStatus{}
+
+		refMock := mocks.NewMockRefClient(t)
+		refMock.On("GetSecretFromRef", testifymock.Anything, testifymock.Anything, testClientNamespace).
+			Return("val", testSecretVersion, nil)
+
+		err := NewPutClient(&keycloakapi.KeycloakClient{Clients: newClients(t)}, newK8s(t, cr), refMock).
+			Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), cr, "realm", &ClientContext{})
+		require.NoError(t, err)
+		require.Equal(t, clientSecretsHash(testSecretVersion), cr.Status.ConfigSecretsHash)
+		require.NotEmpty(t, cr.Status.ConfigSecretsHash)
+	})
+
+	t.Run("generated secret", func(t *testing.T) {
+		t.Parallel()
+
+		cr := idempotencyCR()
+		cr.Spec.Secret = ""
+		cr.Status = keycloakApi.KeycloakClientStatus{}
+
+		k8sClient := newK8s(t, cr)
+		require.NoError(t, k8sClient.Get(context.Background(), client.ObjectKeyFromObject(cr), cr))
+
+		err := NewPutClient(&keycloakapi.KeycloakClient{Clients: newClients(t)}, k8sClient, mocks.NewMockRefClient(t)).
+			Serve(ctrl.LoggerInto(context.Background(), logr.Discard()), cr, "realm", &ClientContext{})
+		require.NoError(t, err)
+
+		var created corev1.Secret
+
+		require.NoError(t, k8sClient.Get(context.Background(),
+			client.ObjectKey{Namespace: testClientNamespace, Name: "keycloak-client-" + testClientName + "-secret"}, &created))
+
+		want := secretref.ValuesHashSingle(map[string]string{
+			"spec.secret": secretref.SecretKeyVersion(&created, keycloakApi.ClientSecretKey),
+		})
+		require.Equal(t, want, cr.Status.ConfigSecretsHash)
+		require.NotEmpty(t, cr.Status.ConfigSecretsHash)
+	})
+}
+
+// Every non-nil field of the PUT body must be compared by clientMatchesSpec.
+func TestClientMatchesSpec_CoversEveryBodyField(t *testing.T) {
+	t.Parallel()
+
+	spec := keycloakApi.KeycloakClientSpec{
+		ClientId:                     "cid",
+		Secret:                       "ignored",
+		Name:                         "name",
+		Description:                  "description",
+		Enabled:                      true,
+		DirectAccess:                 true,
+		StandardFlowEnabled:          true,
+		ImplicitFlowEnabled:          true,
+		AuthorizationServicesEnabled: true,
+		ConsentRequired:              true,
+		FullScopeAllowed:             true,
+		SurrogateAuthRequired:        true,
+		FrontChannelLogout:           true,
+		ServiceAccount:               &keycloakApi.ServiceAccount{Enabled: true},
+		ClientAuthenticatorType:      "client-secret",
+		Protocol:                     ptr.To("openid-connect"),
+		WebUrl:                       "https://example.com",
+		HomeUrl:                      "https://example.com/home",
+		AdminUrl:                     "https://example.com/admin",
+		Attributes:                   map[string]string{"a": "b"},
+		RedirectUris:                 ptr.To([]string{"https://example.com/*"}),
+		WebOrigins:                   ptr.To([]string{"https://example.com"}),
+	}
+
+	flows := map[string]string{browserAuthFlow: "flow-id"}
+
+	build := func() keycloakapi.ClientRepresentation {
+		return convertSpecToClientRepresentation(&spec, "val", flows)
+	}
+
+	body := build()
+	baseline := deepCopyClientRepresentation(t, body)
+	require.True(t, clientMatchesSpec(&baseline, &body))
+
+	bodyType := reflect.TypeOf(body)
+	checked := 0
+
+	for i := 0; i < bodyType.NumField(); i++ {
+		if reflect.ValueOf(body).Field(i).IsNil() {
+			continue
+		}
+
+		checked++
+
+		field := bodyType.Field(i)
+
+		t.Run(field.Name, func(t *testing.T) {
+			t.Parallel()
+
+			fetched := deepCopyClientRepresentation(t, build())
+			perturbField(t, reflect.ValueOf(&fetched).Elem().Field(i))
+
+			desired := build()
+			require.False(t, clientMatchesSpec(&fetched, &desired), "field %s is not compared", field.Name)
+		})
+	}
+
+	require.GreaterOrEqual(t, checked, 20)
+}
+
+func perturbField(t *testing.T, f reflect.Value) {
+	t.Helper()
+
+	next := reflect.New(f.Type().Elem())
+
+	switch e := f.Elem(); e.Kind() {
+	case reflect.String:
+		next.Elem().SetString(e.String() + "-perturbed")
+	case reflect.Bool:
+		next.Elem().SetBool(!e.Bool())
+	case reflect.Map:
+		m := reflect.MakeMap(e.Type())
+
+		for _, k := range e.MapKeys() {
+			m.SetMapIndex(k, reflect.ValueOf(e.MapIndex(k).String()+"-perturbed"))
+		}
+
+		next.Elem().Set(m)
+	case reflect.Slice:
+		next.Elem().Set(reflect.ValueOf([]string{"perturbed"}))
+	default:
+		t.Fatalf("unsupported field kind %s: extend perturbField", e.Kind())
+	}
+
+	f.Set(next)
 }
