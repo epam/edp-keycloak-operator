@@ -230,7 +230,7 @@ var _ = Describe("KeycloakOrganization domainsV2", Ordered, func() {
 			Eventually(func(g Gomega) {
 				cr := &v1alpha1.KeycloakOrganization{}
 				g.Expect(k8sClient.Get(ctx, key, cr)).To(Succeed())
-				cr.Spec.IdentityProviders = []v1alpha1.OrgIdentityProvider{{Alias: idpAlias}}
+				cr.Spec.IdentityProviders = ptr.To([]v1alpha1.OrgIdentityProvider{{Alias: idpAlias}})
 				cr.Spec.DomainsV2 = []v1alpha1.OrgDomain{{
 					Name:                  domain,
 					Verified:              ptr.To(true),

@@ -52,9 +52,12 @@ type KeycloakOrganizationSpec struct {
 
 	// IdentityProviders is a list of identity providers associated with the organization.
 	// Before Keycloak 26.8 an identity provider belongs to one organization only; from 26.8 it can belong to several.
+	// Omit the field to leave the organization's identity provider links unmanaged; set it to an empty list to
+	// unlink every identity provider.
+	// A list links exactly the listed identity providers and unlinks the rest.
 	// +optional
 	// +nullable
-	IdentityProviders []OrgIdentityProvider `json:"identityProviders,omitempty"`
+	IdentityProviders *[]OrgIdentityProvider `json:"identityProviders,omitempty"`
 
 	// RealmRef is reference to Realm custom resource.
 	// +required

@@ -25,9 +25,9 @@ var _ = Describe("KeycloakOrganization link settings admission", func() {
 				Alias:     "linkset-invalid",
 				DomainsV2: orgDomains("linkset-invalid.example.test"),
 				RealmRef:  common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
-				IdentityProviders: []v1alpha1.OrgIdentityProvider{
+				IdentityProviders: ptr.To([]v1alpha1.OrgIdentityProvider{
 					{Alias: "linkset-idp", MembershipType: ptr.To("SEMI")},
-				},
+				}),
 			},
 		}
 
@@ -117,9 +117,9 @@ var _ = Describe("KeycloakOrganization link settings", Ordered, func() {
 				Alias:     orgAlias,
 				DomainsV2: orgDomains("linkset.example.test"),
 				RealmRef:  common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
-				IdentityProviders: []v1alpha1.OrgIdentityProvider{
+				IdentityProviders: ptr.To([]v1alpha1.OrgIdentityProvider{
 					{Alias: idpAlias, AutoMembership: ptr.To(false)},
-				},
+				}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, cr)).To(Succeed())
@@ -153,7 +153,7 @@ var _ = Describe("KeycloakOrganization link settings", Ordered, func() {
 
 	It("Should keep the Keycloak link when the settings leave the spec", func() {
 		updateSpec(func(cr *v1alpha1.KeycloakOrganization) {
-			cr.Spec.IdentityProviders = []v1alpha1.OrgIdentityProvider{{Alias: idpAlias}}
+			cr.Spec.IdentityProviders = ptr.To([]v1alpha1.OrgIdentityProvider{{Alias: idpAlias}})
 		})
 		waitReady()
 

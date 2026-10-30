@@ -37,6 +37,14 @@ func (h *ProcessIdentityProviders) ServeRequest(
 
 	log.Info("Start processing identity providers for organization")
 
+	if organization.Spec.IdentityProviders == nil {
+		log.Info("Identity providers are not managed by the resource, skipping")
+
+		return nil
+	}
+
+	specIdPs := *organization.Spec.IdentityProviders
+
 	// Get current identity providers linked to the organization
 	currentIdPs, _, err := h.keycloakClient.GetOrganizationIdentityProviders(ctx, realmName, organization.Status.OrganizationID)
 	if err != nil {
@@ -44,8 +52,8 @@ func (h *ProcessIdentityProviders) ServeRequest(
 	}
 
 	// Build a set of identity providers defined in the spec.
-	specIdPMap := make(map[string]bool, len(organization.Spec.IdentityProviders))
-	for _, specIdP := range organization.Spec.IdentityProviders {
+	specIdPMap := make(map[string]bool, len(specIdPs))
+	for _, specIdP := range specIdPs {
 		specIdPMap[specIdP.Alias] = true
 	}
 
@@ -57,7 +65,7 @@ func (h *ProcessIdentityProviders) ServeRequest(
 		}
 	}
 
-	for _, specIdP := range organization.Spec.IdentityProviders {
+	for _, specIdP := range specIdPs {
 		if currentIdPMap[specIdP.Alias] {
 			continue
 		}
@@ -82,7 +90,7 @@ func (h *ProcessIdentityProviders) ServeRequest(
 	// Link identity providers from the spec that are not yet linked.
 	linkedWithSettings := false
 
-	for _, specIdP := range organization.Spec.IdentityProviders {
+	for _, specIdP := range specIdPs {
 		if currentIdPMap[specIdP.Alias] {
 			log.Info("Identity provider already linked to organization", "alias", specIdP.Alias)
 			continue
@@ -97,7 +105,7 @@ func (h *ProcessIdentityProviders) ServeRequest(
 		log.Info("Identity provider linked to organization successfully", "alias", specIdP.Alias)
 	}
 
-	if err := h.syncLinkSettings(ctx, organization, realmName, currentIdPs, linkedWithSettings); err != nil {
+	if err := h.syncLinkSettings(ctx, organization, specIdPs, realmName, currentIdPs, linkedWithSettings); err != nil {
 		return err
 	}
 
@@ -129,11 +137,12 @@ func hasLinkSettings(idp keycloakApi.OrgIdentityProvider) bool {
 func (h *ProcessIdentityProviders) syncLinkSettings(
 	ctx context.Context,
 	organization *keycloakApi.KeycloakOrganization,
+	specIdPs []keycloakApi.OrgIdentityProvider,
 	realmName string,
 	currentIdPs []keycloakapi.IdentityProviderRepresentation,
 	reread bool,
 ) error {
-	if !slices.ContainsFunc(organization.Spec.IdentityProviders, hasLinkSettings) {
+	if !slices.ContainsFunc(specIdPs, hasLinkSettings) {
 		return nil
 	}
 
@@ -162,7 +171,7 @@ func (h *ProcessIdentityProviders) syncLinkSettings(
 		}
 	}
 
-	for _, specIdP := range organization.Spec.IdentityProviders {
+	for _, specIdP := range specIdPs {
 		if !hasLinkSettings(specIdP) {
 			continue
 		}

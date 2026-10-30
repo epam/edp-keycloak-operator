@@ -23,8 +23,10 @@ func (h *ValidateDomainSettings) ServeRequest(
 	organization *keycloakApi.KeycloakOrganization,
 	_ string,
 ) error {
-	aliases := make([]string, 0, len(organization.Spec.IdentityProviders))
-	for _, idp := range organization.Spec.IdentityProviders {
+	specIdPs := ptr.Deref(organization.Spec.IdentityProviders, nil)
+
+	aliases := make([]string, 0, len(specIdPs))
+	for _, idp := range specIdPs {
 		aliases = append(aliases, idp.Alias)
 	}
 

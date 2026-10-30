@@ -421,9 +421,13 @@ func (in *KeycloakOrganizationSpec) DeepCopyInto(out *KeycloakOrganizationSpec) 
 	}
 	if in.IdentityProviders != nil {
 		in, out := &in.IdentityProviders, &out.IdentityProviders
-		*out = make([]OrgIdentityProvider, len(*in))
-		for i := range *in {
-			(*in)[i].DeepCopyInto(&(*out)[i])
+		*out = new([]OrgIdentityProvider)
+		if **in != nil {
+			in, out := *in, *out
+			*out = make([]OrgIdentityProvider, len(*in))
+			for i := range *in {
+				(*in)[i].DeepCopyInto(&(*out)[i])
+			}
 		}
 	}
 	out.RealmRef = in.RealmRef

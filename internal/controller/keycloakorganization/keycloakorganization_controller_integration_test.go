@@ -76,11 +76,11 @@ var _ = Describe("Organization controller", Ordered, func() {
 					"department": {"engineering", "qa"},
 					"location":   {"us-east"},
 				},
-				IdentityProviders: []v1alpha1.OrgIdentityProvider{
+				IdentityProviders: ptr.To([]v1alpha1.OrgIdentityProvider{
 					{
 						Alias: "test-org-idp",
 					},
-				},
+				}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, org)).Should(Succeed())
