@@ -212,3 +212,41 @@ func TestProcessDomainSettings_ServeRequest(t *testing.T) {
 		})
 	}
 }
+
+func TestGatedDomainField(t *testing.T) {
+	t.Parallel()
+
+	const domainName = "gate.example"
+
+	tests := []struct {
+		name   string
+		domain keycloakApi.OrgDomain
+		want   string
+	}{
+		{name: "alias set", domain: keycloakApi.OrgDomain{Name: domainName, IdentityProviderAlias: ptr.To("x")}, want: "identityProviderAlias"},
+		{name: "alias empty", domain: keycloakApi.OrgDomain{Name: domainName, IdentityProviderAlias: ptr.To("")}},
+		{name: "alias nil", domain: keycloakApi.OrgDomain{Name: domainName}},
+		{name: "autoRedirect true", domain: keycloakApi.OrgDomain{Name: domainName, AutoRedirect: ptr.To(true)}, want: "autoRedirect"},
+		{name: "autoRedirect false", domain: keycloakApi.OrgDomain{Name: domainName, AutoRedirect: ptr.To(false)}},
+		{name: "autoRedirect nil", domain: keycloakApi.OrgDomain{Name: domainName}},
+		{name: "verified only", domain: keycloakApi.OrgDomain{Name: domainName, Verified: ptr.To(false)}},
+		{
+			name:   "alias takes precedence over autoRedirect",
+			domain: keycloakApi.OrgDomain{Name: domainName, IdentityProviderAlias: ptr.To("x"), AutoRedirect: ptr.To(true)},
+			want:   "identityProviderAlias",
+		},
+		{
+			name:   "autoRedirect false with alias names the alias",
+			domain: keycloakApi.OrgDomain{Name: domainName, IdentityProviderAlias: ptr.To("x"), AutoRedirect: ptr.To(false)},
+			want:   "identityProviderAlias",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			require.Equal(t, tt.want, gatedDomainField(tt.domain))
+		})
+	}
+}

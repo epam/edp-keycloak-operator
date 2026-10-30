@@ -116,6 +116,19 @@ func mergeDomainSettings(
 	return d
 }
 
+// gatedDomainField names the field of d that mergeDomainSettings sends and that needs the minimum Keycloak version
+// of the organization settings; identityProviderAlias takes precedence. Returns "" when d sets none.
+func gatedDomainField(d keycloakApi.OrgDomain) string {
+	switch {
+	case ptr.Deref(d.IdentityProviderAlias, "") != "":
+		return "identityProviderAlias"
+	case ptr.Deref(d.AutoRedirect, false):
+		return "autoRedirect"
+	default:
+		return ""
+	}
+}
+
 // domainsEqual compares domains by normalized name; nil flags compare as false and nil alias as "".
 func domainsEqual(desired, fetched []keycloakapi.OrganizationDomainRepresentation) bool {
 	if len(desired) != len(fetched) {
