@@ -93,7 +93,8 @@ enforceDestinationAllowlist: false
 # as a Go duration with a unit (for example "10m"); a bare number is rejected.
 # Applies to KeycloakRealm, KeycloakClient, KeycloakRealmGroup, KeycloakRealmRole and KeycloakRealmRoleBatch.
 # Empty disables periodic reconciliation for these resources: they reconcile only on CR changes,
-# operator restart, or the cache resync (~10h). Other resources use fixed intervals and are not affected.
+# operator restart, or the cache resync (~10h). Keycloak and KeycloakRealmUser have no periodic
+# reconciliation. Other resources use fixed intervals and are not affected.
 successReconcileTimeout: ""
 
 # -- If set to true, enables webhook resources (ValidatingWebhookConfiguration, Service, and Certificate).
