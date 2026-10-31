@@ -1,79 +1,54 @@
-# Upgrade notes
+# Upgrade
 
-This page lists the changes that need attention when you upgrade the operator or Keycloak.
+## From 1.35.x to 1.36.x
 
-## How to use this page
+Keycloak 26.4 to 26.8 (1.35: 26.4 to 26.7). Requires Kubernetes 1.32+ or OpenShift 4.19+; `helm upgrade` fails on older clusters.
 
-1. Find your current operator version and Keycloak version.
-2. Check the [compatibility](#compatibility) table for the target versions.
-3. Read each [operator release](#operator-releases) section after your current version, oldest first.
-4. Do the checks in "Before you upgrade" of each section.
-5. Upgrade the operator with the [operator upgrade procedure](#operator-upgrade-procedure).
-6. Do the checks in "After you upgrade" of each section.
-7. Upgrade Keycloak after the operator, if necessary. Read [Keycloak upgrades](#keycloak-upgrades) first.
+Do the checks under "Before you upgrade" first.
 
-Do not upgrade the operator and Keycloak at the same time. The operator must support the Keycloak version
-before and after each step.
+Scale the operator to 0, then run these commands to update the CRDs before applying the upgrade.
+CRDs are cluster-wide: run once per cluster.
+Run the scale command for every operator release on the cluster. Default `<name>`: `keycloak-operator`.
 
-The queries on this page need `kubectl` and `jq`.
+```sh
+kubectl scale deployment <name> -n <namespace> --replicas=0
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_clusterkeycloakrealms.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_clusterkeycloaks.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakauthflows.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakclients.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakclientscopes.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakorganizations.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmcomponents.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmgroups.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmidentityproviders.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmrolebatches.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmroles.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealms.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmusers.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloaks.yaml
+```
 
-## Compatibility
+A `replace` that reports `NotFound`: run `kubectl create -f` with the same URL. `helm upgrade` sets the replica count from the chart values.
 
-| Operator | Keycloak |
-|---|---|
-| 1.36.0 | 26.4 to 26.8 |
-| 1.35.0 and earlier | 26.4 to 26.7 (not tested on 26.8) |
+Old CRDs prune new fields, for example `KeycloakOrganization` `spec.domainsV2`, `Keycloak` and `ClusterKeycloak` `spec.tlsServerName` and `status.value`, and `status.observedGeneration`.
 
-The "Keycloak" column in each release section shows the Keycloak versions that a change applies to.
+Before you upgrade:
 
-## Operator upgrade procedure
+**`KeycloakClient` with `redirectUris: []` or `webOrigins: []`** ([#413](https://github.com/epam/edp-keycloak-operator/issues/413))
 
-Helm does not upgrade CRDs. Stop the operator before you replace the CRDs, so that the old operator does
-not reconcile resources under the new schema.
-
-1. Do the checks in "Before you upgrade" of each release section.
-2. Stop the operator: `kubectl scale deployment <name> -n <namespace> --replicas=0`. The default
-   `<name>` is `keycloak-operator`. With GitOps, stop the automatic sync of the operator first.
-3. Replace the CRDs with those of the target chart version: `kubectl replace -f deploy-templates/crds/`.
-   Create a CRD that is not on the cluster yet: `kubectl create -f <file>`.
-4. Upgrade the chart: `helm upgrade`. Helm sets the replica count from the chart values again.
-5. Make sure that the operator pod runs.
-6. Do the checks in "After you upgrade" of each release section.
-
-## Operator releases
-
-### 1.35.0 to 1.36.0
-
-Supported Keycloak versions: 26.4 to 26.8.
-
-Required: Kubernetes 1.32 or later, or OpenShift 4.19 or later. `helm install` and `helm upgrade` fail on an
-older cluster.
-
-#### Before you upgrade
-
-**1. `KeycloakClient` with `redirectUris: []` or `webOrigins: []`** ([#413](https://github.com/epam/edp-keycloak-operator/issues/413))
-
-1.36.0 sends `[]` to Keycloak, and Keycloak clears the list. Login (`redirectUris`) and CORS (cross-origin
-requests, `webOrigins`) then fail for the client. 1.35.0 read `[]` as a missing field.
-
-1.35.0 can remove `[]` from the stored resource on its first reconcile. A client applied again (GitOps,
-`kubectl apply`) has `[]` in the cluster and is cleared on the first reconcile after the upgrade.
+1.36.0 sends `[]` to Keycloak and clears the list. Login and CORS fail for the client. 1.35.0 read `[]` as a missing field. 1.35.0 can remove `[]` from the stored resource. Also check manifests in Git and `helm template` output.
 
 ```sh
 kubectl get keycloakclients -A -o json | jq -r '.items[] | select(.spec.redirectUris == [] or .spec.webOrigins == []) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Also find `redirectUris: []` and `webOrigins: []` in the manifests in Git and in the output of `helm template`.
-To derive the list from `webUrl`, remove the key. To keep a fixed list, write the list. To clear the list, keep `[]`.
+Remove the key to derive the list from `webUrl`, write the list to keep a fixed list, keep `[]` to clear it.
 
-**2. `KeycloakRealmComponent` with `parentRef`** ([#423](https://github.com/epam/edp-keycloak-operator/issues/423))
+**`KeycloakRealmComponent` with `parentRef`** ([#423](https://github.com/epam/edp-keycloak-operator/issues/423))
 
-- Kind `KeycloakRealmComponent`: `parentRef.name` is the `metadata.name` of the parent CR in the same
-  namespace. 1.33.0 to 1.35.0 used it as the Keycloak name of the parent component.
-- Kind `KeycloakRealm`: `parentRef.name` must be the same as `spec.realmRef.name`.
-
+Kind `KeycloakRealmComponent`: `parentRef.name` is the `metadata.name` of the parent CR in the same namespace. 1.33.0 to 1.35.0 used the Keycloak name of the parent component.
+Kind `KeycloakRealm` (default): `parentRef.name` must equal `spec.realmRef.name`.
 A child that does not resolve shows the error in `status.value` and is retried every 30 seconds.
-The operator does not change the child in Keycloak.
 
 ```sh
 kubectl get keycloakrealmcomponents -A -o json | jq -r '(.items | map("\(.metadata.namespace)/\(.metadata.name)")) as $crs | .items[] | select(.spec.parentRef != null) | select(if (.spec.parentRef.kind // "KeycloakRealm") == "KeycloakRealm" then .spec.parentRef.name != .spec.realmRef.name else ("\(.metadata.namespace)/\(.spec.parentRef.name)" | IN($crs[]) | not) end) | "\(.metadata.namespace)/\(.metadata.name)"'
@@ -81,58 +56,36 @@ kubectl get keycloakrealmcomponents -A -o json | jq -r '(.items | map("\(.metada
 
 Set `parentRef.name` of each listed component to the parent CR name, or to `spec.realmRef.name`.
 
-**3. `KeycloakAuthFlow` config values that start with `$`** ([#407](https://github.com/epam/edp-keycloak-operator/issues/407))
+**`KeycloakAuthFlow` config values that start with `$`** ([#407](https://github.com/epam/edp-keycloak-operator/issues/407))
 
-`authenticatorConfig.config` accepts Secret references (`$secretName:secretKey`). A value that starts with `$`
-is always read as a reference. Values that start with `${` are not changed. There is no escape syntax. A value
-such as `$abc` fails the reconcile, and Keycloak keeps the old value. 1.35.0 sent the value as text.
+`authenticatorConfig.config` values that start with `$` are Secret references (`$secretName:secretKey`). A value such as `$abc` fails the reconcile and Keycloak keeps the old value. There is no escape syntax. 1.35.0 sent it as text.
 
 ```sh
 kubectl get keycloakauthflows -A -o json | jq -r '.items[] | select([.spec.authenticationExecutions[]?.authenticatorConfig.config // {} | .[] | select(startswith("$") and (startswith("${") | not))] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-For each listed flow, change the value to a Secret reference.
+Change the value of each listed flow to a Secret reference.
+With `allowedDestinationHosts` set, the operator also checks destination values in `authenticatorConfig.config`: add the hosts of your auth flows to the list. See [security.md](security.md).
 
-With `allowedDestinationHosts` set, the operator also checks the destination values in
-`authenticatorConfig.config`. Add the hosts of your auth flows to the list before you upgrade. See
-[security.md](security.md).
+**`KeycloakRealm` and `ClusterKeycloakRealm` with duplicate list entries**
 
-**4. `KeycloakRealm` and `ClusterKeycloakRealm` with duplicate list entries**
-
-`localization.supportedLocales`, `realmEventConfig.enabledEventTypes` and `realmEventConfig.eventsListeners`
-are sets. The API server rejects a duplicate entry. Stored duplicates stay accepted.
+`localization.supportedLocales`, `realmEventConfig.enabledEventTypes` and `realmEventConfig.eventsListeners` are sets. The API server rejects a duplicate entry. Stored duplicates stay accepted.
 
 ```sh
 for k in keycloakrealms clusterkeycloakrealms; do kubectl get $k -A -o json | jq -r '.items[] | select([.spec.localization.supportedLocales, .spec.realmEventConfig.enabledEventTypes, .spec.realmEventConfig.eventsListeners | select(. != null) | length != (unique | length)] | any) | "\(.kind) \(.metadata.namespace // "-")/\(.metadata.name)"'; done
 ```
 
-Remove the duplicate entries from the listed resources and from their manifests in Git.
+Remove the duplicates from the listed resources and from their manifests in Git.
 
-**5. `KeycloakOrganization` with `spec.domains`**
+**`KeycloakOrganization` with `spec.domains`**
 
-The operator copies `domains` into `domainsV2` one time and then reads only `domainsV2`. Later edits of
-`domains` are ignored. A `domains` entry with an empty name fails the migration, and the operator log shows the
-error. Remove the empty entry. Move the list from `domains` to `domainsV2` in the manifests in Git.
+The operator copies `domains` to `domainsV2` once and reads only `domainsV2` afterwards. An entry with an empty name fails the migration.
+Remove the empty entry. Move the list to `domainsV2` in the manifests in Git.
 
-**6. CRDs**
+**Empty or blank `clientId` in `clientRoles`, empty or blank `compositesClientRoles` keys**
 
-1.36.0 needs the new CRDs. With the old `KeycloakOrganization` CRD, the API server drops `domainsV2`, and the
-reconcile of each `KeycloakOrganization` with `spec.domains` fails with an error that asks for the CRD
-upgrade. The old CRDs also drop `Keycloak` `spec.tlsServerName` and `status.value`. Use the
-[operator upgrade procedure](#operator-upgrade-procedure).
-
-**7. Empty or blank `clientId` in `clientRoles` and empty or blank `compositesClientRoles` keys**
-
-The API server rejects an empty `clientId` in `KeycloakRealmUser` and `KeycloakRealmGroup` `clientRoles` and
-in `KeycloakClient` `serviceAccount.clientRoles` and `scopeMappings.clientRoles`. It does not reject a blank
-`clientId` (spaces only) or an empty or blank `compositesClientRoles` key. 1.36.0 fails the reconcile of such
-an entry or key.
-
-1.33.0 to 1.35.0 used the first client of the realm for a user or service-account entry with an empty or blank
-`clientId`, and for an empty or blank `compositesClientRoles` key. A user or service-account entry
-with `roles` got the roles of that client, and `roles: []` removed all roles of that client. A composite
-`KeycloakRealmRole` got composites from that client. The first client has the lowest `clientId` in sort
-order. In a default realm it is `account`.
+The API server rejects an empty `clientId` in `KeycloakRealmUser` and `KeycloakRealmGroup` `clientRoles` and in `KeycloakClient` `serviceAccount.clientRoles` and `scopeMappings.clientRoles`. It accepts a blank `clientId` (spaces only) and an empty or blank `compositesClientRoles` key. 1.36.0 fails the reconcile of such an entry or key.
+1.33.0 to 1.35.0 used the first client of the realm (lowest `clientId`) for them.
 
 ```sh
 for k in keycloakrealmusers keycloakrealmgroups; do kubectl get $k -A -o json | jq -r '.items[] | select([.spec.clientRoles[]? | select((.clientId // "") | test("^\\s*$"))] | length > 0) | "\(.kind) \(.metadata.namespace)/\(.metadata.name)"'; done
@@ -140,260 +93,155 @@ kubectl get keycloakclients -A -o json | jq -r '.items[] | select([.spec.service
 kubectl get keycloakrealmroles -A -o json | jq -r '.items[] | select(.spec.compositesClientRoles // {} | any(keys[]; test("^\\s*$"))) | "\(.kind) \(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Fix the listed resources before you upgrade. A stored entry with an empty `clientId` stays stored. Any later
-change to the list, including the operator's own update, is rejected while the entry is empty. Set `clientId`
-in the listed resources, and set or remove the blank key in the listed roles, in the cluster and in the
-manifests in Git. For each listed user and service account, find the first client with
-`GET /admin/realms/<realm>/clients?first=0&max=1`. In Keycloak, remove the roles of that client that you did
-not assign, and assign again the roles that a `roles: []` entry removed. The operator does neither. For a
-listed role, the operator removes the composites from that client after you fix the key. If you set
-`composite: false` instead, remove those composites by hand.
+Set `clientId` in the listed resources, and set or remove the blank key in the listed roles, in the cluster and in Git. A later change to the list is rejected while the entry is empty.
+For each listed user and service account, find the first client with `GET /admin/realms/<realm>/clients?first=0&max=1`. In Keycloak, remove the roles of that client that you did not assign, and assign again the roles that a `roles: []` entry removed. The operator does neither.
+For a listed role, the operator removes the composites from that client after you fix the key. With `composite: false` instead, remove them by hand.
 
-**8. `KeycloakRealmIdentityProvider` with `mappers[].identityProviderAlias`**
+**`KeycloakRealmIdentityProvider` with `mappers[].identityProviderAlias`**
 
-1.36.0 fails the reconcile before any Keycloak write when a mapper sets `identityProviderAlias` to a value other
-than `spec.alias`. The field is deprecated. The operator always uses `spec.alias`. Until the field is fixed,
-the operator does not create or update the identity provider. Other spec changes and rotated Secret values in
-`spec.config` are not sent.
-
-With Keycloak 26.4 to 26.7, 1.35.0 and earlier created such a mapper under the other alias, also when no
-identity provider has that alias. The mapper stays in Keycloak after the upgrade. It applies to logins through
-the identity provider of that alias.
-
-Find the affected resources:
+1.36.0 fails the reconcile before any Keycloak write when a mapper sets `identityProviderAlias` other than `spec.alias`. The field is deprecated. The identity provider is not created or updated while the field is set.
+On Keycloak 26.4 to 26.7, 1.35.0 and earlier created such a mapper under the other alias `<X>`. It stays in Keycloak.
 
 ```sh
 kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select(.spec.alias as $a | [.spec.mappers[]? | select((.identityProviderAlias // "") != "" and .identityProviderAlias != $a)] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Find every resource that sets the field:
-
 ```sh
 kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select([.spec.mappers[]? | select((.identityProviderAlias // "") != "")] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-For each resource from the first list, do steps 1 and 2. For each resource from the second list, do step 1.
+First query: affected resources. Second query: every resource that sets the field.
+Step 1, both lists: remove `identityProviderAlias` from each mapper in the resource and in Git, before step 2.
+Step 2, first list, Keycloak 26.4 to 26.7: delete the orphan mapper under `<X>`.
+If an identity provider with alias `<X>` exists, list its mappers with `GET /admin/realms/<realm>/identity-provider/instances/<X>/mappers`, then delete the one with the name from the resource with `DELETE /admin/realms/<realm>/identity-provider/instances/<X>/mappers/<id>`.
+If none has alias `<X>`, create a disabled identity provider with alias `<X>`, list its mappers, delete the mapper, delete the temporary identity provider. Create it with `POST /admin/realms/<realm>/identity-provider/instances`:
 
-1. Remove `identityProviderAlias` from each mapper in the resource and in its manifests in Git. Do this first: with
-   1.35.0 or earlier and the old spec, the next reconcile creates a deleted mapper again.
-2. With Keycloak 26.4 to 26.7, delete the mapper that 1.35.0 or earlier created under the other alias `<X>`:
-   - If an identity provider with alias `<X>` exists, list its mappers and delete the one with the name from the
-     resource:
-     `GET /admin/realms/<realm>/identity-provider/instances/<X>/mappers`, then
-     `DELETE /admin/realms/<realm>/identity-provider/instances/<X>/mappers/<id>` (returns 204).
-   - If no identity provider has alias `<X>`, the list returns 404. Create a temporary, disabled identity provider
-     with alias `<X>`, list its mappers, delete the mapper, then delete the temporary identity provider. Create it
-     with `POST /admin/realms/<realm>/identity-provider/instances` and this body (returns 201 on Keycloak 26.7.3):
-     `{"alias":"<X>","providerId":"keycloak-oidc","enabled":false,"config":{"clientId":"x","clientSecret":"y","authorizationUrl":"https://example.invalid/auth","tokenUrl":"https://example.invalid/token"}}`.
-     Or, if you know the mapper ID, delete it through the path of any existing identity provider:
-     `DELETE /admin/realms/<realm>/identity-provider/instances/<any-existing-alias>/mappers/<id>`.
-     Keycloak looks up the mapper by ID only.
+```json
+{"alias":"<X>","providerId":"keycloak-oidc","enabled":false,"config":{"clientId":"x","clientSecret":"y","authorizationUrl":"https://example.invalid/auth","tokenUrl":"https://example.invalid/token"}}
+```
 
-After the upgrade, a resource with alias `<X>` removes the orphan mapper from `<X>` on its next reconcile when `mappers`
-does not list its name. 1.35.0 skipped the removal when `mappers` is `[]`.
+If you know the mapper ID, use `DELETE /admin/realms/<realm>/identity-provider/instances/<any-existing-alias>/mappers/<id>`.
 
-**9. `KeycloakRealmIdentityProvider` mapper without `name` or `identityProviderMapper`**
+**`KeycloakRealmIdentityProvider` mapper without `name` or `identityProviderMapper`**
 
-The API server rejects a mapper with an empty or missing `name` or `identityProviderMapper` (the mapper type).
-It does not reject blank values (spaces only).
+The API server rejects a mapper with an empty or missing `name` or `identityProviderMapper` (mapper type). It accepts blank values (spaces only).
 
 ```sh
 kubectl get keycloakrealmidentityproviders -A -o json | jq -r '.items[] | select([.spec.mappers[]? | select(((.name // "") | test("^\\s*$")) or ((.identityProviderMapper // "") | test("^\\s*$")))] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-The query also lists blank values (spaces only), which the operator sends to Keycloak as they are.
+Set the name and the mapper type in the listed resources and in Git. A later change to `mappers` is rejected while a stored entry is empty or missing.
 
-Set the name and the mapper type in the listed resources and in the manifests in Git. No manual cleanup in
-Keycloak is needed. A stored entry stays stored. Any later change to `mappers` is rejected while the entry is
-empty or missing. A Go client that reads and updates the whole resource is rejected while a stored entry has an
-explicit empty value. Use a patch or fix the entry.
+**`KeycloakClient` with duplicate authorization entries**
 
-**10. `KeycloakClient` with duplicate authorization entries**
-
-In `spec.authorization`, `policies`, `permissions` and `resources` are keyed by `name`, and so are
-`rolePolicy.roles` and `groupPolicy.groups` of each policy. `scopes`, `clientPolicy.clients`,
-`userPolicy.users`, `aggregatedPolicy.policies` and the `policies`, `resources` and `scopes` of each permission
-are sets. The API server rejects a repeated name or entry.
+In `spec.authorization`, `policies`, `permissions`, `resources`, `rolePolicy.roles` and `groupPolicy.groups` are keyed by `name`. `scopes`, `clientPolicy.clients`, `userPolicy.users`, `aggregatedPolicy.policies` and the `policies`, `resources`, `scopes` of each permission are sets. The API server rejects a repeated name or entry.
 
 ```sh
 kubectl get keycloakclients -A -o json | jq -r '.items[] | select([.spec.authorization // {} | (.scopes, ((.policies, .permissions, .resources) | select(. != null) | map(.name)), (.policies[]? | ((.rolePolicy.roles, .groupPolicy.groups) | select(. != null) | map(.name)), .clientPolicy.clients, .userPolicy.users, .aggregatedPolicy.policies), (.permissions[]? | .policies, .resources, .scopes)) | select(. != null) | length != (unique | length)] | any) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Remove the duplicate entries from the listed resources and from their manifests in Git. For policies,
-permissions and resources that share a name, keep one entry. The operator writes the value of the kept entry
-on the next reconcile.
+Remove the duplicates from the listed resources and from Git. Keep one entry per shared name.
+With server-side apply (Flux, Argo CD `ServerSideApply=true`), fix Git before the CRDs: the API server rejects an apply of a manifest with duplicates with HTTP 500 `duplicate entries for key`, also when the manifest has not changed. A resource with stored duplicates accepts updates.
 
-With server-side apply (Flux, or Argo CD with `ServerSideApply=true`), fix the manifests in Git before you
-replace the CRDs. With the new CRDs, the API server rejects an apply of a manifest that repeats a name or an
-entry with HTTP 500 `duplicate entries for key`, also when the manifest has not changed.
+**`KeycloakRealmRole` and `KeycloakRealmRoleBatch`: realm default roles**
 
-A resource that stores a duplicate accepts updates, including a client-side `kubectl apply` and new
-duplicates. The query finds it.
+1.36.0 makes `default-roles-<realm>` match `isDefault` of each `KeycloakRealmRole`. Omitted `isDefault` is `false`: the role is removed from the default roles, for all users of the realm, on the first reconcile. A `KeycloakRealmRole` for `offline_access` without `isDefault: true` removes `offline_access` from all users.
+`isDefault: true` works in realms with upper-case letters in the name and adds the role to the default roles.
 
-**11. `KeycloakRealmRole` and `KeycloakRealmRoleBatch`: realm default roles**
-
-1.36.0 makes the realm default roles (`default-roles-<realm>`) match `isDefault` of each `KeycloakRealmRole`.
-An omitted `isDefault` is the same as `false`.
-
-| `isDefault` | 1.35.0 | 1.36.0 |
-|---|---|---|
-| Omitted or `false` | No change. | Removes the role from the default roles. |
-| `true` | Adds the role. Fails in a realm with upper-case letters in its name. | Adds the role. |
-
-Every user of the realm has the default roles. A change applies to all users of the realm, not only to new
-users. A user keeps a removed role only when the role is also assigned to the user or to a group of the user.
-The change applies on the first reconcile after the upgrade. It needs no spec change.
-
-The operator does not change:
-
-- A role that is not in the default roles.
-- A realm role that no `KeycloakRealmRole` manages.
-- A client role in the default roles.
-
-You are affected when a `KeycloakRealmRole` does not set `isDefault: true` and its role is in the default
-roles. These add a role to the default roles: the admin console (**Realm settings** > **User registration**),
-a realm import, and Keycloak (`offline_access` and `uma_authorization` in each new realm). A
-`KeycloakRealmRole` for `offline_access` without `isDefault: true` removes `offline_access` from all users.
-Offline tokens then fail for them.
-
-Find the affected roles:
-
-1. List the roles without `isDefault: true`. The columns are the Keycloak realm, the role name and the
-   resource. A `KeycloakRealmRoleBatch` creates `KeycloakRealmRole` resources, so the list includes its roles.
+1. List the roles without `isDefault: true`. Columns: Keycloak realm, role name, resource. The list includes the roles of a `KeycloakRealmRoleBatch`.
 
    ```sh
    { kubectl get keycloakrealms,clusterkeycloakrealms -A -o json; kubectl get keycloakrealmroles -A -o json; } | jq -rs '(.[0].items | map({key: "\(.kind)/\(.metadata.namespace // "")/\(.metadata.name)", value: .spec.realmName}) | from_entries) as $realms | .[1].items[] | select(.spec.isDefault != true) | (.spec.realmRef.kind // "KeycloakRealm") as $k | ($realms["\($k)/\(if $k == "KeycloakRealm" then .metadata.namespace else "" end)/\(.spec.realmRef.name)"] // "<realm not found>") as $realm | "\($realm) \(.spec.name) \(.metadata.namespace)/\(.metadata.name)"'
    ```
 
-2. For each realm in the list, get the default roles from Keycloak:
-   - `GET /admin/realms/<realm>` returns the default role name in `defaultRole.name`.
-   - `GET /admin/realms/<realm>/roles/<defaultRole.name>/composites/realm` returns the default roles.
-3. A role in both lists is affected. A role only in the first list is not affected.
+2. For each realm, `GET /admin/realms/<realm>` returns the default role name in `defaultRole.name`; `GET /admin/realms/<realm>/roles/<defaultRole.name>/composites/realm` returns the default roles.
+3. A role in both lists is affected.
 
-For each affected role:
+To keep an affected role a default role, set `isDefault: true` in the resource and in Git.
+For a `KeycloakRealmRoleBatch` role, set it in the batch entry and in the child `KeycloakRealmRole`: an edit of a batch entry does not reach an existing child.
+To remove the role from the default roles, do nothing.
+To prevent a role with `isDefault: true` in a realm with upper-case letters from becoming a default role for all users, remove `isDefault`.
 
-- To keep the role a default role, set `isDefault: true` in the resource and in its manifests in Git before
-  you upgrade.
-- For a role of a `KeycloakRealmRoleBatch`, set `isDefault: true` in the batch entry and in the child
-  `KeycloakRealmRole`. An edit of a batch entry does not reach a child that exists.
-- To remove the role from the default roles, do nothing.
+**`Keycloak` and `ClusterKeycloak` with a `spec.url` that answers with a redirect**
 
-For each role with `isDefault: true` in a realm with upper-case letters in its name: 1.36.0 adds the role to
-the default roles, and all users of the realm get it. To prevent this, remove `isDefault` before you upgrade.
-
-**12. `Keycloak` and `ClusterKeycloak` with a `spec.url` that answers with a redirect**
-
-1.36.0 follows no HTTP redirect. A `spec.url` that answers with a 3xx status, such as an Ingress http to https
-redirect, sets `status.connected` to `false`. Resources that use this Keycloak stop reconciling until `spec.url`
-is fixed.
-
-Check each `spec.url` with the request that the operator sends to the token endpoint. Remove a trailing slash
-from `spec.url`. Add `/auth` for a legacy base path.
+1.36.0 follows no HTTP redirect. A `spec.url` that answers with 3xx sets `status.connected` to `false` and `status.value` to `redirect refused: <method> <url> answered <code>; ...`; resources that use this Keycloak stop reconciling.
 
 ```sh
 curl -sS -o /dev/null -w '%{http_code}\n' -X POST <spec.url>/realms/master/protocol/openid-connect/token
 ```
 
-The command must print a status other than 3xx. `400` and `401` are fine. For a 3xx status, set `spec.url` to
-the address that serves Keycloak without a redirect.
+The command must print a status other than 3xx (`400` and `401` are fine). Otherwise set `spec.url` to the address that serves Keycloak without a redirect: remove a trailing slash, add `/auth` for a legacy base path.
 
-#### After you upgrade
+After you upgrade:
 
-**1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
+**Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
 
-1.35.0 removed all realm roles from each `KeycloakRealmUser` with no `spec.roles`, unless
-`reconciliationStrategy` was `addOnly`. This includes `default-roles-<realm>`, and with it `offline_access`
-and `uma_authorization`. 1.36.0 does not manage an omitted list, so the roles stay removed.
+1.35.0 removed all realm roles, including `default-roles-<realm>`, from each `KeycloakRealmUser` with no `spec.roles` unless `reconciliationStrategy` was `addOnly`. 1.36.0 does not manage an omitted list: the roles stay removed.
 
 ```sh
 kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select(.spec.roles == null and .spec.reconciliationStrategy != "addOnly") | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-The query also lists users that 1.35.0 did not reconcile. Check the realm roles of each listed user in
-Keycloak. Give back the missing roles in Keycloak, or add them to `spec.roles`. The same applies to group
-memberships (`spec.groups`) and to the realm roles of `KeycloakRealmGroup` (`spec.realmRoles`).
-
-1.35.0 and earlier versions also removed all client roles from each `KeycloakRealmGroup` with no `spec.clientRoles`.
-1.36.0 does not manage an omitted list, so these roles stay removed.
+The query also lists users that 1.35.0 did not reconcile. Check the realm roles of each listed user in Keycloak. Give the roles back in Keycloak or add them to `spec.roles`. Same for `spec.groups` and `KeycloakRealmGroup` `spec.realmRoles`.
+1.35.0 and earlier also removed all client roles from each `KeycloakRealmGroup` with no `spec.clientRoles`. The roles stay removed.
 
 ```sh
 kubectl get keycloakrealmgroups -A -o json | jq -r '.items[] | select(.spec.clientRoles == null) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Check the client roles of each listed group in Keycloak. Give back the missing roles in Keycloak, or add them to `spec.clientRoles`.
+Check the client roles of each listed group in Keycloak. Give the roles back in Keycloak or add them to `spec.clientRoles`.
 
-**2. `KeycloakRealmUser` with `attributesV2`** ([#418](https://github.com/epam/edp-keycloak-operator/issues/418))
+**`KeycloakRealmUser` with `attributesV2`** ([#418](https://github.com/epam/edp-keycloak-operator/issues/418))
 
-Keycloak drops attributes that the realm user profile does not allow, and returns success. 1.36.0 reads the
-user back. If an attribute is not stored, `status.value` shows "keycloak did not store user attributes".
-1.35.0 showed `OK`. Roles, groups and passwords are still applied.
+Keycloak drops attributes that the realm user profile does not allow. 1.36.0 reads the user back and shows "keycloak did not store user attributes" in `status.value`. 1.35.0 showed `OK`.
 
 ```sh
 kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select(.status.value // "" | contains("did not store user attributes")) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-For each listed user, set `spec.userProfileConfig.unmanagedAttributePolicy` of the realm to
-`ADMIN_EDIT` or `ENABLED`, or declare the attributes in `spec.userProfileConfig.attributes`. Keycloak
-26.4 stores the attributes also with `ADMIN_VIEW`. Keycloak 26.5 and later do not.
+Set `spec.userProfileConfig.unmanagedAttributePolicy` of the realm to `ADMIN_EDIT` or `ENABLED`, or declare the attributes in `spec.userProfileConfig.attributes`.
 
-**3. `KeycloakRealmUser` with an empty `passwordSecret`** ([#424](https://github.com/epam/edp-keycloak-operator/issues/424))
+**`KeycloakRealmUser` with an empty `passwordSecret`** ([#424](https://github.com/epam/edp-keycloak-operator/issues/424))
 
-Before 1.31, the operator stored `passwordSecret: {name: "", key: ""}` in each user. 1.36.0 removes this entry
-one time. If the entry is in Git, remove it there. Otherwise GitOps adds it again on each sync, and the
-operator removes it again.
+Before 1.31 the operator stored `passwordSecret: {name: "", key: ""}` in each user. 1.36.0 removes the entry once. Remove it from Git, or GitOps adds it again on each sync.
 
-**4. `KeycloakRealmUser` without `spec.enabled`** ([#375](https://github.com/epam/edp-keycloak-operator/issues/375))
+**`KeycloakRealmUser` without `spec.enabled`** ([#375](https://github.com/epam/edp-keycloak-operator/issues/375))
 
-1.35.0 created and kept a `KeycloakRealmUser` without `spec.enabled` disabled. 1.36.0 does not change
-`enabled` of an existing user, so the user stays disabled.
+1.35.0 created and kept such a user disabled. 1.36.0 does not change `enabled` of an existing user: it stays disabled.
 
 ```sh
 kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select(.spec.enabled == null) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Check each listed user in Keycloak. Where the user must be enabled, set `enabled: true` in the spec.
+Check each listed user in Keycloak. Set `enabled: true` in the spec where the user must be enabled.
 
-**5. `KeycloakRealmUser` without `spec.emailVerified`**
+**`KeycloakRealmUser` without `spec.emailVerified`**
 
-1.35.0 wrote `emailVerified: false` on each update of a `KeycloakRealmUser` without the field. 1.36.0 does not
-change `emailVerified` of an existing user, so the user stays unverified.
+1.35.0 wrote `emailVerified: false` on each update. 1.36.0 does not change `emailVerified` of an existing user: it stays unverified.
 
 ```sh
 kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select(.spec.emailVerified == null) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
-Check each listed user in Keycloak. Where the email must be verified, set `emailVerified: true` in the spec.
+Check each listed user in Keycloak. Set `emailVerified: true` in the spec where the email must be verified.
 
-#### Behavior changes
+Other changes:
 
-| Resource | Keycloak | Change |
-|---|---|---|
-| `KeycloakRealmUser` | All | `spec.enabled` and `spec.emailVerified` have no default and are not managed when you omit them. Without the field, the operator creates the user enabled and unverified, and does not change the flag of an existing user. With the field, the operator writes the flag on create and when it differs from Keycloak. The operator does not send `enabled` when it equals the Keycloak value. Brute-force login failures and a temporary lockout stay. A change of `email` keeps the flag when `emailVerified` is omitted. Set `emailVerified: false` to make the user unverified. |
-| `KeycloakRealmUser`, `KeycloakRealmGroup`, `KeycloakClient`, `KeycloakOrganization` | All | These lists are not managed when you omit them: user `roles` and `groups`, group `realmRoles` and `clientRoles`, the `roles` of each `clientRoles` entry, client `serviceAccount.realmRoles`, and organization `identityProviders`. `[]` removes all entries. |
-| Helm charts that create the resources above | All | Helm drops an empty list. To send `[]`, use `--set-json`, and do not put the value in an `{{ if }}` block. |
-| `KeycloakRealmUser` | All | A `passwordSecret` with an empty `name` or `key` fails with a Secret error. 1.35.0 used `spec.password`. |
-| `KeycloakClient` | All | `spec.realmRoles` is deprecated. Use `KeycloakRealmRole`. The admission webhook shows a warning for the field and does not block the request. |
-| `KeycloakClient` | All | An aggregate policy that names a permission fails with `policy <name> does not exist`. Remove the permission from `aggregatedPolicy.policies`. |
-| `KeycloakRealm`, `ClusterKeycloakRealm` | All | `smtpServer.port` has no default. The operator sends the port only when you set it. Keycloak then uses 465 with SSL and 25 without. A resource that the old CRD defaulted to 25 keeps the stored 25. |
-| `KeycloakRealm`, `ClusterKeycloakRealm` | All | `displayName`, `displayNameHtml`, `organizationsEnabled` and `realmEventConfig.adminEventsExpiration` are not managed when you omit them. The operator keeps the Keycloak value. An explicit empty string, `false` or `0` is still written. A resource created under the old CRD has `organizationsEnabled: false` stored. It keeps managing the flag until you remove the field from the spec. |
-| `KeycloakOrganization` | All | An update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled after an operator write. 1.35.0 enabled it again. |
-| `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault` is always managed. `true` adds the role to the realm default roles. Omitted or `false` removes it. The change applies to all users of the realm. The operator writes only when the membership differs. An edit of a batch entry does not reach a child that exists. See item 11 in "Before you upgrade". |
-| `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault: true` works in a realm with upper-case letters in its name. The operator reads the default role name from Keycloak. |
-| `Keycloak`, `ClusterKeycloak` | All | The operator follows no HTTP redirect. A URL that answers with a 3xx status, such as an Ingress http to https redirect, sets `status.connected` to `false`. `status.value` contains `redirect refused: <method> <url> answered <code>; ...`. Resources that use this Keycloak stop reconciling until `spec.url` is fixed. Set `spec.url` to the final address. See item 12 in "Before you upgrade". |
+- `KeycloakRealmUser`: `spec.enabled` and `spec.emailVerified` have no default and are not managed when omitted. Create: enabled, unverified. An existing user keeps the flag. Brute-force login failures and a temporary lockout stay. A change of `email` keeps the flag when `emailVerified` is omitted. Set `emailVerified: false` to make the user unverified.
+- `KeycloakRealmUser`, `KeycloakRealmGroup`, `KeycloakClient`, `KeycloakOrganization`: an omitted list is not managed (user `roles`, `groups`; group `realmRoles`, `clientRoles` and their `roles`; client `serviceAccount.realmRoles`; organization `identityProviders`). `[]` removes all entries.
+- Helm charts that create these resources: Helm drops an empty list. Use `--set-json` to send `[]`; keep the value out of an `{{ if }}` block.
+- `KeycloakRealmUser`: a `passwordSecret` with an empty `name` or `key` fails with a Secret error. 1.35.0 used `spec.password`.
+- `KeycloakClient`: `spec.realmRoles` is deprecated, use `KeycloakRealmRole`. The admission webhook warns.
+- `KeycloakClient`: an aggregate policy that names a permission fails with `policy <name> does not exist`. Remove the permission from `aggregatedPolicy.policies`.
+- `KeycloakRealm`, `ClusterKeycloakRealm`: `smtpServer.port` has no default. Keycloak uses 465 with SSL and 25 without. A resource that the old CRD defaulted to 25 keeps the stored 25.
+- `KeycloakRealm`, `ClusterKeycloakRealm`: `displayName`, `displayNameHtml`, `organizationsEnabled` and `realmEventConfig.adminEventsExpiration` are not managed when omitted. An explicit empty string, `false` or `0` is written. `organizationsEnabled: false` stored under the old CRD stays managed until you remove the field.
+- `KeycloakRealmIdentityProvider`: with `mappers: []`, 1.36.0 removes every mapper the list does not name; 1.35.0 skipped the removal.
+- `KeycloakOrganization`: an update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled. 1.35.0 enabled it again.
 
-## Keycloak upgrades
+## From Keycloak 26.7 to 26.8
 
-### To Keycloak 26.8
+Upgrade the operator to 1.36 first.
 
-Upgrade the operator to 1.36.0 first. 1.36.0 is the first operator version that supports Keycloak 26.8.
-
-Keycloak 26.8 rejects some requests that 26.7 and earlier accepted. The status of the resource shows the
-Keycloak message.
-
-#### Before you upgrade
-
-| Resource | Keycloak 26.8 rule | Action |
-|---|---|---|
-| `KeycloakRealmIdentityProvider` with a mapper that grants an admin role or an admin group | Returns 403 unless `spec.config.allowAdminRoleMapping` is `"true"`. | Set the key. The operator account needs `manage-realm` on the realm. Keep the key in the spec while the mapper exists. See [security.md](security.md). |
-| `KeycloakRealmIdentityProvider` with changed `providerId` | Rejected on an existing identity provider. | Create a new identity provider. |
-| `Keycloak`, `ClusterKeycloak` with `spec.tlsServerName` | Returns 421 when all of these are true: the TLS server name is not the `Host` of the request, the server has no proxy headers, and `Host` is not the Keycloak `hostname` or `hostname-admin`. | Set the Keycloak `hostname` option to the host of `spec.url`, or configure proxy headers on the server. |
+- `KeycloakRealmIdentityProvider` with a mapper that grants an admin role or group: Keycloak returns 403 unless `spec.config.allowAdminRoleMapping` is `"true"`. Set the key and keep it while the mapper exists. The operator account needs `manage-realm`. See [security.md](security.md).
+- `KeycloakRealmIdentityProvider` with changed `providerId`: Keycloak rejects it. Create a new identity provider.
+- `Keycloak`, `ClusterKeycloak` with `spec.tlsServerName`: Keycloak returns 421 when the TLS server name is not the request `Host`, the server has no proxy headers and `Host` is not `hostname` or `hostname-admin`. Set the Keycloak `hostname` option to the host of `spec.url`, or configure proxy headers.
