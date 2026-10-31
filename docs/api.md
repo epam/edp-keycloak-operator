@@ -8716,7 +8716,8 @@ PasswordSecret defines Kubernetes secret Name and Key, which holds User secret.
         <td><b>temporary</b></td>
         <td>boolean</td>
         <td>
-          Temporary indicates whether the password is temporary.<br/>
+          Temporary indicates whether the password is temporary.
+A temporary password is written once per source: Secret name, key, temporary flag and target user.<br/>
           <br/>
             <i>Default</i>: false<br/>
         </td>
@@ -8762,7 +8763,18 @@ KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.
         <td>string</td>
         <td>
           LastSyncedPasswordSecretVersion stores the ResourceVersion of the password secret
-that was last successfully synced to Keycloak. Used to detect secret changes.<br/>
+that was last written to Keycloak.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>passwordSecretHash</b></td>
+        <td>string</td>
+        <td>
+          PasswordSecretHash is a hash of the passwordSecret source written to Keycloak:
+Secret name, key, temporary flag, realm name and Keycloak user ID,
+plus the Secret UID and resourceVersion for a non-temporary password.
+It contains no secret-derived data.
+Empty when the password comes from spec.password or no password was written from passwordSecret.<br/>
         </td>
         <td>false</td>
       </tr><tr>

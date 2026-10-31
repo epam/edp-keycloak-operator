@@ -8,8 +8,11 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +27,9 @@ import (
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	helpermock "github.com/epam/edp-keycloak-operator/internal/controller/helper/mocks"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmuser/chain"
+	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	v2mocks "github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/mocks"
 	"github.com/epam/edp-keycloak-operator/pkg/destination"
 )
 
@@ -391,4 +397,66 @@ func TestReconcile_DeletingRealmGoneWithOwnerRefEnabled(t *testing.T) {
 
 	err = cl.Get(ctx, key, &keycloakApi.KeycloakRealmUser{})
 	require.True(t, k8sErrors.IsNotFound(err), "user must be released, got: %v", err)
+}
+
+func TestReconcile_ConditionOnlyStatusChangeIsPersisted(t *testing.T) {
+	t.Parallel()
+
+	scheme := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+	require.NoError(t, corev1.AddToScheme(scheme))
+
+	key := client.ObjectKey{Namespace: "default", Name: "user"}
+	user := &keycloakApi.KeycloakRealmUser{
+		ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: key.Name, Generation: 1},
+		Spec: keycloakApi.KeycloakRealmUserSpec{
+			Username:       "user",
+			KeepResource:   true,
+			PasswordSecret: &keycloakApi.PasswordSecret{Name: "user-password", Key: "password", Temporary: true},
+		},
+	}
+	secret := &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Namespace: key.Namespace, Name: "user-password"},
+		Data:       map[string][]byte{"password": []byte("value")},
+	}
+
+	cl := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithStatusSubresource(&keycloakApi.KeycloakRealmUser{}).
+		WithObjects(user, secret).
+		Build()
+
+	users := v2mocks.NewMockUsersClient(t)
+	users.EXPECT().FindUserByUsername(mock.Anything, "realm", "user").
+		Return(&keycloakapi.UserRepresentation{Id: ptr.To("user-id")}, nil, nil)
+	users.EXPECT().UpdateUser(mock.Anything, "realm", "user-id", mock.Anything).Return(nil, nil)
+	users.EXPECT().SetUserPassword(mock.Anything, "realm", "user-id", mock.Anything).Return(nil, nil).Once()
+
+	h := helpermock.NewMockControllerHelper(t)
+	h.EXPECT().SetRealmOwnerRef(mock.Anything, mock.Anything).Return(nil)
+	h.EXPECT().CreateKeycloakClientFromRealmRef(mock.Anything, mock.Anything).
+		Return(&keycloakapi.KeycloakClient{Users: users}, nil)
+	h.EXPECT().GetRealmNameFromRef(mock.Anything, mock.Anything).Return("realm", nil)
+
+	ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+	r := NewReconcile(cl, h)
+
+	_, err := r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	require.NoError(t, err)
+
+	got := &keycloakApi.KeycloakRealmUser{}
+	require.NoError(t, cl.Get(ctx, key, got))
+	require.NotEmpty(t, got.Status.PasswordSecretHash)
+
+	got.Generation = 2
+	require.NoError(t, cl.Update(ctx, got))
+
+	_, err = r.Reconcile(ctx, ctrl.Request{NamespacedName: key})
+	require.NoError(t, err)
+
+	require.NoError(t, cl.Get(ctx, key, got))
+
+	cond := meta.FindStatusCondition(got.Status.Conditions, chain.ConditionPasswordSynced)
+	require.NotNil(t, cond)
+	assert.Equal(t, int64(2), cond.ObservedGeneration)
 }

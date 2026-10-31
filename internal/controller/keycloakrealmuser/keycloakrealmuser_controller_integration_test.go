@@ -2,6 +2,8 @@ package keycloakrealmuser
 
 import (
 	"fmt"
+	"net/http"
+	"slices"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -338,7 +340,7 @@ var _ = Describe("KeycloakRealmUser controller", Ordered, func() {
 			g.Expect(passwordSyncedCondition.Status).Should(Equal(metav1.ConditionTrue), "PasswordSynced condition should be True")
 			g.Expect(passwordSyncedCondition.Reason).Should(Equal(chain.ReasonTemporaryPasswordSet), "Reason should be TemporaryPasswordSet")
 			g.Expect(passwordSyncedCondition.Message).Should(ContainSubstring("Temporary password set from secret"))
-			g.Expect(passwordSyncedCondition.Message).Should(ContainSubstring("will not reset"))
+			g.Expect(passwordSyncedCondition.Message).Should(ContainSubstring("written once per source"))
 			g.Expect(createdUser.Status.LastSyncedPasswordSecretVersion).ShouldNot(BeEmpty(), "LastSyncedPasswordSecretVersion should be set")
 		}).WithTimeout(time.Second * 20).WithPolling(time.Second).Should(Succeed())
 
@@ -1032,5 +1034,185 @@ var _ = Describe("KeycloakRealmUser attributes and the realm user profile", Orde
 			g.Expect(storedAttributes(g, declaredRealmCR, "attrs-declared-user")).
 				Should(HaveKeyWithValue("team", []string{"blue"}))
 		}, testutils.LongWait, interval).Should(Succeed())
+	})
+})
+
+var _ = Describe("KeycloakRealmUser passwordSecret source", Ordered, func() {
+	var (
+		realmName   = testutils.RealmName("pw-source-realm")
+		secretName  = testutils.UniqueName("pw-source")
+		valueA      = "Passw0rd-a"
+		valueB      = "Passw0rd-b"
+		adminEvents *testutils.AdminEventRecorder
+	)
+
+	getUser := func(name string) *keycloakApi.KeycloakRealmUser {
+		u := &keycloakApi.KeycloakRealmUser{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: name, Namespace: ns}, u)).Should(Succeed())
+
+		return u
+	}
+
+	patchUser := func(name string, mutate func(*keycloakApi.KeycloakRealmUser)) *keycloakApi.KeycloakRealmUser {
+		u := getUser(name)
+		base := u.DeepCopy()
+		mutate(u)
+		Expect(k8sClient.Patch(ctx, u, client.MergeFrom(base))).Should(Succeed())
+
+		return u
+	}
+
+	awaitSynced := func(name string, generation int64) {
+		Eventually(func(g Gomega) {
+			u := getUser(name)
+			c := meta.FindStatusCondition(u.Status.Conditions, chain.ConditionPasswordSynced)
+			g.Expect(c).ShouldNot(BeNil())
+			g.Expect(c.Status).Should(Equal(metav1.ConditionTrue))
+			g.Expect(c.ObservedGeneration).Should(Equal(generation))
+		}, testutils.LongWait, interval).Should(Succeed())
+	}
+
+	createUser := func(key string, temporary bool) (name, userID string) {
+		name = testutils.UniqueName("pw-source-user")
+		u := &keycloakApi.KeycloakRealmUser{
+			ObjectMeta: metav1.ObjectMeta{Name: name, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmUserSpec{
+				RealmRef:      common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: realmName},
+				Username:      name,
+				FirstName:     "Pw",
+				LastName:      "Source",
+				Email:         name + "@example.com",
+				EmailVerified: ptr.To(true),
+				KeepResource:  true,
+				PasswordSecret: &keycloakApi.PasswordSecret{
+					Name:      secretName,
+					Key:       key,
+					Temporary: temporary,
+				},
+			},
+		}
+		Expect(k8sClient.Create(ctx, u)).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, u))).Should(Succeed())
+		})
+
+		awaitSynced(name, 1)
+
+		Eventually(func(g Gomega) {
+			kcUser, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmName, name)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(kcUser).ShouldNot(BeNil())
+			userID = ptr.Deref(kcUser.Id, "")
+			g.Expect(userID).ShouldNot(BeEmpty())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		return name, userID
+	}
+
+	resetEvents := func(userID string) *testutils.AdminEventRecorder {
+		return adminEvents.Scoped(userID + "/reset-password")
+	}
+
+	BeforeAll(func() {
+		Expect(k8sClient.Create(ctx, &keycloakApi.KeycloakRealm{
+			ObjectMeta: metav1.ObjectMeta{Name: realmName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmSpec{
+				RealmName:   realmName,
+				KeycloakRef: common.KeycloakRef{Kind: keycloakApi.KeycloakKind, Name: KeycloakCR},
+			},
+		})).Should(Succeed())
+		DeferCleanup(func() {
+			Expect(client.IgnoreNotFound(k8sClient.Delete(ctx, &keycloakApi.KeycloakRealm{
+				ObjectMeta: metav1.ObjectMeta{Name: realmName, Namespace: ns},
+			}))).Should(Succeed())
+		})
+
+		Eventually(func(g Gomega) {
+			r := &keycloakApi.KeycloakRealm{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: realmName, Namespace: ns}, r)).Should(Succeed())
+			g.Expect(r.Status.Available).Should(BeTrue())
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		adminEvents = testutils.NewAdminEventRecorder(keycloakApiClient, realmName)
+		Expect(adminEvents.Enable(ctx)).Should(Succeed())
+
+		Expect(k8sClient.Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: secretName, Namespace: ns},
+			Data:       map[string][]byte{"a": []byte(valueA), "b": []byte(valueB)},
+		})).Should(Succeed())
+	})
+
+	It("Should write a non-temporary password when the key changes", func() {
+		name, userID := createUser("a", false)
+		Expect(directGrantStatus(realmName, name, valueA)).Should(Equal(http.StatusOK))
+
+		events, err := resetEvents(userID).WritesDuring(ctx, testutils.Settle, func() {
+			patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.PasswordSecret.Key = "b" })
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).Should(HaveLen(1), "recorded: %s", events.GomegaString())
+
+		Eventually(func(g Gomega) {
+			g.Expect(directGrantStatus(realmName, name, valueB)).Should(Equal(http.StatusOK))
+		}, testutils.LongWait, interval).Should(Succeed())
+		Expect(directGrantStatus(realmName, name, valueA)).Should(BeElementOf(http.StatusBadRequest, http.StatusUnauthorized))
+	})
+
+	It("Should refresh observedGeneration without a password write on an unrelated edit", func() {
+		name, userID := createUser("a", false)
+
+		events, err := resetEvents(userID).WritesDuring(ctx, 0, func() {
+			u := patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.Email = "edited-" + u.Spec.Email })
+			awaitSynced(name, u.Generation)
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).Should(BeEmpty(), "recorded: %s", events.GomegaString())
+	})
+
+	It("Should not rewrite a temporary password after an error is fixed", func() {
+		name, userID := createUser("a", true)
+
+		patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.PasswordSecret.Key = "missing" })
+		Eventually(func(g Gomega) {
+			c := meta.FindStatusCondition(getUser(name).Status.Conditions, chain.ConditionPasswordSynced)
+			g.Expect(c).ShouldNot(BeNil())
+			g.Expect(c.Status).Should(Equal(metav1.ConditionFalse))
+			g.Expect(c.Reason).Should(Equal(chain.ReasonSecretKeyMissing))
+		}, testutils.LongWait, interval).Should(Succeed())
+
+		events, err := resetEvents(userID).WritesDuring(ctx, 0, func() {
+			u := patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.PasswordSecret.Key = "a" })
+			awaitSynced(name, u.Generation)
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).Should(BeEmpty(), "recorded: %s", events.GomegaString())
+	})
+
+	It("Should write a temporary password when the key changes", func() {
+		name, userID := createUser("a", true)
+
+		events, err := resetEvents(userID).WritesDuring(ctx, testutils.Settle, func() {
+			patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.PasswordSecret.Key = "b" })
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).Should(HaveLen(1), "recorded: %s", events.GomegaString())
+
+		kcUser, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmName, name)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(slices.Contains(ptr.Deref(kcUser.RequiredActions, nil), "UPDATE_PASSWORD")).Should(BeTrue())
+	})
+
+	It("Should add UPDATE_PASSWORD when the temporary flag is set", func() {
+		name, userID := createUser("a", false)
+
+		events, err := resetEvents(userID).WritesDuring(ctx, testutils.Settle, func() {
+			patchUser(name, func(u *keycloakApi.KeycloakRealmUser) { u.Spec.PasswordSecret.Temporary = true })
+		})
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(events).Should(HaveLen(1), "recorded: %s", events.GomegaString())
+
+		kcUser, _, err := keycloakApiClient.Users.FindUserByUsername(ctx, realmName, name)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(slices.Contains(ptr.Deref(kcUser.RequiredActions, nil), "UPDATE_PASSWORD")).Should(BeTrue())
 	})
 })
