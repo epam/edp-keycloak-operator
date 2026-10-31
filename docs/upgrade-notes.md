@@ -28,7 +28,14 @@ kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/
 kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.36.0/deploy-templates/crds/v1.edp.epam.com_keycloaks.yaml
 ```
 
-A `replace` that reports `NotFound`: run `kubectl create -f` with the same URL. `helm upgrade` sets the replica count from the chart values.
+A `replace` that reports `NotFound`: run `kubectl create -f` with the same URL.
+
+Upgrade the chart. `<release>`: the Helm release name. `--reset-then-reuse-values` (Helm 3.14+) keeps your values and takes the defaults of new chart keys. `helm upgrade` sets the replica count from the chart values.
+
+```sh
+helm repo update epamedp
+helm upgrade <release> epamedp/keycloak-operator --version 1.36.0 -n <namespace> --reset-then-reuse-values
+```
 
 Old CRDs prune new fields, for example `KeycloakOrganization` `spec.domainsV2`, `Keycloak` and `ClusterKeycloak` `spec.tlsServerName` and `status.value`, and `status.observedGeneration`.
 
@@ -61,7 +68,7 @@ Set `parentRef.name` of each listed component to the parent CR name, or to `spec
 `authenticatorConfig.config` values that start with `$` are Secret references (`$secretName:secretKey`). A value such as `$abc` fails the reconcile and Keycloak keeps the old value. There is no escape syntax. 1.35.0 sent it as text.
 
 ```sh
-kubectl get keycloakauthflows -A -o json | jq -r '.items[] | select([.spec.authenticationExecutions[]?.authenticatorConfig.config // {} | .[] | select(startswith("$") and (startswith("${") | not))] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
+kubectl get keycloakauthflows -A -o json | jq -r '.items[] | select([.spec.authenticationExecutions[]?.authenticatorConfig.config // {} | .[] | select(startswith("$") and (startswith("${") | not) and (test("^\\$[^:]+:[^:]+$") | not))] | length > 0) | "\(.metadata.namespace)/\(.metadata.name)"'
 ```
 
 Change the value of each listed flow to a Secret reference.
