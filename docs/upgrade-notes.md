@@ -237,6 +237,8 @@ Other changes:
 - `KeycloakRealm`, `ClusterKeycloakRealm`: `displayName`, `displayNameHtml`, `organizationsEnabled` and `realmEventConfig.adminEventsExpiration` are not managed when omitted. An explicit empty string, `false` or `0` is written. `organizationsEnabled: false` stored under the old CRD stays managed until you remove the field.
 - `KeycloakRealmIdentityProvider`: with `mappers: []`, 1.36.0 removes every mapper the list does not name; 1.35.0 skipped the removal.
 - `KeycloakOrganization`: an update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled. 1.35.0 enabled it again.
+- `KeycloakRealmUser`: the operator writes the `passwordSecret` password once per source: Secret name, key, `temporary` flag and target user. A change of the source writes the password; 1.35.0 skipped it. A change of `temporary` adds or removes the `UPDATE_PASSWORD` required action. A changed temporary source replaces the password the user chose. New field `status.passwordSecretHash`.
+- `KeycloakRealmUser` in a realm with a password history policy: Keycloak rejects a write of the same password with 400. Roles, groups, identity providers and attributes of the user are not synced until the `passwordSecret` source changes.
 
 ## From Keycloak 26.7 to 26.8
 

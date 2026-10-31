@@ -16,6 +16,7 @@ import (
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
 var (
@@ -30,7 +31,7 @@ const (
 	// ReasonPasswordSetFromSecret indicates that non-temporary password was set from secret.
 	ReasonPasswordSetFromSecret = "PasswordSetFromSecret"
 
-	// ReasonTemporaryPasswordSet indicates that temporary password was set from secret (will not reset).
+	// ReasonTemporaryPasswordSet indicates that temporary password was set from secret (written once per source).
 	ReasonTemporaryPasswordSet = "TemporaryPasswordSet"
 
 	// ReasonPasswordSetFromSpec indicates that password was set from deprecated spec.password field.
@@ -52,7 +53,15 @@ type passwordResult struct {
 	Temporary     bool
 	SecretVersion string // resourceVersion of the secret, empty if password is from spec
 	FromSecret    bool   // true if password is from secret, false if from spec.password
+	SourceHash    string // passwordSourceHash of the current source, empty if password is from spec
 }
+
+type passwordSyncDecision int
+
+const (
+	passwordWrite passwordSyncDecision = iota
+	passwordSkip
+)
 
 type SetUserPassword struct {
 	k8sClient client.Client
@@ -77,15 +86,23 @@ func (h *SetUserPassword) Serve(
 		return nil
 	}
 
-	pwdResult, err := h.getPassword(ctx, user)
+	pwdResult, err := h.getPassword(ctx, user, realmName, userCtx.UserID)
 	if err != nil {
 		h.setPasswordErrorCondition(ctx, user, err)
 
 		return err
 	}
 
-	if h.shouldSkipPasswordSync(ctx, user, pwdResult) {
+	switch decidePasswordSync(user, pwdResult) {
+	case passwordSkip:
+		log.Info("Password source unchanged, skipping password sync",
+			"secret", user.Spec.PasswordSecret.Name, "key", user.Spec.PasswordSecret.Key, "temporary", pwdResult.Temporary)
+
+		setPasswordSyncedCondition(user, pwdResult)
+
 		return nil
+	case passwordWrite:
+		logPasswordWrite(ctx, user, pwdResult)
 	}
 
 	log.Info("Setting user password")
@@ -102,70 +119,72 @@ func (h *SetUserPassword) Serve(
 		return wrappedErr
 	}
 
-	h.updatePasswordCondition(user, pwdResult)
+	setPasswordSyncedCondition(user, pwdResult)
+
+	user.Status.PasswordSecretHash = pwdResult.SourceHash
+	user.Status.LastSyncedPasswordSecretVersion = pwdResult.SecretVersion
 
 	log.Info("User password set successfully")
 
 	return nil
 }
 
-// shouldSkipPasswordSync determines if password sync should be skipped based on conditions.
-func (h *SetUserPassword) shouldSkipPasswordSync(
-	ctx context.Context,
-	user *keycloakApi.KeycloakRealmUser,
-	pwdResult *passwordResult,
-) bool {
-	log := ctrl.LoggerFrom(ctx)
+// passwordSourceHash identifies the passwordSecret source and the write target: Secret name, key, temporary flag,
+// realm name and Keycloak user ID. A non-temporary password adds the Secret UID and resourceVersion:
+// a Secret rotation rewrites it. A temporary password is written once per source and ignores Secret rotation.
+// The input is metadata only, never the password.
+func passwordSourceHash(secret *coreV1.Secret, ps *keycloakApi.PasswordSecret, realmName, userID string) string {
+	source := "secret:" + ps.Name + ":" + ps.Key
+	temporary := "true"
 
-	// For deprecated spec.password, always set (no change detection)
-	if !pwdResult.FromSecret {
-		log.Info("Password from spec.password (deprecated), will set password")
-		return false
+	if !ps.Temporary {
+		source = secretref.SecretKeyVersion(secret, ps.Key)
+		temporary = "false"
 	}
 
-	// For temporary passwords: only set once, then never reset
-	// (user may have changed it after first login)
-	if pwdResult.Temporary {
-		if meta.IsStatusConditionTrue(user.Status.Conditions, ConditionPasswordSynced) {
-			log.Info("Temporary password already synced, skipping to preserve user changes")
-			return true
-		}
-
-		log.Info("Temporary password not yet synced, will set password")
-
-		return false
-	}
-
-	// For non-temporary passwords from secret: compare resourceVersion
-	if user.Status.LastSyncedPasswordSecretVersion == pwdResult.SecretVersion {
-		log.Info("Password secret unchanged, skipping password sync", "resourceVersion", pwdResult.SecretVersion)
-		return true
-	}
-
-	log.Info("Password secret changed, will set password", "oldVersion", user.Status.LastSyncedPasswordSecretVersion, "newVersion", pwdResult.SecretVersion)
-
-	return false
+	return secretref.ValuesHashSingle(map[string]string{
+		"passwordSecret": source,
+		"temporary":      temporary,
+		"realm":          realmName,
+		"userID":         userID,
+	})
 }
 
-// updatePasswordCondition updates the PasswordSynced condition after successfully setting password.
-func (h *SetUserPassword) updatePasswordCondition(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) {
-	reason := getPasswordReason(pwdResult)
-	message := getPasswordMessage(pwdResult, user.Spec.PasswordSecret)
+// decidePasswordSync compares the stored source hash with the current one.
+func decidePasswordSync(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) passwordSyncDecision {
+	if !pwdResult.FromSecret {
+		return passwordWrite
+	}
 
+	if user.Status.PasswordSecretHash == pwdResult.SourceHash {
+		return passwordSkip
+	}
+
+	return passwordWrite
+}
+
+func logPasswordWrite(ctx context.Context, user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) {
+	log := ctrl.LoggerFrom(ctx)
+
+	if !pwdResult.FromSecret {
+		log.Info("Password from spec.password (deprecated), will set password")
+
+		return
+	}
+
+	log.Info("Password source changed, will set password",
+		"secret", user.Spec.PasswordSecret.Name, "key", user.Spec.PasswordSecret.Key, "temporary", pwdResult.Temporary)
+}
+
+// setPasswordSyncedCondition sets the PasswordSynced condition to True for the current generation.
+func setPasswordSyncedCondition(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) {
 	meta.SetStatusCondition(&user.Status.Conditions, metav1.Condition{
 		Type:               ConditionPasswordSynced,
 		Status:             metav1.ConditionTrue,
-		Reason:             reason,
-		Message:            message,
+		Reason:             getPasswordReason(pwdResult),
+		Message:            getPasswordMessage(pwdResult, user.Spec.PasswordSecret),
 		ObservedGeneration: user.Generation,
 	})
-
-	// Update status field with secret version for change detection
-	if pwdResult.FromSecret {
-		user.Status.LastSyncedPasswordSecretVersion = pwdResult.SecretVersion
-	} else {
-		user.Status.LastSyncedPasswordSecretVersion = ""
-	}
 }
 
 // setPasswordErrorCondition sets the PasswordSynced condition to False with appropriate reason and message.
@@ -214,7 +233,11 @@ func (h *SetUserPassword) classifyPasswordError(err error, user *keycloakApi.Key
 	return ReasonKeycloakAPIError, fmt.Sprintf("Failed to set password in Keycloak: %s", err.Error())
 }
 
-func (h *SetUserPassword) getPassword(ctx context.Context, user *keycloakApi.KeycloakRealmUser) (*passwordResult, error) {
+func (h *SetUserPassword) getPassword(
+	ctx context.Context,
+	user *keycloakApi.KeycloakRealmUser,
+	realmName, userID string,
+) (*passwordResult, error) {
 	log := ctrl.LoggerFrom(ctx)
 
 	if user.Spec.PasswordSecret != nil {
@@ -235,6 +258,7 @@ func (h *SetUserPassword) getPassword(ctx context.Context, user *keycloakApi.Key
 			Temporary:     user.Spec.PasswordSecret.Temporary,
 			SecretVersion: secret.ResourceVersion,
 			FromSecret:    true,
+			SourceHash:    passwordSourceHash(secret, user.Spec.PasswordSecret, realmName, userID),
 		}, nil
 	}
 
@@ -273,7 +297,7 @@ func getPasswordMessage(pwdResult *passwordResult, passwordSecret *keycloakApi.P
 	}
 
 	if pwdResult.Temporary {
-		return fmt.Sprintf("Temporary password set from secret %s (will not reset)", secretName)
+		return fmt.Sprintf("Temporary password set from secret %s (written once per source)", secretName)
 	}
 
 	return fmt.Sprintf("Password synced from secret %s", secretName)

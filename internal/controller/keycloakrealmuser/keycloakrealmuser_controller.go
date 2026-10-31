@@ -78,7 +78,7 @@ func (r *Reconcile) Reconcile(ctx context.Context, request reconcile.Request) (c
 		return ctrl.Result{}, fmt.Errorf("unable to get keycloak realm user from k8s: %w", err)
 	}
 
-	oldStatus := instance.Status
+	oldStatus := *instance.Status.DeepCopy()
 
 	if updated, err := r.applyDefaults(ctx, &instance); err != nil {
 		log.Error(err, "An error has occurred while applying KeycloakRealmUser defaults")

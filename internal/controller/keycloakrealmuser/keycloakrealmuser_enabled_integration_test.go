@@ -24,6 +24,35 @@ import (
 	"github.com/epam/edp-keycloak-operator/pkg/testutils"
 )
 
+// directGrantStatus returns the HTTP status of a direct-grant token request for the user.
+func directGrantStatus(realmName, username, password string) (int, error) {
+	form := url.Values{
+		"client_id":  {keycloakapi.DefaultAdminClientID},
+		"grant_type": {"password"},
+		"username":   {username},
+		"password":   {password},
+	}
+	tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", os.Getenv("TEST_KEYCLOAK_URL"), realmName)
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
+	if err != nil {
+		return 0, fmt.Errorf("unable to build token request: %w", err)
+	}
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return 0, fmt.Errorf("unable to post token request: %w", err)
+	}
+
+	if err := resp.Body.Close(); err != nil {
+		return 0, fmt.Errorf("unable to close token response: %w", err)
+	}
+
+	return resp.StatusCode, nil
+}
+
 func newUserCR(name, username string, spec map[string]any) *unstructured.Unstructured {
 	base := map[string]any{
 		"realmRef": map[string]any{
@@ -284,25 +313,11 @@ var _ = Describe("KeycloakRealmUser spec.enabled and brute-force protection", fu
 		})
 		Expect(err).ShouldNot(HaveOccurred())
 
-		tokenURL := fmt.Sprintf("%s/realms/%s/protocol/openid-connect/token", os.Getenv("TEST_KEYCLOAK_URL"), realmName)
-
 		// Keycloak counts overlapping failed logins once: wait for each failure to be recorded.
 		for failures := 1; failures <= 2; failures++ {
-			form := url.Values{
-				"client_id":  {keycloakapi.DefaultAdminClientID},
-				"grant_type": {"password"},
-				"username":   {userCR},
-				"password":   {"wrong-password"},
-			}
-
-			req, reqErr := http.NewRequestWithContext(ctx, http.MethodPost, tokenURL, strings.NewReader(form.Encode()))
-			Expect(reqErr).ShouldNot(HaveOccurred())
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-			resp, postErr := http.DefaultClient.Do(req)
+			statusCode, postErr := directGrantStatus(realmName, userCR, "wrong-password")
 			Expect(postErr).ShouldNot(HaveOccurred())
-			Expect(resp.Body.Close()).Should(Succeed())
-			Expect(resp.StatusCode).Should(BeElementOf(http.StatusBadRequest, http.StatusUnauthorized))
+			Expect(statusCode).Should(BeElementOf(http.StatusBadRequest, http.StatusUnauthorized))
 
 			Eventually(func(g Gomega) {
 				status, _, statusErr := keycloakApiClient.Events.GetBruteForceStatus(ctx, realmName, userID)

@@ -123,6 +123,7 @@ type PasswordSecret struct {
 	Key string `json:"key"`
 
 	// Temporary indicates whether the password is temporary.
+	// A temporary password is written once per source: Secret name, key, temporary flag and target user.
 	// +optional
 	// +kubebuilder:default=false
 	Temporary bool `json:"temporary"`
@@ -142,9 +143,17 @@ type KeycloakRealmUserStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// LastSyncedPasswordSecretVersion stores the ResourceVersion of the password secret
-	// that was last successfully synced to Keycloak. Used to detect secret changes.
+	// that was last written to Keycloak.
 	// +optional
 	LastSyncedPasswordSecretVersion string `json:"lastSyncedPasswordSecretVersion,omitempty"`
+
+	// PasswordSecretHash is a hash of the passwordSecret source written to Keycloak:
+	// Secret name, key, temporary flag, realm name and Keycloak user ID,
+	// plus the Secret UID and resourceVersion for a non-temporary password.
+	// It contains no secret-derived data.
+	// Empty when the password comes from spec.password or no password was written from passwordSecret.
+	// +optional
+	PasswordSecretHash string `json:"passwordSecretHash,omitempty"`
 }
 
 // +kubebuilder:object:root=true
