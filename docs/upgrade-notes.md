@@ -297,6 +297,15 @@ The query also lists users that 1.35.0 did not reconcile. Check the realm roles 
 Keycloak. Give back the missing roles in Keycloak, or add them to `spec.roles`. The same applies to group
 memberships (`spec.groups`) and to the realm roles of `KeycloakRealmGroup` (`spec.realmRoles`).
 
+1.35.0 and earlier versions also removed all client roles from each `KeycloakRealmGroup` with no `spec.clientRoles`.
+1.36.0 does not manage an omitted list, so these roles stay removed.
+
+```sh
+kubectl get keycloakrealmgroups -A -o json | jq -r '.items[] | select(.spec.clientRoles == null) | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+Check the client roles of each listed group in Keycloak. Give back the missing roles in Keycloak, or add them to `spec.clientRoles`.
+
 **2. `KeycloakRealmUser` with `attributesV2`** ([#418](https://github.com/epam/edp-keycloak-operator/issues/418))
 
 Keycloak drops attributes that the realm user profile does not allow, and returns success. 1.36.0 reads the
@@ -344,7 +353,7 @@ Check each listed user in Keycloak. Where the email must be verified, set `email
 | Resource | Keycloak | Change |
 |---|---|---|
 | `KeycloakRealmUser` | All | `spec.enabled` and `spec.emailVerified` have no default and are not managed when you omit them. Without the field, the operator creates the user enabled and unverified, and does not change the flag of an existing user. With the field, the operator writes the flag on create and when it differs from Keycloak. The operator does not send `enabled` when it equals the Keycloak value. Brute-force login failures and a temporary lockout stay. A change of `email` keeps the flag when `emailVerified` is omitted. Set `emailVerified: false` to make the user unverified. |
-| `KeycloakRealmUser`, `KeycloakRealmGroup`, `KeycloakClient`, `KeycloakOrganization` | All | These lists are not managed when you omit them: user `roles` and `groups`, group `realmRoles`, the `roles` of each `clientRoles` entry, client `serviceAccount.realmRoles`, and organization `identityProviders`. `[]` removes all entries. |
+| `KeycloakRealmUser`, `KeycloakRealmGroup`, `KeycloakClient`, `KeycloakOrganization` | All | These lists are not managed when you omit them: user `roles` and `groups`, group `realmRoles` and `clientRoles`, the `roles` of each `clientRoles` entry, client `serviceAccount.realmRoles`, and organization `identityProviders`. `[]` removes all entries. |
 | Helm charts that create the resources above | All | Helm drops an empty list. To send `[]`, use `--set-json`, and do not put the value in an `{{ if }}` block. |
 | `KeycloakRealmUser` | All | A `passwordSecret` with an empty `name` or `key` fails with a Secret error. 1.35.0 used `spec.password`. |
 | `KeycloakClient` | All | `spec.realmRoles` is deprecated. Use `KeycloakRealmRole`. The admission webhook shows a warning for the field and does not block the request. |

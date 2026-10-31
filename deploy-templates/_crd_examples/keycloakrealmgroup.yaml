@@ -16,6 +16,14 @@ spec:
   # `--set realmRoles={}` yields [""], and a {{ if .Values.realmRoles }} guard drops [].
   realmRoles:
     - argocd-admin
+  # clientRoles has the same three states. A listed client without roles is left alone;
+  # a client that is not listed loses its role mappings.
+  # Helm: write [] in values.yaml or pass --set-json 'clientRoles=[]'.
+  # `--set clientRoles={}` yields [""], and a {{ if .Values.clientRoles }} guard drops [].
+  clientRoles:
+    - clientId: argocd
+      roles:
+        - admin
 ---
 # Example of a child group using parentGroup
 apiVersion: v1.edp.epam.com/v1

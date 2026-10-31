@@ -474,12 +474,12 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 					Kind: keycloakApi.KeycloakRealmKind,
 					Name: KeycloakRealmCR,
 				},
-				ClientRoles: []keycloakApi.UserClientRole{
+				ClientRoles: ptr.To([]keycloakApi.UserClientRole{
 					{
 						ClientID: clientID,
 						Roles:    ptr.To([]string{"group-client-role-1", "group-client-role-2"}),
 					},
-				},
+				}),
 			},
 		}
 		Expect(k8sClient.Create(ctx, group)).Should(Succeed())
@@ -514,12 +514,12 @@ var _ = Describe("KeycloakRealmGroup controller", Ordered, func() {
 		By("Updating KeycloakRealmGroup client roles")
 		updatableGroup := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: group.Name, Namespace: ns}, updatableGroup)).Should(Succeed())
-		updatableGroup.Spec.ClientRoles = []keycloakApi.UserClientRole{
+		updatableGroup.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 			{
 				ClientID: clientID,
 				Roles:    ptr.To([]string{"group-client-role-2", "group-client-role-3"}),
 			},
-		}
+		})
 		Expect(k8sClient.Update(ctx, updatableGroup)).Should(Succeed())
 
 		Eventually(func(g Gomega) {
@@ -754,6 +754,120 @@ var _ = Describe("KeycloakRealmGroup unmanaged realm roles", Ordered, func() {
 		cr := &keycloakApi.KeycloakRealmGroup{}
 		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
 		cr.Spec.RealmRoles = ptr.To([]string{})
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			g.Expect(roleNames()).ShouldNot(ContainElement(roleName))
+		}, timeout, interval).Should(Succeed())
+	})
+})
+
+var _ = Describe("KeycloakRealmGroup unmanaged client roles", Ordered, func() {
+	const (
+		crName    = "unmanaged-client-roles-group"
+		groupName = "unmanaged-client-roles-group"
+		clientID  = "unmanaged-client-roles-client"
+		roleName  = "unmanaged-client-roles-role"
+	)
+
+	var clientUUID string
+
+	groupID := func() string {
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		Expect(cr.Status.ID).ShouldNot(BeEmpty())
+
+		return cr.Status.ID
+	}
+
+	roleNames := func() []string {
+		mappings, _, err := keycloakApiClient.Groups.GetClientRoleMappings(ctx, KeycloakRealmCR, groupID(), clientUUID)
+		Expect(err).ShouldNot(HaveOccurred())
+
+		names := make([]string, 0, len(mappings))
+		for _, r := range mappings {
+			names = append(names, ptr.Deref(r.Name, ""))
+		}
+
+		return names
+	}
+
+	It("Should keep a directly-assigned client role when spec.clientRoles is omitted", func() {
+		_, err := keycloakApiClient.Clients.CreateClient(ctx, KeycloakRealmCR, keycloakapi.ClientRepresentation{
+			ClientId: ptr.To(clientID),
+		})
+		if err != nil && !keycloakapi.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
+		Eventually(func(g Gomega) {
+			clients, _, err := keycloakApiClient.Clients.GetClients(ctx, KeycloakRealmCR, &keycloakapi.GetClientsParams{
+				ClientId: ptr.To(clientID),
+			})
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(clients).Should(HaveLen(1))
+			g.Expect(clients[0].Id).ShouldNot(BeNil())
+			clientUUID = *clients[0].Id
+		}, timeout, interval).Should(Succeed())
+
+		_, err = keycloakApiClient.Clients.CreateClientRole(ctx, KeycloakRealmCR, clientUUID, keycloakapi.RoleRepresentation{
+			Name: ptr.To(roleName),
+		})
+		if err != nil && !keycloakapi.IsConflict(err) {
+			Expect(err).ShouldNot(HaveOccurred())
+		}
+
+		Expect(k8sClient.Create(ctx, &keycloakApi.KeycloakRealmGroup{
+			ObjectMeta: metav1.ObjectMeta{Name: crName, Namespace: ns},
+			Spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:     groupName,
+				RealmRef: common.RealmRef{Kind: keycloakApi.KeycloakRealmKind, Name: KeycloakRealmCR},
+			},
+		})).Should(Succeed())
+
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmGroup{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+			g.Expect(got.Status.ID).ShouldNot(BeEmpty())
+		}, timeout, interval).Should(Succeed())
+
+		role, _, err := keycloakApiClient.Clients.GetClientRole(ctx, KeycloakRealmCR, clientUUID, roleName)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(role).ShouldNot(BeNil())
+
+		_, err = keycloakApiClient.Groups.AddClientRoleMappings(
+			ctx, KeycloakRealmCR, groupID(), clientUUID, []keycloakapi.RoleRepresentation{*role},
+		)
+		Expect(err).ShouldNot(HaveOccurred())
+		Expect(roleNames()).To(ContainElement(roleName), "the mapping must exist before the next reconcile")
+
+		By("Forcing a reconcile with an unrelated spec change")
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.Description = "force a reconcile"
+		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
+
+		// CreateOrUpdateGroup writes the description before SyncClientRoles; wait for it before the check.
+		Eventually(func(g Gomega) {
+			got := &keycloakApi.KeycloakRealmGroup{}
+			g.Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, got)).Should(Succeed())
+			g.Expect(got.Status.Value).Should(Equal(common.StatusOK))
+
+			groupRep, _, err := keycloakApiClient.Groups.GetGroup(ctx, KeycloakRealmCR, got.Status.ID)
+			g.Expect(err).ShouldNot(HaveOccurred())
+			g.Expect(groupRep).ShouldNot(BeNil())
+			g.Expect(ptr.Deref(groupRep.Description, "")).Should(Equal("force a reconcile"))
+		}, timeout, interval).Should(Succeed())
+
+		Consistently(roleNames, 5*time.Second, interval).Should(ContainElement(roleName),
+			"omitting spec.clientRoles must not revoke a mapping the operator did not create")
+	})
+
+	It("Should remove every client role when spec.clientRoles is an explicit empty list", func() {
+		cr := &keycloakApi.KeycloakRealmGroup{}
+		Expect(k8sClient.Get(ctx, types.NamespacedName{Name: crName, Namespace: ns}, cr)).Should(Succeed())
+		cr.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{})
 		Expect(k8sClient.Update(ctx, cr)).Should(Succeed())
 
 		Eventually(func(g Gomega) {

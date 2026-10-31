@@ -227,8 +227,6 @@ func TestReconcileKeycloakRealmGroup_Reconcile(t *testing.T) {
 				groups.EXPECT().GetGroup(mock.Anything, "realm", "group-id").
 					Return(&keycloakapi.GroupRepresentation{Id: ptr.To("group-id")}, nil, nil)
 				groups.EXPECT().UpdateGroup(mock.Anything, "realm", "group-id", mock.Anything).Return(nil, nil)
-				groups.EXPECT().GetRoleMappings(mock.Anything, "realm", "group-id").
-					Return(&keycloakapi.MappingsRepresentation{}, nil, nil)
 
 				expectClient(h, &keycloakapi.KeycloakClient{Groups: groups})
 				h.EXPECT().TryToDelete(mock.Anything, mock.Anything, mock.Anything, keyCloakRealmGroupOperatorFinalizerName).
