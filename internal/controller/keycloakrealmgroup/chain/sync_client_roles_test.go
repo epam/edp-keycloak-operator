@@ -32,9 +32,9 @@ func TestSyncClientRoles_Serve_AddRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1", "role2"})},
-	}
+	})
 
 	// Empty role mappings (no clients have roles yet)
 	mockGroups.EXPECT().GetRoleMappings(
@@ -91,9 +91,9 @@ func TestSyncClientRoles_Serve_RemoveRoles(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{})}, // Empty - remove all
-	}
+	})
 
 	// Role mappings with existing client roles
 	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
@@ -139,7 +139,7 @@ func TestSyncClientRoles_Serve_RemoveUnclaimedClient(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{} // No clients claimed
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{}) // No clients claimed
 
 	// Existing role mappings with a client
 	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
@@ -186,9 +186,9 @@ func TestSyncClientRoles_Serve_MentionedClientWithoutRolesIsLeftAlone(t *testing
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "unmanaged-client"},
-	}
+	})
 
 	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
 		"unmanaged-client": {
@@ -227,10 +227,10 @@ func TestSyncClientRoles_Serve_MultipleClients(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "client1", Roles: ptr.To([]string{"role1"})},
 		{ClientID: "client2", Roles: ptr.To([]string{"role2"})},
-	}
+	})
 
 	// Empty role mappings
 	mockGroups.EXPECT().GetRoleMappings(
@@ -293,9 +293,9 @@ func TestSyncClientRoles_Serve_ErrorGettingRoleMappings(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -321,9 +321,9 @@ func TestSyncClientRoles_Serve_ErrorResolvingClientUUID(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "nonexistent-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -356,9 +356,9 @@ func TestSyncClientRoles_Serve_ErrorGettingClient(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -414,7 +414,7 @@ func TestSyncClientRoles_Serve_BlankClientIDSkipsLookup(t *testing.T) {
 			require.NoError(t, err)
 
 			group := &keycloakApi.KeycloakRealmGroup{}
-			group.Spec.ClientRoles = []keycloakApi.UserClientRole{{ClientID: "   ", Roles: tt.roles}}
+			group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{{ClientID: "   ", Roles: tt.roles}})
 
 			groupCtx := &GroupContext{RealmName: testRealmName, GroupID: testGroupID}
 
@@ -447,9 +447,9 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRoleMappings(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -485,9 +485,9 @@ func TestSyncClientRoles_Serve_ErrorGettingClientRole(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"nonexistent-role"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -522,9 +522,9 @@ func TestSyncClientRoles_Serve_ClientRoleMissing(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -559,9 +559,9 @@ func TestSyncClientRoles_Serve_ClientRoleWithoutID(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -596,9 +596,9 @@ func TestSyncClientRoles_Serve_ErrorAddingClientRoleMappings(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{"role1"})},
-	}
+	})
 
 	mockGroups.EXPECT().GetRoleMappings(
 		context.Background(), testRealmName, testGroupID,
@@ -642,9 +642,9 @@ func TestSyncClientRoles_Serve_ErrorDeletingClientRoleMappings(t *testing.T) {
 	}
 
 	group := &keycloakApi.KeycloakRealmGroup{}
-	group.Spec.ClientRoles = []keycloakApi.UserClientRole{
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
 		{ClientID: "test-client", Roles: ptr.To([]string{})}, // Remove all
-	}
+	})
 
 	// Role mappings with existing client roles
 	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
@@ -672,4 +672,125 @@ func TestSyncClientRoles_Serve_ErrorDeletingClientRoleMappings(t *testing.T) {
 	h := NewSyncClientRoles()
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	assert.ErrorContains(t, err, "unable to delete client role mappings")
+}
+
+func TestSyncClientRoles_Serve_UnmanagedOmittedClientRolesLeftAlone(t *testing.T) {
+	// No expectations: any Keycloak call fails this test.
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
+func TestSyncClientRoles_Serve_ManagedListSweepsUnmentionedClient(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
+		{ClientID: "app", Roles: ptr.To([]string{"r1"})},
+	})
+
+	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
+		"app": {
+			Id:     ptr.To("app-uuid"),
+			Client: ptr.To("app"),
+			Mappings: &[]keycloakapi.RoleRepresentation{
+				{Id: ptr.To("r1-id"), Name: ptr.To("r1")},
+			},
+		},
+		"other": {
+			Id:     ptr.To("other-uuid"),
+			Client: ptr.To("other"),
+			Mappings: &[]keycloakapi.RoleRepresentation{
+				{Id: ptr.To("o1-id"), Name: ptr.To("o1")},
+			},
+		},
+	}
+	mockGroups.EXPECT().GetRoleMappings(
+		context.Background(), testRealmName, testGroupID,
+	).Return(&keycloakapi.MappingsRepresentation{
+		ClientMappings: &clientMappings,
+	}, nil, nil)
+
+	mockGroups.EXPECT().DeleteClientRoleMappings(
+		context.Background(), testRealmName, testGroupID, "other-uuid",
+		[]keycloakapi.RoleRepresentation{
+			{Id: ptr.To("o1-id"), Name: ptr.To("o1")},
+		},
+	).Return(nil, nil).Once()
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	require.NoError(t, err)
+}
+
+func TestSyncClientRoles_Serve_ErrorRemovingUnclaimedClient(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+	mockClients := mocks.NewMockClientsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{
+		Groups:  mockGroups,
+		Clients: mockClients,
+	}
+
+	groupCtx := &GroupContext{
+		RealmName: testRealmName,
+		GroupID:   testGroupID,
+	}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.ClientRoles = ptr.To([]keycloakApi.UserClientRole{
+		{ClientID: "app"},
+	})
+
+	clientMappings := map[string]keycloakapi.ClientMappingsRepresentation{
+		"other": {
+			Id:     ptr.To("other-uuid"),
+			Client: ptr.To("other"),
+			Mappings: &[]keycloakapi.RoleRepresentation{
+				{Id: ptr.To("o1-id"), Name: ptr.To("o1")},
+			},
+		},
+	}
+	mockGroups.EXPECT().GetRoleMappings(
+		context.Background(), testRealmName, testGroupID,
+	).Return(&keycloakapi.MappingsRepresentation{
+		ClientMappings: &clientMappings,
+	}, nil, nil)
+
+	mockGroups.EXPECT().DeleteClientRoleMappings(
+		context.Background(), testRealmName, testGroupID, "other-uuid",
+		[]keycloakapi.RoleRepresentation{
+			{Id: ptr.To("o1-id"), Name: ptr.To("o1")},
+		},
+	).Return(nil, errors.New("delete failed"))
+
+	h := NewSyncClientRoles()
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, `unable to remove unclaimed client roles for "other"`)
 }

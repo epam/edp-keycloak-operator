@@ -25,6 +25,15 @@ func (h *SyncClientRoles) Serve(
 	log := ctrl.LoggerFrom(ctx)
 	log.Info("Syncing group client roles")
 
+	// nil: leave Keycloak alone. []: remove every client mapping. [a, b]: exactly these; unlisted clients lose their mappings.
+	if group.Spec.ClientRoles == nil {
+		log.Info("Client roles are not managed by the resource, skipping")
+
+		return nil
+	}
+
+	clientRoles := *group.Spec.ClientRoles
+
 	realm := groupCtx.RealmName
 	groupID := groupCtx.GroupID
 
@@ -35,10 +44,10 @@ func (h *SyncClientRoles) Serve(
 
 	// claimedClientRoles drives the sync; mentionedClients gates the sweep below. An entry with a
 	// nil role list lands only in mentionedClients: not synced, not swept.
-	claimedClientRoles := make(map[string][]string, len(group.Spec.ClientRoles))
-	mentionedClients := make(map[string]struct{}, len(group.Spec.ClientRoles))
+	claimedClientRoles := make(map[string][]string, len(clientRoles))
+	mentionedClients := make(map[string]struct{}, len(clientRoles))
 
-	for _, cr := range group.Spec.ClientRoles {
+	for _, cr := range clientRoles {
 		mentionedClients[cr.ClientID] = struct{}{}
 
 		if cr.Roles == nil {

@@ -56,9 +56,11 @@ type KeycloakRealmGroupSpec struct {
 	ParentGroup *common.GroupRef `json:"parentGroup,omitempty"`
 
 	// ClientRoles is a list of client roles assigned to group.
+	// Omit the field to leave the group's client roles unmanaged; set it to an empty list to
+	// remove every client role. When set, a client not listed loses its role mappings.
 	// +nullable
 	// +optional
-	ClientRoles []UserClientRole `json:"clientRoles,omitempty"`
+	ClientRoles *[]UserClientRole `json:"clientRoles,omitempty"`
 }
 
 // KeycloakRealmGroupStatus defines the observed state of KeycloakRealmGroup.

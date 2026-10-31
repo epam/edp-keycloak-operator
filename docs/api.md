@@ -5472,7 +5472,9 @@ KeycloakRealmGroupSpec defines the desired state of KeycloakRealmGroup.
         <td><b><a href="#keycloakrealmgroupspecclientrolesindex">clientRoles</a></b></td>
         <td>[]object</td>
         <td>
-          ClientRoles is a list of client roles assigned to group.<br/>
+          ClientRoles is a list of client roles assigned to group.
+Omit the field to leave the group's client roles unmanaged; set it to an empty list to
+remove every client role. When set, a client not listed loses its role mappings.<br/>
         </td>
         <td>false</td>
       </tr><tr>
