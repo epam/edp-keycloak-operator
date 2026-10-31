@@ -61,6 +61,7 @@ type passwordSyncDecision int
 const (
 	passwordWrite passwordSyncDecision = iota
 	passwordSkip
+	passwordAdopt
 )
 
 type SetUserPassword struct {
@@ -86,6 +87,8 @@ func (h *SetUserPassword) Serve(
 		return nil
 	}
 
+	adoptLegacyTemporary(ctx, user, realmName, userCtx.UserID)
+
 	pwdResult, err := h.getPassword(ctx, user, realmName, userCtx.UserID)
 	if err != nil {
 		h.setPasswordErrorCondition(ctx, user, err)
@@ -94,6 +97,13 @@ func (h *SetUserPassword) Serve(
 	}
 
 	switch decidePasswordSync(user, pwdResult) {
+	case passwordAdopt:
+		log.Info("Adopting the synced password source, skipping password sync")
+
+		user.Status.PasswordSecretHash = pwdResult.SourceHash
+		setPasswordSyncedCondition(user, pwdResult)
+
+		return nil
 	case passwordSkip:
 		log.Info("Password source unchanged, skipping password sync",
 			"secret", user.Spec.PasswordSecret.Name, "key", user.Spec.PasswordSecret.Key, "temporary", pwdResult.Temporary)
@@ -131,7 +141,8 @@ func (h *SetUserPassword) Serve(
 
 // passwordSourceHash identifies the passwordSecret source and the write target: Secret name, key, temporary flag,
 // realm name and Keycloak user ID. A non-temporary password adds the Secret UID and resourceVersion:
-// a Secret rotation rewrites it. A temporary password is written once per source and ignores Secret rotation.
+// a Secret rotation rewrites it. A temporary password is written once per source and ignores Secret rotation;
+// secret may be nil for it.
 // The input is metadata only, never the password.
 func passwordSourceHash(secret *coreV1.Secret, ps *keycloakApi.PasswordSecret, realmName, userID string) string {
 	source := "secret:" + ps.Name + ":" + ps.Key
@@ -151,9 +162,14 @@ func passwordSourceHash(secret *coreV1.Secret, ps *keycloakApi.PasswordSecret, r
 }
 
 // decidePasswordSync compares the stored source hash with the current one.
+// An empty stored hash with a synced legacy status of the same mode is adopted.
 func decidePasswordSync(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) passwordSyncDecision {
 	if !pwdResult.FromSecret {
 		return passwordWrite
+	}
+
+	if user.Status.PasswordSecretHash == "" && adoptLegacy(user, pwdResult) {
+		return passwordAdopt
 	}
 
 	if user.Status.PasswordSecretHash == pwdResult.SourceHash {
@@ -174,6 +190,44 @@ func logPasswordWrite(ctx context.Context, user *keycloakApi.KeycloakRealmUser, 
 
 	log.Info("Password source changed, will set password",
 		"secret", user.Spec.PasswordSecret.Name, "key", user.Spec.PasswordSecret.Key, "temporary", pwdResult.Temporary)
+}
+
+// adoptLegacyTemporary stores the source hash of a temporary passwordSecret when decidePasswordSync returns
+// passwordAdopt. It runs before the Secret read and uses no Secret data.
+func adoptLegacyTemporary(ctx context.Context, user *keycloakApi.KeycloakRealmUser, realmName, userID string) {
+	ps := user.Spec.PasswordSecret
+	if ps == nil || !ps.Temporary {
+		return
+	}
+
+	source := &passwordResult{
+		Temporary:  true,
+		FromSecret: true,
+		SourceHash: passwordSourceHash(nil, ps, realmName, userID),
+	}
+
+	if decidePasswordSync(user, source) == passwordAdopt {
+		ctrl.LoggerFrom(ctx).Info("Adopting the synced temporary password source")
+
+		user.Status.PasswordSecretHash = source.SourceHash
+	}
+}
+
+// adoptLegacy reports whether an empty passwordSecretHash with a settled PasswordSynced condition of the same mode
+// and, for a non-temporary password, a matching lastSyncedPasswordSecretVersion describes the current source.
+func adoptLegacy(user *keycloakApi.KeycloakRealmUser, pwdResult *passwordResult) bool {
+	cond := meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+	if cond == nil || cond.Status != metav1.ConditionTrue {
+		return false
+	}
+
+	if pwdResult.Temporary {
+		return cond.Reason == ReasonTemporaryPasswordSet
+	}
+
+	return cond.Reason == ReasonPasswordSetFromSecret &&
+		user.Status.LastSyncedPasswordSecretVersion != "" &&
+		user.Status.LastSyncedPasswordSecretVersion == pwdResult.SecretVersion
 }
 
 // setPasswordSyncedCondition sets the PasswordSynced condition to True for the current generation.

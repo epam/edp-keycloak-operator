@@ -225,6 +225,21 @@ kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select(.spec.email
 
 Check each listed user in Keycloak. Set `emailVerified: true` in the spec where the email must be verified.
 
+**`KeycloakRealmUser` with `passwordSecret`**
+
+1.36.0 stores `status.passwordSecretHash` after each password write. A user that 1.35.0 synced keeps its Keycloak password: the operator stores the hash without a write. Other users get one write. The write replaces the password that a temporary user chose.
+A change of `passwordSecret.key`, `spec.username` or `realmRef` made before the upgrade stays unapplied.
+
+```sh
+kubectl get keycloakrealmusers -A -o json | jq -r '.items[] | select((.spec.passwordSecret.name // "") != "") | "\(.metadata.namespace)/\(.metadata.name)"'
+```
+
+For each listed user with such a change, set `status.passwordSecretHash` to another value. The next reconcile writes the password once.
+
+```sh
+kubectl patch keycloakrealmuser <name> -n <namespace> --subresource=status --type=merge -p '{"status":{"passwordSecretHash":"reset"}}'
+```
+
 Other changes:
 
 - `KeycloakRealmUser`: `spec.enabled` and `spec.emailVerified` have no default and are not managed when omitted. Create: enabled, unverified. An existing user keeps the flag. Brute-force login failures and a temporary lockout stay. A change of `email` keeps the flag when `emailVerified` is omitted. Set `emailVerified: false` to make the user unverified.

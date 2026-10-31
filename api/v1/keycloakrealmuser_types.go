@@ -143,11 +143,11 @@ type KeycloakRealmUserStatus struct {
 	Conditions []metav1.Condition `json:"conditions,omitempty"`
 
 	// LastSyncedPasswordSecretVersion stores the ResourceVersion of the password secret
-	// that was last written to Keycloak.
+	// that was last written to Keycloak. Read for upgrade adoption of users synced before passwordSecretHash.
 	// +optional
 	LastSyncedPasswordSecretVersion string `json:"lastSyncedPasswordSecretVersion,omitempty"`
 
-	// PasswordSecretHash is a hash of the passwordSecret source written to Keycloak:
+	// PasswordSecretHash is a hash of the passwordSecret source written to Keycloak or adopted on upgrade:
 	// Secret name, key, temporary flag, realm name and Keycloak user ID,
 	// plus the Secret UID and resourceVersion for a non-temporary password.
 	// It contains no secret-derived data.
