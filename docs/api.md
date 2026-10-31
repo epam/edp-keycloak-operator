@@ -8763,14 +8763,14 @@ KeycloakRealmUserStatus defines the observed state of KeycloakRealmUser.
         <td>string</td>
         <td>
           LastSyncedPasswordSecretVersion stores the ResourceVersion of the password secret
-that was last written to Keycloak.<br/>
+that was last written to Keycloak. Read for upgrade adoption of users synced before passwordSecretHash.<br/>
         </td>
         <td>false</td>
       </tr><tr>
         <td><b>passwordSecretHash</b></td>
         <td>string</td>
         <td>
-          PasswordSecretHash is a hash of the passwordSecret source written to Keycloak:
+          PasswordSecretHash is a hash of the passwordSecret source written to Keycloak or adopted on upgrade:
 Secret name, key, temporary flag, realm name and Keycloak user ID,
 plus the Secret UID and resourceVersion for a non-temporary password.
 It contains no secret-derived data.

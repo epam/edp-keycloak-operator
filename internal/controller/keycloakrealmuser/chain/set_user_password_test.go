@@ -728,6 +728,98 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			wantStatusSecretVersion: "7",
 			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", true),
 		},
+		{
+			name: "adopt - non-temporary synced status without hash",
+			user: pwUser(1, "a", false, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				Conditions:                      synced(ReasonPasswordSetFromSecret, 1),
+			}),
+			secret:                  pwSecret("7", ab),
+			mockSetup:               func(m *v2mocks.MockUsersClient) {},
+			wantErr:                 require.NoError,
+			wantSkipSetPwd:          true,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonPasswordSetFromSecret,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", false),
+		},
+		{
+			name: "write - non-temporary without hash and Secret rotated",
+			user: pwUser(1, "a", false, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "6",
+				Conditions:                      synced(ReasonPasswordSetFromSecret, 1),
+			}),
+			secret:                  pwSecret("7", ab),
+			mockSetup:               expectSet("value-a", false, nil),
+			wantErr:                 require.NoError,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonPasswordSetFromSecret,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", false),
+		},
+		{
+			name: "adopt - temporary synced status without hash",
+			user: pwUser(1, "a", true, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				Conditions:                      synced(ReasonTemporaryPasswordSet, 1),
+			}),
+			secret:                  pwSecret("8", ab),
+			mockSetup:               func(m *v2mocks.MockUsersClient) {},
+			wantErr:                 require.NoError,
+			wantSkipSetPwd:          true,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonTemporaryPasswordSet,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("8", ab), "a", true),
+		},
+		{
+			name: "write - temporary spec after non-temporary status without hash",
+			user: pwUser(1, "a", true, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				Conditions:                      synced(ReasonPasswordSetFromSecret, 1),
+			}),
+			secret:                  pwSecret("7", ab),
+			mockSetup:               expectSet("value-a", true, nil),
+			wantErr:                 require.NoError,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonTemporaryPasswordSet,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", true),
+		},
+		{
+			name: "write - non-temporary spec after temporary status without hash",
+			user: pwUser(1, "a", false, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				Conditions:                      synced(ReasonTemporaryPasswordSet, 1),
+			}),
+			secret:                  pwSecret("7", ab),
+			mockSetup:               expectSet("value-a", false, nil),
+			wantErr:                 require.NoError,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonPasswordSetFromSecret,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", false),
+		},
+		{
+			name: "write - non-temporary without hash and unsettled condition",
+			user: pwUser(1, "a", false, keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				Conditions:                      failed(ReasonSecretKeyMissing),
+			}),
+			secret:                  pwSecret("7", ab),
+			mockSetup:               expectSet("value-a", false, nil),
+			wantErr:                 require.NoError,
+			wantCondition:           true,
+			wantConditionStatus:     metav1.ConditionTrue,
+			wantConditionReason:     ReasonPasswordSetFromSecret,
+			wantStatusSecretVersion: "7",
+			wantPasswordSecretHash:  srcHash(pwSecret("7", ab), "a", false),
+		},
 	}
 
 	for _, tt := range tests {
@@ -774,6 +866,54 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			assert.Equal(t, tt.wantPasswordSecretHash, tt.user.Status.PasswordSecretHash)
 		})
 	}
+}
+
+func TestSetUserPassword_Serve_AdoptsTemporaryBeforeSecretRead(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	user := &keycloakApi.KeycloakRealmUser{
+		ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace, Generation: 1},
+		Spec: keycloakApi.KeycloakRealmUserSpec{
+			Username:       testUsername,
+			PasswordSecret: &keycloakApi.PasswordSecret{Name: testPasswordSecretName, Key: "a", Temporary: true},
+		},
+		Status: keycloakApi.KeycloakRealmUserStatus{
+			LastSyncedPasswordSecretVersion: "7",
+			Conditions: []metav1.Condition{
+				{Type: ConditionPasswordSynced, Status: metav1.ConditionTrue, Reason: ReasonTemporaryPasswordSet, ObservedGeneration: 1},
+			},
+		},
+	}
+	wantHash := passwordSourceHash(nil, user.Spec.PasswordSecret, "test-realm", "user-123")
+
+	k8sClient := fake.NewClientBuilder().WithScheme(scheme).WithObjects(user).Build()
+	mockUsers := v2mocks.NewMockUsersClient(t)
+	h := NewSetUserPassword(k8sClient, &keycloakapi.KeycloakClient{Users: mockUsers})
+	userCtx := &UserContext{UserID: "user-123"}
+
+	err := h.Serve(context.Background(), user, "test-realm", userCtx)
+	require.Error(t, err)
+
+	cond := meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+	require.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionFalse, cond.Status)
+	assert.Equal(t, ReasonSecretNotFound, cond.Reason)
+	assert.Equal(t, wantHash, user.Status.PasswordSecretHash)
+
+	require.NoError(t, k8sClient.Create(context.Background(), &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{Name: testPasswordSecretName, Namespace: defaultNamespace},
+		Data:       map[string][]byte{"a": []byte("value-a")},
+	}))
+
+	require.NoError(t, h.Serve(context.Background(), user, "test-realm", userCtx))
+
+	cond = meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+	require.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionTrue, cond.Status)
+	assert.Equal(t, ReasonTemporaryPasswordSet, cond.Reason)
+	assert.Equal(t, wantHash, user.Status.PasswordSecretHash)
 }
 
 func TestPasswordSourceHash(t *testing.T) {
