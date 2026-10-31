@@ -3,12 +3,15 @@ package chain
 import (
 	"context"
 	"fmt"
+	"maps"
 
+	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
+	"github.com/epam/edp-keycloak-operator/pkg/maputil"
 )
 
 type CreateOrUpdateGroup struct {
@@ -106,6 +109,12 @@ func (h *CreateOrUpdateGroup) Serve(
 				spec.Name, existingGroupID, owner.Namespace, owner.Name,
 			)
 		}
+
+		// Search results can be brief and omit attributes.
+		existingGroup, _, err = kClient.Groups.GetGroup(ctx, realm, existingGroupID)
+		if err != nil {
+			return fmt.Errorf("unable to get group %q by ID %q: %w", spec.Name, existingGroupID, err)
+		}
 	}
 
 	if existingGroup == nil {
@@ -136,6 +145,11 @@ func (h *CreateOrUpdateGroup) Serve(
 		log.Info("Group created", "groupID", groupCtx.GroupID)
 	} else {
 		groupCtx.GroupID = existingGroupID
+
+		if groupMatchesSpec(existingGroup, spec) {
+			return nil
+		}
+
 		existingGroup.Name = &spec.Name
 		existingGroup.Description = optionalDescription(spec.Description)
 		existingGroup.Path = &spec.Path
@@ -149,4 +163,29 @@ func (h *CreateOrUpdateGroup) Serve(
 	}
 
 	return nil
+}
+
+// groupMatchesSpec reports whether existing holds the name, description and attributes the update writes.
+// Keycloak derives the path and ignores it on write. Nil spec attributes are not managed: the update sends null.
+func groupMatchesSpec(existing *keycloakapi.GroupRepresentation, spec *keycloakApi.KeycloakRealmGroupSpec) bool {
+	if ptr.Deref(existing.Name, "") != spec.Name || ptr.Deref(existing.Description, "") != spec.Description {
+		return false
+	}
+
+	return spec.Attributes == nil || groupAttributesMatch(ptr.Deref(existing.Attributes, nil), spec.Attributes)
+}
+
+// groupAttributesMatch compares key sets and per-key value multisets.
+// A key without values equals an absent key: Keycloak stores one row per value.
+func groupAttributesMatch(existing, desired map[string][]string) bool {
+	have, want := storedAttributes(existing), storedAttributes(desired)
+
+	return len(have) == len(want) && maputil.ContainsSubsetMulti(have, want)
+}
+
+func storedAttributes(m map[string][]string) map[string][]string {
+	out := maps.Clone(m)
+	maps.DeleteFunc(out, func(_ string, v []string) bool { return len(v) == 0 })
+
+	return out
 }
