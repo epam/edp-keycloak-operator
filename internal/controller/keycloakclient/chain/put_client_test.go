@@ -2,10 +2,13 @@ package chain
 
 import (
 	"context"
+	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"slices"
 	"sync"
 	"testing"
 
@@ -2054,4 +2057,73 @@ func perturbField(t *testing.T, f reflect.Value) {
 	}
 
 	f.Set(next)
+}
+
+func TestPutClient_Serve_SecretCreateErrorIsStable(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	var (
+		captured     [][]byte
+		statusWrites int
+	)
+
+	k8sClient := fake.NewClientBuilder().
+		WithScheme(s).
+		WithStatusSubresource(&keycloakApi.KeycloakClient{}).
+		WithObjects(&keycloakApi.KeycloakClient{
+			ObjectMeta: metav1.ObjectMeta{Name: testClientName, Namespace: testClientNamespace},
+			Spec:       keycloakApi.KeycloakClientSpec{ClientId: testClientID},
+		}).
+		WithInterceptorFuncs(interceptor.Funcs{
+			Create: func(_ context.Context, _ client.WithWatch, obj client.Object, _ ...client.CreateOption) error {
+				if secret, ok := obj.(*corev1.Secret); ok {
+					captured = append(captured, slices.Clone(secret.Data[keycloakApi.ClientSecretKey]))
+				}
+
+				return errors.New("create denied")
+			},
+			SubResourceUpdate: func(
+				ctx context.Context, c client.Client, subResourceName string, obj client.Object, opts ...client.SubResourceUpdateOption,
+			) error {
+				statusWrites++
+
+				return c.SubResource(subResourceName).Update(ctx, obj, opts...)
+			},
+		}).
+		Build()
+
+	cr := &keycloakApi.KeycloakClient{}
+	require.NoError(t, k8sClient.Get(
+		context.Background(), client.ObjectKey{Name: testClientName, Namespace: testClientNamespace}, cr,
+	))
+
+	handler := NewPutClient(&keycloakapi.KeycloakClient{}, k8sClient, mocks.NewMockRefClient(t))
+	ctx := ctrl.LoggerInto(context.Background(), logr.Discard())
+
+	err1 := handler.Serve(ctx, cr, testRealmName, &ClientContext{})
+	err2 := handler.Serve(ctx, cr, testRealmName, &ClientContext{})
+
+	require.Len(t, captured, 2)
+	require.Error(t, err1)
+	require.Error(t, err2)
+
+	secretName := fmt.Sprintf("%s/keycloak-client-%s-secret", testClientNamespace, testClientName)
+	want := fmt.Sprintf("unable to create secret %s: create denied", secretName)
+
+	value := captured[0]
+	require.NotEmpty(t, value)
+	require.Contains(t, err1.Error(), want)
+	require.NotContains(t, err1.Error(), string(value))
+	require.NotContains(t, err1.Error(), fmt.Sprintf("%v", value))
+	require.NotContains(t, err1.Error(), base64.StdEncoding.EncodeToString(value))
+
+	cond := meta.FindStatusCondition(cr.Status.Conditions, ConditionClientSynced)
+	require.NotNil(t, cond)
+	require.Contains(t, cond.Message, secretName)
+
+	require.Equal(t, err1.Error(), err2.Error())
+	require.NotEqual(t, captured[0], captured[1])
+	require.Equal(t, 1, statusWrites)
 }

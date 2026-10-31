@@ -238,7 +238,7 @@ func (h *PutClient) generateSecret(ctx context.Context, keycloakClient *keycloak
 		}
 
 		if err := h.k8sClient.Create(ctx, &clientSecret); err != nil {
-			return "", "", fmt.Errorf("unable to create secret %+v, err: %w", clientSecret, err)
+			return "", "", fmt.Errorf("unable to create secret %s/%s: %w", keycloakClient.Namespace, secretName, err)
 		}
 	}
 
