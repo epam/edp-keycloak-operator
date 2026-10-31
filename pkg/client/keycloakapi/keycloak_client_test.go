@@ -20,6 +20,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -2183,6 +2184,313 @@ func TestNewKeycloakClient_PermanentTLSErrorNotRetried(t *testing.T) {
 			assert.Equal(t, int32(1), connections.Load(), "the request must not be retried")
 		})
 	}
+}
+
+type redirectTargets struct {
+	redirector   *httptest.Server
+	capture      *httptest.Server
+	redirectHits atomic.Int32
+	captureHits  atomic.Int32
+}
+
+// newRedirectTargets starts a redirector that answers code with a Location on the capture server.
+// The redirector is TLS when redirectorTLS is set; the capture server is always plain http.
+func newRedirectTargets(t *testing.T, code int, redirectorTLS bool) *redirectTargets {
+	t.Helper()
+
+	return newRedirectTargetsWithLocation(t, code, redirectorTLS, func(capture string, r *http.Request) string {
+		return capture + r.URL.Path
+	})
+}
+
+// newRedirectTargetsWithLocation sets no Location header when location returns "".
+func newRedirectTargetsWithLocation(
+	t *testing.T,
+	code int,
+	redirectorTLS bool,
+	location func(capture string, r *http.Request) string,
+) *redirectTargets {
+	t.Helper()
+
+	targets := &redirectTargets{}
+
+	targets.capture = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		targets.captureHits.Add(1)
+
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"access_token":"t","token_type":"Bearer"}`))
+	}))
+	t.Cleanup(targets.capture.Close)
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		targets.redirectHits.Add(1)
+
+		if loc := location(targets.capture.URL, r); loc != "" {
+			w.Header().Set("Location", loc)
+		}
+
+		w.WriteHeader(code)
+	})
+
+	if redirectorTLS {
+		targets.redirector = httptest.NewTLSServer(handler)
+	} else {
+		targets.redirector = httptest.NewServer(handler)
+	}
+
+	t.Cleanup(targets.redirector.Close)
+
+	return targets
+}
+
+func loginAgainst(baseURL string, tlsInsecure bool) error {
+	_, err := NewKeycloakClient(
+		context.Background(),
+		baseURL,
+		"admin-cli",
+		WithPasswordGrant("admin", "admin"),
+		WithTLSInsecureSkipVerify(tlsInsecure),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+
+	return err
+}
+
+func TestNewKeycloakClient_RedirectRefused(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		code          int
+		redirectorTLS bool
+	}{
+		{name: "301", code: http.StatusMovedPermanently},
+		{name: "302", code: http.StatusFound},
+		{name: "303", code: http.StatusSeeOther},
+		{name: "307", code: http.StatusTemporaryRedirect},
+		{name: "308", code: http.StatusPermanentRedirect},
+		{name: "308 https to http", code: http.StatusPermanentRedirect, redirectorTLS: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			targets := newRedirectTargets(t, tt.code, tt.redirectorTLS)
+
+			err := loginAgainst(targets.redirector.URL, tt.redirectorTLS)
+
+			require.ErrorIs(t, err, ErrRedirectRefused)
+			require.ErrorContains(t, err, "/realms/master/protocol/openid-connect/token")
+			require.ErrorContains(t, err, strconv.Itoa(tt.code))
+			require.NotContains(t, err.Error(), targets.capture.Listener.Addr().String())
+			assert.Equal(t, int32(0), targets.captureHits.Load(), "the redirect target must not be called")
+			assert.Equal(t, int32(1), targets.redirectHits.Load(), "a refused redirect must not be retried")
+		})
+	}
+}
+
+func TestNewKeycloakClient_RedirectRefused_NoFollowableLocation(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name     string
+		code     int
+		location bool
+	}{
+		{name: "300 with Location", code: http.StatusMultipleChoices, location: true},
+		{name: "307 without Location", code: http.StatusTemporaryRedirect},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			targets := newRedirectTargetsWithLocation(t, tt.code, false,
+				func(capture string, r *http.Request) string {
+					if !tt.location {
+						return ""
+					}
+
+					return capture + r.URL.Path
+				})
+
+			err := loginAgainst(targets.redirector.URL, false)
+
+			require.ErrorIs(t, err, ErrRedirectRefused)
+			assert.Equal(t, int32(0), targets.captureHits.Load())
+			assert.Equal(t, int32(1), targets.redirectHits.Load())
+		})
+	}
+}
+
+func TestNewKeycloakClient_RedirectRefused_StableText(t *testing.T) {
+	t.Parallel()
+
+	run := func(state string) string {
+		targets := newRedirectTargetsWithLocation(t, http.StatusTemporaryRedirect, false,
+			func(capture string, r *http.Request) string {
+				return capture + "/x?state=" + state
+			})
+
+		// The redirector address differs per run and is masked.
+		err := loginAgainst(targets.redirector.URL, false)
+		require.ErrorIs(t, err, ErrRedirectRefused)
+
+		return strings.ReplaceAll(err.Error(), targets.redirector.URL, "REDIRECTOR")
+	}
+
+	assert.Equal(t, run("a"), run("b"))
+}
+
+func TestNewKeycloakClient_RedirectRefused_NoSecretsInError(t *testing.T) {
+	t.Parallel()
+
+	targets := newRedirectTargetsWithLocation(t, http.StatusTemporaryRedirect, false,
+		func(capture string, r *http.Request) string {
+			return strings.Replace(capture, "http://", "http://user:pw@", 1) + "/x?token=s3cr3t"
+		})
+
+	withUserinfo := strings.Replace(targets.redirector.URL, "http://", "http://u:p@", 1)
+
+	err := loginAgainst(withUserinfo+"/?q=secretquery", false)
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+
+	for _, leaked := range []string{
+		"pw", "u:p@", "token=", "s3cr3t", "secretquery", targets.capture.Listener.Addr().String(),
+	} {
+		assert.NotContains(t, err.Error(), leaked)
+	}
+}
+
+func TestNewKeycloakClient_RedirectRefused_BoundedText(t *testing.T) {
+	t.Parallel()
+
+	targets := newRedirectTargetsWithLocation(t, http.StatusTemporaryRedirect, false,
+		func(capture string, r *http.Request) string {
+			return capture + "/" + strings.Repeat("a", 500*1024)
+		})
+
+	err := loginAgainst(targets.redirector.URL, false)
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+	assert.Less(t, len(err.Error()), 512)
+}
+
+func TestKeycloakDoer_RedirectRefused(t *testing.T) {
+	t.Parallel()
+
+	targets := newRedirectTargets(t, http.StatusTemporaryRedirect, false)
+
+	kc, err := NewKeycloakClient(
+		context.Background(),
+		targets.redirector.URL,
+		"admin-cli",
+		WithAccessToken(testAccessToken),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	realm := "redirect-test"
+	_, err = kc.Realms.CreateRealm(context.Background(), RealmRepresentation{Realm: &realm})
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+	assert.Equal(t, int32(0), targets.captureHits.Load(), "the JSON body and bearer token must not reach the target")
+	assert.Equal(t, int32(1), targets.redirectHits.Load())
+}
+
+func TestKeycloakDoer_RedirectRefused_Get(t *testing.T) {
+	t.Parallel()
+
+	targets := newRedirectTargets(t, http.StatusFound, false)
+
+	kc, err := NewKeycloakClient(
+		context.Background(),
+		targets.redirector.URL,
+		"admin-cli",
+		WithAccessToken(testAccessToken),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	_, err = kc.Server.GetServerInfo(context.Background())
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+	assert.Equal(t, int32(0), targets.captureHits.Load(), "the bearer token must not reach the target")
+	assert.Equal(t, int32(1), targets.redirectHits.Load())
+}
+
+func TestKeycloakDoer_LazyLoginRedirectRefused(t *testing.T) {
+	t.Parallel()
+
+	targets := newRedirectTargets(t, http.StatusTemporaryRedirect, false)
+
+	kc, err := NewKeycloakClient(
+		context.Background(),
+		targets.redirector.URL,
+		"admin-cli",
+		WithPasswordGrant("admin", "admin"),
+		WithInitialLogin(false),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	_, err = kc.Server.GetServerInfo(context.Background())
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+	assert.Equal(t, int32(0), targets.captureHits.Load(), "the token form must not reach the target")
+}
+
+func TestKeycloakDoer_RefreshRedirectRefused(t *testing.T) {
+	t.Parallel()
+
+	capture := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		t.Error("the redirect target must not be called")
+		w.WriteHeader(http.StatusOK)
+	}))
+	t.Cleanup(capture.Close)
+
+	var tokenHits, adminHits atomic.Int32
+
+	kcServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/protocol/openid-connect/token") {
+			if tokenHits.Add(1) == 1 {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write([]byte(`{"access_token":"t","token_type":"Bearer"}`))
+
+				return
+			}
+
+			http.Redirect(w, r, capture.URL+r.URL.Path, http.StatusTemporaryRedirect)
+
+			return
+		}
+
+		adminHits.Add(1)
+		w.WriteHeader(http.StatusUnauthorized)
+	}))
+	t.Cleanup(kcServer.Close)
+
+	kc, err := NewKeycloakClient(
+		context.Background(),
+		kcServer.URL,
+		"admin-cli",
+		WithPasswordGrant("admin", "admin"),
+		WithRetryWaitTime(time.Millisecond),
+		WithRetryMaxWaitTime(time.Millisecond),
+	)
+	require.NoError(t, err)
+
+	_, err = kc.Server.GetServerInfo(context.Background())
+
+	require.ErrorIs(t, err, ErrRedirectRefused)
+	assert.Equal(t, int32(1), adminHits.Load())
+	assert.Equal(t, int32(2), tokenHits.Load())
 }
 
 func TestNewKeycloakClient_TLSServerNameSentAsSNI(t *testing.T) {

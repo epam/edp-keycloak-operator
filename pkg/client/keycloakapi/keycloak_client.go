@@ -288,6 +288,7 @@ func WithLogger(log logr.Logger) ClientOption {
 //   - WithLogger: Set a custom logger (default: uses context logger or discard)
 //
 // Trailing slashes in baseURL, the admin URL and the base path are ignored.
+// The client follows no HTTP redirect: a 3xx response fails the request with ErrRedirectRefused.
 func NewKeycloakClient(ctx context.Context, baseURL, clientId string, opts ...ClientOption) (*KeycloakClient, error) {
 	baseURL = strings.TrimRight(baseURL, "/")
 	if baseURL == "" {
@@ -451,6 +452,10 @@ func (keycloakClient *KeycloakClient) login(ctx context.Context) error {
 			return err
 		}
 
+		if err = refuseRedirect(resp.RawResponse); err != nil {
+			return err
+		}
+
 		if resp.IsError() {
 			return fmt.Errorf("error sending POST request to %s: %s", accessTokenUrl, resp.Status())
 		}
@@ -498,6 +503,10 @@ func (keycloakClient *KeycloakClient) Refresh(ctx context.Context) error {
 
 	resp, err := req.Post(refreshTokenUrl)
 	if err != nil {
+		return err
+	}
+
+	if err = refuseRedirect(resp.RawResponse); err != nil {
 		return err
 	}
 
@@ -630,7 +639,7 @@ func (d *keycloakDoer) Do(req *http.Request) (*http.Response, error) {
 		d.kc.mu.Unlock()
 
 		if err := d.kc.login(ctx); err != nil {
-			return nil, fmt.Errorf("error logging in: %s", err)
+			return nil, fmt.Errorf("error logging in: %w", err)
 		}
 	} else {
 		d.kc.mu.Unlock()
@@ -670,7 +679,7 @@ func (d *keycloakDoer) Do(req *http.Request) (*http.Response, error) {
 
 		if needsRefresh {
 			if err := d.kc.Refresh(req.Context()); err != nil {
-				return nil, fmt.Errorf("error refreshing credentials: %s", err)
+				return nil, fmt.Errorf("error refreshing credentials: %w", err)
 			}
 		}
 
@@ -732,7 +741,31 @@ func (d *keycloakDoer) executeViaResty(req *http.Request) (*http.Response, error
 		return nil, err
 	}
 
+	if err = refuseRedirect(resp.RawResponse); err != nil {
+		_ = resp.RawResponse.Body.Close()
+
+		return nil, err
+	}
+
 	return resp.RawResponse, nil
+}
+
+// ErrRedirectRefused is wrapped by the error for every 3xx response. The client follows no redirect.
+var ErrRedirectRefused = errors.New("redirect refused")
+
+// refuseRedirect returns an ErrRedirectRefused error for a 3xx response.
+// Call it on the response of every send site: login, Refresh and executeViaResty.
+// The redirect policy of the resty client only stops at the first 3xx.
+func refuseRedirect(resp *http.Response) error {
+	if resp.StatusCode < 300 || resp.StatusCode > 399 {
+		return nil
+	}
+
+	u := *resp.Request.URL
+	u.User, u.RawQuery, u.ForceQuery, u.Fragment, u.RawFragment = nil, "", false, "", ""
+
+	return fmt.Errorf("%w: %s %s answered %d; set spec.url to the address that serves Keycloak without a redirect",
+		ErrRedirectRefused, resp.Request.Method, u.String(), resp.StatusCode)
 }
 
 func RetryPolicy(resp *resty.Response, err error) bool {
@@ -826,6 +859,9 @@ func remoteTLSAlert(err error) (uint8, bool) {
 	return 0, false
 }
 
+// newRestyClient builds the HTTP client of KeycloakClient.
+// The redirect policy stops at the first 3xx; every send site (login, Refresh, executeViaResty)
+// calls refuseRedirect on the response.
 func newRestyClient(config *clientConfig) (*resty.Client, error) {
 	cookieJar, err := cookiejar.New(&cookiejar.Options{
 		PublicSuffixList: publicsuffix.List,
@@ -843,6 +879,9 @@ func newRestyClient(config *clientConfig) (*resty.Client, error) {
 		SetTransport(transport).
 		SetTimeout(time.Second * time.Duration(config.clientTimeout)).
 		SetCookieJar(cookieJar).
+		SetRedirectPolicy(resty.RedirectPolicyFunc(func(*http.Request, []*http.Request) error {
+			return http.ErrUseLastResponse
+		})).
 		SetRetryCount(5).
 		SetRetryWaitTime(config.retryWaitTime).
 		SetRetryMaxWaitTime(config.retryMaxWaitTime).
