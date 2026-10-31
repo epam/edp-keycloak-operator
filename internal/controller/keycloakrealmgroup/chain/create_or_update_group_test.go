@@ -155,14 +155,24 @@ func TestCreateOrUpdateGroup_Serve_UpdateExisting(t *testing.T) {
 		Path: ptr.To("/old-path"),
 	}, nil, nil)
 
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:            ptr.To("existing-id"),
+		Name:          ptr.To(testExistingGroup),
+		Path:          ptr.To("/old-path"),
+		SubGroupCount: ptr.To(int64(2)),
+	}, nil, nil)
+
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), testRealmName, "existing-id",
 		keycloakapi.GroupRepresentation{
-			Id:          ptr.To("existing-id"),
-			Name:        ptr.To(testExistingGroup),
-			Description: ptr.To("Updated description"),
-			Path:        ptr.To(testUpdatedPath),
-			Attributes:  &map[string][]string{"new-key": {"new-val"}},
+			Id:            ptr.To("existing-id"),
+			Name:          ptr.To(testExistingGroup),
+			Description:   ptr.To("Updated description"),
+			Path:          ptr.To(testUpdatedPath),
+			Attributes:    &map[string][]string{"new-key": {"new-val"}},
+			SubGroupCount: ptr.To(int64(2)),
 		},
 	).Return(nil, nil)
 
@@ -282,6 +292,15 @@ func TestCreateOrUpdateGroup_Serve_OmitsEmptyDescription(t *testing.T) {
 			Path:        ptr.To("/old-path"),
 		}, nil, nil)
 
+		mockGroups.EXPECT().GetGroup(
+			context.Background(), testRealmName, "existing-id",
+		).Return(&keycloakapi.GroupRepresentation{
+			Id:          ptr.To("existing-id"),
+			Name:        ptr.To(testExistingGroup),
+			Description: ptr.To("stale description"),
+			Path:        ptr.To("/old-path"),
+		}, nil, nil)
+
 		mockGroups.EXPECT().UpdateGroup(
 			context.Background(), testRealmName, "existing-id",
 			keycloakapi.GroupRepresentation{
@@ -320,6 +339,14 @@ func TestCreateOrUpdateGroup_Serve_UpdateGroupError(t *testing.T) {
 		Path: ptr.To("/old-path"),
 	}, nil, nil)
 
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), testRealmName, "existing-id",
 		keycloakapi.GroupRepresentation{
@@ -348,6 +375,14 @@ func TestCreateOrUpdateGroup_Serve_UpdateExistingChildGroup(t *testing.T) {
 
 	mockGroups.EXPECT().FindChildGroupByName(
 		context.Background(), testRealmName, "parent-id", testChildGroupName,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("child-id"),
+		Name: ptr.To(testChildGroupName),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "child-id",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("child-id"),
 		Name: ptr.To(testChildGroupName),
@@ -574,6 +609,14 @@ func TestCreateOrUpdateGroup_Serve_AdoptUnownedGroupByName(t *testing.T) {
 		Path: ptr.To("/old-path"),
 	}, nil, nil)
 
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
 	mockGroups.EXPECT().UpdateGroup(
 		context.Background(), testRealmName, "existing-id",
 		keycloakapi.GroupRepresentation{
@@ -644,6 +687,14 @@ func TestCreateOrUpdateGroup_Serve_AllowsSameGroupIDOnNamespacedRealmInAnotherNa
 
 	mockGroups.EXPECT().FindGroupByName(
 		context.Background(), testRealmName, testExistingGroup,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testExistingGroup),
+		Path: ptr.To("/old-path"),
+	}, nil, nil)
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
 	).Return(&keycloakapi.GroupRepresentation{
 		Id:   ptr.To("existing-id"),
 		Name: ptr.To(testExistingGroup),
@@ -817,4 +868,376 @@ func TestCreateOrUpdateGroup_Serve_ByIDPathSkipsOwnershipCheck(t *testing.T) {
 	err := h.Serve(context.Background(), group, kClient, groupCtx)
 	require.NoError(t, err)
 	assert.Equal(t, "existing-id", groupCtx.GroupID)
+}
+
+func TestGroupMatchesSpec(t *testing.T) {
+	tests := []struct {
+		name     string
+		existing keycloakapi.GroupRepresentation
+		spec     keycloakApi.KeycloakRealmGroupSpec
+		want     bool
+	}{
+		{
+			name: "name, description and attributes equal",
+			existing: keycloakapi.GroupRepresentation{
+				Name:        ptr.To(testGroupName),
+				Description: ptr.To("desc"),
+				Attributes:  &map[string][]string{"k": {"a", "b"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:        testGroupName,
+				Description: "desc",
+				Attributes:  map[string][]string{"k": {"a", "b"}},
+			},
+			want: true,
+		},
+		{
+			name:     "empty spec description equals absent description",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+			want:     true,
+		},
+		{
+			name:     "empty spec description equals stored empty description",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName), Description: ptr.To("")},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+			want:     true,
+		},
+		{
+			name:     "path is not compared",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName), Path: ptr.To(testGroupPath)},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName, Path: "/stale"},
+			want:     true,
+		},
+		{
+			name: "values in another order",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"z", "a", "m"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"a", "m", "z"}},
+			},
+			want: true,
+		},
+		{
+			name:     "spec key without values equals absent key",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"empty": {}},
+			},
+			want: true,
+		},
+		{
+			name: "nil spec attributes leave stored attributes unmanaged",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+			want: true,
+		},
+		{
+			name:     "empty spec attributes equal absent stored attributes",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName, Attributes: map[string][]string{}},
+			want:     true,
+		},
+		{
+			name: "duplicate values on both sides",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a", "a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"a", "a"}},
+			},
+			want: true,
+		},
+		{
+			name: "blank value on both sides",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {""}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {""}},
+			},
+			want: true,
+		},
+		{
+			name: "blank and set value in another order",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"x", ""}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"", "x"}},
+			},
+			want: true,
+		},
+		{
+			name:     "name differs",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To("other")},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+		},
+		{
+			name:     "description differs",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName), Description: ptr.To("old")},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName, Description: "new"},
+		},
+		{
+			name:     "spec description set, stored description absent",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName, Description: "new"},
+		},
+		{
+			name:     "spec description empty, stored description set",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName), Description: ptr.To("old")},
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+		},
+		{
+			name: "stored attribute key is not in the spec",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}, "extra": {"x"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"a"}},
+			},
+		},
+		{
+			name: "spec attribute key is not stored",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"a"}, "missing": {"x"}},
+			},
+		},
+		{
+			name: "attribute value differs",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"b"}},
+			},
+		},
+		{
+			name: "duplicate value stored once",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"a", "a"}},
+			},
+		},
+		{
+			name: "empty spec attributes, stored attribute present",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"a"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName, Attributes: map[string][]string{}},
+		},
+		{
+			name: "spec key without values, stored key has a value",
+			existing: keycloakapi.GroupRepresentation{
+				Name:       ptr.To(testGroupName),
+				Attributes: &map[string][]string{"k": {"x"}},
+			},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {}},
+			},
+		},
+		{
+			name:     "spec key with a blank value, stored key absent",
+			existing: keycloakapi.GroupRepresentation{Name: ptr.To(testGroupName)},
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {""}},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, groupMatchesSpec(&tt.existing, &tt.spec))
+		})
+	}
+}
+
+func TestCreateOrUpdateGroup_Serve_SkipsUpdateWhenGroupMatches(t *testing.T) {
+	tests := []struct {
+		name     string
+		spec     keycloakApi.KeycloakRealmGroupSpec
+		groupCtx GroupContext
+		mocks    func(m *mocks.MockGroupsClient)
+		wantID   string
+	}{
+		{
+			name:     "by id, name only",
+			spec:     keycloakApi.KeycloakRealmGroupSpec{Name: testGroupName},
+			groupCtx: GroupContext{RealmName: testRealmName, GroupID: "existing-id"},
+			mocks: func(m *mocks.MockGroupsClient) {
+				m.EXPECT().GetGroup(
+					context.Background(), testRealmName, "existing-id",
+				).Return(&keycloakapi.GroupRepresentation{
+					Id:   ptr.To("existing-id"),
+					Name: ptr.To(testGroupName),
+					Path: ptr.To(testGroupPath),
+				}, nil, nil)
+			},
+			wantID: "existing-id",
+		},
+		{
+			name: "top-level name hit, brief search result, full group equal",
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testGroupName,
+				Attributes: map[string][]string{"k": {"v"}},
+			},
+			groupCtx: GroupContext{RealmName: testRealmName},
+			mocks: func(m *mocks.MockGroupsClient) {
+				m.EXPECT().FindGroupByName(
+					context.Background(), testRealmName, testGroupName,
+				).Return(&keycloakapi.GroupRepresentation{
+					Id:   ptr.To("existing-id"),
+					Name: ptr.To(testGroupName),
+					Path: ptr.To(testGroupPath),
+				}, nil, nil)
+
+				m.EXPECT().GetGroup(
+					context.Background(), testRealmName, "existing-id",
+				).Return(&keycloakapi.GroupRepresentation{
+					Id:         ptr.To("existing-id"),
+					Name:       ptr.To(testGroupName),
+					Path:       ptr.To(testGroupPath),
+					Attributes: &map[string][]string{"k": {"v"}},
+				}, nil, nil)
+			},
+			wantID: "existing-id",
+		},
+		{
+			name: "child name hit, brief search result, full group equal",
+			spec: keycloakApi.KeycloakRealmGroupSpec{
+				Name:       testChildGroupName,
+				Attributes: map[string][]string{"k": {"v"}},
+			},
+			groupCtx: GroupContext{RealmName: testRealmName, ParentGroupID: "parent-id"},
+			mocks: func(m *mocks.MockGroupsClient) {
+				m.EXPECT().FindChildGroupByName(
+					context.Background(), testRealmName, "parent-id", testChildGroupName,
+				).Return(&keycloakapi.GroupRepresentation{
+					Id:   ptr.To("child-id"),
+					Name: ptr.To(testChildGroupName),
+				}, nil, nil)
+
+				m.EXPECT().GetGroup(
+					context.Background(), testRealmName, "child-id",
+				).Return(&keycloakapi.GroupRepresentation{
+					Id:         ptr.To("child-id"),
+					Name:       ptr.To(testChildGroupName),
+					Path:       ptr.To("/parent/child-group"),
+					Attributes: &map[string][]string{"k": {"v"}},
+				}, nil, nil)
+			},
+			wantID: "child-id",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockGroups := mocks.NewMockGroupsClient(t)
+			tt.mocks(mockGroups)
+
+			group := &keycloakApi.KeycloakRealmGroup{Spec: tt.spec}
+			groupCtx := tt.groupCtx
+
+			h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+			err := h.Serve(context.Background(), group, &keycloakapi.KeycloakClient{Groups: mockGroups}, &groupCtx)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantID, groupCtx.GroupID)
+		})
+	}
+}
+
+func TestCreateOrUpdateGroup_Serve_NameHitComparesFullGroup(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: testRealmName}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.Name = testGroupName
+	group.Spec.Attributes = map[string][]string{}
+
+	// The search result omits attributes, so only the full group shows the stale key.
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), testRealmName, testGroupName,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testGroupName),
+	}, nil, nil)
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:         ptr.To("existing-id"),
+		Name:       ptr.To(testGroupName),
+		Attributes: &map[string][]string{"stale": {"x"}},
+	}, nil, nil)
+
+	mockGroups.EXPECT().UpdateGroup(
+		context.Background(), testRealmName, "existing-id",
+		keycloakapi.GroupRepresentation{
+			Id:         ptr.To("existing-id"),
+			Name:       ptr.To(testGroupName),
+			Path:       ptr.To(""),
+			Attributes: &map[string][]string{},
+		},
+	).Return(nil, nil)
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	require.NoError(t, h.Serve(context.Background(), group, kClient, groupCtx))
+	assert.Equal(t, "existing-id", groupCtx.GroupID)
+}
+
+func TestCreateOrUpdateGroup_Serve_NameHitGetByIDError(t *testing.T) {
+	mockGroups := mocks.NewMockGroupsClient(t)
+
+	kClient := &keycloakapi.KeycloakClient{Groups: mockGroups}
+	groupCtx := &GroupContext{RealmName: testRealmName}
+
+	group := &keycloakApi.KeycloakRealmGroup{}
+	group.Spec.Name = testGroupName
+
+	mockGroups.EXPECT().FindGroupByName(
+		context.Background(), testRealmName, testGroupName,
+	).Return(&keycloakapi.GroupRepresentation{
+		Id:   ptr.To("existing-id"),
+		Name: ptr.To(testGroupName),
+	}, nil, nil)
+
+	mockGroups.EXPECT().GetGroup(
+		context.Background(), testRealmName, "existing-id",
+	).Return(nil, nil, errors.New("api error"))
+
+	h := NewCreateOrUpdateGroup(newFakeK8sClient(t))
+	err := h.Serve(context.Background(), group, kClient, groupCtx)
+	assert.ErrorContains(t, err, "unable to get group")
+	assert.Empty(t, groupCtx.GroupID)
 }
