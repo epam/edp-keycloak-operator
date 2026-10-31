@@ -37,6 +37,9 @@ resolved Secret may reach. The list is empty by default: no policy, nothing logg
 - With a non-empty list and `enforceDestinationAllowlist: false`, violations are logged and counted in
   `keycloak_operator_destination_violations_total`; set the list first, read the log, then enforce.
 
+The operator follows no HTTP redirect from Keycloak, whatever the allowlist says. `spec.url` must be
+the address that serves Keycloak directly.
+
 The allowlist narrows the trust boundary above; it does not replace RBAC.
 
 ## Keycloak egress

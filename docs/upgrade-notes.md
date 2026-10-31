@@ -281,6 +281,22 @@ For each affected role:
 For each role with `isDefault: true` in a realm with upper-case letters in its name: 1.36.0 adds the role to
 the default roles, and all users of the realm get it. To prevent this, remove `isDefault` before you upgrade.
 
+**12. `Keycloak` and `ClusterKeycloak` with a `spec.url` that answers with a redirect**
+
+1.36.0 follows no HTTP redirect. A `spec.url` that answers with a 3xx status, such as an Ingress http to https
+redirect, sets `status.connected` to `false`. Resources that use this Keycloak stop reconciling until `spec.url`
+is fixed.
+
+Check each `spec.url` with the request that the operator sends to the token endpoint. Remove a trailing slash
+from `spec.url`. Add `/auth` for a legacy base path.
+
+```sh
+curl -sS -o /dev/null -w '%{http_code}\n' -X POST <spec.url>/realms/master/protocol/openid-connect/token
+```
+
+The command must print a status other than 3xx. `400` and `401` are fine. For a 3xx status, set `spec.url` to
+the address that serves Keycloak without a redirect.
+
 #### After you upgrade
 
 **1. Realm roles that 1.35.0 removed** ([#371](https://github.com/epam/edp-keycloak-operator/issues/371), [#374](https://github.com/epam/edp-keycloak-operator/issues/374))
@@ -363,6 +379,7 @@ Check each listed user in Keycloak. Where the email must be verified, set `email
 | `KeycloakOrganization` | All | An update sends the `enabled` value that Keycloak returned. An organization disabled in Keycloak stays disabled after an operator write. 1.35.0 enabled it again. |
 | `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault` is always managed. `true` adds the role to the realm default roles. Omitted or `false` removes it. The change applies to all users of the realm. The operator writes only when the membership differs. An edit of a batch entry does not reach a child that exists. See item 11 in "Before you upgrade". |
 | `KeycloakRealmRole`, `KeycloakRealmRoleBatch` | All | `isDefault: true` works in a realm with upper-case letters in its name. The operator reads the default role name from Keycloak. |
+| `Keycloak`, `ClusterKeycloak` | All | The operator follows no HTTP redirect. A URL that answers with a 3xx status, such as an Ingress http to https redirect, sets `status.connected` to `false`. `status.value` contains `redirect refused: <method> <url> answered <code>; ...`. Resources that use this Keycloak stop reconciling until `spec.url` is fixed. Set `spec.url` to the final address. See item 12 in "Before you upgrade". |
 
 ## Keycloak upgrades
 
