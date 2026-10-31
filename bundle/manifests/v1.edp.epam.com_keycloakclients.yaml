@@ -879,7 +879,17 @@ spec:
                   type: object
                 nullable: true
                 type: array
+              configSecretsHash:
+                description: ConfigSecretsHash is a hash of referenced secret versions
+                  from the last successful reconcile; it contains no secret-derived
+                  data.
+                type: string
               failureCount:
+                format: int64
+                type: integer
+              observedGeneration:
+                description: ObservedGeneration is the generation last successfully
+                  reconciled to Keycloak.
                 format: int64
                 type: integer
               value:

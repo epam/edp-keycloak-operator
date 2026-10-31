@@ -59,7 +59,10 @@ spec:
                 nullable: true
                 type: object
               clientRoles:
-                description: ClientRoles is a list of client roles assigned to group.
+                description: |-
+                  ClientRoles is a list of client roles assigned to group.
+                  Omit the field to leave the group's client roles unmanaged; set it to an empty list to
+                  remove every client role. When set, a client not listed loses its role mappings.
                 items:
                   properties:
                     clientId:
