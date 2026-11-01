@@ -78,3 +78,6 @@ tags
 /vendor/
 /.idea/
 kubeconfig
+
+# lane skill items (.claude/skills/lane)
+.work/
