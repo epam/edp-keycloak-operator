@@ -2,6 +2,184 @@
 ## [Unreleased]
 
 
+<a name="v1.36.0"></a>
+## [v1.36.0] - 2026-11-02
+### Features
+- **Keycloak:** Add spec.tlsServerName to verify the certificate by name
+- **KeycloakAuthFlow:** Resolve secret references in authenticatorConfig.config
+- **KeycloakRealm:** Record realm internal ID in status
+- **KeycloakRealm:** Deprecate spec.users
+- **claude:** add the lane skill for isolated defect and feature work
+- **helm:** Expose SUCCESS_RECONCILE_TIMEOUT as successReconcileTimeout
+- **keycloakapi:** Add organization identity provider link update
+- **keycloakapi:** Add client scope mapping methods
+- **keycloakapi:** Update the generated client to Keycloak 26.8.1
+- **keycloakapi:** update the generated client to Keycloak 26.7.3
+- **keycloakclient:** Manage client scope mappings
+- **keycloakclient:** Add client-scope authorization policy
+- **keycloakorganization:** Keep Keycloak-side domain settings on update
+- **keycloakorganization:** Manage identity provider link settings
+- **keycloakorganization:** Add domainsV2 with per-domain settings
+- **security:** add a destination allowlist for credential-bearing requests
+
+### Bug Fixes
+- preserve spec zero values when updating finalizers
+- Do not force SMTP port 25 when port is omitted ([#422](https://github.com/epam/edp-keycloak-operator/issues/422))
+- **ClusterKeycloakRealm:** report errors before the chain in status
+- **ClusterKeycloakRealm:** Back off on chain failure instead of hot-looping
+- **Keycloak:** accept a trailing slash in spec.url
+- **KeycloakAuthFlow:** skip Keycloak writes when state already matches spec
+- **KeycloakAuthFlow:** Skip masked keys in the authenticator config compare
+- **KeycloakClient:** reject duplicate role and group names in authorization policies
+- **KeycloakClient:** reject duplicate authorization policy, permission and resource names
+- **KeycloakClient:** reject duplicate client scope names in a client-scope policy
+- **KeycloakClient:** report errors before the chain in status
+- **KeycloakClient:** Back off on chain failure and persist failureCount
+- **KeycloakClient:** Restore realmRoles composite direction and deprecate the field
+- **KeycloakClient:** Keep an explicit empty webOrigins and redirectUris
+- **KeycloakClient:** stop deleting authorization permissions as orphaned policies
+- **KeycloakClient:** reject duplicate entries in authorization string lists
+- **KeycloakClientScope:** settle the attribute compare on blank values
+- **KeycloakClientScope:** skip Keycloak writes when state already matches spec
+- **KeycloakRealm:** ignore duplicate entries when comparing locale and event lists
+- **KeycloakRealm:** skip status write after finalizer removal on deletion
+- **KeycloakRealm:** skip Keycloak writes when state already matches spec
+- **KeycloakRealm:** enforce set semantics on locale and event list fields
+- **KeycloakRealmComponent:** Resolve component parentRef via the parent CR ([#423](https://github.com/epam/edp-keycloak-operator/issues/423))
+- **KeycloakRealmComponent:** skip Keycloak writes when state already matches spec
+- **KeycloakRealmGroup:** skip status write after finalizer removal on deletion
+- **KeycloakRealmGroup:** resolve client roles' client through GetClientUUID
+- **KeycloakRealmGroup:** scope group ownership to the resolved realm instance
+- **KeycloakRealmIdentityProvider:** require mapper name and identityProviderMapper
+- **KeycloakRealmIdentityProvider:** skip Keycloak writes when state already matches spec
+- **KeycloakRealmIdentityProvider:** reject a mapper identityProviderAlias other than spec.alias
+- **KeycloakRealmRole:** skip status write after finalizer removal on deletion
+- **KeycloakRealmUser:** default spec.enabled to true and keep an explicit false
+- **KeycloakRealmUser:** treat an unset role list as unmanaged, not empty
+- **KeycloakRealmUser:** keep brute-force failures when spec.enabled matches Keycloak
+- **KeycloakRealmUser:** leave spec.emailVerified unmanaged on update when omitted
+- **api:** reject clientRoles entries with an empty clientId
+- **controllers:** pass realm group and role batch TryToDelete errors through
+- **controllers:** write status.value for errors before the chain
+- **controllers:** match the clientId exactly in client lookups
+- **controllers:** report a failed realm finalizer add as such
+- **controllers:** return an error instead of panicking on a realm GET without a JSON body
+- **e2e:** Set the Keycloak hostname for the tlsServerName scenario
+- **helper:** skip the realm owner reference on a deleting resource
+- **helper:** Compare canonical endpoints and effective TLS server names
+- **keycloak:** reject an id that Keycloak cannot address
+- **keycloak:** reject a client role that Keycloak cannot address
+- **keycloak:** treat unset group and realm role lists as unmanaged
+- **keycloakapi:** never resolve a group that has no id
+- **keycloakapi:** Bound dials and TLS handshakes, close idle connections
+- **keycloakapi:** Fail fast on TLS errors and an unparsable caCert
+- **keycloakapi:** refuse HTTP redirects in the Keycloak client
+- **keycloakclient:** Correct TimePolicy description and drop unused ScopePolicyData
+- **keycloakclient:** skip the client update when Keycloak matches the spec
+- **keycloakclient:** skip the permissions update when the flag matches the spec
+- **keycloakclient:** name the Secret only in the generated secret Create error
+- **keycloakorganization:** Name KeycloakRealmIdentityProvider when a linked identity provider is missing
+- **keycloakorganization:** treat unset identityProviders as unmanaged
+- **keycloakorganization:** reject Keycloak 26.8-only fields before any write on older Keycloak
+- **keycloakorganization:** omit autoRedirect false from the domain write
+- **keycloakorganization:** write status when the domains migration fails
+- **keycloakrealm:** skip deleting the master realm
+- **keycloakrealmcomponent:** Refuse to adopt a component another CR manages
+- **keycloakrealmcomponent:** Match components by providerType
+- **keycloakrealmcomponent:** Refuse to delete a component another CR manages
+- **keycloakrealmgroup:** skip the group update when Keycloak matches the spec
+- **keycloakrealmgroup:** treat unset clientRoles as unmanaged
+- **keycloakrealmgroup:** omit an empty description from the group payload
+- **keycloakrealmrole:** sync isDefault membership of the realm default role
+- **keycloakrealmuser:** write the password when the passwordSecret source changes
+- **keycloakrealmuser:** Report unstored attributesV2
+- **keycloakrealmuser:** Drop the empty passwordSecret stored before 1.31
+- **keycloakrealmuser:** leave spec.enabled unmanaged on update when omitted
+- **keycloakrealmuser:** keep passwords synced before passwordSecretHash on upgrade
+- **realm:** preserve externally-set adminEventsExpiration when CR omits it
+- **realm:** preserve externally-set display name and organizations flag on reconcile ([#376](https://github.com/epam/edp-keycloak-operator/issues/376))
+- **security:** derive configSecretsHash from Secret versions, not secret values
+- **security:** ship read-only helper roles for credential-forwarding CRs
+- **security:** correct the destination allowlist
+
+### Code Refactoring
+- **controllers:** share the pre-chain reconcile flow of realm-scoped kinds
+- **helper:** Share realm target resolution between controllers
+- **keycloakapi:** move ServerVersionAtLeast out of testutils
+- **keycloakapi:** Remove unused FindComponentByName
+
+### Testing
+- Satisfy golangci-lint v2.14.0 in tests
+- **KeycloakOrganization:** match the stable part of the duplicate-domain error
+- **KeycloakRealmUser:** wait for each failed login in the brute-force spec
+- **envtest:** Stop the control plane in DeferCleanup
+- **idempotency:** add regression suites for unnecessary Keycloak writes
+- **integration:** give every integration suite a unique Keycloak realm name
+- **keycloakapi:** Name test objects with testutils.UniqueName
+- **keycloakapi:** retry GetRealms until Keycloak returns a complete body
+- **keycloakorganization:** Allow repeat migration write
+- **keycloakrealmidentityprovider:** Add idempotency and admin role mapper suites
+- **security:** cover the destination allowlist against a running Keycloak
+
+### Routine
+- Require Kubernetes 1.32 and OpenShift 4.19
+- Bump to Go 1.26.9
+- Bump golangci-lint and code generation tools
+- **KeycloakOrganization:** deprecate status.error and SetError
+- **KeycloakRealmIdentityProvider:** deprecate mappers[].identityProviderAlias
+- **api:** remove unused SSORealmMapper type
+- **bundle:** regenerate OLM bundle for 1.36.0
+- **bundle:** regenerate the OLM bundle for 1.36.0
+- **bundle:** regenerate OLM bundle for 1.36.0
+- **ci:** Test against Keycloak 26.8
+- **ci:** Update development version
+- **ci:** bump actions and Keycloak versions
+- **deps:** Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace
+- **deps:** Bump go.opentelemetry.io/otel/sdk from 1.44.0 to 1.45.0
+- **deps:** Bump google.golang.org/grpc from 1.83.1 to 1.83.2
+- **deps:** Bump google.golang.org/grpc from 1.82.1 to 1.83.1
+- **deps:** Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc
+- **deps:** Bump github.com/google/cel-go from 0.23.2 to 0.29.0
+- **deps:** Bump google.golang.org/grpc from 1.79.3 to 1.82.1
+- **keycloak:** surface the connection result in Keycloak and ClusterKeycloak status
+- **lint:** Forbid direct envtest Start and Stop in suites
+
+### Documentation
+- fix the auth flow query and add the helm upgrade command ([#476](https://github.com/epam/edp-keycloak-operator/issues/476))
+- restructure upgrade notes ([#476](https://github.com/epam/edp-keycloak-operator/issues/476))
+- trim 1.36.0 upgrade notes and add known limits
+- Document Keycloak 26.8 support and admin role mappers
+- Add security considerations for Secret references
+- correct stale facts and de-prescribe agent instructions
+- **KeycloakRealmIdentityProvider:** upgrade note and security note for the mapper alias
+- **upgrade-notes:** KeycloakClient duplicate authorization entries
+- **upgrade-notes:** add 1.36.0 upgrade notes
+
+### BREAKING CHANGE:
+
+omitting clientRoles no longer removes client role
+mappings; write [] to remove all. KeycloakRealmGroupSpec.ClientRoles is
+*[]UserClientRole.
+
+omitting identityProviders no longer unlinks identity
+providers. Write [] to unlink all. Helm drops []: pass --set-json, and do
+not guard the value with {{ if }}.
+
+Kubernetes 1.32 or later, or OpenShift 4.19 or later,
+is required.
+
+webOrigins: [] and redirectUris: [] now clear the list in
+Keycloak. Remove the key to keep the webUrl fallback. CRs stored with [] are
+cleared on the first reconcile after upgrade. Confidential clients the old
+operator rewrote hold webOrigins: [webUrl] and no redirectUris in etcd;
+re-apply [] to clear them.
+
+parentRef.name for kind KeycloakRealmComponent is the
+
+omitting either field no longer clears it. Write [] instead.
+Helm drops []: pass --set-json, and do not guard the value with {{ if }}.
+
+
 <a name="v1.35.0"></a>
 ## [v1.35.0] - 2026-07-13
 ### Features
@@ -94,7 +272,6 @@
 - Update current development version ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
 - Publish Operator to stable and alpha channels ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
 - Update current development version ([#263](https://github.com/epam/edp-keycloak-operator/issues/263))
-- **ci:** fix release action to make sure changelog available ([#280](https://github.com/epam/edp-keycloak-operator/issues/280))
 - **ci:** update GitHub Actions workflows and testing infrastructure ([#280](https://github.com/epam/edp-keycloak-operator/issues/280))
 - **ci:** update codecov configuration ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
 - **ci:** align codecov configuration and enhance README badges ([#269](https://github.com/epam/edp-keycloak-operator/issues/269))
@@ -416,7 +593,8 @@ Users can disable webhooks by setting \`enableWebhooks: false\` in Helm values.
 <a name="v1.17.0"></a>
 ## [v1.17.0] - 2023-08-17
 
-[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.35.0...HEAD
+[Unreleased]: https://github.com/epam/edp-keycloak-operator/compare/v1.36.0...HEAD
+[v1.36.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.35.0...v1.36.0
 [v1.35.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.34.0...v1.35.0
 [v1.34.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.33.0...v1.34.0
 [v1.33.0]: https://github.com/epam/edp-keycloak-operator/compare/v1.32.0...v1.33.0
