@@ -5,7 +5,7 @@ on:
     branches: [ master ]
 
 env:
-  GOLANG_VERSION: '1.26'
+  GOLANG_VERSION: '1.27'
   KEYCLOAK_VERSION: '26.8'
 
 jobs:

@@ -5,7 +5,7 @@ on:
       - 'v*'
 
 env:
-  GOLANG_VERSION: '1.26'
+  GOLANG_VERSION: '1.27'
 
 jobs:
   prepare-release:
