@@ -14,6 +14,7 @@ import (
 	// to ensure that exec-entrypoint and run can make use of them.
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
 
+	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
@@ -234,6 +235,7 @@ func main() {
 		Cache: cache.Options{
 			DefaultNamespaces: map[string]cache.Config{ns: {}},
 		},
+		Client: managerClientOptions(),
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")
@@ -435,6 +437,18 @@ func main() {
 	if err := mgr.Start(ctrl.SetupSignalHandler()); err != nil {
 		setupLog.Error(err, "problem running manager")
 		os.Exit(1)
+	}
+}
+
+// managerClientOptions makes the manager's client read Secrets and ConfigMaps from the API server instead of
+// the informer cache. The operator only gets them by name (secret references, CA bundles), so it needs "get"
+// in the namespaces they are referenced from rather than a cluster-wide list/watch, and the Secrets of the
+// whole cluster stay out of its memory.
+func managerClientOptions() client.Options {
+	return client.Options{
+		Cache: &client.CacheOptions{
+			DisableFor: []client.Object{&corev1.Secret{}, &corev1.ConfigMap{}},
+		},
 	}
 }
 

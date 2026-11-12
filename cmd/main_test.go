@@ -5,6 +5,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	corev1 "k8s.io/api/core/v1"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // makeDestinationGuard is the only place the operator's security policy is read from the
@@ -86,4 +88,12 @@ func TestMakeDestinationGuard(t *testing.T) {
 			assert.Equal(t, tt.wantEnforce, guard.Enforcing())
 		})
 	}
+}
+
+// Secrets and ConfigMaps are read without the cache, so the operator never lists or watches them cluster-wide.
+func TestManagerClientOptions(t *testing.T) {
+	opts := managerClientOptions()
+
+	require.NotNil(t, opts.Cache)
+	assert.ElementsMatch(t, []client.Object{&corev1.Secret{}, &corev1.ConfigMap{}}, opts.Cache.DisableFor)
 }
