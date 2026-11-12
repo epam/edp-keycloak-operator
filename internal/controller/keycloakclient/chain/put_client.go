@@ -24,6 +24,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/maputil"
+	"github.com/epam/edp-keycloak-operator/pkg/objectmeta"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
 )
 
@@ -109,17 +110,37 @@ func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycl
 		}
 	}
 
-	clientSecret, secretVersion, err := h.getClientSecret(ctx, keycloakClient)
-	if err != nil {
-		return "", fmt.Errorf("error getting client secret: %w", err)
+	checkExistingFirst := keycloakClient.Spec.Secret == "" && objectmeta.PreserveClientSecret(keycloakClient)
+	var existingClient *keycloakapi.ClientRepresentation
+
+	if checkExistingFirst {
+		existingClient, _, err = h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
+		if err != nil && !keycloakapi.IsNotFound(err) {
+			return "", fmt.Errorf("unable to check client id: %w", err)
+		}
+	}
+
+	preserveExistingSecret := existingClient != nil &&
+		keycloakClient.Spec.Secret == "" &&
+		existingClient.Id != nil &&
+		objectmeta.PreserveClientSecret(keycloakClient)
+
+	var clientSecret, secretVersion string
+	if !preserveExistingSecret {
+		clientSecret, secretVersion, err = h.getClientSecret(ctx, keycloakClient)
+		if err != nil {
+			return "", fmt.Errorf("error getting client secret: %w", err)
+		}
 	}
 
 	clientRep := convertSpecToClientRepresentation(&keycloakClient.Spec, clientSecret, authFlowOverrides)
 	newHash := clientSecretsHash(secretVersion)
 
-	existingClient, _, err := h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
-	if err != nil && !keycloakapi.IsNotFound(err) {
-		return "", fmt.Errorf("unable to check client id: %w", err)
+	if !checkExistingFirst {
+		existingClient, _, err = h.kClient.Clients.GetClientByClientID(ctx, realmName, keycloakClient.Spec.ClientId)
+		if err != nil && !keycloakapi.IsNotFound(err) {
+			return "", fmt.Errorf("unable to check client id: %w", err)
+		}
 	}
 
 	if existingClient != nil && existingClient.Id != nil {
@@ -134,6 +155,12 @@ func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycl
 		if needsUpdate {
 			if _, updErr := h.kClient.Clients.UpdateClient(ctx, realmName, clientUUID, clientRep); updErr != nil {
 				return "", fmt.Errorf("unable to update keycloak client: %w", updErr)
+			}
+		}
+
+		if preserveExistingSecret && !keycloakClient.Spec.Public {
+			if syncErr := h.syncPreservedSecret(ctx, keycloakClient, realmName, clientUUID); syncErr != nil {
+				return "", syncErr
 			}
 		}
 
@@ -168,6 +195,76 @@ func (h *PutClient) putKeycloakClient(ctx context.Context, keycloakClient *keycl
 	keycloakClient.Status.ConfigSecretsHash = newHash
 
 	return id, nil
+}
+
+// syncPreservedSecret mirrors the existing Keycloak client secret into the k8s secret
+// without changing it in Keycloak, and points spec.secret at it.
+func (h *PutClient) syncPreservedSecret(
+	ctx context.Context,
+	keycloakClient *keycloakApi.KeycloakClient,
+	realmName, clientUUID string,
+) error {
+	cred, _, err := h.kClient.Clients.GetClientSecret(ctx, realmName, clientUUID)
+	if err != nil {
+		return fmt.Errorf("unable to get existing client secret: %w", err)
+	}
+
+	if cred == nil || cred.Value == nil || *cred.Value == "" || *cred.Value == keycloakapi.MaskedSecretValue {
+		return nil
+	}
+
+	secretName := fmt.Sprintf("keycloak-client-%s-secret", keycloakClient.Name)
+
+	if keycloakClient.Spec.Secret != "" {
+		if secretref.HasSecretRef(keycloakClient.Spec.Secret) {
+			return nil // user-provided or already-managed ref
+		}
+
+		secretName = keycloakClient.Spec.Secret
+	}
+
+	var secret corev1.Secret
+
+	getErr := h.k8sClient.Get(ctx, types.NamespacedName{Namespace: keycloakClient.Namespace, Name: secretName}, &secret)
+
+	switch {
+	case k8sErrors.IsNotFound(getErr):
+		secret = corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Namespace: keycloakClient.Namespace, Name: secretName},
+			Data:       map[string][]byte{keycloakApi.ClientSecretKey: []byte(*cred.Value)},
+		}
+
+		if err := controllerutil.SetControllerReference(keycloakClient, &secret, h.k8sClient.Scheme()); err != nil {
+			return fmt.Errorf("unable to set controller ref for secret: %w", err)
+		}
+
+		if err := h.k8sClient.Create(ctx, &secret); err != nil {
+			return fmt.Errorf("unable to create secret %s/%s: %w", keycloakClient.Namespace, secretName, err)
+		}
+	case getErr != nil:
+		return fmt.Errorf("unable to get secret %s/%s: %w", keycloakClient.Namespace, secretName, getErr)
+	case string(secret.Data[keycloakApi.ClientSecretKey]) != *cred.Value:
+		if secret.Data == nil {
+			secret.Data = map[string][]byte{}
+		}
+
+		secret.Data[keycloakApi.ClientSecretKey] = []byte(*cred.Value)
+
+		if err := h.k8sClient.Update(ctx, &secret); err != nil {
+			return fmt.Errorf("unable to update secret %s/%s: %w", keycloakClient.Namespace, secretName, err)
+		}
+	}
+
+	ref := secretref.GenerateSecretRef(secretName, keycloakApi.ClientSecretKey)
+	if keycloakClient.Spec.Secret != ref {
+		keycloakClient.Spec.Secret = ref
+
+		if err := h.k8sClient.Update(ctx, keycloakClient); err != nil {
+			return fmt.Errorf("unable to update client with secret ref %s: %w", ref, err)
+		}
+	}
+
+	return nil
 }
 
 // Returns "" when version is ""; otherwise ValuesHashSingle over the version token.
