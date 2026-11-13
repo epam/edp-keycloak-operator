@@ -187,6 +187,144 @@ func TestCreateOrUpdateComponent_Serve_CreateNew(t *testing.T) {
 	assert.Equal(t, testComponentID, component.Status.ID)
 }
 
+func TestCreateOrUpdateComponent_Serve_RemovesNewDefaultMappersByID(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Generation = 1
+	component.Spec.RemoveDefaultMappers = true
+	component.Status.ObservedGeneration = 1
+	component.Status.ConfigSecretsHash = noSecretRefsHash
+
+	mapper := func(id, name string) keycloakapi.ComponentRepresentation {
+		return keycloakapi.ComponentRepresentation{
+			Id:           ptr.To(id),
+			Name:         ptr.To(name),
+			ParentId:     ptr.To(testComponentID),
+			ProviderType: ptr.To(ldapMapperProviderType),
+		}
+	}
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return(nil, nil, nil)
+	mockComponents.EXPECT().
+		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
+		Return(createdResponse(testComponentID), nil)
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, &keycloakapi.GetComponentsParams{Parent: ptr.To(testComponentID)}).
+		Return([]keycloakapi.ComponentRepresentation{
+			mapper("default-mapper-1", "username"),
+			mapper("default-mapper-2", "username"),
+			{
+				Id:           ptr.To("unrelated-child"),
+				ParentId:     ptr.To(testComponentID),
+				ProviderType: ptr.To("unrelated.Provider"),
+			},
+		}, nil, nil)
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-1").
+		Return(nil, nil)
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-2").
+		Return(nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
+	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
+	assert.True(t, component.Status.DefaultMappersRemoved)
+	assert.Empty(t, component.Status.DefaultMappersToRemove)
+
+	// A later mapper may reuse a deleted mapper's name; the completed cleanup must not list or delete it.
+	component.Status.ObservedGeneration = component.Generation
+	existing := inSyncExisting()
+	mockComponents.EXPECT().
+		GetComponent(context.Background(), testRealmName, testComponentID).
+		Return(&existing, nil, nil)
+
+	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
+}
+
+func TestCreateOrUpdateComponent_Serve_RetriesOnlyCapturedDefaultMapperIDs(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Generation = 1
+	component.Spec.RemoveDefaultMappers = true
+	component.Status.ObservedGeneration = 1
+	component.Status.ConfigSecretsHash = noSecretRefsHash
+
+	mapper := func(id string) keycloakapi.ComponentRepresentation {
+		return keycloakapi.ComponentRepresentation{
+			Id:           ptr.To(id),
+			Name:         ptr.To("same-name"),
+			ParentId:     ptr.To(testComponentID),
+			ProviderType: ptr.To(ldapMapperProviderType),
+		}
+	}
+	deleteErr := errors.New("delete refused")
+
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return(nil, nil, nil)
+	mockComponents.EXPECT().
+		CreateComponent(context.Background(), testRealmName, desiredRepr(nil, testRealmID)).
+		Return(createdResponse(testComponentID), nil)
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, &keycloakapi.GetComponentsParams{Parent: ptr.To(testComponentID)}).
+		Return([]keycloakapi.ComponentRepresentation{mapper("default-mapper-1"), mapper("default-mapper-2")}, nil, nil)
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-1").
+		Return(nil, nil).
+		Once()
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-2").
+		Return(nil, deleteErr).
+		Once()
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
+	require.ErrorIs(t, h.Serve(context.Background(), component, testRealmName), deleteErr)
+	require.Equal(t, []string{"default-mapper-1", "default-mapper-2"}, component.Status.DefaultMappersToRemove)
+	require.False(t, component.Status.DefaultMappersRemoved)
+
+	existing := inSyncExisting()
+	mockComponents.EXPECT().
+		GetComponent(context.Background(), testRealmName, testComponentID).
+		Return(&existing, nil, nil)
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-1").
+		Return(nil, keycloakapi.ErrNotFound).
+		Once()
+	mockComponents.EXPECT().
+		DeleteComponent(context.Background(), testRealmName, "default-mapper-2").
+		Return(nil, nil).
+		Once()
+
+	require.NoError(t, h.Serve(context.Background(), component, testRealmName))
+	assert.True(t, component.Status.DefaultMappersRemoved)
+	assert.Empty(t, component.Status.DefaultMappersToRemove)
+}
+
+func TestCreateOrUpdateComponent_Serve_RefusesMapperCleanupOnExistingComponent(t *testing.T) {
+	mockComponents := mocks.NewMockRealmComponentsClient(t)
+	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}
+
+	component := baseComponent()
+	component.Spec.RemoveDefaultMappers = true
+
+	existing := inSyncExisting()
+	mockComponents.EXPECT().
+		GetComponents(context.Background(), testRealmName, byName(testRealmID)).
+		Return([]keycloakapi.ComponentRepresentation{existing}, nil, nil)
+
+	h := NewCreateOrUpdateComponent(newFakeK8sClient(t), kClient, &fakeSecretRefClient{}, testRealmID)
+	err := h.Serve(context.Background(), component, testRealmName)
+	require.ErrorContains(t, err, "cannot safely remove default mappers from existing LDAP component")
+	assert.False(t, component.Status.DefaultMappersRemoved)
+	assert.Empty(t, component.Status.DefaultMappersToRemove)
+}
+
 func TestCreateOrUpdateComponent_Serve_UpdateExisting(t *testing.T) {
 	mockComponents := mocks.NewMockRealmComponentsClient(t)
 	kClient := &keycloakapi.KeycloakClient{RealmComponents: mockComponents}

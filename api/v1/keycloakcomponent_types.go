@@ -11,6 +11,11 @@ type KeycloakComponentSpec struct {
 	// Name of keycloak component.
 	Name string `json:"name"`
 
+	// RemoveDefaultMappers removes the default LDAP mappers created by Keycloak when this component is created.
+	// It only applies to a newly created LDAP user storage provider; existing mapper components are left untouched.
+	// +optional
+	RemoveDefaultMappers bool `json:"removeDefaultMappers,omitempty"`
+
 	// RealmRef is reference to Realm custom resource.
 	// +required
 	RealmRef common.RealmRef `json:"realmRef"`
@@ -51,6 +56,14 @@ type KeycloakComponentStatus struct {
 	// ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.
 	// +optional
 	ConfigSecretsHash string `json:"configSecretsHash,omitempty"`
+
+	// DefaultMappersRemoved indicates that the creation-time LDAP mapper cleanup has completed.
+	// +optional
+	DefaultMappersRemoved bool `json:"defaultMappersRemoved,omitempty"`
+
+	// DefaultMappersToRemove contains the IDs of default LDAP mappers captured during cleanup.
+	// +optional
+	DefaultMappersToRemove []string `json:"defaultMappersToRemove,omitempty"`
 }
 
 // ParentComponent defines the parent component of KeycloakRealmComponent.

@@ -1,0 +1,31 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  - script: |
+      set -eu
+      for i in $(seq 1 60); do
+        generation=$(kubectl get keycloakrealmcomponent e2e-ldap-default-mappers -n "$NAMESPACE" -o jsonpath='{.metadata.generation}')
+        observed=$(kubectl get keycloakrealmcomponent e2e-ldap-default-mappers -n "$NAMESPACE" -o jsonpath='{.status.observedGeneration}')
+        if [ "$generation" = "$observed" ]; then
+          break
+        fi
+        sleep 2
+      done
+      if [ "$generation" != "$observed" ]; then
+        echo "LDAP component generation $generation was not observed (observed $observed)" >&2
+        exit 1
+      fi
+
+      pod=$(kubectl get pods -n "$NAMESPACE" -l app=keycloak -o jsonpath='{.items[0].metadata.name}')
+      component_id=$(kubectl get keycloakrealmcomponent e2e-ldap-default-mappers -n "$NAMESPACE" -o jsonpath='{.status.id}')
+      kubectl exec -n "$NAMESPACE" "$pod" -c keycloak -- /opt/keycloak/bin/kcadm.sh \
+        config credentials --server http://localhost:8080 --realm master --user admin --password admin
+      mappers=$(kubectl exec -n "$NAMESPACE" "$pod" -c keycloak -- /opt/keycloak/bin/kcadm.sh \
+        get components -r test-realm \
+        -q "parent=$component_id" \
+        -q type=org.keycloak.storage.ldap.mappers.LDAPStorageMapper)
+      mapper_count=$(printf '%s\n' "$mappers" | grep -c '"id"' || true)
+      if [ "$mapper_count" -ne 1 ] || ! printf '%s\n' "$mappers" | grep -q '"name" *: *"username"'; then
+        echo "Expected the later username mapper to survive reconcile, found: $mappers" >&2
+        exit 1
+      fi
