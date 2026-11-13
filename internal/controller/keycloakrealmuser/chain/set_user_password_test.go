@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,9 +14,12 @@ import (
 	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/apimachinery/pkg/types"
 	"k8s.io/utils/ptr"
+	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
@@ -485,6 +489,33 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			wantConditionMsg:    "Key",
 		},
 		{
+			name: "error - keycloak SetUserPassword fails for spec.password",
+			user: &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace, Generation: 1},
+				Spec:       keycloakApi.KeycloakRealmUserSpec{Username: testUsername, Password: "inline-password"},
+			},
+			mockSetup: func(m *v2mocks.MockUsersClient) {
+				m.EXPECT().SetUserPassword(
+					context.Background(),
+					"test-realm",
+					"user-123",
+					keycloakapi.CredentialRepresentation{
+						Type:      ptr.To("password"),
+						Value:     ptr.To("inline-password"),
+						Temporary: ptr.To(false),
+					},
+				).Return(nil, errors.New("keycloak error"))
+			},
+			wantErr: func(t require.TestingT, err error, _ ...any) {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), "unable to set user password")
+			},
+			wantCondition:       true,
+			wantConditionStatus: metav1.ConditionFalse,
+			wantConditionReason: ReasonKeycloakAPIError,
+			wantConditionMsg:    "Failed to set password in Keycloak: unable to set user password: keycloak error",
+		},
+		{
 			name: "error - keycloak SetUserPassword fails",
 			user: &keycloakApi.KeycloakRealmUser{
 				ObjectMeta: metav1.ObjectMeta{
@@ -530,7 +561,7 @@ func TestSetUserPassword_Serve(t *testing.T) {
 			wantCondition:       true,
 			wantConditionStatus: metav1.ConditionFalse,
 			wantConditionReason: ReasonKeycloakAPIError,
-			wantConditionMsg:    "Failed to set password in Keycloak",
+			wantConditionMsg:    "Failed to set password in Keycloak: unable to set user password: keycloak error",
 		},
 		{
 			name: "non-temporary key change writes the new key",
@@ -914,6 +945,173 @@ func TestSetUserPassword_Serve_AdoptsTemporaryBeforeSecretRead(t *testing.T) {
 	assert.Equal(t, metav1.ConditionTrue, cond.Status)
 	assert.Equal(t, ReasonTemporaryPasswordSet, cond.Reason)
 	assert.Equal(t, wantHash, user.Status.PasswordSecretHash)
+}
+
+func failSecretGet(err error) interceptor.Funcs {
+	return interceptor.Funcs{
+		Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+			if _, ok := obj.(*corev1.Secret); ok {
+				return err
+			}
+
+			return c.Get(ctx, key, obj, opts...)
+		},
+	}
+}
+
+func TestSetUserPassword_Serve_SecretReadError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	secretResource := schema.GroupResource{Resource: "secrets"}
+
+	tests := []struct {
+		name       string
+		secretName string
+		status     keycloakApi.KeycloakRealmUserStatus
+		getErr     error
+		wantIs     func(error) bool
+		wantMsg    string
+	}{
+		{
+			name:       "forbidden",
+			secretName: testPasswordSecretName,
+			getErr:     k8serrors.NewForbidden(secretResource, testPasswordSecretName, errors.New("denied")),
+			wantIs:     k8serrors.IsForbidden,
+			wantMsg:    `Failed to read password secret "user-password" in namespace "default": `,
+		},
+		{
+			name:       "forbidden with synced hash and version",
+			secretName: testPasswordSecretName,
+			status: keycloakApi.KeycloakRealmUserStatus{
+				LastSyncedPasswordSecretVersion: "7",
+				PasswordSecretHash:              "hash-1",
+			},
+			getErr:  k8serrors.NewForbidden(secretResource, testPasswordSecretName, errors.New("denied")),
+			wantIs:  k8serrors.IsForbidden,
+			wantMsg: `Failed to read password secret "user-password" in namespace "default": `,
+		},
+		{
+			name:       "internal error",
+			secretName: testPasswordSecretName,
+			getErr:     k8serrors.NewInternalError(errors.New("etcd down")),
+			wantIs:     k8serrors.IsInternalError,
+			wantMsg:    `Failed to read password secret "user-password" in namespace "default": `,
+		},
+		{
+			name:       "transport error",
+			secretName: testPasswordSecretName,
+			getErr:     context.DeadlineExceeded,
+			wantIs:     func(err error) bool { return errors.Is(err, context.DeadlineExceeded) },
+			wantMsg:    `Failed to read password secret "user-password" in namespace "default": `,
+		},
+		{
+			name:       "empty secret name",
+			secretName: "",
+			getErr:     errors.New("resource name may not be empty"),
+			wantMsg:    `Failed to read password secret "" in namespace "default": `,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			user := &keycloakApi.KeycloakRealmUser{
+				ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace, Generation: 3},
+				Spec: keycloakApi.KeycloakRealmUserSpec{
+					Username:       testUsername,
+					PasswordSecret: &keycloakApi.PasswordSecret{Name: tt.secretName, Key: "password"},
+				},
+				Status: tt.status,
+			}
+
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(scheme).
+				WithObjects(user).
+				WithInterceptorFuncs(failSecretGet(tt.getErr)).
+				Build()
+			mockUsers := v2mocks.NewMockUsersClient(t)
+			h := NewSetUserPassword(k8sClient, &keycloakapi.KeycloakClient{Users: mockUsers})
+
+			err := h.Serve(context.Background(), user, "test-realm", &UserContext{UserID: "user-123"})
+
+			require.Error(t, err)
+
+			if tt.wantIs != nil {
+				require.True(t, tt.wantIs(err), "error type lost: %v", err)
+			}
+
+			mockUsers.AssertNotCalled(t, "SetUserPassword", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
+
+			cond := meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+			require.NotNil(t, cond)
+			assert.Equal(t, metav1.ConditionFalse, cond.Status)
+			assert.Equal(t, ReasonSecretError, cond.Reason)
+			assert.True(t, strings.HasPrefix(cond.Message, tt.wantMsg), "message: %s", cond.Message)
+			assert.Equal(t, int64(3), cond.ObservedGeneration)
+
+			assert.Equal(t, tt.status.LastSyncedPasswordSecretVersion, user.Status.LastSyncedPasswordSecretVersion)
+			assert.Equal(t, tt.status.PasswordSecretHash, user.Status.PasswordSecretHash)
+		})
+	}
+}
+
+func TestSetUserPassword_Serve_AdoptsTemporaryOnSecretReadError(t *testing.T) {
+	scheme := runtime.NewScheme()
+	require.NoError(t, corev1.AddToScheme(scheme))
+	require.NoError(t, keycloakApi.AddToScheme(scheme))
+
+	user := &keycloakApi.KeycloakRealmUser{
+		ObjectMeta: metav1.ObjectMeta{Name: testUserCRName, Namespace: defaultNamespace, Generation: 1},
+		Spec: keycloakApi.KeycloakRealmUserSpec{
+			Username:       testUsername,
+			PasswordSecret: &keycloakApi.PasswordSecret{Name: testPasswordSecretName, Key: "a", Temporary: true},
+		},
+		Status: keycloakApi.KeycloakRealmUserStatus{
+			LastSyncedPasswordSecretVersion: "7",
+			Conditions: []metav1.Condition{
+				{Type: ConditionPasswordSynced, Status: metav1.ConditionTrue, Reason: ReasonTemporaryPasswordSet, ObservedGeneration: 1},
+			},
+		},
+	}
+	wantHash := passwordSourceHash(nil, user.Spec.PasswordSecret, "test-realm", "user-123")
+
+	forbidden := k8serrors.NewForbidden(schema.GroupResource{Resource: "secrets"}, testPasswordSecretName, errors.New("denied"))
+	failingClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(user).
+		WithInterceptorFuncs(failSecretGet(forbidden)).
+		Build()
+	mockUsers := v2mocks.NewMockUsersClient(t)
+	userCtx := &UserContext{UserID: "user-123"}
+
+	err := NewSetUserPassword(failingClient, &keycloakapi.KeycloakClient{Users: mockUsers}).
+		Serve(context.Background(), user, "test-realm", userCtx)
+	require.Error(t, err)
+
+	cond := meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+	require.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionFalse, cond.Status)
+	assert.Equal(t, ReasonSecretError, cond.Reason)
+	assert.Equal(t, wantHash, user.Status.PasswordSecretHash)
+
+	healthyClient := fake.NewClientBuilder().
+		WithScheme(scheme).
+		WithObjects(user, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{Name: testPasswordSecretName, Namespace: defaultNamespace},
+			Data:       map[string][]byte{"a": []byte("value-a")},
+		}).
+		Build()
+
+	require.NoError(t, NewSetUserPassword(healthyClient, &keycloakapi.KeycloakClient{Users: mockUsers}).
+		Serve(context.Background(), user, "test-realm", userCtx))
+
+	cond = meta.FindStatusCondition(user.Status.Conditions, ConditionPasswordSynced)
+	require.NotNil(t, cond)
+	assert.Equal(t, metav1.ConditionTrue, cond.Status)
+	assert.Equal(t, ReasonTemporaryPasswordSet, cond.Reason)
+	assert.Equal(t, wantHash, user.Status.PasswordSecretHash)
+	mockUsers.AssertNotCalled(t, "SetUserPassword", mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestPasswordSourceHash(t *testing.T) {
