@@ -43,6 +43,9 @@ const (
 	// ReasonSecretKeyMissing indicates the specified key is missing from the secret.
 	ReasonSecretKeyMissing = "SecretKeyMissing"
 
+	// ReasonSecretError indicates the password secret could not be read for a reason other than NotFound.
+	ReasonSecretError = "SecretError"
+
 	// ReasonKeycloakAPIError indicates Keycloak API call failed.
 	ReasonKeycloakAPIError = "KeycloakAPIError"
 )
@@ -91,7 +94,8 @@ func (h *SetUserPassword) Serve(
 
 	pwdResult, err := h.getPassword(ctx, user, realmName, userCtx.UserID)
 	if err != nil {
-		h.setPasswordErrorCondition(ctx, user, err)
+		reason, message := classifyPasswordSecretError(err, user)
+		setPasswordErrorCondition(ctx, user, reason, message)
 
 		return err
 	}
@@ -124,7 +128,8 @@ func (h *SetUserPassword) Serve(
 	})
 	if err != nil {
 		wrappedErr := fmt.Errorf("unable to set user password: %w", err)
-		h.setPasswordErrorCondition(ctx, user, wrappedErr)
+		setPasswordErrorCondition(ctx, user, ReasonKeycloakAPIError,
+			fmt.Sprintf("Failed to set password in Keycloak: %s", wrappedErr.Error()))
 
 		return wrappedErr
 	}
@@ -242,10 +247,8 @@ func setPasswordSyncedCondition(user *keycloakApi.KeycloakRealmUser, pwdResult *
 }
 
 // setPasswordErrorCondition sets the PasswordSynced condition to False with appropriate reason and message.
-func (h *SetUserPassword) setPasswordErrorCondition(ctx context.Context, user *keycloakApi.KeycloakRealmUser, err error) {
+func setPasswordErrorCondition(ctx context.Context, user *keycloakApi.KeycloakRealmUser, reason, message string) {
 	log := ctrl.LoggerFrom(ctx)
-
-	reason, message := h.classifyPasswordError(err, user)
 
 	log.Info("Setting password error condition", "reason", reason, "message", message)
 
@@ -258,33 +261,27 @@ func (h *SetUserPassword) setPasswordErrorCondition(ctx context.Context, user *k
 	})
 }
 
-// classifyPasswordError determines the appropriate Reason and Message for a password sync error.
-func (h *SetUserPassword) classifyPasswordError(err error, user *keycloakApi.KeycloakRealmUser) (reason, message string) {
-	// Check for K8s API errors (secret not found)
-	if errors.IsNotFound(err) {
-		secretName := ""
-		if user.Spec.PasswordSecret != nil {
-			secretName = user.Spec.PasswordSecret.Name
-		}
+// classifyPasswordSecretError classifies an error from reading the password secret.
+func classifyPasswordSecretError(err error, user *keycloakApi.KeycloakRealmUser) (reason, message string) {
+	secretName := ""
+	if user.Spec.PasswordSecret != nil {
+		secretName = user.Spec.PasswordSecret.Name
+	}
 
+	if errors.IsNotFound(err) {
 		return ReasonSecretNotFound, fmt.Sprintf("Password secret %q not found in namespace %q", secretName, user.Namespace)
 	}
 
-	// Check for secret key missing error
 	if stderrors.Is(err, errSecretKeyNotFound) {
 		keyName := ""
-		secretName := ""
-
 		if user.Spec.PasswordSecret != nil {
 			keyName = user.Spec.PasswordSecret.Key
-			secretName = user.Spec.PasswordSecret.Name
 		}
 
 		return ReasonSecretKeyMissing, fmt.Sprintf("Key %q not found in secret %q", keyName, secretName)
 	}
 
-	// Keycloak API error (default case)
-	return ReasonKeycloakAPIError, fmt.Sprintf("Failed to set password in Keycloak: %s", err.Error())
+	return ReasonSecretError, fmt.Sprintf("Failed to read password secret %q in namespace %q: %s", secretName, user.Namespace, err.Error())
 }
 
 func (h *SetUserPassword) getPassword(

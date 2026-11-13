@@ -2,17 +2,21 @@ package helper
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/stretchr/testify/require"
 	corev1 "k8s.io/api/core/v1"
+	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/client/fake"
+	"sigs.k8s.io/controller-runtime/pkg/client/interceptor"
 
 	"github.com/epam/edp-keycloak-operator/api/common"
 	keycloakApi "github.com/epam/edp-keycloak-operator/api/v1"
@@ -2109,6 +2113,98 @@ func TestHelper_getKeycloakAuthDataFromRealm_withClusterKeycloakKind(t *testing.
 
 			if tt.checkFunc != nil {
 				tt.checkFunc(t, authData)
+			}
+		})
+	}
+}
+
+func TestHelper_CreateKeycloakClientFromKeycloak_SecretReadError(t *testing.T) {
+	s := runtime.NewScheme()
+	require.NoError(t, keycloakApi.AddToScheme(s))
+	require.NoError(t, corev1.AddToScheme(s))
+
+	mockServer := fakehttp.NewServerBuilder().
+		AddKeycloakAuthResponders().
+		BuildAndStart()
+
+	t.Cleanup(mockServer.Close)
+
+	secretResource := schema.GroupResource{Resource: "secrets"}
+
+	tests := []struct {
+		name       string
+		secretName string
+		getErr     error
+		wantText   string
+		wantNotIs  string
+		wantType   func(error) bool
+	}{
+		{
+			name:       "forbidden",
+			secretName: "admin",
+			getErr:     k8sErrors.NewForbidden(secretResource, "admin", errors.New("denied")),
+			wantText:   `unable to get credentials: unable to get secret: secrets "admin" is forbidden`,
+			wantNotIs:  "not found",
+			wantType:   k8sErrors.IsForbidden,
+		},
+		{
+			name:       "server timeout",
+			secretName: "admin",
+			getErr:     k8sErrors.NewServerTimeout(secretResource, "get", 1),
+			wantText:   "unable to get credentials: unable to get secret:",
+			wantNotIs:  "not found",
+			wantType:   k8sErrors.IsServerTimeout,
+		},
+		{
+			name:       "missing secret",
+			secretName: "admin",
+			getErr:     k8sErrors.NewNotFound(secretResource, "admin"),
+			wantText:   `unable to get secret: secrets "admin" not found`,
+			wantType:   k8sErrors.IsNotFound,
+		},
+		{
+			name:       "empty secret name",
+			secretName: "",
+			getErr:     errors.New("resource name may not be empty"),
+			wantText:   "unable to get secret: resource name may not be empty",
+			wantNotIs:  "not found",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			k8sClient := fake.NewClientBuilder().
+				WithScheme(s).
+				WithInterceptorFuncs(interceptor.Funcs{
+					Get: func(ctx context.Context, c client.WithWatch, key client.ObjectKey, obj client.Object, opts ...client.GetOption) error {
+						if _, ok := obj.(*corev1.Secret); ok {
+							return tt.getErr
+						}
+
+						return c.Get(ctx, key, obj, opts...)
+					},
+				}).
+				Build()
+
+			h := &Helper{guard: destination.AllowAll(), client: k8sClient}
+
+			kc := &keycloakApi.Keycloak{
+				ObjectMeta: metav1.ObjectMeta{Name: testKeycloakName, Namespace: defaultNamespace},
+				Spec:       keycloakApi.KeycloakSpec{Url: mockServer.GetURL(), Secret: tt.secretName},
+			}
+
+			cl, err := h.CreateKeycloakClientFromKeycloak(ctrl.LoggerInto(context.Background(), logr.Discard()), kc)
+
+			require.Error(t, err)
+			require.Nil(t, cl)
+			require.Contains(t, err.Error(), tt.wantText)
+
+			if tt.wantNotIs != "" {
+				require.NotContains(t, err.Error(), tt.wantNotIs)
+			}
+
+			if tt.wantType != nil {
+				require.True(t, tt.wantType(err), "error type lost: %v", err)
 			}
 		})
 	}

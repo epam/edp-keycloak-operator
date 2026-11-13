@@ -207,7 +207,7 @@ func (h *Helper) getCredentialsFromSecret(ctx context.Context, secretName, secre
 		Name:      secretName,
 		Namespace: secretNamespace,
 	}, &secret); err != nil {
-		return "", "", fmt.Errorf("secret not found: %w", err)
+		return "", "", fmt.Errorf("unable to get secret: %w", err)
 	}
 
 	return string(secret.Data["username"]), string(secret.Data["password"]), nil
