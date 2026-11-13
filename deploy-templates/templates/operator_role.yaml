@@ -8,23 +8,16 @@ rules:
 - apiGroups:
   - ""
   resources:
+  - configmaps
+  verbs:
+  - get
+- apiGroups:
+  - ""
+  resources:
   - secrets
   verbs:
   - create
-  - delete
   - get
-  - list
-  - patch
-  - update
-  - watch
-- apiGroups:
-  - v1
-  resources:
-  - configmap
-  verbs:
-  - get
-  - list
-  - watch
 - apiGroups:
   - v1.edp.epam.com
   resources:

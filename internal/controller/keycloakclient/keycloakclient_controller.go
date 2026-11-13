@@ -72,6 +72,7 @@ func (r *ReconcileKeycloakClient) SetupWithManager(mgr ctrl.Manager, successReco
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakclients/finalizers,verbs=update
+// +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;create
 
 // Reconcile is a loop for reconciling KeycloakClient object.
 func (r *ReconcileKeycloakClient) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {

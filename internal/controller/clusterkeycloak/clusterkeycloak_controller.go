@@ -50,7 +50,7 @@ const (
 // +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=v1.edp.epam.com,resources=clusterkeycloaks/finalizers,verbs=update
-// +kubebuilder:rbac:groups=v1,resources=configmap,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",namespace=placeholder,resources=configmaps,verbs=get
 
 // Reconcile is a loop for reconciling ClusterKeycloak object.
 func (r *Reconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {

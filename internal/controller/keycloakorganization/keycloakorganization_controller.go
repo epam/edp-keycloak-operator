@@ -59,7 +59,7 @@ func (r *ReconcileOrganization) SetupWithManager(mgr ctrl.Manager) error {
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups=v1.edp.epam.com,namespace=placeholder,resources=keycloakorganizations/finalizers,verbs=update
-// +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get;list;watch
+// +kubebuilder:rbac:groups="",namespace=placeholder,resources=secrets,verbs=get
 
 // Reconcile is a loop for reconciling Organization object.
 func (r *ReconcileOrganization) Reconcile(ctx context.Context, request reconcile.Request) (result reconcile.Result, resultErr error) {
