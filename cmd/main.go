@@ -440,10 +440,8 @@ func main() {
 	}
 }
 
-// managerClientOptions makes the manager's client read Secrets and ConfigMaps from the API server instead of
-// the informer cache. The operator only gets them by name (secret references, CA bundles), so it needs "get"
-// in the namespaces they are referenced from rather than a cluster-wide list/watch, and the Secrets of the
-// whole cluster stay out of its memory.
+// managerClientOptions sets the manager client to read Secrets and ConfigMaps from the API server.
+// Requires get on them; list and watch are not used.
 func managerClientOptions() client.Options {
 	return client.Options{
 		Cache: &client.CacheOptions{
