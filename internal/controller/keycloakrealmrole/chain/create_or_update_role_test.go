@@ -151,14 +151,10 @@ func TestCreateOrUpdateRole_Serve_ExistingRoleWithoutID(t *testing.T) {
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
 
-	// The role comes back without an id after the update.
+	// The existing role has no id (and already matches the empty spec, so no update is sent).
 	mockRoles.EXPECT().GetRealmRole(
 		context.Background(), "test-realm", testRoleName,
 	).Return(&keycloakapi.RoleRepresentation{Name: ptr.To(testRoleName)}, nil, nil)
-
-	mockRoles.EXPECT().UpdateRealmRole(
-		context.Background(), "test-realm", testRoleName, mock.Anything,
-	).Return(nil, nil)
 
 	h := NewCreateOrUpdateRole(kClient)
 	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
@@ -202,6 +198,7 @@ func TestCreateOrUpdateRole_Serve_UpdateError(t *testing.T) {
 
 	role := &keycloakApi.KeycloakRealmRole{}
 	role.Spec.Name = testRoleName
+	role.Spec.Description = "new description" // differs from Keycloak, so an update is sent
 
 	existingRole := &keycloakapi.RoleRepresentation{
 		Id:   ptr.To("role-id-123"),
@@ -219,7 +216,7 @@ func TestCreateOrUpdateRole_Serve_UpdateError(t *testing.T) {
 		keycloakapi.RoleRepresentation{
 			Id:          ptr.To("role-id-123"),
 			Name:        ptr.To(testRoleName),
-			Description: ptr.To(""),
+			Description: ptr.To("new description"),
 			Composite:   ptr.To(false),
 			Attributes:  &nilAttrs,
 		},
@@ -229,4 +226,86 @@ func TestCreateOrUpdateRole_Serve_UpdateError(t *testing.T) {
 	err := h.Serve(context.Background(), role, "test-realm", &RoleContext{})
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "failed to update realm role")
+}
+
+func TestCreateOrUpdateRole_Serve_UpToDateSkipsUpdate(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+	roleCtx := &RoleContext{}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testRoleName
+	role.Spec.Description = "Same description"
+	role.Spec.Composite = true
+	role.Spec.Attributes = map[string][]string{"key": {"b", "a"}, "empty": {}}
+
+	// Same values as the spec (value order and empty keys do not matter): no UpdateRealmRole call.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(&keycloakapi.RoleRepresentation{
+		Id:          ptr.To("role-id-123"),
+		Name:        ptr.To(testRoleName),
+		Description: ptr.To("Same description"),
+		Composite:   ptr.To(true),
+		Attributes:  &map[string][]string{"key": {"a", "b"}},
+	}, nil, nil)
+
+	h := NewCreateOrUpdateRole(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "role-id-123", roleCtx.RoleID)
+}
+
+func TestCreateOrUpdateRole_Serve_NilSpecAttributesNotManaged(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+	roleCtx := &RoleContext{}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testRoleName
+	role.Spec.Description = "desc"
+
+	// Attributes set by hand in Keycloak, none in the spec: no update.
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(&keycloakapi.RoleRepresentation{
+		Id:          ptr.To("role-id-123"),
+		Name:        ptr.To(testRoleName),
+		Description: ptr.To("desc"),
+		Attributes:  &map[string][]string{"manual": {"x"}},
+	}, nil, nil)
+
+	h := NewCreateOrUpdateRole(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "role-id-123", roleCtx.RoleID)
+}
+
+func TestCreateOrUpdateRole_Serve_AttributeDriftUpdates(t *testing.T) {
+	mockRoles := mocks.NewMockRolesClient(t)
+	kClient := &keycloakapi.KeycloakClient{Roles: mockRoles}
+	roleCtx := &RoleContext{}
+
+	role := &keycloakApi.KeycloakRealmRole{}
+	role.Spec.Name = testRoleName
+	role.Spec.Description = "desc"
+	role.Spec.Attributes = map[string][]string{"key": {"want"}}
+
+	mockRoles.EXPECT().GetRealmRole(
+		context.Background(), "test-realm", testRoleName,
+	).Return(&keycloakapi.RoleRepresentation{
+		Id:          ptr.To("role-id-123"),
+		Name:        ptr.To(testRoleName),
+		Description: ptr.To("desc"),
+		Attributes:  &map[string][]string{"key": {"have"}},
+	}, nil, nil)
+
+	mockRoles.EXPECT().UpdateRealmRole(
+		context.Background(), "test-realm", testRoleName, mock.Anything,
+	).Return(nil, nil).Once()
+
+	h := NewCreateOrUpdateRole(kClient)
+	err := h.Serve(context.Background(), role, "test-realm", roleCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "role-id-123", roleCtx.RoleID)
 }

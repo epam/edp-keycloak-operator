@@ -196,7 +196,10 @@ func TestReconcileKeycloakRealmRole_Reconcile(t *testing.T) {
 			setup: func(_ *testing.T, h *helpermock.MockControllerHelper, rolesClient *v2mocks.MockRolesClient, _ client.Client) {
 				realms := expectClient(h, rolesClient)
 				rolesClient.EXPECT().GetRealmRole(mock.Anything, "realm", "role").
-					Return(&keycloakapi.RoleRepresentation{Id: ptr.To("new-role-id"), Name: ptr.To("role")}, nil, nil)
+					Return(&keycloakapi.RoleRepresentation{
+						Id: ptr.To("new-role-id"), Name: ptr.To("role"), Description: ptr.To("drifted"),
+					}, nil, nil)
+				// The description in Keycloak differs from the spec, so the role is updated.
 				rolesClient.EXPECT().UpdateRealmRole(mock.Anything, "realm", "role", mock.Anything).Return(nil, nil)
 				realms.EXPECT().GetRealm(mock.Anything, "realm").
 					Return(&keycloakapi.RealmRepresentation{
