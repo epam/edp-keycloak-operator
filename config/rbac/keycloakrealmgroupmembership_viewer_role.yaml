@@ -1,0 +1,23 @@
+# permissions for end users to view keycloakrealmgroupmemberships.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: keycloak-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: keycloakrealmgroupmembership-viewer-role
+rules:
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmgroupmemberships
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - v1.edp.epam.com
+  resources:
+  - keycloakrealmgroupmemberships/status
+  verbs:
+  - get

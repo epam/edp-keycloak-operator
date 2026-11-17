@@ -70,6 +70,12 @@ spec:
       kind: KeycloakRealmGroup
       name: keycloakrealmgroups.v1.edp.epam.com
       version: v1
+    - description: KeycloakRealmGroupMembership is the Schema for the keycloak group
+        membership API.
+      displayName: Keycloak Realm Group Membership
+      kind: KeycloakRealmGroupMembership
+      name: keycloakrealmgroupmemberships.v1.edp.epam.com
+      version: v1
     - description: KeycloakRealmIdentityProvider is the Schema for the keycloak realm
         identity provider API.
       displayName: Keycloak Realm Identity Provider

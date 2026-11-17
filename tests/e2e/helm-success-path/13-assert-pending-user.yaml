@@ -1,0 +1,14 @@
+# Pending members are looked up again every minute.
+apiVersion: kuttl.dev/v1beta1
+kind: TestAssert
+timeout: 150
+---
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmGroupMembership
+metadata:
+  name: keycloakrealmgroupmembership-sample
+status:
+  value: OK
+  resolvedMembers:
+    - username: john.snow13
+    - email: late.user@example.com

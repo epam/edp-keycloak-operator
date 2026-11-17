@@ -1,5 +1,39 @@
 # Upgrade
 
+## From 1.36.x to 1.37.x
+
+Scale the operator to 0, then run these commands to update the CRDs before applying the upgrade.
+CRDs are cluster-wide: run once per cluster.
+Run the scale command for every operator release on the cluster. Default `<name>`: `keycloak-operator`.
+
+```sh
+kubectl scale deployment <name> -n <namespace> --replicas=0
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_clusterkeycloakrealms.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_clusterkeycloaks.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakauthflows.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakclients.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakclientscopes.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakorganizations.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmcomponents.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmgroupmemberships.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmgroups.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmidentityproviders.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmrolebatches.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmroles.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealms.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloakrealmusers.yaml
+kubectl replace -f https://raw.githubusercontent.com/epam/edp-keycloak-operator/v1.37.0/deploy-templates/crds/v1.edp.epam.com_keycloaks.yaml
+```
+
+A `replace` that reports `NotFound`, such as the new `KeycloakRealmGroupMembership` CRD: run `kubectl create -f` with the same URL.
+
+Upgrade the chart. `<release>`: the Helm release name. `--reset-then-reuse-values` (Helm 3.14+) keeps your values and takes the defaults of new chart keys. `helm upgrade` sets the replica count from the chart values.
+
+```sh
+helm repo update epamedp
+helm upgrade <release> epamedp/keycloak-operator --version 1.37.0 -n <namespace> --reset-then-reuse-values
+```
+
 ## From 1.35.x to 1.36.x
 
 Keycloak 26.4 to 26.8 (1.35: 26.4 to 26.7). Requires Kubernetes 1.32+ or OpenShift 4.19+; `helm upgrade` fails on older clusters.

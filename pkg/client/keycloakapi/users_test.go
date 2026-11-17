@@ -220,6 +220,82 @@ func TestUsersClient_FindUserByUsername_NotFound(t *testing.T) {
 	require.NotNil(t, resp)
 }
 
+func TestUsersClient_FindUserByEmail(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	ctx := context.Background()
+
+	realmName := testutils.UniqueName("test-realm-find-email")
+	enabled := true
+
+	t.Cleanup(func() {
+		_, _ = c.Realms.DeleteRealm(context.Background(), realmName)
+	})
+
+	_, err = c.Realms.CreateRealm(ctx, keycloakapi.RealmRepresentation{
+		Realm:                  &realmName,
+		Enabled:                &enabled,
+		DuplicateEmailsAllowed: ptr.To(true),
+	})
+	require.NoError(t, err)
+
+	for _, u := range []keycloakapi.UserRepresentation{
+		{Username: ptr.To("find-email-user"), Email: ptr.To("find-email-user@example.com"), Enabled: &enabled},
+		{Username: ptr.To("dup-email-user-1"), Email: ptr.To("dup@example.com"), Enabled: &enabled},
+		{Username: ptr.To("dup-email-user-2"), Email: ptr.To("dup@example.com"), Enabled: &enabled},
+	} {
+		_, err = c.Users.CreateUser(ctx, realmName, u)
+		require.NoError(t, err)
+	}
+
+	// Find the user by exact email
+	found, resp, err := c.Users.FindUserByEmail(ctx, realmName, "find-email-user@example.com")
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.NotNil(t, found)
+	require.NotNil(t, found.Username)
+	require.Equal(t, "find-email-user", *found.Username)
+
+	// Partial match should return ErrNotFound (exact=true)
+	_, resp, err = c.Users.FindUserByEmail(ctx, realmName, "find-email-user@")
+	require.True(t, keycloakapi.IsNotFound(err), "partial match should return ErrNotFound")
+	require.NotNil(t, resp)
+
+	// Several users with the same email is an error, not a match
+	found, _, err = c.Users.FindUserByEmail(ctx, realmName, "dup@example.com")
+	require.Error(t, err)
+	require.False(t, keycloakapi.IsNotFound(err))
+	require.Nil(t, found)
+}
+
+func TestUsersClient_FindUserByEmail_NotFound(t *testing.T) {
+	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
+	t.Parallel()
+
+	c, err := keycloakapi.NewKeycloakClient(
+		context.Background(),
+		keycloakURL,
+		keycloakapi.DefaultAdminClientID,
+		keycloakapi.WithPasswordGrant(keycloakapi.DefaultAdminUsername, keycloakapi.DefaultAdminPassword),
+	)
+	require.NoError(t, err)
+
+	user, resp, err := c.Users.FindUserByEmail(context.Background(), "nonexistent-realm-12345", "any@example.com")
+	require.Error(t, err)
+	require.True(t, keycloakapi.IsNotFound(err))
+	require.Nil(t, user)
+	require.NotNil(t, resp)
+}
+
 func TestUsersClient_CreateUser(t *testing.T) {
 	keycloakURL := testutils.GetKeycloakURLOrSkip(t)
 	t.Parallel()

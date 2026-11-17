@@ -1,0 +1,11 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  # A member added outside the operator: KeycloakRealmGroupMembership addOnly must keep it.
+  - script: |
+      kc() { kubectl exec -n "$NAMESPACE" deploy/keycloak -c keycloak -- /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config; }
+      kc config credentials --server http://localhost:8080 --realm master --user admin --password admin
+      kc create users -r test-realm -s username=outsider -s enabled=true
+      user_id=$(kc get users -r test-realm -q username=outsider -q exact=true --fields id --format csv --noquotes)
+      group_id=$(kc get group-by-path/membership-group -r test-realm --fields id --format csv --noquotes)
+      kc update "users/$user_id/groups/$group_id" -r test-realm -n

@@ -18,7 +18,7 @@ author.
 
 | Use | Kinds | Where the value goes |
 |---|---|---|
-| No Secret read | KeycloakRealmRole, KeycloakRealmRoleBatch, KeycloakRealmGroup, KeycloakClientScope, KeycloakOrganization; any config without a reference | nowhere |
+| No Secret read | KeycloakRealmRole, KeycloakRealmRoleBatch, KeycloakRealmGroup, KeycloakRealmGroupMembership, KeycloakClientScope, KeycloakOrganization; any config without a reference | nowhere |
 | Secret stored in Keycloak only | KeycloakClient (`spec.secret`), KeycloakRealmUser (password Secret) | Keycloak admin API; Keycloak does not send it on |
 | Secret sent to an address in the spec | Keycloak, ClusterKeycloak (admin credentials → `spec.url`, routed by `spec.tlsServerName`); KeycloakRealm, ClusterKeycloakRealm (SMTP password → `spec.smtp.connection.host`); KeycloakRealmIdentityProvider, KeycloakRealmComponent, KeycloakAuthFlow (references in `config` → addresses in the same config) | the address the author writes |
 

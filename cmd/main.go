@@ -43,6 +43,7 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealm"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmcomponent"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmgroup"
+	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmgroupmembership"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmidentityprovider"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrole"
 	"github.com/epam/edp-keycloak-operator/internal/controller/keycloakrealmrolebatch"
@@ -303,6 +304,12 @@ func main() {
 	krgCtrl := keycloakrealmgroup.NewReconcileKeycloakRealmGroup(mgr.GetClient(), h)
 	if err = krgCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
 		setupLog.Error(err, "unable to create keycloak-realm-group controller")
+		os.Exit(1)
+	}
+
+	krgmCtrl := keycloakrealmgroupmembership.NewReconcileKeycloakRealmGroupMembership(mgr.GetClient(), h)
+	if err = krgmCtrl.SetupWithManager(mgr, successReconcileTimeoutValue); err != nil {
+		setupLog.Error(err, "unable to create keycloak-realm-group-membership controller")
 		os.Exit(1)
 	}
 

@@ -70,6 +70,7 @@ rules:
   - keycloakclientscopes
   - keycloakorganizations
   - keycloakrealmcomponents
+  - keycloakrealmgroupmemberships
   - keycloakrealmgroups
   - keycloakrealmidentityproviders
   - keycloakrealmrolebatches
@@ -93,6 +94,7 @@ rules:
   - keycloakclientscopes/finalizers
   - keycloakorganizations/finalizers
   - keycloakrealmcomponents/finalizers
+  - keycloakrealmgroupmemberships/finalizers
   - keycloakrealmgroups/finalizers
   - keycloakrealmidentityproviders/finalizers
   - keycloakrealmrolebatches/finalizers
@@ -110,6 +112,7 @@ rules:
   - keycloakclientscopes/status
   - keycloakorganizations/status
   - keycloakrealmcomponents/status
+  - keycloakrealmgroupmemberships/status
   - keycloakrealmgroups/status
   - keycloakrealmidentityproviders/status
   - keycloakrealmrolebatches/status

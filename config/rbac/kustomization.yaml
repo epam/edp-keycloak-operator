@@ -43,6 +43,9 @@ resources:
 - keycloakrealmgroup_admin_role.yaml
 - keycloakrealmgroup_editor_role.yaml
 - keycloakrealmgroup_viewer_role.yaml
+- keycloakrealmgroupmembership_admin_role.yaml
+- keycloakrealmgroupmembership_editor_role.yaml
+- keycloakrealmgroupmembership_viewer_role.yaml
 - keycloakrealmrole_admin_role.yaml
 - keycloakrealmrole_editor_role.yaml
 - keycloakrealmrole_viewer_role.yaml

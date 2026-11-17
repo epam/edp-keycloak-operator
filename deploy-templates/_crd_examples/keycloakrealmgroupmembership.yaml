@@ -1,0 +1,13 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmGroupMembership
+metadata:
+  name: keycloakrealmgroupmembership-sample
+spec:
+  realmRef:
+    name: keycloakrealm-sample
+    kind: KeycloakRealm
+  group: /ArgoCDAdmins
+  strategy: addOnly
+  members:
+    - username: jane.doe
+    - email: john.doe@example.com

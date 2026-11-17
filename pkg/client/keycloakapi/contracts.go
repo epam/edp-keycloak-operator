@@ -22,6 +22,9 @@ type UsersClient interface {
 	) (*UserProfileConfig, *Response, error)
 	// FindUserByUsername looks up a user by exact username. Returns ErrNotFound if no match.
 	FindUserByUsername(ctx context.Context, realm, username string) (*UserRepresentation, *Response, error)
+	// FindUserByEmail looks up a user by exact email. Returns ErrNotFound if no match,
+	// and an error if several users share the email.
+	FindUserByEmail(ctx context.Context, realm, email string) (*UserRepresentation, *Response, error)
 	// CreateUser creates a new user in the given realm.
 	CreateUser(ctx context.Context, realm string, user UserRepresentation) (*Response, error)
 	// UpdateUser updates an existing user identified by their Keycloak UUID.

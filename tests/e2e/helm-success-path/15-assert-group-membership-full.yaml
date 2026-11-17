@@ -1,0 +1,8 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmGroupMembership
+metadata:
+  name: keycloakrealmgroupmembership-sample
+spec:
+  strategy: full
+status:
+  value: OK

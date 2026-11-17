@@ -933,6 +933,88 @@ func (_c *MockUsersClient_ExecuteActionsEmail_Call) RunAndReturn(run func(ctx co
 	return _c
 }
 
+// FindUserByEmail provides a mock function for the type MockUsersClient
+func (_mock *MockUsersClient) FindUserByEmail(ctx context.Context, realm string, email string) (*keycloakapi.UserRepresentation, *keycloakapi.Response, error) {
+	ret := _mock.Called(ctx, realm, email)
+
+	if len(ret) == 0 {
+		panic("no return value specified for FindUserByEmail")
+	}
+
+	var r0 *keycloakapi.UserRepresentation
+	var r1 *keycloakapi.Response
+	var r2 error
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) (*keycloakapi.UserRepresentation, *keycloakapi.Response, error)); ok {
+		return returnFunc(ctx, realm, email)
+	}
+	if returnFunc, ok := ret.Get(0).(func(context.Context, string, string) *keycloakapi.UserRepresentation); ok {
+		r0 = returnFunc(ctx, realm, email)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*keycloakapi.UserRepresentation)
+		}
+	}
+	if returnFunc, ok := ret.Get(1).(func(context.Context, string, string) *keycloakapi.Response); ok {
+		r1 = returnFunc(ctx, realm, email)
+	} else {
+		if ret.Get(1) != nil {
+			r1 = ret.Get(1).(*keycloakapi.Response)
+		}
+	}
+	if returnFunc, ok := ret.Get(2).(func(context.Context, string, string) error); ok {
+		r2 = returnFunc(ctx, realm, email)
+	} else {
+		r2 = ret.Error(2)
+	}
+	return r0, r1, r2
+}
+
+// MockUsersClient_FindUserByEmail_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'FindUserByEmail'
+type MockUsersClient_FindUserByEmail_Call struct {
+	*mock.Call
+}
+
+// FindUserByEmail is a helper method to define mock.On call
+//   - ctx context.Context
+//   - realm string
+//   - email string
+func (_e *MockUsersClient_Expecter) FindUserByEmail(ctx any, realm any, email any) *MockUsersClient_FindUserByEmail_Call {
+	return &MockUsersClient_FindUserByEmail_Call{Call: _e.mock.On("FindUserByEmail", ctx, realm, email)}
+}
+
+func (_c *MockUsersClient_FindUserByEmail_Call) Run(run func(ctx context.Context, realm string, email string)) *MockUsersClient_FindUserByEmail_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		var arg0 context.Context
+		if args[0] != nil {
+			arg0 = args[0].(context.Context)
+		}
+		var arg1 string
+		if args[1] != nil {
+			arg1 = args[1].(string)
+		}
+		var arg2 string
+		if args[2] != nil {
+			arg2 = args[2].(string)
+		}
+		run(
+			arg0,
+			arg1,
+			arg2,
+		)
+	})
+	return _c
+}
+
+func (_c *MockUsersClient_FindUserByEmail_Call) Return(userRepresentation *keycloakapi.UserRepresentation, response *keycloakapi.Response, err error) *MockUsersClient_FindUserByEmail_Call {
+	_c.Call.Return(userRepresentation, response, err)
+	return _c
+}
+
+func (_c *MockUsersClient_FindUserByEmail_Call) RunAndReturn(run func(ctx context.Context, realm string, email string) (*keycloakapi.UserRepresentation, *keycloakapi.Response, error)) *MockUsersClient_FindUserByEmail_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // FindUserByUsername provides a mock function for the type MockUsersClient
 func (_mock *MockUsersClient) FindUserByUsername(ctx context.Context, realm string, username string) (*keycloakapi.UserRepresentation, *keycloakapi.Response, error) {
 	ret := _mock.Called(ctx, realm, username)

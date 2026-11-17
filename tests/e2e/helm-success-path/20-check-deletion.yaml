@@ -1,0 +1,16 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  # Deletion removes the listed members; the preserve annotation keeps them.
+  - script: |
+      EXPECTED="outsider"
+      kc() { kubectl exec -n "$NAMESPACE" deploy/keycloak -c keycloak -- /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config; }
+      kc config credentials --server http://localhost:8080 --realm master --user admin --password admin
+      group_id=$(kc get group-by-path/membership-group -r test-realm --fields id --format csv --noquotes)
+      for i in $(seq 1 30); do
+        members=$(kc get "groups/$group_id/members" -r test-realm --fields username --format csv --noquotes | sort | paste -sd, -)
+        [ "$members" = "$EXPECTED" ] && exit 0
+        sleep 2
+      done
+      echo "group members: got \"$members\", want \"$EXPECTED\""
+      exit 1

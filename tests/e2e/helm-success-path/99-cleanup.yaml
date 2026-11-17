@@ -5,7 +5,7 @@ commands:
     namespaced: true
   - command: kubectl delete keycloakclient keycloakclient-sample keycloakclient-nosecret keycloakclient-serviceaccount keycloakclient-empty-uris
     namespaced: true
-  - command: kubectl delete keycloakrealmgroup keycloakrealmgroup-sample
+  - command: kubectl delete keycloakrealmgroup keycloakrealmgroup-sample keycloakrealmgroup-membership
     namespaced: true
   - command: kubectl delete keycloakrealmidentityprovider keycloakrealmidentityprovider-sample keycloakrealmidentityprovider-sample-with-pass
     namespaced: true

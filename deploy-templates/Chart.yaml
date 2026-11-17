@@ -84,6 +84,11 @@ annotations:
       name: keycloakrealmgroup
       displayName: KeycloakRealmGroup
       description: Keycloak Realm Group Management
+    - kind: KeycloakRealmGroupMembership
+      version: v1.edp.epam.com/v1
+      name: keycloakrealmgroupmembership
+      displayName: KeycloakRealmGroupMembership
+      description: Keycloak Realm Group Membership Management
     - kind: KeycloakRealmIdentityProvider
       version: v1.edp.epam.com/v1
       name: keycloakrealmidentityprovider
@@ -194,6 +199,19 @@ annotations:
           name: keycloakrealm-sample
           kind: KeycloakRealm
         name: ArgoCDAdmins
+    - apiVersion: v1.edp.epam.com/v1
+      kind: KeycloakRealmGroupMembership
+      metadata:
+        name: keycloakrealmgroupmembership-sample
+      spec:
+        realmRef:
+          name: keycloakrealm-sample
+          kind: KeycloakRealm
+        group: /ArgoCDAdmins
+        strategy: addOnly
+        members:
+          - username: jane.doe
+          - email: john.doe@example.com
     - apiVersion: v1.edp.epam.com/v1
       kind: KeycloakAuthFlow
       metadata:
