@@ -34,7 +34,7 @@ TESTBED_DEPLOYS=(keycloak/keycloak cert-manager/cert-manager)
 PROMPT_TARGETS=(start-kind delete-kind e2e bundle bundle-build bundle-push docker-push install generate-keycloak-go-client start-keycloak delete-keycloak)
 
 # Namespaced CR kinds, deleted in this order at teardown (children before realms, realms before Keycloak).
-CR_DELETE_ORDER=(keycloakrealmusers keycloakrealmgroups keycloakrealmroles keycloakrealmrolebatches keycloakclientscopes keycloakclients keycloakrealmidentityproviders keycloakauthflows keycloakrealmcomponents keycloakorganizations keycloakrealms keycloaks)
+CR_DELETE_ORDER=(keycloakrealmgroupmemberships keycloakrealmusers keycloakrealmgroups keycloakrealmroles keycloakrealmrolebatches keycloakclientscopes keycloakclients keycloakrealmidentityproviders keycloakauthflows keycloakrealmcomponents keycloakorganizations keycloakrealms keycloaks)
 
 WORK_DIR=.work
 LOCK_FILE=.work/.crd-lock

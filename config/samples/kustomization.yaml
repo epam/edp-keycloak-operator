@@ -7,6 +7,7 @@ resources:
 - v1_v1_keycloakrealmcomponent.yaml
 - v1_v1_keycloakrealm.yaml
 - v1_v1_keycloakrealmgroup.yaml
+- v1_v1_keycloakrealmgroupmembership.yaml
 - v1_v1_keycloakrealmidentityprovider.yaml
 - v1_v1_keycloakrealmrole.yaml
 - v1_v1_keycloakrealmrolebatch.yaml

@@ -9,6 +9,7 @@ resources:
 - bases/v1.edp.epam.com_keycloakrealmcomponents.yaml
 - bases/v1.edp.epam.com_keycloakrealms.yaml
 - bases/v1.edp.epam.com_keycloakrealmgroups.yaml
+- bases/v1.edp.epam.com_keycloakrealmgroupmemberships.yaml
 - bases/v1.edp.epam.com_keycloakrealmidentityproviders.yaml
 - bases/v1.edp.epam.com_keycloakrealmroles.yaml
 - bases/v1.edp.epam.com_keycloakrealmrolebatches.yaml

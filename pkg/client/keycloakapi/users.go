@@ -2,6 +2,7 @@ package keycloakapi
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi/generated"
 )
@@ -98,6 +99,44 @@ func (c *usersClient) FindUserByUsername(
 
 	if res.JSON200 == nil || len(*res.JSON200) == 0 {
 		return nil, response, ErrNotFound
+	}
+
+	user := (*res.JSON200)[0]
+
+	return &user, response, nil
+}
+
+func (c *usersClient) FindUserByEmail(
+	ctx context.Context,
+	realm, email string,
+) (*UserRepresentation, *Response, error) {
+	exact := true
+
+	res, err := c.client.GetAdminRealmsRealmUsersWithResponse(ctx, realm, &generated.GetAdminRealmsRealmUsersParams{
+		Email: &email,
+		Exact: &exact,
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if res == nil {
+		return nil, nil, ErrNilResponse
+	}
+
+	response := &Response{HTTPResponse: res.HTTPResponse, Body: res.Body}
+
+	if err := checkResponseError(res.HTTPResponse, res.Body); err != nil {
+		return nil, response, err
+	}
+
+	if res.JSON200 == nil || len(*res.JSON200) == 0 {
+		return nil, response, ErrNotFound
+	}
+
+	// A realm with duplicateEmailsAllowed can hold several users with the same email.
+	if len(*res.JSON200) > 1 {
+		return nil, response, fmt.Errorf("%d users found with email %q", len(*res.JSON200), email)
 	}
 
 	user := (*res.JSON200)[0]

@@ -2820,6 +2820,8 @@ Resource Types:
 
 - [KeycloakRealmComponent](#keycloakrealmcomponent)
 
+- [KeycloakRealmGroupMembership](#keycloakrealmgroupmembership)
+
 - [KeycloakRealmGroup](#keycloakrealmgroup)
 
 - [KeycloakRealmIdentityProvider](#keycloakrealmidentityprovider)
@@ -5365,6 +5367,307 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
         <td>string</td>
         <td>
           <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+## KeycloakRealmGroupMembership
+<sup><sup>[↩ Parent](#v1edpepamcomv1 )</sup></sup>
+
+
+
+
+
+
+KeycloakRealmGroupMembership is the Schema for the keycloak group membership API.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+      <td><b>apiVersion</b></td>
+      <td>string</td>
+      <td>v1.edp.epam.com/v1</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b>kind</b></td>
+      <td>string</td>
+      <td>KeycloakRealmGroupMembership</td>
+      <td>true</td>
+      </tr>
+      <tr>
+      <td><b><a href="https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.27/#objectmeta-v1-meta">metadata</a></b></td>
+      <td>object</td>
+      <td>Refer to the Kubernetes API documentation for the fields of the `metadata` field.</td>
+      <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipspec">spec</a></b></td>
+        <td>object</td>
+        <td>
+          KeycloakRealmGroupMembershipSpec defines the desired state of KeycloakRealmGroupMembership.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipstatus">status</a></b></td>
+        <td>object</td>
+        <td>
+          KeycloakRealmGroupMembershipStatus defines the observed state of KeycloakRealmGroupMembership.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.spec
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembership)</sup></sup>
+
+
+
+KeycloakRealmGroupMembershipSpec defines the desired state of KeycloakRealmGroupMembership.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>group</b></td>
+        <td>string</td>
+        <td>
+          Group is the Keycloak group whose members are managed.
+Either a plain group name (e.g. "developers") or a slash-separated path (e.g. "/parent/child").
+A plain name resolves against top-level groups only. Use a path to reference a nested group.
+The group must exist; the operator does not create it.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipspecmembersindex">members</a></b></td>
+        <td>[]object</td>
+        <td>
+          Members is a list of users that must be members of the group.
+The operator never creates users: a member that does not exist in Keycloak yet is reported
+in status.pendingMembers, looked up again every minute and added once it exists, e.g. after the user's first login.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipspecrealmref">realmRef</a></b></td>
+        <td>object</td>
+        <td>
+          RealmRef is reference to Realm custom resource.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>strategy</b></td>
+        <td>enum</td>
+        <td>
+          Strategy defines how the group members are reconciled. Possible values: addOnly, full.
+addOnly: the listed members are added to the group; other members are left alone.
+full: the group contains exactly the listed members; members not listed are removed.<br/>
+          <br/>
+            <i>Enum</i>: addOnly, full<br/>
+            <i>Default</i>: addOnly<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.spec.members[index]
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembershipspec)</sup></sup>
+
+
+
+GroupMember identifies a Keycloak user by exact username or exact email.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>email</b></td>
+        <td>string</td>
+        <td>
+          Email is the exact email of the user.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          Username is the exact username of the user.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.spec.realmRef
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembershipspec)</sup></sup>
+
+
+
+RealmRef is reference to Realm custom resource.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>name</b></td>
+        <td>string</td>
+        <td>
+          Name specifies the name of the Keycloak resource.<br/>
+        </td>
+        <td>true</td>
+      </tr><tr>
+        <td><b>kind</b></td>
+        <td>enum</td>
+        <td>
+          Kind specifies the kind of the Keycloak resource.<br/>
+          <br/>
+            <i>Enum</i>: KeycloakRealm, ClusterKeycloakRealm<br/>
+            <i>Default</i>: KeycloakRealm<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.status
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembership)</sup></sup>
+
+
+
+KeycloakRealmGroupMembershipStatus defines the observed state of KeycloakRealmGroupMembership.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>failureCount</b></td>
+        <td>integer</td>
+        <td>
+          <br/>
+          <br/>
+            <i>Format</i>: int64<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipstatuspendingmembersindex">pendingMembers</a></b></td>
+        <td>[]object</td>
+        <td>
+          PendingMembers is the list of members not found in Keycloak yet.
+They are added to the group on a later reconciliation once they exist.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b><a href="#keycloakrealmgroupmembershipstatusresolvedmembersindex">resolvedMembers</a></b></td>
+        <td>[]object</td>
+        <td>
+          ResolvedMembers is the list of members found in Keycloak.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>value</b></td>
+        <td>string</td>
+        <td>
+          <br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.status.pendingMembers[index]
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembershipstatus)</sup></sup>
+
+
+
+GroupMember identifies a Keycloak user by exact username or exact email.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>email</b></td>
+        <td>string</td>
+        <td>
+          Email is the exact email of the user.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          Username is the exact username of the user.<br/>
+        </td>
+        <td>false</td>
+      </tr></tbody>
+</table>
+
+
+### KeycloakRealmGroupMembership.status.resolvedMembers[index]
+<sup><sup>[↩ Parent](#keycloakrealmgroupmembershipstatus)</sup></sup>
+
+
+
+GroupMember identifies a Keycloak user by exact username or exact email.
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Description</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody><tr>
+        <td><b>email</b></td>
+        <td>string</td>
+        <td>
+          Email is the exact email of the user.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>username</b></td>
+        <td>string</td>
+        <td>
+          Username is the exact username of the user.<br/>
         </td>
         <td>false</td>
       </tr></tbody>

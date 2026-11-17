@@ -1,0 +1,175 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.23.0
+  name: keycloakrealmgroupmemberships.v1.edp.epam.com
+spec:
+  group: v1.edp.epam.com
+  names:
+    kind: KeycloakRealmGroupMembership
+    listKind: KeycloakRealmGroupMembershipList
+    plural: keycloakrealmgroupmemberships
+    singular: keycloakrealmgroupmembership
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - description: Keycloak group
+      jsonPath: .spec.group
+      name: Group
+      type: string
+    - description: Reconciliation strategy
+      jsonPath: .spec.strategy
+      name: Strategy
+      type: string
+    - description: Reconciliation status
+      jsonPath: .status.value
+      name: Status
+      type: string
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: KeycloakRealmGroupMembership is the Schema for the keycloak group
+          membership API.
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: KeycloakRealmGroupMembershipSpec defines the desired state
+              of KeycloakRealmGroupMembership.
+            properties:
+              group:
+                description: |-
+                  Group is the Keycloak group whose members are managed.
+                  Either a plain group name (e.g. "developers") or a slash-separated path (e.g. "/parent/child").
+                  A plain name resolves against top-level groups only. Use a path to reference a nested group.
+                  The group must exist; the operator does not create it.
+                example: /parent/child
+                minLength: 1
+                type: string
+              members:
+                description: |-
+                  Members is a list of users that must be members of the group.
+                  The operator never creates users: a member that does not exist in Keycloak yet is reported
+                  in status.pendingMembers, looked up again every minute and added once it exists, e.g. after the user's first login.
+                items:
+                  description: GroupMember identifies a Keycloak user by exact username
+                    or exact email.
+                  properties:
+                    email:
+                      description: Email is the exact email of the user.
+                      minLength: 1
+                      type: string
+                    username:
+                      description: Username is the exact username of the user.
+                      minLength: 1
+                      type: string
+                  type: object
+                  x-kubernetes-validations:
+                  - message: exactly one of username or email must be set
+                    rule: has(self.username) != has(self.email)
+                type: array
+              realmRef:
+                description: RealmRef is reference to Realm custom resource.
+                properties:
+                  kind:
+                    default: KeycloakRealm
+                    description: Kind specifies the kind of the Keycloak resource.
+                    enum:
+                    - KeycloakRealm
+                    - ClusterKeycloakRealm
+                    type: string
+                  name:
+                    description: Name specifies the name of the Keycloak resource.
+                    type: string
+                required:
+                - name
+                type: object
+              strategy:
+                default: addOnly
+                description: |-
+                  Strategy defines how the group members are reconciled. Possible values: addOnly, full.
+                  addOnly: the listed members are added to the group; other members are left alone.
+                  full: the group contains exactly the listed members; members not listed are removed.
+                enum:
+                - addOnly
+                - full
+                type: string
+            required:
+            - group
+            - members
+            - realmRef
+            type: object
+          status:
+            description: KeycloakRealmGroupMembershipStatus defines the observed state
+              of KeycloakRealmGroupMembership.
+            properties:
+              failureCount:
+                format: int64
+                type: integer
+              pendingMembers:
+                description: |-
+                  PendingMembers is the list of members not found in Keycloak yet.
+                  They are added to the group on a later reconciliation once they exist.
+                items:
+                  description: GroupMember identifies a Keycloak user by exact username
+                    or exact email.
+                  properties:
+                    email:
+                      description: Email is the exact email of the user.
+                      minLength: 1
+                      type: string
+                    username:
+                      description: Username is the exact username of the user.
+                      minLength: 1
+                      type: string
+                  type: object
+                  x-kubernetes-validations:
+                  - message: exactly one of username or email must be set
+                    rule: has(self.username) != has(self.email)
+                nullable: true
+                type: array
+              resolvedMembers:
+                description: ResolvedMembers is the list of members found in Keycloak.
+                items:
+                  description: GroupMember identifies a Keycloak user by exact username
+                    or exact email.
+                  properties:
+                    email:
+                      description: Email is the exact email of the user.
+                      minLength: 1
+                      type: string
+                    username:
+                      description: Username is the exact username of the user.
+                      minLength: 1
+                      type: string
+                  type: object
+                  x-kubernetes-validations:
+                  - message: exactly one of username or email must be set
+                    rule: has(self.username) != has(self.email)
+                nullable: true
+                type: array
+              value:
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

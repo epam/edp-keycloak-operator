@@ -1,0 +1,8 @@
+apiVersion: kuttl.dev/v1beta1
+kind: TestStep
+commands:
+  # The pending member logs in for the first time.
+  - script: |
+      kc() { kubectl exec -n "$NAMESPACE" deploy/keycloak -c keycloak -- /opt/keycloak/bin/kcadm.sh "$@" --config /tmp/kcadm.config; }
+      kc config credentials --server http://localhost:8080 --realm master --user admin --password admin
+      kc create users -r test-realm -s username=late.user -s email=late.user@example.com -s enabled=true

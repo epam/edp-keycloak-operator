@@ -1,0 +1,10 @@
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmGroupMembership
+metadata:
+  name: keycloakrealmgroupmembership-sample
+status:
+  value: OK
+  resolvedMembers:
+    - username: john.snow13
+  pendingMembers:
+    - email: late.user@example.com
