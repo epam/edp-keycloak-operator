@@ -5240,6 +5240,14 @@ Any configuration property can be a reference to k8s secret, in this case the pr
 If not specified, then parent is realm specified in realm field.<br/>
         </td>
         <td>false</td>
+      </tr><tr>
+        <td><b>removeDefaultMappers</b></td>
+        <td>boolean</td>
+        <td>
+          RemoveDefaultMappers removes the default LDAP mappers created by Keycloak when this component is created.
+It only applies to a newly created LDAP user storage provider; existing mapper components are left untouched.<br/>
+        </td>
+        <td>false</td>
       </tr></tbody>
 </table>
 
@@ -5342,6 +5350,20 @@ KeycloakComponentStatus defines the observed state of KeycloakRealmComponent.
         <td>string</td>
         <td>
           ConfigSecretsHash is a hash of referenced secret versions from the last successful reconcile; it contains no secret-derived data.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>defaultMappersRemoved</b></td>
+        <td>boolean</td>
+        <td>
+          DefaultMappersRemoved indicates that the creation-time LDAP mapper cleanup has completed.<br/>
+        </td>
+        <td>false</td>
+      </tr><tr>
+        <td><b>defaultMappersToRemove</b></td>
+        <td>[]string</td>
+        <td>
+          DefaultMappersToRemove contains the IDs of default LDAP mappers captured during cleanup.<br/>
         </td>
         <td>false</td>
       </tr><tr>

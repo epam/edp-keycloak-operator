@@ -3,6 +3,7 @@ package chain
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"k8s.io/utils/ptr"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -12,6 +13,12 @@ import (
 	"github.com/epam/edp-keycloak-operator/internal/controller/helper"
 	"github.com/epam/edp-keycloak-operator/pkg/client/keycloakapi"
 	"github.com/epam/edp-keycloak-operator/pkg/secretref"
+)
+
+const (
+	ldapProviderID         = "ldap"
+	ldapProviderType       = "org.keycloak.storage.UserStorageProvider"
+	ldapMapperProviderType = "org.keycloak.storage.ldap.mappers.LDAPStorageMapper"
 )
 
 // CreateOrUpdateComponent creates or updates a realm component in Keycloak.
@@ -45,6 +52,11 @@ func (h *CreateOrUpdateComponent) Serve(
 	log.Info("Creating or updating realm component")
 
 	spec := component.Spec
+	if spec.RemoveDefaultMappers &&
+		(spec.ProviderID != ldapProviderID || spec.ProviderType != ldapProviderType) {
+		return fmt.Errorf("removeDefaultMappers is only supported for LDAP user storage providers")
+	}
+
 	rawCfg := spec.Config
 
 	config := make(keycloakapi.MultivaluedHashMapStringString, len(spec.Config))
@@ -87,6 +99,12 @@ func (h *CreateOrUpdateComponent) Serve(
 		}
 
 		log.Info("Realm component created")
+
+		if spec.RemoveDefaultMappers {
+			if err := h.removeDefaultMappers(ctx, component, realmName, component.Status.ID, true); err != nil {
+				return err
+			}
+		}
 	} else {
 		if existing.Id == nil {
 			return fmt.Errorf("realm component %q has no id", spec.Name)
@@ -111,6 +129,18 @@ func (h *CreateOrUpdateComponent) Serve(
 		component.Status.ID = *existing.Id
 		repr.Id = existing.Id
 
+		if len(component.Status.DefaultMappersToRemove) > 0 {
+			if err := h.removeDefaultMappers(ctx, component, realmName, *existing.Id, false); err != nil {
+				return err
+			}
+		} else if spec.RemoveDefaultMappers && !component.Status.DefaultMappersRemoved {
+			return fmt.Errorf(
+				"cannot safely remove default mappers from existing LDAP component %q; "+
+					"removeDefaultMappers only removes mappers created with a new component",
+				spec.Name,
+			)
+		}
+
 		needsUpdate := helper.SpecChanged(component.Generation, component.Status.ObservedGeneration) ||
 			newHash != component.Status.ConfigSecretsHash ||
 			!componentMatchesSpec(existing, repr, rawCfg)
@@ -127,6 +157,52 @@ func (h *CreateOrUpdateComponent) Serve(
 	// Stamped even when the update is skipped; if the controller's status write fails, the
 	// generation check forces the next reconcile to re-run.
 	component.Status.ConfigSecretsHash = newHash
+
+	return nil
+}
+
+func (h *CreateOrUpdateComponent) removeDefaultMappers(
+	ctx context.Context,
+	component *keycloakApi.KeycloakRealmComponent,
+	realmName string,
+	componentID string,
+	capture bool,
+) error {
+	if capture && len(component.Status.DefaultMappersToRemove) == 0 {
+		mappers, _, err := h.kClient.RealmComponents.GetComponents(ctx, realmName, &keycloakapi.GetComponentsParams{
+			Parent: ptr.To(componentID),
+		})
+		if err != nil {
+			return fmt.Errorf("failed to list default LDAP mappers for component %q: %w", component.Spec.Name, err)
+		}
+
+		for i := range mappers {
+			if ptr.Deref(mappers[i].ParentId, "") == componentID &&
+				ptr.Deref(mappers[i].ProviderType, "") == ldapMapperProviderType {
+				if mappers[i].Id == nil {
+					return fmt.Errorf(
+						"default LDAP mapper %q for component %q has no ID",
+						ptr.Deref(mappers[i].Name, ""),
+						component.Spec.Name,
+					)
+				}
+
+				component.Status.DefaultMappersToRemove = append(component.Status.DefaultMappersToRemove, *mappers[i].Id)
+			}
+		}
+
+		slices.Sort(component.Status.DefaultMappersToRemove)
+	}
+
+	for _, mapperID := range component.Status.DefaultMappersToRemove {
+		if _, err := h.kClient.RealmComponents.DeleteComponent(ctx, realmName, mapperID); err != nil &&
+			!keycloakapi.IsNotFound(err) {
+			return fmt.Errorf("failed to remove default LDAP mapper %s for component %q: %w", mapperID, component.Spec.Name, err)
+		}
+	}
+
+	component.Status.DefaultMappersToRemove = nil
+	component.Status.DefaultMappersRemoved = true
 
 	return nil
 }

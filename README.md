@@ -141,6 +141,29 @@ To prevent the operator from deleting resources from Keycloak, add the `edp.epam
        kind: Keycloak
    ```
 
+#### Removing default LDAP mappers
+
+Set `spec.removeDefaultMappers: true` to remove the default mapper components Keycloak creates with a
+new LDAP user-storage component. The operator captures their Keycloak IDs and deletes those IDs once;
+later-created mappers are left alone even if they reuse a removed mapper's name. This option is only
+supported when creating a new LDAP component. Enabling it for an existing component reports an error
+because the operator cannot safely identify which existing mappers are defaults.
+
+```yaml
+apiVersion: v1.edp.epam.com/v1
+kind: KeycloakRealmComponent
+metadata:
+    name: master-ldap
+spec:
+    realmRef:
+      kind: KeycloakRealm
+      name: master
+    name: master-ldap
+    providerId: ldap
+    providerType: org.keycloak.storage.UserStorageProvider
+    removeDefaultMappers: true
+```
+
 #### Resources deletion
 
 To avoid resources getting stuck during deletion, it is important to delete them in the correct order:

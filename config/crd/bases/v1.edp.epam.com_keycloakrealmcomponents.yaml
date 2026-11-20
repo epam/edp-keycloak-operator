@@ -107,6 +107,11 @@ spec:
                 required:
                 - name
                 type: object
+              removeDefaultMappers:
+                description: |-
+                  RemoveDefaultMappers removes the default LDAP mappers created by Keycloak when this component is created.
+                  It only applies to a newly created LDAP user storage provider; existing mapper components are left untouched.
+                type: boolean
             required:
             - name
             - providerId
@@ -121,6 +126,16 @@ spec:
                   from the last successful reconcile; it contains no secret-derived
                   data.
                 type: string
+              defaultMappersRemoved:
+                description: DefaultMappersRemoved indicates that the creation-time
+                  LDAP mapper cleanup has completed.
+                type: boolean
+              defaultMappersToRemove:
+                description: DefaultMappersToRemove contains the IDs of default LDAP
+                  mappers captured during cleanup.
+                items:
+                  type: string
+                type: array
               id:
                 type: string
               observedGeneration:
