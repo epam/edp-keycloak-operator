@@ -30,16 +30,54 @@ jobs:
 
       - name: Check if the published tag is well formed and setup vars
         run: |
-          set -xue
+          set -xueo pipefail
+
+          # Registry and Rekor can lag behind the tag push: retry each lookup.
+          # RETRY_ATTEMPTS tries, waiting RETRY_DELAY * attempt seconds between them.
+          RETRY_ATTEMPTS="${RETRY_ATTEMPTS:-5}"
+          RETRY_DELAY="${RETRY_DELAY:-15}"
+
+          # retry <command...>: run the command until it succeeds, at most RETRY_ATTEMPTS
+          # times. Stdout is passed through, log lines go to stderr.
+          retry() {
+            attempt=1
+            while true; do
+              if "$@"; then
+                return 0
+              fi
+              if [ "${attempt}" -ge "${RETRY_ATTEMPTS}" ]; then
+                echo "::error::'$*' failed after ${attempt} attempts" >&2
+                return 1
+              fi
+              delay=$(( RETRY_DELAY * attempt ))
+              echo "'$*' failed (attempt ${attempt}/${RETRY_ATTEMPTS}), retrying in ${delay}s" >&2
+              sleep "${delay}"
+              attempt=$(( attempt + 1 ))
+            done
+          }
+
+          # Print the digest of the first layer of an image manifest. Fails if it is missing.
+          layer_digest() {
+            d=$(crane manifest "$1" | jq -r '.layers[0].digest // empty')
+            [ -n "${d}" ] || return 1
+            echo "${d}"
+          }
+
+          # Print the Rekor entry UUID for a layer digest. Fails if there is none yet.
+          rekor_uuid() {
+            u=$(rekor-cli search --sha "$1" --format json | jq -r '.UUIDs[0] // empty')
+            [ -n "${u}" ] || return 1
+            echo "${u}"
+          }
 
           # refs/tags/v2.10.7 -> v2.10.7
           RELEASE_TAG="${SOURCE_TAG##*/}"
-          # install git-chglog
-          go install github.com/git-chglog/git-chglog/cmd/git-chglog@latest
+          # install git-chglog (same version as the Makefile)
+          retry go install github.com/git-chglog/git-chglog/cmd/git-chglog@v0.15.4
           # install crane
-          go install github.com/google/go-containerregistry/cmd/crane@v0.16.1
+          retry go install github.com/google/go-containerregistry/cmd/crane@v0.16.1
           # install rekor-cli
-          go install github.com/sigstore/rekor/cmd/rekor-cli@v1.3.3
+          retry go install github.com/sigstore/rekor/cmd/rekor-cli@v1.3.3
 
           git-chglog --template .chglog/release.tpl.md -o release.md ${RELEASE_TAG}
 
@@ -48,23 +86,17 @@ jobs:
           IMAGE_TAG=${RELEASE_TAG#v}
 
           # Get the digest of the image
-          DIGEST=$(crane digest ${IMAGE_NAME}:${IMAGE_TAG} | tr ':' '-')
+          DIGEST=$(retry crane digest ${IMAGE_NAME}:${IMAGE_TAG} | tr ':' '-')
 
           # Get the digest of the attestation layer
-          ATTESTATION_DIGEST=$(crane manifest ${IMAGE_NAME}:${DIGEST}.att | jq -r '.layers[].digest')
+          ATTESTATION_DIGEST=$(retry layer_digest ${IMAGE_NAME}:${DIGEST}.att)
 
           # Get the digest of the signature layer
-          SIGNATURE_DIGEST=$(crane manifest ${IMAGE_NAME}:${DIGEST}.sig | jq -r '.layers[].digest')
+          SIGNATURE_DIGEST=$(retry layer_digest ${IMAGE_NAME}:${DIGEST}.sig)
 
-          # Search for the UUID of the attestation in JSON format
-          ATTESTATION_UUID_JSON=$(rekor-cli search --sha ${ATTESTATION_DIGEST} --format json)
-
-          # Search for the UUID of the signature in JSON format
-          SIGNATURE_UUID_JSON=$(rekor-cli search --sha ${SIGNATURE_DIGEST} --format json)
-
-          # Parse the JSON output to get the UUIDs
-          ATTESTATION_UUID=$(echo ${ATTESTATION_UUID_JSON} | jq -r '.UUIDs[0]')
-          SIGNATURE_UUID=$(echo ${SIGNATURE_UUID_JSON} | jq -r '.UUIDs[0]')
+          # Get the Rekor UUIDs of the attestation and the signature
+          ATTESTATION_UUID=$(retry rekor_uuid ${ATTESTATION_DIGEST})
+          SIGNATURE_UUID=$(retry rekor_uuid ${SIGNATURE_DIGEST})
 
           # Create a new file with the desired text and the UUIDs
           echo "### Deployment Certifications and Source Traceability" > new_release.md
